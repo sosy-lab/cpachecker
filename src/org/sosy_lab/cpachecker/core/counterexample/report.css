@@ -550,17 +550,35 @@ text {
 	left: 10px;
 	z-index: 1;
 	width: 200px;
-	background-color: #FDFEFF;
-	border: 2px solid #000080;
+	background-color: #ffef96;
+	display: inline-block;
+	border-radius: 6px;
+}
+
+.tool_tip #boxContent::after {
+	content: "";
+	position: absolute;
+	top: 25%;
+	right: 100%;
+	margin-top: -5px;
+	border-width: 5px;
+	border-style: solid;
+	border-color: transparent #ffef96 transparent transparent;
 }
 
 #insideBox {
-	padding: 10px;
+	padding-top: 10px;
 }
 
 #boxContent {
 	font-family: Verdana, Arial, Helvetica, sans-serif;
 	font-size: 12px;
-	color: black;
 	line-height: 130%;
+	color: black;
+	text-align: center;
+	padding: 5px 0;
+}
+
+.bold {
+	font-weight: bold;
 }
