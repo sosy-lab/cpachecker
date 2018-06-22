@@ -29,8 +29,6 @@ import java.math.BigInteger;
 
 public class SMGKnownExpValue extends SMGKnownValue implements SMGExplicitValue {
 
-  public static final SMGKnownExpValue ONE = new SMGKnownExpValue(BigInteger.ONE);
-
   protected SMGKnownExpValue(BigInteger pValue) {
     super(pValue);
   }
@@ -123,8 +121,6 @@ public class SMGKnownExpValue extends SMGKnownValue implements SMGExplicitValue 
 
     if (pValue.equals(BigInteger.ZERO)) {
       return SMGZeroValue.INSTANCE;
-    } else if (pValue.equals(BigInteger.ONE)) {
-      return ONE;
     } else {
       return new SMGKnownExpValue(pValue);
     }

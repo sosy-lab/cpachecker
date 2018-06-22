@@ -31,8 +31,6 @@ public class SMGKnownSymValue extends SMGKnownValue implements SMGKnownSymbolicV
 
   public static final SMGKnownSymValue ZERO = new SMGKnownSymValue(BigInteger.ZERO);
 
-  public static final SMGKnownSymValue ONE = new SMGKnownSymValue(BigInteger.ONE);
-
   public static final SMGKnownSymValue TRUE = new SMGKnownSymValue(BigInteger.valueOf(-1));
 
   public static final SMGKnownSymValue FALSE = ZERO;
@@ -51,8 +49,6 @@ public class SMGKnownSymValue extends SMGKnownValue implements SMGKnownSymbolicV
 
     if (pValue.equals(BigInteger.ZERO)) {
       return ZERO;
-    } else if (pValue.equals(BigInteger.ONE)) {
-      return ONE;
     } else {
       return new SMGKnownSymValue(pValue);
     }
