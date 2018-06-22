@@ -99,8 +99,11 @@ public interface SMGValue extends Comparable<SMGValue> {
     throw new AssertionError(String.format("unexpected comparison of '%s' and '%s'", this, other));
   }
 
-  /** returns whether the current value is ZERO in any of our representations. */
+  /**
+   * Returns whether the current value is ZERO in any of our representations. Note that we return
+   * FALSE for UNKNOWN .
+   */
   default boolean isZero() {
-    return SMGKnownAddressValue.ZERO_ADDRESS.equals(this) || SMGZeroValue.INSTANCE.equals(this);
+    return SMGZeroValue.INSTANCE.equals(this);
   }
 }

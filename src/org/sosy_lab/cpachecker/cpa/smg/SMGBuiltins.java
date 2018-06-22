@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
@@ -344,8 +343,7 @@ public class SMGBuiltins {
 
     // If malloc can fail, handle fail with alternative state
     if (options.isEnableMallocFailure()) {
-      result.add(
-          SMGAddressValueAndState.of(currentState.copyOf(), SMGKnownAddressValue.ZERO_ADDRESS));
+      result.add(SMGAddressValueAndState.of(currentState.copyOf(), SMGZeroValue.INSTANCE));
     }
 
     return result;
@@ -484,8 +482,7 @@ public class SMGBuiltins {
 
       // If malloc can fail, handle fail with alternative state
       if (options.isEnableMallocFailure()) {
-        result.add(
-            SMGAddressValueAndState.of(currentState.copyOf(), SMGKnownAddressValue.ZERO_ADDRESS));
+        result.add(SMGAddressValueAndState.of(currentState.copyOf(), SMGZeroValue.INSTANCE));
       }
     }
 
