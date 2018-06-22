@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class AssumeVisitor extends ExpressionValueVisitor {
@@ -247,7 +248,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     if(isTrue) {
       return SMGValueAndState.of(pNewState, SMGKnownSymValue.TRUE);
     } else if(isFalse) {
-      return SMGValueAndState.of(pNewState, SMGKnownSymValue.FALSE);
+      return SMGValueAndState.of(pNewState, SMGZeroValue.INSTANCE);
     } else {
       return SMGValueAndState.of(pNewState);
     }

@@ -190,7 +190,7 @@ public class SMGBuiltins {
 
     long offset =  bufferAddress.getOffset().getAsLong();
 
-    if (ch.equals(SMGKnownSymValue.ZERO)) {
+    if (ch.equals(SMGZeroValue.INSTANCE)) {
       // Create one large edge
       currentState =
           expressionEvaluator.writeValue(
@@ -477,7 +477,7 @@ public class SMGBuiltins {
                 new_address.getObject(),
                 0,
                 TypeUtils.createTypeWithLength(size * machineModel.getSizeofCharInBits()),
-                SMGKnownSymValue.ZERO,
+                SMGZeroValue.INSTANCE,
                 cfaEdge);
       }
       result.add(SMGAddressValueAndState.of(newState, new_address));

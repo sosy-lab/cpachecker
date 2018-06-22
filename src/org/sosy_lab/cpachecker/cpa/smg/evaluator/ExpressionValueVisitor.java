@@ -64,7 +64,6 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGVa
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
@@ -132,7 +131,7 @@ public class ExpressionValueVisitor
 
     boolean isZero = value.equals(BigInteger.ZERO);
 
-    SMGSymbolicValue val = (isZero ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance());
+    SMGSymbolicValue val = (isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.getInstance());
     return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
   }
 
@@ -142,7 +141,7 @@ public class ExpressionValueVisitor
 
     char value = exp.getCharacter();
 
-    SMGSymbolicValue val = (value == 0) ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
+    SMGSymbolicValue val = (value == 0) ? SMGZeroValue.INSTANCE : SMGUnknownValue.getInstance();
     return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
   }
 
@@ -184,7 +183,7 @@ public class ExpressionValueVisitor
 
     boolean isZero = exp.getValue().equals(BigDecimal.ZERO);
 
-    SMGSymbolicValue val = isZero ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
+    SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.getInstance();
     return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
   }
 
@@ -198,8 +197,7 @@ public class ExpressionValueVisitor
 
       long enumValue = ((CEnumerator) decl).getValue();
 
-      SMGSymbolicValue val = enumValue == 0 ? SMGKnownSymValue.ZERO
-          : SMGUnknownValue.getInstance();
+      SMGSymbolicValue val = enumValue == 0 ? SMGZeroValue.INSTANCE : SMGUnknownValue.getInstance();
       return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
 
     } else if (decl instanceof CVariableDeclaration
@@ -248,8 +246,8 @@ public class ExpressionValueVisitor
 
         SMGSymbolicValue value = valueAndState.getObject();
 
-        SMGSymbolicValue val = value.equals(SMGKnownSymValue.ZERO) ? value
-            : SMGUnknownValue.getInstance();
+          SMGSymbolicValue val =
+              value.equals(SMGZeroValue.INSTANCE) ? value : SMGUnknownValue.getInstance();
         result.add(SMGValueAndState.of(valueAndState.getSmgState(), val));
       }
 
@@ -262,7 +260,7 @@ public class ExpressionValueVisitor
                 TypeUtils.getRealExpressionType(unaryOperand),
                 getInitialSmgState(),
                 unaryOperand);
-      SMGSymbolicValue val = (size == 0) ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
+        SMGSymbolicValue val = (size == 0) ? SMGZeroValue.INSTANCE : SMGUnknownValue.getInstance();
         return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
     case TILDE:
 
@@ -297,8 +295,10 @@ public class ExpressionValueVisitor
 
     switch (typeOperator) {
     case SIZEOF:
-      SMGSymbolicValue val =
-          smgExpressionEvaluator.getBitSizeof(cfaEdge, type, getInitialSmgState(), typeIdExp) == 0 ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
+        SMGSymbolicValue val =
+            smgExpressionEvaluator.getBitSizeof(cfaEdge, type, getInitialSmgState(), typeIdExp) == 0
+                ? SMGZeroValue.INSTANCE
+                : SMGUnknownValue.getInstance();
         return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
     default:
         return singletonList(SMGValueAndState.of(getInitialSmgState()));
@@ -375,31 +375,30 @@ public class ExpressionValueVisitor
           case BINARY_OR:
           case BINARY_XOR:
           case SHIFT_RIGHT:
-            isZero = lVal.equals(SMGKnownSymValue.ZERO) && rVal.equals(SMGKnownSymValue.ZERO);
-            SMGSymbolicValue val = isZero ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
+              isZero = lVal.equals(SMGZeroValue.INSTANCE) && rVal.equals(SMGZeroValue.INSTANCE);
+              SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.getInstance();
               return singletonList(SMGValueAndState.of(newState, val));
 
           case MINUS:
           case MODULO:
             isZero = (lVal.equals(rVal));
-            val = isZero ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
+              val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.getInstance();
               return singletonList(SMGValueAndState.of(newState, val));
 
           case DIVIDE:
-            // TODO maybe we should signal a division by zero error?
-            if (rVal.equals(SMGKnownSymValue.ZERO)) {
+              // TODO maybe we should signal a division by zero error?
+              if (rVal.equals(SMGZeroValue.INSTANCE)) {
                 return singletonList(SMGValueAndState.of(newState));
             }
 
-            isZero = lVal.equals(SMGKnownSymValue.ZERO);
-            val = isZero ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
+              isZero = lVal.equals(SMGZeroValue.INSTANCE);
+              val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.getInstance();
               return singletonList(SMGValueAndState.of(newState, val));
 
           case MULTIPLY:
           case BINARY_AND:
-            isZero = lVal.equals(SMGKnownSymValue.ZERO)
-                || rVal.equals(SMGKnownSymValue.ZERO);
-            val = isZero ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
+              isZero = lVal.equals(SMGZeroValue.INSTANCE) || rVal.equals(SMGZeroValue.INSTANCE);
+              val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.getInstance();
               return singletonList(SMGValueAndState.of(newState, val));
 
           default:
@@ -425,8 +424,9 @@ public class ExpressionValueVisitor
           newState = assumptionValueAndState.getSmgState();
           SMGSymbolicValue assumptionVal = assumptionValueAndState.getObject();
 
-          if (assumptionVal == SMGKnownSymValue.FALSE) {
-            SMGValueAndState resultValueAndState = SMGValueAndState.of(newState, SMGKnownSymValue.ZERO);
+            if (assumptionVal == SMGZeroValue.INSTANCE) {
+              SMGValueAndState resultValueAndState =
+                  SMGValueAndState.of(newState, SMGZeroValue.INSTANCE);
             result.add(resultValueAndState);
           } else {
             result.add(SMGValueAndState.of(newState));

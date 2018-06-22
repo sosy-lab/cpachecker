@@ -28,7 +28,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 /** Class representing value Zero, Null and everything else consisting of zeroed memory. */
-public final class SMGZeroValue extends SMGKnownExpValue implements SMGSymbolicValue, SMGExplicitValue, SMGAddressValue {
+public final class SMGZeroValue extends SMGKnownExpValue
+    implements SMGKnownSymbolicValue, SMGExplicitValue, SMGAddressValue {
 
   public static final SMGZeroValue INSTANCE = new SMGZeroValue();
 

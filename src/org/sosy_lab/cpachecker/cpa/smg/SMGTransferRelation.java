@@ -501,8 +501,8 @@ public class SMGTransferRelation
       smgState = valueAndState.getSmgState();
 
       if (!value.isUnknown()) {
-        if ((truthValue && value.equals(SMGKnownSymValue.TRUE)) ||
-            (!truthValue && value.equals(SMGKnownSymValue.FALSE))) {
+        if ((truthValue && value.equals(SMGKnownSymValue.TRUE))
+            || (!truthValue && value.equals(SMGZeroValue.INSTANCE))) {
           result.add(smgState);
         } else {
           // This signals that there are no new States reachable from this State i. e. the
@@ -892,7 +892,7 @@ public class SMGTransferRelation
       } else {
         // Global variables without initializer are nullified in C
         pState =
-            expressionEvaluator.writeValue(pState, pObject, 0, cType, SMGKnownSymValue.ZERO, pEdge);
+            expressionEvaluator.writeValue(pState, pObject, 0, cType, SMGZeroValue.INSTANCE, pEdge);
       }
     }
 
@@ -1042,7 +1042,7 @@ public class SMGTransferRelation
                   offset,
                   TypeUtils.createTypeWithLength(
                       Math.toIntExact((sizeOfType - (offset - pOffset)))),
-                  SMGKnownSymValue.ZERO,
+                  SMGZeroValue.INSTANCE,
                   pEdge);
         }
 
@@ -1158,7 +1158,7 @@ public class SMGTransferRelation
                     offset,
                     TypeUtils.createTypeWithLength(
                         Math.toIntExact(sizeOfType - (offset - pOffset))),
-                    SMGKnownSymValue.ZERO,
+                    SMGZeroValue.INSTANCE,
                     pEdge);
           }
         }

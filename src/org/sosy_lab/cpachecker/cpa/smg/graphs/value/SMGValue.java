@@ -101,6 +101,6 @@ public interface SMGValue extends Comparable<SMGValue> {
 
   /** returns whether the current value is ZERO in any of our representations. */
   default boolean isZero() {
-    return SMGKnownAddressValue.ZERO_ADDRESS.equals(this) || SMGKnownSymValue.ZERO.equals(this);
+    return SMGKnownAddressValue.ZERO_ADDRESS.equals(this) || SMGZeroValue.INSTANCE.equals(this);
   }
 }

@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -135,7 +136,7 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
       if (symValue.equals(SMGKnownSymValue.TRUE)) {
         return new NumericValue(1);
-      } else if (symValue.equals(SMGKnownSymValue.FALSE)) {
+      } else if (symValue.equals(SMGZeroValue.INSTANCE)) {
         return new NumericValue(0);
       }
     }

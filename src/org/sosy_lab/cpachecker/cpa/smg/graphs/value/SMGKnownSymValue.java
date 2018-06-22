@@ -29,11 +29,7 @@ import java.math.BigInteger;
 
 public class SMGKnownSymValue extends SMGKnownValue implements SMGKnownSymbolicValue {
 
-  public static final SMGKnownSymValue ZERO = new SMGKnownSymValue(BigInteger.ZERO);
-
   public static final SMGKnownSymValue TRUE = new SMGKnownSymValue(BigInteger.valueOf(-1));
-
-  public static final SMGKnownSymValue FALSE = ZERO;
 
   SMGKnownSymValue(BigInteger pValue) {
     super(pValue);
@@ -48,7 +44,7 @@ public class SMGKnownSymValue extends SMGKnownValue implements SMGKnownSymbolicV
     checkNotNull(pValue);
 
     if (pValue.equals(BigInteger.ZERO)) {
-      return ZERO;
+      return SMGZeroValue.INSTANCE;
     } else {
       return new SMGKnownSymValue(pValue);
     }

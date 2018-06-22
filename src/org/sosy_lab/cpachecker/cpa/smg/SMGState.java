@@ -81,6 +81,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGIsLessOrEqual;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
@@ -1105,7 +1106,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
 
     if (heap.isCoveredByNullifiedBlocks(edge)) {
-      return SMGValueAndState.of(this, SMGKnownSymValue.ZERO);
+      return SMGValueAndState.of(this, SMGZeroValue.INSTANCE);
     }
 
     performConsistencyCheck(SMGRuntimeCheck.HALF);

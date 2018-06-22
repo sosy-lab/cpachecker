@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 
 public class SMGStateTest {
   static private final  LogManager logger = LogManager.createTestLogManager();
@@ -427,7 +428,8 @@ public class SMGStateTest {
 
     // Add an 16b object and write a 16b zero value into it
     SMGAddressValue pt = state.addNewHeapAllocation(16, "OBJECT");
-    SMGEdgeHasValue hv = state.writeValue(pt.getObject(), 0, mockType16b, SMGKnownSymValue.ZERO).getNewEdge();
+    SMGEdgeHasValue hv =
+        state.writeValue(pt.getObject(), 0, mockType16b, SMGZeroValue.INSTANCE).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Check the object values and assert it has only the written 16b value
