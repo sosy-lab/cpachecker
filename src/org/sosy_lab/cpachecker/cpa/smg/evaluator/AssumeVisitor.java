@@ -128,14 +128,10 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       boolean isPointerOp1,
       boolean isPointerOp2) {
 
-    int value1 = pValue1.getAsInt();
-    int value2 = pValue2.getAsInt();
-
     if (isPointerOp1 && isPointerOp2) {
-
-      return value1 != value2;
-    } else if ((isPointerOp1 && value2 == 0) || (isPointerOp2 && value1 == 0)) {
-      return value1 != value2;
+      return !pValue1.equals(pValue2);
+    } else if ((isPointerOp1 && pValue2.isZero()) || (isPointerOp2 && pValue1.isZero())) {
+      return !pValue1.equals(pValue2);
     } else {
       return pNewState.isInNeq(pValue1, pValue2);
     }
@@ -150,8 +146,8 @@ public class AssumeVisitor extends ExpressionValueVisitor {
 
     // there can be more precise comparison when pointer point to the same object.
     if (object1 == object2) {
-      int offset1 = pV1.getOffset().getAsInt();
-      int offset2 = pV2.getOffset().getAsInt();
+      long offset1 = pV1.getOffset().getAsLong();
+      long offset2 = pV2.getOffset().getAsLong();
 
       switch (pOp) {
       case GREATER_EQUAL:
@@ -179,10 +175,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     boolean isPointerOp1 = pV1 instanceof SMGKnownAddressValue;
     boolean isPointerOp2 = pV2 instanceof SMGKnownAddressValue;
 
-    int v1 = pV1.getAsInt();
-    int v2 = pV2.getAsInt();
-
-    boolean areEqual = (v1 == v2);
+    boolean areEqual = pV1.equals(pV2);
     boolean areNonEqual = (isUnequal(pNewState, pV1, pV2, isPointerOp1, isPointerOp2));
 
     boolean isTrue = false;

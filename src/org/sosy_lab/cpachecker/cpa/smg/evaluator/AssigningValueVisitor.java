@@ -186,7 +186,7 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
           smgRightHandSideEvaluator.writeValue(
               assignableState,
               addressOfField.getObject(),
-              addressOfField.getOffset().getAsInt(),
+              addressOfField.getOffset().getAsLong(),
               TypeUtils.getRealExpressionType(lValue),
               rSymValue,
               edge);

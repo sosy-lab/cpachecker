@@ -1580,7 +1580,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   public void addElementToCurrentChain(Object elem) {
     // Avoid to add Null element
-    if (elem instanceof SMGValue && ((SMGValue) elem).getAsLong() == 0) {
+    if (elem instanceof SMGValue && ((SMGValue) elem).isZero()) {
       return;
     }
     errorInfo = errorInfo.withObject(elem);
@@ -1780,13 +1780,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     } else {
       temp = pOp.getOppositLogicalOperator();
     }
-    logger.log(Level.FINER, "SymValue1 ", pV1 + " ", temp, " SymValue2 ", pV2,
-        "; AddPredicate: ", pEdge);
-    if (!pV1.isUnknown() && !pV2.isUnknown()) {
-      logger.log(Level.FINER,
-          "SymValue1 ", pV1.getAsInt(), " ", temp, " SymValue2 ", pV2.getAsInt(),
-              "; AddPredicate: ", pEdge);
-    }
+      logger.logf(
+          Level.FINER, "SymValue1 %s %s SymValue2 %s AddPredicate: %s", pV1, temp, pV2, pEdge);
       getPathPredicateRelation().addRelation(pV1, pCType1, pV2, pCType2, temp);
   }
 }
@@ -1801,12 +1796,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       } else {
         temp = pOp.getOppositLogicalOperator();
       }
-      logger.log(Level.FINER, "SymValue ", pV1, " ", temp, "; ExplValue ", pV2,
-          "; AddPredicate: ", pEdge);
-      if (!pV1.isUnknown()) {
-        logger.log(Level.FINER, "SymValue ", pV1.getAsInt(), " ", temp, "; ExplValue ", pV2,
-            "; AddPredicate: ", pEdge);
-      }
+      logger.logf(
+          Level.FINER, "SymValue %s %s; ExplValue %s; AddPredicate: %s", pV1, temp, pV2, pEdge);
       getPathPredicateRelation().addExplicitRelation(pV1, pCType1, pV2, pCType2, temp);
     }
   }

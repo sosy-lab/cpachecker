@@ -520,7 +520,7 @@ public class SMGBuiltins {
         continue;
       }
 
-      if (address.getAsInt() == 0) {
+      if (address.isZero()) {
         logger.log(Level.INFO, pFunctionCall.getFileLocation(), ":",
             "The argument of a free invocation:", cfaEdge.getRawStatement(), "is 0");
 

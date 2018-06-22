@@ -287,7 +287,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       SMGKnownAddressValue structAddress = (SMGKnownAddressValue) pValue;
 
       SMGObject source = structAddress.getObject();
-      long structOffset = structAddress.getOffset().getAsInt();
+      long structOffset = structAddress.getOffset().getAsLong();
 
       // FIXME Does not work with variable array length.
       long structSize = structOffset + getBitSizeof(pCfaEdge, pRValueType, pNewState);

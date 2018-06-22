@@ -120,8 +120,6 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
               .filterHavingValue(edgePointsTo.getValue());
       Set<SMGEdgePointsTo> edges = getPtEdges(filter);
       return !edges.isEmpty();
-    } else if (elem instanceof Integer) {
-      return getValues().contains(elem);
     } else if (elem instanceof SMGValue) {
       SMGValue smgValue = (SMGValue) elem;
       return getValues().contains(smgValue);
