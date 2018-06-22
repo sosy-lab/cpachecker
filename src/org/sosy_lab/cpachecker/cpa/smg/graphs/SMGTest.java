@@ -299,16 +299,13 @@ public class SMGTest {
 
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
 
-    smg1.addHasValueEdge(hv_edge1);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
-    smg1.addObject(object_8b);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
     smg1.addValue(first_value);
+    smg1.addObject(object_8b);
+    smg1.addHasValueEdge(hv_edge1);
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
 
-    smg1.addHasValueEdge(hv_edge3);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
     smg1.addValue(second_value);
+    smg1.addHasValueEdge(hv_edge3);
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
 
     smg1.addHasValueEdge(hv_edge4);
@@ -338,28 +335,20 @@ public class SMGTest {
 
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
 
-    smg1.addPointsToEdge(edge1);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
-
     smg1.addValue(first_value);
+    smg1.addPointsToEdge(edge1);
     Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
 
     smg1.addObject(object_8b);
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
 
-    smg1.addPointsToEdge(edge2);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
-
     smg1.addValue(third_value);
+    smg1.addPointsToEdge(edge2);
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
 
-    smg1.addPointsToEdge(edge3);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
-
-    smg1.addObject(object_16b);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
-
     smg1.addValue(second_value);
+    smg1.addObject(object_16b);
+    smg1.addPointsToEdge(edge3);
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
 
     smg1.addPointsToEdge(edge4);

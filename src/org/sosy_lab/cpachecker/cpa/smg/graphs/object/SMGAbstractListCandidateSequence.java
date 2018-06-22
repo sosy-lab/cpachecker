@@ -95,9 +95,8 @@ public abstract class SMGAbstractListCandidateSequence<C extends SMGListCandidat
       pSMG.removePointsToEdge(pte.getValue());
 
       if (pte.getTargetSpecifier() == SMGTargetSpecifier.ALL) {
-        SMGEdgePointsTo newPte = new SMGEdgePointsTo(pte.getValue(), newAbsObj, pte.getOffset(),
-            SMGTargetSpecifier.ALL);
-        pSMG.addPointsToEdge(newPte);
+        pSMG.addPointsToEdge(new SMGEdgePointsTo(pte.getValue(), newAbsObj, pte.getOffset(),
+            SMGTargetSpecifier.ALL));
       } else {
         if (reached.containsKey(pte.getOffset())) {
           pSMG.mergeValues(reached.get(pte.getOffset()), pte.getValue());

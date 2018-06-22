@@ -28,8 +28,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.DummyAbstraction;
@@ -149,17 +149,17 @@ public class SMGJoinMatchObjectsTest {
     SMGEdgeHasValue hvMatching1 = new SMGEdgeHasValue(mockType2b, 4, srcObj1, SMGCPA.getNewValue());
     SMGEdgeHasValue hvMatching2 = new SMGEdgeHasValue(mockType2b, 4, srcObj2, SMGCPA.getNewValue());
 
-    smg1.addHasValueEdge(hv1);
     smg1.addValue(hv1.getValue());
+    smg1.addHasValueEdge(hv1);
 
-    smg2.addHasValueEdge(hv2);
     smg2.addValue(hv2.getValue());
+    smg2.addHasValueEdge(hv2);
 
-    smg1.addHasValueEdge(hvMatching1);
     smg1.addValue(hvMatching1.getValue());
+    smg1.addHasValueEdge(hvMatching1);
 
-    smg2.addHasValueEdge(hvMatching2);
     smg2.addValue(hvMatching2.getValue());
+    smg2.addHasValueEdge(hvMatching2);
 
     SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
     Assert.assertTrue(mo.isDefined());

@@ -231,6 +231,7 @@ public class SMG implements UnmodifiableSMG {
    * @param pEdge Points-To edge to add.
    */
   final public void addPointsToEdge(SMGEdgePointsTo pEdge) {
+    Preconditions.checkArgument(values.contains(pEdge.getValue()), "adding an edge without source");
     pt_edges = pt_edges.addAndCopy(pEdge);
   }
 
@@ -242,6 +243,7 @@ public class SMG implements UnmodifiableSMG {
    * @param pEdge Has-Value edge to add
    */
   final public void addHasValueEdge(SMGEdgeHasValue pEdge) {
+    Preconditions.checkArgument(values.contains(pEdge.getValue()), "adding edge without target");
     hv_edges = hv_edges.addEdgeAndCopy(pEdge);
   }
 

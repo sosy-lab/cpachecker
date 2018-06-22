@@ -93,6 +93,10 @@ public class SMGJoinFieldsTest {
     smg2.addObject(obj2);
     smg2.addObject(oth2);
 
+    smg1.addValue(value1);
+    smg2.addValue(value2);
+    smg2.addValue(100);
+
     smg1.addHasValueEdge(obj1hv1at0);
     smg1.addHasValueEdge(obj1hv2at7);
     smg1.addHasValueEdge(obj1hv3at9);
@@ -458,6 +462,7 @@ public class SMGJoinFieldsTest {
     SMGRegion obj2 = new SMGRegion(256, "Object 2");
     int value3 = SMGCPA.getNewValue();
 
+    smg3.addValue(value3);
     smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, value3));
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
   }
@@ -517,6 +522,7 @@ public class SMGJoinFieldsTest {
 
     int value4 = SMGCPA.getNewValue();
     smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, SMG.NULL_ADDRESS));
+    smg4.addValue(value4);
     smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj2, value4));
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
   }
@@ -533,6 +539,8 @@ public class SMGJoinFieldsTest {
     int value3 = SMGCPA.getNewValue();
     int value4 = SMGCPA.getNewValue();
 
+    smg3.addValue(value3);
+    smg4.addValue(value4);
     smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, value3));
     smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj2, value4));
     smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj3, value4));

@@ -1156,15 +1156,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   public void addPointsToEdge(SMGObject pObject, long pOffset, int pValue) {
-
-    // If the value is not known by the SMG, add it.
-    if (!heap.getValues().contains(pValue)) {
-      heap.addValue(pValue);
-    }
-
-    SMGEdgePointsTo pointsToEdge = new SMGEdgePointsTo(pValue, pObject, pOffset);
-    heap.addPointsToEdge(pointsToEdge);
-
+    heap.addValue(pValue);
+    heap.addPointsToEdge(new SMGEdgePointsTo(pValue, pObject, pOffset));
   }
 
   /**
@@ -1200,10 +1193,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       return new SMGStateEdgePair(this, new_edge);
     }
 
-    // If the value is not in the SMG, we need to add it
-    if (!heap.getValues().contains(pValue)) {
-      heap.addValue(pValue);
-    }
+    heap.addValue(pValue);
 
     Set<SMGEdgeHasValue> overlappingZeroEdges = new HashSet<>();
 
@@ -1434,35 +1424,28 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     heap.addGlobalObject(newObject);
   }
 
-  /** memory allocated in the heap has to be freed by the user,
-   * otherwise this is a memory-leak. */
+  /** memory allocated in the heap has to be freed by the user, otherwise this is a memory-leak. */
   public SMGAddressValue addNewHeapAllocation(int pSize, String pLabel)
       throws SMGInconsistentException {
-    SMGRegion new_object = new SMGRegion(pSize, pLabel);
-    int new_value = SMGCPA.getNewValue();
-    SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, 0);
-    heap.addHeapObject(new_object);
-    heap.addValue(new_value);
-    heap.addPointsToEdge(points_to);
-
-    performConsistencyCheck(SMGRuntimeCheck.HALF);
-    return SMGKnownAddressValue.valueOf(new_value, new_object, 0);
+    return addHeapAllocation(pLabel, pSize, 0, false);
   }
 
   /** memory externally allocated could be freed by the user */
-  // TODO: refactore
-    public SMGAddressValue addExternalAllocation(String pLabel) {
-    SMGRegion new_object = new SMGRegion(options.getExternalAllocationSize(), pLabel);
+  public SMGAddressValue addExternalAllocation(String pLabel) throws SMGInconsistentException {
+    return addHeapAllocation(
+        pLabel, options.getExternalAllocationSize(), options.getExternalAllocationSize() / 2, true);
+  }
+
+  private SMGAddressValue addHeapAllocation(String label, int size, int offset, boolean external)
+      throws SMGInconsistentException {
+    SMGRegion new_object = new SMGRegion(size, label);
     int new_value = SMGCPA.getNewValue();
-    SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, options.getExternalAllocationSize()/2 );
     heap.addHeapObject(new_object);
     heap.addValue(new_value);
-    heap.addPointsToEdge(points_to);
-
-    heap.setExternallyAllocatedFlag(new_object, true);
-
-    return SMGKnownAddressValue.valueOf(
-        new_value, new_object, options.getExternalAllocationSize() / 2);
+    heap.addPointsToEdge(new SMGEdgePointsTo(new_value, new_object, 0));
+    heap.setExternallyAllocatedFlag(new_object, external);
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
+    return SMGKnownAddressValue.valueOf(new_value, new_object, offset);
   }
 
   public void setExternallyAllocatedFlag(SMGObject pObject) {
@@ -1474,10 +1457,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(pSize, pLabel);
     int new_value = SMGCPA.getNewValue();
-    SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, 0);
     heap.addStackObject(new_object);
     heap.addValue(new_value);
-    heap.addPointsToEdge(points_to);
+    heap.addPointsToEdge(new SMGEdgePointsTo(new_value, new_object, 0));
     performConsistencyCheck(SMGRuntimeCheck.HALF);
     return SMGKnownAddressValue.valueOf(new_value, new_object, 0);
   }

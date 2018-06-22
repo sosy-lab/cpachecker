@@ -119,39 +119,19 @@ public class SMGJoinTest {
   //Testing condition: adds an identical value to both SMGs
   private void addValueToBoth(Pair<? extends SMGObject, ? extends SMGObject> var, long pOffset,
       int pValue, int pSizeInBits) {
-
-    if(!smg1.getValues().contains(pValue)) {
-      smg1.addValue(pValue);
-    }
-
-    if(!smg2.getValues().contains(pValue)) {
-      smg2.addValue(pValue);
-    }
-
-    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(pSizeInBits, pOffset, var.getFirst(), pValue);
-    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(pSizeInBits, pOffset, var.getSecond(), pValue);
-
-    smg1.addHasValueEdge(hv1);
-    smg2.addHasValueEdge(hv2);
+    smg1.addValue(pValue);
+    smg2.addValue(pValue);
+    smg1.addHasValueEdge(new SMGEdgeHasValue(pSizeInBits, pOffset, var.getFirst(), pValue));
+    smg2.addHasValueEdge(new SMGEdgeHasValue(pSizeInBits, pOffset, var.getSecond(), pValue));
   }
 
   //Testing condition: adds a pointer to both SMGs
   private void addPointerToBoth(Pair<? extends SMGObject, ? extends SMGObject> target, long pOffset,
       int pValue) {
-
-    if(!smg1.getValues().contains(pValue)) {
-      smg1.addValue(pValue);
-    }
-
-    if(!smg2.getValues().contains(pValue)) {
-      smg2.addValue(pValue);
-    }
-
-    SMGEdgePointsTo pt1 = new SMGEdgePointsTo(pValue, target.getFirst(), pOffset);
-    SMGEdgePointsTo pt2 = new SMGEdgePointsTo(pValue, target.getSecond(), pOffset);
-
-    smg1.addPointsToEdge(pt1);
-    smg2.addPointsToEdge(pt2);
+    smg1.addValue(pValue);
+    smg2.addValue(pValue);
+    smg1.addPointsToEdge(new SMGEdgePointsTo(pValue, target.getFirst(), pOffset));
+    smg2.addPointsToEdge(new SMGEdgePointsTo(pValue, target.getSecond(), pOffset));
   }
 
   //Testing condition: adds a pointer to both SMGs

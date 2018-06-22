@@ -66,9 +66,11 @@ class SMGJoinFields {
     Set<SMGEdgeHasValue> smg1Extension = mergeNonNullHasValueEdges(pSMG2, pSMG1, pObj2, pObj1);
 
     for (SMGEdgeHasValue edge : smg1Extension) {
+      joinedSmg1.addValue(edge.getValue());
       joinedSmg1.addHasValueEdge(edge);
     }
     for (SMGEdgeHasValue edge : smg2Extension) {
+      joinedSmg2.addValue(edge.getValue());
       joinedSmg2.addHasValueEdge(edge);
     }
 

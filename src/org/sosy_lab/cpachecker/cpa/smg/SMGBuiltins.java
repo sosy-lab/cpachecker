@@ -237,7 +237,7 @@ public class SMGBuiltins {
   }
 
   public final List<SMGAddressValueAndState> evaluateExternalAllocation(
-      CFunctionCallExpression pFunctionCall, SMGState pState) {
+      CFunctionCallExpression pFunctionCall, SMGState pState) throws SMGInconsistentException {
 
     String functionName = pFunctionCall.getFunctionNameExpression().toASTString();
 

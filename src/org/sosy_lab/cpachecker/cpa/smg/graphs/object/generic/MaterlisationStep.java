@@ -208,22 +208,12 @@ public class MaterlisationStep {
     }
 
     for (SMGEdgeHasValue hve : concreteHves) {
-      int value = hve.getValue();
-
-      if (!pSMG.getValues().contains(value)) {
-        pSMG.addValue(value);
-      }
-
+      pSMG.addValue(hve.getValue());
       pSMG.addHasValueEdge(hve);
     }
 
     for (SMGEdgePointsTo pte : concretePointer) {
-      int value = pte.getValue();
-
-      if (!pSMG.getValues().contains(value)) {
-        pSMG.addValue(value);
-      }
-
+      pSMG.addValue(pte.getValue());
       pSMG.addPointsToEdge(pte);
     }
 
