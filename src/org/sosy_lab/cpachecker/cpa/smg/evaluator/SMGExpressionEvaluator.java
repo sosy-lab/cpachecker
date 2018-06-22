@@ -679,7 +679,7 @@ public class SMGExpressionEvaluator {
     if (pTarget == null || pOffset.isUnknown()) {
       SMGKnownSymbolicValue value = SMGKnownSymValue.of();
       SMGKnownAddressValue addressValue =
-          SMGKnownAddressValue.valueOf(pTarget, (SMGKnownExpValue) pOffset, value);
+          SMGKnownAddressValue.valueOf(value, pTarget, (SMGKnownExpValue) pOffset);
       return singletonList(SMGAddressValueAndState.of(pSmgState, addressValue));
     }
     if (pTarget instanceof SMGRegion) {
@@ -687,7 +687,7 @@ public class SMGExpressionEvaluator {
       if (address == null) {
         SMGKnownSymbolicValue value = SMGKnownSymValue.of();
         SMGKnownAddressValue addressValue =
-            SMGKnownAddressValue.valueOf(pTarget, (SMGKnownExpValue) pOffset, value);
+            SMGKnownAddressValue.valueOf(value, pTarget, (SMGKnownExpValue) pOffset);
         return singletonList(SMGAddressValueAndState.of(pSmgState, addressValue));
       }
       return pSmgState.getPointerFromValue(address);
@@ -696,7 +696,8 @@ public class SMGExpressionEvaluator {
       // TODO return NULL_POINTER instead of new object?
       return singletonList(
           SMGAddressValueAndState.of(
-              pSmgState, SMGKnownAddressValue.valueOf(0, pTarget, pOffset.getAsLong())));
+              pSmgState,
+              SMGKnownAddressValue.valueOf(SMGZeroValue.INSTANCE, pTarget, pOffset.getAsLong())));
     }
     throw new AssertionError("Abstraction " + pTarget + " was not materialised.");
   }

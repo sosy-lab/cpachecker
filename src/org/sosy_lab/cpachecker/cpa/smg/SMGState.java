@@ -401,7 +401,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
       SMGAddressValue address =
           SMGKnownAddressValue.valueOf(
-              addressValue.getValue().getAsInt(),
+              (SMGKnownSymbolicValue) addressValue.getValue(),
               addressValue.getObject(),
               addressValue.getOffset());
 
@@ -520,7 +520,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return SMGAddressValueAndState.of(
         this,
         SMGKnownAddressValue.valueOf(
-            pPointerToAbstractObject.getValue().getAsInt(),
+            (SMGKnownSymbolicValue) pPointerToAbstractObject.getValue(),
             newObject,
             pPointerToAbstractObject.getOffset()));
   }
@@ -705,7 +705,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     heap.addPointsToEdge(newPtEToSll);
 
     return SMGAddressValueAndState.of(
-        this, SMGKnownAddressValue.valueOf(oldPointerToSll.getAsInt(), newConcreteRegion, hfo));
+        this,
+        SMGKnownAddressValue.valueOf(
+            (SMGKnownSymbolicValue) oldPointerToSll, newConcreteRegion, hfo));
   }
 
   private SMGAddressValueAndState materialiseDls(SMGDoublyLinkedList pListSeg,
@@ -820,7 +822,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     heap.addHasValueEdge(newFieldFromDllToNewRegion);
 
     return SMGAddressValueAndState.of(
-        this, SMGKnownAddressValue.valueOf(oldPointerToDll.getAsInt(), newConcreteRegion, hfo));
+        this, SMGKnownAddressValue.valueOf(oldPointerToDll, newConcreteRegion, hfo));
   }
 
   private void copyRestrictedSubSmgToObject(SMGObject pRoot, SMGRegion pNewRegion,
@@ -1458,13 +1460,13 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   private SMGAddressValue addHeapAllocation(String label, int size, int offset, boolean external)
       throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(size, label);
-    SMGValue new_value = SMGKnownSymValue.of();
+    SMGKnownSymbolicValue new_value = SMGKnownSymValue.of();
     heap.addHeapObject(new_object);
     heap.addValue(new_value);
     heap.addPointsToEdge(new SMGEdgePointsTo(new_value, new_object, 0));
     heap.setExternallyAllocatedFlag(new_object, external);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
-    return SMGKnownAddressValue.valueOf(new_value.getAsInt(), new_object, offset);
+    return SMGKnownAddressValue.valueOf(new_value, new_object, offset);
   }
 
   public void setExternallyAllocatedFlag(SMGObject pObject) {
@@ -1475,12 +1477,12 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   public SMGAddressValue addNewStackAllocation(int pSize, String pLabel)
       throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(pSize, pLabel);
-    SMGSymbolicValue new_value = SMGKnownSymValue.of();
+    SMGKnownSymbolicValue new_value = SMGKnownSymValue.of();
     heap.addStackObject(new_object);
     heap.addValue(new_value);
     heap.addPointsToEdge(new SMGEdgePointsTo(new_value, new_object, 0));
     performConsistencyCheck(SMGRuntimeCheck.HALF);
-    return SMGKnownAddressValue.valueOf(new_value.getAsInt(), new_object, 0);
+    return SMGKnownAddressValue.valueOf(new_value, new_object, 0);
   }
 
   /** Sets a flag indicating this SMGState is a successor over an edge causing a memory leak. */

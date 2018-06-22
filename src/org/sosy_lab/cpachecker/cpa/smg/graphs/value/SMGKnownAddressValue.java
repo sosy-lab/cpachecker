@@ -44,13 +44,14 @@ public final class SMGKnownAddressValue extends SMGKnownSymValue implements SMGA
   }
 
   public static SMGKnownAddressValue valueOf(
-      SMGObject pObject, SMGKnownExpValue pOffset, SMGKnownSymbolicValue pAddress) {
+      SMGKnownSymbolicValue pAddress, SMGObject pObject, SMGKnownExpValue pOffset) {
     return new SMGKnownAddressValue(pAddress.getValue(), SMGAddress.valueOf(pObject, pOffset));
   }
 
-  public static SMGKnownAddressValue valueOf(int pValue, SMGObject object, long offset) {
+  public static SMGKnownAddressValue valueOf(
+      SMGKnownSymbolicValue pValue, SMGObject object, long offset) {
     return new SMGKnownAddressValue(
-        BigInteger.valueOf(pValue), SMGAddress.valueOf(object, SMGKnownExpValue.valueOf(offset)));
+        pValue.getValue(), SMGAddress.valueOf(object, SMGKnownExpValue.valueOf(offset)));
   }
 
   @Override
