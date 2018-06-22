@@ -31,9 +31,7 @@ import com.google.common.base.Preconditions;
 import java.io.Serializable;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map;
-import java.util.SortedMap;
 import java.util.SortedSet;
-import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -173,10 +171,6 @@ public class SSAMap implements Serializable {
 
     public SortedSet<String> allVariables() {
       return varTypes.keySet();
-    }
-
-    public SortedMap<String, CType> allVariablesWithPrefix(String prefix) {
-      return Collections3.subMapWithPrefix(varTypes, prefix);
     }
 
     /**
