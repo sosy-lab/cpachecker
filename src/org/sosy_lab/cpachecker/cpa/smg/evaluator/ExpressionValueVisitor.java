@@ -424,7 +424,7 @@ public class ExpressionValueVisitor
           newState = assumptionValueAndState.getSmgState();
           SMGSymbolicValue assumptionVal = assumptionValueAndState.getObject();
 
-            if (assumptionVal == SMGZeroValue.INSTANCE) {
+            if (assumptionVal.isZero()) {
               SMGValueAndState resultValueAndState =
                   SMGValueAndState.of(newState, SMGZeroValue.INSTANCE);
             result.add(resultValueAndState);

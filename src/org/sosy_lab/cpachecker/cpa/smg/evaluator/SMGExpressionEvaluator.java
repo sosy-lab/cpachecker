@@ -331,7 +331,7 @@ public class SMGExpressionEvaluator {
     SMGState newState = symbolicValueAndState.getSmgState();
 
     if (!symbolicValue.isUnknown()) {
-      if (symbolicValue == SMGZeroValue.INSTANCE) {
+      if (symbolicValue.isZero()) {
         return SMGExplicitValueAndState.of(newState, SMGZeroValue.INSTANCE);
       }
 
