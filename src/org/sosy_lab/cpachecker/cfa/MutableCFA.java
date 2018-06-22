@@ -30,10 +30,9 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.NavigableMap;
+import java.util.NavigableSet;
 import java.util.Optional;
-import java.util.Set;
-import java.util.SortedMap;
 import java.util.SortedSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -46,7 +45,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 public class MutableCFA implements CFA {
 
   private final MachineModel machineModel;
-  private final SortedMap<String, FunctionEntryNode> functions;
+  private final NavigableMap<String, FunctionEntryNode> functions;
   private final SortedSetMultimap<String, CFANode> allNodes;
   private final FunctionEntryNode mainFunction;
   private final List<Path> fileNames;
@@ -57,7 +56,7 @@ public class MutableCFA implements CFA {
 
   public MutableCFA(
       MachineModel pMachineModel,
-      SortedMap<String, FunctionEntryNode> pFunctions,
+      NavigableMap<String, FunctionEntryNode> pFunctions,
       SortedSetMultimap<String, CFANode> pAllNodes,
       FunctionEntryNode pMainFunction,
       List<Path> pFileNames,
@@ -110,8 +109,8 @@ public class MutableCFA implements CFA {
   }
 
   @Override
-  public Set<String> getAllFunctionNames() {
-    return Collections.unmodifiableSet(functions.keySet());
+  public NavigableSet<String> getAllFunctionNames() {
+    return Collections.unmodifiableNavigableSet(functions.navigableKeySet());
   }
 
   @Override
@@ -125,8 +124,8 @@ public class MutableCFA implements CFA {
   }
 
   @Override
-  public Map<String, FunctionEntryNode> getAllFunctions() {
-    return Collections.unmodifiableMap(functions);
+  public NavigableMap<String, FunctionEntryNode> getAllFunctions() {
+    return Collections.unmodifiableNavigableMap(functions);
   }
 
   public SortedSet<CFANode> getFunctionNodes(String pName) {

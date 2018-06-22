@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.OptionalInt;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -147,7 +148,7 @@ public class CFABuilder {
 
   // unnamed basic blocks will be named as 1,2,3,...
   private int basicBlockId;
-  protected SortedMap<String, FunctionEntryNode> functions;
+  protected NavigableMap<String, FunctionEntryNode> functions;
 
   protected SortedSetMultimap<String, CFANode> cfaNodes;
   protected List<Pair<ADeclaration, String>> globalDeclarations;

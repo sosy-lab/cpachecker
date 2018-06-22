@@ -36,8 +36,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableSet;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TreeSet;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -55,8 +55,9 @@ public class Partition implements Comparable<Partition>, Serializable {
   /** we use an index to track the "age" of a partition. */
   private final int index;
 
-  private final SortedSet<String> vars = new TreeSet<>();
-  private final SortedSet<BigInteger> values = new TreeSet<>();
+  private final NavigableSet<String> vars = new TreeSet<>();
+  private final NavigableSet<BigInteger> values = new TreeSet<>();
+
   @SuppressFBWarnings("SE_BAD_FIELD")
   private final Multimap<CFAEdge, Integer> edges = HashMultimap.create();
 
@@ -72,12 +73,12 @@ public class Partition implements Comparable<Partition>, Serializable {
     index = idGenerator.getFreshId();
   }
 
-  public SortedSet<String> getVars() {
-    return Collections.unmodifiableSortedSet(vars);
+  public NavigableSet<String> getVars() {
+    return Collections.unmodifiableNavigableSet(vars);
   }
 
-  public SortedSet<BigInteger> getValues() {
-    return Collections.unmodifiableSortedSet(values);
+  public NavigableSet<BigInteger> getValues() {
+    return Collections.unmodifiableNavigableSet(values);
   }
 
   public Multimap<CFAEdge, Integer> getEdges() {
