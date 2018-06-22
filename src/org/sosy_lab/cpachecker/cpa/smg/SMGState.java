@@ -1055,7 +1055,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         stateAndNewEdge = writeValue(pObject, pOffset, pType, new_address);
       } else {
         Integer newValue = SMGCPA.getNewValue();
-        stateAndNewEdge = writeValue(pObject, pOffset, pType, newValue);
+        stateAndNewEdge = writeValue0(pObject, pOffset, pType, newValue);
       }
       return SMGValueAndState.of(stateAndNewEdge.getState(),
           SMGKnownSymValue.valueOf(stateAndNewEdge.getNewEdge().getValue()));
@@ -1158,7 +1158,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       }
     }
 
-    return writeValue(pObject, pOffset, pType, value);
+    return writeValue0(pObject, pOffset, pType, value);
   }
 
   public void addPointsToEdge(SMGObject pObject, long pOffset, int pValue) {
@@ -1175,7 +1175,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
    * @param pType type of field written into.
    * @param pValue value to be written into field.
    */
-  private SMGStateEdgePair writeValue(SMGObject pObject, long pOffset, CType pType, Integer pValue)
+  private SMGStateEdgePair writeValue0(SMGObject pObject, long pOffset, CType pType, Integer pValue)
       throws SMGInconsistentException {
     // vgl Algorithm 1 Byte-Precise Verification of Low-Level List Manipulation FIT-TR-2012-04
 
@@ -1693,7 +1693,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     for (SMGEdgeHasValue edge : sourceEdges) {
       if (edge.overlapsWith(pSourceOffset, pSourceLastCopyBitOffset, heap.getMachineModel())) {
         long offset = edge.getOffset() + copyShift;
-        newSMGState = writeValue(pTarget, offset, edge.getType(), edge.getValue()).getState();
+        newSMGState = writeValue0(pTarget, offset, edge.getType(), edge.getValue()).getState();
       }
     }
 
