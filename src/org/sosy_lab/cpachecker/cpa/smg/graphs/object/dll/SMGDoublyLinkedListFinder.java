@@ -27,6 +27,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Predicate;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
@@ -45,23 +46,20 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 import org.sosy_lab.cpachecker.util.Pair;
 
-public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
-
-  private final int seqLengthSubGraphEqualityThreshold;
-  private final int seqLengthSubGraphEntailmentThreshold;
-  private final int seqLengthSubGraphIncomparabilityThreshold;
+public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
   public SMGDoublyLinkedListFinder() {
-    seqLengthSubGraphEqualityThreshold = 2;
-    seqLengthSubGraphEntailmentThreshold = 2;
-    seqLengthSubGraphIncomparabilityThreshold = 3;
+    super();
   }
 
-  public SMGDoublyLinkedListFinder(int pSeqLengthSubGraphEqualityThreshold,
-      int pSeqLengthSubGraphEntailmentThreshold, int pSeqLengthSubGraphIncomparabilityThreshold) {
-    seqLengthSubGraphEqualityThreshold = pSeqLengthSubGraphEqualityThreshold;
-    seqLengthSubGraphEntailmentThreshold = pSeqLengthSubGraphEntailmentThreshold;
-    seqLengthSubGraphIncomparabilityThreshold = pSeqLengthSubGraphIncomparabilityThreshold;
+  public SMGDoublyLinkedListFinder(
+      int pSeqLengthEqualityThreshold,
+      int pSeqLengthEntailmentThreshold,
+      int pSeqLengthIncomparableThreshold) {
+    super(
+        pSeqLengthEqualityThreshold,
+        pSeqLengthEntailmentThreshold,
+        pSeqLengthIncomparableThreshold);
   }
 
   @Override
@@ -79,8 +77,12 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
             .filter(SMGDoublyLinkedListCandidateSequenceBlock.class)
             .toSet();
 
-    return progress.getValidCandidates(seqLengthSubGraphEqualityThreshold,
-        seqLengthSubGraphEntailmentThreshold, seqLengthSubGraphIncomparabilityThreshold, pSmg, dllBlocks);
+    return progress.getValidCandidates(
+        seqLengthEqualityThreshold,
+        seqLengthEntailmentThreshold,
+        seqLengthIncomparableThreshold,
+        pSmg,
+        dllBlocks);
   }
 
   private void startTraversal(
@@ -300,8 +302,9 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
     Set<Integer> valuesOfSubSmg1 = new HashSet<>();
     Set<Integer> valuesOfSubSmg2 = new HashSet<>();
 
-    getSubSmgOf(startObject, nfo, pfo, pSmg, valuesOfSubSmg1, objectsOfSubSmg1);
-    getSubSmgOf(nextObject, nfo, pfo, pSmg, valuesOfSubSmg2, objectsOfSubSmg2);
+    Predicate<SMGEdgeHasValue> check = hve -> hve.getOffset() != pfo && hve.getOffset() != nfo;
+    getSubSmgOf(startObject, check, pSmg, valuesOfSubSmg1, objectsOfSubSmg1);
+    getSubSmgOf(nextObject, check, pSmg, valuesOfSubSmg2, objectsOfSubSmg2);
 
     objectsOfSubSmg1.remove(startObject);
     objectsOfSubSmg2.remove(nextObject);
@@ -380,101 +383,5 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
     }
 
     pProgress.updateProgress(pPrevCandidate, candidate, joinStatus, hasToBeLastInSequence);
-  }
-
-  private boolean isSubSmgSeperate(Set<SMGObject> nonSharedObject, Set<Integer> nonSharedValues,
-      CLangSMG smg, Set<SMGObject> reachableObjects, Set<Integer> reachableValues, SMGObject rootOfSubSmg) {
-
-    for (SMGObject obj : nonSharedObject) {
-
-      if(obj.equals(rootOfSubSmg)) {
-        continue;
-      }
-
-      if (!smg.isHeapObject(obj)) {
-        return false;
-      }
-
-      Set<SMGEdgePointsTo> pointer = SMGUtils.getPointerToThisObject(obj, smg);
-
-      for (SMGEdgePointsTo pte : pointer) {
-        if (!reachableValues.contains(pte.getValue())) {
-          return false;
-        }
-      }
-    }
-
-    for (Integer val : nonSharedValues) {
-
-      /*Abstract simple fields when joining.*/
-      if (!smg.isPointer(val)) {
-        continue;
-      }
-
-      for (SMGEdgeHasValue hve : smg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(val))) {
-        if (!reachableObjects.contains(hve.getObject()) && hve.getObject() != rootOfSubSmg) {
-          return false;
-        }
-      }
-    }
-
-    return true;
-  }
-
-  private void getSubSmgOf(SMGObject pObject, long nfo, long pfo, CLangSMG inputSmg,
-      Set<Integer> pValues, Set<SMGObject> pObjects) {
-
-    Set<SMGObject> toBeChecked = new HashSet<>();
-
-    pObjects.add(pObject);
-
-    for (SMGEdgeHasValue hve : inputSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject))) {
-      if (hve.getOffset() != pfo && hve.getOffset() != nfo) {
-
-        int subSmgValue = hve.getValue();
-        pValues.add(subSmgValue);
-
-        if (inputSmg.isPointer(subSmgValue)) {
-          SMGEdgePointsTo reachedObjectSubSmgPTEdge = inputSmg.getPointer(subSmgValue);
-          SMGObject reachedObjectSubSmg = reachedObjectSubSmgPTEdge.getObject();
-
-          if (!pObjects.contains(reachedObjectSubSmg)) {
-            pObjects.add(reachedObjectSubSmg);
-            toBeChecked.add(reachedObjectSubSmg);
-          }
-        }
-      }
-    }
-
-    Set<SMGObject> toCheck = new HashSet<>();
-
-    while (!toBeChecked.isEmpty()) {
-      toCheck.clear();
-      toCheck.addAll(toBeChecked);
-      toBeChecked.clear();
-
-      for (SMGObject objToCheck : toCheck) {
-        getSubSmgOf(objToCheck, toBeChecked, inputSmg, pObjects, pValues);
-      }
-    }
-  }
-
-  private void getSubSmgOf(SMGObject pObjToCheck,
-      Set<SMGObject> pToBeChecked,  CLangSMG pInputSmg, Set<SMGObject> pObjects, Set<Integer> pValues) {
-
-    for (SMGEdgeHasValue hve : pInputSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObjToCheck))) {
-      int subDlsValue = hve.getValue();
-      pValues.add(subDlsValue);
-
-      if (pInputSmg.isPointer(subDlsValue)) {
-        SMGEdgePointsTo reachedObjectSubSmgPTEdge = pInputSmg.getPointer(subDlsValue);
-        SMGObject reachedObjectSubSmg = reachedObjectSubSmgPTEdge.getObject();
-
-        if ((!pObjects.contains(reachedObjectSubSmg))) {
-          pObjects.add(reachedObjectSubSmg);
-          pToBeChecked.add(reachedObjectSubSmg);
-        }
-      }
-    }
   }
 }
