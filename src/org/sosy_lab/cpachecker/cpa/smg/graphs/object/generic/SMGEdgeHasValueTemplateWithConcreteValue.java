@@ -24,12 +24,13 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public interface SMGEdgeHasValueTemplateWithConcreteValue {
 
   SMGObjectTemplate getObjectTemplate();
 
-  int getValue();
+  SMGValue getValue();
 
   long getOffset();
 

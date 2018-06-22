@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGJoinValuesTest {
   private SMG smg1;
@@ -48,9 +49,9 @@ public class SMGJoinValuesTest {
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
 
-  private final Integer value1 = SMGCPA.getNewValue();
-  private final Integer value2 = SMGCPA.getNewValue();
-  private final Integer value3 = SMGCPA.getNewValue();
+  private final SMGValue value1 = SMGCPA.getNewSymbolicValue();
+  private final SMGValue value2 = SMGCPA.getNewSymbolicValue();
+  private final SMGValue value3 = SMGCPA.getNewSymbolicValue();
 
   @Before
   public void setUp() throws InvalidConfigurationException {

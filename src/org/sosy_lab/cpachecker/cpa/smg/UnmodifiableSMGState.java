@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -122,7 +123,8 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
    */
   UnmodifiableSMGState withErrorDescription(String pErrorDescription);
 
-  List<SMGAddressValueAndState> getPointerFromValue(Integer pValue) throws SMGInconsistentException;
+  List<SMGAddressValueAndState> getPointerFromValue(SMGValue pValue)
+      throws SMGInconsistentException;
 
   boolean isBlockEnded();
 
@@ -143,7 +145,7 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
    * @return Address of the given field, or NULL, if such an address does not yet exist in the SMG.
    */
   @Nullable
-  default Integer getAddress(SMGRegion memory, long offset) {
+  default SMGSymbolicValue getAddress(SMGRegion memory, long offset) {
     return getAddress(memory, offset, null);
   }
 
@@ -156,7 +158,7 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
    * @return Address of the given field, or NULL, if such an address does not yet exist in the SMG.
    */
   @Nullable
-  public Integer getAddress(SMGObject memory, long offset, SMGTargetSpecifier tg);
+  public SMGSymbolicValue getAddress(SMGObject memory, long offset, SMGTargetSpecifier tg);
 
   Collection<Object> getInvalidChain();
 

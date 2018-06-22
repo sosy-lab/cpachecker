@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -124,7 +125,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
       long nfo = hveNext.getOffset();
       CType nfoType = hveNext.getType();
-      int nextPointer = hveNext.getValue();
+      SMGValue nextPointer = hveNext.getValue();
 
       if (!pSmg.isPointer(nextPointer)) {
         continue;
@@ -167,7 +168,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
         long pfo = hvePrev.getOffset();
         CType pfoType = hvePrev.getType();
-        int prevPointer = hvePrev.getValue();
+        SMGValue prevPointer = hvePrev.getValue();
 
         if(!(nfo < pfo)) {
           continue;
@@ -217,7 +218,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
   }
 
   private void continueTraversal(
-      int pValue,
+      SMGValue pValue,
       SMGDoublyLinkedListCandidate pPrevCandidate,
       CLangSMG pSmg,
       UnmodifiableSMGState pSmgState,
@@ -293,14 +294,14 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
     }
 
     Set<SMGObject> nonSharedObject1 = join.getNonSharedObjectsFromSMG1();
-    Set<Integer> nonSharedValues1 = join.getNonSharedValuesFromSMG1();
+    Set<SMGValue> nonSharedValues1 = join.getNonSharedValuesFromSMG1();
     Set<SMGObject> nonSharedObject2 = join.getNonSharedObjectsFromSMG2();
-    Set<Integer> nonSharedValues2 = join.getNonSharedValuesFromSMG2();
+    Set<SMGValue> nonSharedValues2 = join.getNonSharedValuesFromSMG2();
 
     Set<SMGObject> objectsOfSubSmg1 = new HashSet<>();
     Set<SMGObject> objectsOfSubSmg2 = new HashSet<>();
-    Set<Integer> valuesOfSubSmg1 = new HashSet<>();
-    Set<Integer> valuesOfSubSmg2 = new HashSet<>();
+    Set<SMGValue> valuesOfSubSmg1 = new HashSet<>();
+    Set<SMGValue> valuesOfSubSmg2 = new HashSet<>();
 
     Predicate<SMGEdgeHasValue> check = hve -> hve.getOffset() != pfo && hve.getOffset() != nfo;
     getSubSmgOf(startObject, check, pSmg, valuesOfSubSmg1, objectsOfSubSmg1);
@@ -311,7 +312,10 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
     nonSharedValues2.remove(pValue);
 
-    int prevValue = Iterables.getOnlyElement(pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(pfo))).getValue();
+    SMGValue prevValue =
+        Iterables.getOnlyElement(
+                pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(pfo)))
+            .getValue();
 
     nonSharedValues1.remove(prevValue);
 

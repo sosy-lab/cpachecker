@@ -124,7 +124,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
       return getValues().contains(elem);
     } else if (elem instanceof SMGValue) {
       SMGValue smgValue = (SMGValue) elem;
-      return getValues().contains(smgValue.getAsInt());
+      return getValues().contains(smgValue);
     }
     return false;
   }
@@ -307,7 +307,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
    */
   public Set<SMGObject> pruneUnreachable() {
     Set<SMGObject> seen = new HashSet<>();
-    Set<Integer> seen_values = new HashSet<>();
+    Set<SMGValue> seen_values = new HashSet<>();
     collectReachableObjectsAndValues(seen, seen_values);
 
     /*
@@ -351,9 +351,9 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   }
 
   /** remove the given valid values and also pointers from those values. */
-  private void removeValues(Collection<Integer> values) {
-    for (Integer value : values) {
-      if (value != SMG.NULL_ADDRESS) {
+  private void removeValues(Collection<SMGValue> values) {
+    for (SMGValue value : values) {
+      if (!value.isZero()) {
         // Here, we can't just remove stray value, we also have to remove the points-to edge
         if (isPointer(value)) {
           removePointsToEdge(value);
@@ -381,7 +381,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   }
 
   private void collectReachableObjectsAndValues(
-      Set<SMGObject> seenObjects, Set<Integer> seenValues) {
+      Set<SMGObject> seenObjects, Set<SMGValue> seenValues) {
 
     // basis: get all direct reachable objects
     Deque<SMGObject> workqueue = new ArrayDeque<>(getGlobalObjects().values());
@@ -424,8 +424,8 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
         + "\n" + getMapOfMemoryLocationsWithValue() + "\n]";
   }
 
-  private Map<MemoryLocation, Integer> getMapOfMemoryLocationsWithValue() {
-    Map<MemoryLocation, Integer> result = new HashMap<>();
+  private Map<MemoryLocation, SMGValue> getMapOfMemoryLocationsWithValue() {
+    Map<MemoryLocation, SMGValue> result = new HashMap<>();
 
     for (SMGEdgeHasValue hvedge : getHVEdges()) {
       MemoryLocation memloc = resolveMemLoc(hvedge);
@@ -560,7 +560,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   }
 
   @Override
-  public void mergeValues(int v1, int v2) {
+  public void mergeValues(SMGValue v1, SMGValue v2) {
 
     super.mergeValues(v1, v2);
 
@@ -672,7 +672,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
       hve = Iterables.getOnlyElement(hves);
 
-      int value = hve.getValue();
+      SMGValue value = hve.getValue();
 
       if (!it.hasNext()) {
         return Optional.of(hve);
@@ -827,7 +827,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     Map<Long, SMGMemoryPath> offsetToParent = new HashMap<>();
 
     for (SMGEdgeHasValue objectHve : getHVEdges(SMGEdgeHasValueFilter.objectFilter(pSmgObject))) {
-      Integer value = objectHve.getValue();
+      SMGValue value = objectHve.getValue();
       long offset = objectHve.getOffset();
 
       SMGMemoryPath path =
@@ -976,7 +976,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
 
     for (SMGEdgeHasValue objectHve : getHVEdges(SMGEdgeHasValueFilter.objectFilter(pSmgObject))) {
-      Integer value = objectHve.getValue();
+      SMGValue value = objectHve.getValue();
 
       if (!isPointer(value)) {
         continue;

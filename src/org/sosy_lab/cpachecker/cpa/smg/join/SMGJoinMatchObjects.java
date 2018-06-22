@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 final class SMGJoinMatchObjects {
   private boolean defined = false;
@@ -92,8 +93,8 @@ final class SMGJoinMatchObjects {
       Iterable<SMGEdgeHasValue> hv1 = filter.filter(edges1);
       Iterable<SMGEdgeHasValue> hv2 = filter.filter(edges2);
       if (Iterables.size(hv1) > 0 && Iterables.size(hv2) > 0) {
-        Integer v1 = Iterators.getOnlyElement(hv1.iterator()).getValue();
-        Integer v2 = Iterators.getOnlyElement(hv2.iterator()).getValue();
+        SMGValue v1 = Iterators.getOnlyElement(hv1.iterator()).getValue();
+        SMGValue v2 = Iterators.getOnlyElement(hv2.iterator()).getValue();
         if (pMapping1.containsKey(v1) && pMapping2.containsKey(v2) && !(pMapping1.get(v1).equals(pMapping2.get(v2)))) {
           return true;
         }

@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
 import com.google.common.base.Objects;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -45,14 +45,12 @@ public abstract class SMGEdge {
 
   /**
    * Represents an (unique?) identifier of a memory cell (i.e., its address). We do not guarantee
-   * that it represents the actual content (data value) of the memory cell. The content (data
-   * values) of cells are stored and managed externally, i.e., see {@link SMGState#getExplicit} and
-   * {@link SMGValue}.
+   * that it represents the actual content (data value) of the memory cell.
    *
    * <p>Special case: The value ZERO is special and represents the NULL_ADDRESS, i.e. can be
    * interpreted as an unaccessible memory cell at position ZERO.
    */
-  protected final int value;
+  protected final SMGValue value;
 
   /**
    * A part of the stack or heap containing data. In an {@link SMG} the data is represented as a
@@ -64,14 +62,14 @@ public abstract class SMGEdge {
   /** Offset of the current edge, counted in Bits from the start of the {@link SMGObject}. */
   private final long offset;
 
-  SMGEdge(int pValue, SMGObject pObject, long pOffset) {
-    value = pValue;
-    object = pObject;
+  SMGEdge(SMGValue pValue, SMGObject pObject, long pOffset) {
+    value = Preconditions.checkNotNull(pValue);
+    object = Preconditions.checkNotNull(pObject);
     offset = pOffset;
   }
 
   /** @see #value */
-  public int getValue() {
+  public SMGValue getValue() {
     return value;
   }
 
@@ -101,6 +99,8 @@ public abstract class SMGEdge {
       return false;
     }
     SMGEdge other = (SMGEdge) obj;
-    return value == other.value && offset == other.offset && Objects.equal(object, other.object);
+    return value.equals(other.value)
+        && offset == other.offset
+        && Objects.equal(object, other.object);
   }
 }

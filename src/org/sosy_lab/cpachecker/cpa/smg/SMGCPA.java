@@ -69,6 +69,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -330,5 +332,9 @@ public class SMGCPA
    */
   public static int getNewValue() {
     return idGenerator.getFreshId() + 1;
+  }
+
+  public static SMGKnownSymbolicValue getNewSymbolicValue() {
+    return SMGKnownSymValue.valueOf(getNewValue());
   }
 }

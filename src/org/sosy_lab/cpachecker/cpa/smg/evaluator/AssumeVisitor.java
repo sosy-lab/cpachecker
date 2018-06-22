@@ -114,7 +114,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       return true;
     }
 
-    if (pNewSmgState.getHeap().isPointer(symVal.getAsInt())) {
+    if (pNewSmgState.getHeap().isPointer(symVal)) {
       return true;
     } else {
       return false;

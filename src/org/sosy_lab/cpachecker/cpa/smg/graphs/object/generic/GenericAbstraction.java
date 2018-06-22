@@ -35,36 +35,41 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectVisitor;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
 
   /**
-   * These maps contains as keys abstract pointers and as values concrete pointers.
-   * For every abstract pointer that exist in the abstraction and points to/from
-   * an abstract Objects that represents concrete regions in the smg, map to a concrete pointer
-   * in the smg, that points to/from the represented region.
+   * These maps contains as keys abstract pointers and as values concrete pointers. For every
+   * abstract pointer that exist in the abstraction and points to/from an abstract Objects that
+   * represents concrete regions in the smg, map to a concrete pointer in the smg, that points
+   * to/from the represented region.
    */
-  private final Map<Integer, Integer> abstractToConcretePointerMap;
+  private final Map<SMGValue, SMGValue> abstractToConcretePointerMap;
 
   /**
-   * This map contains as keys abstract pointers and as values a list of
-   * materialisation steps. The abstract pointers represent concrete pointers
-   * in a smg, that point to a concrete region that has yet to be materialized.
-   *
+   * This map contains as keys abstract pointers and as values a list of materialisation steps. The
+   * abstract pointers represent concrete pointers in a smg, that point to a concrete region that
+   * has yet to be materialized.
    */
-  private final Map<Integer, List<MaterlisationStep>> materlisationStepMap;
+  private final Map<SMGValue, List<MaterlisationStep>> materlisationStepMap;
 
-  protected GenericAbstraction(int pSize, String pLabel,
-      Map<Integer, List<MaterlisationStep>> pMaterlisationSteps,
-      Map<Integer, Integer> pAbstractToConcretePointerMap) {
+  protected GenericAbstraction(
+      int pSize,
+      String pLabel,
+      Map<SMGValue, List<MaterlisationStep>> pMaterlisationSteps,
+      Map<SMGValue, SMGValue> pAbstractToConcretePointerMap) {
     super(pSize, pLabel, SMGObjectKind.GENERIC);
     abstractToConcretePointerMap = ImmutableMap.copyOf(pAbstractToConcretePointerMap);
     materlisationStepMap = ImmutableMap.copyOf(pMaterlisationSteps);
   }
 
-  public GenericAbstraction(int pSize, String pLabel,
-      Map<Integer, List<MaterlisationStep>> pMaterlisationStepMap,
-      Map<Integer, Integer> pAbstractToConcretePointerMap, int pNewLevel) {
+  public GenericAbstraction(
+      int pSize,
+      String pLabel,
+      Map<SMGValue, List<MaterlisationStep>> pMaterlisationStepMap,
+      Map<SMGValue, SMGValue> pAbstractToConcretePointerMap,
+      int pNewLevel) {
     super(pSize, pLabel, pNewLevel, SMGObjectKind.GENERIC);
     abstractToConcretePointerMap = ImmutableMap.copyOf(pAbstractToConcretePointerMap);
     materlisationStepMap = ImmutableMap.copyOf(pMaterlisationStepMap);
@@ -82,8 +87,8 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
 
   public static GenericAbstraction valueOf(
       MachineModel pMachineModel,
-      Map<Integer, List<MaterlisationStep>> pMaterlisationSteps,
-      Map<Integer, Integer> pAbstractToConcretePointerMap) {
+      Map<SMGValue, List<MaterlisationStep>> pMaterlisationSteps,
+      Map<SMGValue, SMGValue> pAbstractToConcretePointerMap) {
     return new GenericAbstraction(
         100 * pMachineModel.getSizeofCharInBits(),
         "generic abtraction ID " + SMGCPA.getNewValue(),
@@ -91,26 +96,26 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
         pAbstractToConcretePointerMap);
   }
 
-  public List<SMG> materialize(SMG pSMG, int pointer) {
+  public List<SMG> materialize(SMG pSMG, SMGValue pointer) {
     return Lists.transform(
         getSteps(pointer), step -> step.materialize(pSMG, abstractToConcretePointerMap));
   }
 
-  private List<MaterlisationStep> getSteps(int pPointer) {
+  private List<MaterlisationStep> getSteps(SMGValue pPointer) {
 
-    for (Entry<Integer, Integer> entry : abstractToConcretePointerMap.entrySet()) {
-      if (entry.getValue() == pPointer) {
+    for (Entry<SMGValue, SMGValue> entry : abstractToConcretePointerMap.entrySet()) {
+      if (entry.getValue().equals(pPointer)) {
         return materlisationStepMap.get(entry.getKey());
       }
     }
     throw new AssertionError();
   }
 
-  public Map<Integer, List<MaterlisationStep>> getMaterlisationStepMap() {
+  public Map<SMGValue, List<MaterlisationStep>> getMaterlisationStepMap() {
     return materlisationStepMap;
   }
 
-  public Map<Integer, Integer> getAbstractToConcretePointerMap() {
+  public Map<SMGValue, SMGValue> getAbstractToConcretePointerMap() {
     return abstractToConcretePointerMap;
   }
 

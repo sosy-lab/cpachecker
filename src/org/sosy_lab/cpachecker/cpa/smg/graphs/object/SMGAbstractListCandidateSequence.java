@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 
 public abstract class SMGAbstractListCandidateSequence<C extends SMGListCandidate<?>> implements SMGAbstractionCandidate {
@@ -90,7 +91,7 @@ public abstract class SMGAbstractListCandidateSequence<C extends SMGListCandidat
   }
 
   protected void addPointsToEdges(CLangSMG pSMG, SMGObject targetObject, SMGObject newAbsObj, SMGTargetSpecifier direction) {
-    Map<Long, Integer> reached = new HashMap<>();
+    Map<Long, SMGValue> reached = new HashMap<>();
     for (SMGEdgePointsTo pte : SMGUtils.getPointerToThisObject(targetObject, pSMG)) {
       pSMG.removePointsToEdge(pte.getValue());
 

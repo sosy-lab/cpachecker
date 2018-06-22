@@ -45,6 +45,9 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class SMGJoinFieldsTest {
@@ -54,8 +57,8 @@ public class SMGJoinFieldsTest {
   private SMG smg1;
   private SMG smg2;
 
-  private final int value1 = SMGCPA.getNewValue();
-  private final int value2 = SMGCPA.getNewValue();
+  private final SMGValue value1 = SMGCPA.getNewSymbolicValue();
+  private final SMGValue value2 = SMGCPA.getNewSymbolicValue();
 
   @Before
   public void setUp() {
@@ -70,22 +73,23 @@ public class SMGJoinFieldsTest {
 
     SMGRegion oth1 = new SMGRegion(128, "1");
     SMGRegion oth2 = new SMGRegion(128, "1");
+    SMGValue value100 = SMGKnownExpValue.valueOf(100);
 
-    SMGEdgeHasValue obj1hv1at0 = new SMGEdgeHasValue(40, 0, obj1, 0);
-    SMGEdgeHasValue obj1hv2at7 = new SMGEdgeHasValue(16, 56, obj1, 0);
+    SMGEdgeHasValue obj1hv1at0 = new SMGEdgeHasValue(40, 0, obj1, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue obj1hv2at7 = new SMGEdgeHasValue(16, 56, obj1, SMGZeroValue.INSTANCE);
     SMGEdgeHasValue obj1hv3at9 = new SMGEdgeHasValue(56, 72, obj1, value1);
 
-    SMGEdgeHasValue obj2hv1at0 = new SMGEdgeHasValue(32, 0, obj2, 100);
-    SMGEdgePointsTo obj2pt1to0 = new SMGEdgePointsTo(100, oth2, 0);
-    SMGEdgeHasValue obj2hv2at4 = new SMGEdgeHasValue(24, 32, obj2, 0);
+    SMGEdgeHasValue obj2hv1at0 = new SMGEdgeHasValue(32, 0, obj2, value100);
+    SMGEdgePointsTo obj2pt1to0 = new SMGEdgePointsTo(value100, oth2, 0);
+    SMGEdgeHasValue obj2hv2at4 = new SMGEdgeHasValue(24, 32, obj2, SMGZeroValue.INSTANCE);
     SMGEdgeHasValue obj2hv3at8 = new SMGEdgeHasValue(64, 64, obj2, value2);
 
-    SMGEdgeHasValue oth1hv1at0 = new SMGEdgeHasValue(40, 0, oth1, 0);
-    SMGEdgeHasValue oth1hv2at7 = new SMGEdgeHasValue(16, 56, oth1, 0);
+    SMGEdgeHasValue oth1hv1at0 = new SMGEdgeHasValue(40, 0, oth1, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue oth1hv2at7 = new SMGEdgeHasValue(16, 56, oth1, SMGZeroValue.INSTANCE);
     SMGEdgeHasValue oth1hv3at9 = new SMGEdgeHasValue(56, 72, oth1, value1);
 
-    SMGEdgeHasValue oth2hv1at0 = new SMGEdgeHasValue(32, 0, oth2, 100);
-    SMGEdgeHasValue oth2hv2at4 = new SMGEdgeHasValue(24, 32, oth2, 0);
+    SMGEdgeHasValue oth2hv1at0 = new SMGEdgeHasValue(32, 0, oth2, value100);
+    SMGEdgeHasValue oth2hv2at4 = new SMGEdgeHasValue(24, 32, oth2, SMGZeroValue.INSTANCE);
     SMGEdgeHasValue oth2hv3at8 = new SMGEdgeHasValue(64, 64, oth2, value2);
 
     smg1.addObject(obj1);
@@ -95,7 +99,7 @@ public class SMGJoinFieldsTest {
 
     smg1.addValue(value1);
     smg2.addValue(value2);
-    smg2.addValue(100);
+    smg2.addValue(value100);
 
     smg1.addHasValueEdge(obj1hv1at0);
     smg1.addHasValueEdge(obj1hv2at7);
@@ -116,25 +120,25 @@ public class SMGJoinFieldsTest {
 
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.INCOMPARABLE);
 
-    Map<Long, Pair<Integer, Integer>> fieldMap1 = new HashMap<>();
-    Map<Long, Pair<Integer, Integer>> fieldMap2 = new HashMap<>();
+    Map<Long, Pair<SMGValue, Integer>> fieldMap1 = new HashMap<>();
+    Map<Long, Pair<SMGValue, Integer>> fieldMap2 = new HashMap<>();
 
-    fieldMap1.put(0L, Pair.of(0, 32));
-    fieldMap1.put(32L, Pair.of(0, 8));
-    fieldMap1.put(64L, Pair.of(-1, 64));
+    fieldMap1.put(0L, Pair.of(SMGZeroValue.INSTANCE, 32));
+    fieldMap1.put(32L, Pair.of(SMGZeroValue.INSTANCE, 8));
+    fieldMap1.put(64L, Pair.of(SMGKnownExpValue.valueOf(-1), 64));
     fieldMap1.put(72L, Pair.of(value1, 56));
 
-    fieldMap2.put(0L, Pair.of(100, 32));
-    fieldMap2.put(32L, Pair.of(0, 8));
+    fieldMap2.put(0L, Pair.of(value100, 32));
+    fieldMap2.put(32L, Pair.of(SMGZeroValue.INSTANCE, 8));
     fieldMap2.put(64L, Pair.of(value2, 64));
-    fieldMap2.put(72L, Pair.of(-1, 56));
+    fieldMap2.put(72L, Pair.of(SMGKnownExpValue.valueOf(-1), 56));
 
     checkFields(join.getSMG1(), fieldMap1, obj1);
     checkFields(join.getSMG2(), fieldMap2, obj2);
   }
 
   private void checkFields(
-      UnmodifiableSMG pSmg, Map<Long, Pair<Integer, Integer>> pFieldMap, SMGObject pObj) {
+      UnmodifiableSMG pSmg, Map<Long, Pair<SMGValue, Integer>> pFieldMap, SMGObject pObj) {
 
     SMGEdgeHasValueFilter filterOnSMG = SMGEdgeHasValueFilter.objectFilter(pObj);
     Set<SMGEdgeHasValue> edges = pSmg.getHVEdges(filterOnSMG);
@@ -147,14 +151,14 @@ public class SMGJoinFieldsTest {
 
       assertThat(pFieldMap).containsKey(offset);
 
-      int value = edge.getValue();
+      SMGValue value = edge.getValue();
       int length = edge.getSizeInBits(MachineModel.LINUX64);
-      Pair<Integer, Integer> expectedValueAndLength = pFieldMap.get(offset);
+      Pair<SMGValue, Integer> expectedValueAndLength = pFieldMap.get(offset);
 
-      int eValue = expectedValueAndLength.getFirst();
+      SMGValue eValue = expectedValueAndLength.getFirst();
       int eLength = expectedValueAndLength.getSecond();
 
-      if (eValue != -1) {
+      if (!eValue.equals(SMGKnownExpValue.valueOf(-1))) {
         assertThat(value).isEqualTo(eValue);
       }
       assertThat(length).isEqualTo(eLength);
@@ -273,7 +277,7 @@ public class SMGJoinFieldsTest {
 
   @Test
   public void mergeNonNullHVEdgesTest() {
-    Set<Integer> values = new HashSet<>();
+    Set<SMGValue> values = new HashSet<>();
     values.add(value1);
     values.add(value2);
 
@@ -325,7 +329,7 @@ public class SMGJoinFieldsTest {
     smg1.addObject(obj1);
     smg2.addObject(obj2);
 
-    int value3 = SMGCPA.getNewValue();
+    SMGValue value3 = SMGCPA.getNewSymbolicValue();
     smg1.addValue(value3);
     smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, value3));
 
@@ -419,8 +423,8 @@ public class SMGJoinFieldsTest {
 
     SMGRegion obj1 = new SMGRegion(256, "Object 1");
     SMGRegion obj2 = new SMGRegion(256, "Object 2");
-    int value3 = SMGCPA.getNewValue();
-    int value4 = SMGCPA.getNewValue();
+    SMGValue value3 = SMGCPA.getNewSymbolicValue();
+    SMGValue value4 = SMGCPA.getNewSymbolicValue();
 
     smg3.addObject(obj1);
     smg4.addObject(obj2);
@@ -460,7 +464,7 @@ public class SMGJoinFieldsTest {
 
     SMGRegion obj1 = new SMGRegion(256, "Object 1");
     SMGRegion obj2 = new SMGRegion(256, "Object 2");
-    int value3 = SMGCPA.getNewValue();
+    SMGValue value3 = SMGCPA.getNewSymbolicValue();
 
     smg3.addValue(value3);
     smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, value3));
@@ -520,7 +524,7 @@ public class SMGJoinFieldsTest {
     SMGRegion obj1 = new SMGRegion(256, "Object 1");
     SMGRegion obj2 = new SMGRegion(256, "Object 2");
 
-    int value4 = SMGCPA.getNewValue();
+    SMGValue value4 = SMGCPA.getNewSymbolicValue();
     smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, SMG.NULL_ADDRESS));
     smg4.addValue(value4);
     smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj2, value4));
@@ -536,8 +540,8 @@ public class SMGJoinFieldsTest {
     SMGRegion obj2 = new SMGRegion(256, "Object 2");
     SMGRegion obj3 = new SMGRegion(256, "Object 3");
 
-    int value3 = SMGCPA.getNewValue();
-    int value4 = SMGCPA.getNewValue();
+    SMGValue value3 = SMGCPA.getNewSymbolicValue();
+    SMGValue value4 = SMGCPA.getNewSymbolicValue();
 
     smg3.addValue(value3);
     smg4.addValue(value4);

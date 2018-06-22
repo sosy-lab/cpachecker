@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public abstract class SMGAbstractionFinder {
 
@@ -65,10 +66,10 @@ public abstract class SMGAbstractionFinder {
 
   protected boolean isSubSmgSeperate(
       Set<SMGObject> nonSharedObject,
-      Set<Integer> nonSharedValues,
+      Set<SMGValue> nonSharedValues,
       CLangSMG smg,
       Set<SMGObject> reachableObjects,
-      Set<Integer> reachableValues,
+      Set<SMGValue> reachableValues,
       SMGObject rootOfSubSmg) {
 
     for (SMGObject obj : nonSharedObject) {
@@ -90,7 +91,7 @@ public abstract class SMGAbstractionFinder {
       }
     }
 
-    for (Integer val : nonSharedValues) {
+    for (SMGValue val : nonSharedValues) {
 
       /*Abstract simple fields when joining.*/
       if (!smg.isPointer(val)) {
@@ -111,7 +112,7 @@ public abstract class SMGAbstractionFinder {
       SMGObject pObject,
       Predicate<SMGEdgeHasValue> check,
       CLangSMG inputSmg,
-      Set<Integer> pValues,
+      Set<SMGValue> pValues,
       Set<SMGObject> pObjects) {
 
     Set<SMGObject> toBeChecked = new HashSet<>();
@@ -121,7 +122,7 @@ public abstract class SMGAbstractionFinder {
     for (SMGEdgeHasValue hve : inputSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject))) {
       if (check.test(hve)) {
 
-        int subSmgValue = hve.getValue();
+        SMGValue subSmgValue = hve.getValue();
         pValues.add(subSmgValue);
 
         if (inputSmg.isPointer(subSmgValue)) {
@@ -154,11 +155,11 @@ public abstract class SMGAbstractionFinder {
       Set<SMGObject> pToBeChecked,
       CLangSMG pInputSmg,
       Set<SMGObject> pObjects,
-      Set<Integer> pValues) {
+      Set<SMGValue> pValues) {
 
     for (SMGEdgeHasValue hve :
         pInputSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObjToCheck))) {
-      int subDlsValue = hve.getValue();
+      SMGValue subDlsValue = hve.getValue();
       pValues.add(subDlsValue);
 
       if (pInputSmg.isPointer(subDlsValue)) {

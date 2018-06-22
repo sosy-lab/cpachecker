@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGJoinMapTargetAddressTest {
 
@@ -42,13 +43,13 @@ public class SMGJoinMapTargetAddressTest {
   private SMGNodeMapping mapping2;
 
   final SMGRegion obj1 = new SMGRegion(64, "ze label");
-  final int value1 = SMGCPA.getNewValue();
+  final SMGValue value1 = SMGCPA.getNewSymbolicValue();
   final SMGEdgePointsTo edge1 = new SMGEdgePointsTo(value1, obj1, 0);
 
-  final int value2 = SMGCPA.getNewValue();
+  final SMGValue value2 = SMGCPA.getNewSymbolicValue();
 
   final SMGObject destObj = new SMGRegion(64, "destination");
-  final int destValue = SMGCPA.getNewValue();
+  final SMGValue destValue = SMGCPA.getNewSymbolicValue();
 
   @Before
   public void setUp() {

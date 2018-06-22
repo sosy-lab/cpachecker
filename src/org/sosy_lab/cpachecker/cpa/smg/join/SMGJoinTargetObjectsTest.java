@@ -34,6 +34,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 
 public class SMGJoinTargetObjectsTest {
   private SMG smg1;
@@ -44,11 +46,11 @@ public class SMGJoinTargetObjectsTest {
   private SMGNodeMapping mapping2;
 
   final private SMGObject obj1 = new SMGRegion(64, "ze label");
-  private final int value1 = SMGCPA.getNewValue();
+  private final SMGSymbolicValue value1 = SMGCPA.getNewSymbolicValue();
   final private SMGEdgePointsTo pt1 = new SMGEdgePointsTo(value1, obj1, 0);
 
   final private SMGObject obj2 = new SMGRegion(64, "ze label");
-  private final int value2 = SMGCPA.getNewValue();
+  private final SMGSymbolicValue value2 = SMGCPA.getNewSymbolicValue();
   final private SMGEdgePointsTo pt2 = new SMGEdgePointsTo(value2, obj2, 0);
 
   final private SMGObject destObj = new SMGRegion(64, "destination");
@@ -89,7 +91,23 @@ public class SMGJoinTargetObjectsTest {
 
     SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, obj1, SMGNullObject.INSTANCE);
     Assert.assertFalse(mo.isDefined());
-    SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, SMG.NULL_ADDRESS, 0, 0, 0, false, null, null);
+    SMGJoinTargetObjects jto =
+        new SMGJoinTargetObjects(
+            SMGJoinStatus.EQUAL,
+            smg1,
+            smg2,
+            destSMG,
+            mapping1,
+            mapping2,
+            SMGLevelMapping.createDefaultLevelMap(),
+            value1,
+            SMGZeroValue.INSTANCE,
+            0,
+            0,
+            0,
+            false,
+            null,
+            null);
     Assert.assertFalse(jto.isDefined());
     Assert.assertTrue(jto.isRecoverable());
   }

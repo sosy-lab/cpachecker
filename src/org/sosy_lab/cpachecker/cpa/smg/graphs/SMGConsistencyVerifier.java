@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 final class SMGConsistencyVerifier {
   private SMGConsistencyVerifier() {} /* utility class */
@@ -57,10 +58,10 @@ final class SMGConsistencyVerifier {
    * @return True, if pSmg satisfies all consistency criteria
    */
   private static boolean verifyNullObject(LogManager pLogger, UnmodifiableSMG pSmg) {
-    Integer null_value = null;
+    SMGValue null_value = null;
 
     // Find a null value in values
-    for (Integer value: pSmg.getValues()) {
+    for (SMGValue value : pSmg.getValues()) {
       if (pSmg.getObjectPointedBy(value) == SMGNullObject.INSTANCE) {
         null_value = value;
         break;

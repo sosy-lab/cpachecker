@@ -36,7 +36,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -49,8 +48,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.GenericAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.optional.SMGOptionalObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public final class SMGPlotter {
   private static final class SMGObjectNode {
@@ -190,16 +189,16 @@ public final class SMGPlotter {
 
     addGlobalObjectSubgraph(smg, sb);
 
-    for (int value : smg.getValues()) {
-      if (value != SMG.NULL_ADDRESS) {
+    for (SMGValue value : smg.getValues()) {
+      if (!value.isZero()) {
         sb.append(newLineWithOffset(smgValueAsDot(value, explicitValues)));
       }
     }
 
-    Set<Integer> processed = new HashSet<>();
-    for (Integer value : smg.getValues()) {
-      if (value != SMG.NULL_ADDRESS) {
-        for (Integer neqValue : smg.getNeqsForValue(value)) {
+    Set<SMGValue> processed = new HashSet<>();
+    for (SMGValue value : smg.getValues()) {
+      if (!value.isZero()) {
+        for (SMGValue neqValue : smg.getNeqsForValue(value)) {
           if (! processed.contains(neqValue)) {
             sb.append(newLineWithOffset(neqRelationAsDot(value, neqValue)));
           }
@@ -213,7 +212,7 @@ public final class SMGPlotter {
     }
 
     for (SMGEdgePointsTo edge : smg.getPTEdges()) {
-      if (edge.getValue() != SMG.NULL_ADDRESS) {
+      if (!edge.getValue().isZero()) {
         sb.append(newLineWithOffset(smgPTEdgeAsDot(edge)));
       }
     }
@@ -297,7 +296,7 @@ public final class SMGPlotter {
   }
 
   private String smgHVEdgeAsDot(SMGEdgeHasValue pEdge, UnmodifiableCLangSMG pSMG) {
-    if (pEdge.getValue() == 0) {
+    if (pEdge.getValue().isZero()) {
       String newNull = newNullLabel();
       return newNull + "[shape=plaintext, label=\"NULL\"];" + objectIndex.get(pEdge.getObject())
           .getName() + " -> " + newNull + "[label=\"[" + pEdge.getOffset() + "b-" + (pEdge
@@ -314,19 +313,18 @@ public final class SMGPlotter {
   }
 
   private static String smgValueAsDot(
-      int value, Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
+      SMGValue value, Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
     String explicitValue = "";
-    SMGKnownSymbolicValue symValue = SMGKnownSymValue.valueOf(value);
-    if (explicitValues.containsKey(symValue)) {
-      explicitValue = " : " + String.valueOf(explicitValues.get(symValue).getAsLong());
+    if (explicitValues.containsKey(value)) {
+      explicitValue = " : " + String.valueOf(explicitValues.get(value).getAsLong());
     }
     return "value_" + value + "[label=\"#" + value + explicitValue +  "\"];";
   }
 
-  private static String neqRelationAsDot(Integer v1, Integer v2) {
+  private static String neqRelationAsDot(SMGValue v1, SMGValue v2) {
     String targetNode;
     String returnString = "";
-    if (v2.equals(0)) {
+    if (v2.isZero()) {
       targetNode = newNullLabel();
       returnString = targetNode + "[shape=plaintext, label=\"NULL\", fontcolor=\"red\"];\n";
     } else {

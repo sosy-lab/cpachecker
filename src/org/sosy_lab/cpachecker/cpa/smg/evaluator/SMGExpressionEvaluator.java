@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -665,11 +666,11 @@ public class SMGExpressionEvaluator {
       return singletonList(SMGAddressValueAndState.of(smgState));
     }
 
-    if (!smgState.getHeap().isPointer(pAddressValue.getAsInt())) {
+    if (!smgState.getHeap().isPointer(pAddressValue)) {
       return singletonList(SMGAddressValueAndState.of(smgState));
     }
 
-    return smgState.getPointerFromValue(pAddressValue.getAsInt());
+    return smgState.getPointerFromValue(pAddressValue);
   }
 
   /** returns all possible AddressValues for a given SMGObject with given offset. */
@@ -683,7 +684,7 @@ public class SMGExpressionEvaluator {
       return singletonList(SMGAddressValueAndState.of(pSmgState, addressValue));
     }
     if (pTarget instanceof SMGRegion) {
-      Integer address = pSmgState.getAddress((SMGRegion) pTarget, pOffset.getAsInt());
+      SMGValue address = pSmgState.getAddress((SMGRegion) pTarget, pOffset.getAsInt());
       if (address == null) {
         SMGKnownSymbolicValue value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
         SMGKnownAddressValue addressValue =
@@ -693,6 +694,7 @@ public class SMGExpressionEvaluator {
       return pSmgState.getPointerFromValue(address);
     }
     if (pTarget == SMGNullObject.INSTANCE) {
+      // TODO return NULL_POINTER instead of new object?
       return singletonList(
           SMGAddressValueAndState.of(
               pSmgState, SMGKnownAddressValue.valueOf(0, pTarget, pOffset.getAsInt())));

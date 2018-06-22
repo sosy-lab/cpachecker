@@ -24,16 +24,15 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGEdgeHasValueTemplate extends SMGEdgeTemplate
     implements SMGEdgeHasValueTemplateWithConcreteValue {
 
   private final CType type;
 
-  public SMGEdgeHasValueTemplate(SMGObjectTemplate pAbstractObject,
-      int pAbstractValue,
-      long pOffset,
-      CType pType) {
+  public SMGEdgeHasValueTemplate(
+      SMGObjectTemplate pAbstractObject, SMGValue pAbstractValue, long pOffset, CType pType) {
     super(pAbstractObject, pAbstractValue, pOffset);
     type = pType;
   }
@@ -44,7 +43,7 @@ public class SMGEdgeHasValueTemplate extends SMGEdgeTemplate
   }
 
   @Override
-  public int getValue() {
+  public SMGValue getValue() {
     return getAbstractValue();
   }
 

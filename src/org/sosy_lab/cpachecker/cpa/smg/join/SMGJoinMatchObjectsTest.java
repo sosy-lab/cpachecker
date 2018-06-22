@@ -144,10 +144,12 @@ public class SMGJoinMatchObjectsTest {
     smg1.addObject(srcObj1);
     smg2.addObject(srcObj2);
 
-    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(mockType2b, 0, srcObj1, SMGCPA.getNewValue());
-    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(mockType2b, 2, srcObj2, SMGCPA.getNewValue());
-    SMGEdgeHasValue hvMatching1 = new SMGEdgeHasValue(mockType2b, 4, srcObj1, SMGCPA.getNewValue());
-    SMGEdgeHasValue hvMatching2 = new SMGEdgeHasValue(mockType2b, 4, srcObj2, SMGCPA.getNewValue());
+    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(mockType2b, 0, srcObj1, SMGCPA.getNewSymbolicValue());
+    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(mockType2b, 2, srcObj2, SMGCPA.getNewSymbolicValue());
+    SMGEdgeHasValue hvMatching1 =
+        new SMGEdgeHasValue(mockType2b, 4, srcObj1, SMGCPA.getNewSymbolicValue());
+    SMGEdgeHasValue hvMatching2 =
+        new SMGEdgeHasValue(mockType2b, 4, srcObj2, SMGCPA.getNewSymbolicValue());
 
     smg1.addValue(hv1.getValue());
     smg1.addHasValueEdge(hv1);
@@ -164,7 +166,7 @@ public class SMGJoinMatchObjectsTest {
     SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
     Assert.assertTrue(mo.isDefined());
 
-    mapping1.map(hvMatching1.getValue(), SMGCPA.getNewValue());
+    mapping1.map(hvMatching1.getValue(), SMGCPA.getNewSymbolicValue());
     mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
     Assert.assertTrue(mo.isDefined());
 
@@ -172,7 +174,7 @@ public class SMGJoinMatchObjectsTest {
     mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
     Assert.assertTrue(mo.isDefined());
 
-    mapping2.map(hvMatching2.getValue(), SMGCPA.getNewValue());
+    mapping2.map(hvMatching2.getValue(), SMGCPA.getNewSymbolicValue());
     mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
     Assert.assertFalse(mo.isDefined());
   }

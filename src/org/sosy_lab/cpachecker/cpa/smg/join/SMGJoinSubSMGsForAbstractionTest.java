@@ -70,8 +70,7 @@ public class SMGJoinSubSMGsForAbstractionTest {
 
     SMGEdgeHasValue root =
         TestHelpers.createGlobalList(smg, SEGMENT_LENGTH, NODE_SIZE, OFFSET, "pointer");
-    Integer value = root.getValue();
-    SMGObject firstObject = smg.getPointer(value).getObject();
+    SMGObject firstObject = smg.getPointer(root.getValue()).getObject();
     Assert.assertSame(SMGObjectKind.REG, firstObject.getKind());
 
     SMGSingleLinkedListCandidate candidate =
