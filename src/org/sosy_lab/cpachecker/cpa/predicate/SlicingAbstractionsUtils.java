@@ -103,6 +103,7 @@ public class SlicingAbstractionsUtils {
     checkArgument(isAbstractionState(originState));
     final Set<ARGState> result = new HashSet<>();
     final Deque<ARGState> waitlist = new ArrayDeque<>();
+    final Set<ARGState> reached = new HashSet<>();
 
     for (ARGState parent: originState.getParents()) {
 
@@ -112,6 +113,8 @@ public class SlicingAbstractionsUtils {
       }
 
       waitlist.add(parent);
+      reached.clear();
+      reached.add(parent);
       while (!waitlist.isEmpty()) {
         ARGState currentState = waitlist.pop();
         for (ARGState s : currentState.getParents()) {
@@ -120,7 +123,10 @@ public class SlicingAbstractionsUtils {
             waitlist.clear();
             break;
           } else {
-            waitlist.add(s);
+            if (!(reached.contains(s))) {
+              waitlist.add(s);
+              reached.add(s);
+            }
           }
         }
       }
