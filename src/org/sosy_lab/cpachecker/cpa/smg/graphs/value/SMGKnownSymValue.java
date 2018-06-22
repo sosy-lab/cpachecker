@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.math.BigInteger;
 
-public class SMGKnownSymValue extends SMGKnownValue implements SMGSymbolicValue {
+public class SMGKnownSymValue extends SMGKnownValue implements SMGKnownSymbolicValue {
 
   public static final SMGKnownSymValue ZERO = new SMGKnownSymValue(BigInteger.ZERO);
 
@@ -41,11 +41,11 @@ public class SMGKnownSymValue extends SMGKnownValue implements SMGSymbolicValue 
     super(pValue);
   }
 
-  public static SMGKnownSymValue valueOf(int pValue) {
-    return new SMGKnownSymValue(BigInteger.valueOf(pValue));
+  public static SMGKnownSymbolicValue valueOf(int pValue) {
+    return valueOf(BigInteger.valueOf(pValue));
   }
 
-  public static SMGKnownSymValue valueOf(BigInteger pValue) {
+  public static SMGKnownSymbolicValue valueOf(BigInteger pValue) {
 
     checkNotNull(pValue);
 

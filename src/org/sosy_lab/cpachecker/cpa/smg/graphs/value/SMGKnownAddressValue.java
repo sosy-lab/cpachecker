@@ -49,7 +49,7 @@ public final class SMGKnownAddressValue extends SMGKnownSymValue implements SMGA
   }
 
   public static SMGKnownAddressValue valueOf(
-      SMGObject pObject, SMGKnownExpValue pOffset, SMGKnownSymValue pAddress) {
+      SMGObject pObject, SMGKnownExpValue pOffset, SMGKnownSymbolicValue pAddress) {
     return new SMGKnownAddressValue(pAddress.getValue(), SMGAddress.valueOf(pObject, pOffset));
   }
 

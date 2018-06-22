@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGGenericAbstracti
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.optional.SMGOptionalObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -163,8 +164,8 @@ final class SMGJoinValues {
    *     SMGJoinStatus.INCOMPARABLE otherwise.
    */
   private static SMGJoinStatus valueIsLessOrEqual(
-      SMGKnownSymValue value1,
-      SMGKnownSymValue value2,
+      SMGKnownSymbolicValue value1,
+      SMGKnownSymbolicValue value2,
       UnmodifiableSMGState state1,
       UnmodifiableSMGState state2) {
 

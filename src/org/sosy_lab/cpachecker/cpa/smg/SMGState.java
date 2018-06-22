@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGIsLessOrEqual;
@@ -103,7 +104,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   private final int predecessorId;
   private final int id;
 
-  private final BiMap<SMGKnownSymValue, SMGKnownExpValue> explicitValues = HashBiMap.create();
+  private final BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues = HashBiMap.create();
   private final CLangSMG heap;
 
   private final boolean blockEnded;
@@ -157,8 +158,12 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         Collections.emptyMap());
   }
 
-  public SMGState(LogManager pLogger, SMGOptions pOptions, CLangSMG pHeap,
-      int pPredId, Map<SMGKnownSymValue, SMGKnownExpValue> pMergedExplicitValues) {
+  public SMGState(
+      LogManager pLogger,
+      SMGOptions pOptions,
+      CLangSMG pHeap,
+      int pPredId,
+      Map<SMGKnownSymbolicValue, SMGKnownExpValue> pMergedExplicitValues) {
     this(pLogger, pOptions, pHeap, pPredId, pMergedExplicitValues, SMGErrorInfo.of(), false);
   }
 
@@ -168,7 +173,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGOptions pOptions,
       CLangSMG pHeap,
       int pPredId,
-      Map<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
+      Map<SMGKnownSymbolicValue, SMGKnownExpValue> pExplicitValues,
       SMGErrorInfo pErrorInfo,
       boolean pBlockEnded) {
     options = pOptions;
@@ -200,7 +205,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   @Override
-  public SMGState copyWith(CLangSMG pSmg, BiMap<SMGKnownSymValue, SMGKnownExpValue> pValues) {
+  public SMGState copyWith(CLangSMG pSmg, BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> pValues) {
     return new SMGState(logger, options, pSmg, id, pValues, errorInfo, blockEnded);
   }
 
@@ -1320,13 +1325,13 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     CLangSMG destHeap = join.getJointSMG();
 
     // join explicit values
-    Map<SMGKnownSymValue, SMGKnownExpValue> mergedExplicitValues = new HashMap<>();
-    for (Entry<SMGKnownSymValue, SMGKnownExpValue> entry : explicitValues.entrySet()) {
+    Map<SMGKnownSymbolicValue, SMGKnownExpValue> mergedExplicitValues = new HashMap<>();
+    for (Entry<SMGKnownSymbolicValue, SMGKnownExpValue> entry : explicitValues.entrySet()) {
       if (destHeap.getValues().contains(entry.getKey().getAsInt())) {
         mergedExplicitValues.put(entry.getKey(), entry.getValue());
       }
     }
-    for (Entry<SMGKnownSymValue, SMGKnownExpValue> entry : reachedState.getExplicitValues()) {
+    for (Entry<SMGKnownSymbolicValue, SMGKnownExpValue> entry : reachedState.getExplicitValues()) {
       mergedExplicitValues.put(entry.getKey(), entry.getValue());
     }
 
@@ -1716,7 +1721,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return smgState;
   }
 
-  public void identifyEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
+  public void identifyEqualValues(SMGKnownSymbolicValue pKnownVal1, SMGKnownSymbolicValue pKnownVal2) {
 
     assert !isInNeq(pKnownVal1, pKnownVal2);
     assert !(explicitValues.get(pKnownVal1) != null &&
@@ -1724,7 +1729,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     // Avoid remove NULL value on merge
     if (pKnownVal2.getAsInt() == SMG.NULL_ADDRESS) {
-      SMGKnownSymValue tmp = pKnownVal1;
+      SMGKnownSymbolicValue tmp = pKnownVal1;
       pKnownVal1 = pKnownVal2;
       pKnownVal2 = tmp;
     }
@@ -1736,7 +1741,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
   }
 
-  public void identifyNonEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
+  public void identifyNonEqualValues(SMGKnownSymbolicValue pKnownVal1, SMGKnownSymbolicValue pKnownVal2) {
     heap.addNeqRelation(pKnownVal1.getAsInt(), pKnownVal2.getAsInt());
   }
 
@@ -1816,17 +1821,16 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   /**
-   *
    * @param pKey the key.
    * @param pValue the value.
    * @return explicit value merged with pKey, or Null if not merged
    */
-  public SMGKnownSymValue putExplicit(SMGKnownSymValue pKey, SMGKnownExpValue pValue) {
+  public SMGKnownSymbolicValue putExplicit(SMGKnownSymbolicValue pKey, SMGKnownExpValue pValue) {
     Preconditions.checkNotNull(pKey);
     Preconditions.checkNotNull(pValue);
 
     if (explicitValues.inverse().containsKey(pValue)) {
-      SMGKnownSymValue symValue = explicitValues.inverse().get(pValue);
+      SMGKnownSymbolicValue symValue = explicitValues.inverse().get(pValue);
 
       if (pKey.getAsInt() != symValue.getAsInt()) {
         explicitValues.remove(symValue);
@@ -1843,18 +1847,18 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   @Deprecated // unused
-  public void clearExplicit(SMGKnownSymValue pKey) {
+  public void clearExplicit(SMGKnownSymbolicValue pKey) {
     explicitValues.remove(pKey);
   }
 
   @Override
-  public boolean isExplicit(SMGKnownSymValue value) {
+  public boolean isExplicit(SMGKnownSymbolicValue value) {
     return explicitValues.containsKey(value);
   }
 
   @Override
   @Nullable
-  public SMGExplicitValue getExplicit(SMGKnownSymValue pKey) {
+  public SMGExplicitValue getExplicit(SMGKnownSymbolicValue pKey) {
     return explicitValues.get(pKey);
   }
 
@@ -2105,7 +2109,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   @Override
-  public Set<Entry<SMGKnownSymValue, SMGKnownExpValue>> getExplicitValues() {
+  public Set<Entry<SMGKnownSymbolicValue, SMGKnownExpValue>> getExplicitValues() {
     return Collections.unmodifiableSet(explicitValues.entrySet());
   }
 }

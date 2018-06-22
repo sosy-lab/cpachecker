@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -197,11 +198,11 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
     assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
     if (truthValue) {
       if (op == BinaryOperator.EQUALS) {
-        assignableState.putExplicit((SMGKnownSymValue) rSymValue, (SMGKnownExpValue) rValue);
+        assignableState.putExplicit((SMGKnownSymbolicValue) rSymValue, (SMGKnownExpValue) rValue);
       }
     } else {
       if (op == BinaryOperator.NOT_EQUALS) {
-        assignableState.putExplicit((SMGKnownSymValue) rSymValue, (SMGKnownExpValue) rValue);
+        assignableState.putExplicit((SMGKnownSymbolicValue) rSymValue, (SMGKnownExpValue) rValue);
         //TODO more precise
       }
     }
@@ -258,7 +259,7 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
     // This symbolic value should have been added when evaluating the assume
     assert !value.isUnknown();
 
-    assignableState.putExplicit((SMGKnownSymValue) value, SMGZeroValue.INSTANCE);
+    assignableState.putExplicit((SMGKnownSymbolicValue) value, SMGZeroValue.INSTANCE);
   }
 
   private CExpression unwrap(CExpression expression) {

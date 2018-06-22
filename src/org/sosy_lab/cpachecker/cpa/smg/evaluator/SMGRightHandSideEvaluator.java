@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -231,7 +232,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     if (pRValueType instanceof CPointerType
         && !(pValue instanceof SMGAddressValue)
         && pValue instanceof SMGKnownSymValue) {
-      SMGKnownSymValue knownValue = (SMGKnownSymValue) pValue;
+      SMGKnownSymbolicValue knownValue = (SMGKnownSymbolicValue) pValue;
       if (pState.isExplicit(knownValue)) {
         SMGExplicitValue explicit = Preconditions.checkNotNull(pState.getExplicit(knownValue));
           pValue =

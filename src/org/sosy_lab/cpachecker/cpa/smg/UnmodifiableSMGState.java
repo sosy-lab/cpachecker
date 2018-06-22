@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -61,7 +61,7 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
    * Returns mutable instance of subclass, with the given SMG and ExplicitValues. Changes to the
    * returned instance are independent of this immutable instance and do not change it.
    */
-  SMGState copyWith(CLangSMG pSmg, BiMap<SMGKnownSymValue, SMGKnownExpValue> pValues);
+  SMGState copyWith(CLangSMG pSmg, BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> pValues);
 
   /**
    * Returns mutable instance of subclass, with the flag for blockEnd. Changes to the returned
@@ -126,7 +126,7 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
 
   boolean isBlockEnded();
 
-  Set<Entry<SMGKnownSymValue, SMGKnownExpValue>> getExplicitValues();
+  Set<Entry<SMGKnownSymbolicValue, SMGKnownExpValue>> getExplicitValues();
 
   @Override
   UnmodifiableSMGState join(UnmodifiableSMGState reachedState) throws SMGInconsistentException;
@@ -168,9 +168,9 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
 
   PredRelation getErrorPredicateRelation();
 
-  boolean isExplicit(SMGKnownSymValue value);
+  boolean isExplicit(SMGKnownSymbolicValue value);
 
-  SMGExplicitValue getExplicit(SMGKnownSymValue pKey);
+  SMGExplicitValue getExplicit(SMGKnownSymbolicValue pKey);
 
   boolean hasMemoryErrors();
 

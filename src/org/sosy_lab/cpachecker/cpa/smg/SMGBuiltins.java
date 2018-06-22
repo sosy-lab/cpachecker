@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -214,7 +215,7 @@ public class SMGBuiltins {
       }
 
       if (!expValue.isUnknown()) {
-        currentState.putExplicit((SMGKnownSymValue) ch, (SMGKnownExpValue) expValue);
+        currentState.putExplicit((SMGKnownSymbolicValue) ch, (SMGKnownExpValue) expValue);
       }
     }
 

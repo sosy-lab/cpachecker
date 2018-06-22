@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGField;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
@@ -676,7 +677,7 @@ public class SMGExpressionEvaluator {
       SMGState pSmgState, SMGObject pTarget, SMGExplicitValue pOffset)
       throws SMGInconsistentException {
     if (pTarget == null || pOffset.isUnknown()) {
-      SMGKnownSymValue value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
+      SMGKnownSymbolicValue value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
       SMGKnownAddressValue addressValue =
           SMGKnownAddressValue.valueOf(pTarget, (SMGKnownExpValue) pOffset, value);
       return singletonList(SMGAddressValueAndState.of(pSmgState, addressValue));
@@ -684,7 +685,7 @@ public class SMGExpressionEvaluator {
     if (pTarget instanceof SMGRegion) {
       Integer address = pSmgState.getAddress((SMGRegion) pTarget, pOffset.getAsInt());
       if (address == null) {
-        SMGKnownSymValue value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
+        SMGKnownSymbolicValue value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
         SMGKnownAddressValue addressValue =
             SMGKnownAddressValue.valueOf(pTarget, (SMGKnownExpValue) pOffset, value);
         return singletonList(SMGAddressValueAndState.of(pSmgState, addressValue));

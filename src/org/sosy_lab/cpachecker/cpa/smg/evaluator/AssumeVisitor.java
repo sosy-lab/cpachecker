@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -168,7 +169,11 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     return false;
   }
 
-  private SMGValueAndState evaluateBinaryAssumptionOfConcreteSymbolicValues(SMGState pNewState, BinaryOperator pOp, SMGKnownSymValue pV1, SMGKnownSymValue pV2) {
+  private SMGValueAndState evaluateBinaryAssumptionOfConcreteSymbolicValues(
+      SMGState pNewState,
+      BinaryOperator pOp,
+      SMGKnownSymbolicValue pV1,
+      SMGKnownSymbolicValue pV2) {
 
     boolean isPointerOp1 = pV1 instanceof SMGKnownAddressValue;
     boolean isPointerOp2 = pV2 instanceof SMGKnownAddressValue;
@@ -260,11 +265,11 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     List<SMGValueAndState> result = new ArrayList<>(4);
 
     for (SMGValueAndState operand1AndState : getOperand(pNewState, pV1)) {
-      SMGKnownSymValue operand1 = (SMGKnownSymValue) operand1AndState.getObject();
+      SMGKnownSymbolicValue operand1 = (SMGKnownSymbolicValue) operand1AndState.getObject();
       SMGState newState;
 
       for (SMGValueAndState operand2AndState : getOperand(pNewState, pV2)) {
-        SMGKnownSymValue operand2 = (SMGKnownSymValue) operand2AndState.getObject();
+        SMGKnownSymbolicValue operand2 = (SMGKnownSymbolicValue) operand2AndState.getObject();
         newState = operand2AndState.getSmgState();
 
         SMGValueAndState resultValueAndState = evaluateBinaryAssumptionOfConcreteSymbolicValues(newState, pOp, operand1, operand2);

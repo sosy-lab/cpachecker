@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGNodeMapping;
 
@@ -66,7 +67,8 @@ public final class SMGIntersectStates {
   private final CLangSMG destSMG;
 
   /** the destination values will be build up when calling {@link #intersect}. */
-  private final BiMap<SMGKnownSymValue, SMGKnownExpValue> destExplicitValues = HashBiMap.create();
+  private final BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> destExplicitValues =
+      HashBiMap.create();
 
   /** initialize the intersection-process. */
   public SMGIntersectStates(UnmodifiableSMGState pSmgState1, UnmodifiableSMGState pSmgState2) {
@@ -227,7 +229,7 @@ public final class SMGIntersectStates {
 
     pMapping.map(pValue, pValue);
 
-    SMGKnownSymValue symVal = SMGKnownSymValue.valueOf(pValue);
+    SMGKnownSymbolicValue symVal = SMGKnownSymValue.valueOf(pValue);
     if (pSmgState.isExplicit(symVal)) {
       destExplicitValues.put(symVal, (SMGKnownExpValue) pSmgState.getExplicit(symVal));
     }
@@ -361,9 +363,9 @@ public final class SMGIntersectStates {
       }
     }
 
-    SMGKnownSymValue symVal1 = SMGKnownSymValue.valueOf(pValue1);
-    SMGKnownSymValue symVal2 = SMGKnownSymValue.valueOf(pValue2);
-    SMGKnownSymValue symDestVal = symVal1;
+    SMGKnownSymbolicValue symVal1 = SMGKnownSymValue.valueOf(pValue1);
+    SMGKnownSymbolicValue symVal2 = SMGKnownSymValue.valueOf(pValue2);
+    SMGKnownSymbolicValue symDestVal = symVal1;
 
     SMGExplicitValue expVal1 = SMGUnknownValue.getInstance();
     SMGExplicitValue expVal2 = SMGUnknownValue.getInstance();

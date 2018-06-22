@@ -102,6 +102,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
@@ -389,7 +390,7 @@ public class SMGTransferRelation
           SMGState newStateWithReadSymbolicValue = stateValue.getSmgState();
           SMGSymbolicValue value = stateValue.getObject();
 
-          for (Pair<SMGState, SMGKnownSymValue> newStateWithExpVal :
+          for (Pair<SMGState, SMGKnownSymbolicValue> newStateWithExpVal :
               assignExplicitValueToSymbolicValue(
                   newStateWithReadSymbolicValue, callEdge, value, exp)) {
 
@@ -566,9 +567,11 @@ public class SMGTransferRelation
 
         if (!val1ImpliesOn.isUnknown() && !val2ImpliesOn.isUnknown()) {
           if (impliesEqOn) {
-            newState.identifyEqualValues((SMGKnownSymValue) val1ImpliesOn, (SMGKnownSymValue) val2ImpliesOn);
+            newState.identifyEqualValues(
+                (SMGKnownSymbolicValue) val1ImpliesOn, (SMGKnownSymbolicValue) val2ImpliesOn);
           } else if (impliesNeqOn) {
-            newState.identifyNonEqualValues((SMGKnownSymValue) val1ImpliesOn, (SMGKnownSymValue) val2ImpliesOn);
+            newState.identifyNonEqualValues(
+                (SMGKnownSymbolicValue) val1ImpliesOn, (SMGKnownSymbolicValue) val2ImpliesOn);
           }
         }
 
@@ -767,7 +770,7 @@ public class SMGTransferRelation
       // 6.5.26 The type of an assignment expression is the type the left operand would have after lvalue conversion.
       rValueType = pLFieldType;
 
-      for (Pair<SMGState, SMGKnownSymValue> currentNewStateWithMergedValue :
+      for (Pair<SMGState, SMGKnownSymbolicValue> currentNewStateWithMergedValue :
           assignExplicitValueToSymbolicValue(newState, cfaEdge, value, rValue)) {
         result.add(
             expressionEvaluator.assignFieldToState(
@@ -784,13 +787,13 @@ public class SMGTransferRelation
   }
 
   // Assign symbolic value to the explicit value calculated from pRvalue
-  private List<Pair<SMGState, SMGKnownSymValue>> assignExplicitValueToSymbolicValue(SMGState pNewState,
-      CFAEdge pCfaEdge, SMGSymbolicValue value, CRightHandSide pRValue)
-          throws CPATransferException {
+  private List<Pair<SMGState, SMGKnownSymbolicValue>> assignExplicitValueToSymbolicValue(
+      SMGState pNewState, CFAEdge pCfaEdge, SMGSymbolicValue value, CRightHandSide pRValue)
+      throws CPATransferException {
 
     SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger, machineModel);
 
-    List<Pair<SMGState, SMGKnownSymValue>> result = new ArrayList<>();
+    List<Pair<SMGState, SMGKnownSymbolicValue>> result = new ArrayList<>();
 
     for (SMGExplicitValueAndState expValueAndState :
         expEvaluator.evaluateExplicitValue(pNewState, pCfaEdge, pRValue)) {
@@ -798,7 +801,8 @@ public class SMGTransferRelation
       SMGState newState = expValueAndState.getSmgState();
 
       if (!expValue.isUnknown()) {
-        SMGKnownSymValue mergedSymValue = newState.putExplicit((SMGKnownSymValue) value, (SMGKnownExpValue) expValue);
+        SMGKnownSymbolicValue mergedSymValue =
+            newState.putExplicit((SMGKnownSymbolicValue) value, (SMGKnownExpValue) expValue);
         result.add(Pair.of(newState, mergedSymValue));
       } else {
         result.add(Pair.of(newState, null));

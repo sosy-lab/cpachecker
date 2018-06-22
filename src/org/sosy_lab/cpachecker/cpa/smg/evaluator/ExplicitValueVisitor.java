@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
@@ -95,11 +96,11 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
       return SMGUnknownValue.getInstance();
     }
     Preconditions.checkState(pValue instanceof SMGKnownSymValue, "known value has invalid type");
-    if (!smgState.isExplicit((SMGKnownSymValue) pValue)) {
+    if (!smgState.isExplicit((SMGKnownSymbolicValue) pValue)) {
       return SMGUnknownValue.getInstance();
     }
     return Preconditions.checkNotNull(
-        smgState.getExplicit((SMGKnownSymValue) pValue),
+        smgState.getExplicit((SMGKnownSymbolicValue) pValue),
         "known and existing value cannot be read from state");
   }
 

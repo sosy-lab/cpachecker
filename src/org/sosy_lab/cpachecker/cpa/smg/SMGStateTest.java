@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 
 public class SMGStateTest {
@@ -366,7 +367,7 @@ public class SMGStateTest {
 
     // Add an 16b object and write a 16b value into it
     SMGAddressValue pt = state.addNewHeapAllocation(16, "OBJECT");
-    SMGKnownSymValue new_value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
+    SMGKnownSymbolicValue new_value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
     SMGEdgeHasValue hv = state.writeValue(pt.getObject(), 0, mockType16b, new_value).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
@@ -385,7 +386,7 @@ public class SMGStateTest {
     Assert.assertTrue(values_for_obj.contains(hv));
 
     // Write a *different* 16b value into it and assert that the state *did* change
-    SMGKnownSymValue newer_value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
+    SMGKnownSymbolicValue newer_value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
     SMGEdgeHasValue new_hv = state.writeValue(pt.getObject(), 0, mockType16b, newer_value).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     values_for_obj = state.getHVEdges(filter);
@@ -475,7 +476,7 @@ public class SMGStateTest {
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     SMGAddressValue pt = state.addNewHeapAllocation(16, "OBJECT");
-    SMGKnownSymValue nonpointer = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
+    SMGKnownSymbolicValue nonpointer = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
     state.writeValue(pt.getObject(), 0, mockType16b, nonpointer);
 
     state.getPointerFromValue(nonpointer.getAsInt());

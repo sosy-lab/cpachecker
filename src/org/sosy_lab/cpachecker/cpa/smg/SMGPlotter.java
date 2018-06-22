@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.optional.SMGOptionalObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 
 public final class SMGPlotter {
   private static final class SMGObjectNode {
@@ -137,7 +138,11 @@ public final class SMGPlotter {
     }
   }
 
-  static public void debuggingPlot(UnmodifiableCLangSMG pSmg, String pId, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) throws IOException {
+  public static void debuggingPlot(
+      UnmodifiableCLangSMG pSmg,
+      String pId,
+      Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues)
+      throws IOException {
     PathTemplate exportSMGFilePattern = PathTemplate.ofFormatString("smg-debug-%s.dot");
     pId = pId.replace("\"", "");
     Path outputFile = exportSMGFilePattern.getPath(pId);
@@ -163,7 +168,7 @@ public final class SMGPlotter {
       UnmodifiableCLangSMG smg,
       String name,
       String location,
-      Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) {
+      Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
     StringBuilder sb = new StringBuilder();
 
     sb.append("digraph gr_").append(name.replace('-', '_')).append("{\n");
@@ -308,9 +313,10 @@ public final class SMGPlotter {
     return "value_" + pEdge.getValue() + " -> " + objectIndex.get(pEdge.getObject()).getName() + "[label=\"+" + pEdge.getOffset() + "b, " + pEdge.getTargetSpecifier() + "\"];";
   }
 
-  private static String smgValueAsDot(int value, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) {
+  private static String smgValueAsDot(
+      int value, Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
     String explicitValue = "";
-    SMGKnownSymValue symValue =  SMGKnownSymValue.valueOf(value);
+    SMGKnownSymbolicValue symValue = SMGKnownSymValue.valueOf(value);
     if (explicitValues.containsKey(symValue)) {
       explicitValue = " : " + String.valueOf(explicitValues.get(symValue).getAsLong());
     }
