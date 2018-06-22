@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.differential.modifications;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -56,8 +55,8 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 public class ModificationsCPA implements ConfigurableProgramAnalysis {
 
   @Option(secure = true, description = "Program to check against", name = "program")
-  @FileOption(Type.REQUIRED_INPUT_FILE)
-  private Path originalProgram = Paths.get("baseProgram.c");
+  @FileOption(Type.OPTIONAL_INPUT_FILE)
+  private Path originalProgram = null;
 
   private final Configuration config;
   private final LogManager logger;
@@ -72,6 +71,11 @@ public class ModificationsCPA implements ConfigurableProgramAnalysis {
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     pConfig.inject(this);
+
+    if (originalProgram == null) {
+      throw new InvalidConfigurationException("Option differential.program required, but not set");
+    }
+
     config = pConfig;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;

@@ -72,6 +72,8 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithBreakOnMissingBlock;
 import org.sosy_lab.cpachecker.cpa.cache.CacheCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.differential.DifferentialCPA;
+import org.sosy_lab.cpachecker.cpa.differential.modifications.ModificationsCPA;
 import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.monitor.MonitorCPA;
@@ -114,6 +116,10 @@ public class CPAsTest {
     cpas.remove(PowerSetCPA.class);
     cpas.remove(FlowDependenceCPA.class);
     cpas.remove(SlicingCPA.class);
+
+    // Requires more elaborate test
+    cpas.remove(DifferentialCPA.class);
+    cpas.remove(ModificationsCPA.class);
 
     cpas.remove(ARGReplayCPA.class); // needs ARG to be replayed
     cpas.remove(ABECPA.class); // Shouldn't be used by itself.

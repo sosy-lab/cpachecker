@@ -22,7 +22,8 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * The {@link DifferentialCPA} performs a reachability analysis of program statements that are equal
- * to the program statements in a second, given program.
+ * The {@link org.sosy_lab.cpachecker.cpa.differential.DifferentialCPA DifferentialCPA} performs a
+ * reachability analysis of program statements that are equal to the program statements in a second,
+ * given program.
  */
 package org.sosy_lab.cpachecker.cpa.differential;
