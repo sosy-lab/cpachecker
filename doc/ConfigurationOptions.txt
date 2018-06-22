@@ -2894,6 +2894,9 @@ dependenceGraph.exportDot = "DependenceGraph.dot"
 # Run flow dependence analysis with constant propagation
 dependencegraph.flowdep.constantPropagation = false
 
+# Program to check against
+differential.program = "baseProgram.c"
+
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
 enabledanalysis.allowLazyRefinement = false
