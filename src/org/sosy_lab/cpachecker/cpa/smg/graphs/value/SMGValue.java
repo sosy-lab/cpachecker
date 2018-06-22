@@ -35,8 +35,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
  */
 public interface SMGValue extends Comparable<SMGValue> {
 
-  boolean isUnknown();
-
   BigInteger getValue();
 
   int getAsInt();
@@ -104,6 +102,10 @@ public interface SMGValue extends Comparable<SMGValue> {
    * FALSE for UNKNOWN .
    */
   default boolean isZero() {
-    return SMGZeroValue.INSTANCE.equals(this);
+    return SMGZeroValue.INSTANCE == this;
+  }
+
+  default boolean isUnknown() {
+    return SMGUnknownValue.getInstance() == this;
   }
 }

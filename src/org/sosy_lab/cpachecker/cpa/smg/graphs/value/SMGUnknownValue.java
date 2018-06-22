@@ -41,11 +41,6 @@ public final class SMGUnknownValue implements SMGSymbolicValue, SMGExplicitValue
   }
 
   @Override
-  public boolean isUnknown() {
-    return true;
-  }
-
-  @Override
   public SMGAddress getAddress() {
     return SMGAddress.UNKNOWN;
   }
