@@ -29,15 +29,11 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 /** Class representing values which can't be resolved. */
 public final class SMGUnknownValue implements SMGSymbolicValue, SMGExplicitValue, SMGAddressValue {
 
-  private static final SMGUnknownValue instance = new SMGUnknownValue();
+  public static final SMGUnknownValue INSTANCE = new SMGUnknownValue();
 
   @Override
   public String toString() {
     return "UNKNOWN";
-  }
-
-  public static SMGUnknownValue getInstance() {
-    return instance;
   }
 
   @Override
@@ -62,52 +58,52 @@ public final class SMGUnknownValue implements SMGSymbolicValue, SMGExplicitValue
 
   @Override
   public SMGExplicitValue negate() {
-    return instance;
+    return INSTANCE;
   }
 
   @Override
   public SMGExplicitValue xor(SMGExplicitValue pRVal) {
-    return instance;
+    return INSTANCE;
   }
 
   @Override
   public SMGExplicitValue or(SMGExplicitValue pRVal) {
-    return instance;
+    return INSTANCE;
   }
 
   @Override
   public SMGExplicitValue and(SMGExplicitValue pRVal) {
-    return instance;
+    return INSTANCE;
   }
 
   @Override
   public SMGExplicitValue shiftLeft(SMGExplicitValue pRVal) {
-    return instance;
+    return INSTANCE;
   }
 
   @Override
   public SMGExplicitValue multiply(SMGExplicitValue pRVal) {
-    return instance;
+    return INSTANCE;
   }
 
   @Override
   public SMGExplicitValue divide(SMGExplicitValue pRVal) {
-    return instance;
+    return INSTANCE;
   }
 
   @Override
   public SMGExplicitValue subtract(SMGExplicitValue pRVal) {
-    return instance;
+    return INSTANCE;
   }
 
   @Override
   public SMGExplicitValue add(SMGExplicitValue pRVal) {
-    return instance;
+    return INSTANCE;
   }
 
   @Override
   public SMGExplicitValue getOffset() {
-    return instance;
+    return INSTANCE;
   }
 
   @Override

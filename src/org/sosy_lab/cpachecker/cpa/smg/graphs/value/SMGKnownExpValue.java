@@ -46,7 +46,7 @@ public class SMGKnownExpValue extends SMGKnownValue implements SMGExplicitValue 
   @Override
   public SMGExplicitValue xor(SMGExplicitValue pRVal) {
     if (pRVal.isUnknown()) {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
     return valueOf(getValue().xor(pRVal.getValue()));
   }
@@ -54,7 +54,7 @@ public class SMGKnownExpValue extends SMGKnownValue implements SMGExplicitValue 
   @Override
   public SMGExplicitValue or(SMGExplicitValue pRVal) {
     if (pRVal.isUnknown()) {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
     return valueOf(getValue().or(pRVal.getValue()));
   }
@@ -62,7 +62,7 @@ public class SMGKnownExpValue extends SMGKnownValue implements SMGExplicitValue 
   @Override
   public SMGExplicitValue and(SMGExplicitValue pRVal) {
     if (pRVal.isUnknown()) {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
     return valueOf(getValue().and(pRVal.getValue()));
   }
@@ -70,7 +70,7 @@ public class SMGKnownExpValue extends SMGKnownValue implements SMGExplicitValue 
   @Override
   public SMGExplicitValue shiftLeft(SMGExplicitValue pRVal) {
     if (pRVal.isUnknown()) {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
     return valueOf(getValue().shiftLeft(pRVal.getAsInt()));
   }
@@ -78,7 +78,7 @@ public class SMGKnownExpValue extends SMGKnownValue implements SMGExplicitValue 
   @Override
   public SMGExplicitValue multiply(SMGExplicitValue pRVal) {
     if (pRVal.isUnknown()) {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
     return valueOf(getValue().multiply(pRVal.getValue()));
   }
@@ -86,7 +86,7 @@ public class SMGKnownExpValue extends SMGKnownValue implements SMGExplicitValue 
   @Override
   public SMGExplicitValue divide(SMGExplicitValue pRVal) {
     if (pRVal.isUnknown()) {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
     return valueOf(getValue().divide(pRVal.getValue()));
   }
@@ -94,7 +94,7 @@ public class SMGKnownExpValue extends SMGKnownValue implements SMGExplicitValue 
   @Override
   public SMGExplicitValue subtract(SMGExplicitValue pRVal) {
     if (pRVal.isUnknown()) {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
     return valueOf(getValue().subtract(pRVal.getValue()));
   }
@@ -102,7 +102,7 @@ public class SMGKnownExpValue extends SMGKnownValue implements SMGExplicitValue 
   @Override
   public SMGExplicitValue add(SMGExplicitValue pRVal) {
     if (pRVal.isUnknown()) {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
     return valueOf(getValue().add(pRVal.getValue()));
   }

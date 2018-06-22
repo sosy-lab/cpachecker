@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 /** A class to represent an Address. This class is mainly used to store Address Information. */
 public final class SMGAddress {
 
-  public static final SMGAddress UNKNOWN = new SMGAddress(null, SMGUnknownValue.getInstance());
+  public static final SMGAddress UNKNOWN = new SMGAddress(null, SMGUnknownValue.INSTANCE);
 
   /** The SMGObject representing the Memory this address belongs to. */
   private final SMGObject object;

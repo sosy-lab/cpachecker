@@ -94,12 +94,12 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
   private SMGExplicitValue getExplicitValue(SMGSymbolicValue pValue) {
     if (pValue.isUnknown()) {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
     Preconditions.checkState(
         pValue instanceof SMGKnownSymbolicValue, "known value has invalid type");
     if (!smgState.isExplicit((SMGKnownSymbolicValue) pValue)) {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
     return Preconditions.checkNotNull(
         smgState.getExplicit((SMGKnownSymbolicValue) pValue),

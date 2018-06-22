@@ -367,8 +367,8 @@ public final class SMGIntersectStates {
     SMGKnownSymbolicValue symVal2 = SMGKnownSymValue.valueOf(pValue2);
     SMGKnownSymbolicValue symDestVal = symVal1;
 
-    SMGExplicitValue expVal1 = SMGUnknownValue.getInstance();
-    SMGExplicitValue expVal2 = SMGUnknownValue.getInstance();
+    SMGExplicitValue expVal1 = SMGUnknownValue.INSTANCE;
+    SMGExplicitValue expVal2 = SMGUnknownValue.INSTANCE;
 
     if (smgState1.isExplicit(symVal1)) {
       expVal1 = smgState1.getExplicit(symVal1);

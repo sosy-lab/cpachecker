@@ -547,8 +547,8 @@ public class SMGTransferRelation
       val1ImpliesOn = visitor.impliesVal1(smgState);
       val2ImpliesOn = visitor.impliesVal2(smgState);
     } else {
-      val1ImpliesOn = SMGUnknownValue.getInstance();
-      val2ImpliesOn = SMGUnknownValue.getInstance();
+      val1ImpliesOn = SMGUnknownValue.INSTANCE;
+      val2ImpliesOn = SMGUnknownValue.INSTANCE;
     }
 
     List<SMGState> result = new ArrayList<>();

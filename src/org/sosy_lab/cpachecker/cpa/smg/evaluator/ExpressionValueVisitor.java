@@ -131,7 +131,7 @@ public class ExpressionValueVisitor
 
     boolean isZero = value.equals(BigInteger.ZERO);
 
-    SMGSymbolicValue val = (isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.getInstance());
+    SMGSymbolicValue val = (isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE);
     return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
   }
 
@@ -141,7 +141,7 @@ public class ExpressionValueVisitor
 
     char value = exp.getCharacter();
 
-    SMGSymbolicValue val = (value == 0) ? SMGZeroValue.INSTANCE : SMGUnknownValue.getInstance();
+    SMGSymbolicValue val = (value == 0) ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
     return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
   }
 
@@ -183,7 +183,7 @@ public class ExpressionValueVisitor
 
     boolean isZero = exp.getValue().equals(BigDecimal.ZERO);
 
-    SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.getInstance();
+    SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
     return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
   }
 
@@ -197,7 +197,7 @@ public class ExpressionValueVisitor
 
       long enumValue = ((CEnumerator) decl).getValue();
 
-      SMGSymbolicValue val = enumValue == 0 ? SMGZeroValue.INSTANCE : SMGUnknownValue.getInstance();
+      SMGSymbolicValue val = enumValue == 0 ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
       return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
 
     } else if (decl instanceof CVariableDeclaration
@@ -247,7 +247,7 @@ public class ExpressionValueVisitor
         SMGSymbolicValue value = valueAndState.getObject();
 
           SMGSymbolicValue val =
-              value.equals(SMGZeroValue.INSTANCE) ? value : SMGUnknownValue.getInstance();
+              value.equals(SMGZeroValue.INSTANCE) ? value : SMGUnknownValue.INSTANCE;
         result.add(SMGValueAndState.of(valueAndState.getSmgState(), val));
       }
 
@@ -260,7 +260,7 @@ public class ExpressionValueVisitor
                 TypeUtils.getRealExpressionType(unaryOperand),
                 getInitialSmgState(),
                 unaryOperand);
-        SMGSymbolicValue val = (size == 0) ? SMGZeroValue.INSTANCE : SMGUnknownValue.getInstance();
+        SMGSymbolicValue val = (size == 0) ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
         return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
     case TILDE:
 
@@ -298,7 +298,7 @@ public class ExpressionValueVisitor
         SMGSymbolicValue val =
             smgExpressionEvaluator.getBitSizeof(cfaEdge, type, getInitialSmgState(), typeIdExp) == 0
                 ? SMGZeroValue.INSTANCE
-                : SMGUnknownValue.getInstance();
+                : SMGUnknownValue.INSTANCE;
         return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
     default:
         return singletonList(SMGValueAndState.of(getInitialSmgState()));
@@ -331,8 +331,8 @@ public class ExpressionValueVisitor
         SMGSymbolicValue rVal = rValAndState.getObject();
         newState = rValAndState.getSmgState();
 
-        if (rVal.equals(SMGUnknownValue.getInstance())
-            || lVal.equals(SMGUnknownValue.getInstance())) {
+        if (rVal.equals(SMGUnknownValue.INSTANCE)
+            || lVal.equals(SMGUnknownValue.INSTANCE)) {
           result.add(SMGValueAndState.of(newState));
           continue;
         }
@@ -351,7 +351,7 @@ public class ExpressionValueVisitor
       SMGState newState)
       throws SMGInconsistentException {
 
-    if (lVal.equals(SMGUnknownValue.getInstance()) || rVal.equals(SMGUnknownValue.getInstance())) {
+    if (lVal.equals(SMGUnknownValue.INSTANCE) || rVal.equals(SMGUnknownValue.INSTANCE)) {
       return singletonList(SMGValueAndState.of(newState));
     }
 
@@ -376,13 +376,13 @@ public class ExpressionValueVisitor
           case BINARY_XOR:
           case SHIFT_RIGHT:
               isZero = lVal.equals(SMGZeroValue.INSTANCE) && rVal.equals(SMGZeroValue.INSTANCE);
-              SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.getInstance();
+              SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
               return singletonList(SMGValueAndState.of(newState, val));
 
           case MINUS:
           case MODULO:
             isZero = (lVal.equals(rVal));
-              val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.getInstance();
+              val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
               return singletonList(SMGValueAndState.of(newState, val));
 
           case DIVIDE:
@@ -392,13 +392,13 @@ public class ExpressionValueVisitor
             }
 
               isZero = lVal.equals(SMGZeroValue.INSTANCE);
-              val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.getInstance();
+              val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
               return singletonList(SMGValueAndState.of(newState, val));
 
           case MULTIPLY:
           case BINARY_AND:
               isZero = lVal.equals(SMGZeroValue.INSTANCE) || rVal.equals(SMGZeroValue.INSTANCE);
-              val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.getInstance();
+              val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
               return singletonList(SMGValueAndState.of(newState, val));
 
           default:

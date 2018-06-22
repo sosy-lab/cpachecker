@@ -106,6 +106,6 @@ public interface SMGValue extends Comparable<SMGValue> {
   }
 
   default boolean isUnknown() {
-    return SMGUnknownValue.getInstance() == this;
+    return SMGUnknownValue.INSTANCE == this;
   }
 }

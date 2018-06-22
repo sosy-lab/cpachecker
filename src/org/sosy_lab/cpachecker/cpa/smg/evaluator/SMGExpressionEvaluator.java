@@ -262,7 +262,7 @@ public class SMGExpressionEvaluator {
       smgValue = SMGKnownExpValue.valueOf(offset);
       resultType = TypeUtils.getRealExpressionType(resultType);
     } else {
-      smgValue = SMGUnknownValue.getInstance();
+      smgValue = SMGUnknownValue.INSTANCE;
     }
     return new SMGField(smgValue, resultType);
   }
@@ -290,7 +290,7 @@ public class SMGExpressionEvaluator {
     if (result.size() == 1) {
       return result.get(0).getObject();
     } else {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
   }
 
@@ -355,7 +355,7 @@ public class SMGExpressionEvaluator {
     if (result.size() == 1) {
       return result.get(0).getObject();
     } else {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
   }
 
@@ -401,7 +401,7 @@ public class SMGExpressionEvaluator {
     if (result.size() == 1) {
       return result.get(0).getObject();
     } else {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
   }
 
@@ -445,7 +445,7 @@ public class SMGExpressionEvaluator {
     if (result.size() == 1) {
       return result.get(0).getObject();
     } else {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
   }
 
