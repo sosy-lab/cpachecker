@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
@@ -257,8 +258,7 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
     // This symbolic value should have been added when evaluating the assume
     assert !value.isUnknown();
 
-    assignableState.putExplicit((SMGKnownSymValue)value, SMGKnownExpValue.ZERO);
-
+    assignableState.putExplicit((SMGKnownSymValue) value, SMGZeroValue.INSTANCE);
   }
 
   private CExpression unwrap(CExpression expression) {

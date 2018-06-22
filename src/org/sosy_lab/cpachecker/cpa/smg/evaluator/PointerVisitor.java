@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -170,7 +171,7 @@ public class PointerVisitor extends ExpressionValueVisitor {
       return Collections.singletonList(SMGAddressValueAndState.of(state));
     }
 
-    return smgExpressionEvaluator.createAddress(state, functionObject, SMGKnownExpValue.ZERO);
+    return smgExpressionEvaluator.createAddress(state, functionObject, SMGZeroValue.INSTANCE);
   }
 
   private List<? extends SMGValueAndState> createAddressOfArraySubscript(
@@ -254,7 +255,8 @@ public class PointerVisitor extends ExpressionValueVisitor {
       return Collections.singletonList(SMGAddressValueAndState.of(state));
     } else {
       state.addElementToCurrentChain(variableObject);
-      return smgExpressionEvaluator.createAddress(state, variableObject, SMGKnownExpValue.ZERO);
+      return smgExpressionEvaluator.createAddress(
+          state, variableObject, SMGZeroValue.INSTANCE);
     }
   }
 

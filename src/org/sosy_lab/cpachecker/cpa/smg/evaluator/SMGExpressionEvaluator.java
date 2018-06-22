@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -330,7 +331,8 @@ public class SMGExpressionEvaluator {
 
     if (!symbolicValue.isUnknown()) {
       if (symbolicValue == SMGKnownSymValue.ZERO) {
-        return SMGExplicitValueAndState.of(newState, SMGKnownExpValue.ZERO); }
+        return SMGExplicitValueAndState.of(newState, SMGZeroValue.INSTANCE);
+      }
 
       if (symbolicValue instanceof SMGAddressValue) {
         SMGAddressValue address = (SMGAddressValue) symbolicValue;

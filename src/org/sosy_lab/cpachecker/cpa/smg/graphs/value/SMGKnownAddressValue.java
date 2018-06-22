@@ -37,7 +37,7 @@ public final class SMGKnownAddressValue extends SMGKnownSymValue implements SMGA
 
   public static final SMGKnownAddressValue ZERO_ADDRESS =
       SMGKnownAddressValue.valueOf(
-          SMGNullObject.INSTANCE, SMGKnownExpValue.ZERO, SMGKnownSymValue.ZERO);
+          SMGNullObject.INSTANCE, SMGZeroValue.INSTANCE, SMGKnownSymValue.ZERO);
 
   /** The address this value represents. */
   private final SMGAddress address;

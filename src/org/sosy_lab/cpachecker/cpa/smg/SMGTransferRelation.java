@@ -104,6 +104,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -291,7 +292,8 @@ public class SMGTransferRelation
       SMGObject tmpMemory = newState.getHeap().getFunctionReturnObject();
       SMGSymbolicValue rValue =
           expressionEvaluator
-              .readValue(newState, tmpMemory, SMGKnownExpValue.ZERO, rValueType, functionReturnEdge)
+              .readValue(
+                  newState, tmpMemory, SMGZeroValue.INSTANCE, rValueType, functionReturnEdge)
               .getObject();
       SMGAddress address = null;
 
@@ -584,8 +586,8 @@ public class SMGTransferRelation
           result.add(newState);
           logger.log(Level.WARNING, "Solver Interrupted Exception: ", pE, " on predicate ", predicateFormula);
         }
-      } else if ((truthValue && !explicitValue.equals(SMGKnownExpValue.ZERO))
-          || (!truthValue && explicitValue.equals(SMGKnownExpValue.ZERO))) {
+      } else if ((truthValue && !explicitValue.equals(SMGZeroValue.INSTANCE))
+          || (!truthValue && explicitValue.equals(SMGZeroValue.INSTANCE))) {
         result.add(explicitSmgState);
       } else {
         // This signals that there are no new States reachable from this State i. e. the

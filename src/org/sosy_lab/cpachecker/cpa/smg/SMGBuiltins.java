@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
@@ -316,14 +317,14 @@ public class SMGBuiltins {
         if (sizeValue.isUnknown()) {
 
           if (smgTransferRelation.kind == SMGTransferRelationKind.REFINEMENT) {
-            sizeValue = SMGKnownExpValue.ZERO;
+            sizeValue = SMGZeroValue.INSTANCE;
           } else {
             throw new UnsupportedCCodeException("Not able to compute allocation size", cfaEdge);
           }
         }
       } else {
         if (smgTransferRelation.kind == SMGTransferRelationKind.REFINEMENT) {
-          sizeValue = SMGKnownExpValue.ZERO;
+          sizeValue = SMGZeroValue.INSTANCE;
         } else {
           throw new UnsupportedCCodeException("Not able to compute allocation size", cfaEdge);
         }
@@ -423,14 +424,16 @@ public class SMGBuiltins {
 
           if(value.isUnknown()) {
             if (smgTransferRelation.kind == SMGTransferRelationKind.REFINEMENT) {
-              resultValueAndState = SMGExplicitValueAndState.of(currentState ,SMGKnownExpValue.ZERO);
+              resultValueAndState =
+                  SMGExplicitValueAndState.of(currentState, SMGZeroValue.INSTANCE);
             } else {
               throw new UnsupportedCCodeException("Not able to compute allocation size", cfaEdge);
             }
           }
         } else {
           if (smgTransferRelation.kind == SMGTransferRelationKind.REFINEMENT) {
-            resultValueAndState = SMGExplicitValueAndState.of(currentState, SMGKnownExpValue.ZERO);
+            resultValueAndState =
+                SMGExplicitValueAndState.of(currentState, SMGZeroValue.INSTANCE);
           } else {
             throw new UnsupportedCCodeException("Not able to compute allocation size", cfaEdge);
           }

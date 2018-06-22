@@ -27,13 +27,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.math.BigInteger;
 
-public final class SMGKnownExpValue extends SMGKnownValue implements SMGExplicitValue {
+public class SMGKnownExpValue extends SMGKnownValue implements SMGExplicitValue {
 
   public static final SMGKnownExpValue ONE = new SMGKnownExpValue(BigInteger.ONE);
 
-  public static final SMGKnownExpValue ZERO = new SMGKnownExpValue(BigInteger.ZERO);
-
-  private SMGKnownExpValue(BigInteger pValue) {
+  protected SMGKnownExpValue(BigInteger pValue) {
     super(pValue);
   }
 
@@ -124,7 +122,7 @@ public final class SMGKnownExpValue extends SMGKnownValue implements SMGExplicit
     checkNotNull(pValue);
 
     if (pValue.equals(BigInteger.ZERO)) {
-      return ZERO;
+      return SMGZeroValue.INSTANCE;
     } else if (pValue.equals(BigInteger.ONE)) {
       return ONE;
     } else {

@@ -64,10 +64,10 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGVa
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -214,7 +214,7 @@ public class ExpressionValueVisitor
           smgExpressionEvaluator.readValue(
               smgState,
               variableObject,
-              SMGKnownExpValue.ZERO,
+              SMGZeroValue.INSTANCE,
               TypeUtils.getRealExpressionType(idExpression),
               cfaEdge);
       result.getSmgState().addElementToCurrentChain(result.getObject());
