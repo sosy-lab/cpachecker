@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
@@ -101,7 +102,7 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
       for (SMGEdgePointsToTemplate iPointerTemplate : targetAdressTemplateOfPointer) {
 
         SMGValue pointerTemplate = iPointerTemplate.getAbstractValue();
-        SMGKnownSymbolicValue uPointerTemplate = SMGCPA.getNewSymbolicValue();
+        SMGKnownSymbolicValue uPointerTemplate = SMGKnownSymValue.of();
 
         uPointerToPointer.put(uPointerTemplate, pointerTemplate);
 
@@ -158,7 +159,7 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
       SMGEdgePointsToTemplate edgeTemplate =
           new SMGEdgePointsToTemplate(pRoot, abstractPointerValue, edges.getFirst().getOffset());
       abstractAdressesToOPointer.add(edgeTemplate);
-      abstractPointerValue = SMGCPA.getNewSymbolicValue();
+      abstractPointerValue = SMGKnownSymValue.of();
     }
 
     Set<SMGEdgeHasValueTemplate> abstractFieldsToOPointer =
@@ -170,7 +171,7 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
           new SMGEdgeHasValueTemplate(pRoot, abstractPointerValue,
               edges.getFirst().getOffset(), edges.getFirst().getType());
       abstractFieldsToOPointer.add(edgeTemplate);
-      abstractPointerValue = SMGCPA.getNewSymbolicValue();
+      abstractPointerValue = SMGKnownSymValue.of();
     }
 
     Map<SMGValue, SMGValue> emptyMap = new HashMap<>();

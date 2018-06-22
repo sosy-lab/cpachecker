@@ -182,7 +182,7 @@ public class SMGBuiltins {
 
     if (ch.isUnknown()) {
       // If the symbolic value is not known create a new one.
-      ch = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
+      ch = SMGKnownSymValue.of();
     }
 
     SMGObject bufferMemory =  bufferAddress.getObject();

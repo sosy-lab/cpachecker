@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
@@ -678,15 +677,15 @@ public class SMGExpressionEvaluator {
       SMGState pSmgState, SMGObject pTarget, SMGExplicitValue pOffset)
       throws SMGInconsistentException {
     if (pTarget == null || pOffset.isUnknown()) {
-      SMGKnownSymbolicValue value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
+      SMGKnownSymbolicValue value = SMGKnownSymValue.of();
       SMGKnownAddressValue addressValue =
           SMGKnownAddressValue.valueOf(pTarget, (SMGKnownExpValue) pOffset, value);
       return singletonList(SMGAddressValueAndState.of(pSmgState, addressValue));
     }
     if (pTarget instanceof SMGRegion) {
-      SMGValue address = pSmgState.getAddress((SMGRegion) pTarget, pOffset.getAsInt());
+      SMGValue address = pSmgState.getAddress((SMGRegion) pTarget, pOffset.getAsLong());
       if (address == null) {
-        SMGKnownSymbolicValue value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
+        SMGKnownSymbolicValue value = SMGKnownSymValue.of();
         SMGKnownAddressValue addressValue =
             SMGKnownAddressValue.valueOf(pTarget, (SMGKnownExpValue) pOffset, value);
         return singletonList(SMGAddressValueAndState.of(pSmgState, addressValue));
@@ -697,7 +696,7 @@ public class SMGExpressionEvaluator {
       // TODO return NULL_POINTER instead of new object?
       return singletonList(
           SMGAddressValueAndState.of(
-              pSmgState, SMGKnownAddressValue.valueOf(0, pTarget, pOffset.getAsInt())));
+              pSmgState, SMGKnownAddressValue.valueOf(0, pTarget, pOffset.getAsLong())));
     }
     throw new AssertionError("Abstraction " + pTarget + " was not materialised.");
   }

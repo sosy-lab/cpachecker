@@ -30,13 +30,13 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGJoinValuesTest {
@@ -49,9 +49,9 @@ public class SMGJoinValuesTest {
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
 
-  private final SMGValue value1 = SMGCPA.getNewSymbolicValue();
-  private final SMGValue value2 = SMGCPA.getNewSymbolicValue();
-  private final SMGValue value3 = SMGCPA.getNewSymbolicValue();
+  private final SMGValue value1 = SMGKnownSymValue.of();
+  private final SMGValue value2 = SMGKnownSymValue.of();
+  private final SMGValue value3 = SMGKnownSymValue.of();
 
   @Before
   public void setUp() throws InvalidConfigurationException {

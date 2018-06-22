@@ -72,7 +72,7 @@ public class SMGKnownExpValue extends SMGKnownValue implements SMGExplicitValue 
     if (pRVal.isUnknown()) {
       return SMGUnknownValue.INSTANCE;
     }
-    return valueOf(getValue().shiftLeft(pRVal.getAsInt()));
+    return valueOf(getValue().shiftLeft(pRVal.getValue().intValue()));
   }
 
   @Override

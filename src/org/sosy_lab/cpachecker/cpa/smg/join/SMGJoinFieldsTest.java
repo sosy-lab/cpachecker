@@ -35,7 +35,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
@@ -46,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -57,8 +57,8 @@ public class SMGJoinFieldsTest {
   private SMG smg1;
   private SMG smg2;
 
-  private final SMGValue value1 = SMGCPA.getNewSymbolicValue();
-  private final SMGValue value2 = SMGCPA.getNewSymbolicValue();
+  private final SMGValue value1 = SMGKnownSymValue.of();
+  private final SMGValue value2 = SMGKnownSymValue.of();
 
   @Before
   public void setUp() {
@@ -329,7 +329,7 @@ public class SMGJoinFieldsTest {
     smg1.addObject(obj1);
     smg2.addObject(obj2);
 
-    SMGValue value3 = SMGCPA.getNewSymbolicValue();
+    SMGValue value3 = SMGKnownSymValue.of();
     smg1.addValue(value3);
     smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, value3));
 
@@ -423,8 +423,8 @@ public class SMGJoinFieldsTest {
 
     SMGRegion obj1 = new SMGRegion(256, "Object 1");
     SMGRegion obj2 = new SMGRegion(256, "Object 2");
-    SMGValue value3 = SMGCPA.getNewSymbolicValue();
-    SMGValue value4 = SMGCPA.getNewSymbolicValue();
+    SMGValue value3 = SMGKnownSymValue.of();
+    SMGValue value4 = SMGKnownSymValue.of();
 
     smg3.addObject(obj1);
     smg4.addObject(obj2);
@@ -464,7 +464,7 @@ public class SMGJoinFieldsTest {
 
     SMGRegion obj1 = new SMGRegion(256, "Object 1");
     SMGRegion obj2 = new SMGRegion(256, "Object 2");
-    SMGValue value3 = SMGCPA.getNewSymbolicValue();
+    SMGValue value3 = SMGKnownSymValue.of();
 
     smg3.addValue(value3);
     smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, value3));
@@ -524,7 +524,7 @@ public class SMGJoinFieldsTest {
     SMGRegion obj1 = new SMGRegion(256, "Object 1");
     SMGRegion obj2 = new SMGRegion(256, "Object 2");
 
-    SMGValue value4 = SMGCPA.getNewSymbolicValue();
+    SMGValue value4 = SMGKnownSymValue.of();
     smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, SMG.NULL_ADDRESS));
     smg4.addValue(value4);
     smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj2, value4));
@@ -540,8 +540,8 @@ public class SMGJoinFieldsTest {
     SMGRegion obj2 = new SMGRegion(256, "Object 2");
     SMGRegion obj3 = new SMGRegion(256, "Object 3");
 
-    SMGValue value3 = SMGCPA.getNewSymbolicValue();
-    SMGValue value4 = SMGCPA.getNewSymbolicValue();
+    SMGValue value3 = SMGKnownSymValue.of();
+    SMGValue value4 = SMGKnownSymValue.of();
 
     smg3.addValue(value3);
     smg4.addValue(value4);

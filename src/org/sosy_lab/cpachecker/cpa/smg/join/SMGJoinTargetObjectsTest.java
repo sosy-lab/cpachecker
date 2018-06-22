@@ -27,13 +27,13 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 
@@ -46,11 +46,11 @@ public class SMGJoinTargetObjectsTest {
   private SMGNodeMapping mapping2;
 
   final private SMGObject obj1 = new SMGRegion(64, "ze label");
-  private final SMGSymbolicValue value1 = SMGCPA.getNewSymbolicValue();
+  private final SMGSymbolicValue value1 = SMGKnownSymValue.of();
   final private SMGEdgePointsTo pt1 = new SMGEdgePointsTo(value1, obj1, 0);
 
   final private SMGObject obj2 = new SMGRegion(64, "ze label");
-  private final SMGSymbolicValue value2 = SMGCPA.getNewSymbolicValue();
+  private final SMGSymbolicValue value2 = SMGKnownSymValue.of();
   final private SMGEdgePointsTo pt2 = new SMGEdgePointsTo(value2, obj2, 0);
 
   final private SMGObject destObj = new SMGRegion(64, "destination");

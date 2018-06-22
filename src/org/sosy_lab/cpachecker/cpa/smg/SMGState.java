@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
@@ -668,7 +669,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGEdgePointsTo newPtEdgeToNewRegionFromOutsideSMG =
         new SMGEdgePointsTo(oldPointerToSll, newConcreteRegion, hfo);
 
-    SMGValue newPointerToSll = SMGCPA.getNewSymbolicValue();
+    SMGValue newPointerToSll = SMGKnownSymValue.of();
 
     /*If you can't find the pointer, use generic pointer type*/
     CType typeOfPointerToSll;
@@ -779,7 +780,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         new SMGEdgeHasValue(oldDllFieldToOldRegion.getType(), offsetPointingToRegion,
             newConcreteRegion, oldDllFieldToOldRegion.getValue());
 
-    SMGValue newPointerToDll = SMGCPA.getNewSymbolicValue();
+    SMGValue newPointerToDll = SMGKnownSymValue.of();
 
     CType typeOfPointerToDll;
 
@@ -861,7 +862,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
             if (newValueMap.containsKey(subDlsValue)) {
               newVal = newValueMap.get(subDlsValue);
             } else {
-              newVal = SMGCPA.getNewSymbolicValue();
+              newVal = SMGKnownSymValue.of();
               heap.addValue(newVal);
               newValueMap.put(subDlsValue, newVal);
 
@@ -943,7 +944,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
           if (newValueMap.containsKey(subDlsValue)) {
             newVal = newValueMap.get(subDlsValue);
           } else {
-            newVal = SMGCPA.getNewSymbolicValue();
+            newVal = SMGKnownSymValue.of();
             heap.addValue(newVal);
             newValueMap.put(subDlsValue, newVal);
 
@@ -1062,7 +1063,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         SMGAddressValue new_address = valueAndState.getSmgState().addExternalAllocation(genRecursiveLabel(pObject.getLabel()));
         stateAndNewEdge = writeValue(pObject, pOffset, pType, new_address);
       } else {
-        SMGValue newValue = SMGCPA.getNewSymbolicValue();
+        SMGValue newValue = SMGKnownSymValue.of();
         stateAndNewEdge = writeValue0(pObject, pOffset, pType, newValue);
       }
       return SMGValueAndState.of(
@@ -1147,7 +1148,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     // If the value is not yet known by the SMG
     // create a unconstrained new symbolic value
     if (pValue.isUnknown()) {
-      value = SMGCPA.getNewSymbolicValue();
+      value = SMGKnownSymValue.of();
     } else {
       value = pValue;
     }
@@ -1457,7 +1458,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   private SMGAddressValue addHeapAllocation(String label, int size, int offset, boolean external)
       throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(size, label);
-    SMGValue new_value = SMGCPA.getNewSymbolicValue();
+    SMGValue new_value = SMGKnownSymValue.of();
     heap.addHeapObject(new_object);
     heap.addValue(new_value);
     heap.addPointsToEdge(new SMGEdgePointsTo(new_value, new_object, 0));
@@ -1474,7 +1475,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   public SMGAddressValue addNewStackAllocation(int pSize, String pLabel)
       throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(pSize, pLabel);
-    SMGSymbolicValue new_value = SMGCPA.getNewSymbolicValue();
+    SMGSymbolicValue new_value = SMGKnownSymValue.of();
     heap.addStackObject(new_object);
     heap.addValue(new_value);
     heap.addPointsToEdge(new SMGEdgePointsTo(new_value, new_object, 0));

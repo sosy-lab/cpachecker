@@ -31,13 +31,13 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
-import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 
 class SMGJoinFields {
   private final UnmodifiableSMG newSMG1;
@@ -103,7 +103,7 @@ class SMGJoinFields {
       if (pSMG2.getHVEdges(filterForSMG2).size() == 0) {
         returnSet.add(
             new SMGEdgeHasValue(
-                edge.getType(), edge.getOffset(), pObj2, SMGCPA.getNewSymbolicValue()));
+                edge.getType(), edge.getOffset(), pObj2, SMGKnownSymValue.of()));
       }
     }
 

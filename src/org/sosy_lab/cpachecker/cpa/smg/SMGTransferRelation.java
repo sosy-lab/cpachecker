@@ -310,7 +310,7 @@ public class SMGTransferRelation
 
         if (!address.isUnknown()) {
           if (rValue.isUnknown()) {
-            rValue = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
+            rValue = SMGKnownSymValue.of();
           }
 
           SMGObject object = address.getObject();
@@ -745,7 +745,7 @@ public class SMGTransferRelation
       SMGSymbolicValue value = valueAndState.getObject();
 
       if (value.isUnknown()) {
-        value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
+        value = SMGKnownSymValue.of();
         valueAndState = SMGValueAndState.of(valueAndState.getSmgState(), value);
       }
       resultValueAndStates.add(valueAndState);

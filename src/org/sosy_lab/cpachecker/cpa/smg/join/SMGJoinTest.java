@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
@@ -50,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -167,8 +167,8 @@ public class SMGJoinTest {
   private void addGlobalWithValueToBoth(String pVarName) {
     SMGRegion global1 = new SMGRegion(64, pVarName);
     SMGRegion global2 = new SMGRegion(64, pVarName);
-    SMGValue value1 = SMGCPA.getNewSymbolicValue();
-    SMGValue value2 = SMGCPA.getNewSymbolicValue();
+    SMGValue value1 = SMGKnownSymValue.of();
+    SMGValue value2 = SMGKnownSymValue.of();
     SMGEdgeHasValue hv1 = new SMGEdgeHasValue(32, 0, global1, value1);
     SMGEdgeHasValue hv2 = new SMGEdgeHasValue(32, 0, global2, value2);
 
@@ -184,8 +184,8 @@ public class SMGJoinTest {
   private void addLocalWithValueToBoth(String pVarName) {
     SMGRegion local1 = new SMGRegion(64, pVarName);
     SMGRegion local2 = new SMGRegion(64, pVarName);
-    SMGValue value1 = SMGCPA.getNewSymbolicValue();
-    SMGValue value2 = SMGCPA.getNewSymbolicValue();
+    SMGValue value1 = SMGKnownSymValue.of();
+    SMGValue value2 = SMGKnownSymValue.of();
     SMGEdgeHasValue hv1 = new SMGEdgeHasValue(32, 0, local1, value1);
     SMGEdgeHasValue hv2 = new SMGEdgeHasValue(32, 0, local2, value2);
 

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.collect.Iterables;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
@@ -34,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 final class SMGJoinMapTargetAddress {
@@ -83,7 +83,7 @@ final class SMGJoinMapTargetAddress {
     if(pAddress1.equals(pAddress2)) {
       value = pAddress1;
     } else {
-      value = SMGCPA.getNewSymbolicValue();
+      value = SMGKnownSymValue.of();
     }
 
     smg.addValue(value);

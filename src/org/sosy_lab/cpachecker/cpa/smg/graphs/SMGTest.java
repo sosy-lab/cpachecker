@@ -34,7 +34,6 @@ import org.junit.Test;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -42,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 
@@ -168,7 +168,7 @@ public class SMGTest {
   @Test
   public void removeObjectTest() {
     SMG smg1 = getNewSMG64();
-    SMGValue newValue = SMGCPA.getNewSymbolicValue();
+    SMGValue newValue = SMGKnownSymValue.of();
 
     SMGObject object = new SMGRegion(64, "object");
     SMGEdgeHasValue hv0 = new SMGEdgeHasValue(mockType, 0, object, SMGZeroValue.INSTANCE);
@@ -192,7 +192,7 @@ public class SMGTest {
   @Test
   public void removeObjectAndEdgesTest() {
     SMG smg1 = getNewSMG64();
-    SMGValue newValue = SMGCPA.getNewSymbolicValue();
+    SMGValue newValue = SMGKnownSymValue.of();
 
     SMGObject object = new SMGRegion(64, "object");
     SMGEdgeHasValue hv0 = new SMGEdgeHasValue(mockType, 0, object, SMGZeroValue.INSTANCE);

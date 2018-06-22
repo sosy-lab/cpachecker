@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
@@ -167,7 +166,7 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
 
     if(rSymValue.isUnknown()) {
 
-      rSymValue = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
+      rSymValue = SMGKnownSymValue.of();
 
       LValueAssignmentVisitor visitor = smgRightHandSideEvaluator.getLValueAssignmentVisitor(edge, assignableState);
 

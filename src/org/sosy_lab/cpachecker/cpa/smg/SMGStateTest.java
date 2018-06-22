@@ -386,7 +386,7 @@ public class SMGStateTest {
 
     // Add an 16b object and write a 16b value into it
     SMGAddressValue pt = state.addNewHeapAllocation(16, "OBJECT");
-    SMGKnownSymbolicValue new_value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
+    SMGKnownSymbolicValue new_value = SMGKnownSymValue.of();
     SMGEdgeHasValue hv = state.writeValue(pt.getObject(), 0, mockType16b, new_value).getNewEdge();
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
@@ -509,7 +509,7 @@ public class SMGStateTest {
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     SMGAddressValue pt = state.addNewHeapAllocation(16, "OBJECT");
-    SMGKnownSymbolicValue nonpointer = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
+    SMGKnownSymbolicValue nonpointer = SMGKnownSymValue.of();
     state.writeValue(pt.getObject(), 0, mockType16b, nonpointer);
 
     state.getPointerFromValue(nonpointer);
