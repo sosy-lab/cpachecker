@@ -45,6 +45,6 @@ public enum DifferentialState implements AvoidanceReportingState {
 
   @Override
   public BooleanFormula getReasonFormula(FormulaManagerView mgr) {
-    return mgr.getBooleanFormulaManager().makeVariable("EQUAL_TO_BASE_PROGRAM");
+    return mgr.getBooleanFormulaManager().makeVariable("DIFF_FROM_BASE_PROGRAM");
   }
 }
