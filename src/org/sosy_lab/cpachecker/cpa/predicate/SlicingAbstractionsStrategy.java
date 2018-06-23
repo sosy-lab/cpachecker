@@ -388,7 +388,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
         // here it is only sound to check for outgoing edges that do not have a suitable incoming
         // edge
         if (state instanceof SLARGState) {
-        removeOutgoingEdgesWithLocationMismatch(state);
+          removeOutgoingEdgesWithLocationMismatch(state);
         }
       }
     }
@@ -399,8 +399,15 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     Set<CFANode> locations = ((SLARGState) state).getOutgoingLocations();
     List<ARGState> toRemove = new ArrayList<>();
     for (ARGState parent : state.getParents()) {
-      CFAEdge edge = parent.getEdgeToChild(state);
-      if (edge != null && !locations.contains(edge.getSuccessor())) {
+      EdgeSet edgeSet = ((SLARGState) parent).getEdgeSetToChild(state);
+      if (edgeSet != null) {
+        for (CFAEdge edge : edgeSet.getEdges()) {
+          if (!locations.contains(edge.getSuccessor())) {
+            edgeSet.removeEdge(edge);
+          }
+        }
+      }
+      if (edgeSet.isEmpty()) {
         toRemove.add(parent);
       }
     }
@@ -413,9 +420,17 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     Set<CFANode> locations = ((SLARGState) state).getIncomingLocations();
     List<ARGState> toRemove = new ArrayList<>();
     for (ARGState child : ((ARGState) state).getChildren()) {
-      CFAEdge edge = ((ARGState) state).getEdgeToChild(child);
-      if (edge != null && !locations.contains(edge.getPredecessor())) {
-        toRemove.add(child);
+      EdgeSet edgeSet = ((SLARGState) state).getEdgeSetToChild(child);
+
+      if (edgeSet != null) {
+        for (CFAEdge edge : edgeSet.getEdges()) {
+          if (!locations.contains(edge.getPredecessor())) {
+            edgeSet.removeEdge(edge);
+          }
+        }
+        if (edgeSet.isEmpty()) {
+          toRemove.add(child);
+        }
       }
     }
     for (ARGState child : toRemove) {

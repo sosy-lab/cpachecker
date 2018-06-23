@@ -36,7 +36,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.SLARGToDotWriter;
 
 @Options(prefix = "cpa.arg")
@@ -55,7 +55,7 @@ public class ARGLogger {
     iterationCount++;
   }
 
-  public void log(String pMessage, ReachedSet pReachedSet) {
+  public void log(String pMessage, UnmodifiableReachedSet pReachedSet) {
     if (!logARGs
         || pReachedSet.asCollection().isEmpty()
         || !(pReachedSet.asCollection().iterator().next() instanceof ARGState)) {
