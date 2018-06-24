@@ -145,14 +145,17 @@ with considerably less effort -->
         <li class="nav-item" ng-class="{active: tabIsSet(6)}">
           <a class="nav-link" data-toggle="pill" href ng-click="setTab(6)">Configurations</a>
         </li>
+        <div>
+          <button id="full_screen_mode" class="btn btn-outline-info btn-lg help_button" ng-click="makeFullScreen($event)">
+            <i class="fas fa-expand"></i> Full Screen Mode</button>
+        </div>
         <div class="help_button" data-toggle="tooltip" data-placement="top" title="Get help!">
-        <a tabindex="0" role="button" data-container="body" data-toggle="popover" data-html="true" data-placement="bottom" data-trigger="focus"
-          data-content="{{help_content}}" class="btn btn-outline-info btn-lg help_button">
-          <i class="fas fa-question-circle"></i>
-        </a>
-      </div>
+          <a tabindex="0" role="button" data-container="body" data-toggle="popover" data-html="true" data-placement="bottom" data-trigger="focus"
+            data-content="{{help_content}}" class="btn btn-outline-info btn-lg help_button">
+            <i class="fas fa-question-circle"></i>
+          </a>
+        </div>
       </ul>
-
 
       <div id="cfa-toolbar" ng-controller="CFAToolbarController">
         <nav class="navbar navbar-light bg-light">
@@ -214,7 +217,8 @@ with considerably less effort -->
               <strong>Split Threshold</strong>
             </label>
             <input type="text" aria-label="Split Threshold" id="arg-split-threshold">
-            <button class="btn btn-outline-secondary" type="button" ng-click="argRedraw()" data-toggle="tooltip" data-placement="top" title="Refresh Split Threshold">
+            <button class="btn btn-outline-secondary" type="button" ng-click="argRedraw()" data-toggle="tooltip" data-placement="top"
+              title="Refresh Split Threshold">
               <i class="fas fa-sync"></i>
             </button>
           </div>

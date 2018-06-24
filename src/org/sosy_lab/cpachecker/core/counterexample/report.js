@@ -58,6 +58,8 @@ with considerably less effort */
 			$scope.$on("ChangeTab", function (event, tabIndex) {
 				$scope.setTab(tabIndex);
 			});
+
+			//Toggle button to hide the error path section
 			$scope.toggleErrorPathSection = function (e) {
 				$('#toggle_error_path').on('change', function () {
 					if ($(this).is(':checked')) {
@@ -71,6 +73,33 @@ with considerably less effort */
 					}
 				});
 			}
+
+			//Full screen mode function to view the report in full screen
+			$('#full_screen_mode').click(function () {
+				$(this).find('i').toggleClass('fa-compress fa-expand')
+			});
+
+			$scope.makeFullScreen = function (e) {
+				if ((document.fullScreenElement && document.fullScreenElement !== null) || (!document.mozFullScreen && !
+						document.webkitIsFullScreen)) {
+					if (document.documentElement.requestFullScreen) {
+						document.documentElement.requestFullScreen();
+					} else if (document.documentElement.mozRequestFullScreen) {
+						document.documentElement.mozRequestFullScreen();
+					} else if (document.documentElement.webkitRequestFullScreen) {
+						document.documentElement.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT);
+					}
+				} else {
+					if (document.cancelFullScreen) {
+						document.cancelFullScreen();
+					} else if (document.mozCancelFullScreen) {
+						document.mozCancelFullScreen();
+					} else if (document.webkitCancelFullScreen) {
+						document.webkitCancelFullScreen();
+					}
+				}
+			};
+			
 			$scope.setTab = function (tabIndex) {
 				if (tabIndex === 1) {
 					if (d3.select("#arg-toolbar").style("visibility") !== "hidden") {
