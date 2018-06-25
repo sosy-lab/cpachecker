@@ -116,6 +116,7 @@ public class ConfigurationFileChecks {
       ImmutableSet.of(
           // always set by this test
           "java.sourcepath",
+          "differential.program",
           // handled by code outside of CPAchecker class
           "output.disable",
           "limits.time.cpu",
