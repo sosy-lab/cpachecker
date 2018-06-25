@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.differential.modifications;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.Path;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -68,7 +69,7 @@ public class ModificationsCPA implements ConfigurableProgramAnalysis {
   }
 
   // originalProgram != null checked through REQUIRED_INPUT_FILE annotation
-  @SuppressWarnings("null")
+  @SuppressFBWarnings("NP")
   public ModificationsCPA(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
