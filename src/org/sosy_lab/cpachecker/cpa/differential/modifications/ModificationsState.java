@@ -26,8 +26,11 @@ package org.sosy_lab.cpachecker.cpa.differential.modifications;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class ModificationsState implements AbstractState {
+public class ModificationsState implements AbstractState, AvoidanceReportingState {
 
   private boolean hasModification;
   private CFANode locationInGivenCfa;
@@ -74,5 +77,18 @@ public class ModificationsState implements AbstractState {
   public int hashCode() {
 
     return Objects.hash(locationInOriginalCfa, locationInGivenCfa, hasModification);
+  }
+
+  @Override
+  public boolean mustDumpAssumptionForAvoidance() {
+    return hasModification;
+  }
+
+  @Override
+  public BooleanFormula getReasonFormula(FormulaManagerView pMgr) {
+    if (mustDumpAssumptionForAvoidance()) {
+      return pMgr.getBooleanFormulaManager().makeFalse();
+    }
+    return pMgr.getBooleanFormulaManager().makeTrue();
   }
 }
