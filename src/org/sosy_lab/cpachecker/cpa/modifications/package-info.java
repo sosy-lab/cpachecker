@@ -22,8 +22,8 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * The {@link org.sosy_lab.cpachecker.cpa.differential.DifferentialCPA DifferentialCPA} performs a
- * reachability analysis of program statements that are equal to the program statements in a second,
- * given program.
+ * CPA that tracks which nodes are successors to cfa edges different in two {@link
+ * org.sosy_lab.cpachecker.cfa.CFA CFAs}
+ * and reports assumptions that go towards these edges.
  */
-package org.sosy_lab.cpachecker.cpa.differential;
+package org.sosy_lab.cpachecker.cpa.modifications;

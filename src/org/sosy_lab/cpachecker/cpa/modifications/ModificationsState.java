@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.differential.modifications;
+package org.sosy_lab.cpachecker.cpa.modifications;
 
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;

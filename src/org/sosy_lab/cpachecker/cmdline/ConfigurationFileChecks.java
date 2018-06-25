@@ -151,9 +151,7 @@ public class ConfigurationFileChecks {
           "cpa.predicate.refinement.performInitialStaticRefinement",
           // options set with inject(...,...)
           "pcc.proof",
-          "pcc.partial.stopAddingAtReachedSetSize",
-          // only injected into config for ModificationsCPA in DifferentialCPA
-          "differential.program");
+          "pcc.partial.stopAddingAtReachedSetSize");
 
   @Options
   private static class OptionsWithSpecialHandlingInTest {
