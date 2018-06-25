@@ -33,12 +33,16 @@ public class FirstPartRenamingFct implements java.util
     arrayVariablesForFormulasHere = arrayVariablesThatAreUsedInBothParts;
   }
   @Override public String apply (String name){
+    StringBuilder myBuilder = new StringBuilder();
+    myBuilder.append(name);
     for (int i = 0; i < arrayVariablesForFormulasHere.length;
          i++){
       if (name.equals(arrayVariablesForFormulasHere[i])){
-        name = name + "'";
+        myBuilder.append("'");
+        //name = name + ("'");
       }
     }
-    return name;
+    return myBuilder.toString();
+    //return name;
   }
 }

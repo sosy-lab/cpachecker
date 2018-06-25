@@ -49,7 +49,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
-import org.matheclipse.basic.Config;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -82,16 +81,11 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
-import org.sosy_lab.java_smt.SolverContextFactory;
-import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.FormulaManager;
-import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
-import org.sosy_lab.java_smt.api.SolverContext;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -645,9 +639,9 @@ public final class InterpolationManager {
       }
       if (my_solver != null) {
         FormulaManagerView new_fmgr = my_solver.getFormulaManager();
-        DomainSpecificAbstraction<T> dsa = new DomainSpecificAbstraction<T>(shutdownNotifier,
+        DomainSpecificAbstraction<T> dsa = new DomainSpecificAbstraction<>(/*shutdownNotifier,*/
             new_fmgr,
-            bfmgr, fmgr, pInterpolator, logger);
+            /*bfmgr, */ fmgr, /* pInterpolator, */ logger);
         List<BooleanFormula> tocheck =
             Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst);
         my_interpolants = dsa.domainSpecificAbstractionsCheck
