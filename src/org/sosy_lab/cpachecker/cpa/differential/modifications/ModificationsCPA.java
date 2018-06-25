@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 public class ModificationsCPA implements ConfigurableProgramAnalysis {
 
   @Option(secure = true, description = "Program to check against", name = "program")
-  @FileOption(Type.OPTIONAL_INPUT_FILE)
+  @FileOption(Type.REQUIRED_INPUT_FILE)
   private Path originalProgram = null;
 
   private final Configuration config;
@@ -71,10 +71,6 @@ public class ModificationsCPA implements ConfigurableProgramAnalysis {
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     pConfig.inject(this);
-
-    if (originalProgram == null) {
-      throw new InvalidConfigurationException("Option differential.program required, but not set");
-    }
 
     config = pConfig;
     logger = pLogger;
