@@ -66,12 +66,13 @@ public class ModificationsState implements AbstractState {
     }
     ModificationsState that = (ModificationsState) pO;
     return Objects.equals(locationInOriginalCfa, that.locationInOriginalCfa)
-        && Objects.equals(locationInGivenCfa, that.locationInGivenCfa);
+        && Objects.equals(locationInGivenCfa, that.locationInGivenCfa)
+        && Objects.equals(hasModification, that.hasModification);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(locationInOriginalCfa, locationInGivenCfa);
+    return Objects.hash(locationInOriginalCfa, locationInGivenCfa, hasModification);
   }
 }
