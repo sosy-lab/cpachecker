@@ -67,6 +67,8 @@ public class ModificationsCPA implements ConfigurableProgramAnalysis {
     return AutomaticCPAFactory.forType(ModificationsCPA.class);
   }
 
+  // originalProgram != null checked through REQUIRED_INPUT_FILE annotation
+  @SuppressWarnings("null")
   public ModificationsCPA(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
