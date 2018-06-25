@@ -40,7 +40,6 @@ import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ResourceInfo;
 import com.google.common.testing.TestLogHandler;
 import com.google.common.truth.Expect;
-import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
@@ -85,6 +84,7 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 /**
  * Test that the bundled configuration files are all valid.
@@ -151,7 +151,9 @@ public class ConfigurationFileChecks {
           "cpa.predicate.refinement.performInitialStaticRefinement",
           // options set with inject(...,...)
           "pcc.proof",
-          "pcc.partial.stopAddingAtReachedSetSize");
+          "pcc.partial.stopAddingAtReachedSetSize",
+          // only injected into config for ModificationsCPA in DifferentialCPA
+          "differential.program");
 
   @Options
   private static class OptionsWithSpecialHandlingInTest {
@@ -510,6 +512,7 @@ public class ConfigurationFileChecks {
       return parse(configFile)
           .addConverter(FileOption.class, fileTypeConverter)
           .setOption("java.sourcepath", tempFolder.getRoot().toString())
+          .setOption("differential.program", createEmptyProgram(false))
           .build();
     } catch (InvalidConfigurationException | IOException | URISyntaxException e) {
       assume().fail(e.getMessage());
@@ -517,20 +520,8 @@ public class ConfigurationFileChecks {
     }
   }
 
-  private String createEmptyProgram(boolean isJava) throws IOException {
-    String program;
-    if (isJava) {
-      IO.writeFile(
-          tempFolder.newFile("Main.java").toPath(),
-          StandardCharsets.US_ASCII,
-          "public class Main { public static void main(String... args) {} }");
-      program = "Main";
-    } else {
-      File cFile = tempFolder.newFile("program.i");
-      IO.writeFile(cFile.toPath(), StandardCharsets.US_ASCII, "void main() {}");
-      program = cFile.toString();
-    }
-    return program;
+  private String createEmptyProgram(boolean pIsJava) throws IOException {
+    return TestDataTools.getEmptyProgram(tempFolder, pIsJava);
   }
 
   private static Stream<String> getSevereMessages(OptionsWithSpecialHandlingInTest pOptions, final TestLogHandler pLogHandler) {
