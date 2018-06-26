@@ -66,7 +66,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGField;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
@@ -677,18 +676,20 @@ public class SMGExpressionEvaluator {
       SMGState pSmgState, SMGObject pTarget, SMGExplicitValue pOffset)
       throws SMGInconsistentException {
     if (pTarget == null || pOffset.isUnknown()) {
-      SMGKnownSymbolicValue value = SMGKnownSymValue.of();
-      SMGKnownAddressValue addressValue =
-          SMGKnownAddressValue.valueOf(value, pTarget, (SMGKnownExpValue) pOffset);
-      return singletonList(SMGAddressValueAndState.of(pSmgState, addressValue));
+      return singletonList(
+          SMGAddressValueAndState.of(
+              pSmgState,
+              SMGKnownAddressValue.valueOf(
+                  SMGKnownSymValue.of(), pTarget, (SMGKnownExpValue) pOffset)));
     }
     if (pTarget instanceof SMGRegion) {
       SMGValue address = pSmgState.getAddress((SMGRegion) pTarget, pOffset.getAsLong());
       if (address == null) {
-        SMGKnownSymbolicValue value = SMGKnownSymValue.of();
-        SMGKnownAddressValue addressValue =
-            SMGKnownAddressValue.valueOf(value, pTarget, (SMGKnownExpValue) pOffset);
-        return singletonList(SMGAddressValueAndState.of(pSmgState, addressValue));
+        return singletonList(
+            SMGAddressValueAndState.of(
+                pSmgState,
+                SMGKnownAddressValue.valueOf(
+                    SMGKnownSymValue.of(), pTarget, (SMGKnownExpValue) pOffset)));
       }
       return pSmgState.getPointerFromValue(address);
     }
@@ -697,7 +698,8 @@ public class SMGExpressionEvaluator {
       return singletonList(
           SMGAddressValueAndState.of(
               pSmgState,
-              SMGKnownAddressValue.valueOf(SMGZeroValue.INSTANCE, pTarget, pOffset.getAsLong())));
+              SMGKnownAddressValue.valueOf(
+                  SMGZeroValue.INSTANCE, pTarget, SMGKnownExpValue.valueOf(pOffset.getAsLong()))));
     }
     throw new AssertionError("Abstraction " + pTarget + " was not materialised.");
   }

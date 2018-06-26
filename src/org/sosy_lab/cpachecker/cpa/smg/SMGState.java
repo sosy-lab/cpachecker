@@ -402,7 +402,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
           SMGKnownAddressValue.valueOf(
               (SMGKnownSymbolicValue) addressValue.getValue(),
               addressValue.getObject(),
-              addressValue.getOffset());
+              SMGKnownExpValue.valueOf(addressValue.getOffset()));
 
       SMGObject obj = address.getObject();
 
@@ -421,37 +421,32 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGEdgePointsTo pointerToAbstractObject, SMGAbstractObject pSmgAbstractObject)
       throws SMGInconsistentException {
 
+    List<SMGAddressValueAndState> result = new ArrayList<>(2);
     switch (pSmgAbstractObject.getKind()) {
       case DLL:
         SMGDoublyLinkedList dllListSeg = (SMGDoublyLinkedList) pSmgAbstractObject;
         if (dllListSeg.getMinimumLength() == 0) {
-          List<SMGAddressValueAndState> result = new ArrayList<>(2);
           result.addAll(copyOf().removeDls(dllListSeg, pointerToAbstractObject));
-          result.add(materialiseDls(dllListSeg, pointerToAbstractObject));
-          return result;
-        } else {
-          return Collections.singletonList(materialiseDls(dllListSeg, pointerToAbstractObject));
         }
+        result.add(materialiseDls(dllListSeg, pointerToAbstractObject));
+        break;
       case SLL:
         SMGSingleLinkedList sllListSeg = (SMGSingleLinkedList) pSmgAbstractObject;
         if (sllListSeg.getMinimumLength() == 0) {
-          List<SMGAddressValueAndState> result = new ArrayList<>(2);
           result.addAll(copyOf().removeSll(sllListSeg, pointerToAbstractObject));
-          result.add(materialiseSll(sllListSeg, pointerToAbstractObject));
-          return result;
-        } else {
-          return Collections.singletonList(materialiseSll(sllListSeg, pointerToAbstractObject));
         }
+        result.add(materialiseSll(sllListSeg, pointerToAbstractObject));
+        break;
       case OPTIONAL:
-        List<SMGAddressValueAndState> result = new ArrayList<>(2);
         SMGOptionalObject optionalObject = (SMGOptionalObject) pSmgAbstractObject;
         result.addAll(copyOf().removeOptionalObject(optionalObject));
         result.add(materialiseOptionalObject(optionalObject, pointerToAbstractObject));
-        return result;
+        break;
       default:
         throw new UnsupportedOperationException(
             "Materilization of abstraction" + pSmgAbstractObject + " not yet implemented.");
     }
+    return result;
   }
 
   private List<SMGAddressValueAndState> removeOptionalObject(SMGOptionalObject pOptionalObject)
@@ -521,7 +516,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         SMGKnownAddressValue.valueOf(
             (SMGKnownSymbolicValue) pPointerToAbstractObject.getValue(),
             newObject,
-            pPointerToAbstractObject.getOffset()));
+            SMGKnownExpValue.valueOf(pPointerToAbstractObject.getOffset())));
   }
 
   private List<SMGAddressValueAndState> removeSll(
@@ -706,7 +701,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return SMGAddressValueAndState.of(
         this,
         SMGKnownAddressValue.valueOf(
-            (SMGKnownSymbolicValue) oldPointerToSll, newConcreteRegion, hfo));
+            (SMGKnownSymbolicValue) oldPointerToSll,
+            newConcreteRegion,
+            SMGKnownExpValue.valueOf(hfo)));
   }
 
   private SMGAddressValueAndState materialiseDls(SMGDoublyLinkedList pListSeg,
@@ -821,7 +818,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     heap.addHasValueEdge(newFieldFromDllToNewRegion);
 
     return SMGAddressValueAndState.of(
-        this, SMGKnownAddressValue.valueOf(oldPointerToDll, newConcreteRegion, hfo));
+        this,
+        SMGKnownAddressValue.valueOf(
+            oldPointerToDll, newConcreteRegion, SMGKnownExpValue.valueOf(hfo)));
   }
 
   private void copyRestrictedSubSmgToObject(SMGObject pRoot, SMGRegion pNewRegion,
@@ -1465,7 +1464,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     heap.addPointsToEdge(new SMGEdgePointsTo(new_value, new_object, 0));
     heap.setExternallyAllocatedFlag(new_object, external);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
-    return SMGKnownAddressValue.valueOf(new_value, new_object, offset);
+    return SMGKnownAddressValue.valueOf(new_value, new_object, SMGKnownExpValue.valueOf(offset));
   }
 
   public void setExternallyAllocatedFlag(SMGObject pObject) {
@@ -1481,7 +1480,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     heap.addValue(new_value);
     heap.addPointsToEdge(new SMGEdgePointsTo(new_value, new_object, 0));
     performConsistencyCheck(SMGRuntimeCheck.HALF);
-    return SMGKnownAddressValue.valueOf(new_value, new_object, 0);
+    return SMGKnownAddressValue.valueOf(new_value, new_object, SMGZeroValue.INSTANCE);
   }
 
   /** Sets a flag indicating this SMGState is a successor over an edge causing a memory leak. */
