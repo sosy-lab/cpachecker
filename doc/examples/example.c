@@ -1,9 +1,11 @@
 int main() {
-  double i = 0;
-  double a = 0;
+int array[2] = {1, 2};
+int i = 0;
+int a = 0;
 
-  while (1) {
-    if (i == 20) {
+
+  while (i < 2) {
+    if (array[i] == 2) {
        goto LOOPEND;
     } else {
        i++;
@@ -17,7 +19,7 @@ int main() {
 
   LOOPEND:
 
-  if (a != 20) {
+  if (a != 1) {
      goto ERROR;
   }
 
