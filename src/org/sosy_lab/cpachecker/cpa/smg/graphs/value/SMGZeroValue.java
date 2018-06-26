@@ -44,7 +44,7 @@ public final class SMGZeroValue extends SMGKnownExpValue
 
   @Override
   public SMGAddress getAddress() {
-    return SMGAddress.valueOf(SMGNullObject.INSTANCE, this);
+    return SMGAddress.ZERO;
   }
 
   @Override
