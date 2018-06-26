@@ -513,23 +513,22 @@ public class SMG implements UnmodifiableSMG {
     return (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= expectedMinClear);
   }
 
+  /**
+   * replace the old value with a fresh one.
+   *
+   * <p>deletes the old value from the SMG and redirects all HV- and PT-edges.
+   *
+   * <p>Precondition: the old value must never be ZERO.
+   */
   public void replaceValue(SMGValue fresh, SMGValue old) {
-
-    /*Might merge predicates?*/
-    addValue(old);
-
-    /* Value might not have been added yet */
-    addValue(fresh);
-
     if (fresh == old) {
       return;
     }
 
-    if (old == NULL_ADDRESS) { // swap
-      SMGValue tmp = fresh;
-      fresh = old;
-      old = tmp;
-    }
+    Preconditions.checkArgument(
+        !old.isZero(), "cannot replace ZERO (%s) with other value (%s)", old, fresh);
+
+    addValue(fresh);
 
     neq = neq.replaceValueAndCopy(fresh, old);
     pathPredicate.replace(fresh, old);

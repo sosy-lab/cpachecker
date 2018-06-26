@@ -1847,7 +1847,11 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
       if (!pKey.equals(symValue)) {
         explicitValues.remove(symValue);
-        heap.replaceValue(pKey, symValue);
+        if (symValue.isZero()) { // swap values, we prefer ZERO in the SMG.
+          heap.replaceValue(symValue, pKey);
+        } else {
+          heap.replaceValue(pKey, symValue);
+        }
         explicitValues.put(pKey, pValue);
         return symValue;
       }
