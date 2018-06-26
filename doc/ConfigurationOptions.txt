@@ -62,6 +62,13 @@ solver.mathsat5.furtherOptions = ""
 # Load less stable optimizing version of mathsat5 solver.
 solver.mathsat5.loadOptimathsat5 = false
 
+# Use non-linear arithmetic of the solver if supported and throw exception
+# otherwise, approximate non-linear arithmetic with UFs if unsupported, or
+# always approximate non-linear arithmetic. This affects only the theories of
+# integer and rational arithmetic.
+solver.nonLinearArithmetic = USE
+  enum:     [USE, APPROXIMATE_FALLBACK, APPROXIMATE_ALWAYS]
+
 # log all queries as Princess-specific Scala code
 solver.princess.logAllQueriesAsScala = false
 
