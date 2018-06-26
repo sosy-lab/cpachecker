@@ -2,11 +2,22 @@
 with considerably less effort */
 
 (function () {
-	// initialize all popovers
 	$(function () {
+		// initialize all popovers
 		$('[data-toggle="popover"]').popover({
 			html: true
-		})
+		});
+		// initialize all tooltips
+		$("[data-toggle=tooltip").tooltip();
+		$(document).on('hover', '[data-toggle=tooltip]', function () {
+			$(this).tooltip('show');
+		});
+		// hide tooltip after 5 seconds
+		$(document).on('shown.bs.tooltip', function (e) {
+			setTimeout(function () {
+				$(e.target).tooltip('hide');
+			}, 3000);
+		});
 	});
 
 	var app = angular.module('report', []);
@@ -47,6 +58,8 @@ with considerably less effort */
 			$scope.$on("ChangeTab", function (event, tabIndex) {
 				$scope.setTab(tabIndex);
 			});
+
+			//Toggle button to hide the error path section
 			$scope.toggleErrorPathSection = function (e) {
 				$('#toggle_error_path').on('change', function () {
 					if ($(this).is(':checked')) {
@@ -60,6 +73,33 @@ with considerably less effort */
 					}
 				});
 			}
+
+			//Full screen mode function to view the report in full screen
+			$('#full_screen_mode').click(function () {
+				$(this).find('i').toggleClass('fa-compress fa-expand')
+			});
+
+			$scope.makeFullScreen = function (e) {
+				if ((document.fullScreenElement && document.fullScreenElement !== null) || (!document.mozFullScreen && !
+						document.webkitIsFullScreen)) {
+					if (document.documentElement.requestFullScreen) {
+						document.documentElement.requestFullScreen();
+					} else if (document.documentElement.mozRequestFullScreen) {
+						document.documentElement.mozRequestFullScreen();
+					} else if (document.documentElement.webkitRequestFullScreen) {
+						document.documentElement.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT);
+					}
+				} else {
+					if (document.cancelFullScreen) {
+						document.cancelFullScreen();
+					} else if (document.mozCancelFullScreen) {
+						document.mozCancelFullScreen();
+					} else if (document.webkitCancelFullScreen) {
+						document.webkitCancelFullScreen();
+					}
+				}
+			};
+			
 			$scope.setTab = function (tabIndex) {
 				if (tabIndex === 1) {
 					if (d3.select("#arg-toolbar").style("visibility") !== "hidden") {
@@ -1795,16 +1835,16 @@ function init() {
 		d3.selectAll(".cfa-node").on("mouseover", function (d) {
 			var message;
 			if (parseInt(d) > 100000) {
-				message = "type: function call node <br>" + "dblclick: Select function";
+				message = "<span class=\" bold \">type</span>: function call node <br>" + "<span class=\" bold \">dblclick</span>: Select function";
 			} else {
 				var node = cfaJson.nodes.find(function (n) {
 					return n.index === parseInt(d);
 				});
-				message = "function: " + node.func;
+				message = "<span class=\" bold \">function</span>: " + node.func;
 				if (d in cfaJson.combinedNodes) {
-					message += "<br> combines nodes: " + Math.min.apply(null, cfaJson.combinedNodes[d]) + "-" + Math.max.apply(null, cfaJson.combinedNodes[d]);
+					message += "<br><span class=\" bold \">combines nodes</span> : " + Math.min.apply(null, cfaJson.combinedNodes[d]) + "-" + Math.max.apply(null, cfaJson.combinedNodes[d]);
 				}
-				message += "<br> reverse postorder Id: " + node.rpid;
+				message += "<br> <span class=\" bold \">reverse postorder Id</span>: " + node.rpid;
 			}
 			showToolTipBox(d3.event, message);
 		}).on("mouseout", function () {
@@ -1815,7 +1855,7 @@ function init() {
 			$("#cfa-toolbar").scope().setCFAFunction();
 		});
 		d3.selectAll(".cfa-dummy").on("mouseover", function (d) {
-			showToolTipBox(d3.event, "type: placeholder <br> dblclick: jump to Target node");
+			showToolTipBox(d3.event, "<span class=\" bold \">type</span>: placeholder <br> <span class=\" bold \">dblclick</span>: jump to Target node");
 		}).on("mouseout", function () {
 			hideToolTipBox();
 		}).on("dblclick", function () {
@@ -1830,7 +1870,7 @@ function init() {
 		d3.selectAll(".cfa-edge")
 			.on("mouseover", function (d) {
 				d3.select(this).select("path").style("stroke-width", "3px");
-				showToolTipBox(d3.event, "dblclick: jump to Source line");
+				showToolTipBox(d3.event, "<span class=\" bold \">dblclick</span>: jump to Source line");
 			}).on("mouseout", function () {
 				d3.select(this).select("path").style("stroke-width", "1.5px");
 				hideToolTipBox();
@@ -1858,7 +1898,7 @@ function init() {
 		d3.selectAll(".cfa-split-edge")
 			.on("mouseover", function (d) {
 				d3.select(this).select("path").style("stroke-width", "3px");
-				showToolTipBox(d3.event, "type: place holder <br> dblclick: jump to Original edge");
+				showToolTipBox(d3.event, "<span class=\" bold \">type</span>: place holder <br> <span class=\" bold \">dblclick</span>: jump to Original edge");
 			}).on("mouseout", function () {
 				d3.select(this).select("path").style("stroke-width", "1.5px");
 				hideToolTipBox();
@@ -1904,11 +1944,11 @@ function init() {
 				var node = argJson.nodes.find(function (it) {
 					return it.index === parseInt(d);
 				})
-				var message = "function: " + node.func + "<br>";
+				var message = "<span class=\" bold \">function</span>: " + node.func + "<br>";
 				if (node.type) {
-					message += "type: " + node.type + "<br>";
+					message += "<span class=\" bold \">type</span>: " + node.type + "<br>";
 				}
-				message += "dblclick: jump to CFA node";
+				message += "<span class=\" bold \">dblclick</span>: jump to CFA node";
 				showToolTipBox(d3.event, message);
 			}).on("mouseout", function () {
 				hideToolTipBox();
@@ -1928,7 +1968,7 @@ function init() {
 			});
 		d3.selectAll(".arg-dummy")
 			.on("mouseover", function (d) {
-				showToolTipBox(d3.event, "type: placeholder <br> dblclick: jump to Target node");
+				showToolTipBox(d3.event, "<span class=\" bold \">type</span>: placeholder <br> <span class=\" bold \">dblclick</span>: jump to Target node");
 			}).on("mouseout", function () {
 				hideToolTipBox();
 			}).on("dblclick", function () {
@@ -1947,9 +1987,9 @@ function init() {
 					return it.source === parseInt(d.v) && it.target === parseInt(d.w);
 				})
 				if (edge) {
-					showToolTipBox(d3.event, "type: " + edge.type);
+					showToolTipBox(d3.event, "<span class=\" bold \">type</span>: " + edge.type);
 				} else {
-					showToolTipBox(d3.event, "type: graph connecting edge")
+					showToolTipBox(d3.event, "<span class=\" bold \">type</span>: graph connecting edge")
 				}
 			}).on("mouseout", function () {
 				d3.select(this).select("path").style("stroke-width", "1.5px");
@@ -1958,7 +1998,7 @@ function init() {
 		d3.selectAll(".arg-split-edge")
 			.on("mouseover", function (d) {
 				d3.select(this).select("path").style("stroke-width", "3px");
-				showToolTipBox(d3.event, "type: place holder <br> dblclick: jump to Original edge");
+				showToolTipBox(d3.event, "<span class=\" bold \">type</span>: place holder <br> <span class=\" bold \">dblclick</span>: jump to Original edge");
 			}).on("mouseout", function () {
 				d3.select(this).select("path").style("stroke-width", "1.5px");
 				hideToolTipBox();
