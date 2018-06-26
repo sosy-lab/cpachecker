@@ -2289,10 +2289,6 @@ cpa.predicate.useParameterVariablesForGlobals = false
 # that is capable of quantifiers (e.g. Z3 or PRINCESS).
 cpa.predicate.useQuantifiersOnArrays = false
 
-# Enable fallback to UFs if a solver does not support non-linear arithmetics.
-# This option only effects MULT, MOD and DIV.
-cpa.predicate.useUFsForNonLinearArithmetic = true
-
 # Do not follow states which can not syntactically lead to a target location
 cpa.property_reachability.noFollowBackwardsUnreachable = true
 
