@@ -174,7 +174,7 @@ public class SMGJoinFieldsTest {
     smg2.addObject(obj2);
     smg2.addValue(value2);
 
-    SMGEdgeHasValue nullifyObj1 = new SMGEdgeHasValue(64, 0, obj1, SMG.NULL_ADDRESS);
+    SMGEdgeHasValue nullifyObj1 = new SMGEdgeHasValue(64, 0, obj1, SMGZeroValue.INSTANCE);
     SMGEdgeHasValue nonPointer = new SMGEdgeHasValue(mockType4b, 16, obj2, value2);
 
     smg1.addHasValueEdge(nullifyObj1);
@@ -189,7 +189,7 @@ public class SMGJoinFieldsTest {
     assertThat(hvSet).hasSize(1);
 
     SMGEdgeHasValue newHv = Iterables.getOnlyElement(hvSet);
-    assertThat(newHv.getValue()).isEqualTo(SMG.NULL_ADDRESS);
+    assertThat(newHv.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
     assertThat(newHv.getObject()).isSameAs(obj1);
     assertThat(newHv.getSizeInBits(MachineModel.LINUX64)).isEqualTo(32);
     assertThat(newHv.getOffset()).isEqualTo(16);
@@ -200,12 +200,12 @@ public class SMGJoinFieldsTest {
   public void getHVSetOfCommonNullValuesTest() {
     SMGRegion obj1 = new SMGRegion(176, "1");
 
-    SMGEdgeHasValue smg1at4 = new SMGEdgeHasValue(mockType4b, 32, obj1, SMG.NULL_ADDRESS);
-    SMGEdgeHasValue smg2at8 = new SMGEdgeHasValue(mockType4b, 64, obj1, SMG.NULL_ADDRESS);
-    SMGEdgeHasValue smg1at14 = new SMGEdgeHasValue(mockType4b, 112, obj1, SMG.NULL_ADDRESS);
-    SMGEdgeHasValue smg2at12 = new SMGEdgeHasValue(mockType4b, 96, obj1, SMG.NULL_ADDRESS);
-    SMGEdgeHasValue smg1at18 = new SMGEdgeHasValue(mockType4b, 144, obj1, SMG.NULL_ADDRESS);
-    SMGEdgeHasValue smg2at18 = new SMGEdgeHasValue(mockType4b, 144, obj1, SMG.NULL_ADDRESS);
+    SMGEdgeHasValue smg1at4 = new SMGEdgeHasValue(mockType4b, 32, obj1, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue smg2at8 = new SMGEdgeHasValue(mockType4b, 64, obj1, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue smg1at14 = new SMGEdgeHasValue(mockType4b, 112, obj1, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue smg2at12 = new SMGEdgeHasValue(mockType4b, 96, obj1, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue smg1at18 = new SMGEdgeHasValue(mockType4b, 144, obj1, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue smg2at18 = new SMGEdgeHasValue(mockType4b, 144, obj1, SMGZeroValue.INSTANCE);
 
     smg1.addHasValueEdge(smg1at18);
     smg1.addHasValueEdge(smg1at14);
@@ -217,7 +217,7 @@ public class SMGJoinFieldsTest {
     Set<SMGEdgeHasValue> hvSet = SMGJoinFields.getHVSetOfCommonNullValues(smg1, smg2, obj1, obj1);
     assertThat(hvSet).hasSize(2);
     for (SMGEdgeHasValue hv : hvSet) {
-      assertThat(hv.getValue()).isEqualTo(SMG.NULL_ADDRESS);
+      assertThat(hv.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
       assertThat(hv.getObject()).isSameAs(obj1);
       assertThat(hv.getOffset()).isAnyOf(112L, 144L);
       if (hv.getOffset() == 112) {
@@ -239,21 +239,21 @@ public class SMGJoinFieldsTest {
 
     smg2.addValue(value1);
 
-    SMGEdgeHasValue hv0for4at0in1 = new SMGEdgeHasValue(mockType4b, 0, obj, SMG.NULL_ADDRESS);
-    SMGEdgeHasValue hv0for4at0in2 = new SMGEdgeHasValue(mockType4b, 0, obj, SMG.NULL_ADDRESS);
+    SMGEdgeHasValue hv0for4at0in1 = new SMGEdgeHasValue(mockType4b, 0, obj, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue hv0for4at0in2 = new SMGEdgeHasValue(mockType4b, 0, obj, SMGZeroValue.INSTANCE);
 
-    SMGEdgeHasValue hv0for4at5in1 = new SMGEdgeHasValue(mockType4b, 40, obj, SMG.NULL_ADDRESS);
-    SMGEdgeHasValue hv0for4at7in2 = new SMGEdgeHasValue(mockType4b, 56, obj, SMG.NULL_ADDRESS);
+    SMGEdgeHasValue hv0for4at5in1 = new SMGEdgeHasValue(mockType4b, 40, obj, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue hv0for4at7in2 = new SMGEdgeHasValue(mockType4b, 56, obj, SMGZeroValue.INSTANCE);
 
-    SMGEdgeHasValue hv0for4at12in1 = new SMGEdgeHasValue(mockType4b, 96, obj, SMG.NULL_ADDRESS);
-    SMGEdgeHasValue hv0for4at16in2 = new SMGEdgeHasValue(mockType4b, 128, obj, SMG.NULL_ADDRESS);
+    SMGEdgeHasValue hv0for4at12in1 = new SMGEdgeHasValue(mockType4b, 96, obj, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue hv0for4at16in2 = new SMGEdgeHasValue(mockType4b, 128, obj, SMGZeroValue.INSTANCE);
 
-    SMGEdgeHasValue hv0for4at20in1 = new SMGEdgeHasValue(mockType4b, 160, obj, SMG.NULL_ADDRESS);
+    SMGEdgeHasValue hv0for4at20in1 = new SMGEdgeHasValue(mockType4b, 160, obj, SMGZeroValue.INSTANCE);
     SMGEdgeHasValue hv666for4at20in2 = new SMGEdgeHasValue(mockType4b, 160, obj, value1);
 
     SMGEdgeHasValue hv666for4at28in2 = new SMGEdgeHasValue(mockType4b, 224, obj, value1);
 
-    SMGEdgeHasValue diffObjectNullValue = new SMGEdgeHasValue(mockType4b, 0, differentObject, SMG.NULL_ADDRESS);
+    SMGEdgeHasValue diffObjectNullValue = new SMGEdgeHasValue(mockType4b, 0, differentObject, SMGZeroValue.INSTANCE);
 
     smg1.addHasValueEdge(hv0for4at0in1);
     smg1.addHasValueEdge(hv0for4at5in1);
@@ -284,7 +284,7 @@ public class SMGJoinFieldsTest {
     SMGRegion object = new SMGRegion(128, "Object");
     SMGEdgeHasValue smg1_4bFrom0ToV1 = new SMGEdgeHasValue(mockType4b, 0, object, value1);
     SMGEdgeHasValue smg1_4bFrom2ToV2 = new SMGEdgeHasValue(mockType4b, 16, object, value2);
-    SMGEdgeHasValue smg1_4bFrom4ToNull = new SMGEdgeHasValue(mockType4b, 32, object, SMG.NULL_ADDRESS);
+    SMGEdgeHasValue smg1_4bFrom4ToNull = new SMGEdgeHasValue(mockType4b, 32, object, SMGZeroValue.INSTANCE);
 
     smg1.addObject(object);
     smg1.addValue(value1);
@@ -356,11 +356,11 @@ public class SMGJoinFieldsTest {
     SMG smg26 = smg1.copyOf();
     SMG smg08 = smg1.copyOf();
 
-    smg04.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, object, SMG.NULL_ADDRESS));
-    smg48.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, object, SMG.NULL_ADDRESS));
-    smg26.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 16, object, SMG.NULL_ADDRESS));
-    smg08.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, object, SMG.NULL_ADDRESS));
-    smg08.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, object, SMG.NULL_ADDRESS));
+    smg04.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, object, SMGZeroValue.INSTANCE));
+    smg48.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, object, SMGZeroValue.INSTANCE));
+    smg26.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 16, object, SMGZeroValue.INSTANCE));
+    smg08.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, object, SMGZeroValue.INSTANCE));
+    smg08.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, object, SMGZeroValue.INSTANCE));
 
     Assert.assertEquals(SMGJoinStatus.INCOMPARABLE,
         SMGJoinFields.joinFieldsRelaxStatus(smg04, smg48,
@@ -437,23 +437,23 @@ public class SMGJoinFieldsTest {
     smg4.addHasValueEdge(hvAt0in2);
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
 
-    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, obj1, SMG.NULL_ADDRESS));
-    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, obj2, SMG.NULL_ADDRESS));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, obj1, SMGZeroValue.INSTANCE));
+    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, obj2, SMGZeroValue.INSTANCE));
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
 
-    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 64, obj1, SMG.NULL_ADDRESS));
-    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 96, obj1, SMG.NULL_ADDRESS));
-    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType8b, 64, obj1, SMG.NULL_ADDRESS));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 64, obj1, SMGZeroValue.INSTANCE));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 96, obj1, SMGZeroValue.INSTANCE));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType8b, 64, obj1, SMGZeroValue.INSTANCE));
 
-    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 64, obj2, SMG.NULL_ADDRESS));
-    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 96, obj2, SMG.NULL_ADDRESS));
-    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType8b, 64, obj2, SMG.NULL_ADDRESS));
+    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 64, obj2, SMGZeroValue.INSTANCE));
+    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 96, obj2, SMGZeroValue.INSTANCE));
+    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType8b, 64, obj2, SMGZeroValue.INSTANCE));
 
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
 
     smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 128, obj1, value3));
     smg3.addPointsToEdge(new SMGEdgePointsTo(value3, obj1, 0));
-    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 128, obj2, SMG.NULL_ADDRESS));
+    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 128, obj2, SMGZeroValue.INSTANCE));
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
   }
 
@@ -479,8 +479,8 @@ public class SMGJoinFieldsTest {
     SMGRegion obj1 = new SMGRegion(256, "Object 1");
     SMGRegion obj2 = new SMGRegion(256, "Object 2");
 
-    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, SMG.NULL_ADDRESS));
-    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType8b, 0, obj2, SMG.NULL_ADDRESS));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, SMGZeroValue.INSTANCE));
+    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType8b, 0, obj2, SMGZeroValue.INSTANCE));
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
   }
 
@@ -492,9 +492,9 @@ public class SMGJoinFieldsTest {
     SMGRegion obj1 = new SMGRegion(256, "Object 1");
     SMGRegion obj2 = new SMGRegion(256, "Object 2");
 
-    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, SMG.NULL_ADDRESS));
-    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, obj1, SMG.NULL_ADDRESS));
-    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType8b, 0, obj2, SMG.NULL_ADDRESS));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, SMGZeroValue.INSTANCE));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, obj1, SMGZeroValue.INSTANCE));
+    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType8b, 0, obj2, SMGZeroValue.INSTANCE));
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
   }
 
@@ -506,13 +506,13 @@ public class SMGJoinFieldsTest {
     SMGRegion obj1 = new SMGRegion(32, "Object 1");
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
 
-    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, SMG.NULL_ADDRESS));
-    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, obj1, SMG.NULL_ADDRESS));
-    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType8b, 0, obj2, SMG.NULL_ADDRESS));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, SMGZeroValue.INSTANCE));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, obj1, SMGZeroValue.INSTANCE));
+    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType8b, 0, obj2, SMGZeroValue.INSTANCE));
 
-    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 64, obj2, SMG.NULL_ADDRESS));
-    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 96, obj2, SMG.NULL_ADDRESS));
-    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType8b, 64, obj1, SMG.NULL_ADDRESS));
+    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 64, obj2, SMGZeroValue.INSTANCE));
+    smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 96, obj2, SMGZeroValue.INSTANCE));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType8b, 64, obj1, SMGZeroValue.INSTANCE));
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
   }
 
@@ -525,7 +525,7 @@ public class SMGJoinFieldsTest {
     SMGRegion obj2 = new SMGRegion(256, "Object 2");
 
     SMGValue value4 = SMGKnownSymValue.of();
-    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, SMG.NULL_ADDRESS));
+    smg3.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj1, SMGZeroValue.INSTANCE));
     smg4.addValue(value4);
     smg4.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, obj2, value4));
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);

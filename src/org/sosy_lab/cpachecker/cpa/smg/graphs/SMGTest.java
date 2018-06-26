@@ -92,7 +92,7 @@ public class SMGTest {
   public void getNullBytesForObjectTest() {
     SMG smg1 = getNewSMG64();
     smg1.addObject(obj1);
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 32, obj1, SMG.NULL_ADDRESS);
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 32, obj1, SMGZeroValue.INSTANCE);
     smg1.addHasValueEdge(hv);
 
     TreeMap<Long, Integer> nullEdges = smg1.getNullEdgesMapOffsetToSizeForObject(obj1);
@@ -104,7 +104,7 @@ public class SMGTest {
     SMG smg1 = getNewSMG64();
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
     SMGObject nullObject = SMGNullObject.INSTANCE;
-    SMGValue nullAddress = SMG.NULL_ADDRESS;
+    SMGValue nullAddress = SMGZeroValue.INSTANCE;
 
     Assert.assertNotNull(nullObject);
     Assert.assertSame(nullObject, SMGNullObject.INSTANCE);
@@ -156,7 +156,7 @@ public class SMGTest {
     SMG smg1 = getNewSMG64();
     SMGObject object = new SMGRegion(32, "object");
 
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 0, object, SMG.NULL_ADDRESS);
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 0, object, SMGZeroValue.INSTANCE);
 
     smg1.addHasValueEdge(hv);
     assertThat(smg1.getHVEdges()).contains(hv);
@@ -389,7 +389,7 @@ public class SMGTest {
     Set<SMGValue> set = new HashSet<>();
     set.add(val1);
     set.add(val2);
-    set.add(SMG.NULL_ADDRESS);
+    set.add(SMGZeroValue.INSTANCE);
 
     assertThat(smg.getValues()).containsAllIn(set);
   }

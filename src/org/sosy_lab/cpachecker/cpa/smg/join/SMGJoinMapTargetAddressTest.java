@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 
 public class SMGJoinMapTargetAddressTest {
 
@@ -64,10 +65,10 @@ public class SMGJoinMapTargetAddressTest {
     UnmodifiableSMG origDestSMG = destSMG.copyOf();
     SMGNodeMapping origMapping1 = new SMGNodeMapping(mapping1);
 
-    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, smg1, destSMG, mapping1, mapping1, SMG.NULL_ADDRESS, SMG.NULL_ADDRESS);
+    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, smg1, destSMG, mapping1, mapping1, SMGZeroValue.INSTANCE, SMGZeroValue.INSTANCE);
     Assert.assertEquals(origDestSMG, mta.getSMG());
     Assert.assertEquals(origMapping1, mta.getMapping1());
-    Assert.assertSame(SMG.NULL_ADDRESS, mta.getValue());
+    Assert.assertSame(SMGZeroValue.INSTANCE, mta.getValue());
   }
 
   @Test

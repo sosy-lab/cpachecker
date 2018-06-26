@@ -64,10 +64,7 @@ public class SMG implements UnmodifiableSMG {
 
   private final MachineModel machine_model;
 
-  /** An address of the special object representing null */
-  public static final SMGValue NULL_ADDRESS = SMGZeroValue.INSTANCE;
-
-  private final static SMGEdgePointsTo NULL_POINTER = new SMGEdgePointsTo(NULL_ADDRESS, SMGNullObject.INSTANCE, 0);
+  private final static SMGEdgePointsTo NULL_POINTER = new SMGEdgePointsTo(SMGZeroValue.INSTANCE, SMGNullObject.INSTANCE, 0);
 
   /**
    * Constructor.
@@ -445,7 +442,7 @@ public class SMG implements UnmodifiableSMG {
   @Override
   public TreeMap<Long, Integer> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj) {
     SMGEdgeHasValueFilter objectFilter =
-        SMGEdgeHasValueFilter.objectFilter(pObj).filterHavingValue(SMG.NULL_ADDRESS);
+        SMGEdgeHasValueFilter.objectFilter(pObj).filterHavingValue(SMGZeroValue.INSTANCE);
     TreeMultimap<Long, Integer> offsetToSize = TreeMultimap.create();
     for (SMGEdgeHasValue edge : objectFilter.filter(hv_edges)) {
       offsetToSize.put(edge.getOffset(), edge.getSizeInBits(machine_model));
@@ -571,7 +568,7 @@ public class SMG implements UnmodifiableSMG {
   }
 
   private void initializeNullAddress() {
-    addValue(NULL_ADDRESS);
+    addValue(SMGZeroValue.INSTANCE);
     addPointsToEdge(NULL_POINTER);
   }
 
