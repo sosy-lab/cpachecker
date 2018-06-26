@@ -491,7 +491,7 @@ public class SMGTest {
     SMGValue three = SMGKnownExpValue.valueOf(3);
 
     nr = nr.addRelationAndCopy(one, three);
-    nr = nr.mergeValuesAndCopy(two, three);
+    nr = nr.replaceValueAndCopy(two, three);
 
     Assert.assertTrue(nr.neq_exists(one, two));
     Assert.assertFalse(nr.neq_exists(one, three));
@@ -508,7 +508,7 @@ public class SMGTest {
 
     nr = nr.addRelationAndCopy(zero, three);
     nr = nr.addRelationAndCopy(one, three);
-    nr = nr.mergeValuesAndCopy(two, three);
+    nr = nr.replaceValueAndCopy(two, three);
 
     Assert.assertTrue(nr.neq_exists(zero, two));
     Assert.assertTrue(nr.neq_exists(one, two));

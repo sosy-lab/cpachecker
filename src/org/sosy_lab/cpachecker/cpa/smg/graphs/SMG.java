@@ -531,8 +531,8 @@ public class SMG implements UnmodifiableSMG {
       pV2 = tmp;
     }
 
-    neq = neq.mergeValuesAndCopy(pV1, pV2);
-    pathPredicate.mergeValues(pV1, pV2);
+    neq = neq.replaceValueAndCopy(pV1, pV2);
+    pathPredicate.replace(pV1, pV2);
 
     removeValue(pV2);
 

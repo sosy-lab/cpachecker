@@ -120,18 +120,19 @@ public class PredRelation {
     smgValueSizeInBits.remove(pValue);
   }
 
-  public void mergeValues(SMGValue pV1, SMGValue pV2) {
-    for (SMGValue relatedValue : smgValuesDependency.removeAll(pV2)) {
-      smgValuesDependency.remove(relatedValue, pV2);
-      smgValuesRelation.removeAll(Pair.of(pV2, relatedValue));
+  /** replace the old value with a fresh value. */
+  public void replace(SMGValue fresh, SMGValue old) {
+    for (SMGValue relatedValue : smgValuesDependency.removeAll(old)) {
+      smgValuesDependency.remove(relatedValue, old);
+      smgValuesRelation.removeAll(Pair.of(old, relatedValue));
         //TODO: modify predicates on merge values
-      smgValuesRelation.removeAll(Pair.of(relatedValue, pV2));
+      smgValuesRelation.removeAll(Pair.of(relatedValue, old));
     }
-    for (ExplicitRelation explicitRelation: smgExplicitValueRelation.removeAll(pV2)) {
-      addExplicitRelation(pV1, explicitRelation.explicitValue, explicitRelation.getOperator());
-      addValueSize(pV1, getSymbolicSize(pV2));
+    for (ExplicitRelation explicitRelation: smgExplicitValueRelation.removeAll(old)) {
+      addExplicitRelation(fresh, explicitRelation.explicitValue, explicitRelation.getOperator());
+      addValueSize(fresh, getSymbolicSize(old));
     }
-    smgValueSizeInBits.remove(pV2);
+    smgValueSizeInBits.remove(old);
   }
 
   public Integer getSymbolicSize(SMGValue pSymbolic) {

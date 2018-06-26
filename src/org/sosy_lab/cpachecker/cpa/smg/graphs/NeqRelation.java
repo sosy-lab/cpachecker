@@ -67,11 +67,14 @@ final class NeqRelation {
     return new NeqRelation(newSet);
   }
 
-  /** transform all relations from (A->C) towards (A->B) and delete C */
-  public NeqRelation mergeValuesAndCopy(SMGValue pB, SMGValue pC) {
-    NeqRelation result = removeValueAndCopy(pC);
-    for (SMGValue value : getNeqsForValue(pC)) {
-      result = result.addRelationAndCopy(pB, value);
+  /**
+   * replace an old value with a fresh one,
+   * i.e. transform all relations from (A->OLD) towards (A->FRESH) and delete OLD.
+   */
+  public NeqRelation replaceValueAndCopy(SMGValue fresh, SMGValue old) {
+    NeqRelation result = removeValueAndCopy(old);
+    for (SMGValue value : getNeqsForValue(old)) {
+      result = result.addRelationAndCopy(fresh, value);
     }
     return result;
   }
