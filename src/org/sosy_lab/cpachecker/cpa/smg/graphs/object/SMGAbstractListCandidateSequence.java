@@ -100,7 +100,7 @@ public abstract class SMGAbstractListCandidateSequence<C extends SMGListCandidat
             SMGTargetSpecifier.ALL));
       } else {
         if (reached.containsKey(pte.getOffset())) {
-          pSMG.mergeValues(reached.get(pte.getOffset()), pte.getValue());
+          pSMG.replaceValue(reached.get(pte.getOffset()), pte.getValue());
         } else {
           SMGEdgePointsTo newPte = new SMGEdgePointsTo(pte.getValue(), newAbsObj, pte.getOffset(),
               direction);

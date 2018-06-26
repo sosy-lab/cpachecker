@@ -558,9 +558,9 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   }
 
   @Override
-  public void mergeValues(SMGValue v1, SMGValue v2) {
+  public void replaceValue(SMGValue fresh, SMGValue old) {
 
-    super.mergeValues(v1, v2);
+    super.replaceValue(fresh, old);
 
     if (CLangSMG.performChecks()) {
       CLangSMGConsistencyVerifier.verifyCLangSMG(CLangSMG.logger, this);

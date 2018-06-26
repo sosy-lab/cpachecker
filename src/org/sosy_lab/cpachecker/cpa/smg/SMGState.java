@@ -482,7 +482,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     for (SMGEdgePointsTo edge : pointer) {
       heap.removePointsToEdge(edge.getValue());
-      heap.mergeValues(pointerValue, edge.getValue());
+      heap.replaceValue(pointerValue, edge.getValue());
     }
 
     return getPointerFromValue(pointerValue);
@@ -550,7 +550,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     heap.removeHeapObjectAndEdges(pListSeg);
 
-    heap.mergeValues(nextEdge.getValue(), firstPointer);
+    heap.replaceValue(nextEdge.getValue(), firstPointer);
 
     if (firstPointer.equals(pPointerToAbstractObject.getValue())) {
       return getPointerFromValue(nextPointerEdge.getValue());
@@ -596,11 +596,11 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
      *  */
 
     if (firstPointer != null) {
-      heap.mergeValues(nextEdge.getValue(), firstPointer);
+      heap.replaceValue(nextEdge.getValue(), firstPointer);
     }
 
     if (lastPointer != null) {
-      heap.mergeValues(prevEdge.getValue(), lastPointer);
+      heap.replaceValue(prevEdge.getValue(), lastPointer);
     }
 
     if (firstPointer != null && firstPointer.equals(pPointerToAbstractObject.getValue())) {
@@ -663,7 +663,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     if (newPointerToNewRegion != null) {
       heap.removePointsToEdge(newPointerToNewRegion);
-      heap.mergeValues(oldPointerToSll, newPointerToNewRegion);
+      heap.replaceValue(oldPointerToSll, newPointerToNewRegion);
     }
 
     SMGEdgePointsTo newPtEdgeToNewRegionFromOutsideSMG =
@@ -773,7 +773,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     if (newPointerToNewRegion != null) {
       heap.removePointsToEdge(newPointerToNewRegion);
-      heap.mergeValues(oldPointerToDll, newPointerToNewRegion);
+      heap.replaceValue(oldPointerToDll, newPointerToNewRegion);
     }
 
     SMGEdgePointsTo newPtEdgeToNewRegionFromOutsideSMG =
@@ -1756,7 +1756,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       pKnownVal2 = tmp;
     }
 
-    heap.mergeValues(pKnownVal1, pKnownVal2);
+    heap.replaceValue(pKnownVal1, pKnownVal2);
     SMGKnownExpValue expVal = explicitValues.remove(pKnownVal2);
     if (expVal != null) {
       explicitValues.put(pKnownVal1, expVal);
@@ -1847,7 +1847,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
       if (!pKey.equals(symValue)) {
         explicitValues.remove(symValue);
-        heap.mergeValues(pKey, symValue);
+        heap.replaceValue(pKey, symValue);
         explicitValues.put(pKey, pValue);
         return symValue;
       }

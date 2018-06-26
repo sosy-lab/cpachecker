@@ -513,42 +513,42 @@ public class SMG implements UnmodifiableSMG {
     return (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= expectedMinClear);
   }
 
-  public void mergeValues(SMGValue pV1, SMGValue pV2) {
+  public void replaceValue(SMGValue fresh, SMGValue old) {
 
     /*Might merge predicates?*/
-    addValue(pV2);
+    addValue(old);
 
     /* Value might not have been added yet */
-    addValue(pV1);
+    addValue(fresh);
 
-    if (pV1 == pV2) {
+    if (fresh == old) {
       return;
     }
 
-    if (pV2 == NULL_ADDRESS) { // swap
-      SMGValue tmp = pV1;
-      pV1 = pV2;
-      pV2 = tmp;
+    if (old == NULL_ADDRESS) { // swap
+      SMGValue tmp = fresh;
+      fresh = old;
+      old = tmp;
     }
 
-    neq = neq.replaceValueAndCopy(pV1, pV2);
-    pathPredicate.replace(pV1, pV2);
+    neq = neq.replaceValueAndCopy(fresh, old);
+    pathPredicate.replace(fresh, old);
 
-    removeValue(pV2);
+    removeValue(old);
 
-    for (SMGEdgeHasValue old_hve : getHVEdges(SMGEdgeHasValueFilter.valueFilter(pV2))) {
+    for (SMGEdgeHasValue old_hve : getHVEdges(SMGEdgeHasValueFilter.valueFilter(old))) {
       SMGEdgeHasValue newHvEdge =
-          new SMGEdgeHasValue(old_hve.getType(), old_hve.getOffset(), old_hve.getObject(), pV1);
+          new SMGEdgeHasValue(old_hve.getType(), old_hve.getOffset(), old_hve.getObject(), fresh);
       hv_edges = hv_edges.removeEdgeAndCopy(old_hve);
       hv_edges = hv_edges.addEdgeAndCopy(newHvEdge);
     }
 
-    if (pt_edges.containsEdgeWithValue(pV2)) {
-      SMGEdgePointsTo pt_edge = pt_edges.getEdgeWithValue(pV2);
+    if (pt_edges.containsEdgeWithValue(old)) {
+      SMGEdgePointsTo pt_edge = pt_edges.getEdgeWithValue(old);
       pt_edges = pt_edges.removeAndCopy(pt_edge);
-      Preconditions.checkArgument(!pt_edges.containsEdgeWithValue(pV1));
+      Preconditions.checkArgument(!pt_edges.containsEdgeWithValue(fresh));
       pt_edges =
-          pt_edges.addAndCopy(new SMGEdgePointsTo(pV1, pt_edge.getObject(), pt_edge.getOffset()));
+          pt_edges.addAndCopy(new SMGEdgePointsTo(fresh, pt_edge.getObject(), pt_edge.getOffset()));
     }
   }
 
