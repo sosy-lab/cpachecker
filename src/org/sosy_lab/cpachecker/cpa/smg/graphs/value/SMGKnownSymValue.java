@@ -64,4 +64,9 @@ public class SMGKnownSymValue extends SMGKnownValue implements SMGKnownSymbolicV
   public final boolean equals(Object pObj) {
     return pObj instanceof SMGKnownSymValue && super.equals(pObj);
   }
+
+  @Override
+  public String asDotId() {
+    return "Sym" + getValue();
+  }
 }

@@ -125,5 +125,10 @@ public class SMGKnownExpValue extends SMGKnownValue implements SMGExplicitValue 
       return new SMGKnownExpValue(pValue);
     }
   }
+
+  @Override
+  public String asDotId() {
+    return getValue().toString();
+  }
 }
 

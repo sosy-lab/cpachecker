@@ -110,5 +110,10 @@ public final class SMGUnknownValue implements SMGSymbolicValue, SMGExplicitValue
   public SMGObject getObject() {
     return null;
   }
+
+  @Override
+  public String asDotId() {
+    return "UNKNOWN";
+  }
 }
 

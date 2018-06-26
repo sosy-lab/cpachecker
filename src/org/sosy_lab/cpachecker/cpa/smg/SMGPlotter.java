@@ -296,20 +296,28 @@ public final class SMGPlotter {
   }
 
   private String smgHVEdgeAsDot(SMGEdgeHasValue pEdge, UnmodifiableCLangSMG pSMG) {
+    String prefix = "";
+    String target;
     if (pEdge.getValue().isZero()) {
       String newNull = newNullLabel();
-      return newNull + "[shape=plaintext, label=\"NULL\"];" + objectIndex.get(pEdge.getObject())
-          .getName() + " -> " + newNull + "[label=\"[" + pEdge.getOffset() + "b-" + (pEdge
-          .getOffset() + pEdge.getSizeInBits(pSMG.getMachineModel())) + "b]\"];";
+      prefix = newNull + "[shape=plaintext, label=\"NULL\"];";
+      target = newNull;
     } else {
-      return objectIndex.get(pEdge.getObject()).getName() + " -> value_" + pEdge.getValue() +
-          "[label=\"[" + pEdge.getOffset() + "b-" + (pEdge.getOffset() + pEdge.getSizeInBits
-          (pSMG.getMachineModel())) + "b]\"];";
+      target = "value_" + pEdge.getValue().asDotId();
     }
+    return prefix
+        + objectIndex.get(pEdge.getObject()).getName()
+        + " -> "
+        + target
+        + "[label=\"["
+        + pEdge.getOffset()
+        + "b-"
+        + (pEdge.getOffset() + pEdge.getSizeInBits(pSMG.getMachineModel()))
+        + "b]\"];";
   }
 
   private String smgPTEdgeAsDot(SMGEdgePointsTo pEdge) {
-    return "value_" + pEdge.getValue() + " -> " + objectIndex.get(pEdge.getObject()).getName() + "[label=\"+" + pEdge.getOffset() + "b, " + pEdge.getTargetSpecifier() + "\"];";
+    return "value_" + pEdge.getValue().asDotId() + " -> " + objectIndex.get(pEdge.getObject()).getName() + "[label=\"+" + pEdge.getOffset() + "b, " + pEdge.getTargetSpecifier() + "\"];";
   }
 
   private static String smgValueAsDot(
@@ -318,7 +326,7 @@ public final class SMGPlotter {
     if (explicitValues.containsKey(value)) {
       explicitValue = " : " + String.valueOf(explicitValues.get(value).getAsLong());
     }
-    return "value_" + value + "[label=\"#" + value + explicitValue +  "\"];";
+    return "value_" + value.asDotId() + "[label=\"#" + value + explicitValue + "\"];";
   }
 
   private static String neqRelationAsDot(SMGValue v1, SMGValue v2) {
@@ -328,9 +336,9 @@ public final class SMGPlotter {
       targetNode = newNullLabel();
       returnString = targetNode + "[shape=plaintext, label=\"NULL\", fontcolor=\"red\"];\n";
     } else {
-      targetNode = "value_" + v2;
+      targetNode = "value_" + v2.asDotId();
     }
-    return returnString + "value_" + v1 + " -> " + targetNode + "[color=\"red\", fontcolor=\"red\", label=\"neq\"]";
+    return returnString + "value_" + v1.asDotId() + " -> " + targetNode + "[color=\"red\", fontcolor=\"red\", label=\"neq\"]";
   }
 
   private String newLineWithOffset(String pLine) {

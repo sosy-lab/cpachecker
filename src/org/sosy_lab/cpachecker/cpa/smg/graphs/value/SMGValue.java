@@ -108,4 +108,7 @@ public interface SMGValue extends Comparable<SMGValue> {
   default boolean isUnknown() {
     return SMGUnknownValue.INSTANCE == this;
   }
+
+  /** returns a unique identifier that can be used as dot-identifier for graphviw. */
+  String asDotId();
 }
