@@ -195,28 +195,9 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
                   pMemoryOfField));
       SMGState newState = pState.withInvalidWrite();
       if (!pMemoryOfField.equals(SMGNullObject.INSTANCE)) {
-        if (rValueTypeBitSize % 8 != 0 || pFieldOffset % 8 != 0 || memoryBitSize % 8 != 0) {
-          newState =
-              newState.withErrorDescription(
-                  "Field with size "
-                      + rValueTypeBitSize
-                      + " bit can't be written at offset "
-                      + pFieldOffset
-                      + " bit of object "
-                      + memoryBitSize
-                      + " bit size");
-        } else {
-          newState =
-              newState.withErrorDescription(
-                  "Field with size "
-                      + rValueTypeBitSize / 8
-                      + " byte can't "
-                      + "be written at offset "
-                      + pFieldOffset / 8
-                      + " byte of object "
-                      + memoryBitSize / 8
-                      + " byte size");
-        }
+        newState = newState.withErrorDescription(String.format(
+            "Field with size %d bit can't be written at offset %d bit of object %d bit size",
+            rValueTypeBitSize, pFieldOffset, memoryBitSize));
         newState.addInvalidObject(pMemoryOfField);
       } else {
         newState = newState.withErrorDescription("NULL pointer dereference on write");
