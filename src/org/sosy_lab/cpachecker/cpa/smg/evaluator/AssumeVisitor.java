@@ -37,10 +37,8 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -110,15 +108,11 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       return false;
     }
 
-    if (symVal instanceof SMGAddressValue) {
+    if (symVal.isZero()) {
       return true;
     }
 
-    if (pNewSmgState.getHeap().isPointer(symVal)) {
-      return true;
-    } else {
-      return false;
-    }
+    return pNewSmgState.getHeap().isPointer(symVal);
   }
 
   private boolean isUnequal(
@@ -167,10 +161,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
   }
 
   private SMGValueAndState evaluateBinaryAssumptionOfConcreteSymbolicValues(
-      SMGState pNewState,
-      BinaryOperator pOp,
-      SMGKnownSymbolicValue pV1,
-      SMGKnownSymbolicValue pV2) {
+      SMGState pNewState, BinaryOperator pOp, SMGSymbolicValue pV1, SMGSymbolicValue pV2) {
 
     boolean isPointerOp1 = pV1 instanceof SMGKnownAddressValue;
     boolean isPointerOp2 = pV2 instanceof SMGKnownAddressValue;
@@ -259,12 +250,11 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     List<SMGValueAndState> result = new ArrayList<>(4);
 
     for (SMGValueAndState operand1AndState : getOperand(pNewState, pV1)) {
-      SMGKnownSymbolicValue operand1 = (SMGKnownSymbolicValue) operand1AndState.getObject();
-      SMGState newState;
+      SMGSymbolicValue operand1 = operand1AndState.getObject();
 
       for (SMGValueAndState operand2AndState : getOperand(pNewState, pV2)) {
-        SMGKnownSymbolicValue operand2 = (SMGKnownSymbolicValue) operand2AndState.getObject();
-        newState = operand2AndState.getSmgState();
+        SMGSymbolicValue operand2 = operand2AndState.getObject();
+        SMGState newState = operand2AndState.getSmgState();
 
         SMGValueAndState resultValueAndState = evaluateBinaryAssumptionOfConcreteSymbolicValues(newState, pOp, operand1, operand2);
         result.add(resultValueAndState);
