@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 class RHSPointerAddressVisitor extends PointerVisitor {
@@ -57,7 +57,8 @@ class RHSPointerAddressVisitor extends PointerVisitor {
       functionObject = state.createObjectForFunction(functionDcl);
     }
 
-    return smgRightHandSideEvaluator.createAddress(state, functionObject, SMGKnownExpValue.ZERO);
+    return smgRightHandSideEvaluator.createAddress(
+        state, functionObject, SMGZeroValue.INSTANCE);
   }
 
   @Override

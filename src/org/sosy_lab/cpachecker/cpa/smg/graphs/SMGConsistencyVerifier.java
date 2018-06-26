@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 
 final class SMGConsistencyVerifier {
   private SMGConsistencyVerifier() {} /* utility class */
@@ -57,10 +59,10 @@ final class SMGConsistencyVerifier {
    * @return True, if pSmg satisfies all consistency criteria
    */
   private static boolean verifyNullObject(LogManager pLogger, UnmodifiableSMG pSmg) {
-    Integer null_value = null;
+    SMGValue null_value = null;
 
     // Find a null value in values
-    for (Integer value: pSmg.getValues()) {
+    for (SMGValue value : pSmg.getValues()) {
       if (pSmg.getObjectPointedBy(value) == SMGNullObject.INSTANCE) {
         null_value = value;
         break;
@@ -74,13 +76,13 @@ final class SMGConsistencyVerifier {
     }
 
     // Verify that NULL value returned by getNullValue() points to NULL object
-    if (pSmg.getObjectPointedBy(SMG.NULL_ADDRESS) != SMGNullObject.INSTANCE) {
+    if (pSmg.getObjectPointedBy(SMGZeroValue.INSTANCE) != SMGNullObject.INSTANCE) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null value not pointing to null object");
       return false;
     }
 
     // Verify that the value found in values is the one returned by getNullValue()
-    if (SMG.NULL_ADDRESS != null_value) {
+    if (SMGZeroValue.INSTANCE != null_value) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null value in values set not returned by getNullValue()");
       return false;
     }

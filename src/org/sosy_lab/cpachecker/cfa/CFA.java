@@ -27,9 +27,9 @@ import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
+import java.util.NavigableMap;
+import java.util.NavigableSet;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -46,13 +46,13 @@ public interface CFA {
 
   int getNumberOfFunctions();
 
-  Set<String> getAllFunctionNames();
+  NavigableSet<String> getAllFunctionNames();
 
   Collection<FunctionEntryNode> getAllFunctionHeads();
 
   FunctionEntryNode getFunctionHead(String name);
 
-  Map<String, FunctionEntryNode> getAllFunctions();
+  NavigableMap<String, FunctionEntryNode> getAllFunctions();
 
   Collection<CFANode> getAllNodes();
 

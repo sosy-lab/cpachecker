@@ -43,8 +43,8 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.logging.Level;
@@ -385,18 +385,18 @@ public class ARGReachedSet {
   /**
    * Remove a set of elements from the ARG and reached set. There are no sanity checks.
    *
-   * The result will be a set of elements that need to be added to the waitlist
-   * to re-discover the removed elements. These are the parents of the removed
-   * elements which are not removed themselves. The set is sorted based on the
-   * relation defined by {@link ARGState#compareTo(ARGState)}), i.e., oldest-first.
+   * <p>The result will be a set of elements that need to be added to the waitlist to re-discover
+   * the removed elements. These are the parents of the removed elements which are not removed
+   * themselves. The set is sorted based on the relation defined by {@link
+   * ARGState#compareTo(ARGState)}), i.e., oldest-first.
    *
    * @param elements the elements to remove
    * @return the elements to re-add to the waitlist
    */
-  private SortedSet<ARGState> removeSet(Set<ARGState> elements) {
+  private NavigableSet<ARGState> removeSet(Set<ARGState> elements) {
     mReached.removeAll(elements);
 
-    SortedSet<ARGState> toWaitlist = new TreeSet<>();
+    NavigableSet<ARGState> toWaitlist = new TreeSet<>();
     for (ARGState ae : elements) {
       for (ARGState parent : ae.getParents()) {
         if (!elements.contains(parent)) {

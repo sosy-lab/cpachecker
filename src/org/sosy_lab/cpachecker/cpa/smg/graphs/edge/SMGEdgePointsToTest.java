@@ -27,13 +27,14 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGEdgePointsToTest {
 
   @Test
   public void testSMGEdgePointsTo() {
-    int val = 6;
+    SMGValue val = SMGKnownExpValue.valueOf(6);
     SMGObject obj = new SMGRegion(64, "object");
     SMGEdgePointsTo edge = new SMGEdgePointsTo(val, obj, 0);
 
@@ -44,8 +45,8 @@ public class SMGEdgePointsToTest {
 
   @Test
   public void testIsConsistentWith() {
-    int val1 = 1;
-    int val2 = 2;
+    SMGValue val1 = SMGKnownExpValue.valueOf(1);
+    SMGValue val2 = SMGKnownExpValue.valueOf(2);
     SMGObject obj = new SMGRegion(64, "object");
     SMGObject obj2 = new SMGRegion(64, "object2");
 

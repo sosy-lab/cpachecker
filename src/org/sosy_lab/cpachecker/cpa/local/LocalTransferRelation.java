@@ -292,7 +292,7 @@ public class LocalTransferRelation
       CExpression targetParam = parameters.get(0);
       // TODO How it works with *a = f(b) ?
       AbstractIdentifier paramId = createId(targetParam, dereference);
-      assign(pSuccessor, leftId, paramId);
+      alias(pSuccessor, leftId, paramId);
       return true;
     }
     return false;
@@ -359,7 +359,7 @@ public class LocalTransferRelation
     for (int i = 0; i <= leftDereference; i++, leftId = incrementDereference(leftId)) {
       if (!handleSpecialFunction(pSuccessor, leftId, i, right)) {
         AbstractIdentifier returnId = ReturnIdentifier.getInstance(i);
-        assign(pSuccessor, leftId, returnId);
+        alias(pSuccessor, leftId, returnId);
       }
     }
   }
@@ -379,10 +379,18 @@ public class LocalTransferRelation
       AbstractIdentifier leftId,
       int dereference,
       AbstractIdentifier rightId) {
-    for (int i = 0;
-        i <= dereference;
-        i++, leftId = incrementDereference(leftId), rightId = incrementDereference(rightId)) {
-      assign(pSuccessor, leftId, rightId);
+    //assign leftId = rightId
+    //alias *leftId <-> *rightId
+
+    if (dereference > 0) {
+      leftId = incrementDereference(leftId);
+      rightId = incrementDereference(rightId);
+
+      for (int i = 1;
+          i <= dereference;
+          i++, leftId = incrementDereference(leftId), rightId = incrementDereference(rightId)) {
+        alias(pSuccessor, leftId, rightId);
+      }
     }
   }
 
@@ -393,27 +401,33 @@ public class LocalTransferRelation
     }
   }
 
-  private void assign(
+  private void alias(
       LocalState pSuccessor, AbstractIdentifier leftId, AbstractIdentifier rightId) {
     if (leftId.isGlobal()) {
       // Variable is global, not memory location!
       // So, we should set the type of 'right' to global
       pSuccessor.set(rightId, DataType.GLOBAL);
     } else {
-      DataType type = getType(rightId);
+      DataType type = getMemoryType(rightId);
       pSuccessor.set(leftId, type);
     }
   }
 
-  private DataType getType(AbstractIdentifier id) {
+  private DataType getMemoryType(AbstractIdentifier id) {
     DataType type = state.getType(id);
-    if (type == null && id instanceof ConstantIdentifier) {
-      // return (struct myStruct *) 0; - consider the value as local
-      return DataType.LOCAL;
-    }
-    if (type == null && !id.isDereferenced()) {
-      // a = &b -> *a = b -> *a = local
-      return DataType.LOCAL;
+    if (type == null) {
+      if (id instanceof ConstantIdentifier) {
+        // return (struct myStruct *) 0; - consider the value as local
+        return DataType.LOCAL;
+      }
+      if (!id.isDereferenced()) {
+        // a = &b -> *a = b -> *a = local
+        if (id.isGlobal()) {
+          return DataType.GLOBAL;
+        } else {
+          return DataType.LOCAL;
+        }
+      }
     }
     return type;
   }

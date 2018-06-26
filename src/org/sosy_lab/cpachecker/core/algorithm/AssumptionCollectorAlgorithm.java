@@ -86,6 +86,13 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   @Option(secure=true, name="export", description="write collected assumptions to file")
   private boolean exportAssumptions = true;
 
+  @Option(
+    secure = true,
+    name = "export.location",
+    description = "export assumptions collected per location"
+  )
+  private boolean exportLocationAssumptions = true;
+
   @Option(secure=true, name="file", description="write collected assumptions to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path assumptionsFile = Paths.get("assumptions.txt");
@@ -543,12 +550,15 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     @Override
     public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
-      AssumptionWithLocation resultAssumption = collectLocationAssumptions(pReached, exceptionAssumptions);
+      AssumptionWithLocation resultAssumption = null;
 
-      put(out, "Number of locations with assumptions", resultAssumption.getNumberOfLocations());
+      if (exportLocationAssumptions) {
+        resultAssumption = collectLocationAssumptions(pReached, exceptionAssumptions);
+        put(out, "Number of locations with assumptions", resultAssumption.getNumberOfLocations());
+      }
 
       if (exportAssumptions) {
-        if (assumptionsFile != null) {
+        if (exportLocationAssumptions && assumptionsFile != null) {
           try {
             IO.writeFile(assumptionsFile, Charset.defaultCharset(), resultAssumption);
           } catch (IOException e) {

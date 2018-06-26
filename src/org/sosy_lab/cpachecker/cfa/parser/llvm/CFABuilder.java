@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.OptionalInt;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -103,6 +104,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.llvm_j.BasicBlock;
 import org.sosy_lab.llvm_j.Function;
@@ -146,7 +148,7 @@ public class CFABuilder {
 
   // unnamed basic blocks will be named as 1,2,3,...
   private int basicBlockId;
-  protected SortedMap<String, FunctionEntryNode> functions;
+  protected NavigableMap<String, FunctionEntryNode> functions;
 
   protected SortedSetMultimap<String, CFANode> cfaNodes;
   protected List<Pair<ADeclaration, String>> globalDeclarations;
@@ -301,7 +303,16 @@ public class CFABuilder {
   /** Remove the block and all CFA nodes in it */
   private void purgeBlock(String pFunctionName, BasicBlockInfo pBlock) {
     Collection<CFANode> blockNodes =
-        CFATraversal.dfs().collectNodesReachableFrom(pBlock.getEntryNode());
+        CFATraversal.dfs().collectNodesReachableFromTo(pBlock.getEntryNode(), pBlock.getExitNode());
+
+    for (CFANode toRemove : blockNodes) {
+      for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(toRemove)) {
+        enteringEdge.getPredecessor().removeLeavingEdge(enteringEdge);
+      }
+      for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(toRemove)) {
+        leavingEdge.getSuccessor().removeEnteringEdge(leavingEdge);
+      }
+    }
     cfaNodes.get(pFunctionName).removeAll(blockNodes);
   }
 

@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import java.util.ArrayList;
-import java.util.List;
+import com.google.common.collect.Sets;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 final class SMGJoinMatchObjects {
   private boolean defined = false;
@@ -81,18 +82,19 @@ final class SMGJoinMatchObjects {
       UnmodifiableSMG pSMG1,
       UnmodifiableSMG pSMG2) {
 
-    List<SMGEdgeHasValue> fields = new ArrayList<>();
-
-    fields.addAll(pSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj1)));
-    fields.addAll(pSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj2)));
+    Set<SMGEdgeHasValue> edges1 = pSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj1));
+    Set<SMGEdgeHasValue> edges2 = pSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj2));
 
     //TODO: We go through some fields twice, fix
-    for (SMGEdgeHasValue hv : fields) {
-      Set<SMGEdgeHasValue> hv1 = pSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj1).filterByType(hv.getType()).filterAtOffset(hv.getOffset()));
-      Set<SMGEdgeHasValue> hv2 = pSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj2).filterByType(hv.getType()).filterAtOffset(hv.getOffset()));
-      if (hv1.size() > 0 && hv2.size() > 0) {
-        Integer v1 = Iterators.getOnlyElement(hv1.iterator()).getValue();
-        Integer v2 = Iterators.getOnlyElement(hv2.iterator()).getValue();
+    for (SMGEdgeHasValue hv : Sets.union(edges1, edges2)) {
+      // edges are already filtered for given object, just filter again for type and offset.
+      SMGEdgeHasValueFilter filter =
+          new SMGEdgeHasValueFilter().filterByType(hv.getType()).filterAtOffset(hv.getOffset());
+      Iterable<SMGEdgeHasValue> hv1 = filter.filter(edges1);
+      Iterable<SMGEdgeHasValue> hv2 = filter.filter(edges2);
+      if (Iterables.size(hv1) > 0 && Iterables.size(hv2) > 0) {
+        SMGValue v1 = Iterators.getOnlyElement(hv1.iterator()).getValue();
+        SMGValue v2 = Iterators.getOnlyElement(hv2.iterator()).getValue();
         if (pMapping1.containsKey(v1) && pMapping2.containsKey(v2) && !(pMapping1.get(v1).equals(pMapping2.get(v2)))) {
           return true;
         }

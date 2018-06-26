@@ -26,10 +26,10 @@
         "/>
 
     <import file="build/build-ivy.xml"/>
-    <import file="build/build-version.xml"/>
+    <import file="build/build-version-local.xml"/>
     <import file="build/build-compile.xml"/>
     <import file="build/build-jar.xml"/>
-    <import file="build/build-documentation.xml"/>
+    <import file="build/build-documentation-local.xml"/>
     <import file="build/build-dist.xml"/>
     <import file="build/build-junit.xml"/>
     <import file="build/build-format-source.xml"/>

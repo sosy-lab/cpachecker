@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAd
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
@@ -112,7 +112,7 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
     }
 
     return Collections.singletonList(
-        SMGAddressAndState.of(state, SMGAddress.valueOf(object, SMGKnownExpValue.ZERO)));
+        SMGAddressAndState.of(state, SMGAddress.valueOf(object, SMGZeroValue.INSTANCE)));
   }
 
   @Override

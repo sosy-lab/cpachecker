@@ -102,8 +102,10 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -291,7 +293,8 @@ public class SMGTransferRelation
       SMGObject tmpMemory = newState.getHeap().getFunctionReturnObject();
       SMGSymbolicValue rValue =
           expressionEvaluator
-              .readValue(newState, tmpMemory, SMGKnownExpValue.ZERO, rValueType, functionReturnEdge)
+              .readValue(
+                  newState, tmpMemory, SMGZeroValue.INSTANCE, rValueType, functionReturnEdge)
               .getObject();
       SMGAddress address = null;
 
@@ -307,7 +310,7 @@ public class SMGTransferRelation
 
         if (!address.isUnknown()) {
           if (rValue.isUnknown()) {
-            rValue = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
+            rValue = SMGKnownSymValue.of();
           }
 
           SMGObject object = address.getObject();
@@ -387,7 +390,7 @@ public class SMGTransferRelation
           SMGState newStateWithReadSymbolicValue = stateValue.getSmgState();
           SMGSymbolicValue value = stateValue.getObject();
 
-          for (Pair<SMGState, SMGKnownSymValue> newStateWithExpVal :
+          for (Pair<SMGState, SMGKnownSymbolicValue> newStateWithExpVal :
               assignExplicitValueToSymbolicValue(
                   newStateWithReadSymbolicValue, callEdge, value, exp)) {
 
@@ -498,8 +501,8 @@ public class SMGTransferRelation
       smgState = valueAndState.getSmgState();
 
       if (!value.isUnknown()) {
-        if ((truthValue && value.equals(SMGKnownSymValue.TRUE)) ||
-            (!truthValue && value.equals(SMGKnownSymValue.FALSE))) {
+        if ((truthValue && value.equals(SMGKnownSymValue.TRUE))
+            || (!truthValue && value.equals(SMGZeroValue.INSTANCE))) {
           result.add(smgState);
         } else {
           // This signals that there are no new States reachable from this State i. e. the
@@ -544,8 +547,8 @@ public class SMGTransferRelation
       val1ImpliesOn = visitor.impliesVal1(smgState);
       val2ImpliesOn = visitor.impliesVal2(smgState);
     } else {
-      val1ImpliesOn = SMGUnknownValue.getInstance();
-      val2ImpliesOn = SMGUnknownValue.getInstance();
+      val1ImpliesOn = SMGUnknownValue.INSTANCE;
+      val2ImpliesOn = SMGUnknownValue.INSTANCE;
     }
 
     List<SMGState> result = new ArrayList<>();
@@ -564,9 +567,11 @@ public class SMGTransferRelation
 
         if (!val1ImpliesOn.isUnknown() && !val2ImpliesOn.isUnknown()) {
           if (impliesEqOn) {
-            newState.identifyEqualValues((SMGKnownSymValue) val1ImpliesOn, (SMGKnownSymValue) val2ImpliesOn);
+            newState.identifyEqualValues(
+                (SMGKnownSymbolicValue) val1ImpliesOn, (SMGKnownSymbolicValue) val2ImpliesOn);
           } else if (impliesNeqOn) {
-            newState.identifyNonEqualValues((SMGKnownSymValue) val1ImpliesOn, (SMGKnownSymValue) val2ImpliesOn);
+            newState.identifyNonEqualValues(
+                (SMGKnownSymbolicValue) val1ImpliesOn, (SMGKnownSymbolicValue) val2ImpliesOn);
           }
         }
 
@@ -584,8 +589,8 @@ public class SMGTransferRelation
           result.add(newState);
           logger.log(Level.WARNING, "Solver Interrupted Exception: ", pE, " on predicate ", predicateFormula);
         }
-      } else if ((truthValue && !explicitValue.equals(SMGKnownExpValue.ZERO))
-          || (!truthValue && explicitValue.equals(SMGKnownExpValue.ZERO))) {
+      } else if ((truthValue && !explicitValue.equals(SMGZeroValue.INSTANCE))
+          || (!truthValue && explicitValue.equals(SMGZeroValue.INSTANCE))) {
         result.add(explicitSmgState);
       } else {
         // This signals that there are no new States reachable from this State i. e. the
@@ -740,7 +745,7 @@ public class SMGTransferRelation
       SMGSymbolicValue value = valueAndState.getObject();
 
       if (value.isUnknown()) {
-        value = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
+        value = SMGKnownSymValue.of();
         valueAndState = SMGValueAndState.of(valueAndState.getSmgState(), value);
       }
       resultValueAndStates.add(valueAndState);
@@ -765,7 +770,7 @@ public class SMGTransferRelation
       // 6.5.26 The type of an assignment expression is the type the left operand would have after lvalue conversion.
       rValueType = pLFieldType;
 
-      for (Pair<SMGState, SMGKnownSymValue> currentNewStateWithMergedValue :
+      for (Pair<SMGState, SMGKnownSymbolicValue> currentNewStateWithMergedValue :
           assignExplicitValueToSymbolicValue(newState, cfaEdge, value, rValue)) {
         result.add(
             expressionEvaluator.assignFieldToState(
@@ -782,13 +787,13 @@ public class SMGTransferRelation
   }
 
   // Assign symbolic value to the explicit value calculated from pRvalue
-  private List<Pair<SMGState, SMGKnownSymValue>> assignExplicitValueToSymbolicValue(SMGState pNewState,
-      CFAEdge pCfaEdge, SMGSymbolicValue value, CRightHandSide pRValue)
-          throws CPATransferException {
+  private List<Pair<SMGState, SMGKnownSymbolicValue>> assignExplicitValueToSymbolicValue(
+      SMGState pNewState, CFAEdge pCfaEdge, SMGSymbolicValue value, CRightHandSide pRValue)
+      throws CPATransferException {
 
     SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger, machineModel);
 
-    List<Pair<SMGState, SMGKnownSymValue>> result = new ArrayList<>();
+    List<Pair<SMGState, SMGKnownSymbolicValue>> result = new ArrayList<>();
 
     for (SMGExplicitValueAndState expValueAndState :
         expEvaluator.evaluateExplicitValue(pNewState, pCfaEdge, pRValue)) {
@@ -796,7 +801,8 @@ public class SMGTransferRelation
       SMGState newState = expValueAndState.getSmgState();
 
       if (!expValue.isUnknown()) {
-        SMGKnownSymValue mergedSymValue = newState.putExplicit((SMGKnownSymValue) value, (SMGKnownExpValue) expValue);
+        SMGKnownSymbolicValue mergedSymValue =
+            newState.putExplicit((SMGKnownSymbolicValue) value, (SMGKnownExpValue) expValue);
         result.add(Pair.of(newState, mergedSymValue));
       } else {
         result.add(Pair.of(newState, null));
@@ -886,7 +892,7 @@ public class SMGTransferRelation
       } else {
         // Global variables without initializer are nullified in C
         pState =
-            expressionEvaluator.writeValue(pState, pObject, 0, cType, SMGKnownSymValue.ZERO, pEdge);
+            expressionEvaluator.writeValue(pState, pObject, 0, cType, SMGZeroValue.INSTANCE, pEdge);
       }
     }
 
@@ -1036,7 +1042,7 @@ public class SMGTransferRelation
                   offset,
                   TypeUtils.createTypeWithLength(
                       Math.toIntExact((sizeOfType - (offset - pOffset)))),
-                  SMGKnownSymValue.ZERO,
+                  SMGZeroValue.INSTANCE,
                   pEdge);
         }
 
@@ -1152,7 +1158,7 @@ public class SMGTransferRelation
                     offset,
                     TypeUtils.createTypeWithLength(
                         Math.toIntExact(sizeOfType - (offset - pOffset))),
-                    SMGKnownSymValue.ZERO,
+                    SMGZeroValue.INSTANCE,
                     pEdge);
           }
         }

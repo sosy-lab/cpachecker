@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGGenericAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
 
 final class SMGJoinTargetObjects {
@@ -50,7 +51,7 @@ final class SMGJoinTargetObjects {
   private final UnmodifiableSMG inputSMG1;
   private final UnmodifiableSMG inputSMG2;
   private SMG destSMG;
-  private Integer value;
+  private SMGValue value;
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
 
@@ -66,8 +67,12 @@ final class SMGJoinTargetObjects {
     return false;
   }
 
-  private static boolean checkAlreadyJoined(SMGJoinTargetObjects pJto, SMGObject pObj1, SMGObject pObj2,
-                                            Integer pAddress1, Integer pAddress2) {
+  private static boolean checkAlreadyJoined(
+      SMGJoinTargetObjects pJto,
+      SMGObject pObj1,
+      SMGObject pObj2,
+      SMGValue pAddress1,
+      SMGValue pAddress2) {
     if ((pObj1 == SMGNullObject.INSTANCE && pObj2 == SMGNullObject.INSTANCE)
         || (pJto.mapping1.containsKey(pObj1)
             && pJto.mapping2.containsKey(pObj2)
@@ -106,8 +111,8 @@ final class SMGJoinTargetObjects {
       SMGNodeMapping pMapping1,
       SMGNodeMapping pMapping2,
       SMGLevelMapping pLevelMapping,
-      Integer pAddress1,
-      Integer pAddress2,
+      SMGValue pAddress1,
+      SMGValue pAddress2,
       int pLevel1,
       int pLevel2,
       int ldiff,
@@ -254,10 +259,10 @@ final class SMGJoinTargetObjects {
     }
 
     for (SMGEdgeHasValue hve : hves) {
-      Integer val = hve.getValue();
+      SMGValue val = hve.getValue();
 
-      //FIXME: require to identify why offsets are mixed with values
-      if (!restricted.contains(val.longValue()) && val != 0) {
+      // FIXME: require to identify why offsets are mixed with values
+      if (!restricted.contains(val.getAsLong()) && !val.isZero()) {
 
         if (destSMG.isPointer(val)) {
           SMGObject reachedObject = destSMG.getPointer(val).getObject();
@@ -290,9 +295,9 @@ final class SMGJoinTargetObjects {
     pMapping.removeValue(pObjToCheck);
     for (SMGEdgeHasValue hve :
         destSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObjToCheck))) {
-      Integer val = hve.getValue();
+      SMGValue val = hve.getValue();
 
-      if (val != 0) {
+      if (!val.isZero()) {
 
         if (destSMG.isPointer(val)) {
           SMGObject reachedObject = destSMG.getPointer(val).getObject();
@@ -332,7 +337,7 @@ final class SMGJoinTargetObjects {
     return mapping1;
   }
 
-  public Integer getValue() {
+  public SMGValue getValue() {
     return value;
   }
 

@@ -144,12 +144,17 @@ public class CPAsTest {
                 .setOption("output.disable", "true")
                 .setOption("rootDirectory", tempFolder.getRoot().toString())
                 .build());
+    Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
+
+    String cProgram = TestDataTools.getEmptyProgram(tempFolder, false);
+
     config =
         Configuration.builder()
             .addConverter(FileOption.class, fileTypeConverter)
             .setOption("cfa.findLiveVariables", "true")
             .setOption("cpa.conditions.path.condition", "PathLengthCondition")
             .setOption("cpa.automaton.inputFile", "test/config/automata/AssumptionAutomaton.spc")
+            .setOption("differential.program", cProgram)
             .build();
 
     // Create dummy files necessary for PolicyEnforcementCPA

@@ -44,6 +44,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGDoublyLinkedListFinderTest {
 
@@ -89,27 +91,33 @@ public class SMGDoublyLinkedListFinderTest {
     SMGRegion l5 = new SMGRegion(96, "l5");
     SMGRegion head = new SMGRegion(64, "head");
 
-    SMGEdgeHasValue headfn = new SMGEdgeHasValue(pointerType, 0, head, 6);
-    SMGEdgeHasValue l1fn = new SMGEdgeHasValue(pointerType, 0, l1, 7);
-    SMGEdgeHasValue l2fn = new SMGEdgeHasValue(pointerType, 0, l2, 8);
-    SMGEdgeHasValue l3fn = new SMGEdgeHasValue(pointerType, 0, l3, 9);
-    SMGEdgeHasValue l4fn = new SMGEdgeHasValue(pointerType, 0, l4, 10);
-    SMGEdgeHasValue l5fn = new SMGEdgeHasValue(pointerType, 0, l5, 5);
+    SMGValue value5 = SMGKnownExpValue.valueOf(5);
+    SMGValue value6 = SMGKnownExpValue.valueOf(6);
+    SMGValue value7 = SMGKnownExpValue.valueOf(7);
+    SMGValue value8 = SMGKnownExpValue.valueOf(8);
+    SMGValue value9 = SMGKnownExpValue.valueOf(9);
+    SMGValue value10 = SMGKnownExpValue.valueOf(10);
 
-    SMGEdgeHasValue l1fp = new SMGEdgeHasValue(pointerType, 32, l1, 5);
-    SMGEdgeHasValue l2fp = new SMGEdgeHasValue(pointerType, 32, l2, 6);
-    SMGEdgeHasValue l3fp = new SMGEdgeHasValue(pointerType, 32, l3, 7);
-    SMGEdgeHasValue l4fp = new SMGEdgeHasValue(pointerType, 32, l4, 8);
-    SMGEdgeHasValue l5fp = new SMGEdgeHasValue(pointerType, 32, l5, 9);
-    SMGEdgeHasValue headfp = new SMGEdgeHasValue(pointerType, 32, head, 10);
+    SMGEdgeHasValue headfn = new SMGEdgeHasValue(pointerType, 0, head, value6);
+    SMGEdgeHasValue l1fn = new SMGEdgeHasValue(pointerType, 0, l1, value7);
+    SMGEdgeHasValue l2fn = new SMGEdgeHasValue(pointerType, 0, l2, value8);
+    SMGEdgeHasValue l3fn = new SMGEdgeHasValue(pointerType, 0, l3, value9);
+    SMGEdgeHasValue l4fn = new SMGEdgeHasValue(pointerType, 0, l4, value10);
+    SMGEdgeHasValue l5fn = new SMGEdgeHasValue(pointerType, 0, l5, value5);
 
-    SMGEdgePointsTo lht = new SMGEdgePointsTo(5, head, 0);
-    SMGEdgePointsTo l1t = new SMGEdgePointsTo(6, l1, 0);
-    SMGEdgePointsTo l2t = new SMGEdgePointsTo(7, l2, 0);
-    SMGEdgePointsTo l3t = new SMGEdgePointsTo(8, l3, 0);
-    SMGEdgePointsTo l4t = new SMGEdgePointsTo(9, l4, 0);
-    SMGEdgePointsTo l5t = new SMGEdgePointsTo(10, l5, 0);
+    SMGEdgeHasValue l1fp = new SMGEdgeHasValue(pointerType, 32, l1, value5);
+    SMGEdgeHasValue l2fp = new SMGEdgeHasValue(pointerType, 32, l2, value6);
+    SMGEdgeHasValue l3fp = new SMGEdgeHasValue(pointerType, 32, l3, value7);
+    SMGEdgeHasValue l4fp = new SMGEdgeHasValue(pointerType, 32, l4, value8);
+    SMGEdgeHasValue l5fp = new SMGEdgeHasValue(pointerType, 32, l5, value9);
+    SMGEdgeHasValue headfp = new SMGEdgeHasValue(pointerType, 32, head, value10);
 
+    SMGEdgePointsTo lht = new SMGEdgePointsTo(value5, head, 0);
+    SMGEdgePointsTo l1t = new SMGEdgePointsTo(value6, l1, 0);
+    SMGEdgePointsTo l2t = new SMGEdgePointsTo(value7, l2, 0);
+    SMGEdgePointsTo l3t = new SMGEdgePointsTo(value8, l3, 0);
+    SMGEdgePointsTo l4t = new SMGEdgePointsTo(value9, l4, 0);
+    SMGEdgePointsTo l5t = new SMGEdgePointsTo(value10, l5, 0);
 
     smg1.addGlobalObject(head);
     smg1.addHeapObject(l1);
@@ -118,12 +126,12 @@ public class SMGDoublyLinkedListFinderTest {
     smg1.addHeapObject(l4);
     smg1.addHeapObject(l5);
 
-    smg1.addValue(5);
-    smg1.addValue(6);
-    smg1.addValue(7);
-    smg1.addValue(8);
-    smg1.addValue(9);
-    smg1.addValue(10);
+    smg1.addValue(value5);
+    smg1.addValue(value6);
+    smg1.addValue(value7);
+    smg1.addValue(value8);
+    smg1.addValue(value9);
+    smg1.addValue(value10);
 
     smg1.addHasValueEdge(headfn);
     smg1.addHasValueEdge(l1fn);

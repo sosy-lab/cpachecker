@@ -27,7 +27,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.util.Collection;
-import java.util.SortedMap;
+import java.util.NavigableMap;
 import java.util.TreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -63,7 +63,7 @@ public class CFACloner {
     assert cfa.getLanguage() == Language.C;
 
     // copy content of old CFAs
-    final SortedMap<String, FunctionEntryNode> functions = new TreeMap<>(cfa.getAllFunctions());
+    final NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>(cfa.getAllFunctions());
     final SortedSetMultimap<String, CFANode> nodes = TreeMultimap.create();
     for (final String function : cfa.getAllFunctionNames()) {
       if (cfa instanceof MutableCFA) {

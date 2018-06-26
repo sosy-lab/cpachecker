@@ -25,16 +25,22 @@ package org.sosy_lab.cpachecker.util.test;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
+import org.junit.rules.TemporaryFolder;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
@@ -180,5 +186,43 @@ public class TestDataTools {
 
   private static String getProgram(String... parts) {
     return "int main() {" +  Joiner.on('\n').join(parts) + "}";
+  }
+
+  /**
+   * Returns and, if necessary, creates a new empty C or Java program
+   * in the given temporary folder.
+   */
+  public static String getEmptyProgram(TemporaryFolder pTempFolder, boolean isJava)
+      throws IOException {
+    File tempFile;
+    String fileContent;
+    String program;
+    if (isJava) {
+      tempFile = getTempFile(pTempFolder,"Main.java");
+      fileContent = "public class Main { public static void main(String... args) {} }";
+      program = "Main";
+    } else {
+      tempFile = getTempFile(pTempFolder, "program.i");
+      fileContent = getProgram();
+      program = tempFile.toString();
+    }
+    if (tempFile.createNewFile()) {
+      // if the file didn't exist yet, write its content
+      IO.writeFile(
+          tempFile.toPath(),
+          StandardCharsets.US_ASCII,
+          fileContent
+      );
+    }
+
+    return program;
+  }
+
+  /**
+   *  Returns the file object for the given file name in the given
+   *  temporary folder. If the described file does not exist, it will <b>not</b> be created.
+   */
+  private static File getTempFile(TemporaryFolder pTempFolder, String pFileName) {
+    return Paths.get(pTempFolder.getRoot().toString(), pFileName).toFile();
   }
 }

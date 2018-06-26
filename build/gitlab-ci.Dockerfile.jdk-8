@@ -6,7 +6,7 @@
 # docker build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker/test:jdk-8 - < build/gitlab-ci.Dockerfile.jdk-8
 # docker push registry.gitlab.com/sosy-lab/software/cpachecker/test
 
-FROM registry.gitlab.com/sosy-lab/software/java-common-lib/test:jdk-8
+FROM registry.gitlab.com/sosy-lab/software/java-project-template/test:jdk-8
 RUN apt-get update && apt-get install -y \
   graphviz \
   libgmp10 \

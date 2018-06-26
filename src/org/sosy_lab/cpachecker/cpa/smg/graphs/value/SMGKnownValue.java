@@ -63,9 +63,5 @@ public abstract class SMGKnownValue {
   public String toString() {
     return value.toString();
   }
-
-  public boolean isUnknown() {
-    return false;
-  }
 }
 

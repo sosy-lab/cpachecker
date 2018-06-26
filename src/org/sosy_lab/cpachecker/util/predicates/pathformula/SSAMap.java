@@ -28,8 +28,10 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-
-import org.sosy_lab.common.collect.Collections3;
+import java.io.Serializable;
+import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.Map;
+import java.util.NavigableSet;
 import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -42,12 +44,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
-
-import java.io.Serializable;
-import java.util.AbstractMap.SimpleImmutableEntry;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.SortedSet;
 
 /**
  * Maps a variable name to its latest "SSA index", that should be used when
@@ -67,8 +63,7 @@ public class SSAMap implements Serializable {
         @Override
         public CType resolveConflict(String name, CType type1, CType type2) {
           Preconditions.checkArgument(
-              type1 instanceof CFunctionType
-                  || type2 instanceof CFunctionType
+              (type1 instanceof CFunctionType && type2 instanceof CFunctionType)
                   || (isEnumPointerType(type1) && isEnumPointerType(type2))
                   || type1.equals(type2),
               "Cannot change type of variable %s in SSAMap from %s to %s",
@@ -174,12 +169,8 @@ public class SSAMap implements Serializable {
       return this;
     }
 
-    public SortedSet<String> allVariables() {
+    public NavigableSet<String> allVariables() {
       return varTypes.keySet();
-    }
-
-    public SortedMap<String, CType> allVariablesWithPrefix(String prefix) {
-      return Collections3.subMapWithPrefix(varTypes, prefix);
     }
 
     /**
@@ -330,7 +321,7 @@ public class SSAMap implements Serializable {
     return varTypes.get(name);
   }
 
-  public SortedSet<String> allVariables() {
+  public NavigableSet<String> allVariables() {
     return vars.keySet();
   }
 

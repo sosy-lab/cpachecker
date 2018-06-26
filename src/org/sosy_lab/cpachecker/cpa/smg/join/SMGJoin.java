@@ -46,13 +46,11 @@ final public class SMGJoin {
   final SMGLevelMapping levelMap = SMGLevelMapping.createDefaultLevelMap();
 
   public SMGJoin(
-      UnmodifiableCLangSMG pSMG1,
-      UnmodifiableCLangSMG pSMG2,
+      UnmodifiableCLangSMG opSMG1,
+      UnmodifiableCLangSMG opSMG2,
       UnmodifiableSMGState pStateOfSmg1,
       UnmodifiableSMGState pStateOfSmg2)
       throws SMGInconsistentException {
-    UnmodifiableCLangSMG opSMG1 = pSMG1.copyOf();
-    UnmodifiableCLangSMG opSMG2 = pSMG2.copyOf();
     smg = new CLangSMG(opSMG1.getMachineModel());
 
     SMGNodeMapping mapping1 = new SMGNodeMapping();

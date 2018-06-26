@@ -29,13 +29,14 @@ import com.google.common.collect.Iterables;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPointsToEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGEdgePointsToFilter {
 
   /** the target of the CMGEdgePointsTo for filtering. */
   private final SMGObject targetObject;
 
-  private Integer value = null;
+  private SMGValue value = null;
   private Long targetOffset = null;
   private SMGTargetSpecifier targetSpecifier = null;
 
@@ -43,7 +44,7 @@ public class SMGEdgePointsToFilter {
     targetObject = Preconditions.checkNotNull(pTargetObject, "fitlering for NULL might be useless");
   }
 
-  public SMGEdgePointsToFilter filterHavingValue(Integer pValue) {
+  public SMGEdgePointsToFilter filterHavingValue(SMGValue pValue) {
     value = pValue;
     return this;
   }

@@ -42,11 +42,13 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 
 public class SMG implements UnmodifiableSMG {
   private PersistentSet<SMGObject> objects;
-  private PersistentSet<Integer> values;
+  private PersistentSet<SMGValue> values;
   private SMGHasValueEdges hv_edges;
   private SMGPointsToEdges pt_edges;
 
@@ -62,11 +64,7 @@ public class SMG implements UnmodifiableSMG {
 
   private final MachineModel machine_model;
 
-  /**
-   * An address of the special object representing null
-   */
-  public final static int NULL_ADDRESS = 0;
-  private final static SMGEdgePointsTo NULL_POINTER = new SMGEdgePointsTo(NULL_ADDRESS, SMGNullObject.INSTANCE, 0);
+  private final static SMGEdgePointsTo NULL_POINTER = new SMGEdgePointsTo(SMGZeroValue.INSTANCE, SMGNullObject.INSTANCE, 0);
 
   /**
    * Constructor.
@@ -154,15 +152,15 @@ public class SMG implements UnmodifiableSMG {
   }
 
   /**
-   * Remove pValue from the SMG. This method does not remove
-   * any edges leading from/to the removed value.
+   * Remove pValue from the SMG. This method does not remove any edges leading from/to the removed
+   * value.
    *
-   * Keeps consistency: no
+   * <p>Keeps consistency: no
    *
    * @param pValue Value to remove
    */
-  final public void removeValue(final Integer pValue) {
-    Preconditions.checkArgument(pValue != 0, "Can not remove NULL from SMG");
+  public final void removeValue(final SMGValue pValue) {
+    Preconditions.checkArgument(!pValue.isZero(), "Can not remove NULL from SMG");
     values = values.removeAndCopy(pValue);
     neq = neq.removeValueAndCopy(pValue);
     pathPredicate.removeValue(pValue);
@@ -215,11 +213,11 @@ public class SMG implements UnmodifiableSMG {
   /**
    * Add pValue value to the SMG.
    *
-   * Keeps consistency: no.
+   * <p>Keeps consistency: no.
    *
-   * @param pValue  Value to add.
+   * @param pValue Value to add.
    */
-  final public void addValue(Integer pValue) {
+  public final void addValue(SMGValue pValue) {
     values = values.addAndCopy(pValue);
   }
 
@@ -231,6 +229,7 @@ public class SMG implements UnmodifiableSMG {
    * @param pEdge Points-To edge to add.
    */
   final public void addPointsToEdge(SMGEdgePointsTo pEdge) {
+    Preconditions.checkArgument(values.contains(pEdge.getValue()), "adding an edge without source");
     pt_edges = pt_edges.addAndCopy(pEdge);
   }
 
@@ -242,6 +241,7 @@ public class SMG implements UnmodifiableSMG {
    * @param pEdge Has-Value edge to add
    */
   final public void addHasValueEdge(SMGEdgeHasValue pEdge) {
+    Preconditions.checkArgument(values.contains(pEdge.getValue()), "adding edge without target");
     hv_edges = hv_edges.addEdgeAndCopy(pEdge);
   }
 
@@ -259,12 +259,12 @@ public class SMG implements UnmodifiableSMG {
   /**
    * Remove the Points-To edge from the SMG with the value pValue as Source.
    *
-   * Keeps consistency: no
+   * <p>Keeps consistency: no
    *
    * @param pValue the Source of the Points-To edge to be removed
    */
-  final public void removePointsToEdge(int pValue) {
-    Preconditions.checkArgument(pValue != 0, "Can not remove NULL from SMG");
+  public final void removePointsToEdge(SMGValue pValue) {
+    Preconditions.checkArgument(!pValue.isZero(), "Can not remove NULL from SMG");
     pt_edges = pt_edges.removeEdgeWithValueAndCopy(pValue);
   }
 
@@ -306,11 +306,8 @@ public class SMG implements UnmodifiableSMG {
     }
   }
 
-  /**
-   * Adds a neq relation between two values to the SMG
-   * Keeps consistency: no
-   */
-  public void addNeqRelation(Integer pV1, Integer pV2) {
+  /** Adds a neq relation between two values to the SMG Keeps consistency: no */
+  public void addNeqRelation(SMGValue pV1, SMGValue pV2) {
     neq = neq.addRelationAndCopy(pV1, pV2);
   }
 
@@ -328,17 +325,17 @@ public class SMG implements UnmodifiableSMG {
     errorPredicate = new PredRelation();
   }
 
-
   /* ********************************************* */
   /* Non-modifying functions: getters and the like */
   /* ********************************************* */
 
   /**
    * Getter for obtaining unmodifiable view on values set. Constant.
+   *
    * @return Unmodifiable view on values set.
    */
   @Override
-  final public Set<Integer> getValues() {
+  public final Set<SMGValue> getValues() {
     return Collections.unmodifiableSet(values.asSet());
   }
 
@@ -385,18 +382,13 @@ public class SMG implements UnmodifiableSMG {
    * Getter for obtaining an object, pointed by a value pValue. Constant.
    *
    * @param pValue An origin value.
-   * @return The object pointed by the value pValue, if such exists.
-   * Null, if pValue does not point to any
-   * object.
-   *
-   * Throws {@link IllegalArgumentException} if pValue is
-   * not present in the SMG.
-   *
-   * TODO: Test
-   * TODO: Consistency check: no value can point to more objects
+   * @return The object pointed by the value pValue, if such exists. Null, if pValue does not point
+   *     to any object.
+   *     <p>Throws {@link IllegalArgumentException} if pValue is not present in the SMG.
+   *     <p>TODO: Test TODO: Consistency check: no value can point to more objects
    */
   @Override
-  public final @Nullable SMGObject getObjectPointedBy(Integer pValue) {
+  public final @Nullable SMGObject getObjectPointedBy(SMGValue pValue) {
     Preconditions.checkArgument(values.contains(pValue), "Value [" + pValue + "] not in SMG");
     if (pt_edges.containsEdgeWithValue(pValue)) {
       return pt_edges.getEdgeWithValue(pValue).getObject();
@@ -450,7 +442,7 @@ public class SMG implements UnmodifiableSMG {
   @Override
   public TreeMap<Long, Integer> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj) {
     SMGEdgeHasValueFilter objectFilter =
-        SMGEdgeHasValueFilter.objectFilter(pObj).filterHavingValue(SMG.NULL_ADDRESS);
+        SMGEdgeHasValueFilter.objectFilter(pObj).filterHavingValue(SMGZeroValue.INSTANCE);
     TreeMultimap<Long, Integer> offsetToSize = TreeMultimap.create();
     for (SMGEdgeHasValue edge : objectFilter.filter(hv_edges)) {
       offsetToSize.put(edge.getOffset(), edge.getSizeInBits(machine_model));
@@ -478,29 +470,25 @@ public class SMG implements UnmodifiableSMG {
   }
 
   /**
-   * Checks, whether a {@link SMGEdgePointsTo} edge exists with the
-   * given value as source.
-   *
+   * Checks, whether a {@link SMGEdgePointsTo} edge exists with the given value as source.
    *
    * @param value the source of the {@link SMGEdgePointsTo} edge.
-   * @return true, if the {@link SMGEdgePointsTo} edge with the source
-   * value exists, otherwise false.
+   * @return true, if the {@link SMGEdgePointsTo} edge with the source value exists, otherwise
+   *     false.
    */
   @Override
-  public boolean isPointer(Integer value) {
+  public boolean isPointer(SMGValue value) {
     return pt_edges.containsEdgeWithValue(value);
   }
 
   /**
-   * Returns the {@link SMGEdgePointsTo} edge with the
-   * given value as source.
+   * Returns the {@link SMGEdgePointsTo} edge with the given value as source.
    *
    * @param value the source of the {@link SMGEdgePointsTo} edge.
-   * @return the {@link SMGEdgePointsTo} edge with the
-   * value as source.
+   * @return the {@link SMGEdgePointsTo} edge with the value as source.
    */
   @Override
-  public SMGEdgePointsTo getPointer(Integer value) {
+  public SMGEdgePointsTo getPointer(SMGValue value) {
     return pt_edges.getEdgeWithValue(value);
   }
 
@@ -522,46 +510,51 @@ public class SMG implements UnmodifiableSMG {
     return (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= expectedMinClear);
   }
 
-  public void mergeValues(int pV1, int pV2) {
-
-    /*Might merge predicates?*/
-    addValue(pV2);
-
-    /* Value might not have been added yet */
-    addValue(pV1);
-
-    if (pV1 == pV2) {
+  /**
+   * replace the old value with a fresh one.
+   *
+   * <p>deletes the old value from the SMG and redirects all HV- and PT-edges.
+   *
+   * <p>Precondition: the old value must never be ZERO.
+   */
+  public void replaceValue(SMGValue fresh, SMGValue old) {
+    if (fresh == old) {
       return;
     }
 
-    if (pV2 == NULL_ADDRESS) { // swap
-      int tmp = pV1;
-      pV1 = pV2;
-      pV2 = tmp;
-    }
+    Preconditions.checkArgument(
+        !old.isZero(), "cannot replace ZERO (%s) with other value (%s)", old, fresh);
 
-    neq = neq.mergeValuesAndCopy(pV1, pV2);
-    pathPredicate.mergeValues(pV1, pV2);
+    addValue(fresh);
 
-    removeValue(pV2);
+    neq = neq.replaceValueAndCopy(fresh, old);
+    pathPredicate.replace(fresh, old);
 
-    for (SMGEdgeHasValue old_hve : getHVEdges(SMGEdgeHasValueFilter.valueFilter(pV2))) {
+    removeValue(old);
+
+    for (SMGEdgeHasValue old_hve : getHVEdges(SMGEdgeHasValueFilter.valueFilter(old))) {
       SMGEdgeHasValue newHvEdge =
-          new SMGEdgeHasValue(old_hve.getType(), old_hve.getOffset(), old_hve.getObject(), pV1);
+          new SMGEdgeHasValue(old_hve.getType(), old_hve.getOffset(), old_hve.getObject(), fresh);
       hv_edges = hv_edges.removeEdgeAndCopy(old_hve);
       hv_edges = hv_edges.addEdgeAndCopy(newHvEdge);
     }
 
-    // TODO: Handle PT Edges: I'm not entirely sure how they should be handled
+    if (pt_edges.containsEdgeWithValue(old)) {
+      SMGEdgePointsTo pt_edge = pt_edges.getEdgeWithValue(old);
+      pt_edges = pt_edges.removeAndCopy(pt_edge);
+      Preconditions.checkArgument(!pt_edges.containsEdgeWithValue(fresh));
+      pt_edges =
+          pt_edges.addAndCopy(new SMGEdgePointsTo(fresh, pt_edge.getObject(), pt_edge.getOffset()));
+    }
   }
 
   @Override
-  public boolean haveNeqRelation(Integer pV1, Integer pV2) {
+  public boolean haveNeqRelation(SMGValue pV1, SMGValue pV2) {
     return neq.neq_exists(pV1, pV2);
   }
 
   @Override
-  public Set<Integer> getNeqsForValue(Integer pV) {
+  public Set<SMGValue> getNeqsForValue(SMGValue pV) {
     return neq.getNeqsForValue(pV);
   }
 
@@ -575,7 +568,7 @@ public class SMG implements UnmodifiableSMG {
   }
 
   private void initializeNullAddress() {
-    addValue(NULL_ADDRESS);
+    addValue(SMGZeroValue.INSTANCE);
     addPointsToEdge(NULL_POINTER);
   }
 

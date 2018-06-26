@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGGenericAbstractionCandidate;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
 
 final class SMGJoinSubSMGs {
@@ -99,7 +100,8 @@ final class SMGJoinSubSMGs {
     SMGEdgeHasValueFilter filterOnSMG1 = SMGEdgeHasValueFilter.objectFilter(pObj1);
     SMGEdgeHasValueFilter filterOnSMG2 = SMGEdgeHasValueFilter.objectFilter(pObj2);
 
-    Map<Integer, List<SMGGenericAbstractionCandidate>> valueAbstractionCandidates = new HashMap<>();
+    Map<SMGValue, List<SMGGenericAbstractionCandidate>> valueAbstractionCandidates =
+        new HashMap<>();
     boolean allValuesDefined = true;
 
     int prevLevel = pLevelMap.get(SMGJoinLevel.valueOf(pObj1.getLevel(), pObj2.getLevel()));
@@ -238,7 +240,7 @@ final class SMGJoinSubSMGs {
     return null;
   }
 
-  private int getValueLevel(SMGObject pObject, int pValue, UnmodifiableSMG pInputSMG1) {
+  private int getValueLevel(SMGObject pObject, SMGValue pValue, UnmodifiableSMG pInputSMG1) {
 
     if (pInputSMG1.isPointer(pValue)) {
       SMGEdgePointsTo pointer = pInputSMG1.getPointer(pValue);

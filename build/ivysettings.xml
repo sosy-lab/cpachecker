@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE ivysettings> <!-- generic AcceptAllDTD to make the Eclipse Warning go away -->
 <ivysettings>
+    <!-- DO NOT EDIT LOCALLY!
+         Keep this file synchronized with
+         https://gitlab.com/sosy-lab/software/java-project-template
+    -->
     <settings defaultResolver="Sosy-Lab"/>
     <property name="repo.dir" value="${basedir}/repository"/>
     <resolvers>

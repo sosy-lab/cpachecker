@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 /**
  * This class contains smg utilities, for example filters.
@@ -74,7 +75,8 @@ public final class SMGUtils {
     return pInputSMG.getPtEdges(objectFilter);
   }
 
-  public static Set<SMGEdgeHasValue> getFieldsofThisValue(int value, UnmodifiableSMG pInputSMG) {
+  public static Set<SMGEdgeHasValue> getFieldsofThisValue(
+      SMGValue value, UnmodifiableSMG pInputSMG) {
     SMGEdgeHasValueFilter valueFilter = SMGEdgeHasValueFilter.valueFilter(value);
     return pInputSMG.getHVEdges(valueFilter);
   }

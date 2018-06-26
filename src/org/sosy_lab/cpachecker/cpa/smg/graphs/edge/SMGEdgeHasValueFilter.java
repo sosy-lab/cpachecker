@@ -30,6 +30,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGEdgeHasValueFilter {
 
@@ -38,7 +39,7 @@ public class SMGEdgeHasValueFilter {
   }
 
   private SMGObject object = null;
-  private Integer value = null;
+  private SMGValue value = null;
   private boolean valueComplement = false;
   private Long offset = null;
   private CType type = null;
@@ -49,13 +50,13 @@ public class SMGEdgeHasValueFilter {
     return this;
   }
 
-  public SMGEdgeHasValueFilter filterHavingValue(Integer pValue) {
+  public SMGEdgeHasValueFilter filterHavingValue(SMGValue pValue) {
     value = pValue;
     valueComplement = false;
     return this;
   }
 
-  public SMGEdgeHasValueFilter filterNotHavingValue(Integer pValue) {
+  public SMGEdgeHasValueFilter filterNotHavingValue(SMGValue pValue) {
     value = pValue;
     valueComplement = true;
     return this;
@@ -77,9 +78,9 @@ public class SMGEdgeHasValueFilter {
     }
 
     if (value != null) {
-      if (valueComplement && pEdge.getValue() == value) {
+      if (valueComplement && pEdge.getValue().equals(value)) {
         return false;
-      } else if ( (!valueComplement) && pEdge.getValue() != value) {
+      } else if ((!valueComplement) && !pEdge.getValue().equals(value)) {
         return false;
       }
     }
@@ -114,7 +115,7 @@ public class SMGEdgeHasValueFilter {
     return Iterables.filter(pEdges, this::holdsFor);
   }
 
-  public static SMGEdgeHasValueFilter valueFilter(Integer pValue) {
+  public static SMGEdgeHasValueFilter valueFilter(SMGValue pValue) {
     return new SMGEdgeHasValueFilter().filterHavingValue(pValue);
   }
 }

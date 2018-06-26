@@ -427,6 +427,11 @@ assumptions.compressAutomaton = false
 
 # write collected assumptions to file
 assumptions.export = true
+
+# export assumptions collected per location
+assumptions.export.location = true
+
+# write collected assumptions to file
 assumptions.file = "assumptions.txt"
 
 # If it is enabled, check if a state that should lead to false state indeed
@@ -2888,6 +2893,9 @@ dependenceGraph.exportDot = "DependenceGraph.dot"
 
 # Run flow dependence analysis with constant propagation
 dependencegraph.flowdep.constantPropagation = false
+
+# Program to check against
+differential.program = no default value
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
