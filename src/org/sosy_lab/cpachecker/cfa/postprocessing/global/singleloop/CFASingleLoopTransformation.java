@@ -55,10 +55,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
@@ -726,7 +726,7 @@ public class CFASingleLoopTransformation {
   private MutableCFA buildCFA(FunctionEntryNode pStartNode, CFANode pLoopHead, CFA pOriginalCfa)
       throws InterruptedException {
 
-    SortedMap<String, FunctionEntryNode> functions = new TreeMap<>();
+    NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>();
 
     SortedSetMultimap<String, CFANode> allNodes = mapNodesToFunctions(pStartNode, functions);
 

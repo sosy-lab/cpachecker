@@ -25,8 +25,9 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic;
 
 import java.util.Map;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public interface SMGObjectTemplate {
 
-  SMGObject createConcreteObject(Map<Integer, Integer> pAbstractToConcretePointerMap);
+  SMGObject createConcreteObject(Map<SMGValue, SMGValue> pAbstractToConcretePointerMap);
 }

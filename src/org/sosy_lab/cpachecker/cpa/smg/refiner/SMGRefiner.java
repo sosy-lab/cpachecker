@@ -61,7 +61,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -131,7 +131,8 @@ public class SMGRefiner implements Refiner {
     SMGStrongestPostOperator strongestPostOpForCEX =
         SMGStrongestPostOperator.getSMGStrongestPostOperatorForCEX(pLogger, pCfa, predicateManager, blockOperator, smgCpa.getOptions());
 
-    SMGState initialState = smgCpa.getInitialState(pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+    UnmodifiableSMGState initialState =
+        smgCpa.getInitialState(pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
 
     checker =
         new SMGFeasibilityChecker(strongestPostOpForCEX, logger, pCfa, initialState, automatonCpas, smgCpa.getBlockOperator());

@@ -62,6 +62,13 @@ solver.mathsat5.furtherOptions = ""
 # Load less stable optimizing version of mathsat5 solver.
 solver.mathsat5.loadOptimathsat5 = false
 
+# Use non-linear arithmetic of the solver if supported and throw exception
+# otherwise, approximate non-linear arithmetic with UFs if unsupported, or
+# always approximate non-linear arithmetic. This affects only the theories of
+# integer and rational arithmetic.
+solver.nonLinearArithmetic = USE
+  enum:     [USE, APPROXIMATE_FALLBACK, APPROXIMATE_ALWAYS]
+
 # log all queries as Princess-specific Scala code
 solver.princess.logAllQueriesAsScala = false
 
@@ -353,6 +360,9 @@ analysis.traversal.useLoopIterationCount = false
 # handle states with a deeper loopstack first.
 analysis.traversal.useLoopstack = false
 
+# handle abstract states with fewer heap objects first? (needs SMGCPA)
+analysis.traversal.useNumberOfHeapObjects = false
+
 # handle abstract states with fewer running threads first? (needs
 # ThreadingCPA)
 analysis.traversal.useNumberOfThreads = false
@@ -424,6 +434,11 @@ assumptions.compressAutomaton = false
 
 # write collected assumptions to file
 assumptions.export = true
+
+# export assumptions collected per location
+assumptions.export.location = true
+
+# write collected assumptions to file
 assumptions.file = "assumptions.txt"
 
 # If it is enabled, check if a state that should lead to false state indeed
@@ -2274,10 +2289,6 @@ cpa.predicate.useParameterVariablesForGlobals = false
 # that is capable of quantifiers (e.g. Z3 or PRINCESS).
 cpa.predicate.useQuantifiersOnArrays = false
 
-# Enable fallback to UFs if a solver does not support non-linear arithmetics.
-# This option only effects MULT, MOD and DIV.
-cpa.predicate.useUFsForNonLinearArithmetic = true
-
 # Do not follow states which can not syntactically lead to a target location
 cpa.property_reachability.noFollowBackwardsUnreachable = true
 
@@ -2885,6 +2896,9 @@ dependenceGraph.exportDot = "DependenceGraph.dot"
 
 # Run flow dependence analysis with constant propagation
 dependencegraph.flowdep.constantPropagation = false
+
+# Program to check against
+differential.program = no default value
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.

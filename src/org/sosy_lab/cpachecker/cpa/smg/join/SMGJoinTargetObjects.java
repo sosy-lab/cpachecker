@@ -28,10 +28,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -40,16 +41,17 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGGenericAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
 
 final class SMGJoinTargetObjects {
   private SMGJoinStatus status;
   private boolean defined = false;
   private boolean recoverable = false;
-  private SMG inputSMG1;
-  private SMG inputSMG2;
+  private final UnmodifiableSMG inputSMG1;
+  private final UnmodifiableSMG inputSMG2;
   private SMG destSMG;
-  private Integer value;
+  private SMGValue value;
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
 
@@ -65,8 +67,12 @@ final class SMGJoinTargetObjects {
     return false;
   }
 
-  private static boolean checkAlreadyJoined(SMGJoinTargetObjects pJto, SMGObject pObj1, SMGObject pObj2,
-                                            Integer pAddress1, Integer pAddress2) {
+  private static boolean checkAlreadyJoined(
+      SMGJoinTargetObjects pJto,
+      SMGObject pObj1,
+      SMGObject pObj2,
+      SMGValue pAddress1,
+      SMGValue pAddress2) {
     if ((pObj1 == SMGNullObject.INSTANCE && pObj2 == SMGNullObject.INSTANCE)
         || (pJto.mapping1.containsKey(pObj1)
             && pJto.mapping2.containsKey(pObj2)
@@ -97,10 +103,23 @@ final class SMGJoinTargetObjects {
     return false;
   }
 
-  public SMGJoinTargetObjects(SMGJoinStatus pStatus,
-                              SMG pSMG1, SMG pSMG2, SMG pDestSMG,
-                              SMGNodeMapping pMapping1, SMGNodeMapping pMapping2, SMGLevelMapping pLevelMapping,
-                              Integer pAddress1, Integer pAddress2, int pLevel1, int pLevel2, int ldiff, boolean identicalInputSmgs, SMGState pSmgState1, SMGState pSmgState2) throws SMGInconsistentException {
+  public SMGJoinTargetObjects(
+      SMGJoinStatus pStatus,
+      UnmodifiableSMG pSMG1,
+      UnmodifiableSMG pSMG2,
+      SMG pDestSMG,
+      SMGNodeMapping pMapping1,
+      SMGNodeMapping pMapping2,
+      SMGLevelMapping pLevelMapping,
+      SMGValue pAddress1,
+      SMGValue pAddress2,
+      int pLevel1,
+      int pLevel2,
+      int ldiff,
+      boolean identicalInputSmgs,
+      UnmodifiableSMGState pSmgState1,
+      UnmodifiableSMGState pSmgState2)
+      throws SMGInconsistentException {
 
     inputSMG1 = pSMG1;
     inputSMG2 = pSMG2;
@@ -240,10 +259,10 @@ final class SMGJoinTargetObjects {
     }
 
     for (SMGEdgeHasValue hve : hves) {
-      Integer val = hve.getValue();
+      SMGValue val = hve.getValue();
 
-      //FIXME: require to identify why offsets are mixed with values
-      if (!restricted.contains(val.longValue()) && val != 0) {
+      // FIXME: require to identify why offsets are mixed with values
+      if (!restricted.contains(val.getAsLong()) && !val.isZero()) {
 
         if (destSMG.isPointer(val)) {
           SMGObject reachedObject = destSMG.getPointer(val).getObject();
@@ -276,9 +295,9 @@ final class SMGJoinTargetObjects {
     pMapping.removeValue(pObjToCheck);
     for (SMGEdgeHasValue hve :
         destSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObjToCheck))) {
-      Integer val = hve.getValue();
+      SMGValue val = hve.getValue();
 
-      if (val != 0) {
+      if (!val.isZero()) {
 
         if (destSMG.isPointer(val)) {
           SMGObject reachedObject = destSMG.getPointer(val).getObject();
@@ -306,7 +325,7 @@ final class SMGJoinTargetObjects {
     return status;
   }
 
-  public SMG getInputSMG1() {
+  public UnmodifiableSMG getInputSMG1() {
     return inputSMG1;
   }
 
@@ -318,7 +337,7 @@ final class SMGJoinTargetObjects {
     return mapping1;
   }
 
-  public Integer getValue() {
+  public SMGValue getValue() {
     return value;
   }
 
@@ -326,7 +345,7 @@ final class SMGJoinTargetObjects {
     return recoverable;
   }
 
-  public SMG getInputSMG2() {
+  public UnmodifiableSMG getInputSMG2() {
     return inputSMG2;
   }
 

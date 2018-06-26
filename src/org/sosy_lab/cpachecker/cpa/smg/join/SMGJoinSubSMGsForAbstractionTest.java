@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -69,8 +70,7 @@ public class SMGJoinSubSMGsForAbstractionTest {
 
     SMGEdgeHasValue root =
         TestHelpers.createGlobalList(smg, SEGMENT_LENGTH, NODE_SIZE, OFFSET, "pointer");
-    Integer value = root.getValue();
-    SMGObject firstObject = smg.getPointer(value).getObject();
+    SMGObject firstObject = smg.getPointer(root.getValue()).getObject();
     Assert.assertSame(SMGObjectKind.REG, firstObject.getKind());
 
     SMGSingleLinkedListCandidate candidate =
@@ -102,7 +102,7 @@ public class SMGJoinSubSMGsForAbstractionTest {
     SMGSingleLinkedList resultSll = (SMGSingleLinkedList) joinResult;
     Assert.assertEquals(2, resultSll.getMinimumLength());
 
-    CLangSMG resultSMG = join.getResultSMG();
+    UnmodifiableCLangSMG resultSMG = join.getResultSMG();
     Set<SMGObject> resultHeapObjects = resultSMG.getHeapObjects();
     Assert.assertTrue(resultHeapObjects.contains(joinResult));
     Assert.assertTrue(resultHeapObjects.contains(firstObject));

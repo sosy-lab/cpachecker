@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.llvm_j.LLVMException;
 import org.sosy_lab.llvm_j.TypeRef;
 import org.sosy_lab.llvm_j.TypeRef.TypeKind;
 
@@ -69,11 +68,11 @@ public class LlvmTypeConverter {
     logger = pLogger;
   }
 
-  public CType getCType(final TypeRef pLlvmType) throws LLVMException {
+  public CType getCType(final TypeRef pLlvmType) {
     return getCType(pLlvmType, true);
   }
 
-  public CType getCType(final TypeRef pLlvmType, final boolean pIsSigned) throws LLVMException {
+  public CType getCType(final TypeRef pLlvmType, final boolean pIsSigned) {
     final boolean isConst = false;
     final boolean isVolatile = false;
     TypeKind typeKind = pLlvmType.getTypeKind();
@@ -135,7 +134,7 @@ public class LlvmTypeConverter {
     }
   }
 
-  private CType createStructType(final TypeRef pStructType) throws LLVMException {
+  private CType createStructType(final TypeRef pStructType) {
     final boolean isConst = false;
     final boolean isVolatile = false;
 
@@ -176,7 +175,7 @@ public class LlvmTypeConverter {
     return cStructType;
   }
 
-  private String getStructName(TypeRef pStructType) throws LLVMException {
+  private String getStructName(TypeRef pStructType) {
     if (pStructType.isStructNamed()) {
       return pStructType.getStructName();
 
@@ -194,7 +193,7 @@ public class LlvmTypeConverter {
     return pStructName + PREFIX_STRUCT_MEMBER + pI;
   }
 
-  private CType getFunctionType(TypeRef pFuncType) throws LLVMException {
+  private CType getFunctionType(TypeRef pFuncType) {
     CType returnType = getCType(pFuncType.getReturnType());
 
     int paramNumber = pFuncType.countParamTypes();

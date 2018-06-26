@@ -30,12 +30,13 @@ import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
@@ -57,11 +58,11 @@ public class SMGIsLessOrEqual {
   private SMGIsLessOrEqual() {} // Utility class.
 
   /**
-   *
    * Checks, if smg2 is less or equal to smg1.
+   *
    * @return true, iff smg1 is less or equal to smg2, false otherwise.
    */
-  public static boolean isLessOrEqual(CLangSMG pSMG1, CLangSMG pSMG2) {
+  public static boolean isLessOrEqual(UnmodifiableCLangSMG pSMG1, UnmodifiableCLangSMG pSMG2) {
 
     TimerWrapper timer = isLEQTimer.getNewTimer();
     timer.start();
@@ -119,7 +120,8 @@ public class SMGIsLessOrEqual {
   }
 
   /** returns whether globals variables are "maybe LEQ" or "definitely not LEQ". */
-  private static boolean maybeGlobalsLessOrEqual(CLangSMG pSMG1, CLangSMG pSMG2) {
+  private static boolean maybeGlobalsLessOrEqual(
+      UnmodifiableCLangSMG pSMG1, UnmodifiableCLangSMG pSMG2) {
     Map<String, SMGRegion> globals_in_smg1 = pSMG1.getGlobalObjects();
     Map<String, SMGRegion> globals_in_smg2 = pSMG2.getGlobalObjects();
 
@@ -148,7 +150,8 @@ public class SMGIsLessOrEqual {
   }
 
   /** returns whether variables on the stack are "maybe LEQ" or "definitely not LEQ". */
-  private static boolean maybeStackLessOrEqual(CLangSMG pSMG1, CLangSMG pSMG2) {
+  private static boolean maybeStackLessOrEqual(
+      UnmodifiableCLangSMG pSMG1, UnmodifiableCLangSMG pSMG2) {
     Iterator<CLangStackFrame> smg1stackIterator = pSMG1.getStackFrames().iterator();
     Iterator<CLangStackFrame> smg2stackIterator = pSMG2.getStackFrames().iterator();
 
@@ -194,7 +197,8 @@ public class SMGIsLessOrEqual {
   }
 
   /** returns whether two heaps are "maybe LEQ" or "definitely not LEQ". */
-  private static boolean maybeHeapLessOrEqual(CLangSMG pSMG1, CLangSMG pSMG2) {
+  private static boolean maybeHeapLessOrEqual(
+      UnmodifiableCLangSMG pSMG1, UnmodifiableCLangSMG pSMG2) {
     Set<SMGObject> heap_in_smg1 = pSMG1.getHeapObjects();
     Set<SMGObject> heap_in_smg2 = pSMG2.getHeapObjects();
 
@@ -220,7 +224,10 @@ public class SMGIsLessOrEqual {
 
   /** check whether an object is LEQ than another object. */
   private static boolean isLessOrEqualFields(
-      CLangSMG pSMG1, CLangSMG pSMG2, SMGObject pSMGObject1, SMGObject pSMGObject2) {
+      UnmodifiableCLangSMG pSMG1,
+      UnmodifiableCLangSMG pSMG2,
+      SMGObject pSMGObject1,
+      SMGObject pSMGObject2) {
 
     if (pSMGObject1.getSize() != pSMGObject2.getSize()) {
       throw new IllegalArgumentException("SMGJoinFields object arguments need to have identical size");
@@ -243,7 +250,7 @@ public class SMGIsLessOrEqual {
         return false;
       }
 
-      Integer value = edge1.getValue();
+      SMGValue value = edge1.getValue();
 
       if (pSMG1.isPointer(value)) {
         if (!pSMG2.isPointer(value)) {

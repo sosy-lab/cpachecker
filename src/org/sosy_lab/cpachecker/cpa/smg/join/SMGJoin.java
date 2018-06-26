@@ -29,8 +29,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
@@ -42,11 +43,14 @@ final public class SMGJoin {
   private boolean defined = false;
   private SMGJoinStatus status = SMGJoinStatus.EQUAL;
   private final CLangSMG smg;
-  SMGLevelMapping levelMap = SMGLevelMapping.createDefaultLevelMap();
+  final SMGLevelMapping levelMap = SMGLevelMapping.createDefaultLevelMap();
 
-  public SMGJoin(CLangSMG pSMG1, CLangSMG pSMG2, SMGState pStateOfSmg1, SMGState pStateOfSmg2) throws SMGInconsistentException {
-    CLangSMG opSMG1 = new CLangSMG(pSMG1);
-    CLangSMG opSMG2 = new CLangSMG(pSMG2);
+  public SMGJoin(
+      UnmodifiableCLangSMG opSMG1,
+      UnmodifiableCLangSMG opSMG2,
+      UnmodifiableSMGState pStateOfSmg1,
+      UnmodifiableSMGState pStateOfSmg2)
+      throws SMGInconsistentException {
     smg = new CLangSMG(opSMG1.getMachineModel());
 
     SMGNodeMapping mapping1 = new SMGNodeMapping();
@@ -66,10 +70,9 @@ final public class SMGJoin {
         // the join. For now, we will treat this situation as unjoinable.
         return;
       }
-      SMGRegion finalObject = globalInSMG1;
-      smg.addGlobalObject(finalObject);
-      mapping1.map(globalInSMG1, finalObject);
-      mapping2.map(globalInSMG2, finalObject);
+      smg.addGlobalObject(globalInSMG1);
+      mapping1.map(globalInSMG1, globalInSMG1);
+      mapping2.map(globalInSMG2, globalInSMG1);
     }
 
     Iterator<CLangStackFrame> smg1stackIterator = opSMG1.getStackFrames().iterator();
@@ -89,10 +92,9 @@ final public class SMGJoin {
         }
         SMGRegion localInSMG1 = frameInSMG1.getVariable(localVar);
         SMGRegion localInSMG2 = frameInSMG2.getVariable(localVar);
-        SMGRegion finalObject = localInSMG1;
-        smg.addStackObject(finalObject);
-        mapping1.map(localInSMG1, finalObject);
-        mapping2.map(localInSMG2, finalObject);
+        smg.addStackObject(localInSMG1);
+        mapping1.map(localInSMG1, localInSMG1);
+        mapping2.map(localInSMG2, localInSMG1);
       }
     }
 

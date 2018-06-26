@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.LLVMParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.llvm_j.Context;
 import org.sosy_lab.llvm_j.LLVMException;
 import org.sosy_lab.llvm_j.Module;
 
@@ -61,34 +62,14 @@ public class LlvmParser implements Parser {
 
   @Override
   public ParseResult parseFile(final String pFilename) throws ParserException {
-    Module llvmModule = null;
-    try {
+    addLlvmLookupDirs();
+    try (Context llvmContext = Context.create();
+        Module llvmModule = Module.parseIR(pFilename, llvmContext)) {
       parseTimer.start();
-      try {
-        addLlvmLookupDirs();
-        llvmModule = Module.parseIR(pFilename);
+      return buildCfa(llvmModule, pFilename);
 
-      } catch (LLVMException pE) {
-        throw new LLVMParserException(
-            "Input program has invalid bitcode signature or is no bitcode "
-                + "file");
-
-      } finally {
-        parseTimer.stop();
-      }
-
-      // TODO: Handle/show errors in parser
-
-      try {
-        return buildCfa(llvmModule, pFilename);
-
-      } catch (LLVMException pE) {
-        throw new LLVMParserException(pE);
-      }
-    } finally {
-      if (llvmModule != null) {
-        llvmModule.dispose();
-      }
+    } catch (LLVMException pE) {
+      throw new LLVMParserException(pE);
     }
   }
 

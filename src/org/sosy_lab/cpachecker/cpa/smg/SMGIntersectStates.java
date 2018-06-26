@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2016  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,11 +26,13 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Sets;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -42,36 +44,56 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGNodeMapping;
 
 public final class SMGIntersectStates {
 
-  private SMGIntersectStates() {}
+  /** constant data from input */
+  private final UnmodifiableSMGState smgState1;
+  private final UnmodifiableSMGState smgState2;
+  private final UnmodifiableCLangSMG heap1;
+  private final UnmodifiableCLangSMG heap2;
 
-  public static SMGIntersectionResult intersect(SMGState pSmgState1, CLangSMG pHeap1, SMGState pSmgState2,
-      CLangSMG pHeap2, BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues2) {
+  /** working data, will be modified when calling {@link #intersect}. */
+  private final SMGNodeMapping mapping1 = new SMGNodeMapping();
+  private final SMGNodeMapping mapping2 = new SMGNodeMapping();
+  private final Set<SMGEdgeHasValue> singleHveEdge1 = new HashSet<>();
+  private final Set<SMGEdgeHasValue> singleHveEdge2 = new HashSet<>();
 
-    CLangSMG destSMG = new CLangSMG(pHeap1.getMachineModel());
+  /** the destination SMG will be build up when calling {@link #intersect}. */
+  private final CLangSMG destSMG;
 
-    SMGNodeMapping mapping1 = new SMGNodeMapping();
-    SMGNodeMapping mapping2 = new SMGNodeMapping();
+  /** the destination values will be build up when calling {@link #intersect}. */
+  private final BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> destExplicitValues =
+      HashBiMap.create();
+
+  /** initialize the intersection-process. */
+  public SMGIntersectStates(UnmodifiableSMGState pSmgState1, UnmodifiableSMGState pSmgState2) {
+    smgState1 = pSmgState1;
+    smgState2 = pSmgState2;
+    heap1 = pSmgState1.getHeap();
+    heap2 = pSmgState2.getHeap();
+
     mapping1.map(SMGNullObject.INSTANCE, SMGNullObject.INSTANCE);
     mapping2.map(SMGNullObject.INSTANCE, SMGNullObject.INSTANCE);
 
-    Map<String, SMGRegion> globals_in_smg1 = pHeap1.getGlobalObjects();
-    Map<String, SMGRegion> globals_in_smg2 = pHeap2.getGlobalObjects();
+    destSMG = new CLangSMG(heap1.getMachineModel());
+  }
 
-    Set<SMGEdgeHasValue> singleHveEdge1 = new HashSet<>();
-    Set<SMGEdgeHasValue> singleHveEdge2 = new HashSet<>();
+  /**
+   * compute intersection of two SMGs.
+   *
+   * <p>Please call this method only once. Repeated calls will return the same result.
+   */
+  public SMGIntersectionResult intersect() {
+    Map<String, SMGRegion> globals_in_smg1 = heap1.getGlobalObjects();
+    Map<String, SMGRegion> globals_in_smg2 = heap2.getGlobalObjects();
 
-    BiMap<SMGKnownSymValue, SMGKnownExpValue> destExplicitValues = HashBiMap.create();
 
-    Set<String> globalVars = new HashSet<>();
-    globalVars.addAll(globals_in_smg1.keySet());
-    globalVars.addAll(globals_in_smg2.keySet());
+    Set<String> globalVars = Sets.union(globals_in_smg1.keySet(), globals_in_smg2.keySet());
 
     for (String globalVar : globalVars) {
       SMGRegion globalInSMG1 = globals_in_smg1.get(globalVar);
@@ -83,8 +105,8 @@ public final class SMGIntersectStates {
       mapping2.map(globalInSMG2, finalObject);
     }
 
-    Iterator<CLangStackFrame> smg1stackIterator = pHeap1.getStackFrames().iterator();
-    Iterator<CLangStackFrame> smg2stackIterator = pHeap2.getStackFrames().iterator();
+    Iterator<CLangStackFrame> smg1stackIterator = heap1.getStackFrames().iterator();
+    Iterator<CLangStackFrame> smg2stackIterator = heap2.getStackFrames().iterator();
 
     while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ) {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
@@ -92,9 +114,8 @@ public final class SMGIntersectStates {
 
       destSMG.addStackFrame(frameInSMG1.getFunctionDeclaration());
 
-      Set<String> localVars = new HashSet<>();
-      localVars.addAll(frameInSMG1.getVariables().keySet());
-      localVars.addAll(frameInSMG2.getVariables().keySet());
+      Set<String> localVars =
+          Sets.union(frameInSMG1.getVariables().keySet(), frameInSMG2.getVariables().keySet());
 
       for (String localVar : localVars) {
         SMGRegion localInSMG1 = frameInSMG1.getVariable(localVar);
@@ -122,32 +143,29 @@ public final class SMGIntersectStates {
       SMGRegion globalInSMG2 = globals_in_smg2.get(globalVar);
 
       SMGObject finalObject = mapping1.get(globalInSMG1);
-      boolean defined = intersectPairFields(pHeap1, pHeap2, globalInSMG1, globalInSMG2, finalObject, mapping1, mapping2, destSMG, singleHveEdge1, singleHveEdge2, pExplicitValues, pExplicitValues2, destExplicitValues);
+      boolean defined = intersectPairFields(globalInSMG1, globalInSMG2, finalObject);
 
       if (!defined) {
         return SMGIntersectionResult.getNotDefinedInstance();
       }
     }
 
-    smg1stackIterator = pHeap1.getStackFrames().iterator();
-    smg2stackIterator = pHeap2.getStackFrames().iterator();
+    smg1stackIterator = heap1.getStackFrames().iterator();
+    smg2stackIterator = heap2.getStackFrames().iterator();
 
     while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ) {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
       CLangStackFrame frameInSMG2 = smg2stackIterator.next();
 
-      Set<String> localVars = new HashSet<>();
-      localVars.addAll(frameInSMG1.getVariables().keySet());
-      localVars.addAll(frameInSMG2.getVariables().keySet());
+      Set<String> localVars =
+          Sets.union(frameInSMG1.getVariables().keySet(), frameInSMG2.getVariables().keySet());
 
       for (String localVar : localVars) {
         SMGRegion localInSMG1 = frameInSMG1.getVariable(localVar);
         SMGRegion localInSMG2 = frameInSMG2.getVariable(localVar);
         SMGObject finalObject = mapping1.get(localInSMG1);
 
-        boolean defined = intersectPairFields(pHeap1, pHeap2, localInSMG1, localInSMG2, finalObject,
-            mapping1, mapping2, destSMG, singleHveEdge1, singleHveEdge2, pExplicitValues,
-            pExplicitValues2, destExplicitValues);
+        boolean defined = intersectPairFields(localInSMG1, localInSMG2, finalObject);
 
         if (!defined) {
           return SMGIntersectionResult.getNotDefinedInstance();
@@ -163,9 +181,7 @@ public final class SMGIntersectStates {
 
       SMGObject finalObject = destSMG.getFunctionReturnObject();
 
-      boolean defined = intersectPairFields(pHeap1, pHeap2, returnSMG1, returnSMG2, finalObject,
-          mapping1, mapping2, destSMG, singleHveEdge1, singleHveEdge2, pExplicitValues,
-          pExplicitValues2, destExplicitValues);
+      boolean defined = intersectPairFields(returnSMG1, returnSMG2, finalObject);
 
       if (!defined) {
         return SMGIntersectionResult.getNotDefinedInstance();
@@ -173,35 +189,39 @@ public final class SMGIntersectStates {
     }
 
     for(SMGEdgeHasValue hve1 : singleHveEdge1) {
-      intersectHveEdgeWithTop(hve1, pHeap1, destSMG, pExplicitValues, destExplicitValues, mapping1);
+      intersectHveEdgeWithTop(hve1, heap1, smgState1, mapping1);
     }
 
     for(SMGEdgeHasValue hve2 : singleHveEdge2) {
-      intersectHveEdgeWithTop(hve2, pHeap2, destSMG, pExplicitValues2, destExplicitValues, mapping2);
+      intersectHveEdgeWithTop(hve2, heap2, smgState2, mapping2);
     }
 
-    SMGState pIntersectResult = new SMGState(pSmgState1, destSMG, destExplicitValues);
+    UnmodifiableSMGState pIntersectResult = smgState1.copyWith(destSMG, destExplicitValues);
 
-    return new SMGIntersectionResult(pSmgState1, pSmgState2, pIntersectResult, true);
+    return new SMGIntersectionResult(smgState1, smgState2, pIntersectResult, true);
   }
 
-  private static void intersectHveEdgeWithTop(SMGEdgeHasValue pHve, CLangSMG pSmg,
-      CLangSMG pDestSMG, BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pDestExplicitValues, SMGNodeMapping pMapping) {
+  private void intersectHveEdgeWithTop(
+      SMGEdgeHasValue pHve,
+      UnmodifiableCLangSMG pSmg,
+      UnmodifiableSMGState pSmgState,
+      SMGNodeMapping pMapping) {
 
     SMGObject destObject = pMapping.get(pHve.getObject());
-    int value = pHve.getValue();
+    SMGValue value = pHve.getValue();
 
-    intersectValueWithTop(value, pSmg, pDestSMG, pExplicitValues, pDestExplicitValues, pMapping);
+    intersectValueWithTop(value, pSmg, pSmgState, pMapping);
 
-    int destValue = pMapping.get(value);
+    SMGValue destValue = pMapping.get(value);
     SMGEdgeHasValue destHve = new SMGEdgeHasValue(pHve.getType(), pHve.getOffset(), destObject, destValue);
-    pDestSMG.addHasValueEdge(destHve);
+    destSMG.addHasValueEdge(destHve);
   }
 
-  private static void intersectValueWithTop(int pValue, CLangSMG pSmg, CLangSMG pDestSMG,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pDestExplicitValues, SMGNodeMapping pMapping) {
+  private void intersectValueWithTop(
+      SMGValue pValue,
+      UnmodifiableCLangSMG pSmg,
+      UnmodifiableSMGState pSmgState,
+      SMGNodeMapping pMapping) {
 
     if(pMapping.containsKey(pValue)) {
       return;
@@ -209,58 +229,48 @@ public final class SMGIntersectStates {
 
     pMapping.map(pValue, pValue);
 
-    SMGKnownSymValue symVal = SMGKnownSymValue.valueOf(pValue);
-    if (pExplicitValues.containsKey(symVal)) {
-      SMGKnownExpValue pExpVal = pExplicitValues.get(symVal);
-      pDestExplicitValues.put(symVal, pExpVal);
+    SMGKnownSymbolicValue symVal = (SMGKnownSymbolicValue) pValue;
+    if (pSmgState.isExplicit(symVal)) {
+      destExplicitValues.put(symVal, (SMGKnownExpValue) pSmgState.getExplicit(symVal));
     }
 
     if (pSmg.isPointer(pValue)) {
-      SMGEdgePointsTo pte = pSmg.getPointer(pValue);
-      intersectPointerWithTop(pte, pSmg, pDestSMG, pExplicitValues, pDestExplicitValues,
-          pMapping);
+      intersectPointerWithTop(pSmg.getPointer(pValue), pSmg, pSmgState, pMapping);
     }
   }
 
-  private static void intersectPointerWithTop(SMGEdgePointsTo pPte, CLangSMG pSmg,
-      CLangSMG pDestSMG,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pDestExplicitValues, SMGNodeMapping pMapping) {
-
-    SMGObject object = pPte.getObject();
-
-    intersectObjectWithTop(object, pSmg, pDestSMG, pExplicitValues, pDestExplicitValues, pMapping);
-
-    pDestSMG.addPointsToEdge(pPte);
-
+  private void intersectPointerWithTop(
+      SMGEdgePointsTo pPte,
+      UnmodifiableCLangSMG pSmg,
+      UnmodifiableSMGState pSmgState,
+      SMGNodeMapping pMapping) {
+    intersectObjectWithTop(pPte.getObject(), pSmg, pSmgState, pMapping);
+    destSMG.addPointsToEdge(pPte);
   }
 
-  private static void intersectObjectWithTop(SMGObject pObject, CLangSMG pSmg, CLangSMG pDestSMG,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pDestExplicitValues, SMGNodeMapping pMapping) {
+  private void intersectObjectWithTop(
+      SMGObject pObject,
+      UnmodifiableCLangSMG pSmg,
+      UnmodifiableSMGState pSmgState,
+      SMGNodeMapping pMapping) {
 
     if(pMapping.containsKey(pObject)) {
       return;
     }
 
-    pDestSMG.addHeapObject(pObject);
+    destSMG.addHeapObject(pObject);
     pMapping.map(pObject, pObject);
 
     for (SMGEdgeHasValue hve : pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject))) {
-      intersectHveEdgeWithTop(hve, pSmg, pDestSMG, pExplicitValues, pDestExplicitValues, pMapping);
+      intersectHveEdgeWithTop(hve, pSmg, pSmgState, pMapping);
     }
   }
 
-  private static boolean intersectPairFields(CLangSMG pSmg1, CLangSMG pSmg2, SMGObject pObject1,
-      SMGObject pObject2, SMGObject pDestObject, SMGNodeMapping pMapping1,
-      SMGNodeMapping pMapping2, CLangSMG pDestSMG, Set<SMGEdgeHasValue> pSingleHveEdge1,
-      Set<SMGEdgeHasValue> pSingleHveEdge2,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues2,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pDestExplicitValues) {
+  private boolean intersectPairFields(
+      SMGObject pObject1, SMGObject pObject2, SMGObject pDestObject) {
 
-    Set<SMGEdgeHasValue> hves1 = pSmg1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject1));
-    Set<SMGEdgeHasValue> hves2 = pSmg2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject2));
+    Set<SMGEdgeHasValue> hves1 = heap1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject1));
+    Set<SMGEdgeHasValue> hves2 = heap2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject2));
 
     Map<Long, SMGEdgeHasValue> offsetToHve1Map =
         FluentIterable.from(hves1).uniqueIndex(SMGEdgeHasValue::getOffset);
@@ -268,75 +278,60 @@ public final class SMGIntersectStates {
     Map<Long, SMGEdgeHasValue> offsetToHve2Map =
         FluentIterable.from(hves2).uniqueIndex(SMGEdgeHasValue::getOffset);
 
-    Set<Long> offsetSet = new HashSet<>(offsetToHve1Map.size() + offsetToHve2Map.size());
-    offsetSet.addAll(offsetToHve1Map.keySet());
-    offsetSet.addAll(offsetToHve2Map.keySet());
+    Set<Long> offsetSet = Sets.union(offsetToHve1Map.keySet(), offsetToHve2Map.keySet());
 
     for (long offset : offsetSet) {
       if (offsetToHve1Map.containsKey(offset)) {
         if (offsetToHve2Map.containsKey(offset)) {
           SMGEdgeHasValue hve1 = offsetToHve1Map.get(offset);
           SMGEdgeHasValue hve2 = offsetToHve2Map.get(offset);
-          boolean defined = intersectPairHveEdges(hve1, hve2, pSmg1, pSmg2, pDestSMG, pDestObject,
-              pMapping1, pMapping2, pSingleHveEdge1, pSingleHveEdge2, pExplicitValues,
-              pExplicitValues2, pDestExplicitValues);
+          boolean defined = intersectPairHveEdges(hve1, hve2, pDestObject);
 
           if (!defined) {
             return false;
           }
         } else {
           SMGEdgeHasValue hve1 = offsetToHve1Map.get(offset);
-          pSingleHveEdge1.add(hve1);
+          singleHveEdge1.add(hve1);
         }
       } else {
         SMGEdgeHasValue hve2 = offsetToHve2Map.get(offset);
-        pSingleHveEdge2.add(hve2);
+        singleHveEdge2.add(hve2);
       }
     }
 
     return true;
   }
 
-  private static boolean intersectPairHveEdges(SMGEdgeHasValue pHve1, SMGEdgeHasValue pHve2,
-      CLangSMG pSmg1, CLangSMG pSmg2, CLangSMG pDestSMG, SMGObject pDestObject,
-      SMGNodeMapping pMapping1, SMGNodeMapping pMapping2, Set<SMGEdgeHasValue> pSingleHveEdge1,
-      Set<SMGEdgeHasValue> pSingleHveEdge2,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues2,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pDestExplicitValues) {
+  private boolean intersectPairHveEdges(
+      SMGEdgeHasValue pHve1, SMGEdgeHasValue pHve2, SMGObject pDestObject) {
 
-    int value1 = pHve1.getValue();
-    int value2 = pHve2.getValue();
+    SMGValue value1 = pHve1.getValue();
+    SMGValue value2 = pHve2.getValue();
 
-    boolean defined = intersectValues(value1, value2, pSmg1, pSmg2, pDestSMG, pMapping1, pMapping2, pSingleHveEdge1, pSingleHveEdge2, pExplicitValues, pExplicitValues2, pDestExplicitValues);
+    boolean defined = intersectValues(value1, value2);
 
     if (!defined) {
       return false;
     }
 
-    int destValue = pMapping1.get(value1);
+    SMGValue destValue = mapping1.get(value1);
 
     SMGEdgeHasValue destHveEdge =
         new SMGEdgeHasValue(pHve1.getType(), pHve1.getOffset(), pDestObject, destValue);
-    pDestSMG.addHasValueEdge(destHveEdge);
+    destSMG.addHasValueEdge(destHveEdge);
 
     return true;
   }
 
-  private static boolean intersectValues(int pValue1, int pValue2, CLangSMG pSmg1, CLangSMG pSmg2,
-      CLangSMG pDestSMG, SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-      Set<SMGEdgeHasValue> pSingleHveEdge1, Set<SMGEdgeHasValue> pSingleHveEdge2,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues2,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pDestExplicitValues) {
+  private boolean intersectValues(SMGValue pValue1, SMGValue pValue2) {
 
-    boolean containsValue1 = pMapping1.containsKey(pValue1);
-    boolean containsValue2 = pMapping2.containsKey(pValue2);
+    boolean containsValue1 = mapping1.containsKey(pValue1);
+    boolean containsValue2 = mapping2.containsKey(pValue2);
 
     /*Already intersected*/
-    if (containsValue1
-        && containsValue2) {
-      return pMapping1.get(pValue1).equals(pMapping2.get(pValue2));
+    if (containsValue1 && containsValue2) {
+      return mapping1.get(pValue1).equals(mapping2.get(pValue2));
     }
 
     /*Intesect is null due to different values.*/
@@ -344,69 +339,62 @@ public final class SMGIntersectStates {
       return false;
     }
 
-    int destValue = pValue1;
+    SMGValue destValue = pValue1;
 
-    pMapping1.map(pValue1, destValue);
-    pMapping2.map(pValue2, destValue);
-    pDestSMG.addValue(destValue);
+    mapping1.map(pValue1, destValue);
+    mapping2.map(pValue2, destValue);
+    destSMG.addValue(destValue);
 
-    boolean isPointer1 = pSmg1.isPointer(pValue1);
-    boolean isPointer2 = pSmg2.isPointer(pValue2);
+    boolean isPointer1 = heap1.isPointer(pValue1);
+    boolean isPointer2 = heap2.isPointer(pValue2);
 
     if ((isPointer1 && !isPointer2) || (!isPointer1 && isPointer2)) {
       return false;
     }
 
     if (isPointer1 && isPointer2) {
-      SMGEdgePointsTo pte1 = pSmg1.getPointer(pValue1);
-      SMGEdgePointsTo pte2 = pSmg2.getPointer(pValue2);
+      SMGEdgePointsTo pte1 = heap1.getPointer(pValue1);
+      SMGEdgePointsTo pte2 = heap2.getPointer(pValue2);
 
-      boolean defined = intersectPairPointsToEdges(pte1, pte2, destValue, pSmg1, pSmg2, pDestSMG, pMapping1,
-          pMapping2, pSingleHveEdge1, pSingleHveEdge2, pExplicitValues, pExplicitValues2,
-          pDestExplicitValues);
+      boolean defined = intersectPairPointsToEdges(pte1, pte2, destValue);
 
       if (!defined) {
         return false;
       }
     }
 
-    SMGKnownSymValue symVal1 = SMGKnownSymValue.valueOf(pValue1);
-    SMGKnownSymValue symVal2 = SMGKnownSymValue.valueOf(pValue2);
-    SMGKnownSymValue symDestVal = symVal1;
+    SMGKnownSymbolicValue symVal1 = (SMGKnownSymbolicValue) pValue1;
+    SMGKnownSymbolicValue symVal2 = (SMGKnownSymbolicValue) pValue2;
+    SMGKnownSymbolicValue symDestVal = symVal1;
 
-    SMGExplicitValue expVal1 = SMGUnknownValue.getInstance();
-    SMGExplicitValue expVal2 = SMGUnknownValue.getInstance();
+    SMGExplicitValue expVal1 = SMGUnknownValue.INSTANCE;
+    SMGExplicitValue expVal2 = SMGUnknownValue.INSTANCE;
 
-    if (pExplicitValues.containsKey(symVal1)) {
-      expVal1 = pExplicitValues.get(symVal1);
+    if (smgState1.isExplicit(symVal1)) {
+      expVal1 = smgState1.getExplicit(symVal1);
     }
 
-    if (pExplicitValues.containsKey(symVal2)) {
-      expVal2 = pExplicitValues.get(symVal2);
+    if (smgState1.isExplicit(symVal2)) {
+      expVal2 = smgState1.getExplicit(symVal2);
     }
 
     if (!expVal1.isUnknown() && !expVal2.isUnknown()) {
       if (expVal1.equals(expVal2)) {
-        pDestExplicitValues.put(symDestVal, (SMGKnownExpValue) expVal1);
+        destExplicitValues.put(symDestVal, (SMGKnownExpValue) expVal1);
       } else {
         return false;
       }
     } else if (!expVal1.isUnknown()) {
-      pDestExplicitValues.put(symDestVal, (SMGKnownExpValue) expVal1);
+      destExplicitValues.put(symDestVal, (SMGKnownExpValue) expVal1);
     } else if (!expVal2.isUnknown()) {
-      pDestExplicitValues.put(symDestVal, (SMGKnownExpValue) expVal2);
+      destExplicitValues.put(symDestVal, (SMGKnownExpValue) expVal2);
     }
 
     return true;
   }
 
-  private static boolean intersectPairPointsToEdges(SMGEdgePointsTo pPte1, SMGEdgePointsTo pPte2,
-      int destValue, CLangSMG pSmg1, CLangSMG pSmg2,
-      CLangSMG pDestSMG, SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-      Set<SMGEdgeHasValue> pSingleHveEdge1, Set<SMGEdgeHasValue> pSingleHveEdge2,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues2,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pDestExplicitValues) {
+  private boolean intersectPairPointsToEdges(
+      SMGEdgePointsTo pPte1, SMGEdgePointsTo pPte2, SMGValue destValue) {
 
     long offset1 = pPte1.getOffset();
     long offset2 = pPte2.getOffset();
@@ -426,35 +414,28 @@ public final class SMGIntersectStates {
     SMGObject obj1 = pPte1.getObject();
     SMGObject obj2 = pPte2.getObject();
 
-    boolean defined = intersectObjectPair(obj1, obj2, pSmg1, pSmg2, pDestSMG, pMapping1, pMapping2, pSingleHveEdge1, pSingleHveEdge2, pExplicitValues, pExplicitValues2, pDestExplicitValues);
+    boolean defined = intersectObjectPair(obj1, obj2);
 
-    if(!defined) {
+    if (!defined) {
       return false;
     }
 
-    SMGObject destObject = pMapping1.get(obj1);
+    SMGObject destObject = mapping1.get(obj1);
 
     SMGEdgePointsTo destPte = new SMGEdgePointsTo(destValue, destObject, offset1, tg1);
-    pDestSMG.addPointsToEdge(destPte);
+    destSMG.addPointsToEdge(destPte);
 
     return true;
   }
 
-  private static boolean intersectObjectPair(SMGObject pObj1, SMGObject pObj2,
-      CLangSMG pSmg1, CLangSMG pSmg2,
-      CLangSMG pDestSMG, SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-      Set<SMGEdgeHasValue> pSingleHveEdge1, Set<SMGEdgeHasValue> pSingleHveEdge2,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues2,
-      BiMap<SMGKnownSymValue, SMGKnownExpValue> pDestExplicitValues) {
+  private boolean intersectObjectPair(SMGObject pObj1, SMGObject pObj2) {
 
-    boolean containsObject1 = pMapping1.containsKey(pObj1);
-    boolean containsObject2 = pMapping2.containsKey(pObj2);
+    boolean containsObject1 = mapping1.containsKey(pObj1);
+    boolean containsObject2 = mapping2.containsKey(pObj2);
 
     /*Already intersected*/
-    if (containsObject1
-        && containsObject2) {
-      return pMapping1.get(pObj1).equals(pMapping2.get(pObj2));
+    if (containsObject1 && containsObject2) {
+      return mapping1.get(pObj1).equals(mapping2.get(pObj2));
     }
 
     /*Intesect is null due to different pointer.*/
@@ -470,16 +451,13 @@ public final class SMGIntersectStates {
 
     SMGObject destObject = getConcretestObject(pObj1, pObj2);
 
-    pMapping1.map(pObj1, destObject);
-    pMapping2.map(pObj2, destObject);
+    mapping1.map(pObj1, destObject);
+    mapping2.map(pObj2, destObject);
 
     /*Global and stack objects already mapped */
-    pDestSMG.addHeapObject(destObject);
+    destSMG.addHeapObject(destObject);
 
-    boolean defined =
-        intersectPairFields(pSmg1, pSmg2, pObj1, pObj2, destObject, pMapping1, pMapping2, pDestSMG,
-            pSingleHveEdge1, pSingleHveEdge2, pExplicitValues, pExplicitValues2,
-            pDestExplicitValues);
+    boolean defined = intersectPairFields(pObj1, pObj2, destObject);
 
     return defined;
   }
@@ -572,12 +550,15 @@ public final class SMGIntersectStates {
 
   public static class SMGIntersectionResult {
     private static final SMGIntersectionResult NOT_DEFINED = new SMGIntersectionResult(null, null, null, false);
-    private final SMGState smg1;
-    private final SMGState smg2;
-    private final SMGState combinationResult;
+    private final UnmodifiableSMGState smg1;
+    private final UnmodifiableSMGState smg2;
+    private final UnmodifiableSMGState combinationResult;
     private final boolean defined;
 
-    public SMGIntersectionResult(SMGState pSmg1, SMGState pSmg2, SMGState pJoinResult,
+    public SMGIntersectionResult(
+        UnmodifiableSMGState pSmg1,
+        UnmodifiableSMGState pSmg2,
+        UnmodifiableSMGState pJoinResult,
         boolean pDefined) {
       super();
       smg1 = pSmg1;
@@ -586,11 +567,11 @@ public final class SMGIntersectStates {
       defined = pDefined;
     }
 
-    public SMGState getSmg1() {
+    public UnmodifiableSMGState getSmg1() {
       return smg1;
     }
 
-    public SMGState getSmg2() {
+    public UnmodifiableSMGState getSmg2() {
       return smg2;
     }
 
@@ -598,7 +579,7 @@ public final class SMGIntersectStates {
       return defined;
     }
 
-    public SMGState getCombinationResult() {
+    public UnmodifiableSMGState getCombinationResult() {
       return combinationResult;
     }
 

@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -52,14 +52,13 @@ class ForceExplicitValueVisitor extends ExplicitValueVisitor {
 
   public ForceExplicitValueVisitor(
       SMGRightHandSideEvaluator pSmgRightHandSideEvaluator,
-      SMGExpressionEvaluator pSmgExpressionEvaluator,
       SMGState pSmgState,
       String pFunctionName,
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates pLogger,
       CFAEdge pEdge,
       SMGOptions pOptions) {
-    super(pSmgExpressionEvaluator, pSmgState, pFunctionName, pMachineModel, pLogger, pEdge);
+    super(pSmgRightHandSideEvaluator, pSmgState, pFunctionName, pMachineModel, pLogger, pEdge);
     smgRightHandSideEvaluator = pSmgRightHandSideEvaluator;
     guessSize = SMGKnownExpValue.valueOf(pOptions.getGuessSize());
   }
@@ -126,7 +125,7 @@ class ForceExplicitValueVisitor extends ExplicitValueVisitor {
       return UnknownValue.getInstance();
     }
 
-    getNewState().putExplicit((SMGKnownSymValue) value, guessSize);
+    getNewState().putExplicit((SMGKnownSymbolicValue) value, guessSize);
 
     return new NumericValue(guessSize.getValue());
   }

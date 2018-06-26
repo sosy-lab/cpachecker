@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 
 public interface SMGAbstractionBlock {
 
-  boolean isBlocked(SMGAbstractionCandidate candidate, CLangSMG smg);
+  boolean isBlocked(SMGAbstractionCandidate candidate, UnmodifiableCLangSMG smg);
 }

@@ -27,46 +27,45 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Predicate;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 import org.sosy_lab.cpachecker.util.Pair;
 
-public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
-
-  private final int seqLengthSubGraphEqualityThreshold;
-  private final int seqLengthSubGraphEntailmentThreshold;
-  private final int seqLengthSubGraphIncomparabilityThreshold;
+public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
   public SMGDoublyLinkedListFinder() {
-    seqLengthSubGraphEqualityThreshold = 2;
-    seqLengthSubGraphEntailmentThreshold = 2;
-    seqLengthSubGraphIncomparabilityThreshold = 3;
+    super();
   }
 
-  public SMGDoublyLinkedListFinder(int pSeqLengthSubGraphEqualityThreshold,
-      int pSeqLengthSubGraphEntailmentThreshold, int pSeqLengthSubGraphIncomparabilityThreshold) {
-    seqLengthSubGraphEqualityThreshold = pSeqLengthSubGraphEqualityThreshold;
-    seqLengthSubGraphEntailmentThreshold = pSeqLengthSubGraphEntailmentThreshold;
-    seqLengthSubGraphIncomparabilityThreshold = pSeqLengthSubGraphIncomparabilityThreshold;
+  public SMGDoublyLinkedListFinder(
+      int pSeqLengthEqualityThreshold,
+      int pSeqLengthEntailmentThreshold,
+      int pSeqLengthIncomparableThreshold) {
+    super(
+        pSeqLengthEqualityThreshold,
+        pSeqLengthEntailmentThreshold,
+        pSeqLengthIncomparableThreshold);
   }
 
   @Override
   public Set<SMGAbstractionCandidate> traverse(
-      CLangSMG pSmg, SMGState pSMGState, Set<SMGAbstractionBlock> pAbstractionBlocks)
+      CLangSMG pSmg, UnmodifiableSMGState pSMGState, Set<SMGAbstractionBlock> pAbstractionBlocks)
       throws SMGInconsistentException {
     SMGJoinDllProgress progress = new SMGJoinDllProgress();
 
@@ -79,12 +78,20 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
             .filter(SMGDoublyLinkedListCandidateSequenceBlock.class)
             .toSet();
 
-    return progress.getValidCandidates(seqLengthSubGraphEqualityThreshold,
-        seqLengthSubGraphEntailmentThreshold, seqLengthSubGraphIncomparabilityThreshold, pSmg, dllBlocks);
+    return progress.getValidCandidates(
+        seqLengthEqualityThreshold,
+        seqLengthEntailmentThreshold,
+        seqLengthIncomparableThreshold,
+        pSmg,
+        dllBlocks);
   }
 
-  private void startTraversal(SMGObject pObject, CLangSMG pSmg, SMGState pSmgState,
-      SMGJoinDllProgress pProgress) throws SMGInconsistentException {
+  private void startTraversal(
+      SMGObject pObject,
+      CLangSMG pSmg,
+      UnmodifiableSMGState pSmgState,
+      SMGJoinDllProgress pProgress)
+      throws SMGInconsistentException {
     if (pProgress.containsCandidateMap(pObject)) {
       // Processed already in continueTraversal
       return;
@@ -93,8 +100,12 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
     createCandidatesOfObject(pObject, pSmg, pSmgState, pProgress);
   }
 
-  private void createCandidatesOfObject(SMGObject pObject, CLangSMG pSmg, SMGState pSMGState,
-      SMGJoinDllProgress pProgress) throws SMGInconsistentException {
+  private void createCandidatesOfObject(
+      SMGObject pObject,
+      CLangSMG pSmg,
+      UnmodifiableSMGState pSMGState,
+      SMGJoinDllProgress pProgress)
+      throws SMGInconsistentException {
 
     if (!pSmg.isObjectValid(pObject)) {
       return;
@@ -114,7 +125,7 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
 
       long nfo = hveNext.getOffset();
       CType nfoType = hveNext.getType();
-      int nextPointer = hveNext.getValue();
+      SMGValue nextPointer = hveNext.getValue();
 
       if (!pSmg.isPointer(nextPointer)) {
         continue;
@@ -157,7 +168,7 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
 
         long pfo = hvePrev.getOffset();
         CType pfoType = hvePrev.getType();
-        int prevPointer = hvePrev.getValue();
+        SMGValue prevPointer = hvePrev.getValue();
 
         if(!(nfo < pfo)) {
           continue;
@@ -206,8 +217,12 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
     }
   }
 
-  private void continueTraversal(int pValue, SMGDoublyLinkedListCandidate pPrevCandidate,
-      CLangSMG pSmg, SMGState pSmgState, SMGJoinDllProgress pProgress)
+  private void continueTraversal(
+      SMGValue pValue,
+      SMGDoublyLinkedListCandidate pPrevCandidate,
+      CLangSMG pSmg,
+      UnmodifiableSMGState pSmgState,
+      SMGJoinDllProgress pProgress)
       throws SMGInconsistentException {
 
     // the next object is doubly linked with the prev object, which was checked in start traversal.
@@ -270,38 +285,39 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
     }
 
     // Second, find out if the subsmgs are mergeable
-    SMGJoinSubSMGsForAbstraction join = new SMGJoinSubSMGsForAbstraction(new CLangSMG(pSmg),
-        startObject, nextObject, candidate, pSmgState);
+    SMGJoinSubSMGsForAbstraction join =
+        new SMGJoinSubSMGsForAbstraction(
+            pSmg.copyOf(), startObject, nextObject, candidate, pSmgState);
 
     if(!join.isDefined()) {
       return;
     }
 
     Set<SMGObject> nonSharedObject1 = join.getNonSharedObjectsFromSMG1();
-    Set<Integer> nonSharedValues1 = join.getNonSharedValuesFromSMG1();
+    Set<SMGValue> nonSharedValues1 = join.getNonSharedValuesFromSMG1();
     Set<SMGObject> nonSharedObject2 = join.getNonSharedObjectsFromSMG2();
-    Set<Integer> nonSharedValues2 = join.getNonSharedValuesFromSMG2();
+    Set<SMGValue> nonSharedValues2 = join.getNonSharedValuesFromSMG2();
 
     Set<SMGObject> objectsOfSubSmg1 = new HashSet<>();
     Set<SMGObject> objectsOfSubSmg2 = new HashSet<>();
-    Set<Integer> valuesOfSubSmg1 = new HashSet<>();
-    Set<Integer> valuesOfSubSmg2 = new HashSet<>();
+    Set<SMGValue> valuesOfSubSmg1 = new HashSet<>();
+    Set<SMGValue> valuesOfSubSmg2 = new HashSet<>();
 
-    getSubSmgOf(startObject, nfo, pfo, pSmg, valuesOfSubSmg1, objectsOfSubSmg1);
-    getSubSmgOf(nextObject, nfo, pfo, pSmg, valuesOfSubSmg2, objectsOfSubSmg2);
+    Predicate<SMGEdgeHasValue> check = hve -> hve.getOffset() != pfo && hve.getOffset() != nfo;
+    getSubSmgOf(startObject, check, pSmg, valuesOfSubSmg1, objectsOfSubSmg1);
+    getSubSmgOf(nextObject, check, pSmg, valuesOfSubSmg2, objectsOfSubSmg2);
 
     objectsOfSubSmg1.remove(startObject);
     objectsOfSubSmg2.remove(nextObject);
 
-    if(nonSharedValues2.contains(pValue)) {
-      nonSharedValues2.remove(pValue);
-    }
+    nonSharedValues2.remove(pValue);
 
-    int prevValue = Iterables.getOnlyElement(pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(pfo))).getValue();
+    SMGValue prevValue =
+        Iterables.getOnlyElement(
+                pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(pfo)))
+            .getValue();
 
-    if(nonSharedValues1.contains(prevValue)) {
-      nonSharedValues1.remove(prevValue);
-    }
+    nonSharedValues1.remove(prevValue);
 
     // Third, calculate if the respective nfo,pfo restricted subsmgs are only reachable from their candidate objects
     if (!isSubSmgSeperate(nonSharedObject1, nonSharedValues1, pSmg, objectsOfSubSmg1,
@@ -371,101 +387,5 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
     }
 
     pProgress.updateProgress(pPrevCandidate, candidate, joinStatus, hasToBeLastInSequence);
-  }
-
-  private boolean isSubSmgSeperate(Set<SMGObject> nonSharedObject, Set<Integer> nonSharedValues,
-      CLangSMG smg, Set<SMGObject> reachableObjects, Set<Integer> reachableValues, SMGObject rootOfSubSmg) {
-
-    for (SMGObject obj : nonSharedObject) {
-
-      if(obj.equals(rootOfSubSmg)) {
-        continue;
-      }
-
-      if (!smg.isHeapObject(obj)) {
-        return false;
-      }
-
-      Set<SMGEdgePointsTo> pointer = SMGUtils.getPointerToThisObject(obj, smg);
-
-      for (SMGEdgePointsTo pte : pointer) {
-        if (!reachableValues.contains(pte.getValue())) {
-          return false;
-        }
-      }
-    }
-
-    for (Integer val : nonSharedValues) {
-
-      /*Abstract simple fields when joining.*/
-      if (!smg.isPointer(val)) {
-        continue;
-      }
-
-      for (SMGEdgeHasValue hve : smg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(val))) {
-        if (!reachableObjects.contains(hve.getObject()) && hve.getObject() != rootOfSubSmg) {
-          return false;
-        }
-      }
-    }
-
-    return true;
-  }
-
-  private void getSubSmgOf(SMGObject pObject, long nfo, long pfo, CLangSMG inputSmg,
-      Set<Integer> pValues, Set<SMGObject> pObjects) {
-
-    Set<SMGObject> toBeChecked = new HashSet<>();
-
-    pObjects.add(pObject);
-
-    for (SMGEdgeHasValue hve : inputSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject))) {
-      if (hve.getOffset() != pfo && hve.getOffset() != nfo) {
-
-        int subSmgValue = hve.getValue();
-        pValues.add(subSmgValue);
-
-        if (inputSmg.isPointer(subSmgValue)) {
-          SMGEdgePointsTo reachedObjectSubSmgPTEdge = inputSmg.getPointer(subSmgValue);
-          SMGObject reachedObjectSubSmg = reachedObjectSubSmgPTEdge.getObject();
-
-          if (!pObjects.contains(reachedObjectSubSmg)) {
-            pObjects.add(reachedObjectSubSmg);
-            toBeChecked.add(reachedObjectSubSmg);
-          }
-        }
-      }
-    }
-
-    Set<SMGObject> toCheck = new HashSet<>();
-
-    while (!toBeChecked.isEmpty()) {
-      toCheck.clear();
-      toCheck.addAll(toBeChecked);
-      toBeChecked.clear();
-
-      for (SMGObject objToCheck : toCheck) {
-        getSubSmgOf(objToCheck, toBeChecked, inputSmg, pObjects, pValues);
-      }
-    }
-  }
-
-  private void getSubSmgOf(SMGObject pObjToCheck,
-      Set<SMGObject> pToBeChecked,  CLangSMG pInputSmg, Set<SMGObject> pObjects, Set<Integer> pValues) {
-
-    for (SMGEdgeHasValue hve : pInputSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObjToCheck))) {
-      int subDlsValue = hve.getValue();
-      pValues.add(subDlsValue);
-
-      if (pInputSmg.isPointer(subDlsValue)) {
-        SMGEdgePointsTo reachedObjectSubSmgPTEdge = pInputSmg.getPointer(subDlsValue);
-        SMGObject reachedObjectSubSmg = reachedObjectSubSmgPTEdge.getObject();
-
-        if ((!pObjects.contains(reachedObjectSubSmg))) {
-          pObjects.add(reachedObjectSubSmg);
-          pToBeChecked.add(reachedObjectSubSmg);
-        }
-      }
-    }
   }
 }

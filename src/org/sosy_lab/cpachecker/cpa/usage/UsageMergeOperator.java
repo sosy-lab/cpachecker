@@ -50,10 +50,6 @@ public class UsageMergeOperator implements MergeOperator {
     AbstractState mergedState =
         wrappedMerge.merge(wrappedState1, wrappedState2, prec.getWrappedPrecision());
 
-    if (mergedState.equals(wrappedState2)) {
-      return pState2;
-    }
-
     UsageState result;
 
     if (uState1.isLessOrEqual(uState2)) {

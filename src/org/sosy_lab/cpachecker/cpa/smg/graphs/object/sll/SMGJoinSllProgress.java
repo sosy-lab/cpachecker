@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll;
 
 import com.google.common.collect.Iterables;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGJoinAbstractListProgress;
@@ -44,12 +44,15 @@ class SMGJoinSllProgress
 
   @Override
   protected SMGSingleLinkedListCandidateSequence getCandidat(
-      SMGSingleLinkedListCandidate pCandidate, int length, SMGJoinStatus status, CLangSMG pSMG) {
+      SMGSingleLinkedListCandidate pCandidate,
+      int length,
+      SMGJoinStatus status,
+      UnmodifiableCLangSMG pSMG) {
     return new SMGSingleLinkedListCandidateSequence(pCandidate, length, status, isPartOfSllSequence(pCandidate, length, pSMG));
   }
 
   private boolean isPartOfSllSequence(
-      SMGSingleLinkedListCandidate pCandidate, int pLength, CLangSMG pSmg) {
+      SMGSingleLinkedListCandidate pCandidate, int pLength, UnmodifiableCLangSMG pSmg) {
 
     SMGObject nextObject = pCandidate.getStartObject();
     if (nextObject.getKind() == SMGObjectKind.SLL) {

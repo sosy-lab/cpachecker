@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGEdgeInterpolator.SMGHeapAbstractionInterpoaltionResult;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -75,7 +76,7 @@ public class SMGEdgeHeapAbstractionInterpolator {
 
     logger.log(Level.ALL, "Begin interpolating heap abstraction on node " + pStateLocation.getNodeNumber());
 
-    SMGState abstractionTest = new SMGState(pState);
+    SMGState abstractionTest = pState.copyOf();
     Set<SMGAbstractionBlock> result =
         new HashSet<>(pPrecision.getAbstractionBlocks(pStateLocation));
     SMGAbstractionCandidate candidate = abstractionTest.executeHeapAbstractionOneStep(result);
@@ -86,7 +87,7 @@ public class SMGEdgeHeapAbstractionInterpolator {
       if (isRemainingPathFeasible(pRemainingErrorPath, abstractionTest, pCurrentEdge,
           pAllTargets)) {
         result.add(candidate.createAbstractionBlock(state));
-        abstractionTest = new SMGState(state);
+        abstractionTest = state.copyOf();
       } else {
         state.executeHeapAbstractionOneStep(result);
         change = true;
@@ -104,8 +105,12 @@ public class SMGEdgeHeapAbstractionInterpolator {
     }
   }
 
-  private boolean isRemainingPathFeasible(ARGPath pRemainingErrorPath, SMGState pAbstractionTest,
-      CFAEdge pCurrentEdge, boolean pAllTargets) throws CPAException, InterruptedException {
+  private boolean isRemainingPathFeasible(
+      ARGPath pRemainingErrorPath,
+      UnmodifiableSMGState pAbstractionTest,
+      CFAEdge pCurrentEdge,
+      boolean pAllTargets)
+      throws CPAException, InterruptedException {
 
     return checker.isRemainingPathFeasible(pRemainingErrorPath, pAbstractionTest, pCurrentEdge, pAllTargets);
   }

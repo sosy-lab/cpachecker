@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
+import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -39,8 +40,10 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -81,7 +84,7 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     return smgState;
   }
 
-  public CFAEdge getEdge() {
+  CFAEdge getEdge() {
     return edge;
   }
 
@@ -91,12 +94,19 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
   private SMGExplicitValue getExplicitValue(SMGSymbolicValue pValue) {
     if (pValue.isUnknown()) {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
-    return smgState.getExplicit((SMGKnownSymValue) pValue);
+    Preconditions.checkState(
+        pValue instanceof SMGKnownSymbolicValue, "known value has invalid type");
+    if (!smgState.isExplicit((SMGKnownSymbolicValue) pValue)) {
+      return SMGUnknownValue.INSTANCE;
+    }
+    return Preconditions.checkNotNull(
+        smgState.getExplicit((SMGKnownSymbolicValue) pValue),
+        "known and existing value cannot be read from state");
   }
 
-  protected void setSmgState(SMGState pSmgState) {
+  void setSmgState(SMGState pSmgState) {
     smgState = pSmgState;
   }
 
@@ -126,7 +136,7 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
       if (symValue.equals(SMGKnownSymValue.TRUE)) {
         return new NumericValue(1);
-      } else if (symValue.equals(SMGKnownSymValue.FALSE)) {
+      } else if (symValue.equals(SMGZeroValue.INSTANCE)) {
         return new NumericValue(0);
       }
     }

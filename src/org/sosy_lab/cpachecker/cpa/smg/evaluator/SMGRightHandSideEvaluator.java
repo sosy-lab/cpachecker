@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
+import com.google.common.base.Preconditions;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -41,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
@@ -51,7 +53,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -69,7 +71,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
   final SMGTransferRelation smgTransferRelation;
-  final SMGOptions options;
+  private final SMGOptions options;
 
   public SMGRightHandSideEvaluator(SMGTransferRelation pSmgTransferRelation,
       LogManagerWithoutDuplicates pLogger, MachineModel pMachineModel, SMGOptions pOptions) {
@@ -84,7 +86,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
     ForceExplicitValueVisitor v =
         new ForceExplicitValueVisitor(
-            this, this, smgState, null, machineModel, logger, pCfaEdge, options);
+            this, smgState, null, machineModel, logger, pCfaEdge, options);
 
     Value val = rVal.accept(v);
 
@@ -110,8 +112,8 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       throws SMGInconsistentException, UnrecognizedCCodeException {
 
     if (pOffset.isUnknown() || pObject == null) {
-      SMGState errState = pSmgState.setInvalidRead();
-      errState.setErrorDescription("Can't evaluate offset or object");
+      SMGState errState =
+          pSmgState.withInvalidRead().withErrorDescription("Can't evaluate offset or object");
       return SMGValueAndState.of(errState);
     }
 
@@ -124,26 +126,29 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
         || fieldOffset + typeBitSize > objectBitSize;
 
     if (doesNotFitIntoObject) {
-      SMGState errState = pSmgState.setInvalidRead();
+      SMGState errState = pSmgState.withInvalidRead();
       // Field does not fit size of declared Memory
       logger.log(Level.INFO, pEdge.getFileLocation(), ":", "Field ", "(",
            fieldOffset, ", ", pType.toASTString(""), ")",
           " does not fit object ", pObject, ".");
+      final String description;
       if (!pObject.equals(SMGNullObject.INSTANCE)) {
         if (typeBitSize % 8 != 0 || fieldOffset % 8 != 0 || objectBitSize % 8 != 0) {
-          errState.setErrorDescription("Field with " + typeBitSize
-              + " bit size can't be read from offset " + fieldOffset + " bit of "
-              + "object " + objectBitSize + " bit size");
+          description =
+              String.format(
+                  "Field with %d  bit size can't be read from offset %s bit of object %d bit size",
+                  typeBitSize, fieldOffset, objectBitSize);
         } else {
-          errState.setErrorDescription("Field with " + typeBitSize / 8
-              + " byte size can't be read from offset " + fieldOffset / 8 + " byte of "
-              + "object " + objectBitSize / 8 + " byte size");
-
+          description =
+              String.format(
+                  "Field with %d  byte size can't be read from offset %s byte of object %d byte size",
+                  typeBitSize / 8, fieldOffset / 8, objectBitSize / 8);
         }
         errState.addInvalidObject(pObject);
       } else {
-        errState.setErrorDescription("NULL pointer dereference on read");
+        description = "NULL pointer dereference on read";
       }
+      errState = errState.withErrorDescription(description);
       return SMGValueAndState.of(errState);
     }
 
@@ -188,31 +193,14 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
                   pFieldOffset,
                   pRValueType.toASTString(""),
                   pMemoryOfField));
-      SMGState newState = pState.setInvalidWrite();
+      SMGState newState = pState.withInvalidWrite();
       if (!pMemoryOfField.equals(SMGNullObject.INSTANCE)) {
-        if (rValueTypeBitSize % 8 != 0 || pFieldOffset % 8 != 0 || memoryBitSize % 8 != 0) {
-          newState.setErrorDescription(
-              "Field with size "
-                  + rValueTypeBitSize
-                  + " bit can't be written at offset "
-                  + pFieldOffset
-                  + " bit of object "
-                  + memoryBitSize
-                  + " bit size");
-        } else {
-          newState.setErrorDescription(
-              "Field with size "
-                  + rValueTypeBitSize / 8
-                  + " byte can't "
-                  + "be written at offset "
-                  + pFieldOffset / 8
-                  + " byte of object "
-                  + memoryBitSize / 8
-                  + " byte size");
-        }
+        newState = newState.withErrorDescription(String.format(
+            "Field with size %d bit can't be written at offset %d bit of object %d bit size",
+            rValueTypeBitSize, pFieldOffset, memoryBitSize));
         newState.addInvalidObject(pMemoryOfField);
       } else {
-        newState.setErrorDescription("NULL pointer dereference on write");
+        newState = newState.withErrorDescription("NULL pointer dereference on write");
       }
       return newState;
     }
@@ -223,12 +211,13 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
     if (pRValueType instanceof CPointerType
         && !(pValue instanceof SMGAddressValue)
-        && pValue instanceof SMGKnownSymValue) {
-        SMGExplicitValue explicit = pState.getExplicit((SMGKnownSymValue) pValue);
-        if (!explicit.isUnknown()) {
-          pValue =
-              SMGKnownAddressValue.valueOf(
-                  SMGNullObject.INSTANCE, (SMGKnownExpValue) explicit, (SMGKnownSymValue) pValue);
+        && pValue instanceof SMGKnownSymbolicValue) {
+      SMGKnownSymbolicValue knownValue = (SMGKnownSymbolicValue) pValue;
+      if (pState.isExplicit(knownValue)) {
+        SMGExplicitValue explicit = Preconditions.checkNotNull(pState.getExplicit(knownValue));
+        pValue =
+            SMGKnownAddressValue.valueOf(
+                knownValue, SMGNullObject.INSTANCE, (SMGKnownExpValue) explicit);
       }
     }
     return pState.writeValue(pMemoryOfField, pFieldOffset, pRValueType, pValue).getState();
@@ -279,7 +268,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       SMGKnownAddressValue structAddress = (SMGKnownAddressValue) pValue;
 
       SMGObject source = structAddress.getObject();
-      long structOffset = structAddress.getOffset().getAsInt();
+      long structOffset = structAddress.getOffset().getAsLong();
 
       // FIXME Does not work with variable array length.
       long structSize = structOffset + getBitSizeof(pCfaEdge, pRValueType, pNewState);
@@ -296,7 +285,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     List<CExpression> parameters = pFunctionCallExpression.getParameterExpressions();
     for (int i = 0; i < parameters.size(); i++) {
       CExpression param = parameters.get(i);
-      CType paramType = getRealExpressionType(param);
+      CType paramType = TypeUtils.getRealExpressionType(param);
       if (paramType instanceof CPointerType || paramType instanceof CArrayType) {
         // assign external value to param
         for (SMGAddressValueAndState addressOfFieldAndState :
@@ -310,8 +299,8 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
             SMGState smgState = addressOfFieldAndState.getSmgState();
             if (!object.equals(SMGNullObject.INSTANCE)
                 && object.getSize() - offset.getAsLong() >= machineModel.getSizeofPtrInBits()
-                && (smgState.isObjectValid(object)
-                    || smgState.isObjectExternallyAllocated(object))) {
+                && (smgState.getHeap().isObjectValid(object)
+                    || smgState.getHeap().isObjectExternallyAllocated(object))) {
 
               SMGAddressValue newParamValue =
                   pSmgState.addExternalAllocation(
@@ -325,7 +314,8 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       }
     }
 
-    CType returnValueType = getRealExpressionType(pFunctionCallExpression.getExpressionType());
+    CType returnValueType =
+        TypeUtils.getRealExpressionType(pFunctionCallExpression.getExpressionType());
     if (returnValueType instanceof CPointerType || returnValueType instanceof CArrayType) {
       SMGAddressValue returnValue =
           pSmgState.addExternalAllocation(calledFunctionName + SMGCPA.getNewValue());
@@ -341,7 +331,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
   @Override
   ExpressionValueVisitor getExpressionValueVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
-    return new RHSExpressionValueVisitor(this, smgTransferRelation, pCfaEdge, pNewState);
+    return new RHSExpressionValueVisitor(this, smgTransferRelation.builtins, pCfaEdge, pNewState);
   }
 
   @Override
@@ -357,6 +347,6 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
   @Override
   protected SMGValueAndState handleUnknownDereference(SMGState pSmgState, CFAEdge pEdge) {
-    return super.handleUnknownDereference(pSmgState.setUnknownDereference(), pEdge);
+    return super.handleUnknownDereference(pSmgState.withUnknownDereference(), pEdge);
   }
 }

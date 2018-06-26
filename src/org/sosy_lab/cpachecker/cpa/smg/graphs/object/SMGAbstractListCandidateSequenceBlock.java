@@ -27,8 +27,9 @@ import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 
 public abstract class SMGAbstractListCandidateSequenceBlock<S> implements SMGAbstractionBlock {
@@ -45,7 +46,7 @@ public abstract class SMGAbstractListCandidateSequenceBlock<S> implements SMGAbs
   }
 
   @Override
-  public boolean isBlocked(SMGAbstractionCandidate pCandidate, CLangSMG smg) {
+  public boolean isBlocked(SMGAbstractionCandidate pCandidate, UnmodifiableCLangSMG smg) {
 
     if (!(pCandidate instanceof SMGAbstractListCandidateSequence<?>)) {
       return false;
@@ -65,7 +66,7 @@ public abstract class SMGAbstractListCandidateSequenceBlock<S> implements SMGAbs
       return false;
     }
 
-    int value = edge.get().getValue();
+    SMGValue value = edge.get().getValue();
     if (!smg.isPointer(value)) {
       return false;
     }

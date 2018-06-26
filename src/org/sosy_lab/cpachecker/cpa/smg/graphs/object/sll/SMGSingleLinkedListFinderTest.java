@@ -31,7 +31,6 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
-import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -39,6 +38,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGSingleLinkedListFinderTest {
   @Test
@@ -86,14 +87,14 @@ public class SMGSingleLinkedListFinderTest {
   @Test
   public void listWithInboundPointersTest() throws SMGInconsistentException {
     CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
-    int tail = TestHelpers.createList(smg, 4, 128, 64, "tail");
+    SMGValue tail = TestHelpers.createList(smg, 4, 128, 64, "tail");
 
     SMGEdgeHasValue head = TestHelpers.createGlobalList(smg, 3, 128, 64, "head");
 
     SMGObject inside = new SMGRegion(128, "pointed_at");
     SMGEdgeHasValue tailConnection = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 64, inside, tail);
 
-    int addressOfInside = SMGCPA.getNewValue();
+    SMGValue addressOfInside = SMGKnownSymValue.of();
     SMGEdgePointsTo insidePT = new SMGEdgePointsTo(addressOfInside, inside, 0);
     SMGRegion inboundPointer = new SMGRegion(64, "inbound_pointer");
     SMGEdgeHasValue inboundPointerConnection = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 0, inboundPointer, addressOfInside);

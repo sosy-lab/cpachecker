@@ -31,8 +31,8 @@ import com.google.common.collect.TreeMultimap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
 import java.util.Collections;
+import java.util.NavigableMap;
 import java.util.Optional;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import org.junit.Assert;
 import org.junit.Before;
@@ -141,7 +141,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     );
 
     String fName = "main";
-    SortedMap<String, FunctionEntryNode> functions = new TreeMap<>();
+    NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>();
 
     FunctionEntryNode entryNode = dummyFunction(fName);
 

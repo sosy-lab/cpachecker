@@ -73,7 +73,7 @@ public abstract class SMGAbstractObjectAndState<T> {
     }
 
     public static SMGAddressValueAndState of(SMGState pState) {
-      return new SMGAddressValueAndState(pState, SMGUnknownValue.getInstance());
+      return new SMGAddressValueAndState(pState, SMGUnknownValue.INSTANCE);
     }
   }
 
@@ -99,7 +99,7 @@ public abstract class SMGAbstractObjectAndState<T> {
     }
 
     public static SMGValueAndState of(SMGState pState) {
-      return of(pState, SMGUnknownValue.getInstance());
+      return of(pState, SMGUnknownValue.INSTANCE);
     }
 
     public static SMGValueAndState of(SMGState pState, SMGSymbolicValue pValue) {
@@ -114,7 +114,7 @@ public abstract class SMGAbstractObjectAndState<T> {
     }
 
     public static SMGExplicitValueAndState of(SMGState pState) {
-      return of(pState, SMGUnknownValue.getInstance());
+      return of(pState, SMGUnknownValue.INSTANCE);
     }
 
     public static SMGExplicitValueAndState of(SMGState pState, SMGExplicitValue pValue) {

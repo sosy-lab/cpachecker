@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll;
 
 import com.google.common.collect.Iterables;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGJoinAbstractListProgress;
@@ -65,12 +65,15 @@ class SMGJoinDllProgress
 
   @Override
   protected SMGDoublyLinkedListCandidateSequence getCandidat(
-      SMGDoublyLinkedListCandidate pCandidate, int length, SMGJoinStatus status, CLangSMG pSMG) {
+      SMGDoublyLinkedListCandidate pCandidate,
+      int length,
+      SMGJoinStatus status,
+      UnmodifiableCLangSMG pSMG) {
     return new SMGDoublyLinkedListCandidateSequence(pCandidate, length, status, isDllPartOfSequence(pCandidate, length, pSMG));
   }
 
   private boolean isDllPartOfSequence(
-      SMGDoublyLinkedListCandidate pCandidate, int pLength, CLangSMG pSMG) {
+      SMGDoublyLinkedListCandidate pCandidate, int pLength, UnmodifiableCLangSMG pSMG) {
 
     SMGObject nextObject = pCandidate.getStartObject();
     if (nextObject.getKind() == SMGObjectKind.DLL) {

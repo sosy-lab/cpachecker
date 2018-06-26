@@ -37,7 +37,7 @@
              Contains a lot of helpful data structures. -->
         <dependency org="com.google.guava" name="guava" rev="24.1-jre" conf="runtime->default; contrib->sources"/>
 
-        <dependency org="org.sosy_lab" name="llvm-j" rev="0.2" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="llvm-j" rev="0.3.1" conf="runtime->runtime; contrib->sources"/>
 
         <!-- JavaBDD
              Java BDD library for predicate abstraction (uses CUDD). -->
@@ -117,7 +117,7 @@
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="javasmt" rev="2.0.0-alpha-87-g7e5572e" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="javasmt" rev="2.0.0-alpha-115-g923c31e" conf="runtime->runtime; contrib->sources"/>
 
         <!-- LassoRanker
              Synthesis of ranking functions for termination analysis. -->

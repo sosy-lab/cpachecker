@@ -48,6 +48,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class CLangSMGTest {
   static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
@@ -80,8 +82,8 @@ public class CLangSMGTest {
     SMGRegion obj1 = new SMGRegion(64, "obj1");
     SMGRegion obj2 = new SMGRegion(64, "obj2");
 
-    int val1 = 1;
-    int val2 = 2;
+    SMGValue val1 = SMGKnownExpValue.valueOf(1);
+    SMGValue val2 = SMGKnownExpValue.valueOf(2);
 
     SMGEdgePointsTo pt = new SMGEdgePointsTo(val1, obj1, 0);
     SMGEdgeHasValue hv = new SMGEdgeHasValue(CNumericTypes.UNSIGNED_LONG_INT, 0, obj2, val2);
@@ -96,7 +98,7 @@ public class CLangSMGTest {
 
     // Copy constructor
 
-    CLangSMG smg_copy = new CLangSMG(smg);
+    UnmodifiableCLangSMG smg_copy = smg.copyOf();
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg_copy));
 
     assertThat(smg_copy.getStackFrames()).hasSize(0);
@@ -363,7 +365,7 @@ public class CLangSMGTest {
 
     smg = getNewCLangSMG64();
     SMGObject null_object = smg.getHeapObjects().iterator().next();
-    int some_value = 5;
+    SMGValue some_value = SMGKnownExpValue.valueOf(5);
     CType type = mock(CType.class);
     when(type.getCanonicalType()).thenReturn(type);
     SMGEdgeHasValue edge = new SMGEdgeHasValue(type, 0, null_object, some_value);

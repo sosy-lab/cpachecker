@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation.ExplicitRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation.SymbolicRelation;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -126,13 +127,13 @@ public class SMGPredicateManager {
     BitvectorFormula formulaOne;
     BitvectorFormula formulaTwo;
     // Special case for NULL value
-    if (pRelation.getFirstValue() == 0) {
+    if (pRelation.getFirstValue().isZero()) {
       firstSize = secondSize;
       formulaOne = efmgr.makeBitvector(firstSize, 0);
     } else {
       formulaOne = efmgr.makeVariable(firstSize, nameOne);
     }
-    if (pRelation.getSecondValue() == 0) {
+    if (pRelation.getSecondValue().isZero()) {
       secondSize = firstSize;
       formulaTwo = efmgr.makeBitvector(firstSize, 0);
     } else {
@@ -173,8 +174,8 @@ public class SMGPredicateManager {
       return result;
     }
 
-    for (Entry<Pair<Integer, Integer>, SymbolicRelation> entry: pRelation.getValuesRelations()) {
-      if (entry.getKey().getSecond() > entry.getKey().getFirst()) {
+    for (Entry<Pair<SMGValue, SMGValue>, SymbolicRelation> entry : pRelation.getValuesRelations()) {
+      if (entry.getKey().getSecond().compareTo(entry.getKey().getFirst()) > 0) {
         SymbolicRelation value = entry.getValue();
         result = addPredicateToFormula(result, value, pRelation, conjunction);
       }
@@ -198,7 +199,7 @@ public class SMGPredicateManager {
     }
   }
 
-  public boolean isErrorPathFeasible(SMGState pState) {
+  public boolean isErrorPathFeasible(UnmodifiableSMGState pState) {
     if (!verifyPredicates) {
       return false;
     }

@@ -47,9 +47,12 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
 public class SMGBuiltins {
 
@@ -89,7 +92,8 @@ public class SMGBuiltins {
           "printf"
       );
 
-  public final void evaluateVBPlot(CFunctionCallExpression functionCall, SMGState currentState) {
+  public final void evaluateVBPlot(
+      CFunctionCallExpression functionCall, UnmodifiableSMGState currentState) {
     String name = functionCall.getParameterExpressions().get(0).toASTString();
     if(exportSMGOptions.hasExportPath() && currentState != null) {
       SMGUtils.dumpSMGPlot(logger, currentState, functionCall.toASTString(), exportSMGOptions.getOutputFilePath(name));
@@ -157,12 +161,20 @@ public class SMGBuiltins {
     return result;
   }
 
-  private final SMGAddressValueAndState evaluateMemset(SMGState currentState, CFAEdge cfaEdge, SMGAddressValue bufferAddress, SMGExplicitValue countValue, SMGSymbolicValue ch, SMGExplicitValue expValue)
-          throws CPATransferException {
+  private SMGAddressValueAndState evaluateMemset(
+      SMGState currentState,
+      CFAEdge cfaEdge,
+      SMGAddressValue bufferAddress,
+      SMGExplicitValue countValue,
+      SMGSymbolicValue ch,
+      SMGExplicitValue expValue)
+      throws CPATransferException {
 
     if (bufferAddress.isUnknown() || countValue.isUnknown()) {
-      currentState = currentState.setInvalidWrite();
-      currentState.setErrorDescription("Can't evaluate dst or count for memset");
+      currentState =
+          currentState
+              .withInvalidWrite()
+              .withErrorDescription("Can't evaluate dst or count for memset");
       return SMGAddressValueAndState.of(currentState);
     }
 
@@ -170,21 +182,21 @@ public class SMGBuiltins {
 
     if (ch.isUnknown()) {
       // If the symbolic value is not known create a new one.
-      ch = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
+      ch = SMGKnownSymValue.of();
     }
 
     SMGObject bufferMemory =  bufferAddress.getObject();
 
     long offset =  bufferAddress.getOffset().getAsLong();
 
-    if (ch.equals(SMGKnownSymValue.ZERO)) {
+    if (ch.equals(SMGZeroValue.INSTANCE)) {
       // Create one large edge
       currentState =
           expressionEvaluator.writeValue(
               currentState,
               bufferMemory,
               offset,
-              AnonymousTypes.createTypeWithLength(count * machineModel.getSizeofCharInBits()),
+              TypeUtils.createTypeWithLength(count * machineModel.getSizeofCharInBits()),
               ch,
               cfaEdge);
     } else {
@@ -202,7 +214,7 @@ public class SMGBuiltins {
       }
 
       if (!expValue.isUnknown()) {
-        currentState.putExplicit((SMGKnownSymValue) ch, (SMGKnownExpValue) expValue);
+        currentState.putExplicit((SMGKnownSymbolicValue) ch, (SMGKnownExpValue) expValue);
       }
     }
 
@@ -226,8 +238,7 @@ public class SMGBuiltins {
   }
 
   public final List<SMGAddressValueAndState> evaluateExternalAllocation(
-      CFunctionCallExpression pFunctionCall, SMGState pState) {
-    SMGState currentState = pState;
+      CFunctionCallExpression pFunctionCall, SMGState pState) throws SMGInconsistentException {
 
     String functionName = pFunctionCall.getFunctionNameExpression().toASTString();
 
@@ -240,9 +251,9 @@ public class SMGBuiltins {
             + SMGCPA.getNewValue()
             + "_Line:"
             + pFunctionCall.getFileLocation().getStartingLineNumber();
-    SMGAddressValue new_address = currentState.addExternalAllocation(allocation_label);
+    SMGAddressValue new_address = pState.addExternalAllocation(allocation_label);
 
-    result.add(SMGAddressValueAndState.of(currentState, new_address));
+    result.add(SMGAddressValueAndState.of(pState, new_address));
 
     return result;
   }
@@ -255,7 +266,6 @@ public class SMGBuiltins {
       CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
     CRightHandSide sizeExpr;
-    SMGState currentState = pState;
 
     try {
       sizeExpr = functionCall.getParameterExpressions().get(MALLOC_PARAMETER);
@@ -267,14 +277,18 @@ public class SMGBuiltins {
     List<SMGAddressValueAndState> result = new ArrayList<>();
 
     for (SMGExplicitValueAndState valueAndState :
-        evaluateExplicitValue(currentState, cfaEdge, sizeExpr)) {
-      result.add(evaluateAlloca(valueAndState.getSmgState(), valueAndState.getObject(), cfaEdge, sizeExpr));
+        evaluateExplicitValue(pState, cfaEdge, sizeExpr)) {
+      result.addAll(
+          evaluateAlloca(
+              valueAndState.getSmgState(), valueAndState.getObject(), cfaEdge, sizeExpr));
     }
 
     return result;
   }
 
-  private SMGAddressValueAndState evaluateAlloca(SMGState currentState, SMGExplicitValue pSizeValue, CFAEdge cfaEdge, CRightHandSide sizeExpr) throws CPATransferException {
+  private List<SMGAddressValueAndState> evaluateAlloca(
+      SMGState currentState, SMGExplicitValue pSizeValue, CFAEdge cfaEdge, CRightHandSide sizeExpr)
+      throws CPATransferException {
 
     SMGExplicitValue sizeValue = pSizeValue;
 
@@ -303,29 +317,36 @@ public class SMGBuiltins {
         if (sizeValue.isUnknown()) {
 
           if (smgTransferRelation.kind == SMGTransferRelationKind.REFINEMENT) {
-            sizeValue = SMGKnownExpValue.ZERO;
+            sizeValue = SMGZeroValue.INSTANCE;
           } else {
-            throw new UnrecognizedCCodeException(
-                "Not able to compute allocation size", cfaEdge);
+            throw new UnsupportedCCodeException("Not able to compute allocation size", cfaEdge);
           }
         }
       } else {
         if (smgTransferRelation.kind == SMGTransferRelationKind.REFINEMENT) {
-          sizeValue = SMGKnownExpValue.ZERO;
+          sizeValue = SMGZeroValue.INSTANCE;
         } else {
-          throw new UnrecognizedCCodeException(
-              "Not able to compute allocation size", cfaEdge);
+          throw new UnsupportedCCodeException("Not able to compute allocation size", cfaEdge);
         }
       }
     }
 
     // TODO line numbers are not unique when we have multiple input files!
     String allocation_label = "alloc_ID" + SMGCPA.getNewValue();
-    SMGAddressValue addressValue = currentState.addNewStackAllocation(sizeValue.getAsInt() *
-        machineModel.getSizeofCharInBits(), allocation_label);
+    SMGState state = currentState.copyOf();
+    SMGAddressValue addressValue =
+        state.addNewStackAllocation(
+            sizeValue.getAsInt() * machineModel.getSizeofCharInBits(), allocation_label);
 
-    smgTransferRelation.possibleMallocFail = true;
-    return SMGAddressValueAndState.of(currentState, addressValue);
+    ArrayList<SMGAddressValueAndState> result = new ArrayList<>(2);
+    result.add(SMGAddressValueAndState.of(state, addressValue));
+
+    // If malloc can fail, handle fail with alternative state
+    if (options.isEnableMallocFailure()) {
+      result.add(SMGAddressValueAndState.of(currentState.copyOf(), SMGZeroValue.INSTANCE));
+    }
+
+    return result;
   }
 
   private List<SMGExplicitValueAndState> getAllocateFunctionSize(SMGState pState, CFAEdge cfaEdge,
@@ -402,18 +423,18 @@ public class SMGBuiltins {
 
           if(value.isUnknown()) {
             if (smgTransferRelation.kind == SMGTransferRelationKind.REFINEMENT) {
-              resultValueAndState = SMGExplicitValueAndState.of(currentState ,SMGKnownExpValue.ZERO);
+              resultValueAndState =
+                  SMGExplicitValueAndState.of(currentState, SMGZeroValue.INSTANCE);
             } else {
-              throw new UnrecognizedCCodeException(
-                  "Not able to compute allocation size", cfaEdge);
+              throw new UnsupportedCCodeException("Not able to compute allocation size", cfaEdge);
             }
           }
         } else {
           if (smgTransferRelation.kind == SMGTransferRelationKind.REFINEMENT) {
-            resultValueAndState = SMGExplicitValueAndState.of(currentState, SMGKnownExpValue.ZERO);
+            resultValueAndState =
+                SMGExplicitValueAndState.of(currentState, SMGZeroValue.INSTANCE);
           } else {
-            throw new UnrecognizedCCodeException(
-                "Not able to compute allocation size", cfaEdge);
+            throw new UnsupportedCCodeException("Not able to compute allocation size", cfaEdge);
           }
         }
       }
@@ -426,15 +447,14 @@ public class SMGBuiltins {
   public List<SMGAddressValueAndState> evaluateConfigurableAllocationFunction(
       CFunctionCallExpression functionCall, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
-    SMGState currentState = pState;
 
     String functionName = functionCall.getFunctionNameExpression().toASTString();
     List<SMGAddressValueAndState> result = new ArrayList<>();
     for (SMGExplicitValueAndState sizeAndState :
-        getAllocateFunctionSize(currentState, cfaEdge, functionCall)) {
+        getAllocateFunctionSize(pState, cfaEdge, functionCall)) {
 
       int size = sizeAndState.getObject().getAsInt();
-      currentState = sizeAndState.getSmgState();
+      SMGState currentState = sizeAndState.getSmgState();
 
       // TODO line numbers are not unique when we have multiple input files!
       String allocation_label =
@@ -443,21 +463,27 @@ public class SMGBuiltins {
               + SMGCPA.getNewValue()
               + "_Line:"
               + functionCall.getFileLocation().getStartingLineNumber();
-      SMGAddressValue new_address = currentState.addNewHeapAllocation(size * machineModel.getSizeofCharInBits(),
-          allocation_label);
+      SMGAddressValue new_address =
+          currentState.addNewHeapAllocation(
+              size * machineModel.getSizeofCharInBits(), allocation_label);
 
+      SMGState newState = currentState;
       if (options.getZeroingMemoryAllocation().contains(functionName)) {
-        currentState =
+        newState =
             expressionEvaluator.writeValue(
                 currentState,
                 new_address.getObject(),
                 0,
-                AnonymousTypes.createTypeWithLength(size * machineModel.getSizeofCharInBits()),
-                SMGKnownSymValue.ZERO,
+                TypeUtils.createTypeWithLength(size * machineModel.getSizeofCharInBits()),
+                SMGZeroValue.INSTANCE,
                 cfaEdge);
       }
-      smgTransferRelation.possibleMallocFail = true;
-      result.add(SMGAddressValueAndState.of(currentState, new_address));
+      result.add(SMGAddressValueAndState.of(newState, new_address));
+
+      // If malloc can fail, handle fail with alternative state
+      if (options.isEnableMallocFailure()) {
+        result.add(SMGAddressValueAndState.of(currentState.copyOf(), SMGZeroValue.INSTANCE));
+      }
     }
 
     return result;
@@ -483,14 +509,18 @@ public class SMGBuiltins {
       if (address.isUnknown()) {
         logger.log(Level.INFO, "Free on expression ", pointerExp.toASTString(),
             " is invalid, because the target of the address could not be calculated.");
-        SMGState invalidFreeState = currentState.setInvalidFree();
-        invalidFreeState.setErrorDescription("Free on expression " + pointerExp.toASTString() +
-            " is invalid, because the target of the address could not be calculated.");
+        SMGState invalidFreeState =
+            currentState
+                .withInvalidFree()
+                .withErrorDescription(
+                    "Free on expression "
+                        + pointerExp.toASTString()
+                        + " is invalid, because the target of the address could not be calculated.");
         resultStates.add(invalidFreeState);
         continue;
       }
 
-      if (address.getAsInt() == 0) {
+      if (address.isZero()) {
         logger.log(Level.INFO, pFunctionCall.getFileLocation(), ":",
             "The argument of a free invocation:", cfaEdge.getRawStatement(), "is 0");
 
@@ -592,11 +622,11 @@ public class SMGBuiltins {
               int availableTarget = targetSize - targetRangeOffset;
 
               if (explicitSizeValue.isUnknown() && !symbolicValue.isUnknown()) {
-                if (!currentState.isObjectExternallyAllocated(sourceObject.getObject())) {
+                if (!currentState.getHeap().isObjectExternallyAllocated(sourceObject.getObject())) {
                   currentState.addErrorPredicate(symbolicValue, symbolicValueSize, SMGKnownExpValue
                       .valueOf(availableSource), symbolicValueSize, pCfaEdge);
                 }
-                if (!currentState.isObjectExternallyAllocated(targetObject.getObject())) {
+                if (!currentState.getHeap().isObjectExternallyAllocated(targetObject.getObject())) {
                   currentState.addErrorPredicate(symbolicValue, symbolicValueSize, SMGKnownExpValue
                       .valueOf(availableTarget), symbolicValueSize, pCfaEdge);
                 }
@@ -623,24 +653,26 @@ public class SMGBuiltins {
 
       if (!currentState.isTrackPredicatesEnabled()) {
         if (sizeValue.isUnknown()) {
-          currentState = currentState.setInvalidWrite();
-          currentState = currentState.setInvalidRead();
-          currentState.setErrorDescription("Can't evaluate memcpy dst and src");
+          currentState =
+              currentState
+                  .withInvalidWrite()
+                  .withInvalidRead()
+                  .withErrorDescription("Can't evaluate memcpy dst and src");
         } else if (targetStr1Address.isUnknown()) {
-          currentState = currentState.setInvalidWrite();
-          currentState.setErrorDescription("Can't evaluate memcpy dst");
+          currentState =
+              currentState.withInvalidWrite().withErrorDescription("Can't evaluate memcpy dst");
         } else {
-          currentState = currentState.setInvalidRead();
-          currentState.setErrorDescription("Can't evaluate memcpy src");
+          currentState =
+              currentState.withInvalidRead().withErrorDescription("Can't evaluate memcpy src");
         }
       }
       if (!sourceStr2Address.isUnknown() && sourceStr2Address.getObject().equals(SMGNullObject.INSTANCE)) {
-        currentState = currentState.setInvalidRead();
-        currentState.setErrorDescription("Memcpy src is null pointer");
+        currentState =
+            currentState.withInvalidRead().withErrorDescription("Memcpy src is null pointer");
       }
       if (!targetStr1Address.isUnknown() && targetStr1Address.getObject().equals(SMGNullObject.INSTANCE)) {
-        currentState = currentState.setInvalidWrite();
-        currentState.setErrorDescription("Memcpy to null pointer dst");
+        currentState =
+            currentState.withInvalidWrite().withErrorDescription("Memcpy to null pointer dst");
       }
 
       if (targetStr1Address.isUnknown()) {
@@ -662,12 +694,10 @@ public class SMGBuiltins {
     long targetOffset = targetStr1Address.getOffset().getAsLong();
 
     if (sourceLastCopyBitOffset > source.getSize()) {
-      currentState = currentState.setInvalidRead();
-      currentState.setErrorDescription("Overread on memcpy");
+      currentState = currentState.withInvalidRead().withErrorDescription("Overread on memcpy");
     } else if (targetOffset > target.getSize() - (sizeValue.getAsLong() * machineModel
         .getSizeofCharInBits())) {
-      currentState = currentState.setInvalidWrite();
-      currentState.setErrorDescription("Overwrite on memcpy");
+      currentState = currentState.withInvalidWrite().withErrorDescription("Overwrite on memcpy");
     } else {
       currentState.copy(source, target, sourceOffset, sourceLastCopyBitOffset, targetOffset);
     }
@@ -679,8 +709,7 @@ public class SMGBuiltins {
       CFAEdge pCfaEdge,
       CFunctionCallExpression cFCExpression,
       String calledFunctionName,
-      SMGState newState,
-      boolean failOnAlloca)
+      SMGState newState)
       throws CPATransferException {
 
     if (isExternalAllocationFunction(calledFunctionName)) {
@@ -689,9 +718,6 @@ public class SMGBuiltins {
 
     switch (calledFunctionName) {
       case "__builtin_alloca":
-        if (failOnAlloca) {
-          smgTransferRelation.possibleMallocFail = true;
-        }
         return evaluateAlloca(cFCExpression, newState, pCfaEdge);
 
       case "memset":
