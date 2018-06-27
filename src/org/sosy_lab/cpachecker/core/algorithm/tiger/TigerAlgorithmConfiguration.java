@@ -156,6 +156,12 @@ public class TigerAlgorithmConfiguration {
     description = "removes the feature prefix from presence conditions in the testsuite")
   private boolean removeFeaturePrefix = true;
 
+  @Option(
+    secure = true,
+    name = "useOmegaLabel",
+    description = "determines, whether the ARG will be explored until the return statement of the function")
+  private boolean useOmegaLabel = true;
+
   public String getFeatureVariablePrefix() {
     return featureVariablePrefix;
   }
@@ -221,6 +227,11 @@ public class TigerAlgorithmConfiguration {
 
   public boolean shouldRemoveFeatureVariablePrefix() {
     return removeFeaturePrefix;
+  }
+
+  public boolean shouldUseOmegaLabel() {
+    // TODO Auto-generated method stub
+    return useOmegaLabel;
   }
 
 }

@@ -222,7 +222,12 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
     int goalIndex = 1;
     LinkedList<Goal> goals = new LinkedList<>();
     for (Pair<ElementaryCoveragePattern, Region> pair : pTestGoalPatterns) {
-      Goal lGoal = testGoalUtils.constructGoal(goalIndex, pair.getFirst(), pair.getSecond());
+      Goal lGoal =
+          testGoalUtils.constructGoal(
+              goalIndex,
+              pair.getFirst(),
+              pair.getSecond(),
+              tigerConfig.shouldUseOmegaLabel());
       logger.log(Level.INFO, lGoal.getName());
       goals.add(lGoal);
       goalIndex++;

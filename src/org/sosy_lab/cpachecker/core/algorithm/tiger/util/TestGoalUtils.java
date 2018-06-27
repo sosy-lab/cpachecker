@@ -67,10 +67,15 @@ public class TestGoalUtils {
   }
 
 
-  public Goal constructGoal(int pIndex, ElementaryCoveragePattern pGoalPattern,Region pPresenceCondition) {
+  public Goal constructGoal(
+      int pIndex,
+      ElementaryCoveragePattern pGoalPattern,
+      Region pPresenceCondition,
+      boolean pUseOmegaLabel) {
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton =
         ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, mAlphaLabel, mInverseAlphaLabel,
-            mOmegaLabel);
+            mOmegaLabel,
+            pUseOmegaLabel);
     automaton = FQLSpecificationUtil.optimizeAutomaton(automaton, optimizeGoalAutomata);
 
     Goal lGoal = new Goal(pIndex, pGoalPattern, automaton, pPresenceCondition);

@@ -81,14 +81,12 @@ public class TigerTest {
     List<String> addXandY = Lists.newLinkedList();
     addXandY.add("relevant: x");
     addXandY.add("relevant: y");
-    g1.addVariableProperty(new CombinedRelativeVariableProperty("tmp", addXandY,
-        Combinators.ADD, Comparators.EQ, GoalPropertyType.INPUTANDOUTPUT));
+
     exampleGoalProperties.add(g1);
     ExpectedGoalProperties g2 = new ExpectedGoalProperties("G2", true);
     g2.addVariableProperty(new RelativeVariableProperty("relevant: x", "relevant: y",
         Comparators.LT, GoalPropertyType.INPUT));
-    g2.addVariableProperty(new CombinedRelativeVariableProperty("tmp", addXandY,
-        Combinators.ADD, Comparators.EQ, GoalPropertyType.INPUTANDOUTPUT));
+
     exampleGoalProperties.add(g2);
 
     ExpectedGoalProperties g3 = new ExpectedGoalProperties("G3", true);
@@ -98,13 +96,7 @@ public class TigerTest {
             "relevant: y",
             Comparators.GE,
             GoalPropertyType.INPUT));
-    g3.addVariableProperty(
-        new CombinedRelativeVariableProperty(
-            "tmp",
-            addXandY,
-            Combinators.ADD,
-            Comparators.EQ,
-            GoalPropertyType.INPUTANDOUTPUT));
+
     exampleGoalProperties.add(g3);
 
     //example_v1.c

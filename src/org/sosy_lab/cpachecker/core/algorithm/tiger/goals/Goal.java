@@ -67,11 +67,15 @@ public class Goal {
   private Region mPresenceCondition;
 
   public Goal(int pIndex, ElementaryCoveragePattern pPattern, GuardedEdgeLabel pAlphaLabel,
-      GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, Region pPresenceCondition) {
+      GuardedEdgeLabel pInverseAlphaLabel,
+      GuardedLabel pOmegaLabel,
+      Region pPresenceCondition,
+      boolean pUseOmegaLabel) {
     mIndex = pIndex;
     mPattern = pPattern;
     mAutomaton = ToGuardedAutomatonTranslator.toAutomaton(mPattern, pAlphaLabel, pInverseAlphaLabel,
-        pOmegaLabel);
+            pOmegaLabel,
+            pUseOmegaLabel);
     mPresenceCondition = pPresenceCondition;
   }
 
