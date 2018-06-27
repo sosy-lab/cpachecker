@@ -348,9 +348,16 @@ public class ARGToAutomatonConverter {
     return false;
   }
 
-  /** returns the number of states in the current branch until the end-states. */
-  // TODO speedup with caching or similar.
+  /** cache to speedup the computation of subtree-sizes. */
+  private final Map<ARGState, Integer> sizeCache = new HashMap<>();
+
+  /** simple caching for {@link #sizeOfBranch0}. */
   private int sizeOfBranch(ARGState state) {
+    return sizeCache.computeIfAbsent(state, this::sizeOfBranch0);
+  }
+
+  /** returns the number of states in the current branch until the end-states. */
+  private int sizeOfBranch0(ARGState state) {
     Set<ARGState> reachable = new HashSet<>();
     Deque<ARGState> waitlist = new ArrayDeque<>();
     waitlist.add(state);
