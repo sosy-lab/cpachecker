@@ -208,8 +208,8 @@ public class ARGToAutomatonConverter {
     if (locationQueries.isEmpty()) {
       return AutomatonBoolExpr.TRUE;
     }
-    AutomatonBoolExpr otherwise = AutomatonBoolExpr.TRUE;
-    for (AutomatonBoolExpr expr : locationQueries) {
+    AutomatonBoolExpr otherwise = locationQueries.get(0);
+    for (AutomatonBoolExpr expr : Iterables.skip(locationQueries, 1)) {
       otherwise = new AutomatonBoolExpr.And(otherwise, expr);
     }
     return new AutomatonBoolExpr.Negation(otherwise);
