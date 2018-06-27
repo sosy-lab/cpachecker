@@ -29,10 +29,12 @@ import static com.google.common.collect.ImmutableList.of;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -282,23 +284,62 @@ public class ARGToAutomatonConverter {
         return getWeightedAutomata(root, pDependencies);
 
       case FIRST_BFS:
-        return FluentIterable.from(getTopAutomata(root, pDependencies, skipFirstNum))
-            .transformAndConcat(state -> pDependencies.get(state).getIgnoreStates())
-            .transform(ignores -> getAutomatonForStates(root, ignores.asSet()));
+        return getFirstBFSAutomata(root, pDependencies);
+
       default:
         throw new AssertionError("unexpected export strategy");
     }
   }
 
+  private Iterable<Automaton> getFirstBFSAutomata(
+      ARGState pRoot, Map<ARGState, BranchingInfo> pDependencies) {
+    Set<ARGState> statesForExport = getTopStatesForAutomata(pRoot, pDependencies);
+
+    // remove redundant paths, e.g. do not export paths already covered by other paths
+    Multimap<Integer, PersistentSet<ARGState>> sortedPaths = HashMultimap.create();
+    for (ARGState state : statesForExport) {
+      for (PersistentSet<ARGState> ignores : pDependencies.get(state).getIgnoreStates()) {
+        sortedPaths.put(ignores.size(), ignores);
+      }
+    }
+    List<PersistentSet<ARGState>> paths = new ArrayList<>();
+    for (PersistentSet<ARGState> path : sortedPaths.values()) {
+      if (!isCovered(path, sortedPaths)) {
+        paths.add(path);
+      }
+    }
+
+    return FluentIterable.from(paths)
+        .transform(ignores -> getAutomatonForStates(pRoot, ignores.asSet()));
+  }
+
+  /**
+   * returns whether another path already includes the current path, i.e., the ignored states of the
+   * current path are a super-set of any other set.
+   */
+  private boolean isCovered(
+      PersistentSet<ARGState> path, Multimap<Integer, PersistentSet<ARGState>> sortedPaths) {
+    for (int size : sortedPaths.keySet()) {
+      if (size < path.size()) {
+        for (PersistentSet<ARGState> shorterPath : sortedPaths.get(size)) {
+          if (path.asSet().containsAll(shorterPath.asSet())) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
   /** return the frontier states after skipping N states */
-  private Iterable<ARGState> getTopAutomata(
-      ARGState root, Map<ARGState, BranchingInfo> pDependencies, int skipN) {
+  private Set<ARGState> getTopStatesForAutomata(
+      ARGState root, Map<ARGState, BranchingInfo> pDependencies) {
     Set<ARGState> alwaysExport = new LinkedHashSet<>();
     Collection<ARGState> finished = new LinkedHashSet<>();
     Deque<ARGState> waitlist = new ArrayDeque<>();
     waitlist.add(root);
     while (!waitlist.isEmpty()) {
-      if (finished.size() > skipN) {
+      if (finished.size() > skipFirstNum) {
         // we have skipped the first N states, return the frontier.
         // TODO exclude exit-states when counting skipN?
         // This might avoid to export simple paths at program-start.
@@ -701,9 +742,8 @@ public class ARGToAutomatonConverter {
     private boolean isPartOfLoop = false; // lazy
 
     /**
-     * current state can be reached via several paths and can lead into several paths. ignoreStates
-     * cut off all other branches for each of those paths. Each set represents a single path with
-     * its cut-off-states.
+     * current state can be reached via several paths. Ignored states cut off all other branches for
+     * each of those paths. Each set represents a single path with its cut-off-states.
      */
     private Set<PersistentSet<ARGState>> ignoreStates = new LinkedHashSet<>();
 
