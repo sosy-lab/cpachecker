@@ -436,7 +436,7 @@ class MainCPAStatistics implements Statistics {
       }
 
       if (reached.hasWaitingState()) {
-        out.println("  Size of final wait list        " + reached.getWaitlist().size());
+        out.println("  Size of final wait list:       " + reached.getWaitlist().size());
       }
     }
   }
