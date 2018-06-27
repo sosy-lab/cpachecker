@@ -343,6 +343,10 @@ table {
 	padding: 10px;
 }
 
+#statistics_table td:first-child{
+	white-space:pre;
+}
+
 #err-table td:first-child {
 	background-color: #ccc;
 }

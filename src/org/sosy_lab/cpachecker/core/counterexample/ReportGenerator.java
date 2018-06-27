@@ -336,20 +336,31 @@ public class ReportGenerator {
 
   private void insertStatistics(Writer writer, String statistics) throws IOException {
     int counter = 0;
-    String insertTableLine = "<table  id=\"statistics_table\" class=\"display\" style=\"width:100%;padding: 10px\" class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th scope=\"col\">Statistics Name</th><th scope=\"col\">Statistics Value</th></tr></thead><tbody>\n";
+    String insertTableLine = "<table  id=\"statistics_table\" class=\"display\" style=\"width:100%;padding: 10px\" class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th scope=\"col\">Statistics Name</th><th scope=\"col\">Statistics Value</th><th>Additional Value</th></tr></thead><tbody>\n";
     writer.write(insertTableLine);
     for (String line : LINE_SPLITTER.split(statistics)) {
       int tableStart = -1;
       if(!line.contains(":") && !(line.trim().isEmpty()) && !line.contains("----------")){
-        String insertTableHead = "<tr id=\"statistics-" + counter + "\"><th>" + htmlEscaper().escape(line) + "</th><th></th</tr>";
+        String insertTableHead = "<tr id=\"statistics-" + counter + "\"><th>" + htmlEscaper().escape(line) + "</th><th></th><th></th></tr>";
         writer.write(insertTableHead);
       }
       else{
-        List<String> splitLine = Splitter.on(':').limit(2).splitToList(line);
+        int count = line.indexOf(line.trim());
+        for(int i=0;i<count/2;i++){
+          line = "\t" + line;
+        }
+        List<String> splitLine = Splitter.on(":").limit(2).splitToList(line);
         if(splitLine.size()== 2){
           int countLineNumber = counter + 1;  
-          line = "<tr id=\"statistics-" + counter + "\"><td>" + htmlEscaper().escape(splitLine.get(0)) + "</td><td>" + htmlEscaper().escape(splitLine.get(1)) + "</td></tr>\n";
+          if(!splitLine.get(1).contains(";") && splitLine.get(1).contains("(")){
+            List<String> splitLineAnotherValue =Splitter.on("(").limit(2).splitToList(splitLine.get(1));
+            line = "<tr id=\"statistics-" + counter + "\"><td>" + htmlEscaper().escape(splitLine.get(0)) + "</td><td>" + htmlEscaper().escape(splitLineAnotherValue.get(0)) + "</td><td>" + htmlEscaper().escape(splitLineAnotherValue.get(1).replaceAll("[()]","")) + "</td></tr>\n";
+            writer.write(line);
+          }  
+          else{
+            line = "<tr id=\"statistics-" + counter + "\"><td>" + htmlEscaper().escape(splitLine.get(0)) + "</td><td>" + htmlEscaper().escape(splitLine.get(1)) + "</td><td></td></tr>\n";
           writer.write(line);
+          }
           counter++;
         }
       }
