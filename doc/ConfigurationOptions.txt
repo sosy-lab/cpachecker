@@ -961,10 +961,14 @@ cpa.arg.automaton.exportSpcFile = "ARG_parts/ARG.%03d.spc"
 
 # after determining branches, which one of them should be exported?
 cpa.arg.automaton.selectionStrategy = LEAFS
-  enum:     [NONE, ALL, LEAFS, WEIGHTED]
+  enum:     [NONE, ALL, LEAFS, WEIGHTED, FIRST_BFS]
 
-# minimum ratio of siblings suchthat one of them will be exported
+# minimum ratio of siblings such that one of them will be exported
 cpa.arg.automaton.siblingRatio = 0.4
+
+# when using FIRST_BFS, how many nodes should be skipped? ZERO will only
+# export the root itself, MAX_INT will export only LEAFS.
+cpa.arg.automaton.skipFirstNum = 10
 
 # which coarse strategy should be applied when analyzing the ARG?
 cpa.arg.automaton.strategy = GLOBAL_CONDITIONS

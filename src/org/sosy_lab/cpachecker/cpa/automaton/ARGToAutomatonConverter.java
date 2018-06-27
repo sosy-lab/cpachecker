@@ -85,7 +85,12 @@ public class ARGToAutomatonConverter {
     /** export all leaf nodes of the ARG, very precise, no redundant paths are exported. */
     LEAFS,
     /** export some intermediate nodes, sound due to export of siblings if needed. */
-    WEIGHTED
+    WEIGHTED,
+    /**
+     * export top nodes according to BFS, but skip the first N internal nodes, e.g. export the
+     * frontier nodes after analyzing N nodes.
+     */
+    FIRST_BFS
   }
 
   @Option(
@@ -105,8 +110,15 @@ public class ARGToAutomatonConverter {
 
   @Option(
       secure = true,
-      description = "minimum ratio of siblings suchthat one of them will be exported")
+      description = "minimum ratio of siblings such that one of them will be exported")
   private double siblingRatio = 0.4;
+
+  @Option(
+      secure = true,
+      description =
+          "when using FIRST_BFS, how many nodes should be skipped? "
+              + "ZERO will only export the root itself, MAX_INT will export only LEAFS.")
+  private int skipFirstNum = 10;
 
   public ARGToAutomatonConverter(@Nullable Configuration config)
       throws InvalidConfigurationException {
@@ -269,9 +281,47 @@ public class ARGToAutomatonConverter {
       case WEIGHTED: // export all nodes, where children are heavier than a given limit
         return getWeightedAutomata(root, pDependencies);
 
+      case FIRST_BFS:
+        return FluentIterable.from(getTopAutomata(root, pDependencies, skipFirstNum))
+            .transformAndConcat(state -> pDependencies.get(state).getIgnoreStates())
+            .transform(ignores -> getAutomatonForStates(root, ignores.asSet()));
       default:
         throw new AssertionError("unexpected export strategy");
     }
+  }
+
+  /** return the frontier states after skipping N states */
+  private Iterable<ARGState> getTopAutomata(
+      ARGState root, Map<ARGState, BranchingInfo> pDependencies, int skipN) {
+    Set<ARGState> alwaysExport = new LinkedHashSet<>();
+    Collection<ARGState> finished = new LinkedHashSet<>();
+    Deque<ARGState> waitlist = new ArrayDeque<>();
+    waitlist.add(root);
+    while (!waitlist.isEmpty()) {
+      if (finished.size() > skipN) {
+        // we have skipped the first N states, return the frontier.
+        // TODO exclude exit-states when counting skipN?
+        // This might avoid to export simple paths at program-start.
+        alwaysExport.addAll(waitlist);
+        break;
+      }
+      ARGState s = waitlist.pop();
+      if (!finished.add(s)) {
+        continue;
+      }
+      BranchingInfo bi = pDependencies.get(s);
+      Set<ARGState> children = bi.getNextStates();
+      if (children.isEmpty()) {
+        // end of ARG reached, export paths to state directly
+        alwaysExport.add(s);
+      }
+      for (ARGState child : children) {
+         if (!finished.contains(child)) {
+           waitlist.add(child);
+         }
+       }
+    }
+    return alwaysExport;
   }
 
   private Iterable<Automaton> getWeightedAutomata(
@@ -651,8 +701,9 @@ public class ARGToAutomatonConverter {
     private boolean isPartOfLoop = false; // lazy
 
     /**
-     * current state can be reached via several paths. ignoreStates cut off all other branches for
-     * each of those paths. Each set represents a single path with its cut-off-states.
+     * current state can be reached via several paths and can lead into several paths. ignoreStates
+     * cut off all other branches for each of those paths. Each set represents a single path with
+     * its cut-off-states.
      */
     private Set<PersistentSet<ARGState>> ignoreStates = new LinkedHashSet<>();
 
