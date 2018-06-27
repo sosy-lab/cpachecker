@@ -258,7 +258,8 @@ public class ARGToAutomatonConverter {
             .transformAndConcat(entry -> entry.getValue().getIgnoreStates())
             .transform(ignores -> getAutomatonForStates(root, ignores.asSet()));
 
-      case LEAFS: // ALL_PATHS, export all leaf-nodes, sub-graphs cover the whole graph
+      case LEAFS: // ALL_PATHS, export all leaf-nodes, sub-graphs cover the whole graph.
+        // no redundant paths expected, if leafs are reached via different paths.
         return FluentIterable.from(pDependencies.entrySet())
             // end-states do not have outgoing edges, and thus no next states.
             .filter(entry -> entry.getValue().getNextStates().isEmpty())
@@ -275,15 +276,22 @@ public class ARGToAutomatonConverter {
 
   private Iterable<Automaton> getWeightedAutomata(
       ARGState root, Map<ARGState, BranchingInfo> pDependencies) {
+
+    // collect all end-states, i.e., states that have no succeeding next-state.
     Set<ARGState> endStates = new HashSet<>();
     for (Entry<ARGState, BranchingInfo> entry : pDependencies.entrySet()) {
       if (entry.getValue().getNextStates().isEmpty()) {
         endStates.add(entry.getKey());
       }
     }
+
+    // tracks visited states with a flag whether all of their children are handled completely.
+    // If not all children are handled completely (but finished),
+    // the parent must be exported including paths to the non-exported children.
+    Map<ARGState, Boolean> finished = new HashMap<>();
+
     List<Automaton> automata = new ArrayList<>();
     Deque<ARGState> waitlist = new ArrayDeque<>(endStates);
-    Map<ARGState, Boolean> finished = new HashMap<>();
     while (!waitlist.isEmpty()) {
       ARGState s = waitlist.pop();
       if (finished.containsKey(s)) {
@@ -292,39 +300,50 @@ public class ARGToAutomatonConverter {
       BranchingInfo bi = pDependencies.get(s);
       Set<ARGState> children = bi.getNextStates();
       if (!finished.keySet().containsAll(children)) {
-        waitlist.add(s); // re-schedule until all children are finished
+        // re-schedule until all children are finished.
+        // does not imply that all children are exported!
+        waitlist.add(s);
         continue;
       }
-      final boolean finishedExport;
+      final boolean completeExportOfState;
       Set<ARGState> finishedChildren = from(children).filter(c -> finished.get(c)).toSet();
       if (!children.isEmpty() && children.equals(finishedChildren)) {
         // all children exported, finished
-        finishedExport = true;
+        completeExportOfState = true;
       } else if (!finishedChildren.isEmpty()) {
         // only some children are exported -> export all siblings as one automaton.
+        // TODO we currently only support look-ahead for one step.
+        // This might lead to redundant traces in the exported automata.
+        // Should we add a deeper analysis that also looks for (non-)exported grand-children?
         for (PersistentSet<ARGState> ignores : bi.getIgnoreStates()) {
           automata.add(getAutomatonForStates(root, Sets.union(ignores.asSet(), finishedChildren)));
         }
-        finishedExport = true;
+        completeExportOfState = true;
       } else {
         // no children are exported -> export current node or skip and export parent
         if (shouldExportAutomatonFor(root, s, pDependencies)) {
           for (PersistentSet<ARGState> ignores : bi.getIgnoreStates()) {
             automata.add(getAutomatonForStates(root, ignores.asSet()));
           }
-          finishedExport = true;
+          completeExportOfState = true;
         } else {
-          finishedExport = false;
+          // we do not export this automaton, but export the parent.
+          completeExportOfState = false;
         }
       }
-      finished.put(s, finishedExport);
-      if (!finishedExport) {
+      finished.put(s, completeExportOfState);
+      if (!completeExportOfState) {
         waitlist.addAll(bi.getParents());
       }
     }
     return automata;
   }
 
+  /**
+   * determine whether the automaton starting at root going via state s should be exported.
+   *
+   * <p>We can check whether the branch below s is large enough compared to the overall
+   */
   private boolean shouldExportAutomatonFor(
       ARGState root, ARGState s, Map<ARGState, BranchingInfo> pDependencies) {
     if (s == root) { // if no other automaton is exported, then export the whole ARG via root
@@ -633,7 +652,7 @@ public class ARGToAutomatonConverter {
 
     /**
      * current state can be reached via several paths. ignoreStates cut off all other branches for
-     * each of those paths.
+     * each of those paths. Each set represents a single path with its cut-off-states.
      */
     private Set<PersistentSet<ARGState>> ignoreStates = new LinkedHashSet<>();
 
