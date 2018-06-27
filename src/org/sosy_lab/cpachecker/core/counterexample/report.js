@@ -35,6 +35,21 @@ with considerably less effort */
 				"targets": 1,
 			}]
 		});
+
+		//Configuration table initialization
+		$(document).ready(function () {
+			$('#config_table').DataTable({
+				"order": [
+					[1, "asc"]
+				],
+				aLengthMenu: [
+					[25, 50, 100, 200, -1],
+					[25, 50, 100, 200, "All"]
+				],
+				iDisplayLength: -1    //Default display all entries
+			});
+		});
+
 	});
 
 	var app = angular.module('report', []);

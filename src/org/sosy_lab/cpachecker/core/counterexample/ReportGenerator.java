@@ -416,12 +416,21 @@ public class ReportGenerator {
   private void insertConfiguration(Writer writer) throws IOException {
     Iterable<String> lines = LINE_SPLITTER.split(config.asPropertiesString());
     int iterator = 0;
+    String insertTableLine = "<table  id=\"config_table\" class=\"display\" style=\"width:100%;padding: 10px\" class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th scope=\"col\">#</th><th scope=\"col\">Configuration Name</th><th scope=\"col\">Configuration Value</th></tr></thead><tbody>\n";
+    writer.write(insertTableLine);
     for (String line : lines) {
-      line = "<pre id=\"config-" + iterator + "\">" + htmlEscaper().escape(line) + "</pre>\n";
-      writer.write(line);
-      iterator++;
+      List<String> splitLine = Splitter.on('=').limit(2).splitToList(line);
+      if(splitLine.size()== 2){
+        int countLineNumber = iterator + 1;  
+        line = "<tr id=\"config-" + iterator + "\"><th scope=\"row\">"+ countLineNumber +"</th><td>" + htmlEscaper().escape(splitLine.get(0)) + "</td><td>" + htmlEscaper().escape(splitLine.get(1)) + "</td></tr>\n";
+        writer.write(line);
+        iterator++;
+      }
     }
+    String exitTableLine = "</tbody></table>\n";
+    writer.write(exitTableLine);
   }
+
 
   private void insertLog(Writer writer) throws IOException {
     if (logFile != null && Files.isReadable(logFile)) {
