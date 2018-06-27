@@ -36,6 +36,11 @@ with considerably less effort */
 			}]
 		});
 
+		// Initialize Google pretiffy code 
+		$(document).ready(function () {
+			PR.prettyPrint();
+		});
+
 		//Configuration table initialization
 		$(document).ready(function () {
 			$('#config_table').DataTable({
