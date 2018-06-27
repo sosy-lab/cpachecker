@@ -551,4 +551,72 @@ public class TestSuite implements AlgorithmResult {
   public BDDUtils getBddUtils() {
     return bddUtils;
   }
+
+  // gleiches goal, gleiche ein und ausgaben
+
+  private boolean dominates(TestCase tc1, TestCase tc2) {
+    for (GoalCondition goal : mapping.get(tc2)) {
+      if (!mapping.get(tc1).contains(goal)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private TestCase combine(boolean compareInputOutout, TestCase tc1, TestCase tc2) {
+    if (compareInputOutout) {
+      if (!tc1.getInputs().equals(tc2.getInputs())) {
+        return null;
+      }
+      if (!tc1.getOutputs().equals(tc2.getOutputs())) {
+        return null;
+      }
+    }
+    if(dominates(tc1, tc2)) {
+      Region newCondition = bddUtils.makeOr(tc1.getPresenceCondition(), tc2.getPresenceCondition());
+      if(bddUtils.dumpRegion(newCondition).contains("||")) {
+        return null;
+      }
+      return new TestCase(tc1.getId(), tc1.getInputs(), tc1.getOutputs(), tc1.getPath(), tc1.getErrorPath(), newCondition, bddUtils);
+    }
+
+    if(dominates(tc2, tc1)) {
+      Region newCondition = bddUtils.makeOr(tc1.getPresenceCondition(), tc2.getPresenceCondition());
+      if(bddUtils.dumpRegion(newCondition).contains("||")) {
+        return null;
+      }
+      return new TestCase(tc2.getId(), tc2.getInputs(), tc2.getOutputs(), tc2.getPath(), tc2.getErrorPath(), newCondition, bddUtils);
+    }
+    return null;
+  }
+
+  private Set<TestCase> combineTestCases(boolean compareInputOutput) {
+    Set<TestCase> testcases = new HashSet<>(mapping.keySet());
+    Set<TestCase> copy = new HashSet<>(testcases);
+    do {
+      testcases.clear();
+      testcases.addAll(copy);
+      for (TestCase tc1 : mapping.keySet()) {
+        for (TestCase tc2 : mapping.keySet()) {
+          if (tc1 != tc2) {
+          TestCase combined = combine(compareInputOutput, tc1, tc2);
+          if (combined != null) {
+            copy.remove(tc1);
+            copy.remove(tc2);
+            copy.add(combined);
+          }
+          }
+        }
+      }
+    } while (copy.size() != testcases.size());
+    return copy;
+  }
+
+  public Set<TestCase> getShrinkedTestCases() {
+    return combineTestCases(true);
+  }
+
+  public Set<TestCase> getShrinkedTestCasesIgnoreInputOutput() {
+    return combineTestCases(false);
+  }
 }

@@ -56,7 +56,10 @@ public class TestCase {
   private ARGPath argPath;
   private BDDUtils bddUtils;
 
-  public TestCase(int pI, Map<String, BigInteger> pInputs, Map<String, BigInteger> pOutputs,
+  public TestCase(
+      int pID,
+      Map<String, BigInteger> pInputs,
+      Map<String, BigInteger> pOutputs,
       List<CFAEdge> pPath,
       List<CFAEdge> pShrinkedErrorPath,
       Region pPresenceCondition,
@@ -66,7 +69,7 @@ public class TestCase {
     path = pPath;
     errorPath = pShrinkedErrorPath;
     presenceCondition = pPresenceCondition;
-    id = pI;
+    id = pID;
     bddUtils = pBddUtils;
   }
 
