@@ -428,35 +428,36 @@ public class ARGStatistics implements Statistics {
         throw new AssertionError("should not happen");
       }
       try {
+        final int baseId = -1; // id for the exported 'complete' automaton
         Automaton automaton =
             Iterables.getOnlyElement(argToAutomatonConverter.getAutomata(rootState));
         if (automatonSpcFile != null) {
-          IO.writeFile(automatonSpcFile.getPath(-1), Charset.defaultCharset(), automaton);
+          IO.writeFile(automatonSpcFile.getPath(baseId), Charset.defaultCharset(), automaton);
         }
         if (automatonSpcDotFile != null) {
           try (Writer w =
-              IO.openOutputFile(automatonSpcDotFile.getPath(-1), Charset.defaultCharset())) {
+              IO.openOutputFile(automatonSpcDotFile.getPath(baseId), Charset.defaultCharset())) {
             automaton.writeDotFile(w);
           }
         }
       } catch (IOException io) {
         logger.logUserException(Level.WARNING, io, "Could not write ARG to automata to file");
       }
-      int counter = 0;
+      int counterId = 0; // id for each exported 'partial' automata, distinct from 'baseId'
       try {
         for (Automaton automaton : argToAutomatonSplitter.getAutomata(rootState)) {
-          counter++;
+          counterId++;
           if (automatonSpcFile != null) {
-            IO.writeFile(automatonSpcFile.getPath(counter), Charset.defaultCharset(), automaton);
+            IO.writeFile(automatonSpcFile.getPath(counterId), Charset.defaultCharset(), automaton);
           }
           if (automatonSpcDotFile != null) {
             try (Writer w =
-                IO.openOutputFile(automatonSpcDotFile.getPath(counter), Charset.defaultCharset())) {
+                IO.openOutputFile(automatonSpcDotFile.getPath(counterId), Charset.defaultCharset())) {
               automaton.writeDotFile(w);
             }
           }
         }
-        logger.log(Level.INFO, "Number of exported automata after splitting:", counter);
+        logger.log(Level.INFO, "Number of exported automata after splitting:", counterId);
       } catch (IOException io) {
         logger.logUserException(Level.WARNING, io, "Could not write ARG to automata to file");
       }
