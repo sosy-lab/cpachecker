@@ -29,6 +29,7 @@ import static com.google.common.collect.ImmutableList.of;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -601,6 +602,18 @@ public class ARGToAutomatonConverter {
     return Iterables.transform(states, ARGToAutomatonConverter::id);
   }
 
+  private static Iterable<String> ids(
+      final Iterable<? extends Iterable<ARGState>> iterableOfStates) {
+    return Iterables.transform(iterableOfStates, states -> id(states).toString());
+  }
+
+  private static String id(ImmutableMultimap<ARGState, ARGState> children) {
+    return "{"
+        + Joiner.on(", ")
+            .join(Iterables.transform(children.keys(), s -> id(s) + "->" + id(children.get(s))))
+        + "}";
+  }
+
   private static final class BranchingInfo {
     private final ARGState current;
 
@@ -651,6 +664,13 @@ public class ARGToAutomatonConverter {
 
     private Set<ARGState> getParents() {
       return parents;
+    }
+
+    @Override
+    public String toString() {
+      return String.format(
+          "BranchingInfo {parents=%s, children=%s, ignore=%s, loop=%s}",
+          id(parents), id(children), ids(ignoreStates), isPartOfLoop);
     }
   }
 }
