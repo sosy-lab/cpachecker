@@ -952,6 +952,9 @@ cpa.arg.automaton.branchRatio = 0.5
 # translate final ARG into an automaton
 cpa.arg.automaton.export = false
 
+# export as zip-files, depends on 'automaton.export=true'
+cpa.arg.automaton.exportCompressed = true
+
 # translate final ARG into an automaton, depends on 'automaton.export=true'
 cpa.arg.automaton.exportDotFile = "ARG_parts/ARG.%03d.spc.dot"
 cpa.arg.automaton.exportSpcFile = "ARG_parts/ARG.%03d.spc"
