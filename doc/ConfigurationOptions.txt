@@ -2964,7 +2964,8 @@ interleavedAlgorithm.initCondition = false
 
 # print the statistics of each component of the interleaved algorithm
 # directly after the component's computation is finished
-interleavedAlgorithm.printIntermediateStatistics = false
+interleavedAlgorithm.intermediateStatistics = NONE
+  enum:     [EXECUTE, NONE, PRINT]
 
 # let each analysis part of the interleaved algorithm write output files and
 # not only the last one that is executed

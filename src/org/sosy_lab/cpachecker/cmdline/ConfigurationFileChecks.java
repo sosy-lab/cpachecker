@@ -94,7 +94,7 @@ public class ConfigurationFileChecks {
 
   private static final Pattern INDICATES_MISSING_INPUT_FILE =
       Pattern.compile(
-          ".*File .* does not exist.*|.*Witness file is missing in specification.*",
+          ".*File .* does not exist.*|.*Witness file is missing in specification.*|.*Could not read precision from file.*",
           Pattern.DOTALL);
 
   private static final Pattern ALLOWED_WARNINGS =
