@@ -25,12 +25,11 @@ package org.sosy_lab.cpachecker.cpa.modifications;
 
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class ModificationsState implements AbstractState, AvoidanceReportingState {
+public class ModificationsState implements AvoidanceReportingState {
 
   private boolean hasModification;
   private CFANode locationInGivenCfa;
