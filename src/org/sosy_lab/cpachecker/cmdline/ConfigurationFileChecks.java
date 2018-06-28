@@ -369,6 +369,7 @@ public class ConfigurationFileChecks {
     final String cpas = firstNonNull(config.getProperty("CompositeCPA.cpas"), "");
     final boolean isSvcompConfig = basePath.toString().contains("svcomp");
     final boolean isTestGenerationConfig = basePath.toString().contains("testCaseGeneration");
+    final boolean isDifferentialConfig = basePath.toString().contains("differentialAutomaton");
 
     if (options.language == Language.JAVA) {
       assertThat(spec).endsWith("specification/JavaAssertion.spc");
@@ -404,6 +405,8 @@ public class ConfigurationFileChecks {
       }
     } else if (isTestGenerationConfig) {
       assertThat(spec).isAnyOf(null, "");
+    } else if (isDifferentialConfig) {
+      assertThat(spec).isAnyOf(null, "", "specification/modifications-present.spc");
     } else if (spec != null) {
       // TODO should we somehow restrict which configs may specify "no specification"?
       assertThat(spec).endsWith("specification/default.spc");

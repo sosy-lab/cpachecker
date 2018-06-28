@@ -25,11 +25,13 @@ package org.sosy_lab.cpachecker.cpa.modifications;
 
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class ModificationsState implements AvoidanceReportingState {
+public class ModificationsState implements AvoidanceReportingState, AbstractQueryableState {
 
   private boolean hasModification;
   private CFANode locationInGivenCfa;
@@ -89,5 +91,21 @@ public class ModificationsState implements AvoidanceReportingState {
       return pMgr.getBooleanFormulaManager().makeFalse();
     }
     return pMgr.getBooleanFormulaManager().makeTrue();
+  }
+
+  @Override
+  public String getCPAName() {
+    return ModificationsCPA.class.getSimpleName();
+  }
+
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    switch (pProperty) {
+      case "is_modified":
+        return hasModification;
+      default:
+        throw new InvalidQueryException(
+            "Unknown query to " + getClass().getSimpleName() + ": " + pProperty);
+    }
   }
 }
