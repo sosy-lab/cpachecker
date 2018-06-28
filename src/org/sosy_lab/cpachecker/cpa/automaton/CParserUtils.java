@@ -109,7 +109,8 @@ class CParserUtils {
   }
 
   static List<AExpression> convertStatementsToAssumptions(
-      Iterable<CStatement> assumptions, MachineModel machineModel, LogManager logger) {
+      Iterable<CStatement> assumptions, MachineModel machineModel, LogManager logger)
+      throws InvalidAutomatonException {
     ImmutableList.Builder<AExpression> result = ImmutableList.builder();
     CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(machineModel, logger);
     for (CStatement statement : assumptions) {
@@ -129,10 +130,12 @@ class CParserUtils {
           result.add(assumeExp);
         } else if (assignment.getRightHandSide() instanceof CFunctionCall) {
           // TODO FunctionCalls, ExpressionStatements etc
+          throw new InvalidAutomatonException(
+              "Function call '"
+                  + assignment.getRightHandSide().toASTString()
+                  + "' is not supported in automaton assumption");
         }
-      }
-
-      if (statement instanceof CExpressionStatement) {
+      } else if (statement instanceof CExpressionStatement) {
         if (((CExpressionStatement) statement).getExpression().getExpressionType()
                 instanceof CSimpleType
             && ((CSimpleType)
@@ -140,7 +143,17 @@ class CParserUtils {
                 .getType()
                 .isIntegerType()) {
           result.add(((CExpressionStatement) statement).getExpression());
+        } else {
+          throw new InvalidAutomatonException(
+              "Type '"
+                  + ((CExpressionStatement) statement).getExpression().getExpressionType()
+                  + "' of expression '"
+                  + statement.toASTString()
+                  + "' is not supported in automaton assumption");
         }
+      } else {
+        throw new InvalidAutomatonException(
+            "Statement '" + statement.toASTString() + "' is not supported in automaton assumption");
       }
     }
     return result.build();
