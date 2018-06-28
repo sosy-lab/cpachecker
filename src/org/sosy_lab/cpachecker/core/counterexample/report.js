@@ -18,7 +18,7 @@ with considerably less effort */
 				$(e.target).tooltip('hide');
 			}, 3000);
 		});
-		
+
 		//Statistics table initialization
 		statisticsTable = $('#statistics_table').DataTable({
 			"order": [],
@@ -26,12 +26,12 @@ with considerably less effort */
 				[25, 50, 100, 200, -1],
 				[25, 50, 100, 200, "All"]
 			],
-			iDisplayLength: -1,   //Default display all entries
+			iDisplayLength: -1, //Default display all entries
 			"columnDefs": [{
-				"orderable": false,             //No ordering 
+				"orderable": false, //No ordering 
 				"targets": 0
 			}, {
-				"orderable": false,             //No Ordering
+				"orderable": false, //No Ordering
 				"targets": 1,
 			}]
 		});
@@ -51,9 +51,41 @@ with considerably less effort */
 					[25, 50, 100, 200, -1],
 					[25, 50, 100, 200, "All"]
 				],
-				iDisplayLength: -1    //Default display all entries
+				iDisplayLength: -1 //Default display all entries
 			});
 		});
+
+		//Log table initialization
+		$(document).ready(function () {
+			$('#log_table').DataTable({
+				"order": [
+					[0, "asc"]
+				],
+				autoWidth: false,
+				aoColumns: [{
+						sWidth: '12%'
+					},
+					{
+						sWidth: '10%'
+					},
+					{
+						sWidth: '10%'
+					},
+					{
+						sWidth: '25%'
+					},
+					{
+						sWidth: '43%'
+					},
+				],
+				aLengthMenu: [
+					[25, 50, 100, 200, -1],
+					[25, 50, 100, 200, "All"]
+				],
+				iDisplayLength: -1
+			});
+		});
+
 
 	});
 

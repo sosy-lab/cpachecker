@@ -347,6 +347,10 @@ table {
 	white-space:pre;
 }
 
+#statistics_table .table_head{
+	background-color: #ccc;
+}
+
 #err-table td:first-child {
 	background-color: #ccc;
 }
