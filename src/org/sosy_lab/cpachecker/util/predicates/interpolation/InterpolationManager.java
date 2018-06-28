@@ -655,6 +655,7 @@ public final class InterpolationManager {
           BooleanFormula interpolant = fmgr.translateFrom(f, new_fmgr);
           interpolantList.add(interpolant);
         }
+        my_solver.close();
         //return my_interpolants;
         return interpolantList;
       } else {
