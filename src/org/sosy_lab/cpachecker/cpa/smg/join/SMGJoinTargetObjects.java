@@ -262,7 +262,9 @@ final class SMGJoinTargetObjects {
       SMGValue val = hve.getValue();
 
       // FIXME: require to identify why offsets are mixed with values
-      if (!restricted.contains(val.getAsLong()) && !val.isZero()) {
+      // previously, because of unknown reason:
+      // if (!restricted.contains(val.getAsLong()) && !val.isZero()) {
+      if (!val.isZero()) {
 
         if (destSMG.isPointer(val)) {
           SMGObject reachedObject = destSMG.getPointer(val).getObject();

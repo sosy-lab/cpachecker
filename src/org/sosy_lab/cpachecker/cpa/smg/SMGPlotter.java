@@ -326,7 +326,7 @@ public final class SMGPlotter {
     if (explicitValues.containsKey(value)) {
       explicitValue = " : " + String.valueOf(explicitValues.get(value).getAsLong());
     }
-    return "value_" + value.asDotId() + "[label=\"#" + value.getAsInt() + explicitValue + "\"];";
+    return "value_" + value.asDotId() + "[label=\"#" + value.asDotId() + explicitValue + "\"];";
   }
 
   private static String neqRelationAsDot(SMGValue v1, SMGValue v2) {

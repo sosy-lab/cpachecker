@@ -525,7 +525,7 @@ public class SMGBuiltins {
             "The argument of a free invocation:", cfaEdge.getRawStatement(), "is 0");
 
       } else {
-        currentState = currentState.free(address.getAsInt(), address.getOffset().getAsInt(), address.getObject());
+        currentState = currentState.free(address.getOffset().getAsInt(), address.getObject());
       }
 
       resultStates.add(currentState);

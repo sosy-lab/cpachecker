@@ -46,12 +46,12 @@ public final class SMGKnownAddressValue extends SMGKnownSymValue implements SMGA
 
   public static SMGKnownAddressValue valueOf(
       SMGKnownSymbolicValue pAddress, SMGObject pObject, SMGKnownExpValue pOffset) {
-    return new SMGKnownAddressValue(pAddress.getValue(), SMGAddress.valueOf(pObject, pOffset));
+    return new SMGKnownAddressValue(pAddress.getId(), SMGAddress.valueOf(pObject, pOffset));
   }
 
   public static SMGKnownAddressValue valueOf(SMGEdgePointsTo edge) {
     return new SMGKnownAddressValue(
-        edge.getValue().getValue(),
+        ((SMGSymbolicValue) edge.getValue()).getId(),
         SMGAddress.valueOf(edge.getObject(), SMGKnownExpValue.valueOf(edge.getOffset())));
   }
 

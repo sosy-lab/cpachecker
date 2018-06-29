@@ -33,6 +33,21 @@ public class SMGKnownExpValue extends SMGKnownValue implements SMGExplicitValue 
     super(pValue);
   }
 
+  @Override // override for visibility
+  public BigInteger getValue() {
+    return super.getValue();
+  }
+
+  @Override
+  public final int getAsInt() {
+    return getValue().intValue();
+  }
+
+  @Override
+  public final long getAsLong() {
+    return getValue().longValue();
+  }
+
   @Override
   public boolean equals(Object pObj) {
     return pObj instanceof SMGKnownExpValue && super.equals(pObj);

@@ -1500,19 +1500,15 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   /**
-   * This method simulates a free invocation. It checks,
-   * whether the call is valid, and invalidates the
-   * Memory the given address points to.
-   * The address (address, offset, smgObject) is the argument
-   * of the free invocation. It does not need to be part of the SMG.
+   * This method simulates a free invocation. It checks, whether the call is valid, and invalidates
+   * the Memory the given address points to. The address (address, offset, smgObject) is the
+   * argument of the free invocation. It does not need to be part of the SMG.
    *
-   * @param address The symbolic Value of the address.
    * @param offset The offset of the address relative to the beginning of smgObject.
    * @param smgObject The memory the given Address belongs to.
    * @return returns a possible new State
    */
-  protected SMGState free(Integer address, Integer offset, SMGObject smgObject)
-      throws SMGInconsistentException {
+  protected SMGState free(Integer offset, SMGObject smgObject) throws SMGInconsistentException {
 
     if (!heap.isHeapObject(smgObject) && !heap.isObjectExternallyAllocated(smgObject)) {
       // You may not free any objects not on the heap.

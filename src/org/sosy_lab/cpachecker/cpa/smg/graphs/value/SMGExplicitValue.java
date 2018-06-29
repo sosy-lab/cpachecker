@@ -23,7 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.value;
 
+import java.math.BigInteger;
+
 public interface SMGExplicitValue extends SMGValue {
+
+  BigInteger getValue();
+
+  int getAsInt();
+
+  long getAsLong();
 
   SMGExplicitValue negate();
 

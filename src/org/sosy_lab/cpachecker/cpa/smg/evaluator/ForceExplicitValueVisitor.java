@@ -127,6 +127,6 @@ class ForceExplicitValueVisitor extends ExplicitValueVisitor {
 
     getNewState().putExplicit((SMGKnownSymbolicValue) value, guessSize);
 
-    return new NumericValue(guessSize.getValue());
+    return new NumericValue(guessSize.getAsInt());
   }
 }
