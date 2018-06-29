@@ -28,8 +28,6 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Multiset;
 import java.util.Map.Entry;
 import java.util.Objects;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -37,17 +35,9 @@ import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.lock.LockState;
-import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.cpa.usage.storage.FunctionContainer;
-import org.sosy_lab.cpachecker.cpa.usage.storage.FunctionContainer.StorageStatistics;
-import org.sosy_lab.cpachecker.cpa.usage.storage.TemporaryUsageStorage;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.Identifiers;
-import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -56,13 +46,9 @@ public class UsageState extends AbstractSingleWrapperState
     implements LatticeAbstractState<UsageState> {
 
   private static final long serialVersionUID = -898577877284268426L;
-  private TemporaryUsageStorage recentUsages;
-  // private boolean isStorageCloned;
-  private final FunctionContainer functionContainer;
   private final transient StateStatistics stats;
 
   private boolean isExitState;
-  private boolean isStorageDumped;
 
   private transient PersistentSortedMap<AbstractIdentifier, AbstractIdentifier>
       variableBindingRelation;
@@ -70,36 +56,23 @@ public class UsageState extends AbstractSingleWrapperState
   private UsageState(
       final AbstractState pWrappedElement,
       final PersistentSortedMap<AbstractIdentifier, AbstractIdentifier> pVarBind,
-      final TemporaryUsageStorage pRecentUsages,
-      final FunctionContainer pFuncContainer,
       final StateStatistics pStats,
       boolean exit) {
     super(pWrappedElement);
     variableBindingRelation = pVarBind;
-    recentUsages = pRecentUsages;
-    functionContainer = pFuncContainer;
     stats = pStats;
     isExitState = exit;
-    isStorageDumped = false;
   }
 
   public static UsageState createInitialState(final AbstractState pWrappedElement) {
-    FunctionContainer initialContainer = FunctionContainer.createInitialContainer();
     return new UsageState(
-        pWrappedElement,
-        PathCopyingPersistentTreeMap.of(),
-        new TemporaryUsageStorage(),
-        initialContainer,
-        new StateStatistics(initialContainer.getStatistics()),
-        false);
+        pWrappedElement, PathCopyingPersistentTreeMap.of(), new StateStatistics(), false);
   }
 
   private UsageState(final AbstractState pWrappedElement, final UsageState state) {
     this(
         pWrappedElement,
         state.variableBindingRelation,
-        state.recentUsages,
-        state.functionContainer,
         state.stats,
         state.isExitState);
   }
@@ -151,12 +124,7 @@ public class UsageState extends AbstractSingleWrapperState
   }
 
   public UsageState copy(final AbstractState pWrappedState) {
-    UsageState result = new UsageState(pWrappedState, this);
-    if (isStorageDumped) {
-      result.recentUsages = new TemporaryUsageStorage();
-      functionContainer.registerTemporaryContainer(result.recentUsages);
-    }
-    return result;
+    return new UsageState(pWrappedState, this);
   }
 
   @Override
@@ -164,7 +132,6 @@ public class UsageState extends AbstractSingleWrapperState
     final int prime = 31;
     int result = 1;
     result = prime * result + Objects.hashCode(variableBindingRelation);
-    result = prime * result + Objects.hashCode(recentUsages);
     result = prime * super.hashCode();
     return result;
   }
@@ -179,7 +146,6 @@ public class UsageState extends AbstractSingleWrapperState
     }
     UsageState other = (UsageState) obj;
     return Objects.equals(variableBindingRelation, other.variableBindingRelation)
-        && Objects.equals(recentUsages, other.recentUsages)
         && getWrappedState().equals(other.getWrappedState());
   }
 
@@ -213,82 +179,11 @@ public class UsageState extends AbstractSingleWrapperState
       return false;
     }
 
-    // in case of true, we need to copy usages
-    /*for (SingleIdentifier id : this.recentUsages.keySet()) {
-      for (UsageInfo usage : this.recentUsages.get(id)) {
-        other.addUsage(id, usage);
-      }
-    }*/
-    if (!this.recentUsages.isSubsetOf(other.recentUsages)) {
-      stats.lessTimer.stop();
-      return false;
-    }
     stats.lessTimer.stop();
     return true;
   }
 
-  public void addUsage(final SingleIdentifier id, final UsageInfo usage) {
-    recentUsages.add(id, usage);
-  }
-
-  public void joinContainerFrom(final UsageState reducedState) {
-    stats.joinTimer.start();
-    functionContainer.join(reducedState.functionContainer);
-    stats.joinTimer.stop();
-    // Free useless memory
-    reducedState.functionContainer.clearStorages();
-  }
-
-  public void joinRecentUsagesFrom(final UsageState pState) {
-    stats.joinTimer.start();
-    recentUsages.copyUsagesFrom(pState.recentUsages);
-    stats.joinTimer.stop();
-    for (Entry<AbstractIdentifier, AbstractIdentifier> entry :
-        pState.variableBindingRelation.entrySet()) {
-      variableBindingRelation =
-          variableBindingRelation.putAndCopy(entry.getKey(), entry.getValue());
-    }
-  }
-
-  public UsageState reduce(final AbstractState wrappedState) {
-    LockState rootLockState = AbstractStates.extractStateByType(this, LockState.class);
-    LockState reducedLockState = AbstractStates.extractStateByType(wrappedState, LockState.class);
-    Multiset<LockEffect> difference;
-    if (rootLockState == null || reducedLockState == null) {
-      // No LockCPA
-      difference = HashMultiset.create();
-    } else {
-      difference = reducedLockState.getDifference(rootLockState);
-    }
-
-    return new UsageState(
-        wrappedState,
-        PathCopyingPersistentTreeMap.of(),
-        recentUsages.copy(),
-        functionContainer.clone(difference),
-        this.stats,
-        this.isExitState);
-  }
-
-  public void saveUnsafesInContainerIfNecessary(AbstractState abstractState) {
-    ARGState argState = AbstractStates.extractStateByType(abstractState, ARGState.class);
-    PredicateAbstractState state =
-        AbstractStates.extractStateByType(argState, PredicateAbstractState.class);
-    if (state == null || (!state.getAbstractionFormula().isFalse() && state.isAbstractionState())) {
-      recentUsages.setKeyState(argState);
-      stats.addRecentUsagesTimer.start();
-      functionContainer.join(recentUsages);
-      stats.addRecentUsagesTimer.stop();
-      isStorageDumped = true;
-    }
-  }
-
-  public FunctionContainer getFunctionContainer() {
-    return functionContainer;
-  }
-
   public void asExitable() {
-    // return new UsageExitableState(this);
     isExitState = true;
   }
 
@@ -296,53 +191,14 @@ public class UsageState extends AbstractSingleWrapperState
     return stats;
   }
 
-  /*@Override
-  public boolean isExitState() {
-    return isExitState;
-  }*/
-
-  /*public class UsageExitableState extends UsageState {
-
-    private static final long serialVersionUID = 1957118246209506994L;
-
-    private UsageExitableState(AbstractState pWrappedElement, UsageState state) {
-      super(pWrappedElement, state);
-    }
-
-    public UsageExitableState(UsageState state) {
-      this(state.getWrappedState(), state);
-    }
-
-    @Override
-    public UsageExitableState clone(final AbstractState wrapped) {
-      return new UsageExitableState(wrapped, this);
-    }
-
-    @Override
-    public UsageExitableState reduce(final AbstractState wrapped) {
-      return new UsageExitableState(wrapped, this);
-    }
-
-    public boolean isExitable() {
-      return true;
-    }
-  }*/
-
   public static class StateStatistics {
     private StatTimer joinTimer = new StatTimer("Time for joining");
     private StatTimer lessTimer = new StatTimer("Time for cover check");
-    private StatTimer addRecentUsagesTimer = new StatTimer("Time for adding recent usages");
 
-    private final StorageStatistics storageStats;
-
-    public StateStatistics(StorageStatistics stats) {
-      storageStats = Objects.requireNonNull(stats);
-    }
+    public StateStatistics() {}
 
     public void printStatistics(StatisticsWriter out) {
-      out.spacer().put(joinTimer).put(addRecentUsagesTimer).put(lessTimer);
-
-      storageStats.printStatistics(out);
+      out.spacer().put(joinTimer).put(lessTimer);
     }
   }
 
@@ -352,17 +208,22 @@ public class UsageState extends AbstractSingleWrapperState
 
   @Override
   public UsageState join(UsageState pOther) {
-    throw new UnsupportedOperationException(
-        "Join is not supported for usage states, use merge operator");
+    stats.joinTimer.start();
+    PersistentSortedMap<AbstractIdentifier, AbstractIdentifier> newRelation =
+        PathCopyingPersistentTreeMap.copyOf(this.variableBindingRelation);
+    for (Entry<AbstractIdentifier, AbstractIdentifier> entry :
+        pOther.variableBindingRelation.entrySet()) {
+      newRelation = newRelation.putAndCopy(entry.getKey(), entry.getValue());
+    }
+    stats.joinTimer.stop();
+    return new UsageState(this.getWrappedState(), newRelation, stats, isExitState);
   }
 
   protected Object readResolve() {
     return new UsageState(
         getWrappedState(),
         PathCopyingPersistentTreeMap.of(),
-        this.recentUsages,
-        this.functionContainer,
-        new StateStatistics(this.functionContainer.getStatistics()),
+        new StateStatistics(),
         this.isExitState);
   }
 }

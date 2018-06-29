@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cpa.usage.storage.UnsafeDetector;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -83,6 +84,8 @@ public abstract class ErrorTracePrinter {
   private final StatTimer preparationTimer = new StatTimer("Time for preparation");
   private final StatTimer unsafeDetectionTimer = new StatTimer("Time for unsafe detection");
   private final StatTimer writingUnsafeTimer = new StatTimer("Time for dumping the unsafes");
+  private final StatCounter emptyLockSetUnsafes =
+      new StatCounter("Number of unsafes with empty lock sets");
 
   protected final Configuration config;
   protected UsageContainer container;
@@ -176,6 +179,11 @@ public abstract class ErrorTracePrinter {
         continue;
       }
       Pair<UsageInfo, UsageInfo> tmpPair = detector.getUnsafePair(uinfo);
+      if (tmpPair.getFirst().getLockState().getSize() == 0
+          && tmpPair.getSecond().getLockState().getSize() == 0) {
+        emptyLockSetUnsafes.inc();
+      }
+
       unsafeDetectionTimer.stop();
 
       writingUnsafeTimer.start();
@@ -203,7 +211,11 @@ public abstract class ErrorTracePrinter {
 
   public void printStatistics(StatisticsWriter out) {
 
-    out.spacer().put(preparationTimer).put(unsafeDetectionTimer).put(writingUnsafeTimer);
+    out.spacer()
+        .put(preparationTimer)
+        .put(unsafeDetectionTimer)
+        .put(writingUnsafeTimer)
+        .put(emptyLockSetUnsafes);
 
     container.printUsagesStatistics(out);
   }

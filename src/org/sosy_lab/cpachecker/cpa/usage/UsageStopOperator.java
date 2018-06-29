@@ -44,7 +44,6 @@ public class UsageStopOperator implements StopOperator {
       throws CPAException, InterruptedException {
 
     UsageState usageState = (UsageState) pState;
-    UsagePrecision usagePrecision = (UsagePrecision) pPrecision;
 
     for (AbstractState reached : pReached) {
       UsageState reachedUsageState = (UsageState) reached;
@@ -56,7 +55,7 @@ public class UsageStopOperator implements StopOperator {
           wrappedStop.stop(
               usageState.getWrappedState(),
               Collections.singleton(reachedUsageState.getWrappedState()),
-              usagePrecision.getWrappedPrecision());
+              pPrecision);
       if (result) {
         return true;
       }

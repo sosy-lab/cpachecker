@@ -280,7 +280,8 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
       // create path with all abstraction location elements (excluding the initial element)
       // the last element is the element corresponding to the error location
-      final List<ARGState> abstractionStatesTrace = filterAbstractionStates(allStatesTrace);
+      final List<ARGState> abstractionStatesTrace =
+          strategy.filterAbstractionStates(allStatesTrace);
       totalPathLength.setNextValue(abstractionStatesTrace.size());
 
       logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
@@ -563,10 +564,11 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
     // This assertion does not hold anymore for slicing abstractions.
     // TODO: Find a way to still check this for when we do not use slicing!
-    //assert from(result).allMatch(state -> state.getParents().size() <= 1)
-    //    : "PredicateCPARefiner expects abstraction states to have only one parent, but at least one state has more.";
+    // assert from(result).allMatch(state -> state.getParents().size() <= 1)
+    //    : "PredicateCPARefiner expects abstraction states to have only one parent, but at least
+    // one state has more.";
 
-    assert pPath.getLastState() == result.get(result.size()-1);
+    assert pPath.getLastState() == result.get(result.size() - 1);
     return result;
   }
 

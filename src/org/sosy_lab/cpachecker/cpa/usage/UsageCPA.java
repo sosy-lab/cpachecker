@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.usage;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.Map;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -55,9 +56,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
+import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
 import org.sosy_lab.cpachecker.cpa.lock.LockCPA;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
 
 @Options
 public class UsageCPA extends AbstractSingleWrapperCPA
@@ -65,12 +68,14 @@ public class UsageCPA extends AbstractSingleWrapperCPA
 
   private final StopOperator stopOperator;
   private final MergeOperator mergeOperator;
-  private final TransferRelation transferRelation;
+  private final UsageTransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
   private final Reducer reducer;
   private final UsageCPAStatistics statistics;
   private final CFA cfa;
   private final LogManager logger;
+  private final Map<CFANode, Map<GeneralIdentifier, DataType>> localMap;
+  private final UsageProcessor usageProcessor;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(UsageCPA.class);
@@ -112,6 +117,10 @@ public class UsageCPA extends AbstractSingleWrapperCPA
             statistics,
             (CallstackTransferRelation)
                 (CPAs.retrieveCPA(this, CallstackCPA.class)).getTransferRelation());
+
+    PresisionParser parser = new PresisionParser(cfa, logger);
+    localMap = parser.parse(outputFileName);
+    usageProcessor = new UsageProcessor(pConfig, logger, localMap, transferRelation.getBinderFunctionInfo());
   }
 
   @Override
@@ -142,9 +151,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
   @Override
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition p)
       throws InterruptedException {
-    PresisionParser parser = new PresisionParser(cfa, logger);
-    return UsagePrecision.create(
-        this.getWrappedCpa().getInitialPrecision(pNode, p), parser.parse(outputFileName));
+    return this.getWrappedCpa().getInitialPrecision(pNode, p);
   }
 
   @Override
@@ -177,5 +184,9 @@ public class UsageCPA extends AbstractSingleWrapperCPA
     ConfigurableProgramAnalysis cpa = getWrappedCpa();
     assert cpa instanceof ConfigurableProgramAnalysisWithBAM;
     ((ConfigurableProgramAnalysisWithBAM) cpa).setPartitioning(pPartitioning);
+  }
+
+  public UsageProcessor getUsageProcessor() {
+    return usageProcessor;
   }
 }

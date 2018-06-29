@@ -156,6 +156,10 @@ public class BAMPredicateAbstractionRefinementStrategy extends PredicateAbstract
     PredicatePrecision oldPredicatePrecision =
         Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
 
+    if (oldPredicatePrecision == null) {
+      return relevantPredicatesComputer;
+    }
+
     BlockPartitioning partitioning = predicateCpa.getPartitioning();
     Deque<Block> openBlocks = new ArrayDeque<>();
     openBlocks.push(partitioning.getMainBlock());

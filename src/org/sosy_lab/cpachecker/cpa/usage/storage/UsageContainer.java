@@ -24,19 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Multiset;
-import com.google.common.collect.Sets;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -45,14 +37,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cpa.lock.LockState;
-import org.sosy_lab.cpachecker.cpa.lock.LockState.LockStateBuilder;
-import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageState;
 import org.sosy_lab.cpachecker.cpa.usage.refinement.RefinementResult;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.StructureIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -70,15 +60,13 @@ public class UsageContainer {
   private final Set<SingleIdentifier> falseUnsafes;
 
   private final Set<SingleIdentifier> processedUnsafes = new HashSet<>();
-  //Only for statistics
-  private Set<SingleIdentifier> initialSet = null;
-  private int initialUsages;
+  // Only for statistics
+  private int initialUsages = -1;
 
   private final LogManager logger;
 
   private final StatTimer resetTimer = new StatTimer("Time for reseting unsafes");
-  private final StatTimer copyTimer = new StatTimer("Time for filling global container");
-  private final StatTimer emptyEffectsTimer = new StatTimer("Time for coping usages");
+  private final StatTimer unsafeDetectionTimer = new StatTimer("Time for unsafe detection");
 
   int unsafeUsages = -1;
   int totalIds = 0;
@@ -108,106 +96,24 @@ public class UsageContainer {
     detector = pDetector;
   }
 
-  public void initContainerIfNecessary(FunctionContainer storage) {
-    if (unsafeUsages == -1) {
-      copyTimer.start();
-      Set<Pair<FunctionContainer, Multiset<LockEffect>>> processedContainers = new HashSet<>();
-      Deque<Pair<FunctionContainer, Multiset<LockEffect>>> waitlist = new ArrayDeque<>();
-      Pair<FunctionContainer, Multiset<LockEffect>> first = Pair.of(storage, HashMultiset.create());
-      waitlist.add(first);
 
-      while (!waitlist.isEmpty()) {
-        Pair<FunctionContainer, Multiset<LockEffect>> currentPair = waitlist.pollFirst();
-
-        if (!processedContainers.contains(currentPair)) {
-          FunctionContainer currentContainer = currentPair.getFirst();
-          Multiset<LockEffect> currentEffects = currentPair.getSecond();
-
-          Multiset<LockEffect> newEffects = HashMultiset.create();
-          newEffects.addAll(currentEffects);
-          newEffects.addAll(currentContainer.getLockEffects());
-
-          copyUsages(currentContainer, newEffects);
-          processedContainers.add(currentPair);
-
-          if (newEffects.equals(currentEffects)) {
-            newEffects = currentEffects;
-          }
-          for (FunctionContainer container : currentContainer.getContainers()) {
-            waitlist.add(Pair.of(container, newEffects));
-          }
-        }
-      }
-
-      calculateUnsafesIfNecessary();
-      copyTimer.stop();
+  public void add(SingleIdentifier pId, UsageInfo pUsage) {
+    SingleIdentifier id = pId;
+    if (id instanceof StructureIdentifier) {
+      id = ((StructureIdentifier) id).toStructureFieldIdentifier();
     }
-  }
-
-  public void forceAddNewUsages(TemporaryUsageStorage storage) {
-    //This is a case of 'abort'-functions
-    assert (unsafeUsages == -1);
-    copyUsages(storage);
-  }
-
-  private void copyUsages(AbstractUsageStorage storage) {
-    emptyEffectsTimer.start();
-    for (Entry<SingleIdentifier, SortedSet<UsageInfo>> entry : storage.entrySet()) {
-      SingleIdentifier id = entry.getKey();
-
-      if (falseUnsafes.contains(id) || refinedIds.containsKey(id)) {
-        continue;
-      }
-      UnrefinedUsagePointSet uset = getSet(id);
-
-      for (UsageInfo uinfo : entry.getValue()) {
-        if (uinfo.getKeyState() != null) {
-          uset.add(uinfo);
-        }
-      }
+    if (falseUnsafes.contains(id) || refinedIds.containsKey(id)) {
+      return;
     }
-    emptyEffectsTimer.stop();
-  }
+    UnrefinedUsagePointSet uset = getSet(id);
 
-  private void copyUsages(FunctionContainer storage, Multiset<LockEffect> currentEffects) {
-    if (currentEffects.isEmpty()) {
-      copyUsages(storage);
-    } else {
-      Map<LockState, LockState> reduceToExpand = new HashMap<>();
-
-      for (Map.Entry<SingleIdentifier, SortedSet<UsageInfo>> entry : storage.entrySet()) {
-        SingleIdentifier id = entry.getKey();
-
-        if (falseUnsafes.contains(id) || refinedIds.containsKey(id)) {
-          continue;
-        }
-        UnrefinedUsagePointSet uset = getSet(id);
-
-        LockState locks, expandedLocks;
-        for (UsageInfo uinfo : entry.getValue()) {
-          if (uinfo.getKeyState() == null) {
-            // TODO what should we do?
-            continue;
-          }
-          locks = (LockState) uinfo.getLockState();
-          if (reduceToExpand.containsKey(locks)) {
-            expandedLocks = reduceToExpand.get(locks);
-          } else {
-            LockStateBuilder builder = locks.builder();
-            currentEffects.forEach(e -> e.effect(builder));
-            expandedLocks = builder.build();
-            reduceToExpand.put(locks, expandedLocks);
-          }
-          uset.add(uinfo.expand(expandedLocks));
-        }
-      }
-    }
+    uset.add(pUsage);
   }
 
   private UnrefinedUsagePointSet getSet(SingleIdentifier id) {
     assert (!falseUnsafes.contains(id) || !refinedIds.containsKey(id));
-
     UnrefinedUsagePointSet uset;
+
     if (!unrefinedIds.containsKey(id)) {
       uset = new UnrefinedUsagePointSet();
       unrefinedIds.put(id, uset);
@@ -219,6 +125,7 @@ public class UsageContainer {
 
   private void calculateUnsafesIfNecessary() {
     if (unsafeUsages == -1) {
+      unsafeDetectionTimer.start();
       processedUnsafes.clear();
       unsafeUsages = 0;
       Set<SingleIdentifier> toDelete = new HashSet<>();
@@ -230,18 +137,17 @@ public class UsageContainer {
         } else {
           SingleIdentifier id = entry.getKey();
           toDelete.add(id);
-          falseUnsafes.add(id);
         }
       }
       toDelete.forEach(this::removeIdFromCaches);
 
       refinedIds.forEach((id, list) -> unsafeUsages += list.size());
 
-      if (initialSet == null) {
+      if (initialUsages == -1) {
         assert refinedIds.isEmpty();
-        initialSet = Sets.newHashSet(unrefinedIds.keySet());
         initialUsages = unsafeUsages;
       }
+      unsafeDetectionTimer.stop();
     }
   }
 
@@ -251,8 +157,7 @@ public class UsageContainer {
   }
 
   public Set<SingleIdentifier> getFalseUnsafes() {
-    Set<SingleIdentifier> currentUnsafes = getAllUnsafes();
-    return Sets.difference(initialSet, currentUnsafes);
+    return falseUnsafes;
   }
 
   private Set<SingleIdentifier> getAllUnsafes() {
@@ -296,6 +201,7 @@ public class UsageContainer {
   }
 
   public int getTotalUnsafeSize() {
+    calculateUnsafesIfNecessary();
     return unrefinedIds.size() + refinedIds.size() + failedIds.size();
   }
 
@@ -383,7 +289,7 @@ public class UsageContainer {
 
     out.spacer()
         .put("Total amount of unsafes", unsafeSize)
-        .put("Initial amount of unsafes (before refinement)", initialSet.size())
+        .put("Initial amount of unsafes (before refinement)", unsafeSize + falseUnsafes.size())
         .put("Initial amount of usages (before refinement)", initialUsages)
         .put("Initial amount of refined false unsafes", falseUnsafes.size())
         .put("Total amount of unrefined unsafes", generalUnrefinedSize)
@@ -394,8 +300,7 @@ public class UsageContainer {
         .put("Total amount of failed unsafes", generalFailedSize)
         .put(failedUsages)
         .put(resetTimer)
-        .put(copyTimer)
-        .put(emptyEffectsTimer);
+        .put(unsafeDetectionTimer);
   }
 
   public Set<SingleIdentifier> getProcessedUnsafes() {

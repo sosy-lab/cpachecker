@@ -27,14 +27,13 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
-import java.util.LinkedHashMap;
+import com.google.common.collect.ImmutableList;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Set;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.lock.AbstractLockState;
 import org.sosy_lab.cpachecker.cpa.lock.LockState;
@@ -51,7 +50,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
   }
 
   private static class UsageCore {
-    private final LineInfo line;
+    private final CFANode node;
     private final Access accessType;
     private AbstractState keyState;
     private List<CFAEdge> path;
@@ -59,17 +58,8 @@ public class UsageInfo implements Comparable<UsageInfo> {
 
     private boolean isLooped;
 
-    private UsageCore() {
-      // Only for unsupported usage
-      line = null;
-      accessType = Access.WRITE;
-      keyState = null;
-      isLooped = false;
-      id = null;
-    }
-
-    private UsageCore(@Nonnull Access atype, @Nonnull LineInfo l, SingleIdentifier ident) {
-      line = l;
+    private UsageCore(@Nonnull Access atype, @Nonnull CFANode n, SingleIdentifier ident) {
+      node = n;
       accessType = atype;
       keyState = null;
       isLooped = false;
@@ -80,43 +70,43 @@ public class UsageInfo implements Comparable<UsageInfo> {
   private static final UsageInfo IRRELEVANT_USAGE = new UsageInfo();
 
   private final UsageCore core;
-
-  // Can not be immutable due to reduce/expand - lock states are modified (may be smth else)
-  private final Map<Class<? extends CompatibleState>, CompatibleState> compatibleStates =
-      new LinkedHashMap<>();
+  private final ImmutableList<CompatibleState> compatibleStates;
 
   private UsageInfo() {
-    core = new UsageCore();
+    core = null;
+    compatibleStates = null;
   }
 
-  private UsageInfo(@Nonnull Access atype, @Nonnull LineInfo l, SingleIdentifier ident) {
-    core = new UsageCore(atype, l, ident);
+  private UsageInfo(
+      @Nonnull Access atype,
+      @Nonnull CFANode n,
+      SingleIdentifier ident,
+      ImmutableList<CompatibleState> pStates) {
+    this(new UsageCore(atype, n, ident), pStates);
   }
 
-  private UsageInfo(UsageCore pCore) {
+  private UsageInfo(UsageCore pCore, ImmutableList<CompatibleState> pStates) {
     core = pCore;
+    compatibleStates = pStates;
   }
 
   public static UsageInfo createUsageInfo(
-      @Nonnull Access atype, int l, @Nonnull UsageState state, AbstractIdentifier ident) {
+      @Nonnull Access atype, @Nonnull AbstractState state, AbstractIdentifier ident) {
     if (ident instanceof SingleIdentifier) {
-      UsageInfo result =
-          new UsageInfo(
-              atype,
-              new LineInfo(l, AbstractStates.extractLocation(state)),
-              (SingleIdentifier) ident);
       FluentIterable<CompatibleState> states =
           AbstractStates.asIterable(state).filter(CompatibleState.class);
-      if (states.allMatch(s -> s.isRelevantFor(result.core.id))) {
-        states.forEach(s -> result.compatibleStates.put(s.getClass(), s.prepareToStore()));
+      if (states.allMatch(s -> s.isRelevantFor((SingleIdentifier) ident))) {
+        UsageInfo result =
+            new UsageInfo(atype, AbstractStates.extractLocation(state), (SingleIdentifier) ident, states.transform(CompatibleState::prepareToStore).toList());
+        result.core.keyState = state;
         return result;
       }
     }
     return IRRELEVANT_USAGE;
   }
 
-  public @Nonnull LineInfo getLine() {
-    return core.line;
+  public @Nonnull CFANode getCFANode() {
+    return core.node;
   }
 
   public @Nonnull SingleIdentifier getId() {
@@ -138,7 +128,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
 
   @Override
   public int hashCode() {
-    return Objects.hash(core.accessType, core.line, compatibleStates);
+    return Objects.hash(core.accessType, core.node, compatibleStates);
   }
 
   @Override
@@ -151,7 +141,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
     }
     UsageInfo other = (UsageInfo) obj;
     return core.accessType == other.core.accessType
-        && Objects.equals(core.line, other.core.line)
+        && Objects.equals(core.node, other.core.node)
         && Objects.equals(compatibleStates, other.compatibleStates);
   }
 
@@ -164,8 +154,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
       sb.append(core.id.toString());
       sb.append(", ");
     }
-    sb.append("line ");
-    sb.append(core.line.toString());
+    sb.append(core.node.describeFileLocation());
     sb.append(" (" + core.accessType + ")");
     sb.append(", " + getLockState());
 
@@ -191,10 +180,6 @@ public class UsageInfo implements Comparable<UsageInfo> {
     return sb.toString();
   }
 
-  public void setKeyState(AbstractState state) {
-    core.keyState = state;
-  }
-
   public void setRefinedPath(List<CFAEdge> p) {
     core.keyState = null;
     core.path = p;
@@ -216,27 +201,27 @@ public class UsageInfo implements Comparable<UsageInfo> {
     if (this == pO) {
       return 0;
     }
-    Set<Class<? extends CompatibleState>> currentStateTypes = compatibleStates.keySet();
-    Set<Class<? extends CompatibleState>> otherStateTypes = pO.compatibleStates.keySet();
     Preconditions.checkArgument(
-        currentStateTypes.equals(otherStateTypes),
+        compatibleStates.size() == pO.compatibleStates.size(),
         "Different compatible states in usages are not supported");
-    for (Entry<Class<? extends CompatibleState>, CompatibleState> entry :
-        compatibleStates.entrySet()) {
-      // May be sorted not in the convenient order: Locks last
-      Class<? extends CompatibleState> currentClass = entry.getKey();
-      CompatibleState currentState = entry.getValue();
-      if (currentState != null) {
-        // Revert order to negate the result:
-        // Usages without locks are more convenient to analyze
-        result = pO.compatibleStates.get(currentClass).compareTo(currentState);
-        if (result != 0) {
-          return result;
-        }
+    Iterator<CompatibleState> iterator = compatibleStates.iterator();
+    Iterator<CompatibleState> otherIterator = pO.compatibleStates.iterator();
+
+    while (iterator.hasNext()) {
+      CompatibleState currentState = iterator.next();
+      CompatibleState otherState = otherIterator.next();
+      Preconditions.checkArgument(
+          currentState.getClass() == otherState.getClass(),
+          "Different compatible states in usages are not supported");
+      // Revert order to negate the result:
+      // Usages without locks are more convenient to analyze
+      result = otherState.compareTo(currentState);
+      if (result != 0) {
+        return result;
       }
     }
 
-    result = this.core.line.compareTo(pO.core.line);
+    result = this.core.node.compareTo(pO.core.node);
     if (result != 0) {
       return result;
     }
@@ -259,20 +244,28 @@ public class UsageInfo implements Comparable<UsageInfo> {
   }
 
   public UsageInfo copy() {
-    UsageInfo result = new UsageInfo(core);
-    result.compatibleStates.putAll(this.compatibleStates);
-    return result;
+    return copy(compatibleStates);
+  }
+
+  private UsageInfo copy(ImmutableList<CompatibleState> newStates) {
+    return new UsageInfo(core, newStates);
   }
 
   public UsageInfo expand(LockState expandedState) {
-    UsageInfo result = copy();
+    ImmutableList.Builder<CompatibleState> builder = ImmutableList.builder();
 
-    result.compatibleStates.put(LockState.class, expandedState);
-    return result;
+    for (CompatibleState state : this.compatibleStates) {
+      if (state instanceof AbstractLockState) {
+        builder.add(expandedState);
+      } else {
+        builder.add(state);
+      }
+    }
+    return copy(builder.build());
   }
 
   public AbstractLockState getLockState() {
-    for (CompatibleState state : compatibleStates.values()) {
+    for (CompatibleState state : compatibleStates) {
       if (state instanceof AbstractLockState) {
         return (AbstractLockState) state;
       }
@@ -282,7 +275,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
 
   public UsagePoint createUsagePoint() {
     List<CompatibleNode> nodes =
-        from(compatibleStates.values()).transform(CompatibleState::getTreeNode).toList();
+        from(compatibleStates).transform(CompatibleState::getTreeNode).toList();
 
     return new UsagePoint(nodes, core.accessType);
   }

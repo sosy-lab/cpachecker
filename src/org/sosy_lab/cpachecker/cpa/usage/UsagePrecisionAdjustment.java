@@ -65,12 +65,10 @@ class UsagePrecisionAdjustment implements PrecisionAdjustment {
 
     AbstractState oldElement = element.getWrappedState();
 
-    Precision oldWrappedPrecision = ((UsagePrecision) oldPrecision).getWrappedPrecision();
-
     Optional<PrecisionAdjustmentResult> optionalUnwrappedResult =
         wrappedPrecAdjustment.prec(
             oldElement,
-            oldWrappedPrecision,
+            oldPrecision,
             elements,
             Functions.compose(AbstractSingleWrapperState.getUnwrapFunction(), stateProjection),
             fullState);
@@ -85,15 +83,13 @@ class UsagePrecisionAdjustment implements PrecisionAdjustment {
     Precision newPrecision = unwrappedResult.precision();
     Action action = unwrappedResult.action();
 
-    if ((oldElement == newElement) && (oldWrappedPrecision == newPrecision)) {
+    if ((oldElement == newElement) && (oldPrecision == newPrecision)) {
       // nothing has changed
       return Optional.of(PrecisionAdjustmentResult.create(pElement, oldPrecision, action));
     }
 
     UsageState resultElement = element.copy(newElement);
 
-    return Optional.of(
-        PrecisionAdjustmentResult.create(
-            resultElement, ((UsagePrecision) oldPrecision).copy(newPrecision), action));
+    return Optional.of(PrecisionAdjustmentResult.create(resultElement, newPrecision, action));
   }
 }

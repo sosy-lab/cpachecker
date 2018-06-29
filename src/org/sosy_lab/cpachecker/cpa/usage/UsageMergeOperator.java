@@ -42,13 +42,11 @@ public class UsageMergeOperator implements MergeOperator {
 
     UsageState uState1 = (UsageState) pState1;
     UsageState uState2 = (UsageState) pState2;
-    UsagePrecision prec = (UsagePrecision) pPrecision;
 
     AbstractState wrappedState1 = uState1.getWrappedState();
     AbstractState wrappedState2 = uState2.getWrappedState();
 
-    AbstractState mergedState =
-        wrappedMerge.merge(wrappedState1, wrappedState2, prec.getWrappedPrecision());
+    AbstractState mergedState = wrappedMerge.merge(wrappedState1, wrappedState2, pPrecision);
 
     UsageState result;
 
@@ -58,7 +56,7 @@ public class UsageMergeOperator implements MergeOperator {
       result = uState1.copy(mergedState);
     } else {
       result = uState1.copy(mergedState);
-      result.joinRecentUsagesFrom(uState2);
+      result.join(uState2);
     }
 
     if (mergedState.equals(wrappedState2) && result.equals(uState2)) {

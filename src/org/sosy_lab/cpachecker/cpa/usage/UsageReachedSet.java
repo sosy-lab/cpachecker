@@ -23,26 +23,53 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ObjectOutputStream;
+import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
+import org.sosy_lab.cpachecker.cpa.lock.LockState;
+import org.sosy_lab.cpachecker.cpa.lock.LockState.LockStateBuilder;
+import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @SuppressFBWarnings(justification = "No support for serialization", value = "SE_BAD_FIELD")
 public class UsageReachedSet extends PartitionedReachedSet {
 
   private static final long serialVersionUID = 1L;
+  private BAMDataManager manager;
+  private UsageProcessor usageProcessor;
+
+  private final StatTimer usageProcessingTimer = new StatTimer("Time for usage processing");
+  private final StatTimer usageExpandingTimer = new StatTimer("Time for usage expanding");
+
+  private boolean usagesExtracted = false;
 
   public static class RaceProperty implements Property {
     @Override
@@ -68,8 +95,8 @@ public class UsageReachedSet extends PartitionedReachedSet {
   @Override
   public void remove(AbstractState pState) {
     super.remove(pState);
+    UsageState ustate = UsageState.get(pState);
     if (container != null) {
-      UsageState ustate = UsageState.get(pState);
       container.removeState(ustate);
     }
   }
@@ -78,8 +105,8 @@ public class UsageReachedSet extends PartitionedReachedSet {
   public void add(AbstractState pState, Precision pPrecision) {
     super.add(pState, pPrecision);
 
-    UsageState USstate = AbstractStates.extractStateByType(pState, UsageState.class);
-    USstate.saveUnsafesInContainerIfNecessary(pState);
+    /*UsageState USstate = UsageState.get(pState);
+    USstate.saveUnsafesInContainerIfNecessary(pState);*/
   }
 
   @Override
@@ -87,6 +114,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
     if (container != null) {
       container.resetUnrefinedUnsafes();
     }
+    usagesExtracted = false;
     super.clear();
   }
 
@@ -110,9 +138,9 @@ public class UsageReachedSet extends PartitionedReachedSet {
       if (container == null) {
         container = new UsageContainer(config, logger);
       }
-      // TODO lastState = null
-      UsageState lastState = UsageState.get(getLastState());
-      container.initContainerIfNecessary(lastState.getFunctionContainer());
+      if (!usagesExtracted) {
+        extractUsages();
+      }
       return container;
 
     } catch (InvalidConfigurationException e) {
@@ -123,5 +151,89 @@ public class UsageReachedSet extends PartitionedReachedSet {
 
   private void writeObject(@SuppressWarnings("unused") ObjectOutputStream stream) {
     throw new UnsupportedOperationException("cannot serialize Loger and Configuration.");
+  }
+
+  @Override
+  public void finalize(ConfigurableProgramAnalysis pCpa) {
+    BAMCPA bamCpa = CPAs.retrieveCPA(pCpa, BAMCPA.class);
+    manager = bamCpa.getData();
+    UsageCPA usageCpa = CPAs.retrieveCPA(bamCpa, UsageCPA.class);
+    usageProcessor = usageCpa.getUsageProcessor();
+  }
+
+  private void extractUsages() {
+    logger.log(Level.INFO, "Analysis is finished, start usage extraction");
+    Deque<Pair<ReachedSet, Multiset<LockEffect>>> waitlist = new ArrayDeque<>();
+    Set<Pair<AbstractState, Multiset<LockEffect>>> processedSets = new HashSet<>();
+
+    waitlist.add(Pair.of(this, HashMultiset.create()));
+    processedSets.add(Pair.of(getFirstState(), HashMultiset.create()));
+
+    while (!waitlist.isEmpty()) {
+      Pair<ReachedSet, Multiset<LockEffect>> currentPair = waitlist.pop();
+      ReachedSet currentReached = currentPair.getFirst();
+      Multiset<LockEffect> currentEffects = currentPair.getSecond();
+      LockState locks, expandedLocks;
+      Map<LockState, LockState> reduceToExpand = new HashMap<>();
+
+      for (AbstractState state : currentReached.asCollection()) {
+        // handle state
+        usageProcessingTimer.start();
+        Set<UsageInfo> usages = usageProcessor.getUsagesForState(state);
+        usageProcessingTimer.stop();
+        usageExpandingTimer.start();
+        for (UsageInfo uinfo : usages) {
+          SingleIdentifier id = uinfo.getId();
+          UsageInfo expandedUsage;
+          if (currentEffects.isEmpty()) {
+            expandedUsage = uinfo;
+          } else {
+            locks = (LockState) uinfo.getLockState();
+            if (reduceToExpand.containsKey(locks)) {
+              expandedLocks = reduceToExpand.get(locks);
+            } else {
+              LockStateBuilder builder = locks.builder();
+              currentEffects.forEach(e -> e.effect(builder));
+              expandedLocks = builder.build();
+              reduceToExpand.put(locks, expandedLocks);
+            }
+            expandedUsage = uinfo.expand(expandedLocks);
+          }
+          container.add(id, expandedUsage);
+        }
+        usageExpandingTimer.stop();
+
+        if (manager.hasInitialState(state)) {
+          for (ARGState child : ((ARGState) state).getChildren()) {
+            AbstractState reducedChild = manager.getReducedStateForExpandedState(child);
+            ReachedSet innerReached = manager.getReachedSetForInitialState(state, reducedChild);
+
+            LockState rootLockState = AbstractStates.extractStateByType(child, LockState.class);
+            LockState reducedLockState =
+                AbstractStates.extractStateByType(reducedChild, LockState.class);
+            Multiset<LockEffect> difference;
+            if (rootLockState == null || reducedLockState == null) {
+              // No LockCPA
+              difference = HashMultiset.create();
+            } else {
+              difference = reducedLockState.getDifference(rootLockState);
+            }
+
+            difference.addAll(currentEffects);
+
+            Pair<AbstractState, Multiset<LockEffect>> newPair =
+                Pair.of(innerReached.getFirstState(), difference);
+            if (!processedSets.contains(newPair)) {
+              waitlist.add(Pair.of(innerReached, difference));
+              processedSets.add(newPair);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  public void printStatistics(StatisticsWriter pWriter) {
+    pWriter.spacer().put(usageProcessingTimer).put(usageExpandingTimer);
   }
 }

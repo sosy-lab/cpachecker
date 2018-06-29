@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,11 +48,13 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMBlockFormulaStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateAbstractionRefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefinerFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
@@ -293,6 +297,22 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
     @Override
     protected void updateARG(PredicatePrecision pNewPrecision, ARGState pRefinementRoot, ARGReachedSet pReached) throws InterruptedException {
       //Do not update ARG for race analysis
+    }
+
+    @Override
+    public List<ARGState> filterAbstractionStates(ARGPath pPath) {
+      List<ARGState> result =
+          from(pPath.asStatesList())
+              .skip(1)
+              .filter(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)
+              .toList();
+
+      if (pPath.getLastState() != result.get(result.size() - 1)) {
+        List<ARGState> newResult = new ArrayList<>(result);
+        newResult.add(pPath.getLastState());
+        return newResult;
+      }
+      return result;
     }
   }
 

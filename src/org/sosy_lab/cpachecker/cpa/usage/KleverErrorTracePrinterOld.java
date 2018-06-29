@@ -143,7 +143,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
         from(path)
             .filter(
                 e ->
-                    e.getPredecessor() == usage.getLine().getNode()
+                    e.getPredecessor() == usage.getCFANode()
                         && e.toString().contains(pId.getName()))
             .last();
 

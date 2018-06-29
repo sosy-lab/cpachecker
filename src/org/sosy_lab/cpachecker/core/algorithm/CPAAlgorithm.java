@@ -201,12 +201,16 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   private final ShutdownNotifier                   shutdownNotifier;
 
   private final AlgorithmStatus status;
+  private final ConfigurableProgramAnalysis cpa;
 
-  private CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger,
+  private CPAAlgorithm(
+      ConfigurableProgramAnalysis pCpa,
+      LogManager logger,
       ShutdownNotifier pShutdownNotifier,
       ForcedCovering pForcedCovering,
       boolean pIsImprecise) {
 
+    cpa = pCpa;
     transferRelation = cpa.getTransferRelation();
     mergeOperator = cpa.getMergeOperator();
     stopOperator = cpa.getStopOperator();
@@ -231,6 +235,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       stats.stopTimer.stopIfRunning();
       stats.addTimer.stopIfRunning();
       stats.forcedCoveringTimer.stopIfRunning();
+      reachedSet.finalize(cpa);
 
       Map<String, ? extends AbstractStatValue> reachedSetStats;
       if (reachedSet instanceof PartitionedReachedSet) {

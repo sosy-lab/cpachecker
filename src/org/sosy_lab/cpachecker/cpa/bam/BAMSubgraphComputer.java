@@ -146,7 +146,9 @@ public class BAMSubgraphComputer {
       finishedStates.put(currentState, newCurrentState);
 
       // add parent for further processing
-      waitlist.addAll(currentState.getParents());
+      if (!currentState.getParents().isEmpty()) {
+        waitlist.add(currentState.getParents().iterator().next());
+      }
 
       final Set<BackwardARGState> childrenInSubgraph = new TreeSet<>();
       for (final ARGState child : currentState.getChildren()) {

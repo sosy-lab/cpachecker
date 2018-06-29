@@ -81,6 +81,11 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
     openElements.addAll(target.getParents());
     while (!openElements.isEmpty()) {
       currentState = openElements.pollLast();
+
+      if (elementsMap.containsKey(currentState)) {
+        continue; // state already done
+      }
+
       BackwardARGState newCurrentElement = new BackwardARGState(currentState);
       elementsMap.put(currentState, newCurrentElement);
 
@@ -125,10 +130,9 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
       }
 
       // add parent for further processing
-      openElements.addAll(currentState.getParents());
+      openElements.add(currentState.getParents().iterator().next());
 
       if (data.hasInitialState(currentState) && !inCallstackFunction) {
-
         // If child-state is an expanded state, the child is at the exit-location of a block.
         // In this case, we enter the block (backwards).
         // We must use a cached reachedSet to process further, because the block has its own reachedSet.
@@ -136,16 +140,20 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
         // The current subtree (successors of child) is appended beyond the innerTree, to get a complete subgraph.
         computeCounterexampleSubgraphForBlock(newCurrentElement, childrenInSubgraph);
         assert childrenInSubgraph.size() == 1;
-        BackwardARGState tmpState = childrenInSubgraph.iterator().next();
-        //Check repetition of constructed states
-        while (tmpState != newCurrentElement) {
+        /*BackwardARGState tmpState = childrenInSubgraph.iterator().next();
+        // Check repetition of constructed states
+        Deque<ARGState> waitlist = new ArrayDeque<>();
+        waitlist.add(tmpState);
+        while (!waitlist.isEmpty()) {
+          tmpState = (BackwardARGState) waitlist.pop();
+          if (tmpState == newCurrentElement) {
+            break;
+          }
           if (checkRepeatitionOfState(tmpState.getARGState())) {
             return DUMMY_STATE_FOR_REPEATED_STATE;
           }
-          Collection<ARGState> parents = tmpState.getParents();
-          assert parents.size() == 1;
-          tmpState = (BackwardARGState) parents.iterator().next();
-        }
+          waitlist.addAll(tmpState.getParents());
+        }*/
 
       } else {
         // children are normal successors -> create an connection from parent to children

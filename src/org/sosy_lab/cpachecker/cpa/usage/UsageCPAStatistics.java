@@ -34,11 +34,14 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -78,6 +81,9 @@ public class UsageCPAStatistics implements Statistics {
   public final StatTimer innerAnalysisTimer = new StatTimer("Time for inner analyses");
   public final StatTimer printStatisticsTimer = new StatTimer("Time for printing statistics");
   public final StatTimer printUnsafesTimer = new StatTimer("Time for unsafes printing");
+  public final StatTimer extractStatesTimer = new StatTimer("Time for state extraction");
+  public final StatCounter numberOfStatesTimer = new StatCounter("Number of states");
+  public int numberOfUnsafes = 0;
 
   public UsageCPAStatistics(
       Configuration pConfig, LogManager pLogger, CFA pCfa, LockTransferRelation lTransfer)
@@ -92,7 +98,19 @@ public class UsageCPAStatistics implements Statistics {
   @Override
   public void printStatistics(
       final PrintStream out, final Result result, final UnmodifiableReachedSet reached) {
+
+    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
+    writer.put(transferRelationTimer);
+    writer.put(usagePreparationTimer);
+    writer.put(innerAnalysisTimer);
     try {
+      ReachedSet reachedSet;
+      if (reached instanceof ForwardingReachedSet) {
+        reachedSet = ((ForwardingReachedSet) reached).getDelegate();
+      } else {
+        reachedSet = (ReachedSet) reached;
+      }
+      UsageReachedSet uReached = (UsageReachedSet) reachedSet;
       printUnsafesTimer.start();
       BAMMultipleCEXSubgraphComputer computer = null;
       if (bamCpa != null) {
@@ -105,17 +123,14 @@ public class UsageCPAStatistics implements Statistics {
       } else if (outputFileType == OutputFileType.ETV) {
         errPrinter = new ETVErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
       }
-      errPrinter.printErrorTraces(reached);
+      errPrinter.printErrorTraces(uReached);
       printUnsafesTimer.stop();
 
       printStatisticsTimer.start();
-      StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
-      writer.put(transferRelationTimer);
-      writer.put(usagePreparationTimer);
-      writer.put(innerAnalysisTimer);
       writer.put(printStatisticsTimer);
       errPrinter.printStatistics(writer);
       UsageState.get(reached.getFirstState()).getStatistics().printStatistics(writer);
+      uReached.printStatistics(writer);
       // out.
       printStatisticsTimer.stop();
     } catch (InvalidConfigurationException e) {

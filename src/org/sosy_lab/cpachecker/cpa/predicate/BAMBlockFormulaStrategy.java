@@ -69,6 +69,7 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
     final Map<ARGState, PathFormula> finishedFormulas = new HashMap<>();
     final List<BooleanFormula> abstractionFormulas = new ArrayList<>();
     final Deque<ARGState> waitlist = new ArrayDeque<>();
+    final List<ARGState> pathElements = new ArrayList<>(pPath);
 
     // map from states to formulas for truth assumption path formula
     final Map<Pair<ARGState, CFAEdge>, PathFormula> branchingFormulas = new HashMap<>();
@@ -161,20 +162,24 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
       callStacks.put(currentState, currentStacks.get(0));
 
       PathFormula currentFormula;
-      final PredicateAbstractState predicateElement =
-          PredicateAbstractState.getPredicateState(currentState);
-      if (predicateElement.isAbstractionState()) {
+      if (!pathElements.isEmpty() && pathElements.get(0).equals(currentState)) {
         // abstraction element is the start of a new part of the ARG
 
-        assert waitlist.isEmpty() : "todo should be empty, because of the special ARG structure";
-        assert currentState.getParents().size() == 1
-            : "there should be only one parent, because of the special ARG structure";
+        // assert waitlist.isEmpty() : "todo should be empty, because of the special ARG structure";
+        /*assert currentState.getParents().size() == 1
+        : "there should be only one parent, because of the special ARG structure";*/
 
         // finishedFormulas.clear(); // free some memory
         // TODO disabled, we need to keep callStates for later usage
 
         // start new block with empty formula
         currentFormula = getOnlyElement(currentFormulas);
+        pathElements.remove(0);
+        Iterator<PathFormula> it = currentFormulas.iterator();
+        currentFormula = it.next();
+        while (it.hasNext()) {
+          currentFormula = pfmgr.makeOr(currentFormula, it.next());
+        }
         BooleanFormula bFormula =
             pfmgr.addBitwiseAxiomsIfNeeded(
                 currentFormula.getFormula(), currentFormula.getFormula());
@@ -189,11 +194,11 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
           currentFormula = pfmgr.makeOr(currentFormula, it.next());
         }
       }
-
       assert !finishedFormulas.containsKey(currentState) : "a state should only be finished once";
       finishedFormulas.put(currentState, currentFormula);
       waitlist.addAll(currentState.getChildren());
     }
+    assert pathElements.isEmpty();
     BooleanFormula branchingFormula =
         pfmgr.buildBranchingFormula(finishedFormulas.keySet(), branchingFormulas);
     return new BlockFormulas(abstractionFormulas, branchingFormula);
