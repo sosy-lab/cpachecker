@@ -28,6 +28,12 @@ import argparse
 import os
 import re
 import sys
+from enum import Enum
+
+class EdgeType(Enum):
+    NORMAL = 0  # dependencies caused by "#include ..."
+    SPECIAL = 1 # things like "parallelAlgorithm.configFiles=..."
+    SPECIFICATION = 2 # dependencies caused by "specification = ..."
 
 # global flag for return code
 errorFound = False
@@ -42,7 +48,10 @@ def log(msg, level=1):
 class Node:
   def __init__(self, name):
     self.name = name
-    self.children = collectChildren(name) # collect names of children
+    self.childrenToType = collectChildren(name) # collect types of children
+    self.children = set([c for c in self.childrenToType.keys()])
+    for c in self.children:
+      assert c in self.childrenToType
     self.parents = [] # filled later
     self.childNodes = [] # filled later
     self.parentNodes = [] # filled later
@@ -75,34 +84,38 @@ def getTransitiveParents(start, nodes):
 def getFilenamesFromLine(line):
   '''extract all filenames from a line'''
   fname = None
+  typ = EdgeType.NORMAL
   if line[:8]=="#include":
     fname = line.split()[1]
   else:
     m = re.search("^[a-zA-Z\.]*\.(config|terminatingStatements|checkerConfig)(?:Files|)\s*=\s*(.*)\s*",line)
     if m != None:
       fname = m.group(2)
+      typ = EdgeType.SPECIAL
     else:
       m = re.search("^specification\s*=\s*(.*)\s*",line)
       if m != None:
         fname = m.group(1)
+        typ = EdgeType.SPECIFICATION
   if not fname:
-    return []
+    return (list(),typ)
   fnames = [name.strip().split("::")[0] for name in fname.split(",")]
   assert all(fnames), line
-  return fnames
+  return (fnames,typ)
 
 
 def collectChildren(filename):
-  children = set()
+  children = dict()
   try:
     for line in open(filename,"r"):
       # TODO multiline statements?
       if not line.startswith(('#','//')) and line.rstrip() != line and line.rstrip() != line[:-1]:
         log("trailing whitespace in config '%s' in line '%s'" % (filename, line.strip()), level=2)
-      for child in getFilenamesFromLine(line):
+      (filenames, typ) = getFilenamesFromLine(line)
+      for child in filenames:
         child = os.path.normpath(os.path.join(os.path.dirname(filename), child))
         if os.path.exists(child):
-          children.add(child)
+          children[child] = typ
         else:
           log("file '%s' referenced in '%s' does not exists" % (child, filename))
   except UnicodeDecodeError:
@@ -305,6 +318,35 @@ def componentsSanityCheck(nodes):
       if "includes/" in name:
         log("Include file %s is unused!" % name)
 
+def transitiveReductionCheck(nodes):
+  wlist = [node for name,node in nodes.items()] # type: list of node names
+  def filterChildren(node): # returns generator over Node objects
+    return (c for c in node.childNodes if c != node and node.childrenToType[c.name] in (EdgeType.NORMAL,EdgeType.SPECIFICATION))
+  def specificationOptionEqual(first, second):
+    firstspecs = set(c.name for c in first.childNodes if first.childrenToType[c.name] == EdgeType.SPECIFICATION)
+    secondspecs = set(c.name for c in second.childNodes if second.childrenToType[c.name] == EdgeType.SPECIFICATION)
+    return firstspecs == secondspecs
+  while wlist:
+    current = wlist.pop() # type: node name
+    reach = dict() # key is reached element, value is by whom it was reached
+    for c in filterChildren(current):
+      reach[c] = current
+    wlist2 = [c for c in filterChildren(current)] # type: list of Node objects
+    while wlist2:
+      current2 = wlist2.pop()
+      for c in filterChildren(current2):
+        if c in reach.keys():
+          if reach[c] != current and current2 != current:
+            continue # only consider cases where one of the includes is the common ancestor
+          if current2.childrenToType[c.name] == EdgeType.SPECIFICATION and not specificationOptionEqual(current2,reach[c]):
+            continue # it is ok if the set of specs in "specification = " is overriden with a different set
+          log("included twice:%s\nFirst include by:\t%s\nSecond include by:\t%s\nCommon ancestor:\t%s\n"
+              % (c.name,reach[c].name,current2.name,current.name))
+        else:
+          reach[c] = current2
+          if not c.name.endswith(".spc"): # do not explore children of spc files
+            wlist2.append(c)
+
 
 if __name__ == "__main__":
   args = parseArgs()
@@ -315,6 +357,7 @@ if __name__ == "__main__":
   nodes = getNodes(args.dir)
 
   componentsSanityCheck(nodes)
+  transitiveReductionCheck(nodes)
 
   nodesFromRoot = {}
   if args.root != None:
