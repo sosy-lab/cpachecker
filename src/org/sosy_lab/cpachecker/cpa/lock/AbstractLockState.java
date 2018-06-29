@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cpa.lock;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
-import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier.LockType;
@@ -74,7 +74,7 @@ public abstract class AbstractLockState
 
   public abstract AbstractLockStateBuilder builder();
 
-  public abstract List<LockEffect> getDifference(AbstractLockState other);
+  public abstract Multiset<LockEffect> getDifference(AbstractLockState other);
 
   @Override
   public boolean isLessOrEqual(AbstractLockState other) {

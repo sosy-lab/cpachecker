@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.util.IdentityHashSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
@@ -43,7 +43,7 @@ public class FunctionContainer extends AbstractUsageStorage {
 
   private static final long serialVersionUID = 1L;
   // private final Set<FunctionContainer> internalFunctionContainers;
-  private final List<LockEffect> effects;
+  private final Multiset<LockEffect> effects;
   private final StorageStatistics stats;
 
   private final Set<FunctionContainer> joinedWith;
@@ -51,10 +51,10 @@ public class FunctionContainer extends AbstractUsageStorage {
   private final Set<TemporaryUsageStorage> storages;
 
   public static FunctionContainer createInitialContainer() {
-    return new FunctionContainer(new StorageStatistics(), new ArrayList<>());
+    return new FunctionContainer(new StorageStatistics(), HashMultiset.create());
   }
 
-  private FunctionContainer(StorageStatistics pStats, List<LockEffect> pEffects) {
+  private FunctionContainer(StorageStatistics pStats, Multiset<LockEffect> pEffects) {
     super();
     stats = pStats;
     stats.numberOfFunctionContainers.inc();
@@ -63,7 +63,7 @@ public class FunctionContainer extends AbstractUsageStorage {
     storages = new HashSet<>();
   }
 
-  public FunctionContainer clone(List<LockEffect> pEffects) {
+  public FunctionContainer clone(Multiset<LockEffect> pEffects) {
     return new FunctionContainer(this.stats, pEffects);
   }
 
@@ -115,7 +115,7 @@ public class FunctionContainer extends AbstractUsageStorage {
     return joinedWith;
   }
 
-  public List<LockEffect> getLockEffects() {
+  public Multiset<LockEffect> getLockEffects() {
     return effects;
   }
 
