@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 class AutomatonExpressionArguments {
@@ -224,13 +225,18 @@ class AutomatonExpressionArguments {
     return null;
   }
 
-  public ImmutableList<AExpression> instantiateAssumptions(
-      ImmutableList<AExpression> pAssumptions) {
+  public ImmutableList<AExpression> instantiateAssumptions(ImmutableList<AExpression> pAssumptions)
+      throws AutomatonTransferException {
     ImmutableList.Builder<AExpression> builder = ImmutableList.builder();
     SubstitutingCAstNodeVisitor visitor = new SubstitutingCAstNodeVisitor(this::findSubstitute);
     for (AExpression expr : pAssumptions) {
       if ((expr instanceof CExpression)) {
         CExpression substitutedExpr = (CExpression) ((CExpression) expr).accept(visitor);
+
+        if (substitutedExpr.getExpressionType() instanceof CProblemType) {
+          throw new AutomatonTransferException(
+              "Type of automaton assumption '" + substitutedExpr + "' cannot be evaluated");
+        }
         builder.add(substitutedExpr);
       } else {
         logger.log(Level.WARNING, "could not instantiate transition assumption");

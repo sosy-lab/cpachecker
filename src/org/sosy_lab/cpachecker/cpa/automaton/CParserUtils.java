@@ -136,21 +136,7 @@ class CParserUtils {
                   + "' is not supported in automaton assumption");
         }
       } else if (statement instanceof CExpressionStatement) {
-        if (((CExpressionStatement) statement).getExpression().getExpressionType()
-                instanceof CSimpleType
-            && ((CSimpleType)
-                    (((CExpressionStatement) statement).getExpression().getExpressionType()))
-                .getType()
-                .isIntegerType()) {
-          result.add(((CExpressionStatement) statement).getExpression());
-        } else {
-          throw new InvalidAutomatonException(
-              "Type '"
-                  + ((CExpressionStatement) statement).getExpression().getExpressionType()
-                  + "' of expression '"
-                  + statement.toASTString()
-                  + "' is not supported in automaton assumption");
-        }
+        result.add(((CExpressionStatement) statement).getExpression());
       } else {
         throw new InvalidAutomatonException(
             "Statement '" + statement.toASTString() + "' is not supported in automaton assumption");
