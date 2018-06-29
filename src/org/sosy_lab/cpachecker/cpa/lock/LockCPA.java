@@ -33,14 +33,17 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
+import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 
 @Options(prefix = "cpa.lock")
 public class LockCPA extends AbstractCPA
@@ -51,23 +54,25 @@ public class LockCPA extends AbstractCPA
     DEADLOCK
   }
 
+  public static enum StopMode {
+    DEFAULT,
+    EMPTYLOCKSET
+  }
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(LockCPA.class);
   }
 
-  @Option(
-    name = "analysisMode",
-    description = "What are we searching for: race or deadlock",
-    secure = true
-  )
+  @Option(description = "What are we searching for: race or deadlock", secure = true)
   private LockAnalysisMode analysisMode = LockAnalysisMode.RACE;
+
+  @Option(description = "Consider or not special cases with empty lock sets", secure = true)
+  private StopMode stopMode = StopMode.DEFAULT;
 
   private final Reducer reducer;
 
   private LockCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     super(
-        "sep",
-        "sep",
         DelegateAbstractDomain.<AbstractLockState>getInstance(),
         new LockTransferRelation(config, logger));
     config.inject(this);
@@ -97,6 +102,26 @@ public class LockCPA extends AbstractCPA
       default:
         // The analysis should fail at CPA creation
         throw new UnsupportedOperationException("Unsupported analysis mode");
+    }
+  }
+
+  @Override
+  public MergeOperator getMergeOperator() {
+    return MergeSepOperator.getInstance();
+  }
+
+  @Override
+  public StopOperator getStopOperator() {
+    switch (stopMode) {
+      case DEFAULT:
+        return buildStopOperator("SEP");
+
+      case EMPTYLOCKSET:
+        return new LockStopOperator();
+
+      default:
+        // The analysis should fail at CPA creation
+        throw new UnsupportedOperationException("Unsupported stop mode");
     }
   }
 

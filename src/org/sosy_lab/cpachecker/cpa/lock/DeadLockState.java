@@ -27,6 +27,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multiset;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -304,7 +305,7 @@ public class DeadLockState extends AbstractLockState {
   }
 
   @Override
-  public List<LockEffect> getDifference(AbstractLockState other) {
+  public Multiset<LockEffect> getDifference(AbstractLockState other) {
     // Return the effect, which shows, what should we do to transform from this state to the other
     throw new UnsupportedOperationException("Effects are not supported for dead lock detection");
   }

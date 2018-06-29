@@ -1519,6 +1519,10 @@ cpa.lock.lockinfo = Sets.newHashSet()
 # reduce unused locks
 cpa.lock.reduceUselessLocks = false
 
+# Consider or not special cases with empty lock sets
+cpa.lock.stopMode = DEFAULT
+  enum:     [DEFAULT, EMPTYLOCKSET]
+
 # Number of loop iterations before the loop counter is abstracted. Zero is
 # equivalent to no limit.
 cpa.loopbound.loopIterationsBeforeAbstraction = 0
