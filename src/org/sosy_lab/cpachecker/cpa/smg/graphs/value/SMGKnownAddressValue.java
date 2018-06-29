@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.value;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.math.BigInteger;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 /**
@@ -46,6 +47,12 @@ public final class SMGKnownAddressValue extends SMGKnownSymValue implements SMGA
   public static SMGKnownAddressValue valueOf(
       SMGKnownSymbolicValue pAddress, SMGObject pObject, SMGKnownExpValue pOffset) {
     return new SMGKnownAddressValue(pAddress.getValue(), SMGAddress.valueOf(pObject, pOffset));
+  }
+
+  public static SMGKnownAddressValue valueOf(SMGEdgePointsTo edge) {
+    return new SMGKnownAddressValue(
+        edge.getValue().getValue(),
+        SMGAddress.valueOf(edge.getObject(), SMGKnownExpValue.valueOf(edge.getOffset())));
   }
 
   @Override
