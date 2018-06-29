@@ -1461,7 +1461,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGKnownSymbolicValue new_value = SMGKnownSymValue.of();
     heap.addHeapObject(new_object);
     heap.addValue(new_value);
-    heap.addPointsToEdge(new SMGEdgePointsTo(new_value, new_object, 0));
+    heap.addPointsToEdge(new SMGEdgePointsTo(new_value, new_object, offset));
     heap.setExternallyAllocatedFlag(new_object, external);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
     return SMGKnownAddressValue.valueOf(new_value, new_object, SMGKnownExpValue.valueOf(offset));
