@@ -260,11 +260,8 @@ final class SMGJoinTargetObjects {
 
     for (SMGEdgeHasValue hve : hves) {
       SMGValue val = hve.getValue();
-
-      // FIXME: require to identify why offsets are mixed with values
-      // previously, because of unknown reason:
-      // if (!restricted.contains(val.getAsLong()) && !val.isZero()) {
-      if (!val.isZero()) {
+      // TODO what does this code? why do we have restricted offsets?
+      if (!restricted.contains(hve.getOffset()) && !val.isZero()) {
 
         if (destSMG.isPointer(val)) {
           SMGObject reachedObject = destSMG.getPointer(val).getObject();
