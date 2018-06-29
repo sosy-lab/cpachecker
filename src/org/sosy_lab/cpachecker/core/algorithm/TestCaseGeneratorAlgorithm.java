@@ -237,7 +237,9 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
 
   private void writeTestHarnessFile(final ARGState pTarget) {
     if (testHarnessFile != null) {
-      CounterexampleInfo cexInfo = extractCexInfo(pTarget);
+      CounterexampleInfo cexInfo =
+          ARGUtils.tryGetOrCreateCounterexampleInformation(pTarget, cpa, assumptionToEdgeAllocator)
+              .get();
 
       Path file = testHarnessFile.getPath(id.getFreshId());
       ARGPath targetPath = cexInfo.getTargetPath();
@@ -256,17 +258,6 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
         logger.logUserException(Level.WARNING, e, "Could not write test harness to file");
       }
     }
-  }
-
-  private CounterexampleInfo extractCexInfo(final ARGState pTarget) {
-    // may not contain sufficient information to write test harness, e.g. ValueAnalysis uses
-    // special variant of counterexample check to generate sufficient information
-    if (pTarget.getCounterexampleInformation().isPresent()) {
-      return pTarget.getCounterexampleInformation().get();
-    }
-
-    return ARGUtils.tryGetOrCreateCounterexampleInformation(pTarget, cpa, assumptionToEdgeAllocator)
-        .get();
   }
 
   @Override

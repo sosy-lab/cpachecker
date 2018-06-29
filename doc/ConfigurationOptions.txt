@@ -62,6 +62,13 @@ solver.mathsat5.furtherOptions = ""
 # Load less stable optimizing version of mathsat5 solver.
 solver.mathsat5.loadOptimathsat5 = false
 
+# Use non-linear arithmetic of the solver if supported and throw exception
+# otherwise, approximate non-linear arithmetic with UFs if unsupported, or
+# always approximate non-linear arithmetic. This affects only the theories of
+# integer and rational arithmetic.
+solver.nonLinearArithmetic = USE
+  enum:     [USE, APPROXIMATE_FALLBACK, APPROXIMATE_ALWAYS]
+
 # log all queries as Princess-specific Scala code
 solver.princess.logAllQueriesAsScala = false
 
@@ -945,16 +952,23 @@ cpa.arg.automaton.branchRatio = 0.5
 # translate final ARG into an automaton
 cpa.arg.automaton.export = false
 
+# export as zip-files, depends on 'automaton.export=true'
+cpa.arg.automaton.exportCompressed = true
+
 # translate final ARG into an automaton, depends on 'automaton.export=true'
 cpa.arg.automaton.exportDotFile = "ARG_parts/ARG.%03d.spc.dot"
 cpa.arg.automaton.exportSpcFile = "ARG_parts/ARG.%03d.spc"
 
 # after determining branches, which one of them should be exported?
 cpa.arg.automaton.selectionStrategy = LEAFS
-  enum:     [NONE, ALL, LEAFS, WEIGHTED]
+  enum:     [NONE, ALL, LEAFS, WEIGHTED, FIRST_BFS]
 
-# minimum ratio of siblings suchthat one of them will be exported
+# minimum ratio of siblings such that one of them will be exported
 cpa.arg.automaton.siblingRatio = 0.4
+
+# when using FIRST_BFS, how many nodes should be skipped? ZERO will only
+# export the root itself, MAX_INT will export only LEAFS.
+cpa.arg.automaton.skipFirstNum = 10
 
 # which coarse strategy should be applied when analyzing the ARG?
 cpa.arg.automaton.strategy = GLOBAL_CONDITIONS
@@ -2282,10 +2296,6 @@ cpa.predicate.useParameterVariablesForGlobals = false
 # that is capable of quantifiers (e.g. Z3 or PRINCESS).
 cpa.predicate.useQuantifiersOnArrays = false
 
-# Enable fallback to UFs if a solver does not support non-linear arithmetics.
-# This option only effects MULT, MOD and DIV.
-cpa.predicate.useUFsForNonLinearArithmetic = true
-
 # Do not follow states which can not syntactically lead to a target location
 cpa.property_reachability.noFollowBackwardsUnreachable = true
 
@@ -2954,7 +2964,8 @@ interleavedAlgorithm.initCondition = false
 
 # print the statistics of each component of the interleaved algorithm
 # directly after the component's computation is finished
-interleavedAlgorithm.printIntermediateStatistics = false
+interleavedAlgorithm.intermediateStatistics = NONE
+  enum:     [EXECUTE, NONE, PRINT]
 
 # let each analysis part of the interleaved algorithm write output files and
 # not only the last one that is executed

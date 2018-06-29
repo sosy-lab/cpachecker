@@ -158,6 +158,12 @@ public class ARGStatistics implements Statistics {
   private PathTemplate automatonSpcDotFile =
       PathTemplate.ofFormatString("ARG_parts/ARG.%03d.spc.dot");
 
+  @Option(
+      secure = true,
+      name = "automaton.exportCompressed",
+      description = "export as zip-files, depends on 'automaton.export=true'")
+  private boolean exportAutomatonCompressed = true;
+
   protected final ConfigurableProgramAnalysis cpa;
 
   private final CEXExportOptions counterexampleOptions;
@@ -428,38 +434,44 @@ public class ARGStatistics implements Statistics {
         throw new AssertionError("should not happen");
       }
       try {
+        final int baseId = -1; // id for the exported 'complete' automaton
         Automaton automaton =
             Iterables.getOnlyElement(argToAutomatonConverter.getAutomata(rootState));
         if (automatonSpcFile != null) {
-          IO.writeFile(automatonSpcFile.getPath(-1), Charset.defaultCharset(), automaton);
+          writeFile(automatonSpcFile.getPath(baseId), automaton, exportAutomatonCompressed);
         }
         if (automatonSpcDotFile != null) {
-          try (Writer w =
-              IO.openOutputFile(automatonSpcDotFile.getPath(-1), Charset.defaultCharset())) {
-            automaton.writeDotFile(w);
-          }
+          Appender app = automaton::writeDotFile;
+          writeFile(automatonSpcDotFile.getPath(baseId), app, exportAutomatonCompressed);
         }
       } catch (IOException io) {
         logger.logUserException(Level.WARNING, io, "Could not write ARG to automata to file");
       }
-      int counter = 0;
+      int counterId = 0; // id for each exported 'partial' automata, distinct from 'baseId'
       try {
         for (Automaton automaton : argToAutomatonSplitter.getAutomata(rootState)) {
-          counter++;
+          counterId++;
           if (automatonSpcFile != null) {
-            IO.writeFile(automatonSpcFile.getPath(counter), Charset.defaultCharset(), automaton);
+            writeFile(automatonSpcFile.getPath(counterId), automaton, exportAutomatonCompressed);
           }
           if (automatonSpcDotFile != null) {
-            try (Writer w =
-                IO.openOutputFile(automatonSpcDotFile.getPath(counter), Charset.defaultCharset())) {
-              automaton.writeDotFile(w);
-            }
+            Appender app = automaton::writeDotFile;
+            writeFile(automatonSpcDotFile.getPath(counterId), app, exportAutomatonCompressed);
           }
         }
-        logger.log(Level.INFO, "Number of exported automata after splitting:", counter);
+        logger.log(Level.INFO, "Number of exported automata after splitting:", counterId);
       } catch (IOException io) {
         logger.logUserException(Level.WARNING, io, "Could not write ARG to automata to file");
       }
+    }
+  }
+
+  private static void writeFile(Path path, Object content, boolean compressed) throws IOException {
+    if (compressed) {
+      path = path.resolveSibling(path.getFileName() + ".gz");
+      IO.writeGZIPFile(path, Charset.defaultCharset(), content);
+    } else {
+      IO.writeFile(path, Charset.defaultCharset(), content);
     }
   }
 
