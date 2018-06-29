@@ -336,11 +336,38 @@ public class ReportGenerator {
 
   private void insertStatistics(Writer writer, String statistics) throws IOException {
     int counter = 0;
+    String insertTableLine = "<table  id=\"statistics_table\" class=\"display\" style=\"width:100%;padding: 10px\" class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th scope=\"col\">Statistics Name</th><th scope=\"col\">Statistics Value</th><th>Additional Value</th></tr></thead><tbody>\n";
+    writer.write(insertTableLine);
     for (String line : LINE_SPLITTER.split(statistics)) {
-      line = "<pre id=\"statistics-" + counter + "\">" + htmlEscaper().escape(line) + "</pre>\n";
-      writer.write(line);
+      int tableStart = -1;
+      if(!line.contains(":") && !(line.trim().isEmpty()) && !line.contains("----------")){
+        String insertTableHead = "<tr class=\"table_head\" id=\"statistics-" + counter + "\"><th>" + htmlEscaper().escape(line) + "</th><th></th><th></th></tr>";
+        writer.write(insertTableHead);
+      }
+      else{
+        int count = line.indexOf(line.trim());
+        for(int i=0;i<count/2;i++){
+          line = "\t" + line;
+        }
+        List<String> splitLine = Splitter.on(":").limit(2).splitToList(line);
+        if(splitLine.size()== 2){
+          int countLineNumber = counter + 1;  
+          if(!splitLine.get(1).contains(";") && splitLine.get(1).contains("(")){
+            List<String> splitLineAnotherValue =Splitter.on("(").limit(2).splitToList(splitLine.get(1));
+            line = "<tr id=\"statistics-" + counter + "\"><td>" + htmlEscaper().escape(splitLine.get(0)) + "</td><td>" + htmlEscaper().escape(splitLineAnotherValue.get(0)) + "</td><td>" + htmlEscaper().escape(splitLineAnotherValue.get(1).replaceAll("[()]","")) + "</td></tr>\n";
+            writer.write(line);
+          }  
+          else{
+            line = "<tr id=\"statistics-" + counter + "\"><td>" + htmlEscaper().escape(splitLine.get(0)) + "</td><td>" + htmlEscaper().escape(splitLine.get(1)) + "</td><td></td></tr>\n";
+          writer.write(line);
+          }
+          counter++;
+        }
+      }
       counter++;
     }
+    String exitTableLine = "</tbody></table>\n";
+    writer.write(exitTableLine);
   }
 
   private void insertSources(Writer report) throws IOException {
@@ -389,23 +416,43 @@ public class ReportGenerator {
   private void insertConfiguration(Writer writer) throws IOException {
     Iterable<String> lines = LINE_SPLITTER.split(config.asPropertiesString());
     int iterator = 0;
+    String insertTableLine = "<table  id=\"config_table\" class=\"display\" style=\"width:100%;padding: 10px\" class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th scope=\"col\">#</th><th scope=\"col\">Configuration Name</th><th scope=\"col\">Configuration Value</th></tr></thead><tbody>\n";
+    writer.write(insertTableLine);
     for (String line : lines) {
-      line = "<pre id=\"config-" + iterator + "\">" + htmlEscaper().escape(line) + "</pre>\n";
-      writer.write(line);
-      iterator++;
+      List<String> splitLine = Splitter.on('=').limit(2).splitToList(line);
+      if(splitLine.size()== 2){
+        int countLineNumber = iterator + 1;  
+        line = "<tr id=\"config-" + iterator + "\"><th scope=\"row\">"+ countLineNumber +"</th><td>" + htmlEscaper().escape(splitLine.get(0)) + "</td><td>" + htmlEscaper().escape(splitLine.get(1)) + "</td></tr>\n";
+        writer.write(line);
+        iterator++;
+      }
     }
+    String exitTableLine = "</tbody></table>\n";
+    writer.write(exitTableLine);
   }
+
 
   private void insertLog(Writer writer) throws IOException {
     if (logFile != null && Files.isReadable(logFile)) {
+      String insertTableLine = "<table  id=\"log_table\" class=\"display\" style=\"width:100%;padding: 10px\" class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th scope=\"col\">Date</th><th scope=\"col\">Time</th><th scope=\"col\">Log Level</th><th scope=\"col\">Log Info</th><th scope=\"col\">Log Message</th></tr></thead><tbody>\n";
+      writer.write(insertTableLine);
     try (BufferedReader log = Files.newBufferedReader(logFile, Charset.defaultCharset())) {
         int counter = 0;
         String line;
-        while (null != (line = log.readLine())) {
-          line = "<pre id=\"log-" + counter + "\">" + htmlEscaper().escape(line) + "</pre>\n";
-          writer.write(line);
+        while (null != (line = log.readLine())) { 
+          String getDate = line.replaceFirst("\\s","-i-");
+          String getLogLevel = getDate.replaceFirst("\\s","-i-");
+          String getLogInfo = getLogLevel.replaceFirst("\\s","-i-");
+          String getLogMessage = getLogInfo.replaceFirst("\\s","-i-");
+          List<String> splitLine = Splitter.onPattern("-i-").limit(5).splitToList(getLogMessage);
+          if(splitLine.size() == 5){
+            line = "<tr id=\"log-" + counter + "\"><th scope=\"row\">"+ htmlEscaper().escape(splitLine.get(0)) +"</th><td>" + htmlEscaper().escape(splitLine.get(1)) + "</td><td>" + htmlEscaper().escape(splitLine.get(2)) + "</td><td>" + htmlEscaper().escape(splitLine.get(3)) + "</td><td>" +  htmlEscaper().escape(splitLine.get(4)) + "</td></tr>\n";
+            writer.write(line);
+          }
           counter++;
         }
+        String exitTableLine = "</tbody></table>\n";
+        writer.write(exitTableLine);
       } catch (IOException e) {
         logger.logUserException(WARNING, e, "Could not create report: Adding log failed.");
       }
@@ -413,6 +460,7 @@ public class ReportGenerator {
       writer.write("<p>Log not available</p>");
     }
   }
+
 
   private void insertFCallEdges(Writer writer, DOTBuilder2 dotBuilder) {
     try {

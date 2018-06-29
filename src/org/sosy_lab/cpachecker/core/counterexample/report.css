@@ -339,7 +339,23 @@ table {
 	border-spacing: 2px;
 }
 
-td:first-child {
+.dataTables_wrapper {
+	padding: 10px;
+}
+
+#statistics_table td:first-child{
+	white-space:pre;
+}
+
+#statistics_table .table_head{
+	background-color: #ccc;
+}
+
+#err-table td:first-child {
+	background-color: #ccc;
+}
+
+.sourceContent td:first-child {
 	background-color: #ccc;
 }
 

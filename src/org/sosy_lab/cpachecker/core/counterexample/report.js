@@ -18,6 +18,75 @@ with considerably less effort */
 				$(e.target).tooltip('hide');
 			}, 3000);
 		});
+
+		//Statistics table initialization
+		statisticsTable = $('#statistics_table').DataTable({
+			"order": [],
+			aLengthMenu: [
+				[25, 50, 100, 200, -1],
+				[25, 50, 100, 200, "All"]
+			],
+			iDisplayLength: -1, //Default display all entries
+			"columnDefs": [{
+				"orderable": false, //No ordering 
+				"targets": 0
+			}, {
+				"orderable": false, //No Ordering
+				"targets": 1,
+			}]
+		});
+
+		// Initialize Google pretiffy code 
+		$(document).ready(function () {
+			PR.prettyPrint();
+		});
+
+		//Configuration table initialization
+		$(document).ready(function () {
+			$('#config_table').DataTable({
+				"order": [
+					[1, "asc"]
+				],
+				aLengthMenu: [
+					[25, 50, 100, 200, -1],
+					[25, 50, 100, 200, "All"]
+				],
+				iDisplayLength: -1 //Default display all entries
+			});
+		});
+
+		//Log table initialization
+		$(document).ready(function () {
+			$('#log_table').DataTable({
+				"order": [
+					[0, "asc"]
+				],
+				autoWidth: false,
+				aoColumns: [{
+						sWidth: '12%'
+					},
+					{
+						sWidth: '10%'
+					},
+					{
+						sWidth: '10%'
+					},
+					{
+						sWidth: '25%'
+					},
+					{
+						sWidth: '43%'
+					},
+				],
+				aLengthMenu: [
+					[25, 50, 100, 200, -1],
+					[25, 50, 100, 200, "All"]
+				],
+				iDisplayLength: -1
+			});
+		});
+
+
 	});
 
 	var app = angular.module('report', []);
@@ -99,7 +168,7 @@ with considerably less effort */
 					}
 				}
 			};
-			
+
 			$scope.setTab = function (tabIndex) {
 				if (tabIndex === 1) {
 					if (d3.select("#arg-toolbar").style("visibility") !== "hidden") {
