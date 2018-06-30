@@ -530,7 +530,10 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       for (AlgorithmContext context : algorithmContexts) {
-        if (context != currentContext && context != null && context.cpa != null) {
+        if (context != currentContext
+            && context != null
+            && context.cpa != null
+            && context.reuseCPA()) {
           CPAs.closeCpaIfPossible(context.cpa, logger);
         }
       }
@@ -633,7 +636,12 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
       }
     } else {
       // do not reuse cpa, and, thus reached set
-      pContext.cpa = localCoreComponents.createCPA(cfa, specification);
+      try {
+        pContext.cpa = localCoreComponents.createCPA(cfa, specification);
+      } catch (InvalidConfigurationException e) {
+        pContext.cpa = null;
+        throw e;
+      }
       pContext.reached =
           createInitialReachedSet(pContext.cpa, pMainFunction, localCoreComponents, null);
     }
