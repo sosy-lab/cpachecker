@@ -1,0 +1,42 @@
+{
+  "name": "dagre-d3",
+  "version": "0.5.0",
+  "main": [
+    "dist/dagre-d3.core.js"
+  ],
+  "ignore": [
+    ".*",
+    "README.md",
+    "CHANGELOG.md",
+    "Makefile",
+    "browser.js",
+    "build/**",
+    "dist/dagre-d3.js",
+    "dist/dagre-d3.min.js",
+    "dist/dagre-d3.min.js.map",
+    "dist/demo/**",
+    "index.js",
+    "karma*",
+    "lib/**",
+    "package.json",
+    "src/**",
+    "test/**"
+  ],
+  "dependencies": {
+    "d3": "^4.12.2",
+    "dagre": "^0.7.3",
+    "graphlib": "^1.0.5",
+    "lodash": "^3.10.0"
+  },
+  "homepage": "https://github.com/cpettitt/dagre-d3",
+  "_release": "0.5.0",
+  "_resolution": {
+    "type": "version",
+    "tag": "v0.5.0",
+    "commit": "4255a0f9d22da41abe058438d5a2799f432309ce"
+  },
+  "_source": "https://github.com/cpettitt/dagre-d3.git",
+  "_target": "0.5.0",
+  "_originalSource": "dagre-d3",
+  "_direct": true
+}
