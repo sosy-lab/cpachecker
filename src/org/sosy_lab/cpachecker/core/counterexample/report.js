@@ -8,7 +8,7 @@ with considerably less effort */
 			html: true
 		});
 		// initialize all tooltips
-		$("[data-toggle=tooltip").tooltip();
+		$("[data-toggle=tooltip]").tooltip();
 		$(document).on('hover', '[data-toggle=tooltip]', function () {
 			$(this).tooltip('show');
 		});
@@ -148,7 +148,7 @@ with considerably less effort */
 				$(this).find('i').toggleClass('fa-compress fa-expand')
 			});
 
-			$scope.makeFullScreen = function (e) {
+			$scope.makeFullScreen = function () {
 				if ((document.fullScreenElement && document.fullScreenElement !== null) || (!document.mozFullScreen && !
 						document.webkitIsFullScreen)) {
 					if (document.documentElement.requestFullScreen) {
