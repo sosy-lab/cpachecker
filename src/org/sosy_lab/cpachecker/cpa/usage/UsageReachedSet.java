@@ -140,6 +140,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
       }
       if (!usagesExtracted) {
         extractUsages();
+        usagesExtracted = true;
       }
       return container;
 

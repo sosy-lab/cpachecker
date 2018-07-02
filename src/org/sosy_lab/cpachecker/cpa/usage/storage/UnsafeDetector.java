@@ -39,6 +39,37 @@ import org.sosy_lab.cpachecker.util.Pair;
 @Options(prefix="cpa.usage.unsafedetector")
 public class UnsafeDetector {
 
+  private class UsagePointPair implements Comparable<UsagePointPair> {
+
+    private final UsagePoint point1;
+    private final UsagePoint point2;
+
+    private UsagePointPair(UsagePoint p1, UsagePoint p2) {
+      point1 = p1;
+      point2 = p2;
+    }
+
+    @Override
+    public int compareTo(UsagePointPair pArg0) {
+      int result = 0;
+      boolean isEmpty = point1.isEmpty() && point2.isEmpty();
+      boolean otherIsEmpty = pArg0.point1.isEmpty() && pArg0.point2.isEmpty();
+      if (isEmpty && !otherIsEmpty) {
+        return 1;
+      }
+      if (!isEmpty && otherIsEmpty) {
+        return -1;
+      }
+      result += point1.compareTo(pArg0.point1);
+      result += point2.compareTo(pArg0.point2);
+      return result;
+    }
+
+    private Pair<UsagePoint, UsagePoint> get() {
+      return Pair.of(point1, point2);
+    }
+  }
+
   public static enum UnsafeMode {
     RACE,
     DEADLOCKCIRCULAR,
@@ -114,29 +145,20 @@ public class UnsafeDetector {
 
   private Pair<UsagePoint, UsagePoint> getUnsafePair(SortedSet<UsagePoint> set) {
 
+    UsagePointPair unsafePair = null;
+
     for (UsagePoint point1 : set) {
       for (UsagePoint point2 : set.tailSet(point1)) {
-        if (point1.equals(point2)) {
-          /* There can be an unsafe even with only one usage,
-           * but at first we find two different usages
-           */
-          continue;
-        }
         if (isUnsafePair(point1, point2)) {
-          return Pair.of(point1, point2);
+          UsagePointPair newUnsafePair = new UsagePointPair(point1, point2);
+          if (unsafePair == null || newUnsafePair.compareTo(unsafePair) < 0) {
+            unsafePair = newUnsafePair;
+          }
         }
       }
     }
-    //Now we find an unsafe only from one usage
-    if (!ignoreEmptyLockset) {
-      for (UsagePoint point : set) {
-        if (isUnsafePair(point, point)) {
-          return Pair.of(point, point);
-        }
-      }
-    }
-    //If we can not find an unsafe here, fail
-    return null;
+    // If we can not find an unsafe here, fail
+    return unsafePair == null ? null : unsafePair.get();
   }
 
   public boolean isUnsafePair(UsagePoint point1, UsagePoint point2) {
@@ -172,8 +194,8 @@ public class UnsafeDetector {
   private boolean isDeadlockDispatch(UsagePoint point1, UsagePoint point2) {
     Preconditions.checkNotNull(intLockName);
     LockIdentifier intLock = LockIdentifier.of(intLockName);
-    DeadLockTreeNode node1 = (DeadLockTreeNode) point1.get(DeadLockTreeNode.class);
-    DeadLockTreeNode node2 = (DeadLockTreeNode) point2.get(DeadLockTreeNode.class);
+    DeadLockTreeNode node1 = point1.get(DeadLockTreeNode.class);
+    DeadLockTreeNode node2 = point2.get(DeadLockTreeNode.class);
 
     if (node2.contains(intLock) && !node1.contains(intLock)) {
       for (LockIdentifier lock1 : node1) {
@@ -190,8 +212,8 @@ public class UnsafeDetector {
 
   private boolean isDeadlockCircular(UsagePoint point1, UsagePoint point2) {
     //Deadlocks
-    DeadLockTreeNode node1 = (DeadLockTreeNode) point1.get(DeadLockTreeNode.class);
-    DeadLockTreeNode node2 = (DeadLockTreeNode) point2.get(DeadLockTreeNode.class);
+    DeadLockTreeNode node1 = point1.get(DeadLockTreeNode.class);
+    DeadLockTreeNode node2 = point2.get(DeadLockTreeNode.class);
 
     for (LockIdentifier lock1 : node1) {
       for (LockIdentifier lock2 : node2) {
