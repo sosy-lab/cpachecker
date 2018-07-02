@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -365,11 +366,25 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
       String right = parts.get(1);
       AutomatonVariable var = this.vars.get(left);
       if (var != null) {
-        try {
-          int val = Integer.parseInt(right);
-          var.setValue(val);
-        } catch (NumberFormatException e) {
-          throw new InvalidQueryException("The Query \"" + pModification + "\" is invalid. Could not parse the int \"" + right + "\".");
+        if (var instanceof AutomatonIntVariable) {
+          try {
+            int val = Integer.parseInt(right);
+            ((AutomatonIntVariable) var).setValue(val);
+          } catch (NumberFormatException e) {
+            throw new InvalidQueryException(
+                "The Query \""
+                    + pModification
+                    + "\" is invalid. Could not parse the int \""
+                    + right
+                    + "\".");
+          }
+        } else {
+          throw new InvalidQueryException(
+              "Automaton variable '"
+                  + var.getName()
+                  + "' is not supported in query '"
+                  + pModification
+                  + "'");
         }
       } else {
         throw new InvalidQueryException("Could not modify the variable \"" + left + "\" (Variable not found)");

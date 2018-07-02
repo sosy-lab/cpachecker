@@ -84,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.cpa.automaton.GraphMLTransition.GraphMLThread;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
@@ -332,7 +333,9 @@ public class AutomatonGraphmlParser {
     // Initialize distance variable at the entry state
     if (pState.isEntryState()
         && pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS) {
-      AutomatonVariable distanceVariable = new AutomatonVariable("int", DISTANCE_TO_VIOLATION);
+      AutomatonIntVariable distanceVariable =
+          (AutomatonIntVariable)
+              AutomatonVariable.createAutomatonVariable("int", DISTANCE_TO_VIOLATION);
       distanceVariable.setValue(pGraphMLParserState.getDistance(pState));
       pGraphMLParserState.getAutomatonVariables().put(DISTANCE_TO_VIOLATION, distanceVariable);
     }
@@ -901,8 +904,11 @@ public class AutomatonGraphmlParser {
     // Define thread-id variable, if any assignments to it exist
     if (state.getLeavingTransitions().values().stream()
         .anyMatch(t -> t.getThreadAssignment().isPresent())) {
-      state.getAutomatonVariables().put(
-          KeyDef.THREADNAME.name(), new AutomatonVariable("int", KeyDef.THREADNAME.name()));
+      state
+          .getAutomatonVariables()
+          .put(
+              KeyDef.THREADNAME.name(),
+              AutomatonVariable.createAutomatonVariable("int", KeyDef.THREADNAME.name()));
     }
 
     return state;

@@ -30,6 +30,8 @@ import java.util.logging.Level;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonSetVariable;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
@@ -113,19 +115,29 @@ abstract class AutomatonAction {
     boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
       return ! var.eval(pArgs).canNotEvaluate();
     }
-    @Override  ResultValue<?> eval(AutomatonExpressionArguments pArgs) {
+
+    @Override
+    ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
       ResultValue<Integer> res = var.eval(pArgs);
       if (res.canNotEvaluate()) {
         return res;
       }
       Map<String, AutomatonVariable> vars = pArgs.getAutomatonVariables();
       if (vars.containsKey(varId)) {
-        vars.get(varId).setValue(res.getValue());
+        AutomatonVariable automatonVariable = vars.get(varId);
+        if (automatonVariable instanceof AutomatonIntVariable) {
+          ((AutomatonIntVariable) automatonVariable).setValue(res.getValue());
+        } else if (automatonVariable instanceof AutomatonSetVariable) {
+          throw new CPATransferException(
+              "Cannot assign integer expression to the set variable '"
+                  + automatonVariable.getName()
+                  + "'");
+        } else {
+          throw new CPATransferException(
+              "Type of automaton variable '" + automatonVariable.getName() + "' is not known");
+        }
       } else {
-        AutomatonVariable newVar = new AutomatonVariable("int", varId);
-        newVar.setValue(res.getValue());
-        vars.put(varId, newVar);
-        pArgs.getLogger().log(Level.WARNING, "Defined a Variable " + varId + " that was unknown before (not set in automaton Definition).");
+        throw new CPATransferException("Automaton variable '" + varId + "' does not exist");
       }
       return defaultResultValue;
     }

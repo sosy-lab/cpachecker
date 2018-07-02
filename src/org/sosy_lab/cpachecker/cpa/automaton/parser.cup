@@ -51,6 +51,7 @@ import java_cup.runtime.SymbolFactory;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.DummyParser;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.Language;
+
 
 import com.google.common.base.Throwables;
 
@@ -177,7 +179,7 @@ terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS,
     ERROR, STOP, EXIT, ENTRY, BREAK, ASSERT, ASSUME, MATCH, LABEL, CHECK, EVAL,
     MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS,
     MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST,
-    TARGET, IS_TARGET_STATE, COVERS_LINES ;
+    TARGET, IS_TARGET_STATE, COVERS_LINES, OPEN_ANGLE_BRACKETS, CLOSE_ANGLE_BRACKETS ;
 non terminal List<Automaton> initial ;  
 non terminal Automaton Specification ;
 non terminal Automaton Automaton ;
@@ -241,9 +243,15 @@ LocalDefs ::= LocalDef:d LocalDefs:lst {: lst.put(d.getName(), d); RESULT = lst;
               | /* empty */ {: RESULT = new HashMap<String, AutomatonVariable>(); :}
               ;
 
-LocalDef  ::= LOCAL IDENTIFIER:type IDENTIFIER:name  SEMICOLON {: RESULT = new AutomatonVariable(type.toString(), name.toString()); :}
+LocalDef  ::= LOCAL IDENTIFIER:type IDENTIFIER:name  SEMICOLON {: RESULT = AutomatonVariable.createAutomatonVariable(type.toString(), name.toString()); :}
+            | LOCAL IDENTIFIER:type OPEN_ANGLE_BRACKETS IDENTIFIER:elemType CLOSE_ANGLE_BRACKETS IDENTIFIER:name SEMICOLON {: RESULT = AutomatonVariable.createAutomatonVariable(type.toString(), name.toString(), elemType.toString()); :}
+            | LOCAL IDENTIFIER:type OPEN_ANGLE_BRACKETS IDENTIFIER:elemType CLOSE_ANGLE_BRACKETS IDENTIFIER:name EQ SQUAREEXPR:expr SEMICOLON 
+              {: RESULT = AutomatonVariable.createAutomatonVariable(type.toString(), name.toString(), elemType.toString(), expr.toString()); :}
             | LOCAL IDENTIFIER:type IDENTIFIER:name  EQ ConstantInt:ci SEMICOLON 
-            {: RESULT = new AutomatonVariable(type.toString(), name.toString()); RESULT.setValue(ci.getIntValue()); :}
+              {: RESULT = AutomatonVariable.createAutomatonVariable(type.toString(), name.toString()); 
+                 if (RESULT instanceof AutomatonIntVariable) ((AutomatonIntVariable) RESULT).setValue(ci.getIntValue());
+                 else throw new InvalidConfigurationException("Cannot initialize automaton variable of type '" + RESULT.getType() + "' with integer expression");
+              :}
             ;
 
 StateDefs ::= StateDef:s StateDefs:lst  {: lst.add(0, s); RESULT = lst; :}
