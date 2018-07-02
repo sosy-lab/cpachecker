@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 @Options(prefix="cpa.usage.unsafedetector")
 public class UnsafeDetector {
 
-  private class UsagePointPair implements Comparable<UsagePointPair> {
+  private static class UsagePointPair implements Comparable<UsagePointPair> {
 
     private final UsagePoint point1;
     private final UsagePoint point2;
