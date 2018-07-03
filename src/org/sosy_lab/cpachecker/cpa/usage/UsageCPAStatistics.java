@@ -83,7 +83,6 @@ public class UsageCPAStatistics implements Statistics {
   public final StatTimer printUnsafesTimer = new StatTimer("Time for unsafes printing");
   public final StatTimer extractStatesTimer = new StatTimer("Time for state extraction");
   public final StatCounter numberOfStatesTimer = new StatCounter("Number of states");
-  public int numberOfUnsafes = 0;
 
   public UsageCPAStatistics(
       Configuration pConfig, LogManager pLogger, CFA pCfa, LockTransferRelation lTransfer)

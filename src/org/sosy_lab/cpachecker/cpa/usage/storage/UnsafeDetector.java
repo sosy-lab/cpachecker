@@ -39,37 +39,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 @Options(prefix="cpa.usage.unsafedetector")
 public class UnsafeDetector {
 
-  private static class UsagePointPair implements Comparable<UsagePointPair> {
-
-    private final UsagePoint point1;
-    private final UsagePoint point2;
-
-    private UsagePointPair(UsagePoint p1, UsagePoint p2) {
-      point1 = p1;
-      point2 = p2;
-    }
-
-    @Override
-    public int compareTo(UsagePointPair pArg0) {
-      int result = 0;
-      boolean isEmpty = point1.isEmpty() && point2.isEmpty();
-      boolean otherIsEmpty = pArg0.point1.isEmpty() && pArg0.point2.isEmpty();
-      if (isEmpty && !otherIsEmpty) {
-        return 1;
-      }
-      if (!isEmpty && otherIsEmpty) {
-        return -1;
-      }
-      result += point1.compareTo(pArg0.point1);
-      result += point2.compareTo(pArg0.point2);
-      return result;
-    }
-
-    private Pair<UsagePoint, UsagePoint> get() {
-      return Pair.of(point1, point2);
-    }
-  }
-
   public static enum UnsafeMode {
     RACE,
     DEADLOCKCIRCULAR,
@@ -141,20 +110,40 @@ public class UnsafeDetector {
 
   private Pair<UsagePoint, UsagePoint> getUnsafePair(SortedSet<UsagePoint> set) {
 
-    UsagePointPair unsafePair = null;
+    Pair<UsagePoint, UsagePoint> unsafePair = null;
 
     for (UsagePoint point1 : set) {
       for (UsagePoint point2 : set.tailSet(point1)) {
         if (isUnsafePair(point1, point2)) {
-          UsagePointPair newUnsafePair = new UsagePointPair(point1, point2);
-          if (unsafePair == null || newUnsafePair.compareTo(unsafePair) < 0) {
+          Pair<UsagePoint, UsagePoint> newUnsafePair = Pair.of(point1, point2);
+          if (unsafePair == null || compare(newUnsafePair, unsafePair) < 0) {
             unsafePair = newUnsafePair;
           }
         }
       }
     }
     // If we can not find an unsafe here, fail
-    return unsafePair == null ? null : unsafePair.get();
+    return unsafePair;
+  }
+
+  private int compare(Pair<UsagePoint, UsagePoint> pair1, Pair<UsagePoint, UsagePoint> pair2) {
+    int result = 0;
+    UsagePoint point1 = pair1.getFirst();
+    UsagePoint point2 = pair1.getSecond();
+    UsagePoint oPoint1 = pair2.getFirst();
+    UsagePoint oPoint2 = pair2.getSecond();
+
+    boolean isEmpty = point1.isEmpty() && point2.isEmpty();
+    boolean otherIsEmpty = oPoint1.isEmpty() && oPoint2.isEmpty();
+    if (isEmpty && !otherIsEmpty) {
+      return 1;
+    }
+    if (!isEmpty && otherIsEmpty) {
+      return -1;
+    }
+    result += point1.compareTo(oPoint1);
+    result += point2.compareTo(oPoint2);
+    return result;
   }
 
   public boolean isUnsafePair(UsagePoint point1, UsagePoint point2) {

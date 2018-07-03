@@ -29,6 +29,7 @@ import java.util.Iterator;
 import java.util.function.BiConsumer;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -54,7 +55,7 @@ public class DummyUnmodifiableReachedSet implements UnmodifiableReachedSet {
 
   @Override
   public Collection<Precision> getPrecisions() {
-    return null;
+    return Collections.emptySet();
   }
 
   @Override
@@ -90,7 +91,7 @@ public class DummyUnmodifiableReachedSet implements UnmodifiableReachedSet {
 
   @Override
   public Precision getPrecision(AbstractState pState) throws UnsupportedOperationException {
-    return null;
+    return SingletonPrecision.getInstance();
   }
 
   @Override
@@ -120,6 +121,6 @@ public class DummyUnmodifiableReachedSet implements UnmodifiableReachedSet {
 
   @Override
   public Collection<Property> getViolatedProperties() {
-    return null;
+    return Collections.emptySet();
   }
 }
