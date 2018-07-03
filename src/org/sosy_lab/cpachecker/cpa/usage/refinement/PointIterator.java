@@ -121,6 +121,12 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
   }
 
   @Override
+  protected void finish(SingleIdentifier pId, RefinementResult r) {
+    toRemove.forEach(currentUsagePointSet::remove);
+    toRemove.clear();
+  }
+
+  @Override
   protected void finishIteration(Pair<UsageInfoSet, UsageInfoSet> pPair, RefinementResult r) {
     UsageInfoSet firstUsageInfoSet = pPair.getFirst();
     UsageInfoSet secondUsageInfoSet = pPair.getSecond();
@@ -148,7 +154,6 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
   @Override
   protected void handleFinishSignal(Class<? extends RefinementInterface> pCallerClass) {
     if (pCallerClass.equals(IdentifierIterator.class)) {
-      toRemove.clear();
       firstPointIterator = null;
       secondPointIterator = null;
       firstPoint = null;

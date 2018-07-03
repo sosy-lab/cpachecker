@@ -165,8 +165,11 @@ public class BAMPredicateAbstractionRefinementStrategy extends PredicateAbstract
     openBlocks.push(partitioning.getMainBlock());
     for (ARGState pathElement : abstractionStatesTrace) {
       CFANode currentNode = AbstractStates.extractLocation(pathElement);
-      Integer currentNodeInstance =
-          getPredicateState(pathElement).getAbstractionLocationsOnPath().get(currentNode);
+      PredicateAbstractState pState = getPredicateState(pathElement);
+      if (!pState.isAbstractionState()) {
+        continue;
+      }
+      Integer currentNodeInstance = pState.getAbstractionLocationsOnPath().get(currentNode);
 
       // get predicates for node, in most cases nodeInstance is irrelevant and will be ignored.
       Set<AbstractionPredicate> localPreds =

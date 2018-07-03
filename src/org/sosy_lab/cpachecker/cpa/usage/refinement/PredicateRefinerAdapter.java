@@ -79,8 +79,8 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   //private final Multimap<SingleIdentifier, Set<CFAEdge>> idCached = LinkedHashMultimap.create();
   private final Set<Set<CFAEdge>> trueCache = new HashSet<>();
 
-  private final Set<Set<CFAEdge>> potentialLoopTraces = new HashSet<>();
-  //Statistics
+  // private final Set<Set<CFAEdge>> potentialLoopTraces = new HashSet<>();
+  // Statistics
   private StatCounter solverFailures = new StatCounter("Solver failures");
   private StatCounter numberOfrepeatedPaths = new StatCounter("Number of repeated paths");
   private StatCounter numberOfrefinedPaths = new StatCounter("Number of refined paths");
@@ -133,20 +133,20 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
         PredicatePrecision currentPreds = Precisions.extractPrecisionByType(currentPrecision, PredicatePrecision.class);
 
         if (previousPreds.calculateDifferenceTo(currentPreds) == 0) {
-          if (potentialLoopTraces.contains(edgeSet)) {
-            //Second time, we obtain it
-            numberOfrepeatedPaths.inc();
+          // if (potentialLoopTraces.contains(edgeSet)) {
+          // Second time, we obtain it
+          numberOfrepeatedPaths.inc();
             logger.log(Level.WARNING, "Path is repeated, BAM is looped");
             pInput.getUsageInfo().setAsLooped();
             result = RefinementResult.createTrue();
-            potentialLoopTraces.remove(edgeSet);
+          /*  potentialLoopTraces.remove(edgeSet);
           } else {
             result = performPredicateRefinement(pInput);
             logger.log(Level.WARNING, "Path is repeated, hope BAM can handle it itself");
             //BAM can refine with updated predicate refiner, congratulate him.
             numberOfBAMupdates.inc();
             potentialLoopTraces.add(edgeSet);
-          }
+          }*/
         } else {
           //rerefine it to obtain new states
           logger.log(Level.WARNING, "Path is repeated, but predicates are missed");
