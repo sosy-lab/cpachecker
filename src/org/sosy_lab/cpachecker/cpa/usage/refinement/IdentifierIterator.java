@@ -29,8 +29,10 @@ import com.google.common.base.Predicates;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -135,6 +137,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
 
     UsageReachedSet uReached = (UsageReachedSet) pReached;
     UsageContainer container = uReached.getUsageContainer();
+    Set<SingleIdentifier> processedUnsafes = new HashSet<>();
 
     logger.log(Level.INFO, ("Perform US refinement: " + i++));
     int originUnsafeSize = container.getUnsafeSize();
@@ -175,11 +178,13 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
 
       if (result.isTrue()) {
         container.setAsRefined(currentId, result);
+        processedUnsafes.add(currentId);
       } else if (result.isFalse() && !isPrecisionChanged) {
         //We do not add a precision, but consider the unsafe as false
         //set it as false now, because it will occur again, as precision is not changed
         //We can not look at precision size here - the result can be false due to heuristics
         container.setAsFalseUnsafe(currentId);
+        processedUnsafes.add(currentId);
       }
     }
     int newTrueUnsafeSize = container.getProcessedUnsafeSize();
@@ -208,9 +213,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       pReached.clear();
 
       for (AdjustablePrecision prec :
-              from(container.getProcessedUnsafes())
-              .transform(precisionMap::remove)
-              .filter(Predicates.notNull())) {
+          from(processedUnsafes).transform(precisionMap::remove).filter(Predicates.notNull())) {
         finalPrecision = finalPrecision.subtract(prec);
       }
 

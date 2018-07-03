@@ -151,7 +151,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
   @Override
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition p)
       throws InterruptedException {
-    return this.getWrappedCpa().getInitialPrecision(pNode, p);
+    return getWrappedCpa().getInitialPrecision(pNode, p);
   }
 
   @Override

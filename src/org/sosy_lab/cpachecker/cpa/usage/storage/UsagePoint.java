@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class UsagePoint implements Comparable<UsagePoint> {
 
-  protected final Access access;
+  private final Access access;
   private final List<CompatibleNode> compatibleNodes;
   private final Set<UsagePoint> coveredUsages;
 
@@ -46,6 +46,10 @@ public class UsagePoint implements Comparable<UsagePoint> {
   @Override
   public int hashCode() {
     return Objects.hash(access, compatibleNodes);
+  }
+
+  public Access getAccess() {
+    return access;
   }
 
   @Override

@@ -120,11 +120,8 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       LockTransferRelation lT)
       throws InvalidConfigurationException {
     super(c, pT, pCfa, pL, lT);
-    config.inject(this, KleverErrorTracePrinter.class);
+    c.inject(this, KleverErrorTracePrinter.class);
   }
-
-  int idCounter = 0;
-  ThreadIterator threadIterator;
 
   private String getCurrentId() {
     return "A" + idCounter;
@@ -135,6 +132,8 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     return getCurrentId();
   }
 
+  private int idCounter = 0;
+  private ThreadIterator threadIterator;
   private Element currentNode;
 
   @Override
@@ -144,11 +143,8 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     List<CFAEdge> firstPath, secondPath;
 
     firstPath = getPath(firstUsage);
-    if (firstPath == null) {
-      return;
-    }
     secondPath = getPath(secondUsage);
-    if (secondPath == null) {
+    if (firstPath.isEmpty() || secondPath.isEmpty()) {
       return;
     }
     try {
@@ -243,10 +239,10 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       Element edge = printEdge(builder, pEdge);
 
       if (!warningIsPrinted
-          && pEdge.getPredecessor() == usage.getCFANode()
+          && pEdge.getSuccessor() == usage.getCFANode()
           && containsId(pEdge, pIdName)) {
         warningIsPrinted = true;
-        builder.addDataElementChild(edge, KeyDef.WARNING, usage.getWarningMessage());
+        builder.addDataElementChild(edge, KeyDef.WARNING, usage.toString());
       } else if (!warningIsPrinted && !iterator.hasNext()) {
         logger.log(Level.WARNING, "Can not determine an unsafe edge");
         builder.addDataElementChild(edge, KeyDef.WARNING, WARNING_MESSAGE);

@@ -311,7 +311,7 @@ public class DeadLockState extends AbstractLockState {
   }
 
   @Override
-  public CompatibleNode getTreeNode() {
+  public CompatibleNode getCompatibleNode() {
     return new DeadLockTreeNode(lockList);
   }
 

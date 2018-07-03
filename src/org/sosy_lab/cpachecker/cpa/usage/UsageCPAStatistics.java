@@ -131,7 +131,6 @@ public class UsageCPAStatistics implements Statistics {
       errPrinter.printStatistics(writer);
       UsageState.get(reached.getFirstState()).getStatistics().printStatistics(writer);
       uReached.printStatistics(writer);
-      // out.
       printStatisticsTimer.stop();
     } catch (InvalidConfigurationException e) {
       logger.log(Level.SEVERE, "Cannot create error trace printer: " + e.getMessage());

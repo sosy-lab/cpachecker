@@ -97,7 +97,11 @@ public class UsageInfo implements Comparable<UsageInfo> {
           AbstractStates.asIterable(state).filter(CompatibleState.class);
       if (states.allMatch(s -> s.isRelevantFor((SingleIdentifier) ident))) {
         UsageInfo result =
-            new UsageInfo(atype, AbstractStates.extractLocation(state), (SingleIdentifier) ident, states.transform(CompatibleState::prepareToStore).toList());
+            new UsageInfo(
+                atype,
+                AbstractStates.extractLocation(state),
+                (SingleIdentifier) ident,
+                states.transform(CompatibleState::prepareToStore).toList());
         result.core.keyState = state;
         return result;
       }
@@ -147,21 +151,6 @@ public class UsageInfo implements Comparable<UsageInfo> {
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder();
-
-    if (core.id != null) {
-      sb.append("Id ");
-      sb.append(core.id.toString());
-      sb.append(", ");
-    }
-    sb.append(core.node.describeFileLocation());
-    sb.append(" (" + core.accessType + ")");
-    sb.append(", " + getLockState());
-
-    return sb.toString();
-  }
-
-  public String getWarningMessage() {
     StringBuilder sb = new StringBuilder();
 
     sb.append(core.accessType);
@@ -275,7 +264,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
 
   public UsagePoint createUsagePoint() {
     List<CompatibleNode> nodes =
-        from(compatibleStates).transform(CompatibleState::getTreeNode).toList();
+        from(compatibleStates).transform(CompatibleState::getCompatibleNode).toList();
 
     return new UsagePoint(nodes, core.accessType);
   }

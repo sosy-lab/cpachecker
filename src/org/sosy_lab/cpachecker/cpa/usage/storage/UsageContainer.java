@@ -59,58 +59,40 @@ public class UsageContainer {
 
   private final Set<SingleIdentifier> falseUnsafes;
 
-  private final Set<SingleIdentifier> processedUnsafes = new HashSet<>();
   // Only for statistics
-  private int initialUsages = -1;
+  private int initialUsages = 0;
 
   private final LogManager logger;
 
   private final StatTimer resetTimer = new StatTimer("Time for reseting unsafes");
   private final StatTimer unsafeDetectionTimer = new StatTimer("Time for unsafe detection");
 
-  int unsafeUsages = -1;
-  int totalIds = 0;
+  private boolean usagesCalculated = false;
+  private boolean oneTotalIteration = false;
 
   @Option(description="output only true unsafes",
       secure = true)
   private boolean printOnlyTrueUnsafes = false;
 
   public UsageContainer(Configuration config, LogManager l) throws InvalidConfigurationException {
-    this(new TreeMap<SingleIdentifier, UnrefinedUsagePointSet>(),
-        new TreeMap<SingleIdentifier, RefinedUsagePointSet>(),
-        new TreeMap<SingleIdentifier, RefinedUsagePointSet>(),
-        new TreeSet<SingleIdentifier>(), l, new UnsafeDetector(config));
     config.inject(this);
+    unrefinedIds = new TreeMap<>();
+    refinedIds = new TreeMap<>();
+    failedIds = new TreeMap<>();
+    falseUnsafes = new TreeSet<>();
+    logger = l;
+    detector = new UnsafeDetector(config);
   }
-
-  private UsageContainer(SortedMap<SingleIdentifier, UnrefinedUsagePointSet> pUnrefinedStat,
-      SortedMap<SingleIdentifier, RefinedUsagePointSet> pRefinedStat,
-      SortedMap<SingleIdentifier, RefinedUsagePointSet> failedStat,
-      Set<SingleIdentifier> pFalseUnsafes, LogManager pLogger,
-      UnsafeDetector pDetector) {
-    unrefinedIds = pUnrefinedStat;
-    refinedIds = pRefinedStat;
-    failedIds = failedStat;
-    falseUnsafes = pFalseUnsafes;
-    logger = pLogger;
-    detector = pDetector;
-  }
-
 
   public void add(SingleIdentifier pId, UsageInfo pUsage) {
     SingleIdentifier id = pId;
     if (id instanceof StructureIdentifier) {
       id = ((StructureIdentifier) id).toStructureFieldIdentifier();
     }
-    if (falseUnsafes.contains(id) || refinedIds.containsKey(id)) {
+    if (oneTotalIteration && !unrefinedIds.containsKey(id)) {
       return;
     }
-    UnrefinedUsagePointSet uset = getSet(id);
 
-    uset.add(pUsage);
-  }
-
-  private UnrefinedUsagePointSet getSet(SingleIdentifier id) {
     assert (!falseUnsafes.contains(id) || !refinedIds.containsKey(id));
     UnrefinedUsagePointSet uset;
 
@@ -120,40 +102,30 @@ public class UsageContainer {
     } else {
       uset = unrefinedIds.get(id);
     }
-    return uset;
+
+    uset.add(pUsage);
   }
 
   private void calculateUnsafesIfNecessary() {
-    if (unsafeUsages == -1) {
+    if (!usagesCalculated) {
       unsafeDetectionTimer.start();
-      processedUnsafes.clear();
-      unsafeUsages = 0;
+      usagesCalculated = true;
       Set<SingleIdentifier> toDelete = new HashSet<>();
 
       for (Entry<SingleIdentifier, UnrefinedUsagePointSet> entry : unrefinedIds.entrySet()) {
         UnrefinedUsagePointSet tmpList = entry.getValue();
         if (detector.isUnsafe(tmpList)) {
-          unsafeUsages += tmpList.size();
+          if (!oneTotalIteration) {
+            initialUsages += tmpList.size();
+          }
         } else {
-          SingleIdentifier id = entry.getKey();
-          toDelete.add(id);
+          toDelete.add(entry.getKey());
         }
       }
-      toDelete.forEach(this::removeIdFromCaches);
+      toDelete.forEach(unrefinedIds::remove);
 
-      refinedIds.forEach((id, list) -> unsafeUsages += list.size());
-
-      if (initialUsages == -1) {
-        assert refinedIds.isEmpty();
-        initialUsages = unsafeUsages;
-      }
       unsafeDetectionTimer.stop();
     }
-  }
-
-  private void removeIdFromCaches(SingleIdentifier id) {
-    unrefinedIds.remove(id);
-    processedUnsafes.add(id);
   }
 
   public Set<SingleIdentifier> getFalseUnsafes() {
@@ -170,24 +142,15 @@ public class UsageContainer {
 
   public Iterator<SingleIdentifier> getUnsafeIterator() {
     if (printOnlyTrueUnsafes) {
-      return getTrueUnsafeIterator();
+      return refinedIds.keySet().iterator();
     } else {
       return getAllUnsafes().iterator();
     }
   }
 
   public Iterator<SingleIdentifier> getUnrefinedUnsafeIterator() {
-    //New set to avoid concurrent modification exception
-    return getKeySetIterator(unrefinedIds);
-  }
-
-  private Iterator<SingleIdentifier> getTrueUnsafeIterator() {
-    //New set to avoid concurrent modification exception
-    return getKeySetIterator(refinedIds);
-  }
-
-  private Iterator<SingleIdentifier> getKeySetIterator(SortedMap<SingleIdentifier, ? extends AbstractUsagePointSet> map) {
-    Set<SingleIdentifier> result = new TreeSet<>(map.keySet());
+    // New set to avoid concurrent modification exception
+    Set<SingleIdentifier> result = new TreeSet<>(unrefinedIds.keySet());
     return result.iterator();
   }
 
@@ -215,7 +178,8 @@ public class UsageContainer {
 
   public void resetUnrefinedUnsafes() {
     resetTimer.start();
-    unsafeUsages = -1;
+    usagesCalculated = false;
+    oneTotalIteration = true;
     unrefinedIds.values()
       .forEach(UnrefinedUsagePointSet::reset);
     logger.log(Level.FINE, "Unsafes are reseted");
@@ -239,7 +203,7 @@ public class UsageContainer {
 
   public void setAsFalseUnsafe(SingleIdentifier id) {
     falseUnsafes.add(id);
-    removeIdFromCaches(id);
+    unrefinedIds.remove(id);
   }
 
   public void setAsRefined(SingleIdentifier id, RefinementResult result) {
@@ -256,7 +220,7 @@ public class UsageContainer {
     } else {
       refinedIds.put(id, rSet);
     }
-    removeIdFromCaches(id);
+    unrefinedIds.remove(id);
   }
 
   public void printUsagesStatistics(StatisticsWriter out) {
@@ -301,9 +265,5 @@ public class UsageContainer {
         .put(failedUsages)
         .put(resetTimer)
         .put(unsafeDetectionTimer);
-  }
-
-  public Set<SingleIdentifier> getProcessedUnsafes() {
-    return processedUnsafes;
   }
 }

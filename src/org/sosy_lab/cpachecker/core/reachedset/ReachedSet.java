@@ -78,5 +78,5 @@ public interface ReachedSet extends UnmodifiableReachedSet {
 
   AbstractState popFromWaitlist();
 
-  default void finalize(ConfigurableProgramAnalysis pCpa) {}
+  default void finalize(@SuppressWarnings("unused") ConfigurableProgramAnalysis pCpa) {}
 }

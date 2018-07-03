@@ -128,10 +128,6 @@ public class UnsafeDetector {
     }
   }
 
-  public Pair<UsagePoint, UsagePoint> getUnsafePointPair(UnrefinedUsagePointSet set) {
-    return getUnsafePair(set.getTopUsages());
-  }
-
   private boolean isUnsafe(SortedSet<UsagePoint> points) {
     for (UsagePoint point1 : points) {
       for (UsagePoint point2 : points.tailSet(point1)) {
@@ -182,7 +178,7 @@ public class UnsafeDetector {
 
 
   private boolean isRace(UsagePoint point1, UsagePoint point2) {
-    if (point1.access == Access.WRITE || point2.access == Access.WRITE) {
+    if (point1.getAccess() == Access.WRITE || point2.getAccess() == Access.WRITE) {
       if (ignoreEmptyLockset && point1.isEmpty() && point2.isEmpty()) {
         return false;
       }

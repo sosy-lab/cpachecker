@@ -155,7 +155,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
       writer.append("Line 0:     N0 -{/*Failure in refinement*/}-> N0\n");
     }
     List<CFAEdge> path = getPath(usage);
-    if (path == null) {
+    if (path.isEmpty()) {
       return;
     }
     int callstackDepth = 1;
@@ -187,7 +187,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
       if (!caption.isEmpty() && !(edge instanceof CFunctionReturnEdge)) {
         writer.write("Line 0:     N0 -{/*" + caption + "*/}-> N0\n");
         writer.write("Line 0:     N0 -{highlight}-> N0\n");
-      } else if (edge.getPredecessor() == usage.getCFANode()
+      } else if (edge.getSuccessor() == usage.getCFANode()
           && edge.toString().contains(id.getName())) {
         writer.write("Line 0:     N0 -{highlight}-> N0\n");
       }

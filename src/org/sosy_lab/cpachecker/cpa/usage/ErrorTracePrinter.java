@@ -88,13 +88,12 @@ public abstract class ErrorTracePrinter {
       new StatCounter("Number of unsafes with empty lock sets");
 
   protected final Configuration config;
-  protected UsageContainer container;
   protected final LogManager logger;
-  protected UnsafeDetector detector;
   protected final CFA cfa;
+  protected UsageContainer container;
 
   protected Predicate<CFAEdge> FILTER_EMPTY_FILE_LOCATIONS;
-  private BAMMultipleCEXSubgraphComputer subgraphComputer;
+  private final BAMMultipleCEXSubgraphComputer subgraphComputer;
 
   public ErrorTracePrinter(
       Configuration c,
@@ -156,7 +155,7 @@ public abstract class ErrorTracePrinter {
     }
     UsageReachedSet uReached = (UsageReachedSet) reachedSet;
     container = uReached.getUsageContainer();
-    detector = container.getUnsafeDetector();
+    UnsafeDetector detector = container.getUnsafeDetector();
 
     logger.log(Level.FINEST, "Processing unsafe identifiers");
     Iterator<SingleIdentifier> unsafeIterator = container.getUnsafeIterator();
@@ -227,11 +226,11 @@ public abstract class ErrorTracePrinter {
   protected List<CFAEdge> getPath(UsageInfo usage) {
     List<CFAEdge> path = usage.getPath();
 
-    if (usage.getPath() == null) {
+    if (path == null) {
       path = createPath(usage);
     }
 
-    return path.isEmpty() ? null : path;
+    return path;
   }
 
   protected abstract void printUnsafe(SingleIdentifier id, Pair<UsageInfo, UsageInfo> pair);

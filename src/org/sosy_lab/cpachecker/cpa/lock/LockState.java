@@ -392,7 +392,7 @@ public class LockState extends AbstractLockState {
   }
 
   @Override
-  public CompatibleNode getTreeNode() {
+  public CompatibleNode getCompatibleNode() {
     return new LockTreeNode(locks.keySet());
   }
 

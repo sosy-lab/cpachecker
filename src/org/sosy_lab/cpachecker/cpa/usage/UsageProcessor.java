@@ -96,8 +96,8 @@ public class UsageProcessor {
 
     CFANode node = extractLocation(pState);
 
-    for (int edgeIdx = 0; edgeIdx < node.getNumLeavingEdges(); edgeIdx++) {
-      CFAEdge edge = node.getLeavingEdge(edgeIdx);
+    for (int edgeIdx = 0; edgeIdx < node.getNumEnteringEdges(); edgeIdx++) {
+      CFAEdge edge = node.getEnteringEdge(edgeIdx);
       getUsagesForEdge(pState, edge);
     }
     return result;

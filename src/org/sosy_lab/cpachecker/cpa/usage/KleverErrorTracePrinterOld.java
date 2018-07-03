@@ -88,7 +88,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
     firstPath = getPath(firstUsage);
     secondPath = getPath(secondUsage);
 
-    if (firstPath == null || secondPath == null) {
+    if (firstPath.isEmpty() || secondPath.isEmpty()) {
       return;
     }
     try {
@@ -142,9 +142,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
     Optional<CFAEdge> warningEdge =
         from(path)
             .filter(
-                e ->
-                    e.getPredecessor() == usage.getCFANode()
-                        && e.toString().contains(pId.getName()))
+                e -> e.getSuccessor() == usage.getCFANode() && e.toString().contains(pId.getName()))
             .last();
 
     CFAEdge warning;
@@ -206,7 +204,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
       result = builder.createNodeElement(nextId, NodeType.ONPATH);
     }
     if (lastWarningElement != null) {
-      builder.addDataElementChild(lastWarningElement, KeyDef.WARNING, usage.getWarningMessage());
+      builder.addDataElementChild(lastWarningElement, KeyDef.WARNING, usage.toString());
     }
 
     // Special hack to connect two traces

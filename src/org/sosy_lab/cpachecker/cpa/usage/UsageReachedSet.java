@@ -90,6 +90,12 @@ public class UsageReachedSet extends PartitionedReachedSet {
     super(waitlistFactory);
     config = pConfig;
     logger = pLogger;
+    try {
+      container = new UsageContainer(config, logger);
+    } catch (InvalidConfigurationException e) {
+      logger.log(Level.WARNING, "Can not create container due to wrong config");
+      container = null;
+    }
   }
 
   @Override
@@ -120,7 +126,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
 
   @Override
   public boolean hasViolatedProperties() {
-    UsageContainer container = getUsageContainer();
+    extractUsagesIfNeccessary();
     return container == null ? false : container.getTotalUnsafeSize() > 0;
   }
 
@@ -134,20 +140,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
   }
 
   public UsageContainer getUsageContainer() {
-    try {
-      if (container == null) {
-        container = new UsageContainer(config, logger);
-      }
-      if (!usagesExtracted) {
-        extractUsages();
-        usagesExtracted = true;
-      }
-      return container;
-
-    } catch (InvalidConfigurationException e) {
-      logger.log(Level.SEVERE, e.getMessage());
-      return null;
-    }
+    return container;
   }
 
   private void writeObject(@SuppressWarnings("unused") ObjectOutputStream stream) {
@@ -162,71 +155,75 @@ public class UsageReachedSet extends PartitionedReachedSet {
     usageProcessor = usageCpa.getUsageProcessor();
   }
 
-  private void extractUsages() {
-    logger.log(Level.INFO, "Analysis is finished, start usage extraction");
-    Deque<Pair<ReachedSet, Multiset<LockEffect>>> waitlist = new ArrayDeque<>();
-    Set<Pair<AbstractState, Multiset<LockEffect>>> processedSets = new HashSet<>();
+  private void extractUsagesIfNeccessary() {
+    if (!usagesExtracted && container != null) {
+      logger.log(Level.INFO, "Analysis is finished, start usage extraction");
+      usagesExtracted = true;
+      Deque<Pair<ReachedSet, Multiset<LockEffect>>> waitlist = new ArrayDeque<>();
+      Set<Pair<AbstractState, Multiset<LockEffect>>> processedSets = new HashSet<>();
 
-    waitlist.add(Pair.of(this, HashMultiset.create()));
-    processedSets.add(Pair.of(getFirstState(), HashMultiset.create()));
+      waitlist.add(Pair.of(this, HashMultiset.create()));
+      processedSets.add(Pair.of(getFirstState(), HashMultiset.create()));
 
-    while (!waitlist.isEmpty()) {
-      Pair<ReachedSet, Multiset<LockEffect>> currentPair = waitlist.pop();
-      ReachedSet currentReached = currentPair.getFirst();
-      Multiset<LockEffect> currentEffects = currentPair.getSecond();
-      LockState locks, expandedLocks;
-      Map<LockState, LockState> reduceToExpand = new HashMap<>();
+      while (!waitlist.isEmpty()) {
+        Pair<ReachedSet, Multiset<LockEffect>> currentPair = waitlist.pop();
+        ReachedSet currentReached = currentPair.getFirst();
+        Multiset<LockEffect> currentEffects = currentPair.getSecond();
+        LockState locks, expandedLocks;
+        Map<LockState, LockState> reduceToExpand = new HashMap<>();
 
-      for (AbstractState state : currentReached.asCollection()) {
-        // handle state
-        usageProcessingTimer.start();
-        Set<UsageInfo> usages = usageProcessor.getUsagesForState(state);
-        usageProcessingTimer.stop();
-        usageExpandingTimer.start();
-        for (UsageInfo uinfo : usages) {
-          SingleIdentifier id = uinfo.getId();
-          UsageInfo expandedUsage;
-          if (currentEffects.isEmpty()) {
-            expandedUsage = uinfo;
-          } else {
-            locks = (LockState) uinfo.getLockState();
-            if (reduceToExpand.containsKey(locks)) {
-              expandedLocks = reduceToExpand.get(locks);
+        for (AbstractState state : currentReached.asCollection()) {
+          // handle state
+          usageProcessingTimer.start();
+          Set<UsageInfo> usages = usageProcessor.getUsagesForState(state);
+          usageProcessingTimer.stop();
+          usageExpandingTimer.start();
+          for (UsageInfo uinfo : usages) {
+            SingleIdentifier id = uinfo.getId();
+            UsageInfo expandedUsage;
+            if (currentEffects.isEmpty()) {
+              expandedUsage = uinfo;
             } else {
-              LockStateBuilder builder = locks.builder();
-              currentEffects.forEach(e -> e.effect(builder));
-              expandedLocks = builder.build();
-              reduceToExpand.put(locks, expandedLocks);
+              locks = (LockState) uinfo.getLockState();
+              if (reduceToExpand.containsKey(locks)) {
+                expandedLocks = reduceToExpand.get(locks);
+              } else {
+                LockStateBuilder builder = locks.builder();
+                currentEffects.forEach(e -> e.effect(builder));
+                expandedLocks = builder.build();
+                reduceToExpand.put(locks, expandedLocks);
+              }
+              expandedUsage = uinfo.expand(expandedLocks);
             }
-            expandedUsage = uinfo.expand(expandedLocks);
+            container.add(id, expandedUsage);
           }
-          container.add(id, expandedUsage);
-        }
-        usageExpandingTimer.stop();
+          usageExpandingTimer.stop();
 
-        if (manager.hasInitialState(state)) {
-          for (ARGState child : ((ARGState) state).getChildren()) {
-            AbstractState reducedChild = manager.getReducedStateForExpandedState(child);
-            ReachedSet innerReached = manager.getReachedSetForInitialState(state, reducedChild);
+          // Search state in the BAM cache
+          if (manager.hasInitialState(state)) {
+            for (ARGState child : ((ARGState) state).getChildren()) {
+              AbstractState reducedChild = manager.getReducedStateForExpandedState(child);
+              ReachedSet innerReached = manager.getReachedSetForInitialState(state, reducedChild);
 
-            LockState rootLockState = AbstractStates.extractStateByType(child, LockState.class);
-            LockState reducedLockState =
-                AbstractStates.extractStateByType(reducedChild, LockState.class);
-            Multiset<LockEffect> difference;
-            if (rootLockState == null || reducedLockState == null) {
-              // No LockCPA
-              difference = HashMultiset.create();
-            } else {
-              difference = reducedLockState.getDifference(rootLockState);
-            }
+              LockState rootLockState = AbstractStates.extractStateByType(child, LockState.class);
+              LockState reducedLockState =
+                  AbstractStates.extractStateByType(reducedChild, LockState.class);
+              Multiset<LockEffect> difference;
+              if (rootLockState == null || reducedLockState == null) {
+                // No LockCPA
+                difference = HashMultiset.create();
+              } else {
+                difference = reducedLockState.getDifference(rootLockState);
+              }
 
-            difference.addAll(currentEffects);
+              difference.addAll(currentEffects);
 
-            Pair<AbstractState, Multiset<LockEffect>> newPair =
-                Pair.of(innerReached.getFirstState(), difference);
-            if (!processedSets.contains(newPair)) {
-              waitlist.add(Pair.of(innerReached, difference));
-              processedSets.add(newPair);
+              Pair<AbstractState, Multiset<LockEffect>> newPair =
+                  Pair.of(innerReached.getFirstState(), difference);
+              if (!processedSets.contains(newPair)) {
+                waitlist.add(Pair.of(innerReached, difference));
+                processedSets.add(newPair);
+              }
             }
           }
         }
