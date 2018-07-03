@@ -698,7 +698,6 @@ public final class InterpolationManager {
         itpStrategy.checkInterpolants(solver, formulasWithStatesAndGroupdIds, interpolants);
       }
 
-
       return interpolants;
     }
   }
