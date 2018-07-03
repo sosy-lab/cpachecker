@@ -1468,6 +1468,10 @@ public class FormulaManagerView {
       FormulaType<BitvectorFormula> type = FormulaType.getBitvectorTypeWithSize(1);
       //Term z = env.numeral("0");
       for (Formula nn : allLiterals) {
+        if (manager.getFormulaType(nn).isRationalType()) {
+          // boolean operations with rationales are not permitted
+          continue;
+        }
         BitvectorFormula n = bitvectorFormulaManager.wrap(type, nn);
         BitvectorFormula u1 = bitvectorFormulaManager.and(z, n);
         BitvectorFormula u2 = bitvectorFormulaManager.and(n, z);
