@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -451,7 +452,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
       }
 
       Map<String, Integer> lastOccurance = new HashMap<>(); // Last occurance of var
-      Map<Integer, BooleanFormula> predPosition = new HashMap<>(); // Pos of pred
+      Map<Integer, BooleanFormula> predPosition = new TreeMap<>(); // Pos of pred
       int predCounter = 0;
 
       for (PathLocation location : pPathLocations) {
@@ -473,6 +474,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
       List<BooleanFormula> newPredicates = new ArrayList<>();
 
+      // FIXME: The order of the new predicates is lost, major problem
       for (Entry<Integer, BooleanFormula> predEntry : predPosition.entrySet()) {
         BooleanFormula pred = predEntry.getValue(); // The predicate
         int predPos = predEntry.getKey(); // The position in the path
