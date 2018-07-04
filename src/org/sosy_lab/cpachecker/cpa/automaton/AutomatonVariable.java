@@ -55,17 +55,19 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
         }
         if (args.length > 1) {
           String value = args[1];
-          for (String elem : Splitter.on(',').split(value)) {
-            elem = elem.trim();
-            if (elementType.toLowerCase().equals("int")) {
-              try {
-                result.add(Integer.valueOf(elem));
-              } catch (NumberFormatException e) {
-                throw new IllegalArgumentException(
-                    "Value '" + elem + "' cannot be parsed as integer number");
+          if (!value.trim().isEmpty()) {
+            for (String elem : Splitter.on(',').split(value)) {
+              elem = elem.trim();
+              if (elementType.toLowerCase().equals("int")) {
+                try {
+                  result.add(Integer.valueOf(elem));
+                } catch (NumberFormatException e) {
+                  throw new IllegalArgumentException(
+                      "Value '" + elem + "' cannot be parsed as integer number");
+                }
+              } else {
+                result.add(elem);
               }
-            } else {
-              result.add(elem);
             }
           }
         }
@@ -100,7 +102,7 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
   @Override
   public abstract int hashCode();
 
-  public static class AutomatonIntVariable extends AutomatonVariable {
+  public static final class AutomatonIntVariable extends AutomatonVariable {
 
     private static final long serialVersionUID = -5599402008148488971L;
     private int value;
@@ -154,7 +156,7 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
     }
   }
 
-  public static class AutomatonSetVariable<T> extends AutomatonVariable {
+  public static final class AutomatonSetVariable<T> extends AutomatonVariable {
 
     private static final long serialVersionUID = 4293998838719160247L;
     private Set<T> set;
