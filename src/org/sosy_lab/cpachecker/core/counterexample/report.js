@@ -1860,7 +1860,12 @@ function init() {
 		// 	e,
 		// 	f
 		// } = matrix; // ES6, if this doesn't work, use below assignment
-		var a=matrix.a, b=matrix.b, c=matrix.c, d=matrix.d, e=matrix.e, f=matrix.f; // ES5
+		var a = matrix.a,
+			b = matrix.b,
+			c = matrix.c,
+			d = matrix.d,
+			e = matrix.e,
+			f = matrix.f; // ES5
 		var scaleX, scaleY, skewX;
 		if (scaleX = Math.sqrt(a * a + b * b)) a /= scaleX, b /= scaleX;
 		if (skewX = a * c + b * d) c -= a * skewX, d -= b * skewX;
