@@ -127,14 +127,9 @@ abstract class AutomatonAction {
         AutomatonVariable automatonVariable = vars.get(varId);
         if (automatonVariable instanceof AutomatonIntVariable) {
           ((AutomatonIntVariable) automatonVariable).setValue(res.getValue());
-        } else if (automatonVariable instanceof AutomatonSetVariable) {
-          throw new CPATransferException(
-              "Cannot assign integer expression to the set variable '"
-                  + automatonVariable.getName()
-                  + "'");
         } else {
           throw new CPATransferException(
-              "Type of automaton variable '" + automatonVariable.getName() + "' is not known");
+              "Cannot assign integer expression to variable '" + automatonVariable.getName() + "'");
         }
       } else {
         throw new CPATransferException("Automaton variable '" + varId + "' does not exist");
@@ -145,6 +140,53 @@ abstract class AutomatonAction {
     @Override
     public String toString() {
       return String.format("DO %s=%s", varId, var);
+    }
+  }
+
+  /** Change the value of a AutomatonSetVariable by adding or removing values. */
+  static class SetAssignment extends AutomatonAction {
+    private final String varId;
+    private final boolean action;
+    private final String value;
+
+    public SetAssignment(String pVarId, String pValue, boolean pAction) {
+      this.varId = pVarId;
+      this.action = pAction;
+      this.value = pValue;
+    }
+
+    @Override
+    boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
+      return true;
+    }
+
+    @Override
+    ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+      Map<String, AutomatonVariable> vars = pArgs.getAutomatonVariables();
+      if (vars.containsKey(varId)) {
+        AutomatonVariable automatonVariable = vars.get(varId);
+        if (automatonVariable instanceof AutomatonSetVariable) {
+          String substitutedValue = pArgs.replaceVariables(value);
+          if (action) {
+            ((AutomatonSetVariable<?>) automatonVariable).add(substitutedValue);
+          } else {
+            ((AutomatonSetVariable<?>) automatonVariable).remove(substitutedValue);
+          }
+        } else {
+          throw new CPATransferException(
+              "Automaton variable '"
+                  + automatonVariable.getName()
+                  + "' cannot be used in set modifications");
+        }
+      } else {
+        throw new CPATransferException("Automaton variable '\" + varId + \"' does not exist");
+      }
+      return defaultResultValue;
+    }
+
+    @Override
+    public String toString() {
+      return String.format("DO %s[%s]=%s", varId, value, action);
     }
   }
 

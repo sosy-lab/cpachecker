@@ -200,6 +200,7 @@ non terminal Boolean StateNonDetDef ;
 non terminal AutomatonTransition Transition ;
 non terminal AutomatonBoolExpr Assertion ;
 non terminal AutomatonAction Action ;
+non terminal Boolean SetValue ;
 
 non terminal List<AutomatonExpression<?>> PrintArguments ;
 
@@ -300,6 +301,7 @@ Actions   ::= Action:a Actions:lst {: lst.add(0,a); RESULT = lst; :} // insert a
             ;
 Action    ::= DO  IDENTIFIER:var EQ InnerInt:i   {: RESULT = new AutomatonAction.Assignment(var.toString(), i); :}
                         // InnerInt in this position allows for x = EVAL(..) Statements
+            | DO IDENTIFIER:var SQUAREEXPR:expr EQ SetValue:val {: RESULT = new AutomatonAction.SetAssignment(var.toString(), expr.toString(), val); :}
             | PRINT PrintArguments:args {: RESULT = new AutomatonAction.Print(args); :}
 /*next statement is deprecated*/            
             | MODIFY OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
@@ -307,7 +309,10 @@ Action    ::= DO  IDENTIFIER:var EQ InnerInt:i   {: RESULT = new AutomatonAction
             | MODIFY OPEN_BRACKETS IDENTIFIER:cpa COMMA STRING_LITERAL:query CLOSE_BRACKETS
               {: RESULT = new AutomatonAction.CPAModification(cpa.toString(), query.toString()); :}
             ;
-            
+
+SetValue  ::= TRUE {: RESULT = true; :}
+            | FALSE {: RESULT = false; :};
+
 PrintArguments ::= Expression:a PrintArguments:lst {: lst.add(0,a); RESULT = lst; :}
              | /* empty */ {: RESULT = new LinkedList<AutomatonExpression<?>>(); :}
              ;
