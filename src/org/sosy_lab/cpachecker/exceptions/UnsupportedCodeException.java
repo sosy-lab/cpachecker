@@ -35,11 +35,11 @@ public class UnsupportedCodeException extends UnrecognizedCodeException {
 
   private static final long serialVersionUID = -7693635256672813804L;
 
-  public UnsupportedCodeException(String msg, CFAEdge edge, @Nullable AAstNode astNode) {
+  public UnsupportedCodeException(String msg, @Nullable CFAEdge edge, @Nullable AAstNode astNode) {
     super("Unsupported feature", msg, edge, astNode);
   }
 
-  public UnsupportedCodeException(String msg, CFAEdge cfaEdge) {
+  public UnsupportedCodeException(String msg, @Nullable CFAEdge cfaEdge) {
     this(msg, cfaEdge, null);
   }
 }
