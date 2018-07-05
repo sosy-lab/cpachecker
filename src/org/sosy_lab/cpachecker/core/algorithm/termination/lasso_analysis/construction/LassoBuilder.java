@@ -164,7 +164,12 @@ public class LassoBuilder {
 
     ImmutableMap<String, CVariableDeclaration> relevantVariables =
         Maps.uniqueIndex(pRelevantVariables, AVariableDeclaration::getQualifiedName);
+    try {
+      stats.lassosCreationStarted();
     return createLassos(stemAndLoop, relevantVariables);
+    } finally {
+      stats.lassosCreationFinished();
+    }
   }
 
   private StemAndLoop createStemAndLoop(CounterexampleInfo pCounterexampleInfo)
