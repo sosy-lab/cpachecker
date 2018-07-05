@@ -72,7 +72,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * This class evaluates expressions using {@link SMGState}.
@@ -107,7 +107,8 @@ public class SMGExpressionEvaluator {
    * @param pExpression The expression, which evaluates to the value with the given type.
    * @return The size of the given type in bits.
    */
-  public int getBitSizeof(CFAEdge pEdge, CType pType, SMGState pState, CExpression pExpression) throws UnrecognizedCCodeException {
+  public int getBitSizeof(CFAEdge pEdge, CType pType, SMGState pState, CExpression pExpression)
+      throws UnrecognizedCodeException {
     return getBitSizeof(pEdge, pType, pState, Optional.of(pExpression));
   }
 
@@ -128,11 +129,14 @@ public class SMGExpressionEvaluator {
    * @param pState The state that contains the current variable values.
    * @return The size of the given type in bits.
    */
-  public int getBitSizeof(CFAEdge pEdge, CType pType, SMGState pState) throws UnrecognizedCCodeException {
+  public int getBitSizeof(CFAEdge pEdge, CType pType, SMGState pState)
+      throws UnrecognizedCodeException {
     return getBitSizeof(pEdge, pType, pState, Optional.empty());
   }
 
-  private int getBitSizeof(CFAEdge edge, CType pType, SMGState pState, Optional<CExpression> pExpression) throws UnrecognizedCCodeException {
+  private int getBitSizeof(
+      CFAEdge edge, CType pType, SMGState pState, Optional<CExpression> pExpression)
+      throws UnrecognizedCodeException {
 
     if (pType instanceof CBitFieldType) {
       return ((CBitFieldType) pType).getBitFieldSize();
@@ -144,7 +148,7 @@ public class SMGExpressionEvaluator {
       return pType.accept(v) * machineModel.getSizeofCharInBits();
     } catch (IllegalArgumentException e) {
       logger.logDebugException(e);
-      throw new UnrecognizedCCodeException("Could not resolve type.", edge);
+      throw new UnrecognizedCodeException("Could not resolve type.", edge);
     }
   }
 
@@ -188,8 +192,9 @@ public class SMGExpressionEvaluator {
     return result;
   }
 
-  public SMGValueAndState readValue(SMGState pSmgState, SMGObject pObject,
-      SMGExplicitValue pOffset, CType pType, CFAEdge pEdge) throws SMGInconsistentException, UnrecognizedCCodeException {
+  public SMGValueAndState readValue(
+      SMGState pSmgState, SMGObject pObject, SMGExplicitValue pOffset, CType pType, CFAEdge pEdge)
+      throws SMGInconsistentException, UnrecognizedCodeException {
 
     if (pOffset.isUnknown() || pObject == null) {
       return SMGValueAndState.of(pSmgState);
@@ -498,7 +503,7 @@ public class SMGExpressionEvaluator {
                   newAddressOffset = addressOffset.subtract(pointerOffsetValue);
                   break;
                 } else {
-                  throw new UnrecognizedCCodeException("Expected pointer arithmetic "
+                  throw new UnrecognizedCodeException("Expected pointer arithmetic "
                       + " with + or - but found " + binaryExp.toASTString(), binaryExp);
                 }
               default:
@@ -516,7 +521,7 @@ public class SMGExpressionEvaluator {
       case GREATER_EQUAL:
       case LESS_THAN:
       case LESS_EQUAL:
-        throw new UnrecognizedCCodeException(
+        throw new UnrecognizedCodeException(
             "Misinterpreted the expression type of " + binaryExp + " as pointer type",
             cfaEdge, binaryExp);
       case DIVIDE:
@@ -527,7 +532,7 @@ public class SMGExpressionEvaluator {
       case BINARY_AND:
       case BINARY_OR:
       case BINARY_XOR:
-        throw new UnrecognizedCCodeException("The operands of binary Expression "
+        throw new UnrecognizedCodeException("The operands of binary Expression "
             + binaryExp.toASTString() + " must have arithmetic types. "
             + address.toASTString() + " has a non arithmetic type",
             cfaEdge, binaryExp);

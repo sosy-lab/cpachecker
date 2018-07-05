@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 class ForceExplicitValueVisitor extends ExplicitValueVisitor {
 
@@ -65,37 +65,38 @@ class ForceExplicitValueVisitor extends ExplicitValueVisitor {
 
   @Override
   protected Value evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     Value result = super.evaluateCArraySubscriptExpression(pLValue);
     return returnValueOrGuess(result, pLValue);
   }
 
   @Override
   protected Value evaluateCIdExpression(CIdExpression pCIdExpression)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     Value result = super.evaluateCIdExpression(pCIdExpression);
     return returnValueOrGuess(result, pCIdExpression);
   }
 
   @Override
-  protected Value evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
+  protected Value evaluateCFieldReference(CFieldReference pLValue)
+      throws UnrecognizedCodeException {
     Value result = super.evaluateCFieldReference(pLValue);
     return returnValueOrGuess(result, pLValue);
   }
 
   @Override
   protected Value evaluateCPointerExpression(CPointerExpression pCPointerExpression)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     Value result = super.evaluateCPointerExpression(pCPointerExpression);
     return returnValueOrGuess(result, pCPointerExpression);
   }
 
-  private Value returnValueOrGuess(Value value, CLeftHandSide exp) throws UnrecognizedCCodeException {
+  private Value returnValueOrGuess(Value value, CLeftHandSide exp)
+      throws UnrecognizedCodeException {
     return value.isUnknown() ? guessLHS(exp) : value;
   }
 
-  private Value guessLHS(CLeftHandSide exp)
-      throws UnrecognizedCCodeException {
+  private Value guessLHS(CLeftHandSide exp) throws UnrecognizedCodeException {
 
     SMGValueAndState symbolicValueAndState;
 
@@ -112,8 +113,9 @@ class ForceExplicitValueVisitor extends ExplicitValueVisitor {
       symbolicValueAndState = symbolicValueAndStates.get(0);
 
     } catch (CPATransferException e) {
-      UnrecognizedCCodeException e2 = new UnrecognizedCCodeException(
-          "SMG cannot get symbolic value of : " + exp.toASTString(), exp);
+      UnrecognizedCodeException e2 =
+          new UnrecognizedCodeException(
+              "SMG cannot get symbolic value of : " + exp.toASTString(), exp);
       e2.initCause(e);
       throw e2;
     }

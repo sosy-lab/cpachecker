@@ -102,7 +102,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -522,7 +522,7 @@ private boolean classifyNodes = false;
         VariableClassificationBuilder builder = new VariableClassificationBuilder(config, logger);
         varClassification = Optional.of(builder.build(cfa));
         builder.collectStatistics(stats.statisticsCollection);
-      } catch (UnrecognizedCCodeException e) {
+      } catch (UnrecognizedCodeException e) {
         throw new CParserException(e);
       }
     } else {

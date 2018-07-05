@@ -57,7 +57,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -121,11 +121,11 @@ class DynamicMemoryHandler {
    * @param functionName The name of the function.
    * @param expressionVisitor A visitor to evaluate the expression's value.
    * @return The value of the function call.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
   Value handleDynamicMemoryFunction(final CFunctionCallExpression e, final String functionName,
-      final CExpressionVisitorWithPointerAliasing expressionVisitor) throws UnrecognizedCCodeException, InterruptedException {
+      final CExpressionVisitorWithPointerAliasing expressionVisitor) throws UnrecognizedCodeException, InterruptedException {
 
     if ((conv.options.isSuccessfulAllocFunctionName(functionName) ||
         conv.options.isSuccessfulZallocFunctionName(functionName))) {
@@ -149,11 +149,11 @@ class DynamicMemoryHandler {
    * @param e The function call expression.
    * @param functionName The name of the allocation function.
    * @return A formula for the memory allocation.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
   private Formula handleMemoryAllocation(final CFunctionCallExpression e,
-      final String functionName) throws UnrecognizedCCodeException, InterruptedException {
+      final String functionName) throws UnrecognizedCodeException, InterruptedException {
     final boolean isZeroing = conv.options.isMemoryAllocationFunctionWithZeroing(functionName);
     List<CExpression> parameters = e.getParameterExpressions();
 
@@ -192,7 +192,7 @@ class DynamicMemoryHandler {
       if (parameters.size() > 1 && conv.options.hasSuperfluousParameters(functionName)) {
         parameters = Collections.singletonList(parameters.get(0));
       } else {
-        throw new UnrecognizedCCodeException(
+        throw new UnrecognizedCodeException(
             String.format("Memory allocation function %s() called with %d parameters instead of 1",
                           functionName, parameters.size()), edge, e);
       }
@@ -222,19 +222,19 @@ class DynamicMemoryHandler {
    * @param parameters The list of function parameters.
    * @param e The function call expression.
    * @return A formula for the function call.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
   private Formula handleSuccessfulMemoryAllocation(final String functionName,
       List<CExpression> parameters,
-      final CFunctionCallExpression e) throws UnrecognizedCCodeException, InterruptedException {
+      final CFunctionCallExpression e) throws UnrecognizedCodeException, InterruptedException {
     // e.getFunctionNameExpression() should not be used
     // as it might refer to another function if this method is called from handleMemoryAllocation()
     if (parameters.size() != 1) {
       if (parameters.size() > 1 && conv.options.hasSuperfluousParameters(functionName)) {
         parameters = Collections.singletonList(parameters.get(0));
       } else {
-        throw new UnrecognizedCCodeException(
+        throw new UnrecognizedCodeException(
             String.format("Memory allocation function %s() called with %d parameters instead of 1",
                           functionName, parameters.size()), edge, e);
       }
@@ -254,7 +254,7 @@ class DynamicMemoryHandler {
       } else if (operand2Type != null) {
         newType = new CArrayType(false, false, operand2Type, product.getOperand1());
       } else {
-        throw new UnrecognizedCCodeException("Can't determine type for internal memory allocation", edge, e);
+        throw new UnrecognizedCodeException("Can't determine type for internal memory allocation", edge, e);
       }
     } else {
       size = tryEvaluateExpression(parameter);
@@ -327,13 +327,13 @@ class DynamicMemoryHandler {
    * @param e The parameters of the {@code free()} call.
    * @param expressionVisitor A visitor to evaluate the value of the function call.
    * @return The return value of the function call.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   private Value handleMemoryFree(final CFunctionCallExpression e,
-      final CExpressionVisitorWithPointerAliasing expressionVisitor) throws UnrecognizedCCodeException {
+      final CExpressionVisitorWithPointerAliasing expressionVisitor) throws UnrecognizedCodeException {
     final List<CExpression> parameters = e.getParameterExpressions();
     if (parameters.size() != 1) {
-      throw new UnrecognizedCCodeException(
+      throw new UnrecognizedCodeException(
           String.format("free() called with %d parameters", parameters.size()), edge, e);
     }
 
@@ -363,12 +363,12 @@ class DynamicMemoryHandler {
    * @param base The name of the base.
    * @param size An expression for the size in bytes of the new base.
    * @return A formula for the memory allocation.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution gets interrupted.
    */
   private Formula makeAllocation(
       final boolean isZeroing, final CType type, final String base, final Formula size)
-      throws UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
     final Formula result = conv.makeBaseAddress(base, type);
     if (isZeroing) {
       AssignmentHandler assignmentHandler = new AssignmentHandler(conv, edge, base, ssa, pts, constraints, errorConditions, regionMgr);
@@ -568,11 +568,11 @@ class DynamicMemoryHandler {
    *
    * @param pointer The name of the pointer variable/field.
    * @param type The type of the pointer variable/field.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException if the execution was interrupted.
    */
   private void handleDeferredAllocationTypeRevelation(final String pointer, final CType type)
-      throws UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
     for (DeferredAllocation d : pts.removeDeferredAllocations(pointer)) {
       makeAllocation(
           d.isZeroed(), getAllocationType(type, d.getSize()), d.getBase(), d.getSizeExpression());
@@ -588,7 +588,7 @@ class DynamicMemoryHandler {
    * @param lhsType The type of the left hand side.
    * @param lhsLearnedPointerTypes A map of all used deferred allocation pointers on the left hand side.
    * @param rhsLearnedPointerTypes A map of all used deferred allocation pointers on the right hand side.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
   void handleDeferredAllocationsInAssignment(
@@ -598,7 +598,7 @@ class DynamicMemoryHandler {
       final CType lhsType,
       final Map<String, CType> lhsLearnedPointerTypes,
       final Map<String, CType> rhsLearnedPointerTypes)
-      throws UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
     // Handle allocations: reveal the actual type form the LHS type or defer the allocation until later
     boolean isAllocation = false;
     if ((conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) &&
@@ -642,7 +642,7 @@ class DynamicMemoryHandler {
               }
               isAllocation = true;
             } else {
-              throw new UnrecognizedCCodeException("Can't handle ambiguous allocation", edge, rhs);
+              throw new UnrecognizedCodeException("Can't handle ambiguous allocation", edge, rhs);
             }
           }
         } else {
@@ -665,7 +665,7 @@ class DynamicMemoryHandler {
    * @param rhs The right hand side of the C expression.
    * @param lhsLearnedPointerTypes A map of all used deferred allocation pointers on the left hand side.
    * @param rhsLearnedPointerTypes A map of all used deferred allocation pointers on the right hand side.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
   private void handleDeferredAllocationsInAssignment(
@@ -674,7 +674,7 @@ class DynamicMemoryHandler {
       final CType lhsType,
       final Map<String, CType> lhsLearnedPointerTypes,
       final Map<String, CType> rhsLearnedPointerTypes)
-      throws UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
     if (!(lhsType instanceof CPointerType || lhsType instanceof CArrayType)) {
       return;
     }
@@ -745,12 +745,12 @@ class DynamicMemoryHandler {
    *
    * @param e The expression in the C code.
    * @param learnedPointerTypes A map of all used deferred allocation pointers.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution gets interrupted.
    */
   void handleDeferredAllocationsInAssume(
       final CExpression e, final Map<String, CType> learnedPointerTypes)
-      throws UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
     for (Map.Entry<String, CType> entry : learnedPointerTypes.entrySet()) {
       handleDeferredAllocationTypeRevelation(entry.getKey(), entry.getValue());
     }

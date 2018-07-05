@@ -59,8 +59,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -73,8 +73,9 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
-public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException>
-                                        implements CRightHandSideVisitor<Formula, UnrecognizedCCodeException> {
+public class ExpressionToFormulaVisitor
+    extends DefaultCExpressionVisitor<Formula, UnrecognizedCodeException>
+    implements CRightHandSideVisitor<Formula, UnrecognizedCodeException> {
 
   private final CtoFormulaConverter conv;
   private final CFAEdge       edge;
@@ -100,16 +101,16 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   }
 
   @Override
-  protected Formula visitDefault(CExpression exp)
-      throws UnrecognizedCCodeException {
+  protected Formula visitDefault(CExpression exp) throws UnrecognizedCodeException {
     return conv.makeVariableUnsafe(exp, function, ssa, false);
   }
 
-  protected Formula toFormula(CExpression e) throws UnrecognizedCCodeException {
+  protected Formula toFormula(CExpression e) throws UnrecognizedCodeException {
     return e.accept(this);
   }
 
-  public Formula processOperand(CExpression e, CType calculationType, CType returnType) throws UnrecognizedCCodeException {
+  public Formula processOperand(CExpression e, CType calculationType, CType returnType)
+      throws UnrecognizedCodeException {
     e = conv.convertLiteralToFloatIfNecessary(e, calculationType);
     e = conv.makeCastFromArrayToPointerIfNecessary(e, returnType);
     final CType t = e.getExpressionType();
@@ -132,7 +133,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   }
 
   @Override
-  public Formula visit(final CBinaryExpression exp) throws UnrecognizedCCodeException {
+  public Formula visit(final CBinaryExpression exp) throws UnrecognizedCodeException {
     /* FOR SHIFTS:
      * We would not need to cast the second operand, but we do casting,
      * because Mathsat assumes 2 bitvectors of same length.
@@ -155,8 +156,9 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     return handleBinaryExpression(exp, f1, f2);
   }
 
-  public final Formula handleBinaryExpression(final CBinaryExpression exp,
-      final Formula f1, final Formula f2) throws UnrecognizedCCodeException {
+  public final Formula handleBinaryExpression(
+      final CBinaryExpression exp, final Formula f1, final Formula f2)
+      throws UnrecognizedCodeException {
     final BinaryOperator op = exp.getOperator();
     final CType returnType = exp.getExpressionType();
     final CType calculationType = exp.getCalculationType();
@@ -195,7 +197,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
                                                              getPointerTargetSizeLiteral((CPointerType) promT2,
                                                              calculationType)));
       } else {
-        throw new UnrecognizedCCodeException("Can't add pointers", edge, exp);
+          throw new UnrecognizedCodeException("Can't add pointers", edge, exp);
       }
       break;
     case MINUS:
@@ -213,10 +215,12 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
                                      getPointerTargetSizeLiteral((CPointerType) promT1, calculationType),
                                      true);
         } else {
-          throw new UnrecognizedCCodeException("Can't subtract pointers of different types", edge, exp);
+            throw new UnrecognizedCodeException(
+                "Can't subtract pointers of different types", edge, exp);
         }
       } else {
-        throw new UnrecognizedCCodeException("Can't subtract a pointer from a non-pointer", edge, exp);
+          throw new UnrecognizedCodeException(
+              "Can't subtract a pointer from a non-pointer", edge, exp);
       }
       break;
     case MULTIPLY:
@@ -288,8 +292,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       return conv.ifTrueThenOneElseZero(returnFormulaType, result);
     }
     default:
-      throw new UnrecognizedCCodeException("Unknown binary operator", edge, exp);
-
+        throw new UnrecognizedCodeException("Unknown binary operator", edge, exp);
     }
 
     // The CalculationType could be different from returnType, so we cast the result.
@@ -302,7 +305,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   }
 
   private BooleanFormula handleEquals(CBinaryExpression exp, Formula f1, Formula f2)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     assert exp.getOperator() == BinaryOperator.EQUALS;
     CExpression e1 = exp.getOperand1();
     CExpression e2 = exp.getOperand2();
@@ -370,7 +373,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   }
 
   @Override
-  public Formula visit(CCastExpression cexp) throws UnrecognizedCCodeException {
+  public Formula visit(CCastExpression cexp) throws UnrecognizedCodeException {
     CExpression op = cexp.getOperand();
     op = conv.makeCastFromArrayToPointerIfNecessary(op, cexp.getExpressionType());
 
@@ -382,7 +385,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   }
 
   @Override
-  public Formula visit(CIdExpression idExp) throws UnrecognizedCCodeException {
+  public Formula visit(CIdExpression idExp) throws UnrecognizedCodeException {
 
     if (idExp.getDeclaration() instanceof CEnumerator) {
       CEnumerator enumerator = (CEnumerator)idExp.getDeclaration();
@@ -402,7 +405,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   }
 
   @Override
-  public Formula visit(CFieldReference fExp) throws UnrecognizedCCodeException {
+  public Formula visit(CFieldReference fExp) throws UnrecognizedCodeException {
     if (conv.options.handleFieldAccess()) {
       CExpression fieldOwner = getRealFieldOwner(fExp);
       Formula f = toFormula(fieldOwner);
@@ -424,41 +427,40 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     return super.visit(fExp);
   }
 
-
   @Override
-  public Formula visit(CCharLiteralExpression cExp) throws UnrecognizedCCodeException {
+  public Formula visit(CCharLiteralExpression cExp) throws UnrecognizedCodeException {
     // we just take the byte value
     FormulaType<?> t = conv.getFormulaTypeFromCType(cExp.getExpressionType());
     return mgr.makeNumber(t, cExp.getCharacter());
   }
 
   @Override
-  public Formula visit(CIntegerLiteralExpression iExp) throws UnrecognizedCCodeException {
+  public Formula visit(CIntegerLiteralExpression iExp) throws UnrecognizedCodeException {
     FormulaType<?> t = conv.getFormulaTypeFromCType(iExp.getExpressionType());
     return mgr.makeNumber(t, iExp.getValue());
   }
 
   @Override
-  public Formula visit(CImaginaryLiteralExpression exp) throws UnrecognizedCCodeException {
+  public Formula visit(CImaginaryLiteralExpression exp) throws UnrecognizedCodeException {
     return toFormula(exp.getValue());
   }
 
   @Override
-  public Formula visit(CFloatLiteralExpression fExp) throws UnrecognizedCCodeException {
+  public Formula visit(CFloatLiteralExpression fExp) throws UnrecognizedCodeException {
     FormulaType<?> t = conv.getFormulaTypeFromCType(fExp.getExpressionType());
     return mgr.getFloatingPointFormulaManager().makeNumber(fExp.getValue(),
         (FloatingPointType)t);
   }
 
   @Override
-  public Formula visit(CStringLiteralExpression lexp) throws UnrecognizedCCodeException {
+  public Formula visit(CStringLiteralExpression lexp) throws UnrecognizedCodeException {
     // we create a string constant representing the given
     // string literal
     return conv.makeStringLiteral(lexp.getValue());
   }
 
   @Override
-  public Formula visit(CUnaryExpression exp) throws UnrecognizedCCodeException {
+  public Formula visit(CUnaryExpression exp) throws UnrecognizedCodeException {
     CExpression operand = exp.getOperand();
     UnaryOperator op = exp.getOperator();
     switch (op) {
@@ -496,13 +498,12 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       return handleSizeof(exp, lCType);
 
     default:
-      throw new UnrecognizedCCodeException("Unknown unary operator", edge, exp);
+        throw new UnrecognizedCodeException("Unknown unary operator", edge, exp);
     }
   }
 
   @Override
-  public Formula visit(CTypeIdExpression tIdExp)
-      throws UnrecognizedCCodeException {
+  public Formula visit(CTypeIdExpression tIdExp) throws UnrecognizedCodeException {
 
     if (tIdExp.getOperator() == TypeIdOperator.SIZEOF) {
       CType lCType = tIdExp.getType();
@@ -520,7 +521,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   }
 
   @Override
-  public Formula visit(CFunctionCallExpression e) throws UnrecognizedCCodeException {
+  public Formula visit(CFunctionCallExpression e) throws UnrecognizedCodeException {
     final CExpression functionNameExpression = e.getFunctionNameExpression();
     final CType returnType = e.getExpressionType();
     final List<CExpression> parameters = e.getParameterExpressions();
@@ -544,7 +545,8 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
         return conv.ifTrueThenOneElseZero(returnFormulaType, result);
 
       } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
-        throw new UnsupportedCCodeException(CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(functionName), edge, e);
+        throw new UnsupportedCodeException(
+            CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(functionName), edge, e);
 
       } else if (BuiltinFloatFunctions.matchesInfinity(functionName)) {
 
@@ -1019,7 +1021,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
 
       final List<CType> formalParameterTypes = functionDeclaration.getType().getParameters();
       if (formalParameterTypes.size() != parameters.size()) {
-        throw new UnrecognizedCCodeException("Function " + functionDeclaration
+        throw new UnrecognizedCodeException("Function " + functionDeclaration
             + " received " + parameters.size() + " parameters"
             + " instead of the expected " + formalParameterTypes.size(),
             edge, e);
@@ -1046,7 +1048,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
 
   private @Nullable Formula roundNearestTiesAway(
       List<CExpression> pParameters, String pFunctionName, boolean pIsLRound, boolean pIsLongLong)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     if (pParameters.size() == 1) {
       CType paramType = getTypeOfBuiltinFloatFunction(pFunctionName);
@@ -1116,11 +1118,11 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
    * @param pRoundingMode the <code>RoundindMode</code> corresponding to the built-in function
    * @return a {@link Formula} representing the semantics of the rounding function, <code>null
    *     </code> if the length of pParameters or the type of its members do not match
-   * @throws UnrecognizedCCodeException re-throw from internal calls
+   * @throws UnrecognizedCodeException re-throw from internal calls
    */
   private @Nullable Formula roundingBuiltin(
       String pFunctionName, List<CExpression> pParameters, FloatingPointRoundingMode pRoundingMode)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     if (pParameters.size() == 1) {
       CType paramType = getTypeOfBuiltinFloatFunction(pFunctionName);
@@ -1147,10 +1149,10 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
    * @param pFunction inequality function of pFpfmgr, representing the respective built-in function
    * @param pFpfmgr {@link FloatingPointFormulaManagerView} for internal usage
    * @return resulting {@link Formula}
-   * @throws UnrecognizedCCodeException re-throw from internal calls
+   * @throws UnrecognizedCodeException re-throw from internal calls
    */
   private @Nullable Formula inequalityBuiltin(String pFunctionName, List<CExpression> pParameters,
-      BiFunction<FloatingPointFormula, FloatingPointFormula, BooleanFormula> pFunction, FloatingPointFormulaManagerView pFpfmgr) throws UnrecognizedCCodeException {
+      BiFunction<FloatingPointFormula, FloatingPointFormula, BooleanFormula> pFunction, FloatingPointFormulaManagerView pFpfmgr) throws UnrecognizedCodeException {
 
     if (pParameters.size() == 2) {
       CType paramType = getTypeOfBuiltinFloatFunction(pFunctionName);

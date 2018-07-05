@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierLocator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -167,7 +167,7 @@ public class ConstraintsSolver implements StatisticsProvider {
 
   public boolean isUnsat(
       Constraint pConstraint, IdentifierAssignment pAssignment, String pFunctionName)
-      throws UnrecognizedCCodeException, InterruptedException, SolverException {
+      throws UnrecognizedCodeException, InterruptedException, SolverException {
     try {
       timeForSatChecks.start();
 
@@ -187,7 +187,7 @@ public class ConstraintsSolver implements StatisticsProvider {
    * @return <code>true</code> if this state is unsatisfiable, <code>false</code> otherwise
    */
   public boolean isUnsat(ConstraintsState pConstraints, String pFunctionName)
-      throws SolverException, InterruptedException, UnrecognizedCCodeException {
+      throws SolverException, InterruptedException, UnrecognizedCodeException {
 
     if (!pConstraints.isEmpty()) {
       try {
@@ -386,12 +386,12 @@ public class ConstraintsSolver implements StatisticsProvider {
    * constraints exist, this method will return <code>null</code>.
    *
    * @return the formula representing the conjunction of all constraints of this state
-   * @throws UnrecognizedCCodeException see {@link FormulaCreator#createFormula(Constraint)}
+   * @throws UnrecognizedCodeException see {@link FormulaCreator#createFormula(Constraint)}
    * @throws InterruptedException see {@link FormulaCreator#createFormula(Constraint)}
    */
   private BooleanFormula getFullFormula(
       Collection<Constraint> pConstraints, IdentifierAssignment pAssignment, String pFunctionName)
-      throws UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
     List<BooleanFormula> formulas = new ArrayList<>(pConstraints.size());
     for (Constraint c : pConstraints) {
       int constraintsId = getConstraintId(c);
@@ -426,7 +426,7 @@ public class ConstraintsSolver implements StatisticsProvider {
 
   private BooleanFormula createConstraintFormulas(
       Constraint pConstraint, IdentifierAssignment pAssignment, String pFunctionName)
-      throws UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
     assert !constraintFormulas.contains(getConstraintId(pConstraint), getAssignmentId(pAssignment))
         : "Trying to add a formula that already exists!";
 

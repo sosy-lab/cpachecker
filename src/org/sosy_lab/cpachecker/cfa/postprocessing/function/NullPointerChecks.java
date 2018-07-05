@@ -73,8 +73,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /******************************************************************+
  * NullPointerDetection
@@ -177,7 +176,7 @@ public class NullPointerChecks {
             // left-hand side can be ignored (it is the currently declared variable
             assignment.getRightHandSide().accept(visitor);
           }
-        } catch (UnrecognizedCCodeException e) {
+        } catch (UnrecognizedCodeException e) {
           throw new CParserException(e);
         }
       }

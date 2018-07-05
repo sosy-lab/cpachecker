@@ -57,7 +57,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * The class {@link SMGExpressionEvaluator} is meant to evaluate
@@ -80,9 +80,8 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     options = pOptions;
   }
 
-  public SMGExplicitValueAndState forceExplicitValue(SMGState smgState,
-      CFAEdge pCfaEdge, CRightHandSide rVal)
-      throws UnrecognizedCCodeException {
+  public SMGExplicitValueAndState forceExplicitValue(
+      SMGState smgState, CFAEdge pCfaEdge, CRightHandSide rVal) throws UnrecognizedCodeException {
 
     ForceExplicitValueVisitor v =
         new ForceExplicitValueVisitor(
@@ -107,9 +106,9 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
   }
 
   @Override
-  public SMGValueAndState readValue(SMGState pSmgState, SMGObject pObject,
-      SMGExplicitValue pOffset, CType pType, CFAEdge pEdge)
-      throws SMGInconsistentException, UnrecognizedCCodeException {
+  public SMGValueAndState readValue(
+      SMGState pSmgState, SMGObject pObject, SMGExplicitValue pOffset, CType pType, CFAEdge pEdge)
+      throws SMGInconsistentException, UnrecognizedCodeException {
 
     if (pOffset.isUnknown() || pObject == null) {
       SMGState errState =
@@ -173,7 +172,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       CType pRValueType,
       SMGSymbolicValue pValue,
       CFAEdge pEdge)
-      throws SMGInconsistentException, UnrecognizedCCodeException {
+      throws SMGInconsistentException, UnrecognizedCodeException {
 
     // FIXME Does not work with variable array length.
     // TODO: write value with bit precise size
@@ -230,7 +229,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       long fieldOffset,
       SMGSymbolicValue value,
       CType rValueType)
-      throws UnrecognizedCCodeException, SMGInconsistentException {
+      throws UnrecognizedCodeException, SMGInconsistentException {
 
     int sizeOfField = getBitSizeof(cfaEdge, rValueType, newState);
 
@@ -262,7 +261,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       CType pRValueType,
       SMGSymbolicValue pValue,
       CFAEdge pCfaEdge)
-      throws SMGInconsistentException, UnrecognizedCCodeException {
+      throws SMGInconsistentException, UnrecognizedCodeException {
 
     if (pValue instanceof SMGKnownAddressValue) {
       SMGKnownAddressValue structAddress = (SMGKnownAddressValue) pValue;

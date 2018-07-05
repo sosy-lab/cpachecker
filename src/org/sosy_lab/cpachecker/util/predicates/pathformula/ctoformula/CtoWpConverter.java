@@ -45,8 +45,8 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -88,9 +88,8 @@ public class CtoWpConverter extends CtoFormulaConverter {
     errorConditions = ErrorConditions.dummyInstance(bfmgr);
   }
 
-
   public BooleanFormula makePreconditionForEdge(final CFAEdge pEdge, final BooleanFormula pPostcond)
-      throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedCFAEdgeException, UnrecognizedCodeException, InterruptedException {
 
     String functionName = pEdge.getPredecessor().getFunctionName();
 
@@ -132,7 +131,7 @@ public class CtoWpConverter extends CtoFormulaConverter {
 
   private final BooleanFormula makePreconditionForAssumption(
       final CAssumeEdge pEdge, final BooleanFormula pPostcond, final String pFunction)
-      throws UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
 
     BooleanFormula f =
         makePredicate(
@@ -150,7 +149,7 @@ public class CtoWpConverter extends CtoFormulaConverter {
 
   private final BooleanFormula makePreconditionForStatement(
       final CStatementEdge pEdge, final BooleanFormula pPostcond, final String pFunction)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     CStatement stmt = pEdge.getStatement();
     if (stmt instanceof CAssignment) {
@@ -159,11 +158,11 @@ public class CtoWpConverter extends CtoFormulaConverter {
     } else {
       if (stmt instanceof CFunctionCallStatement) {
         // TODO: add support
-        throw new UnrecognizedCCodeException(
+        throw new UnrecognizedCodeException(
             "Preconditions for a function call are not supported", pEdge);
 
       } else if (!(stmt instanceof CExpressionStatement)) {
-        throw new UnrecognizedCCodeException("Unknown statement", pEdge, stmt);
+        throw new UnrecognizedCodeException("Unknown statement", pEdge, stmt);
       }
 
       return pPostcond;
@@ -175,7 +174,7 @@ public class CtoWpConverter extends CtoFormulaConverter {
       final CFAEdge pEdge,
       final BooleanFormula pPostcond,
       final String pFunction)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     CLeftHandSide lhs = pAssgn.getLeftHandSide();
     CRightHandSide rhs = pAssgn.getRightHandSide();
@@ -214,7 +213,7 @@ public class CtoWpConverter extends CtoFormulaConverter {
       final CVariableDeclaration pDecl,
       final BooleanFormula pPostcond,
       final String pFunction)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     checkForLargeArray(pEdge, pDecl.getType().getCanonicalType());
 

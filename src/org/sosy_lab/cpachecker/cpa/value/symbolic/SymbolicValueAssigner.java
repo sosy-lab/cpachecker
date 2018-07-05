@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
@@ -106,12 +106,12 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
    * @param pState the {@link ValueAnalysisState} to use.
    *    Value assignments will happen in this state
    * @param pValueVisitor a value visitor for possibly needed evaluations or computations
-   * @throws UnrecognizedCCodeException thrown if a {@link MemoryLocation} can't be evaluated
+   * @throws UnrecognizedCodeException thrown if a {@link MemoryLocation} can't be evaluated
    */
   @Override
   public void handle(MemoryLocation pVarLocation, Type pVarType,
       ValueAnalysisState pState, ExpressionValueVisitor pValueVisitor)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     if (isEligibleForSymbolicValue(pVarType)) {
       assignNewSymbolicIdentifier(pState, pVarLocation, pVarType, pValueVisitor);
@@ -138,14 +138,14 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
    * @param pVarLocation the memory location of the variable
    * @param pVarType the type of the variable
    * @param pValueVisitor value visitor for evaluating the memory location of struct members
-   * @throws UnrecognizedCCodeException thrown if a memory location can't be evaluated
+   * @throws UnrecognizedCodeException thrown if a memory location can't be evaluated
    */
   private void assignNewSymbolicIdentifier(
       ValueAnalysisState pState,
       MemoryLocation pVarLocation,
       Type pVarType,
       ExpressionValueVisitor pValueVisitor)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     if (pVarType instanceof JType) {
        addSymbolicTracking(pState, pVarLocation, (JType) pVarType);
@@ -171,7 +171,7 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
 
   private void addSymbolicTracking(ValueAnalysisState pState,
       MemoryLocation pVarLocation, CType pVarType, ExpressionValueVisitor pValueVisitor)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     final CType canonicalType = pVarType.getCanonicalType();
 
@@ -208,7 +208,7 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
   private void fillStructWithSymbolicIdentifiers(
       ValueAnalysisState pState, MemoryLocation pStructLocation, CCompositeType pStructType,
       ExpressionValueVisitor pValueVisitor)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     assert handleStructs;
     List<CCompositeType.CCompositeTypeMemberDeclaration> memberDeclarations =
@@ -235,7 +235,7 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
       final MemoryLocation pArrayLocation,
       final CArrayType pArrayType,
       final ExpressionValueVisitor pValueVisitor
-  ) throws UnrecognizedCCodeException {
+  ) throws UnrecognizedCodeException {
 
     if (!handleArrays) {
       pState.forget(pArrayLocation);

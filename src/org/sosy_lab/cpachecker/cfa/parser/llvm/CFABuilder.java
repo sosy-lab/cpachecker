@@ -102,7 +102,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -683,7 +683,7 @@ public class CFABuilder {
           new CIntegerLiteralExpression(
               getLocation(pItem, pFileName), CNumericTypes.BOOL, BigInteger.ONE),
           BinaryOperator.EQUALS);
-    } catch (UnrecognizedCCodeException e) {
+    } catch (UnrecognizedCodeException e) {
       throw new AssertionError(e.toString());
     }
   }
@@ -1679,7 +1679,7 @@ public class CFABuilder {
 
       return getAssignStatement(pItem, cmp, pFunctionName, pFileName);
 
-    } catch (UnrecognizedCCodeException e) {
+    } catch (UnrecognizedCodeException e) {
       throw new UnsupportedOperationException(e.toString());
     }
   }

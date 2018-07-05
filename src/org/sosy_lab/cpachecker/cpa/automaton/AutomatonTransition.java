@@ -63,7 +63,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction.CPAModification;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
@@ -413,7 +413,7 @@ class AutomatonTransition {
       super(pMessage);
     }
 
-    public SubstitutionException(UnrecognizedCCodeException pE) {
+    public SubstitutionException(UnrecognizedCodeException pE) {
       super(pE);
     }
   }
@@ -513,7 +513,7 @@ class AutomatonTransition {
         try {
           toSubstitute =
               binExpBuilder.buildBinaryExpression(op1, op2, pBinaryExpression.getOperator());
-        } catch (UnrecognizedCCodeException e) {
+        } catch (UnrecognizedCodeException e) {
           throw new SubstitutionException(e);
         }
       }

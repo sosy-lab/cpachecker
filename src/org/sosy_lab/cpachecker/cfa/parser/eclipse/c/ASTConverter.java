@@ -177,7 +177,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 
@@ -721,7 +721,7 @@ class ASTConverter {
       CExpression operand1, CExpression operand2, BinaryOperator op) {
     try {
       return binExprBuilder.buildBinaryExpression(operand1, operand2, op);
-    } catch (UnrecognizedCCodeException e) {
+    } catch (UnrecognizedCodeException e) {
       throw new CFAGenerationRuntimeException(e);
     }
   }
@@ -1300,7 +1300,7 @@ class ASTConverter {
     case IASTUnaryExpression.op_not:
       try {
         return binExprBuilder.negateExpressionAndSimplify(operand);
-      } catch (UnrecognizedCCodeException ex) {
+        } catch (UnrecognizedCodeException ex) {
         throw new CFAGenerationRuntimeException(ex);
       }
 

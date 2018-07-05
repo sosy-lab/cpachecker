@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking;
 
+import java.util.SortedSet;
+import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -40,15 +42,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
-import java.util.SortedSet;
-import java.util.TreeSet;
-
-/**
- * VisitorClass to determine all variables that occur in a given expression.
- */
-public class VariableDependancy extends DefaultCExpressionVisitor<Void, UnsupportedCCodeException> {
+/** VisitorClass to determine all variables that occur in a given expression. */
+public class VariableDependancy extends DefaultCExpressionVisitor<Void, UnsupportedCodeException> {
 
   /**
    * Internal variable, that contains all variables that are used in the expression
@@ -75,87 +72,84 @@ public class VariableDependancy extends DefaultCExpressionVisitor<Void, Unsuppor
        return null;
     }
 
-    @Override
-    public Void visit(CArraySubscriptExpression pExpr) throws UnsupportedCCodeException {
+  @Override
+  public Void visit(CArraySubscriptExpression pExpr) throws UnsupportedCodeException {
       return null;
     }
 
-    @Override
-    public Void visit(CCastExpression pExpr) throws UnsupportedCCodeException {
+  @Override
+  public Void visit(CCastExpression pExpr) throws UnsupportedCodeException {
       return null;
     }
 
-    @Override
-    public Void visit(CComplexCastExpression pExpr) throws UnsupportedCCodeException {
+  @Override
+  public Void visit(CComplexCastExpression pExpr) throws UnsupportedCodeException {
       return null;
     }
 
-    @Override
-    public Void visit(CFieldReference pExpr) throws UnsupportedCCodeException {
+  @Override
+  public Void visit(CFieldReference pExpr) throws UnsupportedCodeException {
       return null;
     }
 
-    @Override
-    public Void visit(CIdExpression pExpr) throws UnsupportedCCodeException {
+  @Override
+  public Void visit(CIdExpression pExpr) throws UnsupportedCodeException {
       Variable v=new Variable(pExpr.getDeclaration().getQualifiedName());
       vars.add(v);
 
       return null;
     }
 
-    @Override
-    public Void visit(CUnaryExpression pExpr) throws UnsupportedCCodeException {
+  @Override
+  public Void visit(CUnaryExpression pExpr) throws UnsupportedCodeException {
       pExpr.getOperand().accept(this);
       return null;
     }
 
-    @Override
-    public Void visit(CPointerExpression pIastUnaryExpression) throws UnsupportedCCodeException {
+  @Override
+  public Void visit(CPointerExpression pIastUnaryExpression) throws UnsupportedCodeException {
       return null;
     }
 
-
-    @Override
-    public Void visit(CBinaryExpression pExpr) throws UnsupportedCCodeException {
+  @Override
+  public Void visit(CBinaryExpression pExpr) throws UnsupportedCodeException {
       pExpr.getOperand1().accept(this);
       pExpr.getOperand2().accept(this);
       return null;
     }
 
-
-    @Override
-    public Void visit(CCharLiteralExpression pExpr) throws UnsupportedCCodeException {
+  @Override
+  public Void visit(CCharLiteralExpression pExpr) throws UnsupportedCodeException {
       return null;
     }
 
-    @Override
-    public Void visit(CImaginaryLiteralExpression pExpr) throws UnsupportedCCodeException {
+  @Override
+  public Void visit(CImaginaryLiteralExpression pExpr) throws UnsupportedCodeException {
       return null;
     }
 
-    @Override
-    public Void visit(CFloatLiteralExpression pExpr) throws UnsupportedCCodeException {
+  @Override
+  public Void visit(CFloatLiteralExpression pExpr) throws UnsupportedCodeException {
       return null;
     }
 
-    @Override
-    public Void visit(CIntegerLiteralExpression pExpr) throws UnsupportedCCodeException {
+  @Override
+  public Void visit(CIntegerLiteralExpression pExpr) throws UnsupportedCodeException {
       return null;
     }
 
-    @Override
-    public Void visit(CStringLiteralExpression pExpr) throws UnsupportedCCodeException {
+  @Override
+  public Void visit(CStringLiteralExpression pExpr) throws UnsupportedCodeException {
       return null;
     }
 
-    @Override
-    public Void visit(CTypeIdExpression pExpr) throws UnsupportedCCodeException {
+  @Override
+  public Void visit(CTypeIdExpression pExpr) throws UnsupportedCodeException {
       return null;
     }
 
-
-    @Override
-    public Void visit(CAddressOfLabelExpression pExpr) throws UnsupportedCCodeException {
+  @Override
+  public Void visit(CAddressOfLabelExpression pExpr) throws UnsupportedCodeException {
       return null;
     }
 

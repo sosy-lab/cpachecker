@@ -58,7 +58,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -136,7 +136,7 @@ class AssignmentHandler {
    * @param useOldSSAIndicesIfAliased A flag indicating whether we can use old SSA indices for
    *     aliased locations (because the location was not used before)
    * @return A formula for the assignment.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
   BooleanFormula handleAssignment(
@@ -145,7 +145,7 @@ class AssignmentHandler {
       final CType lhsType,
       final @Nullable CRightHandSide rhs,
       final boolean useOldSSAIndicesIfAliased)
-      throws UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
     if (!conv.isRelevantLeftHandSide(lhsForChecking)) {
       // Optimization for unused variables and fields
       return conv.bfmgr.makeTrue();
@@ -234,7 +234,7 @@ class AssignmentHandler {
 
   private Expression createRHSExpression(
       CRightHandSide pRhs, CType pLhsType, CExpressionVisitorWithPointerAliasing pRhsVisitor)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     if (pRhs == null) {
       return Value.nondetValue();
     }
@@ -255,7 +255,7 @@ class AssignmentHandler {
       final CLeftHandSide lhsForChecking,
       final @Nullable CRightHandSide rhs,
       final boolean useOldSSAIndicesIfAliased)
-      throws UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
     return handleAssignment(
         lhs, lhsForChecking, typeHandler.getSimplifiedType(lhs), rhs, useOldSSAIndicesIfAliased);
   }
@@ -267,11 +267,11 @@ class AssignmentHandler {
    * @param declarationType The type of the declared variable.
    * @param assignments A list of assignment statements.
    * @return A boolean formula for the assignment.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException It the execution was interrupted.
    */
   BooleanFormula handleInitializationAssignments(
-      final CIdExpression variable, final CType declarationType, final List<CExpressionAssignmentStatement> assignments) throws UnrecognizedCCodeException, InterruptedException {
+      final CIdExpression variable, final CType declarationType, final List<CExpressionAssignmentStatement> assignments) throws UnrecognizedCodeException, InterruptedException {
     if (options.useQuantifiersOnArrays()
         && (declarationType instanceof CArrayType)
         && !assignments.isEmpty()) {
@@ -287,12 +287,12 @@ class AssignmentHandler {
    * @param variable The left hand side of the variable.
    * @param assignments A list of assignment statements.
    * @return A boolean formula for the assignment.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException It the execution was interrupted.
    */
   private BooleanFormula handleInitializationAssignmentsWithoutQuantifier(
       final CIdExpression variable, final List<CExpressionAssignmentStatement> assignments)
-      throws UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
     BooleanFormula result = conv.bfmgr.makeTrue();
     for (CExpressionAssignmentStatement assignment : assignments) {
       final CLeftHandSide lhs = assignment.getLeftHandSide();
@@ -314,7 +314,7 @@ class AssignmentHandler {
    * @param pAssignments A list of assignment statements.
    * @param pUseOldSSAIndices A flag indicating whether we will reuse SSA indices or not.
    * @return A boolean formula for the assignment.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    * @see #handleInitializationAssignmentsWithoutQuantifier(CIdExpression, List)
    */
@@ -322,7 +322,7 @@ class AssignmentHandler {
       final CIdExpression pLeftHandSide,
       final List<CExpressionAssignmentStatement> pAssignments,
       final boolean pUseOldSSAIndices)
-      throws UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
 
     assert pAssignments.size() > 0 : "Cannot handle initialization assignments without an "
         + "assignment right hand side.";
@@ -406,12 +406,12 @@ class AssignmentHandler {
    * @param pAssignments The list of assignments.
    * @param pRhsVisitor A visitor to evaluate the value of the right-hand side.
    * @return Whether all assignments of an initializer have the same value.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   private boolean checkEqualityOfInitializers(
       final List<CExpressionAssignmentStatement> pAssignments,
       final CExpressionVisitorWithPointerAliasing pRhsVisitor)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     Expression tmp = null;
     for (CExpressionAssignmentStatement assignment : pAssignments) {
       if (tmp == null) {
@@ -454,7 +454,7 @@ class AssignmentHandler {
    * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
    * @param updatedRegions Either {@code null} or a set of updated regions.
    * @return A formula for the assignment.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   BooleanFormula makeDestructiveAssignment(
       CType lvalueType,
@@ -463,7 +463,7 @@ class AssignmentHandler {
       final Expression rvalue,
       final boolean useOldSSAIndices,
       final @Nullable Set<MemoryRegion> updatedRegions)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     checkIsSimplified(lvalueType);
     checkIsSimplified(rvalueType);
     checkArgument(
@@ -492,7 +492,7 @@ class AssignmentHandler {
       final Expression rvalue,
       final boolean useOldSSAIndices,
       final Set<MemoryRegion> updatedRegions)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     checkArgument(lvalue.isAliased(), "Array elements are always aliased");
     final CType lvalueElementType = lvalueArrayType.getType();
 
@@ -580,7 +580,7 @@ class AssignmentHandler {
       final Expression rvalue,
       final boolean useOldSSAIndices,
       final Set<MemoryRegion> updatedRegions)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     // There are two cases of assignment to a structure/union
     // - Initialization with a value (possibly nondet), useful for stack declarations and memset
     // - Structure assignment
@@ -682,7 +682,7 @@ class AssignmentHandler {
    * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
    * @param updatedRegions Either {@code null} or a set of updated regions.
    * @return A formula for the assignment.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   private BooleanFormula makeSimpleDestructiveAssignment(
       CType lvalueType,
@@ -691,7 +691,7 @@ class AssignmentHandler {
       Expression rvalue,
       final boolean useOldSSAIndices,
       final @Nullable Set<MemoryRegion> updatedRegions)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     // Arrays and functions are implicitly converted to pointers
     rvalueType = implicitCastToPointer(rvalueType);
 
@@ -797,7 +797,7 @@ class AssignmentHandler {
       final boolean useOldSSAIndices,
       final Set<MemoryRegion> updatedRegions,
       final CFieldReference fieldReference)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
     for (CCompositeTypeMemberDeclaration member : ownerType.getMembers()) {
       if (member.getName().equals(fieldReference.getFieldName())) {

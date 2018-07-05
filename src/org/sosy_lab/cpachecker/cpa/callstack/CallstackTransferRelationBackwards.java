@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -102,7 +102,9 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
 
     case AssumeEdge: {
       if (pEdge instanceof ProgramCounterValueAssumeEdge) {
-        throw new UnsupportedCCodeException("ProgramCounterValueAssumeEdge not yet supported for the backwards analysis!", pEdge);
+            throw new UnsupportedCodeException(
+                "ProgramCounterValueAssumeEdge not yet supported for the backwards analysis!",
+                pEdge);
       }
       break;
     }
@@ -119,7 +121,7 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
             return Collections.emptySet();
           } else {
             logger.log(Level.INFO, "Recursion detected, aborting. To ignore recursion, add -skipRecursion to the command line.");
-            throw new UnsupportedCCodeException("recursion", pEdge);
+              throw new UnsupportedCodeException("recursion", pEdge);
           }
 
         } else {
@@ -136,7 +138,8 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
         // and obviously, there is some handling of that situation below,
         // see "if (nextStackState == null) { ...".
         if (isWildcardState(e, AnalysisDirection.BACKWARD)) {
-          throw new UnsupportedCCodeException("ARTIFICIAL_PROGRAM_COUNTER not yet supported for the backwards analysis!", pEdge);
+            throw new UnsupportedCodeException(
+                "ARTIFICIAL_PROGRAM_COUNTER not yet supported for the backwards analysis!", pEdge);
         }
         Collection<CallstackState> result;
 

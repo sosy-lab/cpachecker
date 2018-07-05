@@ -122,7 +122,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -1034,7 +1034,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       CExpression operand1, CExpression operand2, BinaryOperator op) {
     try {
       return binExprBuilder.buildBinaryExpression(operand1, operand2, op);
-    } catch (UnrecognizedCCodeException e) {
+    } catch (UnrecognizedCodeException e) {
       throw new CFAGenerationRuntimeException(e);
     }
   }

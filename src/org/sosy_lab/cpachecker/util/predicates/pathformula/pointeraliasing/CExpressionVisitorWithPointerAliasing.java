@@ -60,7 +60,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -79,14 +79,14 @@ import org.sosy_lab.java_smt.api.Formula;
 /**
  * A visitor the handle C expressions with the support for pointer aliasing.
  */
-class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Expression, UnrecognizedCCodeException>
-                                       implements CRightHandSideVisitor<Expression, UnrecognizedCCodeException> {
+class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Expression, UnrecognizedCodeException>
+                                       implements CRightHandSideVisitor<Expression, UnrecognizedCodeException> {
 
   /**
    * A simple expression to formula visitor.
    */
-  private static class AdaptingExpressionToFormulaVisitor extends AdaptingCExpressionVisitor<Formula, Expression, UnrecognizedCCodeException>
-                                                             implements CRightHandSideVisitor<Formula, UnrecognizedCCodeException> {
+  private static class AdaptingExpressionToFormulaVisitor extends AdaptingCExpressionVisitor<Formula, Expression, UnrecognizedCodeException>
+                                                             implements CRightHandSideVisitor<Formula, UnrecognizedCodeException> {
 
     /**
      * Creates a new expression to formula visitor.
@@ -103,10 +103,10 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
      * @param value The expression value.
      * @param rhs The right hand side.
      * @return A formula for the expression value.
-     * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+     * @throws UnrecognizedCodeException If the C code was unrecognizable.
      */
     @Override
-    protected Formula convert(Expression value, CExpression rhs) throws UnrecognizedCCodeException {
+    protected Formula convert(Expression value, CExpression rhs) throws UnrecognizedCodeException {
       return convert0(value, rhs);
     }
 
@@ -128,10 +128,10 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
      *
      * @param e The function call expression.
      * @return A formula for the function call expression.
-     * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+     * @throws UnrecognizedCodeException If the C code was unrecognizable.
      */
     @Override
-    public Formula visit(CFunctionCallExpression e) throws UnrecognizedCCodeException {
+    public Formula visit(CFunctionCallExpression e) throws UnrecognizedCodeException {
       return convert0(((CExpressionVisitorWithPointerAliasing)delegate).visit(e), e);
     }
   }
@@ -165,7 +165,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
             ssa,
             constraints) {
           @Override
-          protected Formula toFormula(CExpression e) throws UnrecognizedCCodeException {
+          protected Formula toFormula(CExpression e) throws UnrecognizedCodeException {
             // recursive application of pointer-aliasing.
             return asValueFormula(
                 e.accept(CExpressionVisitorWithPointerAliasing.this),
@@ -189,7 +189,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    *
    * @return A formula visitor for right hand side expressions.
    */
-  CRightHandSideVisitor<Formula, UnrecognizedCCodeException> asFormulaVisitor() {
+  CRightHandSideVisitor<Formula, UnrecognizedCodeException> asFormulaVisitor() {
     return new AdaptingExpressionToFormulaVisitor(this);
   }
 
@@ -289,11 +289,10 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    *
    * @param e The array expression.
    * @return The location of the array expression.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   @Override
-  public AliasedLocation visit(final CArraySubscriptExpression e)
-      throws UnrecognizedCCodeException {
+  public AliasedLocation visit(final CArraySubscriptExpression e) throws UnrecognizedCodeException {
     // There are two distinct kinds of arrays in C:
     // -- fixed-length arrays for which the aliased location of the first element is returned here
     // -- pointers implicitly converted to arrays for which either the aliased or unaliased location of the *pointer*
@@ -326,10 +325,10 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    *
    * @param e The reference to a field.
    * @return The location of the reference.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   @Override
-  public Location visit(CFieldReference e) throws UnrecognizedCCodeException {
+  public Location visit(CFieldReference e) throws UnrecognizedCodeException {
     e = e.withExplicitPointerDereference();
 
     BaseVisitor baseVisitor = new BaseVisitor(edge, pts, typeHandler);
@@ -353,7 +352,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         final MemoryRegion region = regionMgr.makeMemoryRegion(fieldOwnerType, fieldType, fieldName);
         return AliasedLocation.ofAddressWithRegion(address, region);
       } else {
-        throw new UnrecognizedCCodeException("Field owner of a non-composite type", edge, e);
+        throw new UnrecognizedCodeException("Field owner of a non-composite type", edge, e);
       }
     }
   }
@@ -378,10 +377,10 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    *
    * @param e The C cast expression.
    * @return The expression representing the cast.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   @Override
-  public Expression visit(final CCastExpression e) throws UnrecognizedCCodeException {
+  public Expression visit(final CCastExpression e) throws UnrecognizedCodeException {
     final CType resultType = typeHandler.getSimplifiedType(e);
     final CExpression operand = conv.makeCastFromArrayToPointerIfNecessary(e.getOperand(), resultType);
 
@@ -401,7 +400,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
       // Change of const modifier is ignored, too.
       return result;
     } else {
-      throw new UnrecognizedCCodeException("Conversion to non-scalar type requested", edge, e);
+      throw new UnrecognizedCodeException("Conversion to non-scalar type requested", edge, e);
     }
 // TODO: The following heuristic should be implemented in more generally in the assignment to p
 //    if (operand instanceof CPointerExpression
@@ -417,10 +416,10 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    *
    * @param e The C id expression.
    * @return The expression.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   @Override
-  public Expression visit(final CIdExpression e) throws UnrecognizedCCodeException {
+  public Expression visit(final CIdExpression e) throws UnrecognizedCodeException {
     final CType resultType = typeHandler.getSimplifiedType(e);
 
     final String variableName = e.getDeclaration().getQualifiedName();
@@ -442,10 +441,10 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    *
    * @param e The C expression.
    * @return The value of the expression.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   @Override
-  public Value visit(final CUnaryExpression e) throws UnrecognizedCCodeException {
+  public Value visit(final CUnaryExpression e) throws UnrecognizedCodeException {
     if (e.getOperator() == UnaryOperator.AMPER) {
       final CExpression operand = e.getOperand();
 
@@ -553,10 +552,10 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    *
    * @param e The C pointer expression.
    * @return The aliased location of the expression.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   @Override
-  public AliasedLocation visit(final CPointerExpression e) throws UnrecognizedCCodeException {
+  public AliasedLocation visit(final CPointerExpression e) throws UnrecognizedCodeException {
     // Dereferencing a stand-alone array leaves the result of visiting the operand unchanged
     // Other cases should trigger additional dereference, so we use
     // #dereference() to resolve the ambiguity
@@ -569,10 +568,10 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    *
    * @param exp The C expression.
    * @return The value of the expression.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   @Override
-  public Value visit(final CBinaryExpression exp) throws UnrecognizedCCodeException {
+  public Value visit(final CBinaryExpression exp) throws UnrecognizedCodeException {
     final CType returnType = exp.getExpressionType();
     final CType calculationType = exp.getCalculationType();
     final Formula f1 = delegate.processOperand(exp.getOperand1(), calculationType, returnType);
@@ -621,10 +620,10 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    *
    * @param e The C expression.
    * @return The value of the expression.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   @Override
-  protected Value visitDefault(final CExpression e) throws UnrecognizedCCodeException {
+  protected Value visitDefault(final CExpression e) throws UnrecognizedCodeException {
     return Value.ofValue(e.accept(delegate));
   }
 
@@ -633,10 +632,10 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    *
    * @param e The function call expression.
    * @return The value of the expression.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   @Override
-  public Value visit(final CFunctionCallExpression e) throws UnrecognizedCCodeException {
+  public Value visit(final CFunctionCallExpression e) throws UnrecognizedCodeException {
     final CExpression functionNameExpression = e.getFunctionNameExpression();
 
     // First let's handle special cases such as allocations
@@ -738,7 +737,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    */
   private Formula stringEndsAtIndexOrOtherwise(
       CExpression parameter, Long index, Formula otherwise, CType returnType)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     AliasedLocation parameterAtIndex =
         this.visit(
             new CArraySubscriptExpression(

@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -100,7 +100,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
   }
 
   @Override
-  public Value visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
+  public Value visit(CBinaryExpression pE) throws UnrecognizedCodeException {
     BinaryOperator binaryOperator = pE.getOperator();
     CExpression lVarInBinaryExp = (CExpression) unwrap(pE.getOperand1());
     CExpression rVarInBinaryExp = pE.getOperand2();
@@ -170,7 +170,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
       final Value pOldValue,
       final Value pNewValue,
       final CType pValueType)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     if (pOldValue instanceof SymbolicValue) {
       SymbolicIdentifier id = null;
 
@@ -282,7 +282,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     }
   }
 
-  private MemoryLocation getMemoryLocation(CExpression pLValue) throws UnrecognizedCCodeException {
+  private MemoryLocation getMemoryLocation(CExpression pLValue) throws UnrecognizedCodeException {
     ExpressionValueVisitor v = getVisitor();
     assert pLValue instanceof CLeftHandSide;
     return checkNotNull(v.evaluateMemoryLocation(pLValue));
@@ -305,7 +305,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     return false;
   }
 
-  private boolean isAssignable(CExpression expression) throws UnrecognizedCCodeException {
+  private boolean isAssignable(CExpression expression) throws UnrecognizedCodeException {
 
     if (expression instanceof CIdExpression) {
       return true;

@@ -58,7 +58,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * This class evaluates expressions that evaluate to a
@@ -121,7 +121,7 @@ public class PointerVisitor extends ExpressionValueVisitor {
       return handleAmper(unaryOperand);
 
     case SIZEOF:
-      throw new UnrecognizedCCodeException("Misinterpreted the expression type of "
+      throw new UnrecognizedCodeException("Misinterpreted the expression type of "
           + unaryOperand.toASTString()
           + " as pointer type", cfaEdge, unaryExpression);
 
@@ -294,7 +294,7 @@ public class PointerVisitor extends ExpressionValueVisitor {
       pointerOffset = lVarInBinaryExp;
       addressType = (CPointerType) rVarInBinaryExpType;
     } else {
-      throw new UnrecognizedCCodeException("Expected either "
+      throw new UnrecognizedCodeException("Expected either "
     + lVarInBinaryExp.toASTString() + " or "
     + rVarInBinaryExp.toASTString() +
     "to be a pointer.", binaryExp);

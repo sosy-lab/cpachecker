@@ -47,8 +47,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** This Class build binary expression.
  * It handles the promotion and conversion of C-types,
@@ -123,7 +122,7 @@ public class CBinaryExpressionBuilder {
    *  @param op1 first operand
    *  @param op2 second operand
    *  @param op operator between the operands */
-  public CBinaryExpression buildBinaryExpression(CExpression op1, CExpression op2, BinaryOperator op) throws UnrecognizedCCodeException {
+  public CBinaryExpression buildBinaryExpression(CExpression op1, CExpression op2, BinaryOperator op) throws UnrecognizedCodeException {
 
     // TODO if calculation- and result-function are never needed independent
     // from each other, we could merge them. --> speedup?
@@ -166,7 +165,7 @@ public class CBinaryExpressionBuilder {
   public CBinaryExpression buildBinaryExpressionUnchecked(CExpression op1, CExpression op2, BinaryOperator op) {
     try {
       return buildBinaryExpression(op1, op2, op);
-    } catch (UnrecognizedCCodeException e) {
+    } catch (UnrecognizedCodeException e) {
       throw new RuntimeException(e);
     }
   }
@@ -177,7 +176,8 @@ public class CBinaryExpressionBuilder {
    * we can swap it instead.
    * This makes it easier for many CPAs to handle it.
    */
-  public CBinaryExpression negateExpressionAndSimplify(final CExpression expr) throws UnrecognizedCCodeException {
+  public CBinaryExpression negateExpressionAndSimplify(final CExpression expr)
+      throws UnrecognizedCodeException {
 
     if (expr instanceof CBinaryExpression) {
       final CBinaryExpression binExpr = (CBinaryExpression)expr;
@@ -264,7 +264,7 @@ public class CBinaryExpressionBuilder {
    */
   @VisibleForTesting
   CType getResultTypeForBinaryOperation(final CType pType1, final CType pType2,
-      final BinaryOperator pBinOperator, final CExpression op1, final CExpression op2) throws UnrecognizedCCodeException {
+      final BinaryOperator pBinOperator, final CExpression op1, final CExpression op2) throws UnrecognizedCodeException {
     /*
      * ISO-C99 (6.5.8 #6): Relational operators
      * Each of the operators <, >, <=, and >= shall yield 1
@@ -315,7 +315,7 @@ public class CBinaryExpressionBuilder {
    */
   @VisibleForTesting
   CType getCalculationTypeForBinaryOperation(CType pType1, CType pType2,
-      final BinaryOperator pBinOperator, final CExpression op1, final CExpression op2) throws UnrecognizedCCodeException {
+      final BinaryOperator pBinOperator, final CExpression op1, final CExpression op2) throws UnrecognizedCodeException {
 
     /* CalculationType of SHIFT is the type of the first operand.
      *
@@ -353,8 +353,9 @@ public class CBinaryExpressionBuilder {
       if (pBinOperator == BinaryOperator.MINUS) { return machineModel.getPointerDiffType(); }
 
       if (!pBinOperator.isLogicalOperator()) {
-        throw new UnrecognizedCCodeException("Operator " + pBinOperator + " cannot be used with two pointer operands",
-                getDummyBinExprForLogging(pBinOperator, op1, op2));
+        throw new UnrecognizedCodeException(
+            "Operator " + pBinOperator + " cannot be used with two pointer operands",
+            getDummyBinExprForLogging(pBinOperator, op1, op2));
       }
 
       // we compare function-pointer and function, so return function-pointer
@@ -377,7 +378,8 @@ public class CBinaryExpressionBuilder {
 
     if (pType1 instanceof CCompositeType || pType1 instanceof CElaboratedType
         || pType2 instanceof CCompositeType || pType2 instanceof CElaboratedType) {
-      throw new UnrecognizedCCodeException("Operator " + pBinOperator + " cannot be used with composite-type operand",
+      throw new UnrecognizedCodeException(
+          "Operator " + pBinOperator + " cannot be used with composite-type operand",
           getDummyBinExprForLogging(pBinOperator, op1, op2));
     }
 
@@ -399,13 +401,14 @@ public class CBinaryExpressionBuilder {
    * @param op2 for checks and logging only
    */
   private CType getSecondTypeToSimpleType(final CType pType,
-      final BinaryOperator pBinOperator, final CExpression op1, final CExpression op2) throws UnrecognizedCCodeException {
+      final BinaryOperator pBinOperator, final CExpression op1, final CExpression op2) throws UnrecognizedCodeException {
 
     // if one type is an pointer, return the pointer.
     if (pType instanceof CPointerType) {
       if (!additiveOperators.contains(pBinOperator) && !pBinOperator.isLogicalOperator()) {
-        throw new UnrecognizedCCodeException("Operator " + pBinOperator + " cannot be used with pointer operand",
-                getDummyBinExprForLogging(pBinOperator, op1,  op2));
+        throw new UnrecognizedCodeException(
+            "Operator " + pBinOperator + " cannot be used with pointer operand",
+            getDummyBinExprForLogging(pBinOperator, op1, op2));
       }
       return pType;
     }
@@ -413,8 +416,9 @@ public class CBinaryExpressionBuilder {
     // if one type is an array, return the pointer-equivalent to the array-type.
     if (pType instanceof CArrayType) {
       if (!additiveOperators.contains(pBinOperator) && !pBinOperator.isLogicalOperator()) {
-        throw new UnrecognizedCCodeException("Operator " + pBinOperator + " cannot be used with array operand",
-                getDummyBinExprForLogging(pBinOperator, op1,  op2));
+        throw new UnrecognizedCodeException(
+            "Operator " + pBinOperator + " cannot be used with array operand",
+            getDummyBinExprForLogging(pBinOperator, op1, op2));
       }
       final CArrayType at = ((CArrayType) pType);
       return new CPointerType(at.isConst(), at.isVolatile(), at.getType());
@@ -589,9 +593,10 @@ public class CBinaryExpressionBuilder {
     return new CBinaryExpression(op1.getFileLocation(), null, null, op1, op2, pBinOperator);
   }
 
-  private static void checkIntegerType(final CType pType, final BinaryOperator op, CExpression e) throws UnrecognizedCCodeException {
+  private static void checkIntegerType(final CType pType, final BinaryOperator op, CExpression e) throws UnrecognizedCodeException {
     if (!((CSimpleType) pType).getType().isIntegerType()) {
-      throw new UnrecognizedCCodeException("Operator " + op + " needs integer type, but is used with " + pType, e);
+      throw new UnrecognizedCodeException(
+          "Operator " + op + " needs integer type, but is used with " + pType, e);
     }
   }
 }

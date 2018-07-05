@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation<Collection<IntervalAnalysisState>, IntervalAnalysisState, Precision> {
@@ -129,7 +128,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
     } else if (summaryExpr instanceof CFunctionCallStatement) {
       // nothing to do
     } else {
-      throw new UnrecognizedCCodeException("on function return", cfaEdge, summaryExpr);
+      throw new UnrecognizedCodeException("on function return", cfaEdge, summaryExpr);
     }
 
     return soleSuccessor(newState);
@@ -144,7 +143,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   @Override
   protected Collection<IntervalAnalysisState> handleFunctionCallEdge(CFunctionCallEdge callEdge,
       List<CExpression> arguments, List<CParameterDeclaration> parameters,
-      String calledFunctionName) throws UnrecognizedCCodeException {
+      String calledFunctionName) throws UnrecognizedCodeException {
 
     if (callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
       assert parameters.size() <= arguments.size();
@@ -174,8 +173,8 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
    * @return the successor states
    */
   @Override
-  protected Collection<IntervalAnalysisState> handleReturnStatementEdge(CReturnStatementEdge returnEdge)
-      throws UnrecognizedCCodeException {
+  protected Collection<IntervalAnalysisState> handleReturnStatementEdge(
+      CReturnStatementEdge returnEdge) throws UnrecognizedCodeException {
     IntervalAnalysisState newState = state.dropFrame(functionName);
 
     // assign the value of the function return to a new variable
@@ -202,7 +201,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   @Override
   protected Collection<IntervalAnalysisState> handleAssumption(
       CAssumeEdge cfaEdge, CExpression expression, boolean truthValue)
-          throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     if ((truthValue ? Interval.ZERO : Interval.ONE).equals(evaluateInterval(state, expression, cfaEdge))) {
       // the assumption is unsatisfiable
@@ -290,7 +289,8 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
     }
 
     default:
-      throw new UnrecognizedCCodeException("unexpected operator in assumption", cfaEdge, expression);
+        throw new UnrecognizedCodeException(
+            "unexpected operator in assumption", cfaEdge, expression);
     }
   }
 
@@ -355,8 +355,8 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
    * @return the successor state
    */
   @Override
-  protected Collection<IntervalAnalysisState> handleDeclarationEdge(CDeclarationEdge declarationEdge, CDeclaration declaration)
-      throws UnrecognizedCCodeException {
+  protected Collection<IntervalAnalysisState> handleDeclarationEdge(
+      CDeclarationEdge declarationEdge, CDeclaration declaration) throws UnrecognizedCodeException {
 
     IntervalAnalysisState newState = state;
     if (declarationEdge.getDeclaration() instanceof CVariableDeclaration) {
@@ -407,7 +407,9 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
     return soleSuccessor(successor);
   }
 
-  private Interval evaluateInterval(IntervalAnalysisState readableState, CRightHandSide expression, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+  private Interval evaluateInterval(
+      IntervalAnalysisState readableState, CRightHandSide expression, CFAEdge cfaEdge)
+      throws UnrecognizedCodeException {
     return expression.accept(new ExpressionValueVisitor(readableState, cfaEdge));
   }
 
