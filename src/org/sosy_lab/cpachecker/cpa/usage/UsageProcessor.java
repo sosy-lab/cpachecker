@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Sets;
@@ -54,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
@@ -94,11 +94,13 @@ public class UsageProcessor {
 
     result = Sets.newTreeSet();
 
-    CFANode node = extractLocation(pState);
+    ARGState argState = (ARGState) pState;
 
-    for (int edgeIdx = 0; edgeIdx < node.getNumEnteringEdges(); edgeIdx++) {
-      CFAEdge edge = node.getEnteringEdge(edgeIdx);
-      getUsagesForEdge(pState, edge);
+    for (ARGState parent : argState.getParents()) {
+      CFAEdge edge = parent.getEdgeToChild(argState);
+      if (edge != null) {
+        getUsagesForEdge(pState, edge);
+      }
     }
     return result;
   }
