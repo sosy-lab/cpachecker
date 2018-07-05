@@ -25,17 +25,27 @@
 #   README:
 # This script provides bash completion (the thing that happens when you press
 # the TAB key) for CPAchecker (more specifically, the `cpa.sh` executable).
-# This _only_ works with the bash shell!
+# This script is designed for use with the bash shell, but also works with zsh.
 # To check your current shell, execute `echo $BASH`. If some path
 # to the bash command is displayed, you are using bash.
 #
-#   Installation:
+#   Installation for bash:
 # To enable the bash completion, you have two options:
 # 1) For temporary use, source the file: `source cpachecker-completion.bash`
 # 2) For persistent use, create a symlink to this file in directory
 #    `/etc/bash_completion.d/`
 #    or put the line `source $DIR_TO_THIS_SCRIPT` into your `.bashrc`
 #    (with $DIR_TO_THIS_SCRIPT replaced with the location of this file)
+#
+#    Installation for zsh:
+# Run the following commands (for persistent use, put them in your ~/.zshrc):
+#   ```
+#   autoload bashcompinit
+#   bashcompinit
+#   source $DIR_TO_THIS_SCRIPT
+#   ```
+# (with $DIR_TO_THIS_SCRIPT replaced with the location of this file)
+#
 #
 #   Trying it out:
 # From the CPAchecker directory, type `scripts/cpa.sh -` and press
