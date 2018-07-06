@@ -38,6 +38,7 @@ node append_to_dll(node head, int data) {
     }
     last->next = new_last;
     new_last->prev = last;
+    return head;
   }
 }
 

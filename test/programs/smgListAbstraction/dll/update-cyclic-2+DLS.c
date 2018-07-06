@@ -48,7 +48,7 @@ int main(void) {
   
   int i = 0;
   while(i < 2) {
-    a = update_dll_node(a, i, 7);
+    update_dll_node(a, i, 7);
     ++i;
   }
   

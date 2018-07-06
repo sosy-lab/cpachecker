@@ -27,7 +27,7 @@ void free_dll(node head) {
 
 node append_to_dll(node head, int data) {
   node new_last = create_node();
-  new_last->data = new_data;
+  new_last->data = data;
   if(NULL == head) {
     return new_last;
   } else {

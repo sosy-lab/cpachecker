@@ -53,7 +53,7 @@ int main(void) {
   // remove external pointer
   b = NULL;
 
-  head = append_to_cyclic_sll(head, 7);
+  a = append_to_cyclic_sll(a, 7);
 
   free_sll(a);
   

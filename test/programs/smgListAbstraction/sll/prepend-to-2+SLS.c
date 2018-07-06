@@ -26,7 +26,7 @@ node prepend_to_sll(node head, int data) {
   node new_head = create_node();
   new_head->data = data;
   if(NULL != head) {
-    temp->next = head;
+    new_head->next = head;
   }
   return new_head;
 }

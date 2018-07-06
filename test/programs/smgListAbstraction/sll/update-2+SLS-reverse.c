@@ -42,7 +42,7 @@ int main(void) {
 
   int i = 1;
   while(i > -1) {
-    a = update_sll_node(a, i, 7);
+    update_sll_node(a, i, 7);
     --i;
   }
 

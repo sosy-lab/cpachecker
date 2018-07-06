@@ -25,6 +25,7 @@ int main(void) {
 
   while(NULL != a) {
     free(a);
+    a = NULL;
   }
   
   return 0;
