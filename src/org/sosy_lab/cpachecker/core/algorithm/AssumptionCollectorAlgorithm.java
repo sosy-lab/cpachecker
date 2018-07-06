@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -372,11 +373,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     sb.append("INITIAL STATE ").append(initialStateName).append(";\n\n");
     sb.append("STATE __TRUE :\n");
-    if (ignoreAssumptions) {
-      sb.append("    TRUE -> GOTO __TRUE;\n\n");
-    } else {
-      sb.append("    TRUE -> ASSUME {true} GOTO __TRUE;\n\n");
-    }
+    sb.append("    TRUE -> GOTO __TRUE;\n\n");
 
     if (!falseAssumptionStates.isEmpty()) {
       sb.append("STATE __FALSE :\n");
@@ -467,11 +464,15 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   private static void addAssumption(final Appendable writer, final AssumptionStorageState assumptionState,
       boolean ignoreAssumptions) throws IOException {
    if (!ignoreAssumptions) {
-      BooleanFormula assumption = assumptionState.getFormulaManager().getBooleanFormulaManager()
-              .and(assumptionState.getAssumption(), assumptionState.getStopFormula());
-      writer.append("ASSUME {");
-      escape(assumption.toString(), writer);
-      writer.append("} ");
+      final BooleanFormulaManagerView bmgr =
+          assumptionState.getFormulaManager().getBooleanFormulaManager();
+      BooleanFormula assumption =
+          bmgr.and(assumptionState.getAssumption(), assumptionState.getStopFormula());
+      if (!bmgr.isTrue(assumption)) {
+        writer.append("ASSUME {");
+        escape(assumption.toString(), writer);
+        writer.append("} ");
+      }
     }
   }
 
