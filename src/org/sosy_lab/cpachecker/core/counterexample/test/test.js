@@ -1,3 +1,5 @@
+//Sample test case
+
 describe("true", function () {
     var a;
     it("Should be true", function () {
