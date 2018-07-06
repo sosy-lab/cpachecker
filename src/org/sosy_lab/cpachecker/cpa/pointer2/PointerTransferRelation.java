@@ -345,7 +345,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     if (memberType instanceof CCompositeType) {
       return toLocation(pMemberDecl.getType(), pMemberDecl.getName());
     }
-    return fieldReferenceToMemoryLocation(pParent, false, pMemberDecl.getName()).get();
+    return fieldReferenceToMemoryLocation(pParent, false, pMemberDecl.getName());
   }
 
   private MemoryLocation toLocation(Type pType, String name) {
@@ -516,15 +516,14 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     return ExplicitLocationSet.from(pLocations);
   }
 
-  public static Optional<MemoryLocation> fieldReferenceToMemoryLocation(
-      CFieldReference pFieldReference) {
+  public static MemoryLocation fieldReferenceToMemoryLocation(CFieldReference pFieldReference) {
     return fieldReferenceToMemoryLocation(
         pFieldReference.getFieldOwner().getExpressionType(),
         pFieldReference.isPointerDereference(),
         pFieldReference.getFieldName());
   }
 
-  private static Optional<MemoryLocation> fieldReferenceToMemoryLocation(
+  private static MemoryLocation fieldReferenceToMemoryLocation(
       CType pFieldOwnerType, boolean pIsPointerDeref, String pFieldName) {
     CType type = pFieldOwnerType.getCanonicalType();
     final String prefix;
@@ -543,7 +542,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     String infix = ".";
     String suffix = pFieldName;
     // TODO use offsets instead
-    return Optional.of(MemoryLocation.valueOf(prefix + infix + suffix));
+    return MemoryLocation.valueOf(prefix + infix + suffix);
   }
 
   private static LocationSet asLocations(
@@ -592,12 +591,8 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
           @Override
           public LocationSet visit(final CFieldReference pIastFieldReference)
               throws UnrecognizedCodeException {
-            Optional<MemoryLocation> memoryLocation =
-                fieldReferenceToMemoryLocation(pIastFieldReference);
-            if (!memoryLocation.isPresent()) {
-              return LocationSetTop.INSTANCE;
-            }
-            return toLocationSet(Collections.singleton(memoryLocation.get()));
+            MemoryLocation memoryLocation = fieldReferenceToMemoryLocation(pIastFieldReference);
+            return toLocationSet(Collections.singleton(memoryLocation));
           }
 
           @Override
@@ -811,12 +806,9 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
   private static Collection<? extends AbstractState> strengthenFieldReference(
       PointerState pPointerState, CallstackState pCallstackState, CFieldReference pFieldReference) {
-    Optional<MemoryLocation> memoryLocation =
+    MemoryLocation memoryLocation =
         PointerTransferRelation.fieldReferenceToMemoryLocation(pFieldReference);
-    if (!memoryLocation.isPresent()) {
-      return Collections.singleton(pPointerState);
-    }
-    LocationSet targets = pPointerState.getPointsToSet(memoryLocation.get());
+    LocationSet targets = pPointerState.getPointsToSet(memoryLocation);
     if (targets instanceof ExplicitLocationSet) {
       ExplicitLocationSet explicitTargets = ((ExplicitLocationSet) targets);
       for (MemoryLocation target : explicitTargets) {
