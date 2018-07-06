@@ -530,13 +530,11 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     final String prefix;
     if (pIsPointerDeref) {
       if (!(type instanceof CPointerType)) {
-        assert false;
-        return Optional.empty();
+        throw new AssertionError();
       }
       final CType innerType = ((CPointerType) type).getType().getCanonicalType();
       if (innerType instanceof CPointerType) {
-        assert false;
-        return Optional.empty();
+        throw new AssertionError();
       }
       prefix = innerType.toString();
     } else {

@@ -318,8 +318,7 @@ public class ProofSlicer {
         }
         return;
       case CallToReturnEdge:
-        assert (false);
-        return;
+        throw new AssertionError();
       case AssumeEdge:
         Set<String> assumeVars =
             CFAUtils.getVariableNamesOfExpression(((CAssumeEdge) edge).getExpression()).toSet();
@@ -334,8 +333,7 @@ public class ProofSlicer {
         updatedVars.addAll(succVars);
         return;
       default:
-        assert (false);
-        break;
+        throw new AssertionError();
     }
   }
 
@@ -538,8 +536,7 @@ public class ProofSlicer {
 
     @Override
     public String visit(CBinaryExpression pIastBinaryExpression) {
-      assert (false);
-      return "";
+      throw new AssertionError();
     }
 
     @Override
@@ -549,50 +546,42 @@ public class ProofSlicer {
 
     @Override
     public String visit(CCharLiteralExpression pIastCharLiteralExpression) {
-      assert (false);
-      return "";
+      throw new AssertionError();
     }
 
     @Override
     public String visit(CFloatLiteralExpression pIastFloatLiteralExpression) {
-      assert (false);
-      return "";
+      throw new AssertionError();
     }
 
     @Override
     public String visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) {
-      assert (false);
-      return "";
+      throw new AssertionError();
     }
 
     @Override
     public String visit(CStringLiteralExpression pIastStringLiteralExpression) {
-      assert (false);
-      return "";
+      throw new AssertionError();
     }
 
     @Override
     public String visit(CTypeIdExpression pIastTypeIdExpression) {
-      assert (false); // TODO assumption correct?
-      return "";
+      throw new AssertionError(); // TODO assumption correct?
     }
 
     @Override
     public String visit(CUnaryExpression pIastUnaryExpression) {
-      assert (false);
-      return "";
+      throw new AssertionError();
     }
 
     @Override
     public String visit(CImaginaryLiteralExpression PIastLiteralExpression) {
-      assert (false);
-      return "";
+      throw new AssertionError();
     }
 
     @Override
     public String visit(CAddressOfLabelExpression pAddressOfLabelExpression) {
-      assert (false);
-      return "";
+      throw new AssertionError();
     }
   }
 

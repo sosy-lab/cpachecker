@@ -23,25 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.ci.translators;
 
-import gmp.Mpfr;
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cpa.apron.ApronState;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
 import apron.Coeff;
 import apron.DoubleScalar;
 import apron.MpfrScalar;
@@ -53,9 +34,23 @@ import apron.Texpr0CstNode;
 import apron.Texpr0DimNode;
 import apron.Texpr0Node;
 import apron.Texpr0UnNode;
-
 import com.google.common.collect.Sets;
 import com.google.common.math.DoubleMath;
+import gmp.Mpfr;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import javax.annotation.Nullable;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cpa.apron.ApronState;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 public class ApronRequirementsTranslator extends CartesianRequirementsTranslator<ApronState> {
@@ -207,7 +202,7 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
       sb.append("= (mod");
       break;
     default:
-      assert (false);
+        throw new AssertionError();
     }
 
     String left = convertLeftConstraintPartToFormula(varNames, map, varsConsidered);

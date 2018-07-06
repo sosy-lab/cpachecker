@@ -789,14 +789,13 @@ public class ARGToCTranslator {
         }
 
       case CallToReturnEdge: {
-        //          this should not have been taken
-        assert false : "CallToReturnEdge in counterexample path: " + pCFAEdge;
-
-        break;
+          //          this should not have been taken
+          throw new AssertionError("CallToReturnEdge in counterexample path: " + pCFAEdge);
       }
 
       default: {
-        assert false : "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType();
+          throw new AssertionError(
+              "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType());
       }
     }
 
@@ -864,10 +863,8 @@ public class ARGToCTranslator {
 
       return pCurrentBlock;
     } else {
-      assert false : "unknown function exit expression";
+      throw new AssertionError("unknown function exit expression");
     }
-
-    return null;
   }
 
   private CompoundStatement getBlockAfterEndOfFunction(
