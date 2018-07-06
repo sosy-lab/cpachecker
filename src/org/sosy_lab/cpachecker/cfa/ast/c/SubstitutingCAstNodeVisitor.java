@@ -27,8 +27,9 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
-public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, RuntimeException> {
+public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, NoException> {
 
   private final Function<CAstNode, CAstNode> findSubstitute;
 

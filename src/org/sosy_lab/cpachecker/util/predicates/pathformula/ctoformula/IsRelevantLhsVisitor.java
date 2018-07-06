@@ -35,9 +35,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
-
-class IsRelevantLhsVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeException> {
+class IsRelevantLhsVisitor extends DefaultCExpressionVisitor<Boolean, NoException> {
 
   private final CtoFormulaConverter conv;
 

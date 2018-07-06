@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.variableclassification.Partition;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
@@ -50,7 +51,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  * In this special case it is possible to store the information in less bits than 32.
  */
 public class BDDCompressExpressionVisitor
-        extends DefaultCExpressionVisitor<Region[], RuntimeException> {
+        extends DefaultCExpressionVisitor<Region[], NoException> {
 
   /** This map contains tuples (int, region[]) for each intEqual-partition. */
   private static final Map<Partition, ImmutableMap<BigInteger, Region[]>> INT_REGIONS_MAP =

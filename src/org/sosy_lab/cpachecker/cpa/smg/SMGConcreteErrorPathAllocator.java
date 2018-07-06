@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -234,7 +235,7 @@ public class SMGConcreteErrorPathAllocator {
    * assigned, may not be part of the Left Hand Side we want to know the value of.
    *
    */
-  private static class ValueKnownVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeException> {
+  private static class ValueKnownVisitor extends DefaultCExpressionVisitor<Boolean, NoException> {
 
     private final Set<CLeftHandSide> alreadyAssigned;
 

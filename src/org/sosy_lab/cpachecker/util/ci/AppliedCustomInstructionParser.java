@@ -92,6 +92,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
@@ -539,8 +540,8 @@ public class AppliedCustomInstructionParser {
     return false;
   }
 
-  private static class GlobalVarCheckVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeException> implements
-      CInitializerVisitor<Boolean, RuntimeException>, CDesignatorVisitor<Boolean, RuntimeException> {
+  private static class GlobalVarCheckVisitor extends DefaultCExpressionVisitor<Boolean, NoException> implements
+      CInitializerVisitor<Boolean, NoException>, CDesignatorVisitor<Boolean, RuntimeException> {
 
     @Override
     public Boolean visit(final CArraySubscriptExpression pIastArraySubscriptExpression) throws RuntimeException {

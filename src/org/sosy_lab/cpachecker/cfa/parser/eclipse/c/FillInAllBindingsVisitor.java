@@ -36,12 +36,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
  * Visitor that fills in missing bindings of CElaboratedTypes with matching
  * types from the scope (if name and kind match, of course).
  */
-class FillInAllBindingsVisitor extends DefaultCTypeVisitor<Void, RuntimeException> {
+class FillInAllBindingsVisitor extends DefaultCTypeVisitor<Void, NoException> {
 
   private final Scope scope;
   private final ProgramDeclarations programDeclarations;

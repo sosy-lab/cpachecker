@@ -117,6 +117,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -628,7 +629,7 @@ public class CFAUtils {
   }
 
   private static class ChildExpressionVisitor
-      extends AAstNodeVisitor<Iterable<? extends AAstNode>, RuntimeException> {
+      extends AAstNodeVisitor<Iterable<? extends AAstNode>, NoException> {
 
     private static final ChildExpressionVisitor INSTANCE = new ChildExpressionVisitor();
 

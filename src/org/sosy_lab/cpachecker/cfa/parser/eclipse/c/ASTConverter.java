@@ -177,6 +177,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
@@ -785,7 +786,7 @@ class ASTConverter {
     }
   }
 
-  private static class ContainsProblemTypeVisitor extends DefaultCTypeVisitor<Boolean, RuntimeException> {
+  private static class ContainsProblemTypeVisitor extends DefaultCTypeVisitor<Boolean, NoException> {
 
     @Override
     public Boolean visitDefault(CType pT) {

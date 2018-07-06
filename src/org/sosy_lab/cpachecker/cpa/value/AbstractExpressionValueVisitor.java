@@ -113,6 +113,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue.NegativeNaN;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
@@ -135,8 +136,8 @@ import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 public abstract class AbstractExpressionValueVisitor
     extends DefaultCExpressionVisitor<Value, UnrecognizedCodeException>
     implements CRightHandSideVisitor<Value, UnrecognizedCodeException>,
-        JRightHandSideVisitor<Value, RuntimeException>,
-        JExpressionVisitor<Value, RuntimeException> {
+        JRightHandSideVisitor<Value, NoException>,
+        JExpressionVisitor<Value, NoException> {
 
   /** length of type LONG in Java (in bit). */
   private final static int SIZE_OF_JAVA_LONG = 64;

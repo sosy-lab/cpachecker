@@ -82,6 +82,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -502,7 +503,7 @@ public class ProofSlicer {
     return prefix +  pMl.getIdentifier();
   }
 
-  private static class VarNameRetriever implements CExpressionVisitor<String, RuntimeException> {
+  private static class VarNameRetriever implements CExpressionVisitor<String, NoException> {
 
     private static VarNameRetriever retriever = new VarNameRetriever();
 

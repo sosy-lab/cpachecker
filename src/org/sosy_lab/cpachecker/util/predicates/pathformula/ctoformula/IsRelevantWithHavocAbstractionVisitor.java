@@ -29,9 +29,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public class IsRelevantWithHavocAbstractionVisitor extends IsRelevantLhsVisitor
-  implements CRightHandSideVisitor<Boolean, RuntimeException>{
+  implements CRightHandSideVisitor<Boolean, NoException>{
 
   public IsRelevantWithHavocAbstractionVisitor(CtoFormulaConverter pConv) {
     super(pConv);

@@ -116,6 +116,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
@@ -241,7 +242,7 @@ class WitnessWriter implements EdgeAppender {
 
         private boolean isEffectivelyPointer(CExpression pLeftSide) {
           return pLeftSide.accept(
-              new DefaultCExpressionVisitor<Boolean, RuntimeException>() {
+              new DefaultCExpressionVisitor<Boolean, NoException>() {
 
                 @Override
                 public Boolean visit(CComplexCastExpression pComplexCastExpression) {

@@ -43,11 +43,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableAndFieldRelevancyComputer.VarFieldDependencies;
 
 final class CollectingRHSVisitor
-    extends DefaultCExpressionVisitor<VarFieldDependencies, RuntimeException>
-    implements CRightHandSideVisitor<VarFieldDependencies, RuntimeException> {
+    extends DefaultCExpressionVisitor<VarFieldDependencies, NoException>
+    implements CRightHandSideVisitor<VarFieldDependencies, NoException> {
 
   private final CFA cfa;
   private final VariableOrField lhs;

@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 
@@ -222,8 +223,8 @@ public class ReferencedVariablesCollector {
     }
   }
 
-  private static class CollectVariablesVisitor extends DefaultCExpressionVisitor<Void, RuntimeException>
-                                               implements CRightHandSideVisitor<Void, RuntimeException> {
+  private static class CollectVariablesVisitor extends DefaultCExpressionVisitor<Void, NoException>
+                                               implements CRightHandSideVisitor<Void, NoException> {
 
     Set<String> vars = new HashSet<>();
 

@@ -119,6 +119,7 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
@@ -689,7 +690,7 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  private class LModelValueVisitor implements CLeftHandSideVisitor<Object, RuntimeException> {
+  private class LModelValueVisitor implements CLeftHandSideVisitor<Object, NoException> {
 
     private final String functionName;
     private final AddressValueVisitor addressVisitor;
@@ -927,7 +928,7 @@ public class AssumptionToEdgeAllocator {
       return false;
     }
 
-    private class AddressValueVisitor implements CLeftHandSideVisitor<Address, RuntimeException> {
+    private class AddressValueVisitor implements CLeftHandSideVisitor<Address, NoException> {
 
       private final LModelValueVisitor valueVisitor;
 
@@ -1294,7 +1295,7 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  private class ValueLiteralsVisitor extends DefaultCTypeVisitor<ValueLiterals, RuntimeException> {
+  private class ValueLiteralsVisitor extends DefaultCTypeVisitor<ValueLiterals, NoException> {
 
     private final Object value;
     private final CExpression exp;
@@ -1576,7 +1577,7 @@ public class AssumptionToEdgeAllocator {
      * Resolves all subexpressions that can be resolved.
      * Stops at duplicate memory location.
      */
-    private class ValueLiteralVisitor extends DefaultCTypeVisitor<Void, RuntimeException> {
+    private class ValueLiteralVisitor extends DefaultCTypeVisitor<Void, NoException> {
 
       /*Contains references already visited, to avoid descending indefinitely.
        *Shares a reference with all instanced Visitors resolving the given type.*/
@@ -1898,7 +1899,7 @@ public class AssumptionToEdgeAllocator {
     }
 
     /*Resolve structs or union fields that are stored in the variable environment*/
-    private class ValueLiteralStructResolver extends DefaultCTypeVisitor<Void, RuntimeException> {
+    private class ValueLiteralStructResolver extends DefaultCTypeVisitor<Void, NoException> {
 
       private final ValueLiterals valueLiterals;
       private final String functionName;

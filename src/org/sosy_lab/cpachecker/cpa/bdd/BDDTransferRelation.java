@@ -81,6 +81,7 @@ import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
@@ -640,7 +641,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
   /** This Visitor evaluates the visited expression and
    * returns iff the given variable is used in it. */
-  private static class VarCExpressionVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeException> {
+  private static class VarCExpressionVisitor extends DefaultCExpressionVisitor<Boolean, NoException> {
 
     private String varName;
 

@@ -86,6 +86,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -718,7 +719,7 @@ public class CProgramScope implements Scope {
     return null;
   }
 
-  private static class TypeCollector extends DefaultCTypeVisitor<Void, RuntimeException> {
+  private static class TypeCollector extends DefaultCTypeVisitor<Void, NoException> {
 
     private final Set<CType> collectedTypes;
 
