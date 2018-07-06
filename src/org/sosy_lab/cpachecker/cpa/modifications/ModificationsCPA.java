@@ -55,7 +55,11 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 @Options(prefix = "differential")
 public class ModificationsCPA implements ConfigurableProgramAnalysis {
 
-  @Option(secure = true, description = "Program to check against", name = "program")
+  @Option(
+      secure = true,
+      description = "Program to check against",
+      name = "program",
+      required = true)
   @FileOption(Type.REQUIRED_INPUT_FILE)
   private Path originalProgram = null;
 
