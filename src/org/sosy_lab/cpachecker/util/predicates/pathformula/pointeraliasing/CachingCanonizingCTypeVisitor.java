@@ -178,7 +178,7 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoExcepti
     }
 
     @Override
-    public CType visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+    public CType visit(CBitFieldType pCBitFieldType) {
       CType type = pCBitFieldType.getType().accept(this);
       if (type != pCBitFieldType.getType()) {
         return new CBitFieldType(type, pCBitFieldType.getBitFieldSize());

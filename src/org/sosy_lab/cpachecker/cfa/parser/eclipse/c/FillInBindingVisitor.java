@@ -106,7 +106,7 @@ class FillInBindingVisitor extends DefaultCTypeVisitor<Void, NoException> {
   }
 
   @Override
-  public @Nullable Void visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+  public @Nullable Void visit(CBitFieldType pCBitFieldType) {
     pCBitFieldType.getType().accept(this);
     return null;
   }

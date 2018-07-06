@@ -512,90 +512,85 @@ public class ProofSlicer {
     }
 
     @Override
-    public String visit(CArraySubscriptExpression pIastArraySubscriptExpression)
-        throws RuntimeException {
+    public String visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
       return pIastArraySubscriptExpression.getArrayExpression().accept(this);
     }
 
     @Override
-    public String visit(CFieldReference pIastFieldReference) throws RuntimeException {
+    public String visit(CFieldReference pIastFieldReference) {
       return pIastFieldReference.getFieldOwner().accept(this);
     }
 
     @Override
-    public String visit(CIdExpression pIastIdExpression) throws RuntimeException {
+    public String visit(CIdExpression pIastIdExpression) {
       return pIastIdExpression.getDeclaration().getQualifiedName();
     }
 
     @Override
-    public String visit(CPointerExpression pPointerExpression) throws RuntimeException {
+    public String visit(CPointerExpression pPointerExpression) {
       return pPointerExpression.getOperand().accept(this);
     }
 
     @Override
-    public String visit(CComplexCastExpression pComplexCastExpression) throws RuntimeException {
+    public String visit(CComplexCastExpression pComplexCastExpression) {
       return pComplexCastExpression.getOperand().accept(this);
     }
 
     @Override
-    public String visit(CBinaryExpression pIastBinaryExpression) throws RuntimeException {
+    public String visit(CBinaryExpression pIastBinaryExpression) {
       assert (false);
       return "";
     }
 
     @Override
-    public String visit(CCastExpression pIastCastExpression) throws RuntimeException {
+    public String visit(CCastExpression pIastCastExpression) {
       return pIastCastExpression.getOperand().accept(this);
     }
 
     @Override
-    public String visit(CCharLiteralExpression pIastCharLiteralExpression) throws RuntimeException {
+    public String visit(CCharLiteralExpression pIastCharLiteralExpression) {
       assert (false);
       return "";
     }
 
     @Override
-    public String visit(CFloatLiteralExpression pIastFloatLiteralExpression)
-        throws RuntimeException {
+    public String visit(CFloatLiteralExpression pIastFloatLiteralExpression) {
       assert (false);
       return "";
     }
 
     @Override
-    public String visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
-        throws RuntimeException {
+    public String visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) {
       assert (false);
       return "";
     }
 
     @Override
-    public String visit(CStringLiteralExpression pIastStringLiteralExpression)
-        throws RuntimeException {
+    public String visit(CStringLiteralExpression pIastStringLiteralExpression) {
       assert (false);
       return "";
     }
 
     @Override
-    public String visit(CTypeIdExpression pIastTypeIdExpression) throws RuntimeException {
+    public String visit(CTypeIdExpression pIastTypeIdExpression) {
       assert (false); // TODO assumption correct?
       return "";
     }
 
     @Override
-    public String visit(CUnaryExpression pIastUnaryExpression) throws RuntimeException {
+    public String visit(CUnaryExpression pIastUnaryExpression) {
       assert (false);
       return "";
     }
 
     @Override
-    public String visit(CImaginaryLiteralExpression PIastLiteralExpression) throws RuntimeException {
+    public String visit(CImaginaryLiteralExpression PIastLiteralExpression) {
       assert (false);
       return "";
     }
 
     @Override
-    public String visit(CAddressOfLabelExpression pAddressOfLabelExpression)
-        throws RuntimeException {
+    public String visit(CAddressOfLabelExpression pAddressOfLabelExpression) {
       assert (false);
       return "";
     }

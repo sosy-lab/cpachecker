@@ -799,7 +799,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public @Nullable Void visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+    public @Nullable Void visit(CBitFieldType pCBitFieldType) {
       if (collectedTypes.add(pCBitFieldType)) {
         pCBitFieldType.getType().accept(this);
       }

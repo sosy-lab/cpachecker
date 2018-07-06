@@ -522,8 +522,7 @@ public final class ExpressionTrees {
           new CachingVisitor<LeafType, ExpressionTree<LeafType>, NoException>() {
 
             @Override
-            public ExpressionTree<LeafType> cacheMissAnd(And<LeafType> pAnd)
-                throws RuntimeException {
+            public ExpressionTree<LeafType> cacheMissAnd(And<LeafType> pAnd) {
               List<ExpressionTree<LeafType>> operands = Lists.newLinkedList(pAnd);
               boolean changedGlobally = false;
               boolean changed = false;
@@ -596,7 +595,7 @@ public final class ExpressionTrees {
             }
 
             @Override
-            public ExpressionTree<LeafType> cacheMissOr(Or<LeafType> pOr) throws RuntimeException {
+            public ExpressionTree<LeafType> cacheMissOr(Or<LeafType> pOr) {
 
               Iterator<ExpressionTree<LeafType>> opIt = pOr.iterator();
               if (opIt.hasNext()) {
@@ -737,18 +736,18 @@ public final class ExpressionTrees {
             }
 
             @Override
-            public ExpressionTree<LeafType> cacheMissLeaf(LeafExpression<LeafType> pLeafExpression)
-                throws RuntimeException {
+            public ExpressionTree<LeafType> cacheMissLeaf(
+                LeafExpression<LeafType> pLeafExpression) {
               return pLeafExpression;
             }
 
             @Override
-            public ExpressionTree<LeafType> cacheMissTrue() throws RuntimeException {
+            public ExpressionTree<LeafType> cacheMissTrue() {
               return getTrue();
             }
 
             @Override
-            public ExpressionTree<LeafType> cacheMissFalse() throws RuntimeException {
+            public ExpressionTree<LeafType> cacheMissFalse() {
               return getFalse();
             }
           };

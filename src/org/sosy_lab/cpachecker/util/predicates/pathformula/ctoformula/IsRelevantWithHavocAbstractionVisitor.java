@@ -62,8 +62,7 @@ public class IsRelevantWithHavocAbstractionVisitor extends IsRelevantLhsVisitor
   }
 
   @Override
-  public Boolean visit(CFunctionCallExpression pIastFunctionCallExpression)
-      throws RuntimeException {
+  public Boolean visit(CFunctionCallExpression pIastFunctionCallExpression) {
     return true;
   }
 }

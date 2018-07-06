@@ -489,7 +489,7 @@ public final class CTypes {
     }
 
     @Override
-    public CType visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+    public CType visit(CBitFieldType pCBitFieldType) {
       return new CBitFieldType(
           pCBitFieldType.getType().accept(this), pCBitFieldType.getBitFieldSize());
     }
@@ -561,7 +561,7 @@ public final class CTypes {
     }
 
     @Override
-    public CType visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+    public CType visit(CBitFieldType pCBitFieldType) {
       return new CBitFieldType(
           pCBitFieldType.getType().accept(this), pCBitFieldType.getBitFieldSize());
     }

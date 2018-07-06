@@ -834,7 +834,7 @@ class ASTConverter {
     }
 
     @Override
-    public Boolean visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+    public Boolean visit(CBitFieldType pCBitFieldType) {
       return pCBitFieldType.getType().accept(this);
     }
   }

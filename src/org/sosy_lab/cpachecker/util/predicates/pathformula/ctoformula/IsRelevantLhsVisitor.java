@@ -81,7 +81,7 @@ class IsRelevantLhsVisitor extends DefaultCExpressionVisitor<Boolean, NoExceptio
   }
 
   @Override
-  public Boolean visit(CUnaryExpression e) throws RuntimeException {
+  public Boolean visit(CUnaryExpression e) {
     // Inside casts an arbitrary expression may appear on the LHS
     return e.getOperand().accept(this);
   }

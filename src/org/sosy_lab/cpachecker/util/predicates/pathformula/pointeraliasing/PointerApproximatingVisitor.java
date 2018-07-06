@@ -101,7 +101,7 @@ class PointerApproximatingVisitor
   }
 
   @Override
-  protected Optional<String> visitDefault(CExpression pExp) throws RuntimeException {
+  protected Optional<String> visitDefault(CExpression pExp) {
     return Optional.empty();
   }
 

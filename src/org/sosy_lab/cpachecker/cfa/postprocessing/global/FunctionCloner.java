@@ -665,7 +665,7 @@ class FunctionCloner implements CFAVisitor {
     }
 
     @Override
-    public CType visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+    public CType visit(CBitFieldType pCBitFieldType) {
       return new CBitFieldType(
           pCBitFieldType.getType().accept(this), pCBitFieldType.getBitFieldSize());
     }

@@ -181,7 +181,7 @@ public final class SMGUtils {
     }
 
     @Override
-    public CType visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+    public CType visit(CBitFieldType pCBitFieldType) {
       return pCBitFieldType.getType().accept(this);
     }
   }

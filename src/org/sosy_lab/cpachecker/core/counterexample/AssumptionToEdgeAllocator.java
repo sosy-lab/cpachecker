@@ -1385,7 +1385,7 @@ public class AssumptionToEdgeAllocator {
     }
 
     @Override
-    public ValueLiterals visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+    public ValueLiterals visit(CBitFieldType pCBitFieldType) {
       return pCBitFieldType.getType().accept(this);
     }
 
@@ -1635,7 +1635,7 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
-      public @Nullable Void visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+      public @Nullable Void visit(CBitFieldType pCBitFieldType) {
         return pCBitFieldType.getType().accept(this);
       }
 
@@ -1941,7 +1941,7 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
-      public @Nullable Void visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+      public @Nullable Void visit(CBitFieldType pCBitFieldType) {
         return pCBitFieldType.getType().accept(this);
       }
 
