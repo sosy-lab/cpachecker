@@ -13,10 +13,12 @@ module.exports = function (config) {
 
     // list of files / patterns to load in the browser
     files: [
+      { pattern: 'node_modules/babel-polyfill/browser.js', instrument: false},
       'bower_components/angular/angular.js',
       'bower_components/angular-mocks/angular-mocks.js',
       'bower_components/angular-resource/angular-resource.js',
       'bower_components/jquery/dist/jquery.js',
+      'bower_components/jasmine-jquery/lib/jasmine-jquery.js',
       'bower_components/bootstrap/dist/js/bootstrap.js',
       'bower_components/d3/d3.js',
       'bower_components/lodash/lodash.js',
@@ -26,7 +28,8 @@ module.exports = function (config) {
       'bower_components/datatables/media/js/jquery.dataTables.js',
       'bower_components/google-code-prettify/src/prettify.js',
       'bower_components/popper.js/dist/umd/popper.js',
-      'report.js',
+      'testReport.html',
+      'testReport.js',
       'test/*.js',
     ],
 

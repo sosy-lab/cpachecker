@@ -13,6 +13,8 @@ describe("ReportController", function () {
                 $scope: $scope
             });
         })
+        jasmine.getFixtures().fixturesPath = 'base/';
+        jasmine.getFixtures().load('testReport.html');
     })
 
     describe("Logo initialization", function () {
@@ -65,6 +67,15 @@ describe("ReportController", function () {
             expect($scope.tab).toEqual(1);
         })
     })
+
+    describe("ChangeTab Watcher", function () {
+        it("Should instantiate tab to 1", function () {
+            var spyEvent = spyOnEvent('#full_screen_mode', 'click');
+            $('#full_screen_mode').click()
+            expect('click').toHaveBeenTriggeredOn('#full_screen_mode');
+        })
+    })
+
 
     describe("makeFullScreen action Handler", function () {
 
