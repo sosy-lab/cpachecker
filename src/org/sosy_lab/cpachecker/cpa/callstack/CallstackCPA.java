@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.callstack;
 
-import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
@@ -31,10 +30,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -49,23 +46,19 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class CallstackCPA extends AbstractCPA
     implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
-
-  private final CFA cfa;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(CallstackCPA.class);
   }
 
-  public CallstackCPA(Configuration config, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
+  public CallstackCPA(Configuration config, LogManager pLogger)
+      throws InvalidConfigurationException {
     super("sep", "sep",
         new DomainInitializer(config).initializeDomain(),
         new TransferInitializer(config).initializeTransfer(config, pLogger));
-    this.cfa = pCFA;
   }
 
   @Override
@@ -75,22 +68,6 @@ public class CallstackCPA extends AbstractCPA
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    if (cfa.getLoopStructure().isPresent()) {
-      LoopStructure loopStructure = cfa.getLoopStructure().get();
-      Collection<Loop> artificialLoops = loopStructure.getLoopsForFunction(
-          CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
-
-      if (!artificialLoops.isEmpty()) {
-        Loop singleLoop = Iterables.getOnlyElement(artificialLoops);
-        if (singleLoop.getLoopNodes().contains(pNode)) {
-          return new CallstackState(
-              null,
-              CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME,
-              pNode
-          );
-        }
-      }
-    }
     return new CallstackState(null, pNode.getFunctionName(), pNode);
   }
 

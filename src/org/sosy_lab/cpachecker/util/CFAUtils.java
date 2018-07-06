@@ -28,7 +28,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
@@ -110,7 +109,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -278,17 +276,6 @@ public class CFAUtils {
    */
   public static FluentIterable<CFANode> allSuccessorsOf(final CFANode node) {
     return allLeavingEdges(node).transform(CFAEdge::getSuccessor);
-  }
-
-  /**
-   * Returns a predicate for CFA edges with the given edge type.
-   * The predicate is not null safe.
-   *
-   * @param pType the edge type matched on.
-   */
-  public static Predicate<CFAEdge> edgeHasType(final CFAEdgeType pType) {
-    checkNotNull(pType);
-    return pInput -> pInput.getEdgeType() == pType;
   }
 
   /**
