@@ -1546,10 +1546,6 @@ cpa.loopbound.maxLoopIterationsUpperBound = 0
 # enable stack-based tracking of loops
 cpa.loopbound.trackStack = false
 
-# this option determines which merge operator to use
-cpa.loopinvariants.mergeType = "SEP"
-  allowed values: [SEP, MERGE]
-
 # Where to perform abstraction
 cpa.lpi.abstractionLocations = LOOPHEAD
   enum:     [ALL, LOOPHEAD, MERGE]
