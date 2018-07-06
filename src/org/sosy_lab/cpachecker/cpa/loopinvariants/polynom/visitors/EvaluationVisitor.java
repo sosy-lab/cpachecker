@@ -29,8 +29,7 @@ import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.Constant;
 import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.Exponent;
 import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.Multiplication;
 import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.Variable;
-import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.visitors.Visitor.NoException;
-
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import java.util.Map;
 import java.util.OptionalDouble;
 import java.util.logging.Level;

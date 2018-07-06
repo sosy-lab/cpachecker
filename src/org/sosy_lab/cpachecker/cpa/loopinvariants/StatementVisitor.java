@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.Constant;
 import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.Multiplication;
 import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.PolynomExpression;
 import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.Variable;
-import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.visitors.Visitor.NoException;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public class StatementVisitor implements AStatementVisitor< PolynomExpression, NoException> {
 

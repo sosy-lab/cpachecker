@@ -36,17 +36,4 @@ public interface Visitor<T, E extends Exception> {
   T visit(Exponent exp) throws E;
   T visit(Variable var) throws E;
   T visit(Constant c) throws E;
-
-  /**
-   * This exception will never be thrown.
-   */
-  public static class NoException extends RuntimeException {
-
-    private static final long serialVersionUID = -249581932019736058L;
-
-    /**
-     * Nope.
-     */
-    private NoException() {}
-  }
 }
