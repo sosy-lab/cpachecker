@@ -263,7 +263,7 @@ public final class SMGListAbstractionTestHelpers {
     if (pCircularity.equals(SMGListCircularity.CIRCULAR)) {
       hvNext = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, pNfo, node, firstAddress);
       if (pLinkage == SMGListLinkage.DOUBLY_LINKED) {
-        if (node != null && node.getKind() == SMGObjectKind.DLL) {
+        if (node.getKind() == SMGObjectKind.DLL) {
           SMGValue address2 = null;
           Set<SMGEdgePointsTo> pte =
               pSmg.getPtEdges(
