@@ -46,10 +46,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.test.abstraction.SMGListAbstractionTestHelpers;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.test.abstraction.SMGListAbstractionTestInputs;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.test.abstraction.SMGListCircularity;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.test.abstraction.SMGListLinkage;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 @RunWith(Parameterized.class)

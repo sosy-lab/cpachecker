@@ -26,8 +26,6 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.object.test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.test.abstraction.SMGListCircularity;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.test.abstraction.SMGListLinkage;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
