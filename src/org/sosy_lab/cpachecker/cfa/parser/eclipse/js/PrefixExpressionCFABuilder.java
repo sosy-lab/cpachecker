@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import java.math.BigInteger;
 import org.eclipse.wst.jsdt.core.dom.PrefixExpression;
+import org.eclipse.wst.jsdt.core.dom.PrefixExpression.Operator;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression.BinaryOperator;
@@ -43,31 +44,34 @@ class PrefixExpressionCFABuilder implements PrefixExpressionAppendable {
   public JSExpression append(
       final JavaScriptCFABuilder pBuilder, final PrefixExpression pPrefixExpression) {
     final JSExpression operand = pBuilder.append(pPrefixExpression.getOperand());
+    if (PrefixExpression.Operator.INCREMENT == pPrefixExpression.getOperator()
+        || PrefixExpression.Operator.DECREMENT == pPrefixExpression.getOperator()) {
+      final BinaryOperator binaryOperator =
+          pPrefixExpression.getOperator() == Operator.INCREMENT
+              ? BinaryOperator.PLUS
+              : BinaryOperator.MINUS;
+      final JSIdExpression variableToIncrement = (JSIdExpression) operand;
+      final JSExpressionAssignmentStatement incrementStatement =
+          new JSExpressionAssignmentStatement(
+              FileLocation.DUMMY,
+              variableToIncrement,
+              new JSBinaryExpression(
+                  FileLocation.DUMMY,
+                  variableToIncrement,
+                  new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ONE),
+                  binaryOperator));
+      pBuilder.appendEdge(
+          (pPredecessor, pSuccessor) ->
+              new JSStatementEdge(
+                  incrementStatement.toASTString(),
+                  incrementStatement,
+                  incrementStatement.getFileLocation(),
+                  pPredecessor,
+                  pSuccessor));
+      return variableToIncrement;
+    }
     final UnaryOperator operator = convert(pPrefixExpression.getOperator());
     switch (operator) {
-      case INCREMENT:
-      case DECREMENT:
-        final BinaryOperator binaryOperator =
-            operator == UnaryOperator.INCREMENT ? BinaryOperator.PLUS : BinaryOperator.MINUS;
-        final JSIdExpression variableToIncrement = (JSIdExpression) operand;
-        final JSExpressionAssignmentStatement incrementStatement =
-            new JSExpressionAssignmentStatement(
-                FileLocation.DUMMY,
-                variableToIncrement,
-                new JSBinaryExpression(
-                    FileLocation.DUMMY,
-                    variableToIncrement,
-                    new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ONE),
-                    binaryOperator));
-        pBuilder.appendEdge(
-            (pPredecessor, pSuccessor) ->
-                new JSStatementEdge(
-                    incrementStatement.toASTString(),
-                    incrementStatement,
-                    incrementStatement.getFileLocation(),
-                    pPredecessor,
-                    pSuccessor));
-        return variableToIncrement;
       case NOT:
       case PLUS:
       case MINUS:
@@ -83,11 +87,7 @@ class PrefixExpressionCFABuilder implements PrefixExpressionAppendable {
   }
 
   private UnaryOperator convert(final PrefixExpression.Operator pOperator) {
-    if (PrefixExpression.Operator.INCREMENT == pOperator) {
-      return UnaryOperator.INCREMENT;
-    } else if (PrefixExpression.Operator.DECREMENT == pOperator) {
-      return UnaryOperator.DECREMENT;
-    } else if (PrefixExpression.Operator.PLUS == pOperator) {
+    if (PrefixExpression.Operator.PLUS == pOperator) {
       return UnaryOperator.PLUS;
     } else if (PrefixExpression.Operator.MINUS == pOperator) {
       return UnaryOperator.MINUS;

@@ -70,8 +70,6 @@ public class JSUnaryExpression extends AUnaryExpression implements JSExpression 
   }
 
   public enum UnaryOperator implements AUnaryOperator {
-    INCREMENT("++"),
-    DECREMENT("--"),
     PLUS("+"),
     MINUS("-"),
     COMPLEMENT("~"),
