@@ -2173,7 +2173,7 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Value visit(final JSFunctionCallExpression pIastFunctionCallExpression)
+  public Value visit(final JSFunctionCallExpression pFunctionCallExpression)
       throws RuntimeException {
     // TODO implement evaluation of function-call-expression
     throw new RuntimeException("Evaluation of function-call-expression not implemented yet");
