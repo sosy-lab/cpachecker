@@ -93,38 +93,30 @@ public class ExpressionToFormulaVisitor
         return conv.tvmgr.createBooleanValue(mgr.makeNot(makeEqual(leftOperand, rightOperand)));
       case PLUS:
         return conv.tvmgr.createNumberValue(
-            mgr.getFloatingPointFormulaManager()
-                .add(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
+            conv.fpfmgr.add(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
       case MINUS:
         return conv.tvmgr.createNumberValue(
-            mgr.getFloatingPointFormulaManager()
-                .subtract(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
+            conv.fpfmgr.subtract(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
       case TIMES:
         return conv.tvmgr.createNumberValue(
-            mgr.getFloatingPointFormulaManager()
-                .multiply(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
+            conv.fpfmgr.multiply(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
       case DIVIDE:
         return conv.tvmgr.createNumberValue(
-            mgr.getFloatingPointFormulaManager()
-                .divide(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
+            conv.fpfmgr.divide(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
       case REMAINDER:
         return conv.tvmgr.createNumberValue(makeRemainder(leftOperand, rightOperand));
       case LESS:
         return conv.tvmgr.createBooleanValue(
-            mgr.getFloatingPointFormulaManager()
-                .lessThan(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
+            conv.fpfmgr.lessThan(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
       case LESS_EQUALS:
         return conv.tvmgr.createBooleanValue(
-            mgr.getFloatingPointFormulaManager()
-                .lessOrEquals(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
+            conv.fpfmgr.lessOrEquals(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
       case GREATER:
         return conv.tvmgr.createBooleanValue(
-            mgr.getFloatingPointFormulaManager()
-                .greaterThan(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
+            conv.fpfmgr.greaterThan(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
       case GREATER_EQUALS:
         return conv.tvmgr.createBooleanValue(
-            mgr.getFloatingPointFormulaManager()
-                .greaterOrEquals(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
+            conv.fpfmgr.greaterOrEquals(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
       default:
         throw new UnrecognizedJSCodeException("Not implemented yet", pBinaryExpression);
     }
@@ -133,7 +125,7 @@ public class ExpressionToFormulaVisitor
   @Nonnull
   private FloatingPointFormula makeRemainder(
       final TypedValue pLeftOperand, final TypedValue pRightOperand) {
-    final FloatingPointFormulaManagerView f = mgr.getFloatingPointFormulaManager();
+    final FloatingPointFormulaManagerView f = conv.fpfmgr;
     final FloatingPointFormula dividend = conv.toNumber(pLeftOperand);
     final FloatingPointFormula divisor = conv.toNumber(pRightOperand);
     return conv.bfmgr.ifThenElse(
@@ -176,8 +168,7 @@ public class ExpressionToFormulaVisitor
   @Nonnull
   private TypedValue makeNumber(final BigDecimal pValue) {
     return conv.tvmgr.createNumberValue(
-        mgr.getFloatingPointFormulaManager()
-            .makeNumber(pValue, FormulaType.getDoublePrecisionFloatingPointType()));
+        conv.fpfmgr.makeNumber(pValue, FormulaType.getDoublePrecisionFloatingPointType()));
   }
 
   @Override
@@ -238,7 +229,6 @@ public class ExpressionToFormulaVisitor
 
   private TypedValue handlePredefined(final String pName) {
     assert pName.equals("Infinity") : "Unknown variable " + pName;
-    return conv.tvmgr.createNumberValue(
-        mgr.getFloatingPointFormulaManager().makePlusInfinity(Types.NUMBER_TYPE));
+    return conv.tvmgr.createNumberValue(conv.fpfmgr.makePlusInfinity(Types.NUMBER_TYPE));
   }
 }

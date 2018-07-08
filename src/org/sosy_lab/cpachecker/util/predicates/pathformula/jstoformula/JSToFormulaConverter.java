@@ -119,6 +119,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.DummyPointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
@@ -210,6 +211,7 @@ public class JSToFormulaConverter {
   private final FunctionDeclaration<?> stringUfDecl;
 
   protected final Set<CVariableDeclaration> globalDeclarations = new HashSet<>();
+  FloatingPointFormulaManagerView fpfmgr;
 
   public JSToFormulaConverter(FormulaEncodingOptions pOptions, FormulaManagerView pFmgr,
                               MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
@@ -226,6 +228,7 @@ public class JSToFormulaConverter {
     this.nfmgr = pFmgr.getIntegerFormulaManager(); // NumeralMgr is only used for String-Literals, so Int or Real does not matter, however Princess only supports Int.
     this.efmgr = pFmgr.getBitvectorFormulaManager();
     this.ffmgr = pFmgr.getFunctionFormulaManager();
+    this.fpfmgr = pFmgr.getFloatingPointFormulaManager();
     this.logger = new LogManagerWithoutDuplicates(pLogger);
     this.shutdownNotifier = pShutdownNotifier;
 
@@ -616,15 +619,14 @@ public class JSToFormulaConverter {
           "Unexpected result type for %s",
           formula);
 
-      return fmgr.getFloatingPointFormulaManager()
-          .fromIeeeBitvector((BitvectorFormula) formula, (FloatingPointType) toFormulaType);
+      return fpfmgr.fromIeeeBitvector(
+          (BitvectorFormula) formula, (FloatingPointType) toFormulaType);
 
     } else if (fromFormulaType.isFloatingPointType() && toFormulaType.isBitvectorType()) {
       int sourceSize = ((FloatingPointType) fromFormulaType).getTotalSize();
       int targetSize = ((BitvectorType) toFormulaType).getSize();
 
-      formula =
-          fmgr.getFloatingPointFormulaManager().toIeeeBitvector((FloatingPointFormula) formula);
+      formula = fpfmgr.toIeeeBitvector((FloatingPointFormula) formula);
 
       if (sourceSize > targetSize) {
         formula =
@@ -883,18 +885,16 @@ public class JSToFormulaConverter {
       }
     } else if (fromType.isFloatingPointType()) {
       if (toType.isFloatingPointType()) {
-        ret = fmgr.getFloatingPointFormulaManager().castTo((FloatingPointFormula) pFormula, toType);
+        ret = fpfmgr.castTo((FloatingPointFormula) pFormula, toType);
       } else {
         // Cf. C-Standard 6.3.1.4 (1).
         ret =
-            fmgr.getFloatingPointFormulaManager()
-                .castTo(
-                    (FloatingPointFormula) pFormula, toType, FloatingPointRoundingMode.TOWARD_ZERO);
+            fpfmgr.castTo(
+                (FloatingPointFormula) pFormula, toType, FloatingPointRoundingMode.TOWARD_ZERO);
       }
 
     } else if (toType.isFloatingPointType()) {
-      ret = fmgr.getFloatingPointFormulaManager().castFrom(pFormula,
-          isSigned.test(pFromCType), (FloatingPointType)toType);
+      ret = fpfmgr.castFrom(pFormula, isSigned.test(pFromCType), (FloatingPointType) toType);
 
     } else {
       throw new IllegalArgumentException("Cast from " + pFromCType + " to " + pToCType
@@ -1521,8 +1521,7 @@ public class JSToFormulaConverter {
   }
 
   private BooleanFormula numberToBoolean(final FloatingPointFormula pValue) {
-    return bfmgr.ifThenElse(
-        fmgr.getFloatingPointFormulaManager().isZero(pValue), bfmgr.makeFalse(), bfmgr.makeTrue());
+    return bfmgr.ifThenElse(fpfmgr.isZero(pValue), bfmgr.makeFalse(), bfmgr.makeTrue());
   }
 
   FloatingPointFormula toNumber(final TypedValue pValue) {
@@ -1532,7 +1531,7 @@ public class JSToFormulaConverter {
     } else if (type.equals(typeTags.NUMBER)) {
       return (FloatingPointFormula) pValue.getValue();
     } else if (type.equals(typeTags.UNDEFINED)) {
-      return fmgr.getFloatingPointFormulaManager().makeNaN(Types.NUMBER_TYPE);
+      return fpfmgr.makeNaN(Types.NUMBER_TYPE);
     } else if (type.equals(typeTags.OBJECT)) {
       return fmgr.makeNumber(Types.NUMBER_TYPE, 0); // TODO handle non null objects
     } else {
