@@ -39,6 +39,8 @@ class ForStatementCFABuilder implements ForStatementAppendable {
   public void append(final JavaScriptCFABuilder pBuilder, final ForStatement pNode) {
     final LoopScopeImpl loopScope = new LoopScopeImpl(pBuilder.getScope());
     final JavaScriptCFABuilder loopBuilder = pBuilder.copyWith(loopScope);
+    final CFANode exitNode = loopBuilder.createNode();
+    loopScope.setLoopExitNode(exitNode);
     for (final Expression initializer : (List<Expression>) pNode.initializers()) {
       loopBuilder.append(initializer);
     }
@@ -54,8 +56,6 @@ class ForStatementCFABuilder implements ForStatementAppendable {
     loopEdgeBuilder.appendEdge(
         loopStartNode, DummyEdge.withDescription("check for-loop condition after updaters"));
     loopBuilder.addParseResult(loopEdgeBuilder.getParseResult());
-    final CFANode exitNode = loopBuilder.createNode();
-    loopScope.setLoopExitNode(exitNode);
     loopBuilder.appendEdge(exitNode, assume(condition, false));
     loopBuilder.appendTo(pBuilder.getBuilder());
   }
