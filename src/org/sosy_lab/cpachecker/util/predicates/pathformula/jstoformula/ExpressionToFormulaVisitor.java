@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression;
@@ -40,8 +41,10 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedJSCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
@@ -89,9 +92,65 @@ public class ExpressionToFormulaVisitor
       case NOT_EQUAL_EQUAL:
         return new TypedValue(
             conv.typeTags.BOOLEAN, mgr.makeNot(makeEqual(leftOperand, rightOperand)));
+      case PLUS:
+        return new TypedValue(
+            conv.typeTags.NUMBER,
+            mgr.getFloatingPointFormulaManager()
+                .add(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
+      case MINUS:
+        return new TypedValue(
+            conv.typeTags.NUMBER,
+            mgr.getFloatingPointFormulaManager()
+                .subtract(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
+      case TIMES:
+        return new TypedValue(
+            conv.typeTags.NUMBER,
+            mgr.getFloatingPointFormulaManager()
+                .multiply(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
+      case DIVIDE:
+        return new TypedValue(
+            conv.typeTags.NUMBER,
+            mgr.getFloatingPointFormulaManager()
+                .divide(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
+      case REMAINDER:
+        return new TypedValue(conv.typeTags.NUMBER, makeRemainder(leftOperand, rightOperand));
+      case LESS:
+        return new TypedValue(
+            conv.typeTags.BOOLEAN,
+            mgr.getFloatingPointFormulaManager()
+                .lessThan(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
+      case LESS_EQUALS:
+        return new TypedValue(
+            conv.typeTags.BOOLEAN,
+            mgr.getFloatingPointFormulaManager()
+                .lessOrEquals(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
+      case GREATER:
+        return new TypedValue(
+            conv.typeTags.BOOLEAN,
+            mgr.getFloatingPointFormulaManager()
+                .greaterThan(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
+      case GREATER_EQUALS:
+        return new TypedValue(
+            conv.typeTags.BOOLEAN,
+            mgr.getFloatingPointFormulaManager()
+                .greaterOrEquals(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
       default:
         throw new UnrecognizedJSCodeException("Not implemented yet", pBinaryExpression);
     }
+  }
+
+  @Nonnull
+  private FloatingPointFormula makeRemainder(
+      final TypedValue pLeftOperand, final TypedValue pRightOperand) {
+    final FloatingPointFormulaManagerView f = mgr.getFloatingPointFormulaManager();
+    final FloatingPointFormula dividend = conv.toNumber(pLeftOperand);
+    final FloatingPointFormula divisor = conv.toNumber(pRightOperand);
+    return conv.bfmgr.ifThenElse(
+        conv.bfmgr.or(
+            f.isNaN(dividend), f.isNaN(divisor), f.isInfinity(dividend), f.isZero(divisor)),
+        f.makeNaN(Types.NUMBER_TYPE),
+        conv.bfmgr.ifThenElse(
+            conv.bfmgr.or(f.isInfinity(divisor), f.isZero(dividend)), dividend, dividend));
   }
 
   @Nonnull
@@ -178,11 +237,19 @@ public class ExpressionToFormulaVisitor
 
   @Override
   public TypedValue visit(final JSIdExpression pIdExpression) {
+    final JSSimpleDeclaration declaration = pIdExpression.getDeclaration();
+    if (declaration == null) {
+      return handlePredefined(pIdExpression.getName());
+    }
     final IntegerFormula variable =
-        conv.makeVariable(
-            pIdExpression.getDeclaration().getQualifiedName(),
-            pIdExpression.getExpressionType(),
-            ssa);
+        conv.makeVariable(declaration.getQualifiedName(), pIdExpression.getExpressionType(), ssa);
     return new TypedValue(conv.typedValues.typeof(variable), variable);
+  }
+
+  private TypedValue handlePredefined(final String pName) {
+    assert pName.equals("Infinity") : "Unknown variable " + pName;
+    return new TypedValue(
+        conv.typeTags.NUMBER,
+        mgr.getFloatingPointFormulaManager().makePlusInfinity(Types.NUMBER_TYPE));
   }
 }
