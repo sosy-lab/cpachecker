@@ -77,7 +77,16 @@ public class ExpressionToFormulaVisitor
   @Override
   public Formula visit(final JSBinaryExpression pBinaryExpression)
       throws UnrecognizedJSCodeException {
-    throw new UnrecognizedJSCodeException("Not implemented yet", pBinaryExpression);
+    final Formula leftOperand = visit(pBinaryExpression.getOperand1());
+    final Formula rightOperand = visit(pBinaryExpression.getOperand2());
+    switch (pBinaryExpression.getOperator()) {
+      case EQUAL_EQUAL_EQUAL:
+        return mgr.makeEqual(leftOperand, rightOperand);
+      case NOT_EQUAL_EQUAL:
+        return mgr.makeNot(mgr.makeEqual(leftOperand, rightOperand));
+      default:
+        throw new UnrecognizedJSCodeException("Not implemented yet", pBinaryExpression);
+    }
   }
 
   @Override
