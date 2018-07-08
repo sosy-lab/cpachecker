@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
+import java.math.BigDecimal;
+import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFloatLiteralExpression;
@@ -39,12 +41,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedJSCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 @SuppressWarnings({"FieldCanBeLocal", "unused"})
 public class ExpressionToFormulaVisitor
-    implements JSRightHandSideVisitor<Formula, UnrecognizedJSCodeException> {
+    implements JSRightHandSideVisitor<TypedValue, UnrecognizedJSCodeException> {
 
   private final JSToFormulaConverter conv;
   private final CFAEdge       edge;
@@ -70,82 +73,112 @@ public class ExpressionToFormulaVisitor
   }
 
   @Override
-  public Formula visit(final JSFunctionCallExpression pFunctionCallExpression)
+  public TypedValue visit(final JSFunctionCallExpression pFunctionCallExpression)
       throws UnrecognizedJSCodeException {
     throw new UnrecognizedJSCodeException("Not implemented yet", pFunctionCallExpression);
   }
 
   @Override
-  public Formula visit(final JSBinaryExpression pBinaryExpression)
+  public TypedValue visit(final JSBinaryExpression pBinaryExpression)
       throws UnrecognizedJSCodeException {
-    final Formula leftOperand = visit(pBinaryExpression.getOperand1());
-    final Formula rightOperand = visit(pBinaryExpression.getOperand2());
+    final TypedValue leftOperand = visit(pBinaryExpression.getOperand1());
+    final TypedValue rightOperand = visit(pBinaryExpression.getOperand2());
     switch (pBinaryExpression.getOperator()) {
       case EQUAL_EQUAL_EQUAL:
-        return mgr.makeEqual(leftOperand, rightOperand);
+        return new TypedValue(conv.typeTags.BOOLEAN, makeEqual(leftOperand, rightOperand));
       case NOT_EQUAL_EQUAL:
-        return mgr.makeNot(mgr.makeEqual(leftOperand, rightOperand));
+        return new TypedValue(
+            conv.typeTags.BOOLEAN, mgr.makeNot(makeEqual(leftOperand, rightOperand)));
       default:
         throw new UnrecognizedJSCodeException("Not implemented yet", pBinaryExpression);
     }
   }
 
+  @Nonnull
+  private BooleanFormula makeEqual(final TypedValue pLeftOperand, final TypedValue pRightOperand) {
+    // TODO null and string
+    final IntegerFormula leftType = pLeftOperand.getType();
+    final IntegerFormula rightType = pRightOperand.getType();
+    return mgr.makeAnd(
+        mgr.makeEqual(leftType, rightType),
+        mgr.makeOr(
+            mgr.makeEqual(conv.typeTags.UNDEFINED, leftType),
+            mgr.makeOr(
+                mgr.makeAnd(
+                    mgr.makeEqual(conv.typeTags.NUMBER, leftType),
+                    mgr.makeEqual(conv.toNumber(pLeftOperand), conv.toNumber(pRightOperand))),
+                mgr.makeAnd(
+                    mgr.makeEqual(conv.typeTags.BOOLEAN, leftType),
+                    mgr.makeEqual(conv.toBoolean(pLeftOperand), conv.toBoolean(pRightOperand))))));
+  }
+
   @Override
-  public Formula visit(final JSStringLiteralExpression pStringLiteralExpression)
+  public TypedValue visit(final JSStringLiteralExpression pStringLiteralExpression)
       throws UnrecognizedJSCodeException {
     throw new UnrecognizedJSCodeException("Not implemented yet", pStringLiteralExpression);
   }
 
   @Override
-  public Formula visit(final JSFloatLiteralExpression pLiteral) {
-    return mgr.getFloatingPointFormulaManager()
-        .makeNumber(pLiteral.getValue(), FormulaType.getDoublePrecisionFloatingPointType());
+  public TypedValue visit(final JSFloatLiteralExpression pLiteral) {
+    return makeNumber(pLiteral.getValue());
+  }
+
+  @Nonnull
+  private TypedValue makeNumber(final BigDecimal pValue) {
+    return new TypedValue(
+        conv.typeTags.NUMBER,
+        mgr.getFloatingPointFormulaManager()
+            .makeNumber(pValue, FormulaType.getDoublePrecisionFloatingPointType()));
   }
 
   @Override
-  public Formula visit(final JSUnaryExpression pUnaryExpression)
+  public TypedValue visit(final JSUnaryExpression pUnaryExpression)
       throws UnrecognizedJSCodeException {
-    final Formula operand = visit(pUnaryExpression.getOperand());
+    final TypedValue operand = visit(pUnaryExpression.getOperand());
     switch (pUnaryExpression.getOperator()) {
       case NOT:
-        return mgr.makeNot(operand);
+        return new TypedValue(conv.typeTags.BOOLEAN, mgr.makeNot(conv.toBoolean(operand)));
       default:
         throw new UnrecognizedJSCodeException("Not implemented yet", pUnaryExpression);
     }
   }
 
   @Override
-  public Formula visit(final JSIntegerLiteralExpression pIntegerLiteralExpression) {
-    return mgr.getIntegerFormulaManager().makeNumber(pIntegerLiteralExpression.getValue());
+  public TypedValue visit(final JSIntegerLiteralExpression pIntegerLiteralExpression) {
+    return makeNumber(new BigDecimal(pIntegerLiteralExpression.getValue()));
   }
 
   @Override
-  public Formula visit(final JSBooleanLiteralExpression pBooleanLiteralExpression) {
-    return conv.bfmgr.makeBoolean(pBooleanLiteralExpression.getValue());
+  public TypedValue visit(final JSBooleanLiteralExpression pBooleanLiteralExpression) {
+    return new TypedValue(
+        conv.typeTags.BOOLEAN, conv.bfmgr.makeBoolean(pBooleanLiteralExpression.getValue()));
   }
 
   @Override
-  public Formula visit(final JSNullLiteralExpression pNullLiteralExpression)
+  public TypedValue visit(final JSNullLiteralExpression pNullLiteralExpression)
       throws UnrecognizedJSCodeException {
     throw new UnrecognizedJSCodeException("Not implemented yet", pNullLiteralExpression);
   }
 
   @Override
-  public Formula visit(final JSUndefinedLiteralExpression pUndefinedLiteralExpression)
+  public TypedValue visit(final JSUndefinedLiteralExpression pUndefinedLiteralExpression)
       throws UnrecognizedJSCodeException {
     throw new UnrecognizedJSCodeException("Not implemented yet", pUndefinedLiteralExpression);
   }
 
   @Override
-  public Formula visit(final JSThisExpression pThisExpression) throws UnrecognizedJSCodeException {
+  public TypedValue visit(final JSThisExpression pThisExpression)
+      throws UnrecognizedJSCodeException {
     throw new UnrecognizedJSCodeException("Not implemented yet", pThisExpression);
   }
 
   @Override
-  public Formula visit(final JSIdExpression pIdExpression) {
-    return conv.makeVariable(
-        pIdExpression.getDeclaration().getQualifiedName(),
-        pIdExpression.getExpressionType(),
-        ssa);
+  public TypedValue visit(final JSIdExpression pIdExpression) {
+    final IntegerFormula variable =
+        conv.makeVariable(
+            pIdExpression.getDeclaration().getQualifiedName(),
+            pIdExpression.getExpressionType(),
+            ssa);
+    return new TypedValue(conv.typedValues.typeof(variable), variable);
   }
 }

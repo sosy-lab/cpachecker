@@ -133,6 +133,7 @@ import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 /**
  * Class containing all the code that converts C code into a formula.
@@ -180,6 +181,8 @@ public class JSToFormulaConverter {
   private static final CharMatcher ILLEGAL_VARNAME_CHARACTERS = CharMatcher.anyOf("|\\");
 
   private final Map<String, Formula> stringLitToFormula = new HashMap<>();
+  final TypedValues typedValues;
+  final TypeTags typeTags;
   private int nextStringLitIndex = 0;
 
   final FormulaEncodingOptions options;
@@ -229,6 +232,9 @@ public class JSToFormulaConverter {
 
     stringUfDecl = ffmgr.declareUF(
             "__string__", typeHandler.getPointerType(), FormulaType.IntegerType);
+
+    typedValues = new TypedValues(ffmgr);
+    typeTags = new TypeTags(nfmgr);
   }
 
   void logfOnce(Level level, CFAEdge edge, String msg, Object... args) {
@@ -316,7 +322,7 @@ public class JSToFormulaConverter {
   }
 
   public final FormulaType<?> getFormulaTypeFromCType(JSType type) {
-    return FormulaType.BooleanType;
+    return Types.VARIABLE_TYPE;
   }
 
   public final FormulaType<?> getFormulaTypeFromCType(CType type) {
@@ -471,14 +477,14 @@ public class JSToFormulaConverter {
   }
 
   /**
-   * Create a formula for a given variable.
-   * This method does not handle scoping and the NON_DET_VARIABLE!
+   * Create a formula for a given variable. This method does not handle scoping and the
+   * NON_DET_VARIABLE!
    *
-   * This method does not update the index of the variable.
+   * <p>This method does not update the index of the variable.
    */
-  protected Formula makeVariable(String name, JSType type, SSAMapBuilder ssa) {
+  protected IntegerFormula makeVariable(String name, JSType type, SSAMapBuilder ssa) {
     int useIndex = getIndex(name, type, ssa);
-    return fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, useIndex);
+    return fmgr.makeVariable(Types.VARIABLE_TYPE, name, useIndex);
   }
 
   /**
@@ -537,8 +543,7 @@ public class JSToFormulaConverter {
     return result;
   }
 
-  protected Formula makeFreshVariable(
-      final String name, final FormulaType<?> type, final SSAMapBuilder ssa) {
+  private IntegerFormula makeFreshVariable(final String name, final SSAMapBuilder ssa) {
     int useIndex;
 
     if (direction == AnalysisDirection.BACKWARD) {
@@ -547,7 +552,7 @@ public class JSToFormulaConverter {
       useIndex = makeFreshIndex(name, JSAnyType.ANY, ssa);
     }
 
-    Formula result = fmgr.makeVariable(type, name, useIndex);
+    IntegerFormula result = fmgr.makeVariable(Types.VARIABLE_TYPE, name, useIndex);
 
     if (direction == AnalysisDirection.BACKWARD) {
       makeFreshIndex(name, JSAnyType.ANY, ssa);
@@ -1457,64 +1462,86 @@ public class JSToFormulaConverter {
 
   /**
    * Creates formula for the given assignment.
+   *
    * @param lhs the left-hand-side of the assignment
-   * @param lhsForChecking a left-hand-side of the assignment (for most cases: lhs == lhsForChecking),
-   *                       that is used to check, if the assignment is important.
-   *                       If the assignment is not important, we return TRUE.
+   * @param lhsForChecking a left-hand-side of the assignment (for most cases: lhs ==
+   *     lhsForChecking), that is used to check, if the assignment is important. If the assignment
+   *     is not important, we return TRUE.
    * @param rhs the right-hand-side of the assignment
    * @return the assignment formula
    * @throws InterruptedException may be thrown in subclasses
    */
   protected BooleanFormula makeAssignment(
-          final JSLeftHandSide lhs, final JSLeftHandSide lhsForChecking, JSRightHandSide rhs,
-          final CFAEdge edge, final String function,
-          final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
-          final Constraints constraints, final ErrorConditions errorConditions)
-      throws UnrecognizedCCodeException, InterruptedException, UnrecognizedJSCodeException {
-
-//    if (!isRelevantLeftHandSide(lhsForChecking)) {
-//      // Optimization for unused variables and fields
-//      return bfmgr.makeTrue();
-//    }
-
-    JSType lhsType = lhs.getExpressionType();
-
-//    if (lhsType instanceof CArrayType) {
-//      // Probably a (string) initializer, ignore assignments to arrays
-//      // as they cannot behandled precisely anyway.
-//      return bfmgr.makeTrue();
-//    }
-
-//    if (rhs instanceof CExpression) {
-//      rhs = makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhsType);
-//    }
-
-    Formula l = null, r = null;
-    if (direction == AnalysisDirection.BACKWARD) {
-      l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
-      r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
-    } else {
-      r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
-      if (lhs instanceof JSIdExpression) {
-        l = buildLvalueTerm((JSIdExpression) lhs, fmgr.getFormulaType(r), ssa);
-      } else {
-        l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
-      }
-    }
-
-//    r = makeCast(
-//          rhs.getExpressionType(),
-//          lhsType,
-//          r,
-//          constraints,
-//          edge);
-
-    return fmgr.assignment(l, r);
+      final JSLeftHandSide lhs,
+      final JSLeftHandSide lhsForChecking,
+      JSRightHandSide rhs,
+      final CFAEdge edge,
+      final String function,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
+      final Constraints constraints,
+      final ErrorConditions errorConditions)
+      throws UnrecognizedJSCodeException {
+    final TypedValue r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
+    final IntegerFormula l = buildLvalueTerm((JSIdExpression) lhs, ssa);
+    return fmgr.makeAnd(
+        fmgr.assignment(typedValues.typeof(l), r.getType()),
+        fmgr.makeOr(
+            fmgr.makeAnd(
+                fmgr.makeEqual(typedValues.typeof(l), typeTags.BOOLEAN),
+                fmgr.makeEqual(typedValues.booleanValue(l), toBoolean(r))),
+            fmgr.makeAnd(
+                fmgr.makeEqual(typedValues.typeof(l), typeTags.NUMBER),
+                fmgr.makeEqual(typedValues.numberValue(l), toNumber(r)))));
   }
 
-  private Formula buildLvalueTerm(
-      final JSIdExpression pLhs, final FormulaType<?> pRhsType, final SSAMapBuilder pSsa) {
-    return makeFreshVariable(pLhs.getDeclaration().getQualifiedName(), pRhsType, pSsa);
+  BooleanFormula toBoolean(final TypedValue pValue) {
+    final IntegerFormula type = pValue.getType();
+    if (type.equals(typeTags.BOOLEAN)) {
+      return (BooleanFormula) pValue.getValue();
+    } else if (type.equals(typeTags.NUMBER)) {
+      return numberToBoolean((FloatingPointFormula) pValue.getValue());
+    } else {
+      // variable
+      final IntegerFormula variable = (IntegerFormula) pValue.getValue();
+      return bfmgr.ifThenElse(
+          fmgr.makeEqual(type, typeTags.BOOLEAN),
+          typedValues.booleanValue(variable),
+          bfmgr.ifThenElse(
+              fmgr.makeEqual(type, typeTags.NUMBER),
+              numberToBoolean(typedValues.numberValue(variable)),
+              bfmgr.makeFalse()));
+    }
+  }
+
+  private BooleanFormula numberToBoolean(final FloatingPointFormula pValue) {
+    return bfmgr.ifThenElse(
+        fmgr.getFloatingPointFormulaManager().isZero(pValue), bfmgr.makeFalse(), bfmgr.makeTrue());
+  }
+
+  FloatingPointFormula toNumber(final TypedValue pValue) {
+    final IntegerFormula type = pValue.getType();
+    if (type.equals(typeTags.BOOLEAN)) {
+      return booleanToNumber((BooleanFormula) pValue.getValue());
+    } else if (type.equals(typeTags.NUMBER)) {
+      return (FloatingPointFormula) pValue.getValue();
+    } else {
+      // variable
+      final IntegerFormula variable = (IntegerFormula) pValue.getValue();
+      return bfmgr.ifThenElse(
+          fmgr.makeEqual(type, typeTags.BOOLEAN),
+          booleanToNumber(typedValues.booleanValue(variable)),
+          typedValues.numberValue(variable));
+    }
+  }
+
+  private FloatingPointFormula booleanToNumber(final BooleanFormula pValue) {
+    return bfmgr.ifThenElse(
+        pValue, fmgr.makeNumber(Types.NUMBER_TYPE, 1), fmgr.makeNumber(Types.NUMBER_TYPE, 0));
+  }
+
+  private IntegerFormula buildLvalueTerm(final JSIdExpression pLhs, final SSAMapBuilder pSsa) {
+    return makeFreshVariable(pLhs.getDeclaration().getQualifiedName(), pSsa);
   }
 
   /**
@@ -1543,7 +1570,7 @@ public class JSToFormulaConverter {
     throw new RuntimeException("Not implemented");
   }
 
-  protected Formula buildTerm(
+  private TypedValue buildTerm(
       JSRightHandSide exp,
       CFAEdge edge,
       String function,
@@ -1609,9 +1636,10 @@ public class JSToFormulaConverter {
       ErrorConditions errorConditions)
       throws UnrecognizedJSCodeException, InterruptedException {
 
-    Formula f = exp.accept(
-        createJSRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
-    BooleanFormula result = toBooleanFormula(f);
+    final TypedValue condition =
+        exp.accept(
+            createJSRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
+    BooleanFormula result = toBoolean(condition);
 
     if (!isTrue) {
       result = bfmgr.not(result);
@@ -1653,6 +1681,7 @@ public class JSToFormulaConverter {
 
   /**
    * Parameters not used in {@link JSToFormulaConverter}, may be in subclasses they are.
+   *
    * @param pEdge the edge to be visited
    * @param pFunction the current function name
    * @param ssa the current SSAMapBuilder
@@ -1660,11 +1689,14 @@ public class JSToFormulaConverter {
    * @param constraints the constraints needed during visiting
    * @param errorConditions the error conditions
    */
-  protected JSRightHandSideVisitor<Formula, UnrecognizedJSCodeException>
-  createJSRightHandSideVisitor(
-      CFAEdge pEdge, String pFunction,
-      SSAMapBuilder ssa, PointerTargetSetBuilder pts,
-      Constraints constraints, ErrorConditions errorConditions) {
+  private JSRightHandSideVisitor<TypedValue, UnrecognizedJSCodeException>
+      createJSRightHandSideVisitor(
+          CFAEdge pEdge,
+          String pFunction,
+          SSAMapBuilder ssa,
+          PointerTargetSetBuilder pts,
+          Constraints constraints,
+          ErrorConditions errorConditions) {
     return new ExpressionToFormulaVisitor(this, fmgr, pEdge, pFunction, ssa, constraints);
   }
 
