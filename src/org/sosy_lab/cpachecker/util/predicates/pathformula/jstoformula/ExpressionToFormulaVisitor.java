@@ -23,16 +23,17 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
-import org.sosy_lab.cpachecker.cfa.ast.js.DefaultJSExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSThisExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedJSCodeException;
@@ -41,10 +42,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Formula;
 
 @SuppressWarnings({"FieldCanBeLocal", "unused"})
-public class ExpressionToFormulaVisitor extends DefaultJSExpressionVisitor<Formula,
-    UnrecognizedJSCodeException>
-    implements JSRightHandSideVisitor<Formula,
-        UnrecognizedJSCodeException> {
+public class ExpressionToFormulaVisitor
+    implements JSRightHandSideVisitor<Formula, UnrecognizedJSCodeException> {
 
   private final JSToFormulaConverter conv;
   private final CFAEdge       edge;
@@ -70,19 +69,38 @@ public class ExpressionToFormulaVisitor extends DefaultJSExpressionVisitor<Formu
   }
 
   @Override
-  protected Formula visitDefault(final JSExpression exp) throws UnrecognizedJSCodeException {
-    throw new UnrecognizedJSCodeException("Not implemented yet", exp);
-  }
-
-  @Override
   public Formula visit(final JSFunctionCallExpression pFunctionCallExpression)
       throws UnrecognizedJSCodeException {
     throw new UnrecognizedJSCodeException("Not implemented yet", pFunctionCallExpression);
   }
 
   @Override
+  public Formula visit(final JSBinaryExpression pBinaryExpression)
+      throws UnrecognizedJSCodeException {
+    throw new UnrecognizedJSCodeException("Not implemented yet", pBinaryExpression);
+  }
+
+  @Override
+  public Formula visit(final JSStringLiteralExpression pStringLiteralExpression)
+      throws UnrecognizedJSCodeException {
+    throw new UnrecognizedJSCodeException("Not implemented yet", pStringLiteralExpression);
+  }
+
+  @Override
   public Formula visit(final JSFloatLiteralExpression pLiteral) throws UnrecognizedJSCodeException {
     throw new UnrecognizedJSCodeException("Not implemented yet", pLiteral);
+  }
+
+  @Override
+  public Formula visit(final JSUnaryExpression pUnaryExpression)
+      throws UnrecognizedJSCodeException {
+    final Formula operand = visit(pUnaryExpression.getOperand());
+    switch (pUnaryExpression.getOperator()) {
+      case NOT:
+        return mgr.makeNot(operand);
+      default:
+        throw new UnrecognizedJSCodeException("Not implemented yet", pUnaryExpression);
+    }
   }
 
   @Override
@@ -114,7 +132,7 @@ public class ExpressionToFormulaVisitor extends DefaultJSExpressionVisitor<Formu
   }
 
   @Override
-  public Formula visit(final JSIdExpression pIdExpression) throws UnrecognizedJSCodeException {
+  public Formula visit(final JSIdExpression pIdExpression) {
     return conv.makeVariable(
         pIdExpression.getDeclaration().getQualifiedName(),
         pIdExpression.getExpressionType(),
