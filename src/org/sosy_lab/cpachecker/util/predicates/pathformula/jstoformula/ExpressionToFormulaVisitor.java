@@ -138,6 +138,10 @@ public class ExpressionToFormulaVisitor
     switch (pUnaryExpression.getOperator()) {
       case NOT:
         return new TypedValue(conv.typeTags.BOOLEAN, mgr.makeNot(conv.toBoolean(operand)));
+      case PLUS:
+        return new TypedValue(conv.typeTags.NUMBER, conv.toNumber(operand));
+      case MINUS:
+        return new TypedValue(conv.typeTags.NUMBER, mgr.makeNegate(conv.toNumber(operand)));
       default:
         throw new UnrecognizedJSCodeException("Not implemented yet", pUnaryExpression);
     }
