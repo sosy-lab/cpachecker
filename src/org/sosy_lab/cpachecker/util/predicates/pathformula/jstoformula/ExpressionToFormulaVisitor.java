@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedJSCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 @SuppressWarnings({"FieldCanBeLocal", "unused"})
 public class ExpressionToFormulaVisitor
@@ -96,8 +97,9 @@ public class ExpressionToFormulaVisitor
   }
 
   @Override
-  public Formula visit(final JSFloatLiteralExpression pLiteral) throws UnrecognizedJSCodeException {
-    throw new UnrecognizedJSCodeException("Not implemented yet", pLiteral);
+  public Formula visit(final JSFloatLiteralExpression pLiteral) {
+    return mgr.getFloatingPointFormulaManager()
+        .makeNumber(pLiteral.getValue(), FormulaType.getDoublePrecisionFloatingPointType());
   }
 
   @Override
@@ -113,9 +115,8 @@ public class ExpressionToFormulaVisitor
   }
 
   @Override
-  public Formula visit(final JSIntegerLiteralExpression pIntegerLiteralExpression)
-      throws UnrecognizedJSCodeException {
-    throw new UnrecognizedJSCodeException("Not implemented yet", pIntegerLiteralExpression);
+  public Formula visit(final JSIntegerLiteralExpression pIntegerLiteralExpression) {
+    return mgr.getIntegerFormulaManager().makeNumber(pIntegerLiteralExpression.getValue());
   }
 
   @Override

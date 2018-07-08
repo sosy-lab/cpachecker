@@ -29,7 +29,6 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.JS
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.JSToFormulaTypeUtils.getRealFieldOwner;
 
 import com.google.common.base.CharMatcher;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
@@ -49,7 +48,6 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -58,21 +56,17 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSide;
@@ -86,7 +80,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
@@ -105,6 +98,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
@@ -120,10 +114,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
-
-
-
-
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.DummyPointerTargetSetBuilder;
@@ -542,6 +532,25 @@ public class JSToFormulaConverter {
 
     if (direction == AnalysisDirection.BACKWARD) {
       makeFreshIndex(name, type, ssa);
+    }
+
+    return result;
+  }
+
+  protected Formula makeFreshVariable(
+      final String name, final FormulaType<?> type, final SSAMapBuilder ssa) {
+    int useIndex;
+
+    if (direction == AnalysisDirection.BACKWARD) {
+      useIndex = getIndex(name, JSAnyType.ANY, ssa);
+    } else {
+      useIndex = makeFreshIndex(name, JSAnyType.ANY, ssa);
+    }
+
+    Formula result = fmgr.makeVariable(type, name, useIndex);
+
+    if (direction == AnalysisDirection.BACKWARD) {
+      makeFreshIndex(name, JSAnyType.ANY, ssa);
     }
 
     return result;
@@ -1486,7 +1495,11 @@ public class JSToFormulaConverter {
       r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
     } else {
       r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
-      l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
+      if (lhs instanceof JSIdExpression) {
+        l = buildLvalueTerm((JSIdExpression) lhs, fmgr.getFormulaType(r), ssa);
+      } else {
+        l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
+      }
     }
 
 //    r = makeCast(
@@ -1497,6 +1510,11 @@ public class JSToFormulaConverter {
 //          edge);
 
     return fmgr.assignment(l, r);
+  }
+
+  private Formula buildLvalueTerm(
+      final JSIdExpression pLhs, final FormulaType<?> pRhsType, final SSAMapBuilder pSsa) {
+    return makeFreshVariable(pLhs.getDeclaration().getQualifiedName(), pRhsType, pSsa);
   }
 
   /**
