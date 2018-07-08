@@ -201,7 +201,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     }
     jsConverter =
         new JSToFormulaConverter(
-            new org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.FormulaEncodingOptions(config),
+            new org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula
+                .FormulaEncodingOptions(config),
+            config,
             fmgr,
             pMachineModel,
             pVariableClassification,

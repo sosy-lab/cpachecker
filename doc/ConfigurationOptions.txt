@@ -1858,6 +1858,9 @@ cpa.predicate.invariants.useGlobalInvariants = true
 # interpolation.)
 cpa.predicate.invariants.useStrongInvariantsOnly = true
 
+# Do not check for NaN in operations
+cpa.predicate.js.useNaN = true
+
 # Max. number of edge of the abstraction tree to prescan for reuse
 cpa.predicate.maxAbstractionReusePrescan = 1
 

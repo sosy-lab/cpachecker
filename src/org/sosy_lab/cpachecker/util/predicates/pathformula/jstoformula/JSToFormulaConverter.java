@@ -43,6 +43,10 @@ import java.util.function.Predicate;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
@@ -140,9 +144,8 @@ import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
-/**
- * Class containing all the code that converts C code into a formula.
- */
+/** Class containing all the code that converts C code into a formula. */
+@Options(prefix = "cpa.predicate.js")
 public class JSToFormulaConverter {
 
   // list of functions that are pure (no side-effects from the perspective of this analysis)
@@ -217,10 +220,23 @@ public class JSToFormulaConverter {
   private final Set<JSVariableDeclaration> globalDeclarations = new HashSet<>();
   FloatingPointFormulaManagerView fpfmgr;
 
-  public JSToFormulaConverter(FormulaEncodingOptions pOptions, FormulaManagerView pFmgr,
-                              MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
-                              LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-                              JSToFormulaTypeHandler pTypeHandler, AnalysisDirection pDirection) {
+  // TODO this option should be removed as soon as NaN and float interpolation can be used together
+  @Option(secure = true, description = "Do not check for NaN in operations")
+  private boolean useNaN = true;
+
+  public JSToFormulaConverter(
+      FormulaEncodingOptions pOptions,
+      final Configuration pConfig,
+      FormulaManagerView pFmgr,
+      MachineModel pMachineModel,
+      Optional<VariableClassification> pVariableClassification,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      JSToFormulaTypeHandler pTypeHandler,
+      AnalysisDirection pDirection)
+      throws InvalidConfigurationException {
+
+    pConfig.inject(this, JSToFormulaConverter.class);
 
     this.fmgr = pFmgr;
     this.options = pOptions;
@@ -1768,7 +1784,7 @@ public class JSToFormulaConverter {
           PointerTargetSetBuilder pts,
           Constraints constraints,
           ErrorConditions errorConditions) {
-    return new ExpressionToFormulaVisitor(this, fmgr, pEdge, pFunction, ssa, constraints);
+    return new ExpressionToFormulaVisitor(this, useNaN, fmgr, pEdge, pFunction, ssa, constraints);
   }
 
   /**

@@ -52,6 +52,9 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 public class ExpressionToFormulaVisitor
     implements JSRightHandSideVisitor<TypedValue, UnrecognizedJSCodeException> {
 
+  // TODO this option should be removed as soon as NaN and float interpolation can be used together
+  private boolean useNaN;
+
   private final JSToFormulaConverter conv;
   private final CFAEdge       edge;
   private final String        function;
@@ -61,12 +64,14 @@ public class ExpressionToFormulaVisitor
 
   public ExpressionToFormulaVisitor(
       JSToFormulaConverter pJSToFormulaConverter,
+      final boolean pUseNaN,
       FormulaManagerView pFmgr,
       CFAEdge pEdge,
       String pFunction,
       SSAMapBuilder pSsa,
       Constraints pConstraints) {
 
+    useNaN = pUseNaN;
     conv = pJSToFormulaConverter;
     edge = pEdge;
     function = pFunction;
@@ -128,9 +133,10 @@ public class ExpressionToFormulaVisitor
     final FloatingPointFormulaManagerView f = conv.fpfmgr;
     final FloatingPointFormula dividend = conv.toNumber(pLeftOperand);
     final FloatingPointFormula divisor = conv.toNumber(pRightOperand);
+    final BooleanFormula nanCase =
+        useNaN ? conv.bfmgr.or(f.isNaN(dividend), f.isNaN(divisor)) : conv.bfmgr.makeFalse();
     return conv.bfmgr.ifThenElse(
-        conv.bfmgr.or(
-            f.isNaN(dividend), f.isNaN(divisor), f.isInfinity(dividend), f.isZero(divisor)),
+        conv.bfmgr.or(nanCase, f.isInfinity(dividend), f.isZero(divisor)),
         f.makeNaN(Types.NUMBER_TYPE),
         conv.bfmgr.ifThenElse(
             conv.bfmgr.or(f.isInfinity(divisor), f.isZero(dividend)), dividend, dividend));
@@ -141,14 +147,19 @@ public class ExpressionToFormulaVisitor
     // TODO null and string
     final IntegerFormula leftType = pLeftOperand.getType();
     final IntegerFormula rightType = pRightOperand.getType();
+    final BooleanFormula nanCase =
+        useNaN
+            ? conv.bfmgr.and(
+                mgr.makeNot(conv.fpfmgr.isNaN(conv.toNumber(pLeftOperand))),
+                mgr.makeNot(conv.fpfmgr.isNaN(conv.toNumber(pRightOperand))))
+            : conv.bfmgr.makeTrue();
     return mgr.makeAnd(
         mgr.makeEqual(leftType, rightType),
         conv.bfmgr.or(
             mgr.makeEqual(conv.typeTags.UNDEFINED, leftType),
             conv.bfmgr.and(
                 mgr.makeEqual(conv.typeTags.NUMBER, leftType),
-                mgr.makeNot(conv.fpfmgr.isNaN(conv.toNumber(pLeftOperand))),
-                mgr.makeNot(conv.fpfmgr.isNaN(conv.toNumber(pRightOperand))),
+                nanCase,
                 mgr.makeEqual(conv.toNumber(pLeftOperand), conv.toNumber(pRightOperand))),
             mgr.makeAnd(
                 mgr.makeEqual(conv.typeTags.BOOLEAN, leftType),
