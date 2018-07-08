@@ -216,18 +216,27 @@ public class ExpressionToFormulaVisitor
   }
 
   @Override
-  public TypedValue visit(final JSIdExpression pIdExpression) {
+  public TypedValue visit(final JSIdExpression pIdExpression) throws UnrecognizedJSCodeException {
     final JSSimpleDeclaration declaration = pIdExpression.getDeclaration();
     if (declaration == null) {
-      return handlePredefined(pIdExpression.getName());
+      return handlePredefined(pIdExpression);
     }
     final IntegerFormula variable =
         conv.makeVariable(declaration.getQualifiedName(), pIdExpression.getExpressionType(), ssa);
     return new TypedValue(conv.typedValues.typeof(variable), variable);
   }
 
-  private TypedValue handlePredefined(final String pName) {
-    assert pName.equals("Infinity") : "Unknown variable " + pName;
-    return conv.tvmgr.createNumberValue(conv.fpfmgr.makePlusInfinity(Types.NUMBER_TYPE));
+  private TypedValue handlePredefined(final JSIdExpression pIdExpression)
+      throws UnrecognizedJSCodeException {
+    final String name = pIdExpression.getName();
+    switch (name) {
+      case "Infinity":
+        return conv.tvmgr.createNumberValue(conv.fpfmgr.makePlusInfinity(Types.NUMBER_TYPE));
+      case "NaN":
+        return conv.tvmgr.createNumberValue(conv.fpfmgr.makeNaN(Types.NUMBER_TYPE));
+      default:
+        throw new UnrecognizedJSCodeException(
+            "Variable without declaration is not defined on global object", pIdExpression);
+    }
   }
 }
