@@ -42,8 +42,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -204,11 +207,11 @@ final class CompositeTransferRelation implements TransferRelation {
    */
   private boolean containsFunctionCall(CFAEdge edge) {
     if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
-      CStatementEdge statementEdge = (CStatementEdge)edge;
+      AStatementEdge statementEdge = (AStatementEdge)edge;
 
-      if ((statementEdge.getStatement() instanceof CFunctionCall)) {
-        CFunctionCall call = ((CFunctionCall) statementEdge.getStatement());
-        CSimpleDeclaration declaration = call.getFunctionCallExpression().getDeclaration();
+      if ((statementEdge.getStatement() instanceof AFunctionCall)) {
+        AFunctionCall call = ((AFunctionCall) statementEdge.getStatement());
+        ASimpleDeclaration declaration = call.getFunctionCallExpression().getDeclaration();
 
         // declaration == null -> functionPointer
         // functionName exists in CFA -> functioncall with CFA for called function
@@ -216,7 +219,7 @@ final class CompositeTransferRelation implements TransferRelation {
         return declaration == null
             || cfa.getAllFunctionNames().contains(declaration.getQualifiedName());
       }
-      return (statementEdge.getStatement() instanceof CFunctionCall);
+      return (statementEdge.getStatement() instanceof AFunctionCall);
     }
     return false;
   }
