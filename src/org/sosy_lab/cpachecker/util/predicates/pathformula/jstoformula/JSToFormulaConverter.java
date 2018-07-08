@@ -183,6 +183,7 @@ public class JSToFormulaConverter {
   private final Map<String, Formula> stringLitToFormula = new HashMap<>();
   final TypedValues typedValues;
   final TypeTags typeTags;
+  final TypedValueManager tvmgr;
   private int nextStringLitIndex = 0;
 
   final FormulaEncodingOptions options;
@@ -235,6 +236,7 @@ public class JSToFormulaConverter {
 
     typedValues = new TypedValues(ffmgr);
     typeTags = new TypeTags(nfmgr);
+    tvmgr = new TypedValueManager(typedValues, typeTags);
   }
 
   void logfOnce(Level level, CFAEdge edge, String msg, Object... args) {
@@ -1501,6 +1503,8 @@ public class JSToFormulaConverter {
       return (BooleanFormula) pValue.getValue();
     } else if (type.equals(typeTags.NUMBER)) {
       return numberToBoolean((FloatingPointFormula) pValue.getValue());
+    } else if (type.equals(typeTags.UNDEFINED)) {
+      return bfmgr.makeFalse();
     } else {
       // variable
       final IntegerFormula variable = (IntegerFormula) pValue.getValue();
@@ -1525,6 +1529,8 @@ public class JSToFormulaConverter {
       return booleanToNumber((BooleanFormula) pValue.getValue());
     } else if (type.equals(typeTags.NUMBER)) {
       return (FloatingPointFormula) pValue.getValue();
+    } else if (type.equals(typeTags.UNDEFINED)) {
+      return fmgr.getFloatingPointFormulaManager().makeNaN(Types.NUMBER_TYPE);
     } else {
       // variable
       final IntegerFormula variable = (IntegerFormula) pValue.getValue();
