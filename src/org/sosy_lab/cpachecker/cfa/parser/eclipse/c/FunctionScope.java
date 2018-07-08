@@ -100,10 +100,10 @@ class FunctionScope extends AbstractScope {
 
   public FunctionScope() {
     this(
-        ImmutableMap.<String, CFunctionDeclaration>of(),
-        ImmutableMap.<String, CComplexTypeDeclaration>of(),
-        ImmutableMap.<String, CTypeDefDeclaration>of(),
-        ImmutableMap.<String, CSimpleDeclaration>of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
         "",
         CProgramScope.empty());
   }

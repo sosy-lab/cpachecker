@@ -4,109 +4,24 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
-import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
-import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class UsagePoint implements Comparable<UsagePoint> {
 
-  private static class UsagePointWithEmptyLockSet extends UsagePoint {
-    //This usage is used to distinct usage points with empty lock sets with write access from each other
-    public final UsageInfo keyUsage;
-
-    private UsagePointWithEmptyLockSet(List<CompatibleNode> nodes, Access pAccess, UsageInfo pInfo) {
-      super(nodes, pAccess);
-      keyUsage = Objects.requireNonNull(pInfo);
-    }
-
-    @Override
-    public int hashCode() {
-      final int prime = 31;
-      int result = super.hashCode();
-      result = prime * result + Objects.hashCode(keyUsage);
-      return result;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      boolean result = super.equals(obj);
-      if (!result) {
-        return result;
-      }
-      UsagePointWithEmptyLockSet other = (UsagePointWithEmptyLockSet) obj;
-      //This is for distinction usages with empty sets of locks
-
-      return Objects.equals(keyUsage, other.keyUsage);
-    }
-
-    @Override
-    public int compareTo(UsagePoint o) {
-      int result = super.compareTo(o);
-      if (result != 0) {
-        return result;
-      }
-      // If we have 'result == 0' above,
-      // the other UsagePoint should be also the same class
-      Preconditions.checkArgument(o instanceof UsagePointWithEmptyLockSet);
-      return keyUsage.compareTo(((UsagePointWithEmptyLockSet)o).keyUsage);
-    }
-
-    @Override
-    public boolean covers(UsagePoint o) {
-      //Here can be read accesses without locks
-      if (this.access == Access.READ && o.access == Access.READ) {
-        return super.covers(o);
-      }
-      /* Key usage is important, if it is present, it is write access without locks,
-       * and we should handle all of them without inserting into covered elements of the tree structure
-       */
-      return false;
-    }
-
-    @Override
-    public boolean isEmpty() {
-      return true;
-    }
-
-    @Override
-    public String toString() {
-      String result = super.toString();
-      result += ", " + keyUsage.getLine();
-      return result;
-    }
-  }
-
-  public final Access access;
+  protected final Access access;
   private final List<CompatibleNode> compatibleNodes;
   private final Set<UsagePoint> coveredUsages;
 
-  private UsagePoint(List<CompatibleNode> nodes, Access pAccess) {
+  public UsagePoint(List<CompatibleNode> nodes, Access pAccess) {
     access = pAccess;
     coveredUsages = new TreeSet<>();
     compatibleNodes = nodes;
-  }
-
-  public static UsagePoint createUsagePoint(UsageInfo info) {
-
-    Access accessType = info.getAccess();
-
-    FluentIterable<CompatibleNode> nodes =
-        from(info.getAllCompatibleStates())
-        .transform(CompatibleState::getTreeNode);
-
-    if (nodes.allMatch(CompatibleNode::hasEmptyLockSet)) {
-      return new UsagePointWithEmptyLockSet(nodes.toList(), accessType, info);
-    } else {
-      return new UsagePoint(nodes.toList(), accessType);
-    }
-
   }
 
   public boolean addCoveredUsage(UsagePoint newChild) {
@@ -183,8 +98,7 @@ public class UsagePoint implements Comparable<UsagePoint> {
   }
 
   public boolean isEmpty() {
-    //The empty points are the special class
-    return false;
+    return from(compatibleNodes).allMatch(CompatibleNode::hasEmptyLockSet);
   }
 
   @Override

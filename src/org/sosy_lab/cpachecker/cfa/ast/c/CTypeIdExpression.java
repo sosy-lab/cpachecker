@@ -78,7 +78,7 @@ public final class CTypeIdExpression extends AbstractExpression implements CExpr
 
     private final String cRepresentation;
 
-    private TypeIdOperator(String pCRepresentation) {
+    TypeIdOperator(String pCRepresentation) {
       cRepresentation = pCRepresentation;
     }
 
@@ -88,6 +88,11 @@ public final class CTypeIdExpression extends AbstractExpression implements CExpr
     public String getOperator() {
       return cRepresentation;
     }
+  }
+
+  @Override
+  public String toASTString(boolean pQualified) {
+    return toASTString();
   }
 
   @Override

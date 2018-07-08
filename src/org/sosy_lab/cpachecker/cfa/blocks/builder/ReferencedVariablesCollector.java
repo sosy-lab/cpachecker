@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa.blocks.builder;
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -64,6 +63,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 
@@ -223,8 +223,8 @@ public class ReferencedVariablesCollector {
     }
   }
 
-  private static class CollectVariablesVisitor extends DefaultCExpressionVisitor<Void, RuntimeException>
-                                               implements CRightHandSideVisitor<Void, RuntimeException> {
+  private static class CollectVariablesVisitor extends DefaultCExpressionVisitor<Void, NoException>
+                                               implements CRightHandSideVisitor<Void, NoException> {
 
     Set<String> vars = new HashSet<>();
 
@@ -284,18 +284,14 @@ public class ReferencedVariablesCollector {
     }
 
     @Override
-    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT", justification = "bug in FindBugs")
     public Void visit(CUnaryExpression pE) {
       UnaryOperator op = pE.getOperator();
 
-      switch (op) {
-      case AMPER:
+      if (op == UnaryOperator.AMPER) {
         collectVar(pE.toASTString()); // TODO do we need this?
-        //$FALL-THROUGH$
-      default:
-        pE.getOperand().accept(this);
-        break;
       }
+
+      pE.getOperand().accept(this);
       return null;
     }
 

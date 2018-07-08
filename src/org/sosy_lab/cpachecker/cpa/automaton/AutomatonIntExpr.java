@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.errorprone.annotations.FormatMethod;
+import com.google.errorprone.annotations.FormatString;
+import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -31,35 +35,53 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
- * Implements a integer expression that evaluates and returns a <code>int</code> value when <code>eval()</code> is called.
- * The Expression can be evaluated multiple times.
+ * Implements a integer expression that evaluates and returns a <code>int</code> value when <code>
+ * eval()</code> is called. The Expression can be evaluated multiple times.
  */
-interface AutomatonIntExpr extends AutomatonExpression {
+interface AutomatonIntExpr extends AutomatonExpression<Integer> {
 
   @Override
   abstract ResultValue<Integer> eval(AutomatonExpressionArguments pArgs);
 
-  /** Stores a constant integer.
-   */
+  /** Stores a constant integer. */
   static class Constant implements AutomatonIntExpr {
     private final ResultValue<Integer> constantResult;
-    public Constant(int pI) {this.constantResult = new ResultValue<>(Integer.valueOf(pI)); }
-    public Constant(String pI) {this(Integer.parseInt(pI)); }
+
+    public Constant(int pI) {
+      this.constantResult = new ResultValue<>(Integer.valueOf(pI));
+    }
+
+    public Constant(String pI) {
+      this(Integer.parseInt(pI));
+    }
+
     public int getIntValue() {
       return constantResult.getValue().intValue();
     }
+
     @Override
-    public ResultValue<Integer> eval(AutomatonExpressionArguments pArgs) {return constantResult;}
+    public ResultValue<Integer> eval(AutomatonExpressionArguments pArgs) {
+      return constantResult;
+    }
 
     @Override
     public String toString() {
       return constantResult.toString();
     }
+
+    @Override
+    public int hashCode() {
+      return constantResult.getValue();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof Constant
+          && constantResult.getValue().equals(((Constant) o).constantResult.getValue());
+    }
   }
 
-
-  /** Loads an {@link AutomatonVariable} from the VariableMap and returns its int value.
-   */
+  /** Loads an {@link AutomatonVariable} from the VariableMap and returns its int value. */
   static class VarAccess implements AutomatonIntExpr {
 
     private final String varId;
@@ -79,17 +101,16 @@ interface AutomatonIntExpr extends AutomatonExpression {
       if (TRANSITION_VARS_PATTERN.matcher(varId).matches()) { // $1  AutomatonTransitionVariables
         // no exception here (would have come in the constructor)
         int key = Integer.parseInt(varId.substring(1));
-        String val = pArgs.getTransitionVariable(key);
+        String val = pArgs.getTransitionVariable(key).toASTString();
         if (val == null) {
-          pArgs.getLogger().log(Level.WARNING, "could not find the transition variable $" + key + ".");
-          return new ResultValue<>("could not find the transition variable $" + key + ".", "AutomatonIntExpr.VarAccess");
+          return logAndReturn(pArgs, "could not find the transition variable $%s.", key);
         }
         try {
           int value = Integer.parseInt(val);
           return new ResultValue<>(Integer.valueOf(value));
         } catch (NumberFormatException e) {
-          pArgs.getLogger().log(Level.WARNING, "could not parse the contents of transition variable $" + key + "=\"" + val +"\".");
-          return new ResultValue<>("could not parse the contents of transition variable $" + key + "=\"" + val +"\".", "AutomatonIntExpr.VarAccess");
+          return logAndReturn(
+              pArgs, "could not parse the contents of transition variable $%s=\"%s\".", key, val);
         }
       } else if (varId.equals("$line")) { // $line  line number in sourcecode
         return new ResultValue<>(Integer.valueOf(pArgs.getCfaEdge().getLineNumber()));
@@ -98,20 +119,38 @@ interface AutomatonIntExpr extends AutomatonExpression {
         if (variable != null) {
           return new ResultValue<>(Integer.valueOf(variable.getValue()));
         } else {
-          pArgs.getLogger().log(Level.WARNING, "could not find the automaton variable " + varId + ".");
-          return new ResultValue<>("could not find the automaton variable " + varId + ".", "AutomatonIntExpr.VarAccess");
+          return logAndReturn(pArgs, "could not find the automaton variable %s.", varId);
         }
       }
+    }
+
+    /** log a warning and return a failure value. */
+    @FormatMethod
+    private ResultValue<Integer> logAndReturn(
+        AutomatonExpressionArguments pArgs, @FormatString String message, Object... pObjects) {
+      pArgs.getLogger().logf(Level.WARNING, message, pObjects);
+      return new ResultValue<>(message, "AutomatonIntExpr.VarAccess");
     }
 
     @Override
     public String toString() {
       return varId;
     }
+
+    @Override
+    public int hashCode() {
+      return varId.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof VarAccess && varId.equals(((VarAccess) o).varId);
+    }
   }
 
   /**
-   * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the query-Result.
+   * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the
+   * query-Result.
    */
   static class CPAQuery implements AutomatonIntExpr {
     private final String cpaName;
@@ -121,12 +160,14 @@ interface AutomatonIntExpr extends AutomatonExpression {
       cpaName = pCPAName;
       queryString = pQuery;
     }
+
     @Override
     public ResultValue<Integer> eval(AutomatonExpressionArguments pArgs) {
       // replace transition variables
       String modifiedQueryString = pArgs.replaceVariables(queryString);
       if (modifiedQueryString == null) {
-        return new ResultValue<>("Failed to modify queryString \"" + queryString + "\"", "AutomatonIntExpr.CPAQuery");
+        return new ResultValue<>(
+            "Failed to modify queryString \"" + queryString + "\"", "AutomatonIntExpr.CPAQuery");
       }
 
       for (AbstractState ae : pArgs.getAbstractStates()) {
@@ -138,105 +179,123 @@ interface AutomatonIntExpr extends AutomatonExpression {
               if (result instanceof NumericValue) {
                 result = ((NumericValue) result).getNumber();
               }
+              String message =
+                  String.format(
+                      "CPA-Check succeeded: ModifiedCheckString: \"%s\" CPAElement: (%s) \"%s\"",
+                      modifiedQueryString, aqe.getCPAName(), aqe);
               if (result instanceof Integer) {
-                  String message = "CPA-Check succeeded: ModifiedCheckString: \"" +
-                  modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
-                  aqe.toString() + "\"";
-                  pArgs.getLogger().log(Level.FINER, message);
-                  return new ResultValue<>((Integer)result);
-              } else if (result instanceof Long) {
-                String message = "CPA-Check succeeded: ModifiedCheckString: \"" +
-                modifiedQueryString + "\" CPAElement: (" + aqe.getCPAName() + ") \"" +
-                aqe.toString() + "\"";
                 pArgs.getLogger().log(Level.FINER, message);
-                return new ResultValue<>(((Long)result).intValue());
+                return new ResultValue<>((Integer) result);
+              } else if (result instanceof Long) {
+                pArgs.getLogger().log(Level.FINER, message);
+                return new ResultValue<>(((Long) result).intValue());
               } else {
-                pArgs.getLogger().log(Level.WARNING,
-                    "Automaton got a non-Numeric value during Query of the "
-                    + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription() +
-                    ".");
-                return new ResultValue<>("Automaton got a non-Numeric value during Query of the "
-                    + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription() +
-                    ".", "AutomatonIntExpr.CPAQuery");
+                String failureMessage =
+                    String.format(
+                        "Automaton got a non-Numeric value during Query of the %s CPA on Edge %s.",
+                        cpaName, pArgs.getCfaEdge().getDescription());
+                pArgs.getLogger().log(Level.WARNING, failureMessage);
+                return new ResultValue<>(failureMessage, "AutomatonIntExpr.CPAQuery");
               }
             } catch (InvalidQueryException e) {
-              pArgs.getLogger().logException(Level.WARNING, e,
-                  "Automaton encountered an Exception during Query of the "
-                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription() +
-                ".");
-              return new ResultValue<>("Automaton encountered an Exception during Query of the "
-                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription() +
-                  ".", "AutomatonIntExpr.CPAQuery");
+              String errorMessage =
+                  String.format(
+                      "Automaton encountered an Exception during Query of the %s CPA on Edge %s.",
+                      cpaName, pArgs.getCfaEdge().getDescription());
+              pArgs.getLogger().logException(Level.WARNING, e, errorMessage);
+              return new ResultValue<>(errorMessage, "AutomatonIntExpr.CPAQuery");
             }
           }
         }
       }
-      pArgs.getLogger().log(Level.WARNING,
-          "Did not find the CPA to be queried "
-          + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription() +
-        ".");
-      return new ResultValue<>("Did not find the CPA to be queried "
-          + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription() +
-          ".", "AutomatonIntExpr.CPAQuery");
+      String cpaNotAvailableMessage =
+          String.format(
+              "Did not find the CPA to be queried %s CPA on Edge %s.",
+              cpaName, pArgs.getCfaEdge().getDescription());
+      pArgs.getLogger().log(Level.WARNING, cpaNotAvailableMessage);
+      return new ResultValue<>(cpaNotAvailableMessage, "AutomatonIntExpr.CPAQuery");
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(cpaName, queryString);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (o instanceof CPAQuery) {
+        CPAQuery other = (CPAQuery) o;
+        return cpaName.equals(other.cpaName) && queryString.equals(other.queryString);
+      }
+      return false;
     }
   }
-  /** Addition of {@link AutomatonIntExpr} instances.
-   */
-  static class Plus implements AutomatonIntExpr {
+
+  static class BinaryAutomatonIntExpr implements AutomatonIntExpr {
 
     private final AutomatonIntExpr a;
     private final AutomatonIntExpr b;
+    private final BiFunction<Integer, Integer, Integer> op;
+    private final String repr;
 
+    private BinaryAutomatonIntExpr(
+        AutomatonIntExpr pA,
+        AutomatonIntExpr pB,
+        BiFunction<Integer, Integer, Integer> pOp,
+        String pRepr) {
+      a = pA;
+      b = pB;
+      op = pOp;
+      repr = pRepr;
+    }
+
+    @Override
+    public ResultValue<Integer> eval(AutomatonExpressionArguments pArgs) {
+      ResultValue<Integer> resA = a.eval(pArgs);
+      if (resA.canNotEvaluate()) {
+        return resA;
+      }
+      ResultValue<Integer> resB = b.eval(pArgs);
+      if (resB.canNotEvaluate()) {
+        return resB;
+      }
+      return new ResultValue<>(op.apply(resA.getValue(), resB.getValue()));
+    }
+
+    @Override
+    public String toString() {
+      return String.format("(%s %s %s)", a, repr, b);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(a, b, repr);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o instanceof BinaryAutomatonIntExpr) {
+        BinaryAutomatonIntExpr other = (BinaryAutomatonIntExpr) o;
+        return a.equals(other.a) && b.equals(other.b) && repr.equals(other.repr);
+      }
+      return false;
+    }
+  }
+
+  /** Addition of {@link AutomatonIntExpr} instances. */
+  static class Plus extends BinaryAutomatonIntExpr {
     public Plus(AutomatonIntExpr pA, AutomatonIntExpr pB) {
-      this.a = pA;
-      this.b = pB;
-    }
-    @Override
-    public ResultValue<Integer> eval(AutomatonExpressionArguments pArgs) {
-      ResultValue<Integer> resA = a.eval(pArgs);
-      if (resA.canNotEvaluate()) {
-        return resA;
-      }
-      ResultValue<Integer> resB = b.eval(pArgs);
-      if (resB.canNotEvaluate()) {
-        return resB;
-      }
-      return new ResultValue<>(resA.getValue() + resB.getValue());
-    }
-
-    @Override
-    public String toString() {
-      return "(" + a + " + " + b + ")";
+      super(pA, pB, ((a, b) -> a + b), "+");
     }
   }
 
-  /** Subtraction of {@link AutomatonIntExpr} instances.
-   */
-  static class Minus implements AutomatonIntExpr {
-
-    private final AutomatonIntExpr a;
-    private final AutomatonIntExpr b;
-
+  /** Subtraction of {@link AutomatonIntExpr} instances. */
+  static class Minus extends BinaryAutomatonIntExpr {
     public Minus(AutomatonIntExpr pA, AutomatonIntExpr pB) {
-      this.a = pA;
-      this.b = pB;
-    }
-    @Override
-    public ResultValue<Integer> eval(AutomatonExpressionArguments pArgs) {
-      ResultValue<Integer> resA = a.eval(pArgs);
-      if (resA.canNotEvaluate()) {
-        return resA;
-      }
-      ResultValue<Integer> resB = b.eval(pArgs);
-      if (resB.canNotEvaluate()) {
-        return resB;
-      }
-      return new ResultValue<>(resA.getValue() - resB.getValue());
-    }
-
-    @Override
-    public String toString() {
-      return "(" + a + " - " + b + ")";
+      super(pA, pB, ((a, b) -> a - b), "-");
     }
   }
 }

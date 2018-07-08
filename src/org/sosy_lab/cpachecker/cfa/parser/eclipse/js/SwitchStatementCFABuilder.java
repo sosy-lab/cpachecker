@@ -199,12 +199,12 @@ class SwitchStatementCFABuilder implements SwitchStatementAppendable {
       }
 
       @Override
-      public String toASTString() {
+      public String toASTString(final boolean pQualified) {
         return "switch default case dummy condition";
       }
 
       @Override
-      public String toParenthesizedASTString() {
+      public String toParenthesizedASTString(final boolean pQualified) {
         return "(" + toASTString() + ")";
       }
     }

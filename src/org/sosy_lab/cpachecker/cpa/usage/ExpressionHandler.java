@@ -36,17 +36,17 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
-import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.visitors.Visitor.NoException;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.Identifiers;
 
 public class ExpressionHandler extends DefaultCExpressionVisitor<Void, NoException> {
 
-  private List<Pair<AbstractIdentifier, Access>> result;
-  protected Access accessMode;
-  private String fName;
+  private final List<Pair<AbstractIdentifier, Access>> result;
+  private final String fName;
+  private Access accessMode;
 
   public ExpressionHandler(Access mode, String functionName) {
     result = new ArrayList<>();

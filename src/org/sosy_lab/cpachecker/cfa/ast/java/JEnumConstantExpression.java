@@ -56,6 +56,11 @@ public final class JEnumConstantExpression extends AbstractExpression implements
   }
 
   @Override
+  public String toASTString(boolean pQualified) {
+    return toASTString();
+  }
+
+  @Override
   public String toASTString() {
     return constantName;
   }

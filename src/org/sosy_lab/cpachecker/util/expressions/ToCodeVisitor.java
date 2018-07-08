@@ -26,9 +26,9 @@ package org.sosy_lab.cpachecker.util.expressions;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
-
-public class ToCodeVisitor<LeafType> extends CachingVisitor<LeafType, String, RuntimeException> {
+public class ToCodeVisitor<LeafType> extends CachingVisitor<LeafType, String, NoException> {
 
   private static String wrapInParentheses(String pCode) {
     return "(" + pCode + ")";
@@ -46,7 +46,7 @@ public class ToCodeVisitor<LeafType> extends CachingVisitor<LeafType, String, Ru
       @Override
       public String apply(ExpressionTree<LeafType> pExpressionTree) {
         return pExpressionTree.accept(
-            new ExpressionTreeVisitor<LeafType, String, RuntimeException>() {
+            new ExpressionTreeVisitor<LeafType, String, NoException>() {
 
               @Override
               public String visit(And<LeafType> pAnd) {

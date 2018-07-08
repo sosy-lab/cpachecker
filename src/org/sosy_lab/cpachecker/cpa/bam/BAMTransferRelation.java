@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -49,6 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -280,44 +282,50 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     // Try to get an element from cache.
     // A previously computed element consists of a reached set associated
     // with the recursive call, and
-    final Pair<ReachedSet, Collection<AbstractState>> pair =
+    BAMCacheEntry entry =
         data.getCache().get(reducedInitialState, reducedInitialPrecision, innerSubtree);
-    final ReachedSet cachedReached = pair.getFirst();
-    final Collection<AbstractState> cachedReturnStates = pair.getSecond();
 
-    assert cachedReturnStates == null || cachedReached != null : "there cannot be "
-        + "result-states without reached-states";
-
-    final Collection<AbstractState> reducedResult;
     final ReachedSet reached;
-    if (isCacheHit(cachedReached, cachedReturnStates)) {
-      // cache hit, return element from cache
+    final Collection<AbstractState> reducedResult;
+
+    if (entry == null) { // MISS
+      entry =
+          data.createAndRegisterNewReachedSet(
+              reducedInitialState, reducedInitialPrecision, innerSubtree);
       logger.log(
           Level.FINEST,
-          "Cache hit with finished reached-set with root",
-          cachedReached.getFirstState());
-      reducedResult = cachedReturnStates;
-      statesForFurtherAnalysis = cachedReturnStates;
-      reached = cachedReached;
+          "Cache miss: starting recursive CPAAlgorithm with new initial reached-set.");
+      reached = entry.getReachedSet();
+      reducedResult = performCompositeAnalysisWithCPAAlgorithm(reached, innerSubtree);
+      assert reducedResult != null;
+      statesForFurtherAnalysis = filterResultStatesForFurtherAnalysis(reducedResult, null);
 
     } else {
-      if (cachedReached == null) {
-        // we have not even cached a partly computed reach-set,
-        // so we must compute the subgraph specification from scratch
-        reached =
-            data.createAndRegisterNewReachedSet(
-                reducedInitialState, reducedInitialPrecision, innerSubtree);
-        logger.log(Level.FINEST, "Cache miss: starting recursive CPAAlgorithm with new initial reached-set.");
-      } else {
+      final ReachedSet cachedReached = entry.getReachedSet();
+      Preconditions.checkNotNull(cachedReached);
+      @Nullable final Collection<AbstractState> cachedReturnStates = entry.getExitStates();
+      if (isCacheHit(cachedReached, cachedReturnStates)) { // FULL HIT
+        // cache hit, return element from cache
+        logger.log(
+            Level.FINEST,
+            "Cache hit with finished reached-set with root",
+            cachedReached.getFirstState());
+        Preconditions.checkNotNull(cachedReturnStates);
+        reducedResult = cachedReturnStates;
+        statesForFurtherAnalysis = cachedReturnStates;
         reached = cachedReached;
-        logger.log(Level.FINEST, "Partial cache hit: starting recursive CPAAlgorithm with partial reached-set with root", reached.getFirstState());
+
+      } else { // PARTIAL HIT
+        reached = cachedReached;
+        logger.log(
+            Level.FINEST,
+            "Partial cache hit: starting recursive CPAAlgorithm with partial reached-set with root",
+            reached.getFirstState());
+        reducedResult = performCompositeAnalysisWithCPAAlgorithm(reached, innerSubtree);
+        Preconditions.checkNotNull(reducedResult);
+        statesForFurtherAnalysis =
+            filterResultStatesForFurtherAnalysis(reducedResult, cachedReturnStates);
       }
-
-      reducedResult = performCompositeAnalysisWithCPAAlgorithm(reached, innerSubtree);
-
-      assert reducedResult != null;
-
-      statesForFurtherAnalysis = filterResultStatesForFurtherAnalysis(reducedResult, cachedReturnStates);
     }
 
     assert reached != null;
@@ -334,12 +342,8 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
 
     // use 'reducedResult' for cache and 'statesForFurtherAnalysis' as return value,
     // both are always equal, except analysis of recursive procedures (@fixpoint-algorithm)
-    data.getCache().put(
-        reducedInitialState,
-        reached.getPrecision(reached.getFirstState()),
-        innerSubtree,
-        reducedResult,
-        rootOfBlock);
+    entry.setExitStates(reducedResult);
+    entry.setRootOfBlock(rootOfBlock);
 
     return Pair.of(statesForFurtherAnalysis, reached);
   }

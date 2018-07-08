@@ -281,7 +281,9 @@ abstract class AbstractBMCAlgorithm
                 .build();
       } catch (IOException e) {
         throw new InvalidConfigurationException(
-            String.format("Cannot load configuration from file %s", invariantGeneratorConfig), e);
+            String.format(
+                "Cannot load configuration from file %s", invariantGeneratorConfig),
+            e);
       }
     }
     invariantGenerator =
@@ -477,7 +479,8 @@ abstract class AbstractBMCAlgorithm
               lifting);
       if (inductionResult.isSuccessful()) {
         Iterables.addAll(
-            confirmedCandidates, CandidateInvariantCombination.getConjunctiveParts(candidate));
+            confirmedCandidates,
+            CandidateInvariantCombination.getConjunctiveParts(candidate));
         candidateGenerator.confirmCandidates(
             CandidateInvariantCombination.getConjunctiveParts(candidate));
         if (candidate == TargetLocationCandidateInvariant.INSTANCE) {
@@ -829,8 +832,7 @@ abstract class AbstractBMCAlgorithm
     }
   }
 
-  public static enum InvariantGeneratorFactory {
-
+  public enum InvariantGeneratorFactory {
     INDUCTION {
 
       @Override
@@ -1180,12 +1182,12 @@ abstract class AbstractBMCAlgorithm
     }
   }
 
-  private static interface InvariantGeneratorHeadStart {
+  private interface InvariantGeneratorHeadStart {
 
     void waitForInvariantGenerator() throws InterruptedException;
   }
 
-  private static enum InvariantGeneratorHeadStartFactories {
+  private enum InvariantGeneratorHeadStartFactories {
     NONE {
 
       @Override

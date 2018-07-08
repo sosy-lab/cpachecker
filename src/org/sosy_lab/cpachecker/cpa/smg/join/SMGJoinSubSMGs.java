@@ -25,20 +25,20 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGGenericAbstractionCandidate;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
 
 final class SMGJoinSubSMGs {
@@ -50,20 +50,30 @@ final class SMGJoinSubSMGs {
   private SMGJoinStatus status;
   private boolean defined = false;
 
-  private SMG inputSMG1;
-  private SMG inputSMG2;
+  private UnmodifiableSMG inputSMG1;
+  private UnmodifiableSMG inputSMG2;
   private SMG destSMG;
 
   private SMGNodeMapping mapping1 = null;
   private SMGNodeMapping mapping2 = null;
   private final List<SMGGenericAbstractionCandidate> subSmgAbstractionCandidates;
 
-  public SMGJoinSubSMGs(SMGJoinStatus initialStatus,
-      SMG pSMG1, SMG pSMG2, SMG pDestSMG,
-      SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
+  public SMGJoinSubSMGs(
+      SMGJoinStatus initialStatus,
+      UnmodifiableSMG pSMG1,
+      UnmodifiableSMG pSMG2,
+      SMG pDestSMG,
+      SMGNodeMapping pMapping1,
+      SMGNodeMapping pMapping2,
       SMGLevelMapping pLevelMap,
-      SMGObject pObj1, SMGObject pObj2, SMGObject pNewObject,
-      int pLDiff, boolean identicalInputSmg, SMGState pSmgState1, SMGState pSmgState2) throws SMGInconsistentException {
+      SMGObject pObj1,
+      SMGObject pObj2,
+      SMGObject pNewObject,
+      int pLDiff,
+      boolean identicalInputSmg,
+      UnmodifiableSMGState pSmgState1,
+      UnmodifiableSMGState pSmgState2)
+      throws SMGInconsistentException {
 
     SMGJoinFields joinFields = new SMGJoinFields(pSMG1, pSMG2, pObj1, pObj2);
 
@@ -90,14 +100,13 @@ final class SMGJoinSubSMGs {
     SMGEdgeHasValueFilter filterOnSMG1 = SMGEdgeHasValueFilter.objectFilter(pObj1);
     SMGEdgeHasValueFilter filterOnSMG2 = SMGEdgeHasValueFilter.objectFilter(pObj2);
 
-    Set<SMGEdgeHasValue> edgesOnObject1 = Sets.newHashSet(inputSMG1.getHVEdges(filterOnSMG1));
-
-    Map<Integer, List<SMGGenericAbstractionCandidate>> valueAbstractionCandidates = new HashMap<>();
+    Map<SMGValue, List<SMGGenericAbstractionCandidate>> valueAbstractionCandidates =
+        new HashMap<>();
     boolean allValuesDefined = true;
 
     int prevLevel = pLevelMap.get(SMGJoinLevel.valueOf(pObj1.getLevel(), pObj2.getLevel()));
 
-    for (SMGEdgeHasValue hvIn1 : edgesOnObject1) {
+    for (SMGEdgeHasValue hvIn1 : inputSMG1.getHVEdges(filterOnSMG1)) {
       filterOnSMG2.filterAtOffset(hvIn1.getOffset());
 
       int lDiff = pLDiff;
@@ -105,8 +114,7 @@ final class SMGJoinSubSMGs {
       SMGEdgeHasValue hvIn2 = Iterables.getOnlyElement(inputSMG2.getHVEdges(filterOnSMG2));
 
       int value1Level = getValueLevel(pObj1, hvIn1.getValue(), inputSMG1);
-      int value2Level =
-          getValueLevel(pObj2, hvIn2.getValue(), inputSMG2);
+      int value2Level = getValueLevel(pObj2, hvIn2.getValue(), inputSMG2);
 
       int levelDiff1 = value1Level - pObj1.getLevel();
       int levelDiff2 = value2Level - pObj2.getLevel();
@@ -232,7 +240,7 @@ final class SMGJoinSubSMGs {
     return null;
   }
 
-  private int getValueLevel(SMGObject pObject, int pValue, SMG pInputSMG1) {
+  private int getValueLevel(SMGObject pObject, SMGValue pValue, UnmodifiableSMG pInputSMG1) {
 
     if (pInputSMG1.isPointer(pValue)) {
       SMGEdgePointsTo pointer = pInputSMG1.getPointer(pValue);
@@ -256,15 +264,15 @@ final class SMGJoinSubSMGs {
     return status;
   }
 
-  public SMG getSMG1() {
+  public UnmodifiableSMG getSMG1() {
     return inputSMG1;
   }
 
-  public SMG getSMG2() {
+  public UnmodifiableSMG getSMG2() {
     return inputSMG2;
   }
 
-  public SMG getDestSMG() {
+  public UnmodifiableSMG getDestSMG() {
     return destSMG;
   }
 

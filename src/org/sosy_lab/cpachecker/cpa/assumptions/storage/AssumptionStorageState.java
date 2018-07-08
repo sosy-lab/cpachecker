@@ -29,6 +29,7 @@ import java.io.Serializable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -99,6 +100,24 @@ public class AssumptionStorageState implements AbstractState, Serializable {
 
   public boolean isStop() {
     return !fmgr.getBooleanFormulaManager().isTrue(stopFormula);
+  }
+
+  public AssumptionStorageState join(AssumptionStorageState other) {
+    // create the disjunction of the stop formulas
+    // however, if one of them is true, we would loose the information from the other
+    // so handle these special cases separately
+    final BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+    final BooleanFormula newStopFormula;
+    if (this.isStopFormulaTrue()) {
+      newStopFormula = other.getStopFormula();
+    } else if (other.isStopFormulaTrue()) {
+      newStopFormula = this.getStopFormula();
+    } else {
+      newStopFormula = bfmgr.or(this.getStopFormula(), other.getStopFormula());
+    }
+
+    return new AssumptionStorageState(
+        fmgr, bfmgr.and(this.getAssumption(), other.getAssumption()), newStopFormula);
   }
 
   @Override

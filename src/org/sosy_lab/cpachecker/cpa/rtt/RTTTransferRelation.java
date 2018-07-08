@@ -77,7 +77,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
@@ -226,7 +225,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
   }
 
   private RTTState handleAssignment(JAssignment assignExpression, CFAEdge edge)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     JExpression op1 = assignExpression.getLeftHandSide();
     JRightHandSide op2 = assignExpression.getRightHandSide();
@@ -260,7 +259,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
   /** assigns the evaluated RightHandSide to the LeftHandSide if possible,
    *  or deletes its value. */
   private RTTState handleAssignmentToVariable(JIdExpression lParam, JRightHandSide exp, CFAEdge edge)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     String lParamObjectScope = nameProvider.getObjectScope(state, functionName, lParam);
     String value = exp.accept(new ExpressionValueVisitor(edge, state, functionName));
@@ -456,15 +455,14 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     }
 
     @Override
-    public String visit(JThisExpression thisExp) throws UnrecognizedCCodeException {
+    public String visit(JThisExpression thisExp) throws UnrecognizedCodeException {
       return thisExp.getExpressionType().getName();
     }
 
   }
 
-
-
-  private static class AssigningValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> {
+  private static class AssigningValueVisitor
+      extends DefaultJExpressionVisitor<String, UnrecognizedCodeException> {
 
     private final boolean truthAssumption;
     private final RTTState newState; // this state will be changed!
@@ -478,7 +476,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     }
 
     @Override
-    public String visit(JVariableRunTimeType pE) throws UnrecognizedCCodeException {
+    public String visit(JVariableRunTimeType pE) throws UnrecognizedCodeException {
       return nameProvider
           .getScopedVariableName(pE.getReferencedVariable().getDeclaration(), methodName,
                              newState.getKeywordThisUniqueObject());
@@ -490,12 +488,12 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     }
 
     @Override
-    public String visit(JThisExpression thisExpression) throws UnrecognizedCCodeException {
+    public String visit(JThisExpression thisExpression) throws UnrecognizedCodeException {
       return RTTState.KEYWORD_THIS;
     }
 
     @Override
-    public String visit(JRunTimeTypeEqualsType pE) throws UnrecognizedCCodeException {
+    public String visit(JRunTimeTypeEqualsType pE) throws UnrecognizedCodeException {
 
       JClassOrInterfaceType assignableType = pE.getTypeDef();
 
@@ -514,10 +512,10 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
 
   }
 
-
-
   /** This visitor evaluates an expression and returns its content. */
-  private static class ExpressionValueVisitor extends DefaultJExpressionVisitor<String, UnrecognizedCCodeException> implements JRightHandSideVisitor<String, UnrecognizedCCodeException> {
+  private static class ExpressionValueVisitor
+      extends DefaultJExpressionVisitor<String, UnrecognizedCodeException>
+      implements JRightHandSideVisitor<String, UnrecognizedCodeException> {
 
     protected final CFAEdge edge;
     protected final RTTState state; // only for read-access, do never change this state!
@@ -536,23 +534,25 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     }
 
     @Override
-    public String visit(JCastExpression pE) throws UnrecognizedCCodeException {
+    public String visit(JCastExpression pE) throws UnrecognizedCodeException {
 
       return pE.getOperand().accept(this);
     }
 
     @Override
-    public String visit(JCharLiteralExpression pPaCharLiteralExpression) throws UnrecognizedCCodeException {
+    public String visit(JCharLiteralExpression pPaCharLiteralExpression)
+        throws UnrecognizedCodeException {
       return "Character";
     }
 
     @Override
-    public String visit(JStringLiteralExpression pPaStringLiteralExpression) throws UnrecognizedCCodeException {
+    public String visit(JStringLiteralExpression pPaStringLiteralExpression)
+        throws UnrecognizedCodeException {
       return "String";
     }
 
     @Override
-    public String visit(JBinaryExpression binaryExpression) throws UnrecognizedCCodeException {
+    public String visit(JBinaryExpression binaryExpression) throws UnrecognizedCodeException {
       final JExpression leftOperand = binaryExpression.getOperand1();
       final JExpression rightOperand = binaryExpression.getOperand2();
 
@@ -599,9 +599,9 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
       return true;
     }
 
-
-    private String handleEnumComparison(JExpression operand1, JExpression operand2, BinaryOperator operator)
-        throws UnrecognizedCCodeException {
+    private String handleEnumComparison(
+        JExpression operand1, JExpression operand2, BinaryOperator operator)
+        throws UnrecognizedCodeException {
 
       String value1 = operand1.accept(this);
       String value2 = operand2.accept(this);
@@ -627,15 +627,17 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
         result = !result;
         break;
       default:
-        throw new UnrecognizedCCodeException("unexpected enum comparison", edge);
+          throw new UnrecognizedCodeException("unexpected enum comparison", edge);
       }
 
       return Boolean.toString(result);
     }
 
-    private String handleObjectComparison(final JExpression pLeftOperand,
-        final JExpression pRightOperand, final BinaryOperator pOperator)
-        throws UnrecognizedCCodeException {
+    private String handleObjectComparison(
+        final JExpression pLeftOperand,
+        final JExpression pRightOperand,
+        final BinaryOperator pOperator)
+        throws UnrecognizedCodeException {
       String value1 = pLeftOperand.accept(this);
       String value2 = pRightOperand.accept(this);
 
@@ -644,19 +646,21 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     }
 
     @Override
-    public String visit(JArrayCreationExpression pJArrayCreationExpression) throws UnrecognizedCCodeException {
+    public String visit(JArrayCreationExpression pJArrayCreationExpression)
+        throws UnrecognizedCodeException {
       // TODO Support Array Class
       return null;
     }
 
     @Override
-    public String visit(JArraySubscriptExpression pAArraySubscriptExpression) throws UnrecognizedCCodeException {
+    public String visit(JArraySubscriptExpression pAArraySubscriptExpression)
+        throws UnrecognizedCodeException {
       // TODO Support Arrays
       return null;
     }
 
     @Override
-    public String visit(JVariableRunTimeType vrtT) throws UnrecognizedCCodeException {
+    public String visit(JVariableRunTimeType vrtT) throws UnrecognizedCodeException {
 
       JIdExpression expr = vrtT.getReferencedVariable();
 
@@ -672,7 +676,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     }
 
     @Override
-    public String visit(JIdExpression idExpression) throws UnrecognizedCCodeException {
+    public String visit(JIdExpression idExpression) throws UnrecognizedCodeException {
 
       if (idExpression.getDeclaration() == null) {
         // IDExpression could not be Resolved, return null.
@@ -715,7 +719,8 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     }
 
     @Override
-    public String visit(JRunTimeTypeEqualsType jRunTimeTypeEqualsType) throws UnrecognizedCCodeException {
+    public String visit(JRunTimeTypeEqualsType jRunTimeTypeEqualsType)
+        throws UnrecognizedCodeException {
 
       String jrunTimeType = jRunTimeTypeEqualsType.getRunTimeTypeExpression().accept(this);
 
@@ -728,17 +733,19 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     }
 
     @Override
-    public String visit(JClassInstanceCreation jClassInstanzeCreation) throws UnrecognizedCCodeException {
+    public String visit(JClassInstanceCreation jClassInstanzeCreation)
+        throws UnrecognizedCodeException {
       return jClassInstanzeCreation.getExpressionType().getName();
     }
 
     @Override
-    public String visit(JMethodInvocationExpression pAFunctionCallExpression) throws UnrecognizedCCodeException {
+    public String visit(JMethodInvocationExpression pAFunctionCallExpression)
+        throws UnrecognizedCodeException {
       return null;
     }
 
     @Override
-    public String visit(JThisExpression thisExpression) throws UnrecognizedCCodeException {
+    public String visit(JThisExpression thisExpression) throws UnrecognizedCodeException {
 
       if (state.contains(RTTState.KEYWORD_THIS)) {
         return state.getUniqueObjectFor(RTTState.KEYWORD_THIS);
@@ -748,12 +755,13 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     }
 
     @Override
-    public String visit(JNullLiteralExpression pJNullLiteralExpression) throws UnrecognizedCCodeException {
+    public String visit(JNullLiteralExpression pJNullLiteralExpression)
+        throws UnrecognizedCodeException {
       return RTTState.NULL_REFERENCE;
     }
 
     @Override
-    public String visit(JEnumConstantExpression e) throws UnrecognizedCCodeException {
+    public String visit(JEnumConstantExpression e) throws UnrecognizedCodeException {
       return e.getConstantName();
     }
 

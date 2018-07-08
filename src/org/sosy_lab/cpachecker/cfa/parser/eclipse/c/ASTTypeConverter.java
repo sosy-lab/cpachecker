@@ -219,7 +219,7 @@ class ASTTypeConverter {
       // Of course, the obvious idea would be to throw an exception here.
       // However, CDT seems to give us ProblemTypes even for perfectly legal C code,
       // e.g. in cdaudio_safe.i.cil.c
-      return new CProblemType(t.toString() + ": " + ((IProblemType)t).getMessage());
+      return new CProblemType(t + ": " + ((IProblemType) t).getMessage());
 
     } else if (t instanceof IProblemBinding) {
       IProblemBinding problem = (IProblemBinding)t;

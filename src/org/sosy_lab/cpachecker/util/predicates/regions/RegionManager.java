@@ -45,13 +45,13 @@ public interface RegionManager extends RegionCreator {
    * @param f2 an AbstractFormula
    * @return true if (f1 => f2), false otherwise
    */
-  public boolean entails(Region f1, Region f2) throws SolverException, InterruptedException;
+  boolean entails(Region f1, Region f2) throws SolverException, InterruptedException;
 
   /**
    * Creates a new variable and returns the predicate representing it.
    * @return a new predicate
    */
-  public Region createPredicate();
+  Region createPredicate();
 
   /**
    * Convert a formula into a region.
@@ -60,7 +60,8 @@ public interface RegionManager extends RegionCreator {
    * @param atomToRegion A function that returns a region for each atom in the formula.
    * @return a region representing pF
    */
-  public Region fromFormula(BooleanFormula pF, FormulaManagerView fmgr,
+  Region fromFormula(
+      BooleanFormula pF, FormulaManagerView fmgr,
       Function<BooleanFormula, Region> atomToRegion);
 
   /**
@@ -71,29 +72,29 @@ public interface RegionManager extends RegionCreator {
    * @return a triple with the condition predicate and the formulas for the true
    *         branch and the else branch
    */
-  public Triple<Region, Region, Region> getIfThenElse(Region f);
+  Triple<Region, Region, Region> getIfThenElse(Region f);
 
   /**
    * Prints some information about the RegionManager.
    */
-  public void printStatistics(PrintStream out);
+  void printStatistics(PrintStream out);
 
   /**
    * Returns a short string with package name and version number.
    */
-  public String getVersion();
+  String getVersion();
 
   /**
    * Sets the bdd variable ordering.
    *
    * @param pOrder the new order of the variables.
    */
-  public void setVarOrder(ArrayList<Integer> pOrder);
+  void setVarOrder(ArrayList<Integer> pOrder);
 
   /**
    * Reorders the bdd variables with the provided strategy.
    *
    * @param strategy the reorder strategy that should be applied.
    */
-  public void reorder(PredicateOrderingStrategy strategy);
+  void reorder(PredicateOrderingStrategy strategy);
 }

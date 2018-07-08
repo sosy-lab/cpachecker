@@ -319,8 +319,7 @@ public class SymbolicCandiateInvariant implements CandidateInvariant {
 
     @Override
     public BooleanFormula getFormula(
-        FormulaManagerView pFMGR, PathFormulaManager pPFMGR, @Nullable PathFormula pContext)
-        throws InterruptedException {
+        FormulaManagerView pFMGR, PathFormulaManager pPFMGR, @Nullable PathFormula pContext) {
       BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
       BooleanFormula model = bfmgr.makeFalse();
       for (Map.Entry<String, ModelValue> valueAssignment : blockedCti.getAssignments().entrySet()) {

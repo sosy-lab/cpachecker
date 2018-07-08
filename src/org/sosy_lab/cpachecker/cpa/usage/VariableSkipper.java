@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.usage;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -39,19 +40,19 @@ import org.sosy_lab.cpachecker.util.identifiers.StructureIdentifier;
 @Options(prefix = "cpa.usage.skippedvariables")
 public class VariableSkipper {
   @Option(description = "variables, which will be filtered by its name", secure = true)
-  private Set<String> byName = null;
+  private Set<String> byName = ImmutableSet.of();
 
   @Option(description = "variables, which will be filtered by its name prefix", secure = true)
-  private Set<String> byNamePrefix = null;
+  private Set<String> byNamePrefix = ImmutableSet.of();
 
   @Option(description = "variables, which will be filtered by its type", secure = true)
-  private Set<String> byType = null;
+  private Set<String> byType = ImmutableSet.of();
 
   @Option(description = "variables, which will be filtered by function location", secure = true)
-  private Set<String> byFunction = null;
+  private Set<String> byFunction = ImmutableSet.of();
 
   @Option(description = "variables, which will be filtered by function prefix", secure = true)
-  private Set<String> byFunctionPrefix = null;
+  private Set<String> byFunctionPrefix = ImmutableSet.of();
 
   public VariableSkipper(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -67,20 +68,20 @@ public class VariableSkipper {
         AbstractIdentifier owner = singleId;
         while (owner instanceof StructureIdentifier) {
           owner = ((StructureIdentifier) owner).getOwner();
-          if (owner instanceof SingleIdentifier && checkId((SingleIdentifier) owner)) {
-            return true;
-          }
+        }
+        if (owner instanceof SingleIdentifier && checkId((SingleIdentifier) owner)) {
+          return true;
         }
       }
     }
 
     // Check special functions like INIT_LIST_HEAD, in which we should skip all usages
     String functionName = usage.getLine().getNode().getFunctionName();
-    if (byFunction != null && byFunction.contains(functionName)) {
+    if (byFunction.contains(functionName)) {
       return true;
     }
 
-    if (byFunctionPrefix != null && from(byFunctionPrefix).anyMatch(functionName::startsWith)) {
+    if (from(byFunctionPrefix).anyMatch(functionName::startsWith)) {
       return true;
     }
 
@@ -90,13 +91,13 @@ public class VariableSkipper {
   private boolean checkId(SingleIdentifier singleId) {
     String varName = singleId.getName();
 
-    if (byName != null && byName.contains(varName)) {
+    if (byName.contains(varName)) {
       return true;
     }
-    if (byNamePrefix != null && from(byNamePrefix).anyMatch(varName::startsWith)) {
+    if (from(byNamePrefix).anyMatch(varName::startsWith)) {
       return true;
     }
-    if (byType != null) {
+    if (!byType.isEmpty()) {
       CType idType = singleId.getType();
       if (idType instanceof CArrayType) {
         idType = ((CArrayType) idType).getType();

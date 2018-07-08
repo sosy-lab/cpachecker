@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 
 public abstract class SMGJoinAbstractListProgress<K, C extends SMGListCandidate<?>> {
@@ -175,7 +175,7 @@ public abstract class SMGJoinAbstractListProgress<K, C extends SMGListCandidate<
       int pSeqLengthSubGraphEqualityThreshold,
       int pSeqLengthSubGraphEntailmentThreshold,
       int pSeqLengthSubGraphIncomparabilityThreshold,
-      CLangSMG pSMG,
+      UnmodifiableCLangSMG pSMG,
       Set<? extends SMGAbstractListCandidateSequenceBlock<?>> pAbstractListBlocks) {
 
     Set<SMGAbstractionCandidate> resultBeforeBlocks = new HashSet<>();
@@ -220,7 +220,7 @@ public abstract class SMGJoinAbstractListProgress<K, C extends SMGListCandidate<
       SMGJoinStatus joinStatus,
       C pCandidate,
       int pThreshold,
-      CLangSMG pSMG,
+      UnmodifiableCLangSMG pSMG,
       Set<SMGAbstractionCandidate> pResultBeforeBlocks) {
     Integer length = candidateLength.get(pCandidate, joinStatus);
     if (length != null && length >= pThreshold) {
@@ -229,5 +229,5 @@ public abstract class SMGJoinAbstractListProgress<K, C extends SMGListCandidate<
   }
 
   protected abstract SMGAbstractionCandidate getCandidat(
-      C pCandidate, int length, SMGJoinStatus status, CLangSMG pSMG);
+      C pCandidate, int length, SMGJoinStatus status, UnmodifiableCLangSMG pSMG);
 }

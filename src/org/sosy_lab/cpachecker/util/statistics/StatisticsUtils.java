@@ -40,7 +40,7 @@ public class StatisticsUtils {
   private StatisticsUtils() { }
 
   public static String toPercent(double val, double full) {
-    return String.format("%1.0f", val/full*100) + "%";
+    return String.format("%1.0f%%", val / full * 100);
   }
 
   public static String valueWithPercentage(int value, int totalCount) {

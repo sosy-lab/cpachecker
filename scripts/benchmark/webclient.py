@@ -36,6 +36,7 @@ import logging
 import os
 import platform
 import random
+import re
 import tempfile
 import threading
 import zipfile
@@ -82,6 +83,8 @@ SPECIAL_RESULT_FILES = {RESULT_FILE_LOG, RESULT_FILE_STDERR, RESULT_FILE_RUN_INF
 MAX_SUBMISSION_THREADS = 5
 CONNECTION_TIMEOUT = 600  # seconds
 HASH_CODE_CACHE_PATH = os.path.join(os.path.expanduser("~"), ".verifiercloud/cache/hashCodeCache")
+
+VALID_RUN_ID = re.compile('^[A-Za-z0-9-]+$')
 
 class WebClientError(Exception):
     def _init_(self, value):
@@ -400,7 +403,7 @@ class WebInterface:
     def tool_name(self):
         return self._tool_name
 
-    def _get_sha1_hash(self, path):
+    def _get_sha256_hash(self, path):
         path = os.path.abspath(path)
         mTime = str(os.path.getmtime(path))
         if ((path, mTime) in self._hash_code_cache):
@@ -408,7 +411,7 @@ class WebInterface:
 
         else:
             with open(path, 'rb') as file:
-                hashValue = hashlib.sha1(file.read()).hexdigest()
+                hashValue = hashlib.sha256(file.read()).hexdigest()
                 self._hash_code_cache[(path, mTime)] = hashValue
                 return hashValue
 
@@ -448,9 +451,14 @@ class WebInterface:
         paramsCompressed = zlib.compress(urllib.parse.urlencode(params, doseq=True).encode('utf-8'))
         path = "runs/witness_validation/"
 
-        (run_id, _) = self._request("POST", path, paramsCompressed, headers, user_pwd=user_pwd)
+        (response, _) = self._request("POST", path, paramsCompressed, headers, user_pwd=user_pwd)
 
-        run_id = run_id.decode("UTF-8")
+        try:
+            run_id = response.decode("UTF-8")
+        except UnicodeDecodeError as e:
+            raise WebClientError(
+                'Malformed response from server while submitting witness-validation run:\n{}'
+                    .format(response)) from e
         logging.debug('Submitted witness validation run with id %s', run_id)
 
         return self._create_and_add_run_future(run_id)
@@ -495,11 +503,11 @@ class WebInterface:
 
         for programPath in run.sourcefiles:
             norm_path = self._normalize_path_for_cloud(programPath)
-            params.append(('programTextHash', (norm_path, self._get_sha1_hash(programPath))))
-  
+            params.append(('programTextHash', (norm_path, self._get_sha256_hash(programPath))))
+
         for required_file in required_files:
             norm_path = self._normalize_path_for_cloud(required_file)
-            params.append(('requiredFileHash', (norm_path, self._get_sha1_hash(required_file))))
+            params.append(('requiredFileHash', (norm_path, self._get_sha256_hash(required_file))))
 
         params.append(('svnBranch', svn_branch or self._svn_branch))
         params.append(('revision', svn_revision or self._svn_revision))
@@ -541,14 +549,18 @@ class WebInterface:
         # prepare request
         headers = {"Accept": "text/plain"}
         path = "runs/"
-        (run_id, statusCode) = self._request("POST", path, files=params, headers=headers, \
+        (response, statusCode) = self._request("POST", path, files=params, headers=headers, \
                                              expectedStatusCodes=[200, 412], user_pwd=user_pwd)
 
         for opened_file in opened_files:
             opened_file.close()
 
         # program files or required files given as hash value are not known by the cloud system
-        if statusCode == 412 and counter < 1:
+        if statusCode == 412:
+            if counter >= 1:
+                raise WebClientError(
+                    'Files still missing on server for run {0} even after uploading them:\n{1}'
+                        .format(run.identifier, response))
             headers = {"Content-Type": "application/octet-stream",
                    "Content-Encoding": "deflate"}
             filePath = "files/"
@@ -572,7 +584,16 @@ class WebInterface:
                                 priority, user_pwd, svn_branch, svn_revision, counter + 1)
 
         else:
-            run_id = run_id.decode("UTF-8")
+            try:
+                run_id = response.decode("UTF-8")
+            except UnicodeDecodeError as e:
+                raise WebClientError(
+                    'Malformed response from server while submitting run {0}:\n{1}'
+                        .format(run.identifier, response)) from e
+            if not VALID_RUN_ID.match(run_id):
+                raise WebClientError(
+                    'Malformed response from server while submitting run {0}:\n{1}'
+                        .format(run.identifier, run_id))
             logging.debug('Submitted run with id %s', run_id)
             return self._create_and_add_run_future(run_id)
 
@@ -727,7 +748,9 @@ class WebInterface:
             return state
 
         except requests.HTTPError as e:
-            logging.warning('Could not get run state %s: %s', run_id, e.response)
+            logging.warning(
+                'Could not get state for run %s: %s\n%s',
+                run_id, e.reason, e.response.content or '')
             return False
 
     def _download_result(self, run_id):
@@ -811,7 +834,8 @@ class WebInterface:
         try:
             self._request("DELETE", path, expectedStatusCodes=[200, 204, 404])
         except HTTPError as e:
-            logging.info("Stopping of run %s failed: %s", run_id, e.reason)
+            logging.info(
+                "Stopping of run %s failed: %s\n%s", run_id, e.reason, e.response.content or '')
 
 
     def _request(self, method, path, data=None, headers=None, files=None, expectedStatusCodes=[200], user_pwd=None):
@@ -840,7 +864,6 @@ class WebInterface:
                 return (response.content, response.status_code)
 
             else:
-                message = ""
                 if response.status_code == 401:
                     message = 'Error 401: Permission denied. Please check the URL given to --cloudMaster and specify credentials if necessary.'
 
@@ -855,9 +878,8 @@ class WebInterface:
                         continue
 
                 else:
-                    message += response.content.decode('UTF-8')
+                    message = 'Status {}'.format(response.status_code)
 
-                logging.warning(message)
                 raise requests.HTTPError(path, message, response=response)
 
 def _open_output_log(output_path):

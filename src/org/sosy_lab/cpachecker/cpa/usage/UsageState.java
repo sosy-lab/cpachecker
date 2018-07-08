@@ -28,11 +28,12 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
+import java.util.Map.Entry;
 import java.util.Objects;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -56,38 +57,38 @@ public class UsageState extends AbstractSingleWrapperState
 
   private static final long serialVersionUID = -898577877284268426L;
   private TemporaryUsageStorage recentUsages;
-  private boolean isStorageCloned;
+  // private boolean isStorageCloned;
   private final FunctionContainer functionContainer;
   private final transient StateStatistics stats;
 
   private boolean isExitState;
+  private boolean isStorageDumped;
 
-  private final transient Map<AbstractIdentifier, AbstractIdentifier> variableBindingRelation;
+  private transient PersistentSortedMap<AbstractIdentifier, AbstractIdentifier>
+      variableBindingRelation;
 
   private UsageState(
       final AbstractState pWrappedElement,
-      final Map<AbstractIdentifier, AbstractIdentifier> pVarBind,
+      final PersistentSortedMap<AbstractIdentifier, AbstractIdentifier> pVarBind,
       final TemporaryUsageStorage pRecentUsages,
-      final boolean pCloned,
       final FunctionContainer pFuncContainer,
       final StateStatistics pStats,
       boolean exit) {
     super(pWrappedElement);
     variableBindingRelation = pVarBind;
     recentUsages = pRecentUsages;
-    isStorageCloned = pCloned;
     functionContainer = pFuncContainer;
     stats = pStats;
     isExitState = exit;
+    isStorageDumped = false;
   }
 
   public static UsageState createInitialState(final AbstractState pWrappedElement) {
     FunctionContainer initialContainer = FunctionContainer.createInitialContainer();
     return new UsageState(
         pWrappedElement,
-        new HashMap<>(),
+        PathCopyingPersistentTreeMap.of(),
         new TemporaryUsageStorage(),
-        true,
         initialContainer,
         new StateStatistics(initialContainer.getStatistics()),
         false);
@@ -96,9 +97,8 @@ public class UsageState extends AbstractSingleWrapperState
   private UsageState(final AbstractState pWrappedElement, final UsageState state) {
     this(
         pWrappedElement,
-        new HashMap<>(state.variableBindingRelation),
+        state.variableBindingRelation,
         state.recentUsages,
-        false,
         state.functionContainer,
         state.stats,
         state.isExitState);
@@ -115,7 +115,7 @@ public class UsageState extends AbstractSingleWrapperState
 
   public void put(final AbstractIdentifier id1, final AbstractIdentifier id2) {
     if (!id1.equals(id2)) {
-      variableBindingRelation.put(id1, id2);
+      variableBindingRelation = variableBindingRelation.putAndCopy(id1, id2);
     }
   }
 
@@ -151,7 +151,12 @@ public class UsageState extends AbstractSingleWrapperState
   }
 
   public UsageState copy(final AbstractState pWrappedState) {
-    return new UsageState(pWrappedState, this);
+    UsageState result = new UsageState(pWrappedState, this);
+    if (isStorageDumped) {
+      result.recentUsages = new TemporaryUsageStorage();
+      functionContainer.registerTemporaryContainer(result.recentUsages);
+    }
+    return result;
   }
 
   @Override
@@ -159,6 +164,7 @@ public class UsageState extends AbstractSingleWrapperState
     final int prime = 31;
     int result = 1;
     result = prime * result + Objects.hashCode(variableBindingRelation);
+    result = prime * result + Objects.hashCode(recentUsages);
     result = prime * super.hashCode();
     return result;
   }
@@ -173,7 +179,8 @@ public class UsageState extends AbstractSingleWrapperState
     }
     UsageState other = (UsageState) obj;
     return Objects.equals(variableBindingRelation, other.variableBindingRelation)
-        && super.equals(other);
+        && Objects.equals(recentUsages, other.recentUsages)
+        && getWrappedState().equals(other.getWrappedState());
   }
 
   @Override
@@ -190,9 +197,10 @@ public class UsageState extends AbstractSingleWrapperState
   @Override
   public boolean isLessOrEqual(final UsageState other) {
     // If we are here, the wrapped domain return true and the stop depends only on this value
-
+    stats.lessTimer.start();
     // this element is not less or equal than the other element, if that one contains less elements
     if (this.variableBindingRelation.size() > other.variableBindingRelation.size()) {
+      stats.lessTimer.stop();
       return false;
     }
 
@@ -201,6 +209,7 @@ public class UsageState extends AbstractSingleWrapperState
     // element
     if (from(variableBindingRelation.keySet())
         .anyMatch(Predicates.not(other.variableBindingRelation::containsKey))) {
+      stats.lessTimer.stop();
       return false;
     }
 
@@ -210,15 +219,15 @@ public class UsageState extends AbstractSingleWrapperState
         other.addUsage(id, usage);
       }
     }*/
+    if (!this.recentUsages.isSubsetOf(other.recentUsages)) {
+      stats.lessTimer.stop();
+      return false;
+    }
+    stats.lessTimer.stop();
     return true;
   }
 
   public void addUsage(final SingleIdentifier id, final UsageInfo usage) {
-    // Clone it
-    if (!isStorageCloned) {
-      recentUsages = recentUsages.copy();
-      isStorageCloned = true;
-    }
     recentUsages.add(id, usage);
   }
 
@@ -226,24 +235,36 @@ public class UsageState extends AbstractSingleWrapperState
     stats.joinTimer.start();
     functionContainer.join(reducedState.functionContainer);
     stats.joinTimer.stop();
+    // Free useless memory
+    reducedState.functionContainer.clearStorages();
+  }
+
+  public void joinRecentUsagesFrom(final UsageState pState) {
+    stats.joinTimer.start();
+    recentUsages.copyUsagesFrom(pState.recentUsages);
+    stats.joinTimer.stop();
+    for (Entry<AbstractIdentifier, AbstractIdentifier> entry :
+        pState.variableBindingRelation.entrySet()) {
+      variableBindingRelation =
+          variableBindingRelation.putAndCopy(entry.getKey(), entry.getValue());
+    }
   }
 
   public UsageState reduce(final AbstractState wrappedState) {
     LockState rootLockState = AbstractStates.extractStateByType(this, LockState.class);
     LockState reducedLockState = AbstractStates.extractStateByType(wrappedState, LockState.class);
-    List<LockEffect> difference;
+    Multiset<LockEffect> difference;
     if (rootLockState == null || reducedLockState == null) {
       // No LockCPA
-      difference = Collections.emptyList();
+      difference = HashMultiset.create();
     } else {
       difference = reducedLockState.getDifference(rootLockState);
     }
 
     return new UsageState(
         wrappedState,
-        new HashMap<>(),
+        PathCopyingPersistentTreeMap.of(),
         recentUsages.copy(),
-        true,
         functionContainer.clone(difference),
         this.stats,
         this.isExitState);
@@ -258,7 +279,7 @@ public class UsageState extends AbstractSingleWrapperState
       stats.addRecentUsagesTimer.start();
       functionContainer.join(recentUsages);
       stats.addRecentUsagesTimer.stop();
-      recentUsages.clear();
+      isStorageDumped = true;
     }
   }
 
@@ -308,8 +329,8 @@ public class UsageState extends AbstractSingleWrapperState
   }*/
 
   public static class StateStatistics {
-    private StatTimer expandTimer = new StatTimer("Time for lock difference calculation");
     private StatTimer joinTimer = new StatTimer("Time for joining");
+    private StatTimer lessTimer = new StatTimer("Time for cover check");
     private StatTimer addRecentUsagesTimer = new StatTimer("Time for adding recent usages");
 
     private final StorageStatistics storageStats;
@@ -319,7 +340,7 @@ public class UsageState extends AbstractSingleWrapperState
     }
 
     public void printStatistics(StatisticsWriter out) {
-      out.spacer().put(expandTimer).put(joinTimer).put(addRecentUsagesTimer);
+      out.spacer().put(joinTimer).put(addRecentUsagesTimer).put(lessTimer);
 
       storageStats.printStatistics(out);
     }
@@ -331,15 +352,15 @@ public class UsageState extends AbstractSingleWrapperState
 
   @Override
   public UsageState join(UsageState pOther) {
-    throw new UnsupportedOperationException("Join is not permitted for UsageCPA");
+    throw new UnsupportedOperationException(
+        "Join is not supported for usage states, use merge operator");
   }
 
   protected Object readResolve() {
     return new UsageState(
         getWrappedState(),
-        new HashMap<>(),
+        PathCopyingPersistentTreeMap.of(),
         this.recentUsages,
-        this.isStorageCloned,
         this.functionContainer,
         new StateStatistics(this.functionContainer.getStatistics()),
         this.isExitState);

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Table;
 import com.google.errorprone.annotations.ForOverride;
 import java.util.Collection;
@@ -67,16 +68,14 @@ public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantP
     }
 
     boolean result;
+    final Set<String> variables = fmgr.extractFunctionNames(pPredicate.getSymbolicAtom());
     if (fmgr.getBooleanFormulaManager().isFalse(pPredicate.getSymbolicAtom())
-        || fmgr.extractVariableNames(pPredicate.getSymbolicAtom()).isEmpty()) {
+        || variables.isEmpty()) {
+      result = true;
+    } else if (Iterables.any(variables, v -> v.contains("retval") || v.contains("nondet"))) {
       result = true;
     } else {
-      String predicateString = pPredicate.getSymbolicAtom().toString();
-      if (predicateString.contains("false") || predicateString.contains("retval")  || predicateString.contains("nondet")) {
-        result = true;
-      } else {
-        result = isRelevant(pPrecomputeResult, pPredicate);
-      }
+      result = isRelevant(pPrecomputeResult, pPredicate);
     }
 
     relevantPredicates.put(pPrecomputeResult, pPredicate, result);

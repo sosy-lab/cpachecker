@@ -27,6 +27,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.ValueVisitor;
 
 /** Singleton class for JavaScript string values. */
 public class JSStringValue implements Value {
@@ -106,5 +107,10 @@ public class JSStringValue implements Value {
   @Override
   public Long asLong(CType pType) {
     throw new AssertionError("String cannot be represented as Long");
+  }
+
+  @Override
+  public <T> T accept(final ValueVisitor<T> pVisitor) {
+    throw new RuntimeException("Not implemented"); // TODO
   }
 }

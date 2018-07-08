@@ -89,12 +89,15 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
       UnmodifiableReachedSet pStates, Function<AbstractState, AbstractState> pStateProjection, AbstractState pFullState)
           throws CPAException, InterruptedException {
 
-    return prec((SMGState) pState, (SMGPrecision) pPrecision,
+    return prec(
+        (UnmodifiableSMGState) pState,
+        (SMGPrecision) pPrecision,
         AbstractStates.extractStateByType(pFullState, LocationState.class));
   }
 
-  private Optional<PrecisionAdjustmentResult> prec(SMGState pState, SMGPrecision pPrecision,
-      LocationState location) throws CPAException {
+  private Optional<PrecisionAdjustmentResult> prec(
+      UnmodifiableSMGState pState, SMGPrecision pPrecision, LocationState location)
+      throws CPAException {
 
     boolean allowsFieldAbstraction = pPrecision.allowsFieldAbstraction();
     boolean allowsHeapAbstraction =
@@ -107,8 +110,8 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
 
     totalAbstraction.start();
 
-    SMGState result = pState;
-    SMGState newState = new SMGState(pState);
+    UnmodifiableSMGState result = pState;
+    SMGState newState = pState.copyOf();
     CFANode node = location.getLocationNode();
 
     if (allowsStackAbstraction) {

@@ -95,6 +95,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -519,7 +520,7 @@ class FunctionCloner implements CFAVisitor {
 
   /** clones CExpressions and calls cloneAst on non-expression-content.
    * Note: caching sub-expressions is useless because of the location, that is different for each expression. */
-  private class CExpressionCloner extends DefaultCExpressionVisitor<CExpression, RuntimeException> {
+  private class CExpressionCloner extends DefaultCExpressionVisitor<CExpression, NoException> {
 
     @Override
     protected CExpression visitDefault(CExpression exp) {
@@ -578,7 +579,7 @@ class FunctionCloner implements CFAVisitor {
     }
   }
 
-  private class CTypeCloner extends DefaultCTypeVisitor<CType, RuntimeException> {
+  private class CTypeCloner extends DefaultCTypeVisitor<CType, NoException> {
 
     @Override
     public CType visitDefault(CType t) {
@@ -664,7 +665,7 @@ class FunctionCloner implements CFAVisitor {
     }
 
     @Override
-    public CType visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+    public CType visit(CBitFieldType pCBitFieldType) {
       return new CBitFieldType(
           pCBitFieldType.getType().accept(this), pCBitFieldType.getBitFieldSize());
     }

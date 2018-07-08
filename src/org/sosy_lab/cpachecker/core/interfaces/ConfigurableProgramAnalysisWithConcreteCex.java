@@ -44,6 +44,6 @@ public interface ConfigurableProgramAnalysisWithConcreteCex {
    * @return A {@link ConcreteStatePath} path along the {@link CFAEdge} edges of the {@link ARGPath} path that
    * contain concrete values for the variables along the path.
    */
-  public ConcreteStatePath createConcreteStatePath(ARGPath path);
+  ConcreteStatePath createConcreteStatePath(ARGPath path);
 
 }

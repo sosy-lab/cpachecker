@@ -87,6 +87,9 @@ class WitnessOptions {
   )
   private boolean exportNodeLabel = false;
 
+  @Option(secure = true, description = "Always export source file name, even default")
+  private boolean exportSourceFileName = false;
+
   boolean exportFunctionCallsAndReturns() {
     return exportFunctionCallsAndReturns;
   }
@@ -129,5 +132,9 @@ class WitnessOptions {
 
   boolean exportNodeLabel() {
     return exportNodeLabel;
+  }
+
+  boolean exportSourceFileName() {
+    return exportSourceFileName;
   }
 }

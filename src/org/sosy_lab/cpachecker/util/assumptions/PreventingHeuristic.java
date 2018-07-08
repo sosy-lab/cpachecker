@@ -45,7 +45,7 @@ public enum PreventingHeuristic {
 
   private final String predicateString;
 
-  private PreventingHeuristic(String predicateStr) {
+  PreventingHeuristic(String predicateStr) {
     predicateString = predicateStr;
   }
 

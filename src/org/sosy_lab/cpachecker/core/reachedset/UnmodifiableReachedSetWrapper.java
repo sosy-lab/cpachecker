@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.Iterators;
 import java.util.Collection;
 import java.util.Collections;
@@ -38,7 +40,7 @@ public class UnmodifiableReachedSetWrapper implements UnmodifiableReachedSet {
   private final UnmodifiableReachedSet delegate;
 
   public UnmodifiableReachedSetWrapper(UnmodifiableReachedSet pDelegate) {
-    delegate = pDelegate;
+    delegate = checkNotNull(pDelegate);
   }
 
   @Override

@@ -23,27 +23,28 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPointsToEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGEdgePointsToFilter {
 
-  private Integer value = null;
-  private SMGObject targetObject = null;
+  /** the target of the CMGEdgePointsTo for filtering. */
+  private final SMGObject targetObject;
+
+  private SMGValue value = null;
   private Long targetOffset = null;
   private SMGTargetSpecifier targetSpecifier = null;
 
-  private SMGEdgePointsToFilter() {}
-
-  public SMGEdgePointsToFilter filterByTargetObject(SMGObject pObject) {
-    targetObject = pObject;
-    return this;
+  private SMGEdgePointsToFilter(SMGObject pTargetObject) {
+    targetObject = Preconditions.checkNotNull(pTargetObject, "fitlering for NULL might be useless");
   }
 
-  public SMGEdgePointsToFilter filterHavingValue(Integer pValue) {
+  public SMGEdgePointsToFilter filterHavingValue(SMGValue pValue) {
     value = pValue;
     return this;
   }
@@ -58,50 +59,8 @@ public class SMGEdgePointsToFilter {
     return this;
   }
 
-  @Deprecated
-  public SMGObject filtersByTargetObject() {
-    return targetObject;
-  }
-
-  public Integer filtersHavingValue() {
-    return value;
-  }
-
-  @Deprecated
-  public Long filtersAtTargetOffset() {
-    return targetOffset;
-  }
-
-  @Deprecated
-  public SMGTargetSpecifier filtersByTargetSpecifier() {
-    return targetSpecifier;
-  }
-
-  @Deprecated
-  public boolean isFilteringByObject() {
-    return targetObject != null;
-  }
-
-  public boolean isFilteringAtValue() {
-    return value != null;
-  }
-
-  @Deprecated
-  public boolean isFilteringAtTargetOffset() {
-    return targetOffset != null;
-  }
-
-  @Deprecated
-  public boolean isFilteringByTargetSpecifier() {
-    return targetSpecifier != null;
-  }
-
-  public static SMGEdgePointsToFilter valueFilter(Integer pValue) {
-    return new SMGEdgePointsToFilter().filterHavingValue(pValue);
-  }
-
   public static SMGEdgePointsToFilter targetObjectFilter(SMGObject pTargetObject) {
-    return new SMGEdgePointsToFilter().filterByTargetObject(pTargetObject);
+    return new SMGEdgePointsToFilter(pTargetObject);
   }
 
   public boolean holdsFor(SMGEdgePointsTo pEdge) {
@@ -109,7 +68,7 @@ public class SMGEdgePointsToFilter {
       return false;
     }
 
-    if (isFilteringAtValue() && !value.equals(pEdge.getValue())) {
+    if (value != null && !value.equals(pEdge.getValue())) {
       return false;
     }
 
@@ -126,8 +85,8 @@ public class SMGEdgePointsToFilter {
 
   public Iterable<SMGEdgePointsTo> filter(SMGPointsToEdges edges) {
 
-    if (isFilteringAtValue()) {
-      SMGEdgePointsTo result = edges.getEdgeWithValue(filtersHavingValue());
+    if (value != null) {
+      SMGEdgePointsTo result = edges.getEdgeWithValue(value);
       if (result == null) {
         return ImmutableSet.of();
       } else {
@@ -135,10 +94,6 @@ public class SMGEdgePointsToFilter {
       }
     }
 
-    return filter((Iterable<SMGEdgePointsTo>)edges);
-  }
-
-  public Iterable<SMGEdgePointsTo> filter(Iterable<SMGEdgePointsTo> edges) {
     return Iterables.filter(edges, this::holdsFor);
   }
 }

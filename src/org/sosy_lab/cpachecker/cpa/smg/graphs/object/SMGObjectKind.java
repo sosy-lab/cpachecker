@@ -35,8 +35,7 @@ public enum SMGObjectKind {
 
   private final String name;
 
-
-  private SMGObjectKind(String pName) {
+  SMGObjectKind(String pName) {
     name = pName;
   }
 

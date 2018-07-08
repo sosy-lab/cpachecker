@@ -137,7 +137,8 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     private final Class<? extends AbstractState> stateClass;
     private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
 
-    private Enabler(Class<? extends AbstractState> pStateClassOfEnabler,
+    Enabler(
+        Class<? extends AbstractState> pStateClassOfEnabler,
         Class<? extends ConfigurableProgramAnalysis> pCPAClassOfEnabler) {
       stateClass = pStateClassOfEnabler;
       cpaClass = pCPAClassOfEnabler;
@@ -445,9 +446,8 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       // use first element as one possible reason for failure path
       return nextFakeStateResult.iterator().next();
     default:
-      assert (false); // case should never happen
+        throw new AssertionError("case should never happen");
     }
-    return pFakeEnablerState;
   }
 
   private CFANode createFakeEdge(final CExpression pAssumeExpr, final CFANode pPredecessor) {

@@ -141,13 +141,17 @@ public abstract class GraphToPixelsWriter<Node> {
     GraphStructure structure = new GraphStructure();
 
     Deque<Pair<Integer, Node>> worklist = new ArrayDeque<>();
-    Set<Node> processed = new HashSet<>();
+    Set<Node> reached = new HashSet<>();
 
     worklist.add(Pair.of(0, pRoot));
     int oldDistance = 0;
     Builder<Node> levelBuilder = getLevelBuilder();
     while (!worklist.isEmpty()) {
       Pair<Integer, Node> current = checkNotNull(worklist.poll()); // FIFO for BFS order
+      if (reached.contains(current.getSecond())) {
+        continue;
+      }
+      reached.add(current.getSecond());
       int currentDistance = checkNotNull(current.getFirst());
 
       if (oldDistance != currentDistance) {
@@ -161,12 +165,8 @@ public abstract class GraphToPixelsWriter<Node> {
 
       levelBuilder.addMarkings(currentNode);
 
-      // add current state to set of processed states *before* checking candidates
-      // - in general, self edges may exist in the graph
-      processed.add(currentNode);
-
       for (Node s : getChildren(currentNode)) {
-        if (!processed.contains(s)) {
+        if (!reached.contains(s)) {
           worklist.add(Pair.of(currentDistance + 1, s));
         }
       }
@@ -268,7 +268,7 @@ public abstract class GraphToPixelsWriter<Node> {
     Graphics2D g = canvasHandler.createCanvas(finalWidth, finalHeight);
     drawContent(g, finalWidth, finalHeight, structure);
 
-    Path fullOutputFile = Paths.get(pOutputFile.toString() + "." + imageFormat);
+    Path fullOutputFile = Paths.get(pOutputFile + "." + imageFormat);
     canvasHandler.writeToFile(fullOutputFile);
   }
 

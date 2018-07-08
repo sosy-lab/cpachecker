@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -98,10 +98,9 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableAndFieldRelevancyComputer.VarFieldDependencies;
 
@@ -149,7 +148,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   private final LogManager logger;
   private final VariableClassificationStatistics stats = new VariableClassificationStatistics();
 
-  public static class VariableClassificationStatistics extends AbstractStatistics {
+  public static class VariableClassificationStatistics implements Statistics {
 
     private final StatTimer variableClassificationTimer = new StatTimer("Time for var class.");
     private final StatTimer collectTimer = new StatTimer("Time for collecting variables");
@@ -189,7 +188,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   /** This function does the whole work:
    * creating all maps, collecting vars, solving dependencies.
    * The function runs only once, after that it does nothing. */
-  public VariableClassification build(CFA cfa) throws UnrecognizedCCodeException {
+  public VariableClassification build(CFA cfa) throws UnrecognizedCodeException {
     checkArgument(cfa.getLanguage() == Language.C, "VariableClassification currently only supports C");
 
     stats.variableClassificationTimer.start();
@@ -408,7 +407,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
 
   /** This function iterates over all edges of the cfa, collects all variables
    * and orders them into different sets, i.e. nonBoolean and nonIntEuqalNumber. */
-  private void collectVars(CFA cfa) throws UnrecognizedCCodeException {
+  private void collectVars(CFA cfa) throws UnrecognizedCodeException {
     Collection<CFANode> nodes = cfa.getAllNodes();
     VarFieldDependencies varFieldDependencies = VarFieldDependencies.emptyDependencies();
     for (CFANode node : nodes) {
@@ -473,7 +472,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   }
 
   /** switch to edgeType and handle all expressions, that could be part of the edge. */
-  private void handleEdge(CFAEdge edge, CFA cfa) throws UnrecognizedCCodeException {
+  private void handleEdge(CFAEdge edge, CFA cfa) throws UnrecognizedCodeException {
     switch (edge.getEdgeType()) {
       case AssumeEdge:
         {
@@ -548,7 +547,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
       break;
 
     default:
-      throw new UnrecognizedCCodeException("Unknown edgeType: " + edge.getEdgeType(), edge);
+        throw new UnrecognizedCodeException("Unknown edgeType: " + edge.getEdgeType(), edge);
     }
   }
 
@@ -585,8 +584,8 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   }
 
   /** This function handles normal assignments of vars. */
-  private void handleAssignment(final CFAEdge edge, final CAssignment assignment,
-      final CFA cfa) throws UnrecognizedCCodeException {
+  private void handleAssignment(final CFAEdge edge, final CAssignment assignment, final CFA cfa)
+      throws UnrecognizedCodeException {
     CRightHandSide rhs = assignment.getRightHandSide();
     CExpression lhs = assignment.getLeftHandSide();
     String function = isGlobal(lhs) ? null : edge.getPredecessor().getFunctionName();
@@ -621,7 +620,8 @@ public class VariableClassificationBuilder implements StatisticsProvider {
       if (cfa.getAllFunctionNames().contains(functionName)) {
         Optional<? extends AVariableDeclaration> returnVariable = cfa.getFunctionHead(functionName).getReturnVariable();
         if (!returnVariable.isPresent()) {
-          throw new UnrecognizedCCodeException("Void function " + functionName + " used in assignment", edge, assignment);
+          throw new UnrecognizedCodeException(
+              "Void function " + functionName + " used in assignment", edge, assignment);
         }
         String returnVar = returnVariable.get().getQualifiedName();
         allVars.add(returnVar);
@@ -637,7 +637,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
       handleExternalFunctionCall(edge, func.getParameterExpressions());
 
     } else {
-      throw new UnrecognizedCCodeException("unhandled assignment", edge, assignment);
+      throw new UnrecognizedCodeException("unhandled assignment", edge, assignment);
     }
   }
 
@@ -785,11 +785,12 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   }
 
   static String scopeVar(@Nullable final String function, final String var) {
+    checkNotNull(var);
     return (function == null) ? (var) : (function + SCOPE_SEPARATOR + var);
   }
 
   static boolean isGlobal(CExpression exp) {
-    if (exp instanceof CIdExpression) {
+    if (checkNotNull(exp) instanceof CIdExpression) {
       CSimpleDeclaration decl = ((CIdExpression) exp).getDeclaration();
       if (decl instanceof CDeclaration) { return ((CDeclaration) decl).isGlobal(); }
     }
@@ -799,6 +800,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   /** returns the value of a (nested) IntegerLiteralExpression
    * or null for everything else. */
   public static BigInteger getNumber(CExpression exp) {
+    checkNotNull(exp);
     if (exp instanceof CIntegerLiteralExpression) {
       return ((CIntegerLiteralExpression) exp).getValue();
 

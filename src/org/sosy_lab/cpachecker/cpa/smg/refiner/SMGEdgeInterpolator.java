@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.PathPosition;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGStateInformation;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -186,7 +187,7 @@ public class SMGEdgeInterpolator {
 
       Set<SMGAbstractionBlock> abstractionBlocks = ImmutableSet.of();
       if (currentPrecision.allowsHeapAbstraction()) {
-        SMGState originalState = new SMGState(state);
+        SMGState originalState = state.copyOf();
         SMGHeapAbstractionInterpoaltionResult heapInterpoaltionResult =
             interpolateHeapAbstraction(state, remainingErrorPath,
                 currentEdge.getPredecessor(), currentEdge, pAllTargets, currentPrecision);
@@ -215,7 +216,8 @@ public class SMGEdgeInterpolator {
     return false;
   }
 
-  private SMGState interpolateStackVariables(SMGState pState, ARGPath pRemainingErrorPath, CFAEdge currentEdge, boolean pAllTargets)
+  private UnmodifiableSMGState interpolateStackVariables(
+      SMGState pState, ARGPath pRemainingErrorPath, CFAEdge currentEdge, boolean pAllTargets)
       throws CPAException, InterruptedException {
 
     SMGState state = pState;
@@ -237,13 +239,13 @@ public class SMGEdgeInterpolator {
     return state;
   }
 
-  private SMGState interpolateFields(SMGState pState, ARGPath pRemainingErrorPath,
-      CFAEdge currentEdge, boolean pAllTargets)
+  private UnmodifiableSMGState interpolateFields(
+      SMGState pState, ARGPath pRemainingErrorPath, CFAEdge currentEdge, boolean pAllTargets)
       throws CPAException, InterruptedException {
 
     SMGState state = pState;
 
-    for (SMGEdgeHasValue currentHveEdge : state.getHVEdges()) {
+    for (SMGEdgeHasValue currentHveEdge : state.getHeap().getHVEdges()) {
       shutdownNotifier.shutdownIfNecessary();
 
       //TODO Robust heap abstracion?
@@ -315,12 +317,18 @@ public class SMGEdgeInterpolator {
    *
    * @param remainingErrorPath the error path to check feasibility on
    * @param state the (pseudo) initial state
-   * @param pCurrentEdge if the remaining error path has only 1 state and no edges,
-   *  the edge leading to the state is necessary to check if it is a target of an automaton, and therefore feasible.
-   * @param pAllTargets should we check for all possible errors, or only the error specified in the Target State
+   * @param pCurrentEdge if the remaining error path has only 1 state and no edges, the edge leading
+   *     to the state is necessary to check if it is a target of an automaton, and therefore
+   *     feasible.
+   * @param pAllTargets should we check for all possible errors, or only the error specified in the
+   *     Target State
    * @return true, it the path is feasible, else false
    */
-  public boolean isRemainingPathFeasible(ARGPath remainingErrorPath, SMGState state, CFAEdge pCurrentEdge, boolean pAllTargets)
+  public boolean isRemainingPathFeasible(
+      ARGPath remainingErrorPath,
+      UnmodifiableSMGState state,
+      CFAEdge pCurrentEdge,
+      boolean pAllTargets)
       throws CPAException, InterruptedException {
     numberOfInterpolationQueries++;
     return checker.isRemainingPathFeasible(remainingErrorPath, state, pCurrentEdge, pAllTargets);

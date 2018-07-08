@@ -379,7 +379,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
   }
 
   @Override
-  public AggregatedReachedSets get() throws CPAException, InterruptedException {
+  public AggregatedReachedSets get() {
     throw new UnsupportedOperationException(
         "This invariant generator does only return an invariant supplier via the method getSupplier()");
   }

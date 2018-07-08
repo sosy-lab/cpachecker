@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.SortedSetMultimap;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.SortedMap;
+import java.util.NavigableMap;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.util.Pair;
  */
 public class ParseResult {
 
-  private final SortedMap<String, FunctionEntryNode> functions;
+  private final NavigableMap<String, FunctionEntryNode> functions;
 
   private final SortedSetMultimap<String, CFANode> cfaNodes;
 
@@ -55,7 +55,7 @@ public class ParseResult {
   private final List<Path> fileNames;
 
   public ParseResult(
-      SortedMap<String, FunctionEntryNode> pFunctions,
+      NavigableMap<String, FunctionEntryNode> pFunctions,
       SortedSetMultimap<String, CFANode> pCfaNodes,
       List<Pair<ADeclaration, String>> pGlobalDeclarations,
       List<Path> pFileNames) {
@@ -69,7 +69,7 @@ public class ParseResult {
     return functions.isEmpty();
   }
 
-  public SortedMap<String, FunctionEntryNode> getFunctions() {
+  public NavigableMap<String, FunctionEntryNode> getFunctions() {
     return functions;
   }
 

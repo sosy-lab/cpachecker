@@ -47,11 +47,12 @@ public class CDesignatedInitializer extends AbstractInitializer implements CInit
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(boolean pQualified) {
     StringBuilder sb = new StringBuilder();
-    Joiner.on("").appendTo(sb, transform(designators, CDesignator::toASTString));
+    Joiner.on("")
+        .appendTo(sb, transform(designators, cdesignator -> cdesignator.toASTString(pQualified)));
     sb.append(" = ");
-    sb.append(right.toASTString());
+    sb.append(right.toASTString(pQualified));
     return sb.toString();
   }
 

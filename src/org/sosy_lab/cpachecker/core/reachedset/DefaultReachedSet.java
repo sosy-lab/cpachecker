@@ -197,11 +197,13 @@ class DefaultReachedSet implements ReachedSet, Serializable {
 
   @Override
   public Collection<AbstractState> getReached(AbstractState state) {
+    checkNotNull(state);
     return asCollection();
   }
 
   @Override
   public Collection<AbstractState> getReached(CFANode location) {
+    checkNotNull(location);
     return asCollection();
   }
 

@@ -28,6 +28,8 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -84,22 +86,27 @@ public class UsageTransferRelation implements TransferRelation {
   private final UsageCPAStatistics statistics;
 
   @Option(description = "functions, which we don't analize", secure = true)
-  private Set<String> skippedfunctions = null;
+  private Set<String> skippedfunctions = ImmutableSet.of();
 
   @Option(
     description =
         "functions, which are used to bind variables (like list elements are binded to list variable)",
     secure = true
   )
-  private Set<String> binderFunctions = null;
+  private Set<String> binderFunctions = ImmutableSet.of();
+
+  @Option(description = "functions, which are marked as write access",
+      secure = true)
+  private Set<String> writeAccessFunctions = ImmutableSet.of();
 
   @Option(name = "abortfunctions", description = "functions, which stops analysis", secure = true)
-  private Set<String> abortfunctions;
+  private Set<String> abortFunctions = ImmutableSet.of();
 
   private final CallstackTransferRelation callstackTransfer;
   private final VariableSkipper varSkipper;
 
-  private Map<String, BinderFunctionInfo> binderFunctionInfo;
+  private final Map<String, BinderFunctionInfo> binderFunctionInfo;
+
   private final LogManager logger;
 
   private UsageState newState;
@@ -116,17 +123,22 @@ public class UsageTransferRelation implements TransferRelation {
     wrappedTransfer = pWrappedTransfer;
     callstackTransfer = transfer;
     statistics = s;
-
     logger = pLogger;
-    if (binderFunctions != null) {
-      binderFunctionInfo =
-          from(binderFunctions).toMap(name -> new BinderFunctionInfo(name, config, logger));
-      // BindedFunctions should not be analysed
-      skippedfunctions =
-          skippedfunctions == null
-              ? binderFunctions
-              : Sets.union(skippedfunctions, binderFunctions);
-    }
+
+    ImmutableMap.Builder<String, BinderFunctionInfo> binderFunctionInfoBuilder =
+        ImmutableMap.builder();
+
+    from(binderFunctions)
+        .forEach(
+            name ->
+                binderFunctionInfoBuilder.put(name, new BinderFunctionInfo(name, config, logger)));
+
+    BinderFunctionInfo dummy = new BinderFunctionInfo();
+    from(writeAccessFunctions).forEach(name -> binderFunctionInfoBuilder.put(name, dummy));
+    binderFunctionInfo = binderFunctionInfoBuilder.build();
+
+    // BindedFunctions should not be analysed
+    skippedfunctions = Sets.union(skippedfunctions, binderFunctions);
 
     varSkipper = new VariableSkipper(config);
   }
@@ -164,48 +176,48 @@ public class UsageTransferRelation implements TransferRelation {
       return Collections.emptySet();
     }*/
 
-    boolean needToReset = false;
-    if (shouldBeSkipped(pCfaEdge)) {
-      callstackTransfer.enableRecursiveContext();
-      needToReset = true;
-      currentEdge = ((FunctionCallEdge) pCfaEdge).getSummaryEdge();
-      Preconditions.checkNotNull(
-          currentEdge, "Cannot find summary edge for " + pCfaEdge + " as skipped function");
-      logger.log(Level.FINEST, pCfaEdge.getSuccessor().getFunctionName() + " is skipped");
-    }
+    currentEdge = changeIfNeccessary(pCfaEdge);
 
     AbstractState oldWrappedState = oldState.getWrappedState();
     newState = oldState.copy();
     precision = (UsagePrecision) pPrecision;
-    handleEdge(pCfaEdge);
+    statistics.usagePreparationTimer.start();
+    handleEdge(currentEdge);
+    statistics.usagePreparationTimer.stop();
 
+    statistics.innerAnalysisTimer.start();
     Collection<? extends AbstractState> newWrappedStates =
         wrappedTransfer.getAbstractSuccessorsForEdge(
             oldWrappedState, precision.getWrappedPrecision(), currentEdge);
+    statistics.innerAnalysisTimer.stop();
 
     // Do not know why, but replacing the loop into lambda greatly decreases the speed
     for (AbstractState newWrappedState : newWrappedStates) {
-      UsageState resultState = newState.copy(newWrappedState);
-      if (resultState != null) {
-        result.add(resultState);
-      }
+      result.add(newState.copy(newWrappedState));
     }
 
-    if (needToReset) {
+    if (currentEdge != pCfaEdge) {
       callstackTransfer.disableRecursiveContext();
     }
+    newState = null;
+    precision = null;
     statistics.transferRelationTimer.stop();
     return result;
   }
 
-  private boolean shouldBeSkipped(CFAEdge pCfaEdge) {
+  private CFAEdge changeIfNeccessary(CFAEdge pCfaEdge) {
     if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-      String functionName = ((FunctionCallEdge) pCfaEdge).getSuccessor().getFunctionName();
-      if (skippedfunctions != null && skippedfunctions.contains(functionName)) {
-        return true;
+      String functionName = pCfaEdge.getSuccessor().getFunctionName();
+      if (skippedfunctions.contains(functionName)) {
+        CFAEdge newEdge = ((FunctionCallEdge) pCfaEdge).getSummaryEdge();
+        Preconditions.checkNotNull(
+            newEdge, "Cannot find summary edge for " + pCfaEdge + " as skipped function");
+        logger.log(Level.FINEST, pCfaEdge.getSuccessor().getFunctionName() + " is skipped");
+        callstackTransfer.enableRecursiveContext();
+        return newEdge;
       }
     }
-    return false;
+    return pCfaEdge;
   }
 
   private void handleEdge(CFAEdge pCfaEdge) throws CPATransferException {
@@ -309,7 +321,7 @@ public class UsageTransferRelation implements TransferRelation {
       final CExpression left, final CFunctionCallExpression fcExpression) {
 
     String functionCallName = fcExpression.getFunctionNameExpression().toASTString();
-    if (binderFunctions != null && binderFunctions.contains(functionCallName)) {
+    if (binderFunctionInfo.containsKey(functionCallName)) {
       BinderFunctionInfo currentInfo = binderFunctionInfo.get(functionCallName);
       List<CExpression> params = fcExpression.getParameterExpressions();
 
@@ -329,7 +341,7 @@ public class UsageTransferRelation implements TransferRelation {
         addUsageIfNeccessary(usage);
       }
 
-    } else if (abortfunctions.contains(functionCallName)) {
+    } else if (abortFunctions.contains(functionCallName)) {
       newState.asExitable();
     } else {
       fcExpression.getParameterExpressions().forEach(p -> visitStatement(p, Access.READ));

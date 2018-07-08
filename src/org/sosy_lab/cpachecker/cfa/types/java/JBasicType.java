@@ -45,7 +45,7 @@ public enum JBasicType {
 
   private final String code;
 
-  private JBasicType(String pCode) {
+  JBasicType(String pCode) {
      code = pCode;
   }
 

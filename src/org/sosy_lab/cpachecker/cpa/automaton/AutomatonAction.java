@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.base.Joiner;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -31,7 +32,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-
 
 /**
  * Implements an Action with side-effects that has no return value.
@@ -60,14 +60,16 @@ abstract class AutomatonAction {
    * Logs a String when executed.
    */
   static class Print extends AutomatonAction {
-    private List<AutomatonExpression> toPrint;
+    private List<AutomatonExpression<?>> toPrint;
 
-    public Print(List<AutomatonExpression> pArgs) { toPrint = pArgs; }
+    public Print(List<AutomatonExpression<?>> pArgs) {
+      toPrint = pArgs;
+    }
 
     @Override
     boolean canExecuteOn(AutomatonExpressionArguments pArgs) throws CPATransferException {
       // TODO: every action is computed twice (once here, once in eval)
-      for (AutomatonExpression expr : toPrint) {
+      for (AutomatonExpression<?> expr : toPrint) {
         ResultValue<?> res = expr.eval(pArgs);
         if (res.canNotEvaluate()) {
           return false;
@@ -75,9 +77,11 @@ abstract class AutomatonAction {
       }
       return true;
     }
-    @Override ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+
+    @Override
+    ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
       StringBuilder sb = new StringBuilder();
-      for (AutomatonExpression expr : toPrint) {
+      for (AutomatonExpression<?> expr : toPrint) {
         ResultValue<?> res = expr.eval(pArgs);
         if (res.canNotEvaluate()) {
           return res;
@@ -87,6 +91,11 @@ abstract class AutomatonAction {
       }
       pArgs.appendToLogMessage(sb.toString());
       return defaultResultValue;
+    }
+
+    @Override
+    public String toString() {
+      return "PRINT \"" + Joiner.on("\" \"").join(toPrint) + "\"";
     }
   }
 
@@ -170,7 +179,7 @@ abstract class AutomatonAction {
             } catch (InvalidQueryException e) {
               pArgs.getLogger().logException(Level.WARNING, e,
                   "Automaton encountered an Exception during Query of the "
-                  + cpaName + " CPA (Element " + aqe.toString() + ") on Edge " + pArgs.getCfaEdge().getDescription());
+                  + cpaName + " CPA (Element " + aqe + ") on Edge " + pArgs.getCfaEdge().getDescription());
               return defaultResultValue; // try to carry on with the further evaluation
             }
           }

@@ -60,9 +60,9 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedJSCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -224,9 +224,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return Pair.of(pf, errorConditions);
   }
 
-  private PathFormula makeAnd(PathFormula pOldFormula, final CFAEdge pEdge, ErrorConditions errorConditions)
-      throws UnrecognizedCCodeException, UnrecognizedCFAEdgeException, InterruptedException,
-             UnrecognizedJSCodeException {
+  private PathFormula makeAnd(
+      PathFormula pOldFormula, final CFAEdge pEdge, ErrorConditions errorConditions)
+      throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
     PathFormula pf;
     try {
       pf = converter.makeAnd(pOldFormula, pEdge, errorConditions);
@@ -408,8 +408,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Override
   public BooleanFormula buildBranchingFormula(Set<ARGState> elementsOnPath)
       throws CPATransferException, InterruptedException {
-    return buildBranchingFormula(
-        elementsOnPath, Collections.<Pair<ARGState, CFAEdge>, PathFormula>emptyMap());
+    return buildBranchingFormula(elementsOnPath, Collections.emptyMap());
   }
 
   /**
@@ -547,7 +546,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public Formula expressionToFormula(PathFormula pFormula, CIdExpression expr, CFAEdge edge)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     return converter.buildTermFromPathFormula(pFormula, expr, edge);
   }
 
@@ -589,7 +588,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Override
   public BooleanFormula buildWeakestPrecondition(
       final CFAEdge pEdge, final BooleanFormula pPostcond)
-      throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedCFAEdgeException, UnrecognizedCodeException, InterruptedException {
 
     // TODO: refactor as soon as there is a WP converter with pointer aliasing
 

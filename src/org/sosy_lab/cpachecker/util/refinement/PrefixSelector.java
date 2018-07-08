@@ -155,7 +155,7 @@ public class PrefixSelector {
     }
   }
 
-  private static interface Scorer {
+  private interface Scorer {
 
     int computeScore(final InfeasiblePrefix pPrefix);
 

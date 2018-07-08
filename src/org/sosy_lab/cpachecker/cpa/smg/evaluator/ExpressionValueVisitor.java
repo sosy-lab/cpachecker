@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
+import static java.util.Collections.singletonList;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -55,34 +57,31 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
-import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
-import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndStateList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
- * This class evaluates expressions that evaluate not to a
- * pointer, array, struct or union type.
- * The result of this evaluation is a {@link SMGSymbolicValue}.
- * The value represents a symbolic value of the SMG.
- *
+ * This class evaluates expressions that evaluate not to a pointer, array, struct or union type. The
+ * result of this evaluation is a {@link SMGSymbolicValue}. The value represents a symbolic value of
+ * the SMG.
  */
-public class ExpressionValueVisitor extends DefaultCExpressionVisitor<SMGValueAndStateList, CPATransferException>
-  implements CRightHandSideVisitor<SMGValueAndStateList, CPATransferException> {
+public class ExpressionValueVisitor
+    extends DefaultCExpressionVisitor<List<? extends SMGValueAndState>, CPATransferException>
+    implements CRightHandSideVisitor<List<? extends SMGValueAndState>, CPATransferException> {
 
-  protected final SMGExpressionEvaluator smgExpressionEvaluator;
-  protected final CFAEdge cfaEdge;
-  protected final SMGState initialSmgState;
+  final SMGExpressionEvaluator smgExpressionEvaluator;
+  final CFAEdge cfaEdge;
+  private final SMGState initialSmgState;
 
   public ExpressionValueVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
     smgExpressionEvaluator = pSmgExpressionEvaluator;
@@ -91,19 +90,18 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<SMGValueAn
   }
 
   @Override
-  protected SMGValueAndStateList visitDefault(CExpression pExp) {
-    return SMGValueAndStateList.of(getInitialSmgState());
+  protected List<? extends SMGValueAndState> visitDefault(CExpression pExp) {
+    return singletonList(SMGValueAndState.of(getInitialSmgState()));
   }
 
   @Override
-  public SMGValueAndStateList visit(CArraySubscriptExpression exp) throws CPATransferException {
+  public List<? extends SMGValueAndState> visit(CArraySubscriptExpression exp)
+      throws CPATransferException {
 
-    List<SMGAddressAndState> addressAndStateList =
-        smgExpressionEvaluator.evaluateArraySubscriptAddress(getInitialSmgState(), getCfaEdge(), exp);
-
-    List<SMGValueAndState> result = new ArrayList<>(addressAndStateList.size());
-
-    for (SMGAddressAndState addressAndState : addressAndStateList) {
+    List<SMGValueAndState> result = new ArrayList<>();
+    for (SMGAddressAndState addressAndState :
+        smgExpressionEvaluator.evaluateArraySubscriptAddress(
+            getInitialSmgState(), getCfaEdge(), exp)) {
       SMGAddress address = addressAndState.getObject();
       SMGState newState = addressAndState.getSmgState();
 
@@ -112,35 +110,44 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<SMGValueAn
         continue;
       }
 
-      SMGValueAndState symbolicValueResultAndState = smgExpressionEvaluator.readValue(newState, address.getObject(), address.getOffset(), smgExpressionEvaluator.getRealExpressionType(exp), cfaEdge);
+      SMGValueAndState symbolicValueResultAndState =
+          smgExpressionEvaluator.readValue(
+              newState,
+              address.getObject(),
+              address.getOffset(),
+              TypeUtils.getRealExpressionType(exp),
+              cfaEdge);
       result.add(symbolicValueResultAndState);
     }
 
-    return SMGValueAndStateList.copyOf(result);
+    return result;
   }
 
   @Override
-  public SMGValueAndStateList visit(CIntegerLiteralExpression exp) throws CPATransferException {
+  public List<? extends SMGValueAndState> visit(CIntegerLiteralExpression exp)
+      throws CPATransferException {
 
     BigInteger value = exp.getValue();
 
     boolean isZero = value.equals(BigInteger.ZERO);
 
-    SMGSymbolicValue val = (isZero ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance());
-    return SMGValueAndStateList.of(getInitialSmgState(), val);
+    SMGSymbolicValue val = (isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE);
+    return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
   }
 
   @Override
-  public SMGValueAndStateList visit(CCharLiteralExpression exp) throws CPATransferException {
+  public List<? extends SMGValueAndState> visit(CCharLiteralExpression exp)
+      throws CPATransferException {
 
     char value = exp.getCharacter();
 
-    SMGSymbolicValue val = (value == 0) ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
-    return SMGValueAndStateList.of(getInitialSmgState(), val);
+    SMGSymbolicValue val = (value == 0) ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+    return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
   }
 
   @Override
-  public SMGValueAndStateList visit(CFieldReference fieldReference) throws CPATransferException {
+  public List<? extends SMGValueAndState> visit(CFieldReference fieldReference)
+      throws CPATransferException {
 
     List<SMGValueAndState> result = new ArrayList<>(2);
     List<SMGAddressAndState> addressOfFieldAndStates =
@@ -156,28 +163,32 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<SMGValueAn
         continue;
       }
 
-      CType fieldType = smgExpressionEvaluator.getRealExpressionType(fieldReference);
+      CType fieldType = TypeUtils.getRealExpressionType(fieldReference);
 
-      SMGValueAndState resultState = smgExpressionEvaluator.readValue(newState, addressOfField.getObject(), addressOfField.getOffset(), fieldType, cfaEdge);
-
-      result.add(resultState);
+      result.add(
+          smgExpressionEvaluator.readValue(
+              newState,
+              addressOfField.getObject(),
+              addressOfField.getOffset(),
+              fieldType,
+              cfaEdge));
     }
 
-    return SMGValueAndStateList.copyOf(result);
+    return result;
   }
 
   @Override
-  public SMGValueAndStateList visit(CFloatLiteralExpression exp)
+  public List<? extends SMGValueAndState> visit(CFloatLiteralExpression exp)
       throws CPATransferException {
 
     boolean isZero = exp.getValue().equals(BigDecimal.ZERO);
 
-    SMGSymbolicValue val = isZero ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
-    return SMGValueAndStateList.of(getInitialSmgState(), val);
+    SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+    return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
   }
 
   @Override
-  public SMGValueAndStateList visit(CIdExpression idExpression)
+  public List<? extends SMGValueAndState> visit(CIdExpression idExpression)
       throws CPATransferException {
 
     CSimpleDeclaration decl = idExpression.getDeclaration();
@@ -186,30 +197,35 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<SMGValueAn
 
       long enumValue = ((CEnumerator) decl).getValue();
 
-      SMGSymbolicValue val = enumValue == 0 ? SMGKnownSymValue.ZERO
-          : SMGUnknownValue.getInstance();
-      return SMGValueAndStateList.of(getInitialSmgState(), val);
+      SMGSymbolicValue val = enumValue == 0 ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+      return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
 
     } else if (decl instanceof CVariableDeclaration
         || decl instanceof CParameterDeclaration) {
       SMGState smgState = getInitialSmgState();
 
-      SMGObject variableObject = smgState
-          .getObjectForVisibleVariable(idExpression.getName());
+      SMGObject variableObject =
+          smgState.getHeap().getObjectForVisibleVariable(idExpression.getName());
 
       smgState.addElementToCurrentChain(variableObject);
-      SMGValueAndState result = smgExpressionEvaluator.readValue(smgState, variableObject, SMGKnownExpValue.ZERO,
-          smgExpressionEvaluator.getRealExpressionType(idExpression), cfaEdge);
+      SMGValueAndState result =
+          smgExpressionEvaluator.readValue(
+              smgState,
+              variableObject,
+              SMGZeroValue.INSTANCE,
+              TypeUtils.getRealExpressionType(idExpression),
+              cfaEdge);
       result.getSmgState().addElementToCurrentChain(result.getObject());
 
-      return SMGValueAndStateList.of(result);
+      return singletonList(result);
     }
 
-    return SMGValueAndStateList.of(getInitialSmgState());
+    return singletonList(SMGValueAndState.of(getInitialSmgState()));
   }
 
   @Override
-  public SMGValueAndStateList visit(CUnaryExpression unaryExpression) throws CPATransferException {
+  public List<? extends SMGValueAndState> visit(CUnaryExpression unaryExpression)
+      throws CPATransferException {
 
     UnaryOperator unaryOperator = unaryExpression.getOperator();
     CExpression unaryOperand = unaryExpression.getOperand();
@@ -217,113 +233,126 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<SMGValueAn
     switch (unaryOperator) {
 
     case AMPER:
-      throw new UnrecognizedCCodeException("Can't use & of expression " + unaryOperand.toASTString(), cfaEdge,
-          unaryExpression);
+        throw new UnrecognizedCodeException(
+            "Can't use & of expression " + unaryOperand.toASTString(), cfaEdge, unaryExpression);
 
     case MINUS:
 
       List<SMGValueAndState> result = new ArrayList<>(2);
 
-      SMGValueAndStateList valueAndStates = unaryOperand.accept(this);
+        List<? extends SMGValueAndState> valueAndStates = unaryOperand.accept(this);
 
-      for (SMGValueAndState valueAndState : valueAndStates.getValueAndStateList()) {
+        for (SMGValueAndState valueAndState : valueAndStates) {
 
         SMGSymbolicValue value = valueAndState.getObject();
 
-        SMGSymbolicValue val = value.equals(SMGKnownSymValue.ZERO) ? value
-            : SMGUnknownValue.getInstance();
+          SMGSymbolicValue val =
+              value.equals(SMGZeroValue.INSTANCE) ? value : SMGUnknownValue.INSTANCE;
         result.add(SMGValueAndState.of(valueAndState.getSmgState(), val));
       }
 
-      return SMGValueAndStateList.copyOf(result);
+        return result;
 
     case SIZEOF:
-      int size = smgExpressionEvaluator.getBitSizeof(cfaEdge, smgExpressionEvaluator.getRealExpressionType(unaryOperand), getInitialSmgState(), unaryOperand);
-      SMGSymbolicValue val = (size == 0) ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
-      return SMGValueAndStateList.of(getInitialSmgState(), val);
+        int size =
+            smgExpressionEvaluator.getBitSizeof(
+                cfaEdge,
+                TypeUtils.getRealExpressionType(unaryOperand),
+                getInitialSmgState(),
+                unaryOperand);
+        SMGSymbolicValue val = (size == 0) ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+        return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
     case TILDE:
 
     default:
-      return SMGValueAndStateList.of(getInitialSmgState());
+        return singletonList(SMGValueAndState.of(getInitialSmgState()));
     }
   }
 
   @Override
-  public SMGValueAndStateList visit(CPointerExpression pointerExpression) throws CPATransferException {
+  public List<? extends SMGValueAndState> visit(CPointerExpression pointerExpression)
+      throws CPATransferException {
 
     CExpression operand = pointerExpression.getOperand();
-    CType operandType = smgExpressionEvaluator.getRealExpressionType(operand);
-    CType expType = smgExpressionEvaluator.getRealExpressionType(pointerExpression);
+    CType operandType = TypeUtils.getRealExpressionType(operand);
+    CType expType = TypeUtils.getRealExpressionType(pointerExpression);
 
     if (operandType instanceof CPointerType) {
       return dereferencePointer(operand, expType);
     } else if (operandType instanceof CArrayType) {
       return dereferenceArray(operand, expType);
     } else {
-      throw new UnrecognizedCCodeException("on pointer expression", cfaEdge, pointerExpression);
+      throw new UnrecognizedCodeException("on pointer expression", cfaEdge, pointerExpression);
     }
   }
 
   @Override
-  public SMGValueAndStateList visit(CTypeIdExpression typeIdExp) throws UnrecognizedCCodeException {
+  public List<? extends SMGValueAndState> visit(CTypeIdExpression typeIdExp)
+      throws UnrecognizedCodeException {
 
     TypeIdOperator typeOperator = typeIdExp.getOperator();
     CType type = typeIdExp.getType();
 
     switch (typeOperator) {
     case SIZEOF:
-      SMGSymbolicValue val =
-          smgExpressionEvaluator.getBitSizeof(cfaEdge, type, getInitialSmgState(), typeIdExp) == 0 ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
-      return SMGValueAndStateList.of(getInitialSmgState(), val);
+        SMGSymbolicValue val =
+            smgExpressionEvaluator.getBitSizeof(cfaEdge, type, getInitialSmgState(), typeIdExp) == 0
+                ? SMGZeroValue.INSTANCE
+                : SMGUnknownValue.INSTANCE;
+        return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
     default:
-      return SMGValueAndStateList.of(getInitialSmgState());
-    //TODO Investigate the other Operators.
+        return singletonList(SMGValueAndState.of(getInitialSmgState()));
+        // TODO Investigate the other Operators.
     }
   }
 
   @Override
-  public SMGValueAndStateList visit(CBinaryExpression exp) throws CPATransferException {
+  public List<? extends SMGValueAndState> visit(CBinaryExpression exp) throws CPATransferException {
 
     BinaryOperator binaryOperator = exp.getOperator();
     CExpression lVarInBinaryExp = exp.getOperand1();
     CExpression rVarInBinaryExp = exp.getOperand2();
     List<SMGValueAndState> result = new ArrayList<>(4);
 
-    SMGValueAndStateList lValAndStates = smgExpressionEvaluator.evaluateExpressionValue(getInitialSmgState(), getCfaEdge(), lVarInBinaryExp);
+    List<? extends SMGValueAndState> lValAndStates =
+        smgExpressionEvaluator.evaluateExpressionValue(
+            getInitialSmgState(), getCfaEdge(), lVarInBinaryExp);
 
-    for (SMGValueAndState lValAndState : lValAndStates.getValueAndStateList()) {
+    for (SMGValueAndState lValAndState : lValAndStates) {
 
       SMGSymbolicValue lVal = lValAndState.getObject();
       SMGState newState = lValAndState.getSmgState();
 
-      SMGValueAndStateList rValAndStates = smgExpressionEvaluator.evaluateExpressionValue(newState, getCfaEdge(), rVarInBinaryExp);
+      List<? extends SMGValueAndState> rValAndStates =
+          smgExpressionEvaluator.evaluateExpressionValue(newState, getCfaEdge(), rVarInBinaryExp);
 
-      for (SMGValueAndState rValAndState : rValAndStates.getValueAndStateList()) {
+      for (SMGValueAndState rValAndState : rValAndStates) {
 
         SMGSymbolicValue rVal = rValAndState.getObject();
         newState = rValAndState.getSmgState();
 
-        if (rVal.equals(SMGUnknownValue.getInstance())
-            || lVal.equals(SMGUnknownValue.getInstance())) {
+        if (rVal.equals(SMGUnknownValue.INSTANCE)
+            || lVal.equals(SMGUnknownValue.INSTANCE)) {
           result.add(SMGValueAndState.of(newState));
           continue;
         }
 
-        SMGValueAndStateList resultValueAndState =
-            evaluateBinaryExpression(lVal, rVal, binaryOperator, newState);
-        result.addAll(resultValueAndState.getValueAndStateList());
+        result.addAll(evaluateBinaryExpression(lVal, rVal, binaryOperator, newState));
       }
     }
 
-    return SMGValueAndStateList.copyOf(result);
+    return result;
   }
 
-  private SMGValueAndStateList evaluateBinaryExpression(SMGSymbolicValue lVal,
-      SMGSymbolicValue rVal, BinaryOperator binaryOperator, SMGState newState)
+  private List<? extends SMGValueAndState> evaluateBinaryExpression(
+      SMGSymbolicValue lVal,
+      SMGSymbolicValue rVal,
+      BinaryOperator binaryOperator,
+      SMGState newState)
       throws SMGInconsistentException {
 
-    if (lVal.equals(SMGUnknownValue.getInstance()) || rVal.equals(SMGUnknownValue.getInstance())) {
-      return SMGValueAndStateList.of(newState);
+    if (lVal.equals(SMGUnknownValue.INSTANCE) || rVal.equals(SMGUnknownValue.INSTANCE)) {
+      return singletonList(SMGValueAndState.of(newState));
     }
 
     switch (binaryOperator) {
@@ -346,32 +375,31 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<SMGValueAn
           case BINARY_OR:
           case BINARY_XOR:
           case SHIFT_RIGHT:
-            isZero = lVal.equals(SMGKnownSymValue.ZERO) && rVal.equals(SMGKnownSymValue.ZERO);
-            SMGSymbolicValue val = isZero ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
-            return SMGValueAndStateList.of(newState, val);
+              isZero = lVal.equals(SMGZeroValue.INSTANCE) && rVal.equals(SMGZeroValue.INSTANCE);
+              SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+              return singletonList(SMGValueAndState.of(newState, val));
 
           case MINUS:
           case MODULO:
             isZero = (lVal.equals(rVal));
-            val = isZero ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
-            return SMGValueAndStateList.of(newState, val);
+              val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+              return singletonList(SMGValueAndState.of(newState, val));
 
           case DIVIDE:
-            // TODO maybe we should signal a division by zero error?
-            if (rVal.equals(SMGKnownSymValue.ZERO)) {
-              return SMGValueAndStateList.of(newState);
+              // TODO maybe we should signal a division by zero error?
+              if (rVal.equals(SMGZeroValue.INSTANCE)) {
+                return singletonList(SMGValueAndState.of(newState));
             }
 
-            isZero = lVal.equals(SMGKnownSymValue.ZERO);
-            val = isZero ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
-            return SMGValueAndStateList.of(newState, val);
+              isZero = lVal.equals(SMGZeroValue.INSTANCE);
+              val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+              return singletonList(SMGValueAndState.of(newState, val));
 
           case MULTIPLY:
           case BINARY_AND:
-            isZero = lVal.equals(SMGKnownSymValue.ZERO)
-                || rVal.equals(SMGKnownSymValue.ZERO);
-            val = isZero ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
-            return SMGValueAndStateList.of(newState, val);
+              isZero = lVal.equals(SMGZeroValue.INSTANCE) || rVal.equals(SMGZeroValue.INSTANCE);
+              val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+              return singletonList(SMGValueAndState.of(newState, val));
 
           default:
             throw new AssertionError();
@@ -387,39 +415,41 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<SMGValueAn
 
         AssumeVisitor v = smgExpressionEvaluator.getAssumeVisitor(getCfaEdge(), newState);
 
-        SMGValueAndStateList assumptionValueAndStates =
-            v.evaluateBinaryAssumption(newState, binaryOperator, lVal, rVal);
+          List<? extends SMGValueAndState> assumptionValueAndStates =
+              v.evaluateBinaryAssumption(newState, binaryOperator, lVal, rVal);
 
         List<SMGValueAndState> result = new ArrayList<>(2);
 
-        for (SMGValueAndState assumptionValueAndState : assumptionValueAndStates.getValueAndStateList()) {
+          for (SMGValueAndState assumptionValueAndState : assumptionValueAndStates) {
           newState = assumptionValueAndState.getSmgState();
           SMGSymbolicValue assumptionVal = assumptionValueAndState.getObject();
 
-          if (assumptionVal == SMGKnownSymValue.FALSE) {
-            SMGValueAndState resultValueAndState = SMGValueAndState.of(newState, SMGKnownSymValue.ZERO);
+            if (assumptionVal.isZero()) {
+              SMGValueAndState resultValueAndState =
+                  SMGValueAndState.of(newState, SMGZeroValue.INSTANCE);
             result.add(resultValueAndState);
           } else {
             result.add(SMGValueAndState.of(newState));
           }
         }
 
-        return SMGValueAndStateList.copyOf(result);
+          return result;
       }
 
       default:
-        return SMGValueAndStateList.of(getInitialSmgState());
+        return singletonList(SMGValueAndState.of(getInitialSmgState()));
     }
   }
 
   @Override
-  public SMGValueAndStateList visit(CCastExpression cast) throws CPATransferException {
+  public List<? extends SMGValueAndState> visit(CCastExpression cast) throws CPATransferException {
     // For different types we need different visitors,
     // TODO doesn't calculate type reinterpretations
     return smgExpressionEvaluator.evaluateExpressionValue(getInitialSmgState(), getCfaEdge(), cast.getOperand());
   }
 
-  protected SMGValueAndStateList dereferenceArray(CExpression exp, CType derefType) throws CPATransferException {
+  private List<? extends SMGValueAndState> dereferenceArray(CExpression exp, CType derefType)
+      throws CPATransferException {
 
     List<SMGValueAndState> result = new ArrayList<>(2);
 
@@ -440,24 +470,26 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<SMGValueAn
 
       // a == &a[0]
       if (derefType instanceof CArrayType) {
-        result.addAll(smgExpressionEvaluator.createAddress(newState, address.getObject(), address.getOffset()).asAddressValueAndStateList());
+        result.addAll(
+            smgExpressionEvaluator.createAddress(
+                newState, address.getObject(), address.getOffset()));
       } else {
         result.add(smgExpressionEvaluator.readValue(newState, address.getObject(), address.getOffset(), derefType, cfaEdge));
       }
     }
 
-    return SMGValueAndStateList.copyOf(result);
+    return result;
   }
 
-  protected final SMGValueAndStateList dereferencePointer(CExpression exp,
-      CType derefType) throws CPATransferException {
+  private List<? extends SMGValueAndState> dereferencePointer(CExpression exp, CType derefType)
+      throws CPATransferException {
 
     List<SMGValueAndState> result = new ArrayList<>(2);
 
-    SMGAddressValueAndStateList addressAndStates = smgExpressionEvaluator.evaluateAddress(
-        getInitialSmgState(), getCfaEdge(), exp);
+    List<SMGAddressValueAndState> addressAndStates =
+        smgExpressionEvaluator.evaluateAddress(getInitialSmgState(), getCfaEdge(), exp);
 
-    for (SMGAddressValueAndState addressAndState : addressAndStates.asAddressValueAndStateList()) {
+    for (SMGAddressValueAndState addressAndState : addressAndStates) {
 
       SMGAddressValue address = addressAndState.getObject();
       SMGState newState = addressAndState.getSmgState();
@@ -471,25 +503,28 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<SMGValueAn
 
       // a == &a[0]
       if (derefType instanceof CArrayType) {
-        result.addAll(smgExpressionEvaluator.createAddress(newState, address.getObject(), address.getOffset()).asAddressValueAndStateList());
+        result.addAll(
+            smgExpressionEvaluator.createAddress(
+                newState, address.getObject(), address.getOffset()));
       } else {
         result.add(smgExpressionEvaluator.readValue(newState, address.getObject(), address.getOffset(), derefType, cfaEdge));
       }
     }
 
-    return SMGValueAndStateList.copyOf(result);
+    return result;
   }
 
   @Override
-  public SMGValueAndStateList visit(CFunctionCallExpression pIastFunctionCallExpression) throws CPATransferException {
-    return SMGValueAndStateList.of(getInitialSmgState());
+  public List<? extends SMGValueAndState> visit(CFunctionCallExpression pIastFunctionCallExpression)
+      throws CPATransferException {
+    return singletonList(SMGValueAndState.of(getInitialSmgState()));
   }
 
-  public SMGState getInitialSmgState() {
+  SMGState getInitialSmgState() {
     return initialSmgState;
   }
 
-  public CFAEdge getCfaEdge() {
+  CFAEdge getCfaEdge() {
     return cfaEdge;
   }
 }

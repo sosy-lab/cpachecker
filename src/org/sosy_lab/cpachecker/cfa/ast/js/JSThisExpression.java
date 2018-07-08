@@ -47,8 +47,8 @@ public final class JSThisExpression extends AbstractExpression implements JSExpr
   }
 
   @Override
-  public String toASTString() {
-    return "this";
+  public String toASTString(final boolean pQualified) {
+    return "this"; // TODO consider pQualified
   }
 
   @Override

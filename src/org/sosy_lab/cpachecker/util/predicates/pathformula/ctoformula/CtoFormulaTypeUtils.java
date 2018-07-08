@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 class CtoFormulaTypeUtils {
 
@@ -64,12 +64,14 @@ class CtoFormulaTypeUtils {
    * CFieldReferences can be direct or indirect (pointer-dereferencing).
    * This method nests the owner in a CUnaryExpression if the access is indirect.
    */
-  public static CExpression getRealFieldOwner(CFieldReference fExp) throws UnrecognizedCCodeException {
+  public static CExpression getRealFieldOwner(CFieldReference fExp)
+      throws UnrecognizedCodeException {
     CExpression fieldOwner = fExp.getFieldOwner();
     if (fExp.isPointerDereference()) {
       CType t = fieldOwner.getExpressionType().getCanonicalType();
       if (!(t instanceof CPointerType)) {
-        throw new UnrecognizedCCodeException("Can't dereference a non-pointer in a field reference", fExp);
+        throw new UnrecognizedCodeException(
+            "Can't dereference a non-pointer in a field reference", fExp);
       }
       CType dereferencedType = ((CPointerType)t).getType();
       return new CPointerExpression(fExp.getFileLocation(), dereferencedType, fieldOwner);

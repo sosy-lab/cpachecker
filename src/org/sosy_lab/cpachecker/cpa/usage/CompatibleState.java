@@ -27,7 +27,9 @@ import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
 public interface CompatibleState extends Comparable<CompatibleState> {
 
-  public boolean isCompatibleWith(CompatibleState state);
+  public default boolean isCompatibleWith(@SuppressWarnings("unused") CompatibleState state) {
+    return true;
+  }
 
   public default CompatibleState prepareToStore() {
     return this;

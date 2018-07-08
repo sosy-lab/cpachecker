@@ -27,6 +27,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.CharMatcher;
 import javax.annotation.Nullable;
+import com.google.common.base.Preconditions;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -35,6 +37,8 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+
 /**
  * Exception thrown when a CPA cannot handle some code attached to a CFAEdge.
  */
@@ -42,6 +46,9 @@ public class UnrecognizedCodeException extends CPATransferException {
 
   private static final long serialVersionUID = 6425746398197035741L;
   private static final CharMatcher SEMICOLON = CharMatcher.is(';');
+
+  /** parent state can be filled in later to get additional info about the problematic part. */
+  private @Nullable ARGState parentState = null;
 
   protected UnrecognizedCodeException(String msg1, @Nullable String msg2,
       @Nullable CFAEdge edge, @Nullable AAstNode astNode) {
@@ -154,5 +161,14 @@ public class UnrecognizedCodeException extends CPATransferException {
     }
 
     return sb.toString();
+  }
+
+  public void setParentState(ARGState pParentState) {
+    Preconditions.checkState(parentState == null);
+    parentState = pParentState;
+  }
+
+  public @Nullable ARGState getParentState() {
+    return parentState;
   }
 }

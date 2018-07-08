@@ -310,7 +310,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
     @Override
     public String toString() {
-      return "AutomatonUnknownState<" + previousState.toString() + ">";
+      return "AutomatonUnknownState<" + previousState + ">";
     }
   }
 

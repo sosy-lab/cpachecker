@@ -81,8 +81,9 @@ import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
@@ -139,7 +140,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * calls of external functions. */
   @Override
   protected BDDState handleStatementEdge(final CStatementEdge cfaEdge, final CStatement statement)
-      throws UnsupportedCCodeException {
+      throws UnsupportedCodeException {
 
     BDDState result = state;
 
@@ -163,7 +164,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * Then this region is assigned to the variable at the left side.
    * This equality is added to the BDDstate to get the next state. */
   private BDDState handleAssignment(CAssignment assignment, CFANode successor, CFAEdge edge)
-      throws UnsupportedCCodeException {
+      throws UnsupportedCodeException {
     CExpression lhs = assignment.getLeftHandSide();
 
     final String varName;
@@ -264,7 +265,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * These equalities are added to the BDDstate to get the next state. */
   @Override
   protected BDDState handleDeclarationEdge(CDeclarationEdge cfaEdge, CDeclaration decl)
-      throws UnsupportedCCodeException {
+      throws UnsupportedCodeException {
 
     if (decl instanceof CVariableDeclaration) {
       CVariableDeclaration vdecl = (CVariableDeclaration) decl;
@@ -308,7 +309,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       List<CExpression> args,
       List<CParameterDeclaration> params,
       String calledFunction)
-      throws UnsupportedCCodeException {
+      throws UnsupportedCodeException {
     BDDState newState = state;
 
     // var_args cannot be handled: func(int x, ...) --> we only handle the first n parameters
@@ -375,7 +376,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * evaluated right side ("x") is added to the new state. */
   @Override
   protected BDDState handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
-      throws UnsupportedCCodeException {
+      throws UnsupportedCodeException {
     BDDState newState = state;
     String returnVar = "";
 
@@ -437,7 +438,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   @Override
   protected BDDState handleAssumption(
       CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
-      throws UnsupportedCCodeException {
+      throws UnsupportedCodeException {
 
     Partition partition = varClass.getPartitionForEdge(cfaEdge);
     final Region[] operand = evaluateVectorExpression(partition, expression, CNumericTypes.INT, cfaEdge.getSuccessor());
@@ -464,7 +465,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       CExpression expression,
       boolean truthAssumption,
       PointerState pPointerInfo)
-      throws UnsupportedCCodeException {
+      throws UnsupportedCodeException {
 
     Partition partition = varClass.getPartitionForEdge(cfaEdge);
     final Region[] operand =
@@ -492,7 +493,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * The partition chooses the compression of the bitvector. */
   private @Nullable Region[] evaluateVectorExpression(
       final Partition partition, final CExpression exp, CType targetType, final CFANode location)
-      throws UnsupportedCCodeException {
+      throws UnsupportedCodeException {
     final boolean compress = (partition != null) && compressIntEqual
             && varClass.getIntEqualPartitions().contains(partition);
     if (varClass.getIntBoolPartitions().contains(partition)) {
@@ -527,7 +528,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       CType targetType,
       final CFANode location,
       final PointerState pPointerInfo)
-      throws UnsupportedCCodeException {
+      throws UnsupportedCodeException {
     final boolean compress =
         (partition != null)
             && compressIntEqual
@@ -640,7 +641,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
   /** This Visitor evaluates the visited expression and
    * returns iff the given variable is used in it. */
-  private static class VarCExpressionVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeException> {
+  private static class VarCExpressionVisitor extends DefaultCExpressionVisitor<Boolean, NoException> {
 
     private String varName;
 
@@ -722,7 +723,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
   private BDDState strengthenWithPointerInformation(
       BDDState bddState, PointerState pPointerInfo, CFAEdge cfaEdge)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     if (cfaEdge instanceof CAssumeEdge) {
       CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
@@ -785,7 +786,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
   /** get all possible explicit targets for a pointer, or NULL if they are unknown. */
   static @Nullable ExplicitLocationSet getLocationsForLhs(
-      PointerState pPointerInfo, CPointerExpression pPointer) throws UnrecognizedCCodeException {
+      PointerState pPointerInfo, CPointerExpression pPointer) throws UnrecognizedCodeException {
     LocationSet directLocation = PointerTransferRelation.asLocations(pPointer, pPointerInfo);
     if (!(directLocation instanceof ExplicitLocationSet)) {
       LocationSet indirectLocation =
@@ -804,7 +805,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   }
 
   static @Nullable MemoryLocation getLocationForRhs(
-      PointerState pPointerInfo, CPointerExpression pPointer) throws UnrecognizedCCodeException {
+      PointerState pPointerInfo, CPointerExpression pPointer) throws UnrecognizedCodeException {
     LocationSet fullSet = PointerTransferRelation.asLocations(pPointer.getOperand(), pPointerInfo);
     if (fullSet instanceof ExplicitLocationSet) {
       ExplicitLocationSet explicitSet = (ExplicitLocationSet) fullSet;

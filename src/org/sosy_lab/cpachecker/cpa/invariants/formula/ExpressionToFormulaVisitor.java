@@ -85,7 +85,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.MemoryLocationExtractor;
 import org.sosy_lab.cpachecker.cpa.invariants.OverflowEventHandler;
 import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -358,11 +357,11 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
                     compoundIntervalFormulaManager.subtract(left, right),
                     getPointerTargetSizeLiteral((CPointerType) promLeft, calculationType));
           } else {
-            throw new UnrecognizedCCodeException(
+            throw new UnrecognizedCodeException(
                 "Can't subtract pointers of different types", pCBinaryExpression);
           }
         } else {
-          throw new UnrecognizedCCodeException(
+          throw new UnrecognizedCodeException(
               "Can't subtract a pointer from a non-pointer", pCBinaryExpression);
         }
         break;
@@ -399,7 +398,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
                       left,
                       getPointerTargetSizeLiteral((CPointerType) promRight, calculationType)));
         } else {
-          throw new UnrecognizedCCodeException("Can't add pointers", pCBinaryExpression);
+          throw new UnrecognizedCodeException("Can't add pointers", pCBinaryExpression);
         }
         break;
     case SHIFT_LEFT:

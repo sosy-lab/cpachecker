@@ -265,6 +265,16 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
     }
     CompoundInterval leftValue = evaluate(pMultiply.getFactor1());
     CompoundInterval rightValue = evaluate(pMultiply.getFactor2());
+    if (parameter.contains(BigInteger.ZERO)) {
+      if (parameter.isSingleton()) {
+        if (!leftValue.contains(BigInteger.ZERO)) {
+          return pMultiply.getFactor2().accept(this, parameter);
+        } else if (!rightValue.contains(BigInteger.ZERO)) {
+          return pMultiply.getFactor1().accept(this, parameter);
+        }
+      }
+      return true;
+    }
     CompoundInterval pushLeftValue = compoundIntervalManager.divide(parameter, rightValue);
     CompoundInterval pushRightValue = compoundIntervalManager.divide(parameter, leftValue);
     if (!pMultiply.getFactor1().accept(this, pushLeftValue)

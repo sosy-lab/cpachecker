@@ -55,6 +55,7 @@ import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -144,12 +145,17 @@ public class CPAsTest {
                 .setOption("output.disable", "true")
                 .setOption("rootDirectory", tempFolder.getRoot().toString())
                 .build());
+    Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
+
+    String cProgram = TestDataTools.getEmptyProgram(tempFolder, Language.C);
+
     config =
         Configuration.builder()
             .addConverter(FileOption.class, fileTypeConverter)
             .setOption("cfa.findLiveVariables", "true")
             .setOption("cpa.conditions.path.condition", "PathLengthCondition")
             .setOption("cpa.automaton.inputFile", "test/config/automata/AssumptionAutomaton.spc")
+            .setOption("differential.program", cProgram)
             .build();
 
     // Create dummy files necessary for PolicyEnforcementCPA

@@ -76,6 +76,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private @Nullable Path verifierConfig;
 
+
   @Option(secure = true, description = "configuration of the residual program generator")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private @Nullable Path generatorConfig;

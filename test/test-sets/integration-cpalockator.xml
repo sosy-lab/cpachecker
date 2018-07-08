@@ -15,7 +15,14 @@
     <option name="-setprop">CompositeCPA.cpas = cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.lock.LockCPA, cpa.predicate.BAMPredicateCPA</option>
     <option name="-setprop">cpa.usage.unsafedetector.ignoreEmptyLockset=false</option>
     <option name="-skipRecursion"/>
-    <include>../programs/cpalockator/*.c</include>
+    <include>../programs/cpalockator/simple/*.c</include>
+  </tasks>
+
+  <tasks name="basics">
+    <option name="-lockator-linux"/>
+    <option name="-setprop">cpa.usage.unsafedetector.ignoreEmptyLockset=false</option>
+    <option name="-skipRecursion"/>
+    <include>../programs/cpalockator/threads/*.c</include>
   </tasks>
 
 </benchmark>

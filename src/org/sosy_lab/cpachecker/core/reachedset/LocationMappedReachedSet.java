@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -45,13 +47,14 @@ public class LocationMappedReachedSet extends PartitionedReachedSet {
 
   @Override
   public Collection<AbstractState> getReached(CFANode location) {
+    checkNotNull(location);
     return getReachedForKey(location);
   }
 
   @Override
   protected Object getPartitionKey(AbstractState pState) {
     CFANode location = AbstractStates.extractLocation(pState);
-    assert location != null : "Location information necessary for LocationMappedReachedSet";
+    checkNotNull(location, "Location information necessary for LocationMappedReachedSet");
     return location;
   }
 

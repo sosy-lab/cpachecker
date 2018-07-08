@@ -31,7 +31,7 @@ public class RefinedUsagePointSet implements AbstractUsagePointSet {
       if (result != null) {
         return result;
       }
-      UsagePoint p = UsagePoint.createUsagePoint(target2);
+      UsagePoint p = target2.createUsagePoint();
       if (p.equals(point)) {
         return new UsageInfoSet(target2);
       }
@@ -61,7 +61,7 @@ public class RefinedUsagePointSet implements AbstractUsagePointSet {
 
   @Override
   public UsageInfoSet getUsageInfo(UsagePoint point) {
-    UsagePoint p = UsagePoint.createUsagePoint(target);
+    UsagePoint p = target.createUsagePoint();
     if (p.equals(point)) {
       return new UsageInfoSet(target);
     }

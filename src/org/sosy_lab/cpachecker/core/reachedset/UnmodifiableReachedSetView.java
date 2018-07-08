@@ -50,9 +50,9 @@ public class UnmodifiableReachedSetView
       UnmodifiableReachedSet pUnderlyingSet,
       Function<? super AbstractState, AbstractState> pMapStateFunction,
       Function<? super Precision, Precision> pMapPrecisionFunction) {
-    assert pUnderlyingSet != null;
-    assert pMapStateFunction != null;
-    assert pMapPrecisionFunction != null;
+    checkNotNull(pUnderlyingSet);
+    checkNotNull(pMapStateFunction);
+    checkNotNull(pMapPrecisionFunction);
 
     underlying = pUnderlyingSet;
     mapStateFunction = pMapStateFunction;
@@ -111,6 +111,7 @@ public class UnmodifiableReachedSetView
 
   @Override
   public void forEach(BiConsumer<? super AbstractState, ? super Precision> pAction) {
+    checkNotNull(pAction);
     underlying.forEach(
         (state, precision) ->
             pAction.accept(mapStateFunction.apply(state), mapPrecisionFunction.apply(precision)));

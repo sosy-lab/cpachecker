@@ -112,10 +112,10 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedJSCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -684,7 +684,7 @@ public class JSToFormulaConverter {
       Formula formula,
       Constraints constraints,
       CFAEdge edge)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     Formula result = makeCast0(pFromType, pToType, formula, edge);
 
     if (options.encodeOverflowsWithUFs()) {
@@ -774,7 +774,7 @@ public class JSToFormulaConverter {
    * @return the new formula after the cast.
    */
   private Formula makeCast0(final CType pFromType, final CType pToType,
-      Formula formula, CFAEdge edge) throws UnrecognizedCCodeException {
+      Formula formula, CFAEdge edge) throws UnrecognizedCodeException {
     // UNDEFINED: Casting a numeric value into a value that can't be represented by the target type (either directly or via static_cast)
 
     CType fromType = pFromType.getCanonicalType();
@@ -809,7 +809,7 @@ public class JSToFormulaConverter {
       logger.logfOnce(Level.WARNING, "Ignoring cast from %s to %s.", fromType, toType);
       return formula;
     } else {
-      throw new UnrecognizedCCodeException("Cast from " + pFromType + " to " + pToType + " not supported!", edge);
+      throw new UnrecognizedCodeException("Cast from " + pFromType + " to " + pToType + " not supported!", edge);
     }
   }
 
@@ -988,7 +988,7 @@ public class JSToFormulaConverter {
 //  @Override
   public PathFormula makeAnd(PathFormula oldFormula,
       CFAEdge edge, ErrorConditions errorConditions)
-      throws UnrecognizedCCodeException, UnrecognizedCFAEdgeException, InterruptedException,
+      throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException,
              UnrecognizedJSCodeException {
 
     String function = (edge.getPredecessor() != null)
@@ -1069,7 +1069,7 @@ public class JSToFormulaConverter {
                                        final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
                                        final Constraints constraints, final ErrorConditions errorConditions,
                                        final CFunctionEntryNode entryNode)
-          throws UnrecognizedCCodeException, InterruptedException {
+          throws UnrecognizedCodeException, InterruptedException {
 
     if (options.useParameterVariables()) {
       for (CParameterDeclaration formalParam : entryNode.getFunctionParameters()) {
@@ -1152,7 +1152,7 @@ public class JSToFormulaConverter {
       final CFAEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
-      throws UnrecognizedCCodeException, UnrecognizedCFAEdgeException, InterruptedException,
+      throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException,
              UnrecognizedJSCodeException {
     switch (edge.getEdgeType()) {
     case StatementEdge: {
@@ -1216,7 +1216,7 @@ public class JSToFormulaConverter {
       final PointerTargetSetBuilder pts,
       final Constraints constraints,
       final ErrorConditions errorConditions)
-      throws UnrecognizedCCodeException, InterruptedException, UnrecognizedJSCodeException {
+      throws UnrecognizedCodeException, InterruptedException, UnrecognizedJSCodeException {
 
     JSStatement stmt = statement.getStatement();
     if (stmt instanceof JSAssignment) {
@@ -1226,7 +1226,7 @@ public class JSToFormulaConverter {
 
     } else {
       if (stmt instanceof CFunctionCallStatement) {
-//        CRightHandSideVisitor<Formula, UnrecognizedCCodeException> ev = createJSRightHandSideVisitor(
+//        CRightHandSideVisitor<Formula, UnrecognizedCodeException> ev = createJSRightHandSideVisitor(
 //            statement, function, ssa, pts, constraints, errorConditions);
 //        CFunctionCallStatement callStmt = (CFunctionCallStatement)stmt;
 //        callStmt.getFunctionCallExpression().accept(ev);
@@ -1244,7 +1244,7 @@ public class JSToFormulaConverter {
       final JSDeclarationEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
-      throws UnrecognizedCCodeException, InterruptedException, UnrecognizedJSCodeException {
+      throws UnrecognizedCodeException, InterruptedException, UnrecognizedJSCodeException {
 
     if (!(edge.getDeclaration() instanceof JSVariableDeclaration)) {
       // struct prototype, function declaration, typedef etc.
@@ -1326,7 +1326,7 @@ public class JSToFormulaConverter {
    * returning a wrong answer.
    */
   protected void checkForLargeArray(final CDeclarationEdge declarationEdge, CType declarationType)
-      throws UnsupportedCCodeException {
+      throws UnsupportedCodeException {
     if (!options.shouldAbortOnLargeArrays() || !(declarationType instanceof CArrayType)) {
       return;
     }
@@ -1336,14 +1336,14 @@ public class JSToFormulaConverter {
     if (elementType instanceof CSimpleType
         && ((CSimpleType) elementType).getType().isFloatingPointType()) {
       if (arrayType.getLengthAsInt().orElse(0) > 100) {
-        throw new UnsupportedCCodeException("large floating-point array", declarationEdge);
+        throw new UnsupportedCodeException("large floating-point array", declarationEdge);
       }
     }
 
     if (elementType instanceof CSimpleType
         && ((CSimpleType) elementType).getType() == CBasicType.INT) {
       if (arrayType.getLengthAsInt().orElse(0) >= 10000) {
-        throw new UnsupportedCCodeException("large integer array", declarationEdge);
+        throw new UnsupportedCodeException("large integer array", declarationEdge);
       }
     }
   }
@@ -1384,7 +1384,7 @@ public class JSToFormulaConverter {
     }
   }
 
-  protected CType getReturnType(CFunctionCallExpression funcCallExp, CFAEdge edge) throws UnrecognizedCCodeException {
+  protected CType getReturnType(CFunctionCallExpression funcCallExp, CFAEdge edge) throws UnrecognizedCodeException {
     // NOTE: When funCallExp.getExpressionType() does always return the return type of the function we don't
     // need this function. However I'm not sure because there can be implicit casts. Just to be safe.
     CType retType;
@@ -1400,7 +1400,7 @@ public class JSToFormulaConverter {
         CFunctionType funcPtrType = (CFunctionType) ((CPointerType) expressionType).getType().getCanonicalType();
         retType = funcPtrType.getReturnType();
       } else {
-        throw new UnrecognizedCCodeException("Cannot handle function pointer call with unknown type " + expressionType, edge, funcCallExp);
+        throw new UnrecognizedCodeException("Cannot handle function pointer call with unknown type " + expressionType, edge, funcCallExp);
       }
       assert retType != null;
     } else {
@@ -1425,7 +1425,7 @@ public class JSToFormulaConverter {
       final PointerTargetSetBuilder pts,
       final Constraints constraints,
       final ErrorConditions errorConditions)
-      throws UnrecognizedCCodeException, InterruptedException, UnrecognizedJSCodeException {
+      throws UnrecognizedCodeException, InterruptedException, UnrecognizedJSCodeException {
 
     final List<JSExpression> actualParams = edge.getArguments();
 
@@ -1435,7 +1435,7 @@ public class JSToFormulaConverter {
     // TODO handle that function call has different parameter count than function definition
     if (fn.getFunctionDefinition().getType().takesVarArgs()) {
       if (formalParams.size() > actualParams.size()) {
-        throw new UnrecognizedCCodeException("Number of parameters on function call does " +
+        throw new UnrecognizedCodeException("Number of parameters on function call does " +
             "not match function definition", edge);
       }
 
@@ -1447,7 +1447,7 @@ public class JSToFormulaConverter {
 
     } else {
       if (formalParams.size() != actualParams.size()) {
-        throw new UnrecognizedCCodeException("Number of parameters on function call does " +
+        throw new UnrecognizedCodeException("Number of parameters on function call does " +
             "not match function definition", edge);
       }
     }
@@ -1497,7 +1497,7 @@ public class JSToFormulaConverter {
       final PointerTargetSetBuilder pts,
       final Constraints constraints,
       final ErrorConditions errorConditions)
-      throws UnrecognizedCCodeException, InterruptedException, UnrecognizedJSCodeException {
+      throws UnrecognizedCodeException, InterruptedException, UnrecognizedJSCodeException {
     return makeAssignment(
         assignment.getLeftHandSide(),
         assignment.getRightHandSide(),
@@ -1641,7 +1641,7 @@ public class JSToFormulaConverter {
    * @return Created formula.
    */
   public final Formula buildTermFromPathFormula(
-      PathFormula pFormula, CIdExpression expr, CFAEdge edge) throws UnrecognizedCCodeException {
+      PathFormula pFormula, CIdExpression expr, CFAEdge edge) throws UnrecognizedCodeException {
 
     String functionName = edge.getPredecessor().getFunctionName();
     Constraints constraints = new Constraints(bfmgr);
@@ -1797,7 +1797,7 @@ public class JSToFormulaConverter {
   /**
    * Creates a Formula which accesses the given Field
    */
-  BitvectorFormula accessField(CFieldReference fExp, Formula f) throws UnrecognizedCCodeException {
+  BitvectorFormula accessField(CFieldReference fExp, Formula f) throws UnrecognizedCodeException {
     assert options.handleFieldAccess() : "Fieldaccess if only allowed with handleFieldAccess";
     assert f instanceof BitvectorFormula : "Fields need to be represented with bitvectors";
     // Get the underlaying structure
@@ -1814,7 +1814,7 @@ public class JSToFormulaConverter {
    * @return If pRightVariable is present, a formula of the same size as pLVar, but with some bits replaced.
    * If pRightVariable is not present, a formula that is smaller then pLVar (with the field bits missing).
    */
-  Formula replaceField(CFieldReference fExp, Formula pLVar, Optional<Formula> pRightVariable) throws UnrecognizedCCodeException {
+  Formula replaceField(CFieldReference fExp, Formula pLVar, Optional<Formula> pRightVariable) throws UnrecognizedCodeException {
     assert options.handleFieldAccess() : "Fieldaccess if only allowed with handleFieldAccess";
 
     Triple<Integer, Integer, Boolean> msb_Lsb = getFieldOffsetMsbLsb(fExp);
@@ -1852,7 +1852,7 @@ public class JSToFormulaConverter {
   /**
    * Returns the offset of the given CFieldReference within the structure in bits.
    */
-  private Triple<Integer, Integer, Boolean> getFieldOffsetMsbLsb(CFieldReference fExp) throws UnrecognizedCCodeException {
+  private Triple<Integer, Integer, Boolean> getFieldOffsetMsbLsb(CFieldReference fExp) throws UnrecognizedCodeException {
     CExpression fieldRef = getRealFieldOwner(fExp);
     CCompositeType structType = (CCompositeType)fieldRef.getExpressionType().getCanonicalType();
 
@@ -1867,7 +1867,7 @@ public class JSToFormulaConverter {
       offset = getFieldOffset(structType, fExp.getFieldName());
       break;
     default:
-      throw new UnrecognizedCCodeException("Unexpected field access", fExp);
+      throw new UnrecognizedCodeException("Unexpected field access", fExp);
     }
 
     CType type = fExp.getExpressionType();

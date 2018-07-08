@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.ArithmeticOverflowAssumptionBuilder;
 
 public class OverflowTransferRelation extends SingleEdgeTransferRelation {
@@ -87,7 +87,7 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
   private CExpression mkNot(CExpression arg) {
     try {
       return expressionBuilder.negateExpressionAndSimplify(arg);
-    } catch (UnrecognizedCCodeException e) {
+    } catch (UnrecognizedCodeException e) {
       throw new AssertionError(e);
     }
   }

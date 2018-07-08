@@ -117,7 +117,8 @@ public class SMGPathInterpolator {
    * @param pErrorPathPrefix the possible shorter error path prefix
    * @param pInterpolants the current interpolant map
    */
-  private final void propagateFalseInterpolant(final ARGPath errorPath,
+  private void propagateFalseInterpolant(
+      final ARGPath errorPath,
       final ARGPath pErrorPathPrefix,
       final Map<ARGState, SMGInterpolant> pInterpolants) {
     if (pErrorPathPrefix.size() < errorPath.size()) {

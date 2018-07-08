@@ -436,7 +436,7 @@ public final class BMCHelper {
             });
   }
 
-  public static interface FormulaInContext {
+  public interface FormulaInContext {
 
     BooleanFormula getFormulaInContext(PathFormula pContext)
         throws CPATransferException, InterruptedException;

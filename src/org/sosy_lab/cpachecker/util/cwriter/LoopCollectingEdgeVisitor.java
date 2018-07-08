@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 public class LoopCollectingEdgeVisitor implements EdgeVisitor {
 
   enum LoopDetectionStrategy {
-    ALL_LOOPS, ONLY_LAST_LOOP;
+    ALL_LOOPS, ONLY_LAST_LOOP
   }
 
   @Option(toUppercase=true,

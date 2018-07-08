@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -41,6 +43,7 @@ import org.sosy_lab.cpachecker.core.waitlist.LoopIterationSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.LoopstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.PostorderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ReversePostorderSortedWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.SMGSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ThreadingSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
@@ -50,7 +53,7 @@ import org.sosy_lab.cpachecker.cpa.usage.UsageReachedSet;
 @Options(prefix="analysis")
 public class ReachedSetFactory {
 
-  private static enum ReachedSetType {
+  private enum ReachedSetType {
     NORMAL,
     LOCATIONMAPPED,
     PARTITIONED,
@@ -153,10 +156,15 @@ public class ReachedSetFactory {
   private boolean useNumberOfThreads = false;
 
   @Option(
-    secure = true,
-    name = "traversal.weightedDepth",
-    description = "perform a weighted random selection based on the depth in the ARG"
-  )
+      secure = true,
+      name = "traversal.useNumberOfHeapObjects",
+      description = "handle abstract states with fewer heap objects first? (needs SMGCPA)")
+  private boolean useNumberOfHeapObjects = false;
+
+  @Option(
+      secure = true,
+      name = "traversal.weightedDepth",
+      description = "perform a weighted random selection based on the depth in the ARG")
   private boolean useWeightedDepthOrder = false;
 
   @Option(
@@ -196,7 +204,7 @@ public class ReachedSetFactory {
       throws InvalidConfigurationException {
     pConfig.inject(this);
     this.config = pConfig;
-    this.logger = pLogger;
+    this.logger = checkNotNull(pLogger);
 
     if (useBlocks) {
       blockConfig = new BlockConfiguration(pConfig);
@@ -249,6 +257,9 @@ public class ReachedSetFactory {
     }
     if (useNumberOfThreads) {
       waitlistFactory = ThreadingSortedWaitlist.factory(waitlistFactory);
+    }
+    if (useNumberOfHeapObjects) {
+      waitlistFactory = SMGSortedWaitlist.factory(waitlistFactory);
     }
     if (useBlocks) {
       waitlistFactory = BlockWaitlist.factory(waitlistFactory, blockConfig, logger);

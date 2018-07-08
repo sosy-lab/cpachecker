@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
 import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
-
 /**
  * We load the parser in its own class loader, so both all Eclipse objects
  * and all Eclipse classes can be garbage collected when they are not needed anymore.
@@ -153,7 +152,7 @@ public class Parsers {
         Class<? extends CParser> parserClass = (Class<? extends CParser>) classLoader.loadClass(C_PARSER_CLASS);
         parserConstructor =
             parserClass.getConstructor(
-                new Class<?>[] {LogManager.class, EclipseCParserOptions.class, MachineModel.class});
+                LogManager.class, EclipseCParserOptions.class, MachineModel.class);
         parserConstructor.setAccessible(true);
         loadedCParser = new WeakReference<>(parserConstructor);
       }
@@ -174,7 +173,7 @@ public class Parsers {
 
         @SuppressWarnings("unchecked")
         Class<? extends CParser> parserClass = (Class<? extends CParser>) classLoader.loadClass(JAVA_PARSER_CLASS);
-        parserConstructor = parserClass.getConstructor(new Class<?>[]{ LogManager.class, Configuration.class });
+        parserConstructor = parserClass.getConstructor(LogManager.class, Configuration.class);
         parserConstructor.setAccessible(true);
         loadedJavaParser = new WeakReference<>(parserConstructor);
       }
@@ -234,8 +233,7 @@ public class Parsers {
         @SuppressWarnings("unchecked")
         Class<? extends Parser> parserClass = (Class<? extends Parser>)
             classLoader.loadClass(LLVM_PARSER_CLASS);
-        parserConstructor = parserClass.getConstructor(new Class<?>[]{ LogManager.class,
-            MachineModel.class });
+        parserConstructor = parserClass.getConstructor(LogManager.class, MachineModel.class);
         parserConstructor.setAccessible(true);
         loadedLlvmParser = new WeakReference<>(parserConstructor);
       }

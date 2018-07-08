@@ -39,7 +39,7 @@ public class CFunctionType extends AFunctionType implements CType {
   private static final long serialVersionUID = 4154771254170820716L;
 
   public static CFunctionType functionTypeWithReturnType(CType pReturnType) {
-    return new CFunctionType(checkNotNull(pReturnType), ImmutableList.<CType>of(), false);
+    return new CFunctionType(checkNotNull(pReturnType), ImmutableList.of(), false);
   }
 
   public final static CFunctionType NO_ARGS_VOID_FUNCTION = functionTypeWithReturnType(CVoidType.VOID);

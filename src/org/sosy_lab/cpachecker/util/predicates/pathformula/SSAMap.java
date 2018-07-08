@@ -34,6 +34,10 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import org.sosy_lab.common.collect.Collections3;
+import java.io.Serializable;
+import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.Map;
+import java.util.NavigableSet;
 import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -46,6 +50,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+
 
 /**
  * Maps a variable name to its latest "SSA index", that should be used when
@@ -65,8 +71,7 @@ public class SSAMap implements Serializable {
         @Override
         public Type resolveConflict(String name, Type type1, Type type2) {
           Preconditions.checkArgument(
-              type1 instanceof CFunctionType
-                  || type2 instanceof CFunctionType
+              (type1 instanceof CFunctionType && type2 instanceof CFunctionType)
                   || (isEnumPointerType(type1) && isEnumPointerType(type2))
                   || type1.equals(type2),
               "Cannot change type of variable %s in SSAMap from %s to %s",
@@ -174,7 +179,7 @@ public class SSAMap implements Serializable {
       return this;
     }
 
-    public SortedSet<String> allVariables() {
+    public NavigableSet<String> allVariables() {
       return varTypes.keySet();
     }
 
@@ -348,7 +353,7 @@ public class SSAMap implements Serializable {
     return (CType) varTypes.get(name);
   }
 
-  public SortedSet<String> allVariables() {
+  public NavigableSet<String> allVariables() {
     return vars.keySet();
   }
 

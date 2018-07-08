@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.algorithm.ProgramSplitAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.SelectionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
@@ -142,10 +143,17 @@ public class CoreComponentsFactory {
 
   @Option(
     secure = true,
+    name = "selectAnalysisHeuristically",
+    description = "Use heuristics to select the analysis"
+  )
+  private boolean useHeuristicSelectionAlgorithm = false;
+
+  @Option(
+    secure = true,
     name = "useParallelAnalyses",
     description =
         "Use analyses parallely. The resulting reachedset is the one of the first"
-        + " analysis finishing in time. All other analyses are terminated."
+            + " analysis finishing in time. All other analyses are terminated."
   )
   private boolean useParallelAlgorithm = false;
 
@@ -288,9 +296,7 @@ public class CoreComponentsFactory {
   }
 
   public Algorithm createAlgorithm(
-      final ConfigurableProgramAnalysis cpa,
-      final CFA cfa,
-      final Specification pSpecification)
+      final ConfigurableProgramAnalysis cpa, final CFA cfa, final Specification pSpecification)
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
 
@@ -330,6 +336,9 @@ public class CoreComponentsFactory {
     } else if (asConditionalVerifier) {
       logger.log(Level.INFO, "Using Conditional Verifier");
       algorithm = new ConditionalVerifierAlgorithm(config, logger, shutdownNotifier, specification, cfa);
+    } else if (useHeuristicSelectionAlgorithm) {
+      logger.log(Level.INFO, "Using heuristics to select analysis");
+      algorithm = new SelectionAlgorithm(cfa, shutdownNotifier, config, specification, logger);
     } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
       algorithm = RestartAlgorithm.create(config, logger, shutdownNotifier, specification, cfa);
@@ -490,7 +499,11 @@ public class CoreComponentsFactory {
   public ReachedSet createReachedSet() {
     ReachedSet reached = reachedSetFactory.create();
 
-    if (useInterleavedAlgorithm || useRestartingAlgorithm || useParallelAlgorithm || asConditionalVerifier) {
+    if (useInterleavedAlgorithm
+        || useRestartingAlgorithm
+        || useHeuristicSelectionAlgorithm
+        || useParallelAlgorithm
+        || asConditionalVerifier) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
       if (memorizeReachedAfterRestart) {
@@ -509,6 +522,7 @@ public class CoreComponentsFactory {
 
     if (useInterleavedAlgorithm
         || useRestartingAlgorithm
+        || useHeuristicSelectionAlgorithm
         || useParallelAlgorithm
         || useProofCheckAlgorithmWithStoredConfig
         || useProofCheckWithARGCMCStrategy

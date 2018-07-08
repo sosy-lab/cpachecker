@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AssumptionReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
@@ -81,17 +81,23 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
     return Collections.singleton(strengthen(asmptStorageElem, others, edge));
   }
 
-  AssumptionStorageState strengthen(AssumptionStorageState pAsmptStorageElem, List<AbstractState> pOthers, CFAEdge pEdge) throws UnrecognizedCCodeException, InterruptedException {
+  AssumptionStorageState strengthen(
+      AssumptionStorageState pAsmptStorageElem, List<AbstractState> pOthers, CFAEdge pEdge)
+      throws UnrecognizedCodeException, InterruptedException {
     BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
-    assert bfmgr.isTrue(pAsmptStorageElem.getAssumption());
-    assert bfmgr.isTrue(pAsmptStorageElem.getStopFormula());
+
     final CFANode currentLocation =
         Iterables.getOnlyElement(AbstractStates.extractLocations(pOthers));
     String function = currentLocation.getFunctionName();
 
-    BooleanFormula assumption =  bfmgr.makeTrue();
-    BooleanFormula stopFormula = bfmgr.makeFalse(); // initialize with false because we create a
-    // disjunction
+    BooleanFormula assumption = pAsmptStorageElem.getAssumption();
+    BooleanFormula stopFormula = pAsmptStorageElem.getStopFormula();
+    if (bfmgr.isTrue(stopFormula)) {
+      // if there is no avoidance condition,
+      // initialize with false because we create a disjunction over possible
+      // new conditions below
+      stopFormula = bfmgr.makeFalse();
+    }
 
     // process stop flag
     boolean stop = false;

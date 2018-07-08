@@ -40,7 +40,6 @@ import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ResourceInfo;
 import com.google.common.testing.TestLogHandler;
 import com.google.common.truth.Expect;
-import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
@@ -85,6 +84,7 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 /**
  * Test that the bundled configuration files are all valid.
@@ -94,7 +94,7 @@ public class ConfigurationFileChecks {
 
   private static final Pattern INDICATES_MISSING_INPUT_FILE =
       Pattern.compile(
-          ".*File .* does not exist.*|.*Witness file is missing in specification.*",
+          ".*File .* does not exist.*|.*Witness file is missing in specification.*|.*Could not read precision from file.*",
           Pattern.DOTALL);
 
   private static final Pattern ALLOWED_WARNINGS =
@@ -116,6 +116,7 @@ public class ConfigurationFileChecks {
       ImmutableSet.of(
           // always set by this test
           "java.sourcepath",
+          "differential.program",
           // handled by code outside of CPAchecker class
           "output.disable",
           "limits.time.cpu",
@@ -367,6 +368,8 @@ public class ConfigurationFileChecks {
     @SuppressWarnings("deprecation")
     final String cpas = firstNonNull(config.getProperty("CompositeCPA.cpas"), "");
     final boolean isSvcompConfig = basePath.toString().contains("svcomp");
+    final boolean isTestGenerationConfig = basePath.toString().contains("testCaseGeneration");
+    final boolean isDifferentialConfig = basePath.toString().contains("differentialAutomaton");
 
     if (options.language == Language.JAVA) {
       assertThat(spec).endsWith("specification/JavaAssertion.spc");
@@ -402,6 +405,10 @@ public class ConfigurationFileChecks {
       } else {
         assertThat(spec).endsWith("specification/sv-comp-reachability.spc");
       }
+    } else if (isTestGenerationConfig) {
+      assertThat(spec).isAnyOf(null, "");
+    } else if (isDifferentialConfig) {
+      assertThat(spec).isAnyOf(null, "", "specification/modifications-present.spc");
     } else if (spec != null) {
       // TODO should we somehow restrict which configs may specify "no specification"?
       assertThat(spec).endsWith("specification/default.spc");
@@ -509,6 +516,7 @@ public class ConfigurationFileChecks {
       return parse(configFile)
           .addConverter(FileOption.class, fileTypeConverter)
           .setOption("java.sourcepath", tempFolder.getRoot().toString())
+          .setOption("differential.program", createEmptyProgram(Language.C))
           .build();
     } catch (InvalidConfigurationException | IOException | URISyntaxException e) {
       assume().fail(e.getMessage());
@@ -516,25 +524,8 @@ public class ConfigurationFileChecks {
     }
   }
 
-  private String createEmptyProgram(final Language pLanguage) throws IOException {
-    switch (pLanguage) {
-      case JAVA:
-        IO.writeFile(
-            tempFolder.newFile("Main.java").toPath(),
-            StandardCharsets.US_ASCII,
-            "public class Main { public static void main(String... args) {} }");
-        return "Main";
-      case JAVASCRIPT:
-        final File jsFile = tempFolder.newFile("empty.js");
-        IO.writeFile(jsFile.toPath(), StandardCharsets.US_ASCII, "");
-        return jsFile.toString();
-      case C:
-        File cFile = tempFolder.newFile("program.i");
-        IO.writeFile(cFile.toPath(), StandardCharsets.US_ASCII, "void main() {}");
-        return cFile.toString();
-      default:
-        throw new RuntimeException("Unhandled language " + pLanguage);
-    }
+  private String createEmptyProgram(Language pLanguage) throws IOException {
+    return TestDataTools.getEmptyProgram(tempFolder, pLanguage);
   }
 
   private static Stream<String> getSevereMessages(OptionsWithSpecialHandlingInTest pOptions, final TestLogHandler pLogHandler) {

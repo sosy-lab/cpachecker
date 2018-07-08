@@ -1,3 +1,6 @@
+/* Refer to the doc/ReportTemplateStyleGuide.md for Coding and Style Guide. They will let you write better code
+with considerably less effort */
+
 html {
 	position: relative;
 	height: 100%;
@@ -18,15 +21,22 @@ body {
 	width: 100%;
 	min-width: 750px;
 	height: 50px;
-	background-color: whitesmoke;
+	background-color: #ffef96;
 	border-bottom: solid 2px;
 	border-bottom-color: lightgrey;
 	padding: 7px;
+	padding-top: 5px;
+	text-align: center;
+	justify-content: center;
 }
 
 .sections {
 	height: 100%;
 	padding: 0;
+}
+
+.nav>li>a:hover {
+	background-color: #c0c0c0;
 }
 
 .btn {
@@ -35,13 +45,14 @@ body {
 
 .header img.logo {
 	float: left;
-	height: 30px;
-	margin-right: 5px;
+	height: 40px;
+	margin-left: 10px;
 }
 
 .header h1 {
 	display: inline;
-	font-size: 20px;
+	font-size: 21px;
+	color: #50394c;
 }
 
 .header .generated {
@@ -69,97 +80,163 @@ body {
 	cursor: pointer;
 }
 
+/* The switch - the box around the slider */
+
+.switch {
+	position: relative;
+	display: inline-block;
+	width: 60px;
+	height: 34px;
+}
+
+/* Hide default HTML checkbox */
+
+.switch input {
+	padding: 10px;
+	display: none;
+}
+
+/* The slider */
+
+.slider {
+	position: absolute;
+	cursor: pointer;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: grey;
+	-webkit-transition: .4s;
+	transition: .4s;
+}
+
+.slider:before {
+	position: absolute;
+	content: "";
+	height: 26px;
+	width: 26px;
+	left: 4px;
+	bottom: 4px;
+	background-color: white;
+	-webkit-transition: .4s;
+	transition: .4s;
+}
+
+input:checked+.slider {
+	background-color: #ffc107;
+}
+
+input:focus+.slider {
+	box-shadow: 0 0 1px #ffc107;
+}
+
+input:checked+.slider:before {
+	-webkit-transform: translateX(26px);
+	-ms-transform: translateX(26px);
+	transform: translateX(26px);
+}
+
+/* Rounded sliders */
+
+.slider.round {
+	border-radius: 34px;
+}
+
+.slider.round:before {
+	border-radius: 50%;
+}
+
 #errorpath_section {
-    position:relative;
-    float: left;
-    width: 25%;
-    min-width: 70px;
-    height: inherit;
-    background-color: white;
-    border: solid 4px;
-    border-color: lightgrey;
-    padding: 5px;
+	position: relative;
+	float: left;
+	width: 25%;
+	min-width: 70px;
+	height: inherit;
+	background-color: white;
+	border: solid 4px;
+	border-color: lightgrey;
+	padding: 5px;
 }
 
 #errorpath_section header .input-group {
-    margin-top: 5px;
-    margin-bottom: 5px;
+	margin-top: 5px;
+	margin-bottom: 5px;
 }
 
 #errorpath_section .fileContent {
-    height: calc(100% - 110px);
-    margin: 5px;
-    overflow: auto;
+	height: calc(100% - 110px);
+	margin: 5px;
+	overflow: auto;
 }
 
 #searchOptions label {
-    font-weight: normal;
+	font-weight: normal;
 }
 
 #matches {
-    display: none;
+	display: none;
 }
 
 .markedValues {
-    background-color: #83d480;
-    border-radius: 25px;
-    margin-bottom: 2px;
-    padding: 2px;
-    padding-left: 8px;
-    max-width: 270px;
+	background-color: #83d480;
+	border-radius: 25px;
+	margin-bottom: 2px;
+	padding: 2px;
+	padding-left: 8px;
+	max-width: 270px;
 }
 
 .markedDescriptions {
-    background-color: #71afff;
-    border-radius: 20px;
-    padding: 2px;
-    padding-left: 8px;
-    margin-bottom: 2px;
-    max-width: 270px;
+	background-color: #71afff;
+	border-radius: 20px;
+	padding: 2px;
+	padding-left: 8px;
+	margin-bottom: 2px;
+	max-width: 270px;
 }
 
 .markedTableElement {
-    border: solid 2px;
-    border-color: #00d415;
+	border: solid 2px;
+	border-color: #00d415;
 }
 
 .markedValueElement pre {
-    background-color: #83d480 !important;
+	background-color: #83d480 !important;
 }
 
 .markedDescElement pre {
-    background-color: #71afff !important;
+	background-color: #71afff !important;
 }
 
 .markedValueDescElement pre {
-    background: linear-gradient(#83d480, #71afff) !important;
+	background: linear-gradient(#83d480, #71afff) !important;
 }
 
 #err-table td {
-    cursor: pointer;
+	cursor: pointer;
 }
 
 #err-table td.disabled {
-    cursor: not-allowed;
-    pointer-events: none;
+	cursor: not-allowed;
+	pointer-events: none;
 }
 
 #err-table td:hover {
-    font-weight: bold;
+	font-weight: bold;
 }
 
 #err-table td:first-child {
-    border-radius: 6px;
+	border-radius: 6px;
 }
 
 #err-table td pre {
-    padding: 0px;
-    margin: 0px;
-    border: none;
+	padding: 0px;
+	margin: 0px;
+	border: none;
 }
 
-#err-table tr:nth-child(odd) td pre.make-pretty {
-    background-color: #f3f3f3;
+#err-table tr td pre.make-pretty {
+	background-color: #ffe5d5;
 }
 
 #err-table tr.clickedErrPathElement {
@@ -167,7 +244,7 @@ body {
 }
 
 .marked-source-line {
-    background-color: #df80ff !important;
+	background-color: #df80ff !important;
 }
 
 .marked-cfa-edge path {
@@ -180,26 +257,30 @@ body {
 	stroke-width: 3px !important;
 }
 
-.marked-cfa-node > rect {
+.marked-cfa-node>rect {
 	outline: #8B008B solid thick !important;
+	rx:5;
+	ry:5
 }
 
-.marked-cfa-node > polygon {
+.marked-cfa-node>polygon {
 	stroke: #8B008B !important;
 	stroke-width: 5px !important;
 }
 
-.marked-cfa-node > circle {
+.marked-cfa-node>circle {
 	stroke: #8B008B !important;
 	stroke-width: 5px !important;
 }
 
 .marked-cfa-node-label {
-    fill: #ff00ff !important;
+	fill: #ff00ff !important;
 }
 
-.marked-arg-node > rect {
+.marked-arg-node>rect {
 	outline: #8B008B solid thick !important;
+	rx:5;
+	ry:5
 }
 
 #externalFiles_section {
@@ -241,7 +322,7 @@ body {
 	top: 100px;
 	bottom: 5px;
 	left: 5px;
-	right: 5px;	
+	right: 5px;
 }
 
 #externalFiles_section div.arg-content {
@@ -250,7 +331,7 @@ body {
 	top: 100px;
 	bottom: 5px;
 	left: 5px;
-	right: 5px;	
+	right: 5px;
 }
 
 table {
@@ -258,7 +339,23 @@ table {
 	border-spacing: 2px;
 }
 
-td:first-child {
+.dataTables_wrapper {
+	padding: 10px;
+}
+
+#statistics_table td:first-child{
+	white-space:pre;
+}
+
+#statistics_table .table_head{
+	background-color: #ccc;
+}
+
+#err-table td:first-child {
+	background-color: #ccc;
+}
+
+.sourceContent td:first-child {
 	background-color: #ccc;
 }
 
@@ -269,26 +366,30 @@ td:first-child {
 }
 
 .sourceContent tr:nth-child(odd) td pre.prettyprint {
-	background-color: #f3f3f3;
+	background-color: #c6dce7;
+}
+
+.sourceContent tr:nth-child(even) td pre.prettyprint {
+	background-color: #a8cfe2;
 }
 
 .edit-line {
-    width: 100%;
-    background-color: white;
-    padding: 5px;
+	width: 100%;
+	background-color: white;
+	padding: 5px;
 }
 
 .edit-line div {
-    display: inline-block;
+	display: inline-block;
 }
 
 .edit-line label {
-    margin-right: 100px;
-    display: inline-block;
+	margin-right: 100px;
+	display: inline-block;
 }
 
 .edit-line p {
-    display: inline-block;
+	display: inline-block;
 }
 
 div pre {
@@ -304,7 +405,6 @@ div pre {
 	border: 0px;
 	margin: 0px;
 	display: inline-block;
-	float: right;
 }
 
 #externalFiles_section .help_button {
@@ -321,21 +421,21 @@ div pre {
 }
 
 .loader {
-	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+	font-family: "Helvetica Neue", Helvetica, Arial, "sans-serf";
 	font-size: 20px;
 	font-style: italic;
-	color: #663399;
+	color: #4040a1;
 }
 
 #cfa-toolbar {
-    width: 95%;
-    background-color: white;
-    margin-top: 5px;
+	width: 95%;
+	background-color: white;
+	margin-top: 5px;
 	margin-left: 10px;
-    padding: 5px;
-    position: fixed;
-    display: inline-block;
-    visibility: hidden;
+	padding: 5px;
+	position: fixed;
+	display: inline-block;
+	visibility: hidden;
 }
 
 #cfa-toolbar select {
@@ -358,13 +458,13 @@ input[type=text] {
 }
 
 #arg-toolbar {
-    width: 95%;
-    background-color: white;
-    left: 20px;
-    top: 60px;
-    padding: 5px;
-    position: absolute;
-    display: inline-block;
+	width: 95%;
+	background-color: white;
+	left: 20px;
+	top: 60px;
+	padding: 5px;
+	position: absolute;
+	display: inline-block;
 	visibility: hidden;
 }
 
@@ -384,20 +484,28 @@ text {
 	font-size: 12px;
 }
 
-.arg-node.target > rect {
+.arg-node.target>rect {
 	fill: red;
+	rx:5;
+	ry:5
 }
 
-.arg-node.not-expanded > rect {
+.arg-node.not-expanded>rect {
 	fill: orange;
+	rx:5;
+	ry:5
 }
 
-.arg-node.highlighted > rect {
+.arg-node.highlighted>rect {
 	fill: cornflowerblue;
+	rx:5;
+	ry:5
 }
 
-.arg-node.covered > rect {
+.arg-node.covered>rect {
 	fill: green;
+	rx:5;
+	ry:5
 }
 
 .arg-node text {
@@ -407,12 +515,16 @@ text {
 
 .arg-node rect {
 	fill: #fff;
+	rx:5;
+	ry:5
 }
 
 .cfa-node rect {
 	stroke: #999;
 	fill: #fff;
 	stroke-width: 1.5px;
+	rx:5;
+	ry:5
 }
 
 .cfa-node circle {
@@ -431,18 +543,24 @@ text {
 	fill: #fff;
 	stroke: #c0c0c0;
 	stroke-width: 0.5px;
+	rx:5;
+	ry:5
 }
 
 .arg-dummy rect {
 	fill: #fff;
 	stroke: #c0c0c0;
 	stroke-width: 0.5px;
+	rx:5;
+	ry:5
 }
 
 .fcall rect {
 	stroke: #999;
 	fill: #fff;
 	stroke-width: 1.5px;
+	rx:5;
+	ry:5
 }
 
 .edgePath path {
@@ -458,6 +576,7 @@ text {
 }
 
 /* if we have display: none here Firefox cannot render the edges connecting to the dummy nodes */
+
 .dummy rect {
 	visibility: hidden;
 }
@@ -469,17 +588,35 @@ text {
 	left: 10px;
 	z-index: 1;
 	width: 200px;
-	background-color: #FDFEFF;
-	border: 2px solid #000080;
+	background-color: #ffef96;
+	display: inline-block;
+	border-radius: 6px;
+}
+
+.tool_tip #boxContent::after {
+	content: "";
+	position: absolute;
+	top: 25%;
+	right: 100%;
+	margin-top: -5px;
+	border-width: 5px;
+	border-style: solid;
+	border-color: transparent #ffef96 transparent transparent;
 }
 
 #insideBox {
-	padding: 10px;
+	padding-top: 10px;
 }
 
 #boxContent {
 	font-family: Verdana, Arial, Helvetica, sans-serif;
 	font-size: 12px;
-	color: black;
 	line-height: 130%;
+	color: black;
+	text-align: center;
+	padding: 5px 0;
+}
+
+.bold {
+	font-weight: bold;
 }

@@ -76,10 +76,21 @@ public class ControlAutomatonCPA
       description="export automaton to file")
   private boolean export = false;
 
-  @Option(secure=true, name="dotExportFile",
-      description="file for saving the automaton in DOT format (%s will be replaced with automaton name)")
+  @Option(
+      secure = true,
+      name = "dotExportFile",
+      description =
+          "file for saving the automaton in DOT format (%s will be replaced with automaton name)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate exportFile = PathTemplate.ofFormatString("%s.dot");
+  private PathTemplate dotExportFile = PathTemplate.ofFormatString("%s.dot");
+
+  @Option(
+      secure = true,
+      name = "spcExportFile",
+      description =
+          "file for saving the automaton in spc format (%s will be replaced with automaton name)")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate spcExportFile = PathTemplate.ofFormatString("%s.spc");
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ControlAutomatonCPA.class);
@@ -140,12 +151,23 @@ public class ControlAutomatonCPA
 
     pLogger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
 
-    if (export && exportFile != null) {
-      try (Writer w =
-          IO.openOutputFile(exportFile.getPath(automaton.getName()), Charset.defaultCharset())) {
-        automaton.writeDotFile(w);
-      } catch (IOException e) {
-        pLogger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
+    if (export) {
+      if (dotExportFile != null) {
+        try (Writer w =
+            IO.openOutputFile(
+                dotExportFile.getPath(automaton.getName()), Charset.defaultCharset())) {
+          automaton.writeDotFile(w);
+        } catch (IOException e) {
+          pLogger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
+        }
+      }
+      if (spcExportFile != null) {
+        try {
+          IO.writeFile(
+              spcExportFile.getPath(automaton.getName()), Charset.defaultCharset(), automaton);
+        } catch (IOException e) {
+          pLogger.logUserException(Level.WARNING, e, "Could not write the automaton to SPC file");
+        }
       }
     }
   }

@@ -23,17 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsTransferRelation;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.refinement.GenericFeasibilityChecker;
 
 /**
@@ -68,5 +72,31 @@ public class SymbolicValueAnalysisFeasibilityChecker
     final ConstraintsState constraintsState = new ConstraintsState();
 
     return new ForgettingCompositeState(valueState, constraintsState);
+  }
+
+  @Override
+  public boolean isFeasible(ARGPath path) throws CPAException, InterruptedException {
+    return super.isFeasible(path);
+  }
+
+  @Override
+  public boolean isFeasible(
+      ARGPath pPath, ForgettingCompositeState pStartingPoint)
+      throws CPAException, InterruptedException {
+    return super.isFeasible(pPath, pStartingPoint);
+  }
+
+  @Override
+  public boolean isFeasible(
+      ARGPath pPath, Set<ControlAutomatonCPA> pAutomatons)
+      throws CPAException, InterruptedException {
+    return super.isFeasible(pPath, pAutomatons);
+  }
+
+  @Override
+  public boolean isFeasible(
+      ARGPath pPath, ForgettingCompositeState pStartingPoint, Set<ControlAutomatonCPA> pAutomatons)
+      throws CPAException, InterruptedException {
+    return super.isFeasible(pPath, pStartingPoint, pAutomatons);
   }
 }

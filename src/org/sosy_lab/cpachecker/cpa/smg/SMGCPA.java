@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -109,6 +110,7 @@ public class SMGCPA
 
   private SMGPrecision precision;
 
+
   private SMGCPA(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       CFA pCfa) throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -157,7 +159,7 @@ public class SMGCPA
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return DelegateAbstractDomain.<SMGState>getInstance();
+    return DelegateAbstractDomain.<UnmodifiableSMGState>getInstance();
   }
 
   @Override
@@ -197,7 +199,7 @@ public class SMGCPA
   }
 
   @Override
-  public SMGState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public UnmodifiableSMGState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     SMGState initState = new SMGState(logger, machineModel, options);
 
     try {
@@ -229,7 +231,6 @@ public class SMGCPA
     return new SMGConcreteErrorPathAllocator(assumptionToEdgeAllocator).allocateAssignmentsToPath(pPath);
   }
 
-
   public LogManager getLogger() {
     return logger;
   }
@@ -240,10 +241,6 @@ public class SMGCPA
 
   public CFA getCFA() {
     return cfa;
-  }
-
-  public SMGPrecision getPrecision() {
-    return precision;
   }
 
   public ShutdownNotifier getShutdownNotifier() {
@@ -277,29 +274,31 @@ public class SMGCPA
     // inject additional info for extended witness
     PathIterator rIterator = pPath.reverseFullPathIterator();
     ARGState lastArgState = rIterator.getAbstractState();
-    Set<Object> invalidChain = new HashSet<>();
-    SMGState state = AbstractStates.extractStateByType(lastArgState, SMGState.class);
-    invalidChain.addAll(state.getInvalidChain());
+    UnmodifiableSMGState state = AbstractStates.extractStateByType(lastArgState, SMGState.class);
+    Set<Object> invalidChain = new HashSet<>(state.getInvalidChain());
     String description = state.getErrorDescription();
-    SMGState prevSMGState = state;
+    boolean isMemoryLeakError = state.hasMemoryLeaks();
+    UnmodifiableSMGState prevSMGState = state;
     Set<Object> visitedElems = new HashSet<>();
     List<CFAEdgeWithAdditionalInfo> pathWithExtendedInfo = new ArrayList<>();
 
     while (rIterator.hasNext()) {
       rIterator.advance();
       ARGState argState = rIterator.getAbstractState();
-      SMGState smgState = AbstractStates.extractStateByType(argState, SMGState.class);
+      UnmodifiableSMGState smgState = AbstractStates.extractStateByType(argState, SMGState.class);
       CFAEdgeWithAdditionalInfo edgeWithAdditionalInfo =
           CFAEdgeWithAdditionalInfo.of(rIterator.getOutgoingEdge());
-      if (description != null && !description.isEmpty()) {
+      // Move memory leak on return edge
+      if (!isMemoryLeakError && description != null && !description.isEmpty()) {
         edgeWithAdditionalInfo.addInfo(SMGConvertingTags.WARNING, description);
         description = null;
       }
 
+      isMemoryLeakError = false;
       Set<Object> toCheck = new HashSet<>();
       for (Object elem : invalidChain) {
         if (!visitedElems.contains(elem)) {
-          if (!smgState.containsInvalidElement(elem)) {
+          if (!smgState.getHeap().containsInvalidElement(elem)) {
             visitedElems.add(elem);
             for (Object additionalElem : prevSMGState.getCurrentChain()) {
               if (!visitedElems.contains(additionalElem)
@@ -308,7 +307,7 @@ public class SMGCPA
               }
             }
             edgeWithAdditionalInfo.addInfo(
-                SMGConvertingTags.NOTE, prevSMGState.getNoteMessageOnElement(elem));
+                SMGConvertingTags.NOTE, prevSMGState.getHeap().getNoteMessageOnElement(elem));
 
           } else {
             toCheck.add(elem);
@@ -320,5 +319,16 @@ public class SMGCPA
       pathWithExtendedInfo.add(edgeWithAdditionalInfo);
     }
     return CFAPathWithAdditionalInfo.of(Lists.reverse(pathWithExtendedInfo));
+  }
+
+  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+
+  /**
+   * Get a new ID for a new memory location or region or whatever.
+   *
+   * <p>We never return ZERO here, because ZERO is used as an ID for NULL.
+   */
+  public static int getNewValue() {
+    return idGenerator.getFreshId() + 1;
   }
 }

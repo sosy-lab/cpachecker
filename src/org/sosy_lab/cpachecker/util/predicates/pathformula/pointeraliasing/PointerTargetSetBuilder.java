@@ -38,9 +38,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.Set;
-import java.util.SortedSet;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
@@ -103,7 +103,7 @@ public interface PointerTargetSetBuilder {
 
   boolean isBase(String name, CType type);
 
-  SortedSet<String> getAllBases();
+  NavigableSet<String> getAllBases();
 
   PersistentList<PointerTarget> getAllTargets(MemoryRegion region);
 
@@ -128,7 +128,7 @@ public interface PointerTargetSetBuilder {
    *
    * This class is not thread-safe.
    */
-  final static class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
+  final class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
 
     private final FormulaManagerView formulaManager;
     private final TypeHandlerWithPointerAliasing typeHandler;
@@ -736,7 +736,7 @@ public interface PointerTargetSetBuilder {
      * @return A set of all pointer bases.
      */
     @Override
-    public SortedSet<String> getAllBases() {
+    public NavigableSet<String> getAllBases() {
       return bases.keySet();
     }
 
@@ -812,7 +812,7 @@ public interface PointerTargetSetBuilder {
    * that throws an exception on all methods except for {@link #build()},
    * where it returns an empty {@link PointerTargetSet}.
    */
-  public static enum DummyPointerTargetSetBuilder implements PointerTargetSetBuilder {
+  enum DummyPointerTargetSetBuilder implements PointerTargetSetBuilder {
     INSTANCE;
 
     @Override
@@ -902,7 +902,7 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public SortedSet<String> getAllBases() {
+    public NavigableSet<String> getAllBases() {
       throw new UnsupportedOperationException();
     }
 

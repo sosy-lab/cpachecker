@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.variableclassification;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -41,19 +43,20 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableAndFieldRelevancyComputer.VarFieldDependencies;
 
 final class CollectingRHSVisitor
-    extends DefaultCExpressionVisitor<VarFieldDependencies, RuntimeException>
-    implements CRightHandSideVisitor<VarFieldDependencies, RuntimeException> {
+    extends DefaultCExpressionVisitor<VarFieldDependencies, NoException>
+    implements CRightHandSideVisitor<VarFieldDependencies, NoException> {
 
   private final CFA cfa;
   private final VariableOrField lhs;
   private final boolean addressed;
 
   private CollectingRHSVisitor(final CFA pCfa, final VariableOrField lhs, final boolean addressed) {
-    this.cfa = pCfa;
-    this.lhs = lhs;
+    this.cfa = checkNotNull(pCfa);
+    this.lhs = checkNotNull(lhs);
     this.addressed = addressed;
   }
 
@@ -156,6 +159,7 @@ final class CollectingRHSVisitor
 
   @Override
   protected VarFieldDependencies visitDefault(final CExpression e) {
+    checkNotNull(e);
     return VarFieldDependencies.emptyDependencies();
   }
 }

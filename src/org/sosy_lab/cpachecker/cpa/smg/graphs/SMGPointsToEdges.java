@@ -26,25 +26,27 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 /** An immutable collection of points-to-edges. */
 public interface SMGPointsToEdges extends Iterable<SMGEdgePointsTo> {
 
   // Modifying methods
 
-  public SMGPointsToEdges addAndCopy(SMGEdgePointsTo pEdge);
+  SMGPointsToEdges addAndCopy(SMGEdgePointsTo pEdge);
 
-  public SMGPointsToEdges removeAndCopy(SMGEdgePointsTo pEdge);
+  SMGPointsToEdges removeAndCopy(SMGEdgePointsTo pEdge);
 
-  public SMGPointsToEdges removeAllEdgesOfObjectAndCopy(SMGObject pObj);
+  SMGPointsToEdges removeAllEdgesOfObjectAndCopy(SMGObject pObj);
 
-  public SMGPointsToEdges removeEdgeWithValueAndCopy(int pValue);
+  SMGPointsToEdges removeEdgeWithValueAndCopy(SMGValue pValue);
 
   // Querying methods
 
-  public boolean containsEdgeWithValue(Integer pValue);
+  boolean containsEdgeWithValue(SMGValue pValue);
 
-  public @Nullable SMGEdgePointsTo getEdgeWithValue(Integer pValue);
+  @Nullable
+  SMGEdgePointsTo getEdgeWithValue(SMGValue pValue);
 
-  public int size();
+  int size();
 }

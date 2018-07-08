@@ -43,7 +43,7 @@ public class CSizeOfVisitor extends BaseSizeofVisitor {
   private final CFAEdge edge;
   private final SMGState state;
   private final Optional<CExpression> expression;
-  protected final SMGExpressionEvaluator eval;
+  private final SMGExpressionEvaluator eval;
 
   public CSizeOfVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge,
       SMGState pState, Optional<CExpression> pExpression) {
@@ -132,7 +132,7 @@ public class CSizeOfVisitor extends BaseSizeofVisitor {
     return length * sizeOfType;
   }
 
-  protected int handleUnkownArrayLengthValue(CArrayType pArrayType) {
+  int handleUnkownArrayLengthValue(CArrayType pArrayType) {
     throw new IllegalArgumentException(
         "Can't calculate array length of type " + pArrayType.toASTString("") + ".");
   }

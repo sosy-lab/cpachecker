@@ -200,7 +200,17 @@ public abstract class ConditionFolder {
     }
   }
 
+  private final FOLDER_TYPE type;
+
+  public ConditionFolder(final FOLDER_TYPE pType) {
+    type = pType;
+  }
+
   public abstract ARGState foldARG(final ARGState pARGRoot);
+
+  public FOLDER_TYPE getType() {
+    return type;
+  }
 
   protected ARGState getUncoveredChild(ARGState pChild) {
     while (pChild.isCovered()) {
@@ -248,6 +258,10 @@ public abstract class ConditionFolder {
   }
 
   private static class CFAFolder extends ConditionFolder {
+
+    public CFAFolder() {
+      super(FOLDER_TYPE.CFA);
+    }
 
     @Override
     public ARGState foldARG(ARGState pARGRoot) {
@@ -308,7 +322,8 @@ public abstract class ConditionFolder {
     protected final CFA cfa;
     protected final Set<CFANode> loopHeads;
 
-    public StructureFolder(final CFA pCfa) {
+    public StructureFolder(final CFA pCfa, final FOLDER_TYPE type) {
+      super(type);
       cfa = pCfa;
       Preconditions.checkState(cfa.getAllLoopHeads().isPresent());
       loopHeads = cfa.getAllLoopHeads().get();
@@ -413,21 +428,20 @@ public abstract class ConditionFolder {
             oldARGToFoldedState.put(child, foldedNode);
             newARGToFoldedStates.get(foldedNode).add(child);
             waitlist.push(Pair.of(child, foldIDChild));
+          }
 
-          } else {
-            newState = oldARGToFoldedState.get(oldState);
-            newChild = null;
-            for (ARGState newARGChild : newState.getChildren()) {
-              if (edge.equals(newState.getEdgeToChild(newARGChild))) {
-                newChild = newARGChild;
-                // there should be only one such child, thus break
-                break;
-              }
+          newState = oldARGToFoldedState.get(oldState);
+          newChild = null;
+          for (ARGState newARGChild : newState.getChildren()) {
+            if (edge.equals(newState.getEdgeToChild(newARGChild))) {
+              newChild = newARGChild;
+              // there should be only one such child, thus break
+              break;
             }
+          }
 
-            if (newChild != null && newChild != oldARGToFoldedState.get(child)) {
-              merge(newChild, oldARGToFoldedState.get(child), update);
-            }
+          if (newChild != null && newChild != oldARGToFoldedState.get(child)) {
+            merge(newChild, oldARGToFoldedState.get(child), update);
           }
 
           newChild = oldARGToFoldedState.get(child);
@@ -442,7 +456,7 @@ public abstract class ConditionFolder {
   private static class LoopAlwaysFolder extends StructureFolder<Pair<CFANode, CallstackStateEqualsWrapper>> {
 
     public LoopAlwaysFolder(final CFA pCfa) {
-      super(pCfa);
+      super(pCfa, FOLDER_TYPE.LOOP_ALWAYS);
     }
 
     @Override
@@ -483,7 +497,7 @@ public abstract class ConditionFolder {
     private final LoopInfo loopInfo;
 
     private ContextLoopFolder(final CFA pCfa) {
-      super(pCfa);
+      super(pCfa, FOLDER_TYPE.LOOP_SAME_CONTEXT);
 
       loopInfo = new LoopInfo(cfa);
     }
@@ -564,7 +578,7 @@ public abstract class ConditionFolder {
 
     private BoundUnrollingLoopFolder(final CFA pCfa, final Configuration pConfig)
         throws InvalidConfigurationException {
-      super(pCfa);
+      super(pCfa, FOLDER_TYPE.LOOP_BOUND);
       pConfig.inject(this);
       loopInfo = new LoopInfo(pCfa);
     }
@@ -639,7 +653,7 @@ public abstract class ConditionFolder {
 
     private BoundUnrollingContextLoopFolder(final CFA pCfa, final Configuration pConfig)
         throws InvalidConfigurationException {
-      super(pCfa);
+      super(pCfa, FOLDER_TYPE.LOOP_BOUND_SAME_CONTEXT);
       pConfig.inject(this);
       loopInfo = new LoopInfo(pCfa);
     }
@@ -722,7 +736,7 @@ public abstract class ConditionFolder {
     private final LoopInfo loopInfo;
 
     private ExceptLoopFolder(final CFA pCfa) {
-      super(pCfa);
+      super(pCfa, FOLDER_TYPE.FOLD_EXCEPT_LOOPS);
       loopInfo = new LoopInfo(pCfa);
     }
 

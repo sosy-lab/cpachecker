@@ -5,7 +5,10 @@
 
     <!-- Targets for running JUnit. -->
 
-    <!-- Keep this file synchronized between SoSy-Lab Common, CPAchecker, JavaSMT, and VerifierCloud. -->
+    <!-- DO NOT EDIT LOCALLY!
+         Keep this file synchronized with
+         https://gitlab.com/sosy-lab/software/java-project-template
+    -->
 
     <!-- Can be overridden from including file. -->
     <property name="junit.dir" value="junit"/>
@@ -37,7 +40,7 @@
 
     <target name="unit-tests" depends="build, load-junit, init-unit-tests" description="Run all JUnit tests">
         <delete dir="{junit.dir}"/>
-        <junit fork="true" printSummary="true" showOutput="false" failureproperty="junit.failed" timeout="100000">
+        <junit fork="true" printSummary="true" showOutput="false" failureproperty="junit.failed" timeout="600000">
             <assertions><enable/></assertions>
             <formatter type="xml"/>
             <classpath refid="classpath.junit"/>
@@ -59,14 +62,14 @@
 
     <target name="load-jacoco" depends="resolve-dependencies">
         <taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml">
-            <classpath><fileset dir="${ivy.jar.dir}" includes="org.jacoco.*.jar asm-debug-all.jar"/></classpath>
+            <classpath><fileset dir="${ivy.jar.dir}" includes="org.jacoco.*.jar asm*.jar"/></classpath>
         </taskdef>
     </target>
 
     <target name="unit-tests-coverage" depends="build, load-junit, load-jacoco, init-unit-tests" description="Run all JUnit tests with coverage report">
         <delete dir="{junit.dir}"/>
         <jacoco:coverage destfile="${junit.dir}/jacoco.exec" excludes="**/*Test*:**/Dummy*">
-            <junit fork="true" printSummary="true" showOutput="false" failureproperty="junit.failed" timeout="100000">
+            <junit fork="true" printSummary="true" showOutput="false" failureproperty="junit.failed" timeout="600000">
                 <assertions><enable/></assertions>
                 <formatter type="xml"/>
                 <classpath refid="classpath.junit"/>
@@ -87,11 +90,19 @@
             </structure>
             <html destdir="JUnit-coverage"/>
             <xml destfile="${junit.dir}/coverage.xml"/>
+            <csv destfile="${junit.dir}/coverage.csv"/>
         </jacoco:report>
         <junitreport todir="${junit.dir}">
             <fileset dir="${junit.dir}" includes="TEST-*.xml"/>
             <report format="noframes"/>
         </junitreport>
+        <exec executable="awk" failifexecutionfails="false" failonerror="false">
+            <arg value="-F,"/>
+            <arg value='-v'/>
+            <arg value='OFS='/>
+            <arg value='{ instructions += $4 + $5; covered += $5 } END { print covered, " / ", instructions, " instructions covered"; print 100*covered/instructions, "% covered" }'/>
+            <arg value="${junit.dir}/coverage.csv"/>
+        </exec>
         <move file="junit-noframes.html" tofile="JUnit.html"/>
         <fail if="junit.failed" message="JUnit tests failed, look at JUnit.html"/>
     </target>

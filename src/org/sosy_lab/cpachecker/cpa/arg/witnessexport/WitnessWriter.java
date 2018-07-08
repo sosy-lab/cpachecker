@@ -116,6 +116,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
@@ -241,7 +242,7 @@ class WitnessWriter implements EdgeAppender {
 
         private boolean isEffectivelyPointer(CExpression pLeftSide) {
           return pLeftSide.accept(
-              new DefaultCExpressionVisitor<Boolean, RuntimeException>() {
+              new DefaultCExpressionVisitor<Boolean, NoException>() {
 
                 @Override
                 public Boolean visit(CComplexCastExpression pComplexCastExpression) {
@@ -541,7 +542,8 @@ class WitnessWriter implements EdgeAppender {
         .getMainFunction(), pAdditionalInfo);
     if (witnessOptions.exportLineNumbers() && minFileLocation.isPresent()) {
       FileLocation min = minFileLocation.get();
-      if (!min.getFileName().equals(defaultSourcefileName)) {
+      if (witnessOptions.exportSourceFileName()
+          || !min.getFileName().equals(defaultSourcefileName)) {
         result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
       }
       result = result.putAndCopy(KeyDef.STARTLINE, Integer.toString(min.getStartingLineInOrigin()));
@@ -553,7 +555,8 @@ class WitnessWriter implements EdgeAppender {
 
     if (witnessOptions.exportOffset() && minFileLocation.isPresent()) {
       FileLocation min = minFileLocation.get();
-      if (!min.getFileName().equals(defaultSourcefileName)) {
+      if (witnessOptions.exportSourceFileName()
+          || !min.getFileName().equals(defaultSourcefileName)) {
         result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
       }
       result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(min.getNodeOffset()));
@@ -1054,13 +1057,6 @@ class WitnessWriter implements EdgeAppender {
       }
     }
 
-    final GraphMlBuilder doc;
-    try {
-      doc = new GraphMlBuilder(graphType, defaultSourcefileName, cfa, verificationTaskMetaData);
-    } catch (ParserConfigurationException e) {
-      throw new IOException(e);
-    }
-
     final String entryStateNodeId = pGraphBuilder.getId(pRootState);
 
     // Collect node flags in advance
@@ -1092,7 +1088,6 @@ class WitnessWriter implements EdgeAppender {
         isRelevantEdge,
         valueMap,
         additionalInfo,
-        doc,
         collectPathEdges(pRootState, ARGState::getChildren, pIsRelevantState, isRelevantEdge),
         this);
 
@@ -1114,6 +1109,12 @@ class WitnessWriter implements EdgeAppender {
     mergeRedundantSinkEdges();
 
     // Write elements
+    final GraphMlBuilder doc;
+    try {
+      doc = new GraphMlBuilder(graphType, defaultSourcefileName, cfa, verificationTaskMetaData);
+    } catch (ParserConfigurationException e) {
+      throw new IOException(e);
+    }
     writeElementsOfGraphToDoc(doc, entryStateNodeId);
     doc.appendTo(pTarget);
   }

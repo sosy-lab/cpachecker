@@ -65,7 +65,6 @@ public class PathPairIterator extends
   private StatCounter numberOfRepeatedConstructedPaths = new StatCounter("Number of repeated path computed");
   //private int numberOfrepeatedPaths = 0;
 
-
   private Map<UsageInfo, List<ExtendedARGPath>> computedPathsForUsage = new IdentityHashMap<>();
   private Map<UsageInfo, Iterator<ExtendedARGPath>> currentIterators = new IdentityHashMap<>();
 
@@ -104,7 +103,6 @@ public class PathPairIterator extends
     // subgraph computer need partitioning, which is not built at creation.
     // Thus, we move the creation of subgraphcomputer here
     subgraphComputer = bamCpa.createBAMMultipleSubgraphComputer(idExtractor);
-    targetToPathIterator.clear();
   }
 
   @Override
@@ -117,7 +115,6 @@ public class PathPairIterator extends
       //First time or it was unreachable last time
       firstPath = getNextPath(firstUsage);
       if (firstPath == null) {
-        checkAreUsagesUnreachable(pInput);
         return null;
       }
     }
@@ -129,30 +126,19 @@ public class PathPairIterator extends
       //And move shift the first one
       firstPath = getNextPath(firstUsage);
       if (firstPath == null) {
-        checkAreUsagesUnreachable(pInput);
         return null;
       }
       secondPath = getNextPath(secondUsage);
       if (secondPath == null) {
-        checkAreUsagesUnreachable(pInput);
         return null;
       }
     }
     return Pair.of(firstPath, secondPath);
   }
 
-  private void checkAreUsagesUnreachable(Pair<UsageInfo, UsageInfo> pInput) {
-    UsageInfo firstUsage = pInput.getFirst();
-    UsageInfo secondUsage = pInput.getSecond();
-
-    checkIsUsageUnreachable(firstUsage);
-    checkIsUsageUnreachable(secondUsage);
-  }
-
-  private void checkIsUsageUnreachable(UsageInfo pInput) {
-    if (!computedPathsForUsage.containsKey(pInput) || computedPathsForUsage.get(pInput).size() == 0) {
-      pInput.setAsUnreachable();
-    }
+  private boolean checkIsUsageUnreachable(UsageInfo pInput) {
+    return !computedPathsForUsage.containsKey(pInput)
+        || computedPathsForUsage.get(pInput).size() == 0;
   }
 
   @Override
@@ -189,6 +175,21 @@ public class PathPairIterator extends
   }
 
   @Override
+  protected void finish(Pair<UsageInfo, UsageInfo> pInput, RefinementResult pResult) {
+    UsageInfo firstUsage = pInput.getFirst();
+    UsageInfo secondUsage = pInput.getSecond();
+    List<UsageInfo> unreacheableUsages = new ArrayList<>(2);
+
+    if (checkIsUsageUnreachable(firstUsage)) {
+      unreacheableUsages.add(firstUsage);
+    }
+    if (checkIsUsageUnreachable(secondUsage)) {
+      unreacheableUsages.add(secondUsage);
+    }
+    pResult.addInfo(this.getClass(), unreacheableUsages);
+  }
+
+  @Override
   protected void printDetailedStatistics(StatisticsWriter pOut) {
     pOut.spacer()
       .put(computingPath)
@@ -203,6 +204,10 @@ public class PathPairIterator extends
     if (callerClass.equals(IdentifierIterator.class)) {
       //Refinement iteration finishes
       refinedStates.clear();
+      targetToPathIterator.clear();
+      firstPath = null;
+      refinedStates.clear();
+      subgraphComputer = null;
     } else if (callerClass.equals(PointIterator.class)) {
       currentIterators.clear();
       computedPathsForUsage.clear();

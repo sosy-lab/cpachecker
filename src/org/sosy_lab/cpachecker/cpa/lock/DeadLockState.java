@@ -27,6 +27,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multiset;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -45,12 +46,6 @@ public class DeadLockState extends AbstractLockState {
 
     public DeadLockTreeNode(List<LockIdentifier> locks) {
       super(locks);
-    }
-
-    @Override
-    public boolean isCompatibleWith(CompatibleState pState) {
-      Preconditions.checkArgument(pState instanceof DeadLockTreeNode);
-      return true;
     }
 
     @Override
@@ -130,13 +125,14 @@ public class DeadLockState extends AbstractLockState {
 
     @Override
     public void set(LockIdentifier lockId, int num) {
-      // num can be equal 0, this means, that in origin file it is 0 and we should delete locks
-      assert false : "not supported";
+      throw new UnsupportedOperationException(
+          "Set annotations are not supported for dead lock analysis");
     }
 
     @Override
     public void restore(LockIdentifier lockId) {
-      assert false : "not supported";
+      throw new UnsupportedOperationException(
+          "Restore annotations are not supported for dead lock analysis");
     }
 
     @Override
@@ -153,7 +149,7 @@ public class DeadLockState extends AbstractLockState {
         mutableToRestore = mutableToRestore.toRestore;
       }
       if (locks.equals(mutableLocks) && mutableToRestore == toRestore) {
-        return getParentLink();
+        return DeadLockState.this;
       } else {
         return new DeadLockState(mutableLocks, mutableLockList, (DeadLockState) mutableToRestore);
       }
@@ -161,7 +157,7 @@ public class DeadLockState extends AbstractLockState {
 
     @Override
     public DeadLockState getOldState() {
-      return getParentLink();
+      return DeadLockState.this;
     }
 
     @Override
@@ -183,7 +179,8 @@ public class DeadLockState extends AbstractLockState {
 
     @Override
     public void reduceLockCounters(Set<LockIdentifier> exceptLocks) {
-      assert false : "not supported";
+      throw new UnsupportedOperationException(
+          "Valueable reduce/expand operations are not supported for dead lock analysis");
     }
 
     public void expand(LockState rootState) {
@@ -192,17 +189,19 @@ public class DeadLockState extends AbstractLockState {
 
     @Override
     public void expandLocks(LockState pRootState, Set<LockIdentifier> usedLocks) {
-      assert false : "not supported";
+      throw new UnsupportedOperationException(
+          "Valueable reduce/expand operations are not supported for dead lock analysis");
     }
 
     @Override
     public void expandLockCounters(LockState pRootState, Set<LockIdentifier> pRestrictedLocks) {
-      assert false : "not supported";
+      throw new UnsupportedOperationException(
+          "Valueable reduce/expand operations are not supported for dead lock analysis");
     }
 
     @Override
     public void setRestoreState() {
-      mutableToRestore = getParentLink();
+      mutableToRestore = DeadLockState.this;
     }
 
     @Override
@@ -301,30 +300,14 @@ public class DeadLockState extends AbstractLockState {
   }
 
   @Override
-  public boolean isCompatibleWith(CompatibleState state) {
-    return true;
-  }
-
-  @Override
   public DeadLockStateBuilder builder() {
     return new DeadLockStateBuilder(this);
   }
 
-  private DeadLockState getParentLink() {
-    return this;
-  }
-
   @Override
-  public List<LockEffect> getDifference(AbstractLockState other) {
+  public Multiset<LockEffect> getDifference(AbstractLockState other) {
     // Return the effect, which shows, what should we do to transform from this state to the other
-
-    assert false : "not supported";
-    return null;
-  }
-
-  @Override
-  public CompatibleState prepareToStore() {
-    return this;
+    throw new UnsupportedOperationException("Effects are not supported for dead lock detection");
   }
 
   @Override

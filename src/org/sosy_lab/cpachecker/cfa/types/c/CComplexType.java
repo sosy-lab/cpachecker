@@ -58,7 +58,7 @@ public interface CComplexType extends CType {
    */
   boolean equalsWithOrigName(Object obj);
 
-  public static enum ComplexTypeKind {
+  enum ComplexTypeKind {
     ENUM,
     STRUCT,
     UNION;

@@ -182,6 +182,7 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
+    checkNotNull(statsCollection);
     if (delegate instanceof StatisticsProvider) {
       ((StatisticsProvider) delegate).collectStatistics(statsCollection);
     }

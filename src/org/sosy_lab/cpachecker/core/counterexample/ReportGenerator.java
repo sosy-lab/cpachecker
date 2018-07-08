@@ -93,19 +93,20 @@ public class ReportGenerator {
   @Option(
     secure = true,
     name = "report.export",
-    description = "Generate HTML report with analysis result."
-  )
+    description = "Generate HTML report with analysis result.")
   private boolean generateReport = true;
 
-  @Option(secure = true, name = "report.file", description = "File name for analysis report in case no counterexample was found.")
+  @Option(
+    secure = true,
+    name = "report.file",
+    description = "File name for analysis report in case no counterexample was found.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reportFile = Paths.get("Report.html");
 
   @Option(
     secure = true,
     name = "counterexample.export.report",
-    description = "File name for analysis report in case a counterexample was found."
-  )
+    description = "File name for analysis report in case a counterexample was found.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate counterExampleFiles = PathTemplate.ofFormatString("Counterexample.%d.html");
 
@@ -140,8 +141,7 @@ public class ReportGenerator {
 
     FluentIterable<CounterexampleInfo> counterExamples =
         Optionals.presentInstances(
-            from(pReached)
-                .filter(IS_TARGET_STATE)
+            from(pReached).filter(IS_TARGET_STATE)
                 .filter(ARGState.class)
                 .transform(ARGState::getCounterexampleInformation));
 
@@ -190,7 +190,8 @@ public class ReportGenerator {
       DOTBuilder2 dotBuilder,
       String statistics) {
 
-    try (BufferedReader reader =
+    try (
+        BufferedReader reader =
             Resources.asCharSource(Resources.getResource(getClass(), HTML_TEMPLATE), Charsets.UTF_8)
                 .openBufferedStream();
         Writer writer = IO.openOutputFile(reportPath, Charsets.UTF_8)) {
@@ -221,16 +222,21 @@ public class ReportGenerator {
       }
     } catch (IOException e) {
       logger.logUserException(
-          WARNING, e, "Could not create report: Processing of HTML template failed.");
+          WARNING,
+          e,
+          "Could not create report: Processing of HTML template failed.");
     }
   }
 
   private void insertJs(
-      Writer writer, CFA cfa, DOTBuilder2 dotBuilder, @Nullable CounterexampleInfo counterExample)
+      Writer writer,
+      CFA cfa,
+      DOTBuilder2 dotBuilder,
+      @Nullable CounterexampleInfo counterExample)
       throws IOException {
     try (BufferedReader reader =
         Resources.asCharSource(Resources.getResource(getClass(), JS_TEMPLATE), Charsets.UTF_8)
-            .openBufferedStream(); ) {
+            .openBufferedStream();) {
       String line;
       while (null != (line = reader.readLine())) {
         if (line.contains("CFA_JSON_INPUT")) {
@@ -247,7 +253,10 @@ public class ReportGenerator {
   }
 
   private void insertCfaJson(
-      Writer writer, CFA cfa, DOTBuilder2 dotBuilder, @Nullable CounterexampleInfo counterExample) {
+      Writer writer,
+      CFA cfa,
+      DOTBuilder2 dotBuilder,
+      @Nullable CounterexampleInfo counterExample) {
     try {
       writer.write("var cfaJson = {\n");
       insertFunctionNames(writer, cfa);
@@ -315,7 +324,9 @@ public class ReportGenerator {
       writer.write(generated);
     } catch (IOException e) {
       logger.logUserException(
-          WARNING, e, "Could not create report: Inserting date and version failed.");
+          WARNING,
+          e,
+          "Could not create report: Inserting date and version failed.");
     }
   }
 
@@ -325,8 +336,8 @@ public class ReportGenerator {
         writer.write(sourceFiles.get(0));
       } else {
         String title =
-            String.format(
-                "%s (Counterexample %s)", sourceFiles.get(0), counterExample.getUniqueId());
+            String
+                .format("%s (Counterexample %s)", sourceFiles.get(0), counterExample.getUniqueId());
         writer.write(title);
       }
     } catch (IOException e) {
@@ -336,11 +347,57 @@ public class ReportGenerator {
 
   private void insertStatistics(Writer writer, String statistics) throws IOException {
     int counter = 0;
+    String insertTableLine =
+        "<table  id=\"statistics_table\" class=\"display\" style=\"width:100%;padding: 10px\" class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th scope=\"col\">Statistics Name</th><th scope=\"col\">Statistics Value</th><th>Additional Value</th></tr></thead><tbody>\n";
+    writer.write(insertTableLine);
     for (String line : LINE_SPLITTER.split(statistics)) {
-      line = "<pre id=\"statistics-" + counter + "\">" + htmlEscaper().escape(line) + "</pre>\n";
-      writer.write(line);
+      if (!line.contains(":") && !(line.trim().isEmpty()) && !line.contains("----------")) {
+        String insertTableHead =
+            "<tr class=\"table_head\" id=\"statistics-"
+                + counter
+                + "\"><th>"
+                + htmlEscaper().escape(line)
+                + "</th><th></th><th></th></tr>";
+        writer.write(insertTableHead);
+      } else {
+        int count = line.indexOf(line.trim());
+        for (int i = 0; i < count / 2; i++) {
+          line = "\t" + line;
+        }
+        List<String> splitLine = Splitter.on(":").limit(2).splitToList(line);
+        if (splitLine.size() == 2) {
+          if (!splitLine.get(1).contains(";") && splitLine.get(1).contains("(")) {
+            List<String> splitLineAnotherValue =
+                Splitter.on("(").limit(2).splitToList(splitLine.get(1));
+            line =
+                "<tr id=\"statistics-"
+                    + counter
+                    + "\"><td>"
+                    + htmlEscaper().escape(splitLine.get(0))
+                    + "</td><td>"
+                    + htmlEscaper().escape(splitLineAnotherValue.get(0))
+                    + "</td><td>"
+                    + htmlEscaper().escape(splitLineAnotherValue.get(1).replaceAll("[()]", ""))
+                    + "</td></tr>\n";
+            writer.write(line);
+          } else {
+            line =
+                "<tr id=\"statistics-"
+                    + counter
+                    + "\"><td>"
+                    + htmlEscaper().escape(splitLine.get(0))
+                    + "</td><td>"
+                    + htmlEscaper().escape(splitLine.get(1))
+                    + "</td><td></td></tr>\n";
+            writer.write(line);
+          }
+          counter++;
+        }
+      }
       counter++;
     }
+    String exitTableLine = "</tbody></table>\n";
+    writer.write(exitTableLine);
   }
 
   private void insertSources(Writer report) throws IOException {
@@ -358,7 +415,8 @@ public class ReportGenerator {
       try (BufferedReader source =
           new BufferedReader(
               new InputStreamReader(
-                  new FileInputStream(sourcePath.toFile()), Charset.defaultCharset()))) {
+                  new FileInputStream(sourcePath.toFile()),
+                  Charset.defaultCharset()))) {
         writer.write(
             "<div class=\"sourceContent content\" ng-show = \"sourceFileIsSet("
                 + sourceFileNumber
@@ -378,8 +436,8 @@ public class ReportGenerator {
         }
         writer.write("</table></div>\n");
       } catch (IOException e) {
-        logger.logUserException(
-            WARNING, e, "Could not create report: Inserting source code failed.");
+        logger
+            .logUserException(WARNING, e, "Could not create report: Inserting source code failed.");
       }
     } else {
       writer.write("<p>No Source-File available</p>");
@@ -389,23 +447,66 @@ public class ReportGenerator {
   private void insertConfiguration(Writer writer) throws IOException {
     Iterable<String> lines = LINE_SPLITTER.split(config.asPropertiesString());
     int iterator = 0;
+    String insertTableLine =
+        "<table  id=\"config_table\" class=\"display\" style=\"width:100%;padding: 10px\" class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th scope=\"col\">#</th><th scope=\"col\">Configuration Name</th><th scope=\"col\">Configuration Value</th></tr></thead><tbody>\n";
+    writer.write(insertTableLine);
     for (String line : lines) {
-      line = "<pre id=\"config-" + iterator + "\">" + htmlEscaper().escape(line) + "</pre>\n";
-      writer.write(line);
-      iterator++;
+      List<String> splitLine = Splitter.on('=').limit(2).splitToList(line);
+      if (splitLine.size() == 2) {
+        int countLineNumber = iterator + 1;
+        line =
+            "<tr id=\"config-"
+                + iterator
+                + "\"><th scope=\"row\">"
+                + countLineNumber
+                + "</th><td>"
+                + htmlEscaper().escape(splitLine.get(0))
+                + "</td><td>"
+                + htmlEscaper().escape(splitLine.get(1))
+                + "</td></tr>\n";
+        writer.write(line);
+        iterator++;
+      }
     }
+    String exitTableLine = "</tbody></table>\n";
+    writer.write(exitTableLine);
   }
 
   private void insertLog(Writer writer) throws IOException {
     if (logFile != null && Files.isReadable(logFile)) {
-    try (BufferedReader log = Files.newBufferedReader(logFile, Charset.defaultCharset())) {
+      String insertTableLine =
+          "<table  id=\"log_table\" class=\"display\" style=\"width:100%;padding: 10px\" class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th scope=\"col\">Date</th><th scope=\"col\">Time</th><th scope=\"col\">Log Level</th><th scope=\"col\">Log Info</th><th scope=\"col\">Log Message</th></tr></thead><tbody>\n";
+      writer.write(insertTableLine);
+      try (BufferedReader log = Files.newBufferedReader(logFile, Charset.defaultCharset())) {
         int counter = 0;
         String line;
         while (null != (line = log.readLine())) {
-          line = "<pre id=\"log-" + counter + "\">" + htmlEscaper().escape(line) + "</pre>\n";
-          writer.write(line);
+          String getDate = line.replaceFirst("\\s", "-i-");
+          String getLogLevel = getDate.replaceFirst("\\s", "-i-");
+          String getLogInfo = getLogLevel.replaceFirst("\\s", "-i-");
+          String getLogMessage = getLogInfo.replaceFirst("\\s", "-i-");
+          List<String> splitLine = Splitter.onPattern("-i-").limit(5).splitToList(getLogMessage);
+          if (splitLine.size() == 5) {
+            line =
+                "<tr id=\"log-"
+                    + counter
+                    + "\"><th scope=\"row\">"
+                    + htmlEscaper().escape(splitLine.get(0))
+                    + "</th><td>"
+                    + htmlEscaper().escape(splitLine.get(1))
+                    + "</td><td>"
+                    + htmlEscaper().escape(splitLine.get(2))
+                    + "</td><td>"
+                    + htmlEscaper().escape(splitLine.get(3))
+                    + "</td><td>"
+                    + htmlEscaper().escape(splitLine.get(4))
+                    + "</td></tr>\n";
+            writer.write(line);
+          }
           counter++;
         }
+        String exitTableLine = "</tbody></table>\n";
+        writer.write(exitTableLine);
       } catch (IOException e) {
         logger.logUserException(WARNING, e, "Could not create report: Adding log failed.");
       }
@@ -420,7 +521,9 @@ public class ReportGenerator {
       dotBuilder.writeFunctionCallEdges(writer);
     } catch (IOException e) {
       logger.logUserException(
-          WARNING, e, "Could not create report: Insertion of function call edges failed.");
+          WARNING,
+          e,
+          "Could not create report: Insertion of function call edges failed.");
     }
   }
 
@@ -430,7 +533,9 @@ public class ReportGenerator {
       dotBuilder.writeCombinedNodes(writer);
     } catch (IOException e) {
       logger.logUserException(
-          WARNING, e, "Could not create report: Insertion of combined nodes failed.");
+          WARNING,
+          e,
+          "Could not create report: Insertion of combined nodes failed.");
     }
   }
 
@@ -440,7 +545,9 @@ public class ReportGenerator {
       dotBuilder.writeCombinedNodesLabels(writer);
     } catch (IOException e) {
       logger.logUserException(
-          WARNING, e, "Could not create report: Insertion of combined nodes labels failed.");
+          WARNING,
+          e,
+          "Could not create report: Insertion of combined nodes labels failed.");
     }
   }
 
@@ -450,7 +557,9 @@ public class ReportGenerator {
       dotBuilder.writeMergedNodesList(writer);
     } catch (IOException e) {
       logger.logUserException(
-          WARNING, e, "Could not create report: Insertion of merged nodes failed.");
+          WARNING,
+          e,
+          "Could not create report: Insertion of merged nodes failed.");
     }
   }
 
@@ -461,7 +570,9 @@ public class ReportGenerator {
       writer.write(",\n");
     } catch (IOException e) {
       logger.logUserException(
-          WARNING, e, "Could not create report: Insertion of counter example failed.");
+          WARNING,
+          e,
+          "Could not create report: Insertion of counter example failed.");
     }
   }
 
@@ -475,7 +586,9 @@ public class ReportGenerator {
       JSON.writeJSONString(allFunctionsEntryFirst, writer);
     } catch (IOException e) {
       logger.logUserException(
-          WARNING, e, "Could not create report: Insertion of function names failed.");
+          WARNING,
+          e,
+          "Could not create report: Insertion of function names failed.");
     }
   }
 
@@ -486,45 +599,46 @@ public class ReportGenerator {
       writer.write(";\n");
     } catch (IOException e) {
       logger.logUserException(
-          WARNING, e, "Could not create report: Insertion of source file names failed.");
+          WARNING,
+          e,
+          "Could not create report: Insertion of source file names failed.");
     }
   }
 
   // Build ARG data only if the reached states are ARGStates
   private void buildArgGraphData(UnmodifiableReachedSet reached) {
     if (reached.getFirstState() instanceof ARGState) {
-      reached
-          .asCollection()
-          .forEach(
-              entry -> {
-                int parentStateId = ((ARGState) entry).getStateId();
-                for (CFANode node : AbstractStates.extractLocations(entry)) {
-                  if (!argNodes.containsKey(parentStateId)) {
-                    createArgNode(parentStateId, node, (ARGState) entry);
-                  }
-                  if (!((ARGState) entry).getChildren().isEmpty()) {
-                    for (ARGState child : ((ARGState) entry).getChildren()) {
-                      int childStateId = child.getStateId();
-                      // Covered state is not contained in the reached set
-                      if (child.isCovered()) {
-                        String label =
-                            child.toDOTLabel().length() > 2
-                                ? child.toDOTLabel().substring(0, child.toDOTLabel().length() - 2)
-                                : "";
-                        createCoveredArgNode(childStateId, child, label);
-                        createCoveredArgEdge(childStateId, child.getCoveringState().getStateId());
-                      }
-                      createArgEdge(
-                          parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child));
-                    }
-                  }
-                }
-              });
+      reached.asCollection().forEach(entry -> {
+        int parentStateId = ((ARGState) entry).getStateId();
+        for (CFANode node : AbstractStates.extractLocations(entry)) {
+          if (!argNodes.containsKey(parentStateId)) {
+            createArgNode(parentStateId, node, (ARGState) entry);
+          }
+          if (!((ARGState) entry).getChildren().isEmpty()) {
+            for (ARGState child : ((ARGState) entry).getChildren()) {
+              int childStateId = child.getStateId();
+              // Covered state is not contained in the reached set
+              if (child.isCovered()) {
+                String label =
+                    child.toDOTLabel().length() > 2
+                        ? child.toDOTLabel().substring(0, child.toDOTLabel().length() - 2)
+                        : "";
+                createCoveredArgNode(childStateId, child, label);
+                createCoveredArgEdge(childStateId, child.getCoveringState().getStateId());
+              }
+              createArgEdge(parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child));
+            }
+          }
+        }
+      });
     }
   }
 
   private void createArgNode(int parentStateId, CFANode node, ARGState argState) {
-    String dotLabel = argState.toDOTLabel().length() > 2 ? argState.toDOTLabel().substring(0, argState.toDOTLabel().length() - 2) : "";
+    String dotLabel =
+        argState.toDOTLabel().length() > 2
+            ? argState.toDOTLabel().substring(0, argState.toDOTLabel().length() - 2)
+            : "";
     Map<String, Object> argNode = new HashMap<>();
     argNode.put("index", parentStateId);
     argNode.put("func", node.getFunctionName());

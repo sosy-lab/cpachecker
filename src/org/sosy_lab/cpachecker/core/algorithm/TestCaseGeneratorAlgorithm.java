@@ -155,14 +155,20 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
         status = algorithm.run(pReached);
 
       } catch (CPAException e) {
-        if (e instanceof CounterexampleAnalysisFailed
-            || e instanceof RefinementFailedException
-            || e instanceof InfeasibleCounterexampleException) {
-          status = status.withPrecise(false);
-        }
-
+        // precaution always set precision to false, thus last target state not handled in case of
+        // exception
+        status = status.withPrecise(false);
         logger.logUserException(Level.WARNING, e, "Analysis not completed.");
-
+        if (!(e instanceof CounterexampleAnalysisFailed
+            || e instanceof RefinementFailedException
+            || e instanceof InfeasibleCounterexampleException)) {
+          throw e;
+        }
+      } catch (Exception e2) {
+        // precaution always set precision to false, thus last target state not handled in case of
+        // exception
+        status = status.withPrecise(false);
+        throw e2;
       } finally {
 
         assert ARGUtils.checkARG(pReached);
@@ -231,7 +237,9 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
 
   private void writeTestHarnessFile(final ARGState pTarget) {
     if (testHarnessFile != null) {
-      CounterexampleInfo cexInfo = extractCexInfo(pTarget);
+      CounterexampleInfo cexInfo =
+          ARGUtils.tryGetOrCreateCounterexampleInformation(pTarget, cpa, assumptionToEdgeAllocator)
+              .get();
 
       Path file = testHarnessFile.getPath(id.getFreshId());
       ARGPath targetPath = cexInfo.getTargetPath();
@@ -250,17 +258,6 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
         logger.logUserException(Level.WARNING, e, "Could not write test harness to file");
       }
     }
-  }
-
-  private CounterexampleInfo extractCexInfo(final ARGState pTarget) {
-    // TODO may not contain sufficient information to write test harness, e.g. when using
-    // ValueAnalysis
-    if (pTarget.getCounterexampleInformation().isPresent()) {
-      return pTarget.getCounterexampleInformation().get();
-    }
-
-    return ARGUtils.tryGetOrCreateCounterexampleInformation(pTarget, cpa, assumptionToEdgeAllocator)
-        .get();
   }
 
   @Override

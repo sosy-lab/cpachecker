@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.value.type.js;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.ValueVisitor;
 
 /** Singleton class for the special JavaScript value <code>undefined</code>. */
 public class JSUndefinedValue implements Value {
@@ -91,6 +92,11 @@ public class JSUndefinedValue implements Value {
   @Override
   public Long asLong(CType pType) {
     throw new AssertionError("Undefined cannot be represented as Long");
+  }
+
+  @Override
+  public <T> T accept(final ValueVisitor<T> pVisitor) {
+    throw new RuntimeException("Not implemented"); // TODO
   }
 
   @Override

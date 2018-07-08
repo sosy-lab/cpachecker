@@ -62,6 +62,13 @@ solver.mathsat5.furtherOptions = ""
 # Load less stable optimizing version of mathsat5 solver.
 solver.mathsat5.loadOptimathsat5 = false
 
+# Use non-linear arithmetic of the solver if supported and throw exception
+# otherwise, approximate non-linear arithmetic with UFs if unsupported, or
+# always approximate non-linear arithmetic. This affects only the theories of
+# integer and rational arithmetic.
+solver.nonLinearArithmetic = USE
+  enum:     [USE, APPROXIMATE_FALLBACK, APPROXIMATE_ALWAYS]
+
 # log all queries as Princess-specific Scala code
 solver.princess.logAllQueriesAsScala = false
 
@@ -284,6 +291,9 @@ analysis.replacedFunctionsWithParameters = {"pthread_create"}
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
 
+# Use heuristics to select the analysis
+analysis.selectAnalysisHeuristically = false
+
 # if this option is used, the CFA will be loaded from the given file instead
 # of parsed from sourcefile.
 analysis.serializedCfaFile = no default value
@@ -349,6 +359,9 @@ analysis.traversal.useLoopIterationCount = false
 
 # handle states with a deeper loopstack first.
 analysis.traversal.useLoopstack = false
+
+# handle abstract states with fewer heap objects first? (needs SMGCPA)
+analysis.traversal.useNumberOfHeapObjects = false
 
 # handle abstract states with fewer running threads first? (needs
 # ThreadingCPA)
@@ -421,6 +434,11 @@ assumptions.compressAutomaton = false
 
 # write collected assumptions to file
 assumptions.export = true
+
+# export assumptions collected per location
+assumptions.export.location = true
+
+# write collected assumptions to file
 assumptions.file = "assumptions.txt"
 
 # If it is enabled, check if a state that should lead to false state indeed
@@ -665,28 +683,6 @@ cfa.threads.threadSelfCreate = "pthread_create_N"
 # A name of thread_join_N function
 cfa.threads.threadSelfJoin = "pthread_join_N"
 
-# This option causes the control flow automaton to be transformed into the
-# automaton of an equivalent program with one single loop and an artificial
-# program counter.
-cfa.transformIntoSingleLoop = false
-
-# Single loop transformation builds a decision tree based on the program
-# counter values. This option causes the last program counter value not to be
-# explicitly assumed in the decision tree, so that it is only indirectly
-# represented by the assumption of falsehood for all other assumptions in the
-# decision tree.
-cfa.transformIntoSingleLoop.omitExplicitLastProgramCounterAssumption = false
-
-# This option controls the size of the subgraphs referred to by program
-# counter values. The larger the subgraphs, the fewer program counter values
-# are required. Possible values are  MULTIPLE_PATHS, SINGLE_PATH and
-# SINGLE_EDGE, where MULTIPLE_PATHS has the largest subgraphs (and fewest
-# program counter values) and SINGLE_EDGE has the smallest subgraphs (and
-# most program counter values). The larger the subgraphs, the closer the
-# resulting graph will look like the original CFA.
-cfa.transformIntoSingleLoop.subgraphGrowthStrategy = MULTIPLE_PATHS
-  enum:     [MULTIPLE_PATHS, SINGLE_PATH, SINGLE_EDGE]
-
 # clone functions of the CFA, such that there are several identical CFAs for
 # each function, only with different names.
 cfa.useCFACloningForMultiThreadedPrograms = false
@@ -738,6 +734,10 @@ counterexample.ambigiousARG = false
 # checker can be used.
 counterexample.checker = CBMC
   enum:     [CBMC, CPACHECKER, CONCRETE_EXECUTION]
+
+# counterexample information should provide more precise information from
+# counterexample check, if available
+counterexample.checker.changeCEXInfo = false
 
 # configuration file for counterexample checks with CPAchecker
 counterexample.checker.config = no default value
@@ -924,6 +924,34 @@ cpa.apron.splitDisequalities = true
 # translate final ARG into this C file
 cpa.arg.CTranslation.file = "ARG.c"
 
+# minimum ratio of branch compared to whole program to be exported
+cpa.arg.automaton.branchRatio = 0.5
+
+# translate final ARG into an automaton
+cpa.arg.automaton.export = false
+
+# export as zip-files, depends on 'automaton.export=true'
+cpa.arg.automaton.exportCompressed = true
+
+# translate final ARG into an automaton, depends on 'automaton.export=true'
+cpa.arg.automaton.exportDotFile = "ARG_parts/ARG.%03d.spc.dot"
+cpa.arg.automaton.exportSpcFile = "ARG_parts/ARG.%03d.spc"
+
+# after determining branches, which one of them should be exported?
+cpa.arg.automaton.selectionStrategy = LEAFS
+  enum:     [NONE, ALL, LEAFS, WEIGHTED, FIRST_BFS]
+
+# minimum ratio of siblings such that one of them will be exported
+cpa.arg.automaton.siblingRatio = 0.4
+
+# when using FIRST_BFS, how many nodes should be skipped? ZERO will only
+# export the root itself, MAX_INT will export only LEAFS.
+cpa.arg.automaton.skipFirstNum = 10
+
+# which coarse strategy should be applied when analyzing the ARG?
+cpa.arg.automaton.strategy = GLOBAL_CONDITIONS
+  enum:     [NONE, GLOBAL_CONDITIONS]
+
 # compress the produced correctness-witness automata using GZIP compression.
 cpa.arg.compressWitness = true
 
@@ -1006,6 +1034,9 @@ cpa.arg.witness.exportNodeLabel = false
 # Verification witness: Include the offset within the file?
 cpa.arg.witness.exportOffset = true
 
+# Always export source file name, even default
+cpa.arg.witness.exportSourceFileName = false
+
 # Verification witness: Include the sourcecode of the operations?
 cpa.arg.witness.exportSourcecode = false
 
@@ -1049,6 +1080,10 @@ cpa.automaton.mergeOnTop = false
 # outgoing edges as TOP.
 cpa.automaton.prec.topOnFinalSelfLoopingState = false
 
+# file for saving the automaton in spc format (%s will be replaced with
+# automaton name)
+cpa.automaton.spcExportFile = "%s.spc"
+
 # Whether to treat automaton states with an internal error state as targets.
 # This should be the standard use case.
 cpa.automaton.treatErrorsAsTargets = true
@@ -1077,6 +1112,9 @@ cpa.bam.blockHeuristic.functionPartitioning.minFunctionCalls = 0
 # only consider function with a minimum number of CFA nodes. This approach is
 # similar to 'inlining' small functions, when using BAM.
 cpa.bam.blockHeuristic.functionPartitioning.minFunctionSize = 0
+
+# abort current analysis when finding a missing block abstraction
+cpa.bam.breakForMissingBlock = true
 
 # This flag determines which precisions should be updated during refinement.
 # We can choose between the minimum number of states and all states that are
@@ -1268,13 +1306,22 @@ cpa.congruence.trackCongruenceSum = false
 # Cache formulas produced by path formula manager
 cpa.congruence.useCachingPathFormulaManager = true
 
+# Whether to perform caching of constraint satisfiability results
+cpa.constraints.cache = true
+
+# Whether to use subset/superset caching
+cpa.constraints.cacheSubsets = true
+
 # Type of less-or-equal operator to use
 cpa.constraints.lessOrEqualType = SUBSET
-  enum:     [SUBSET, ALIASED_SUBSET, IMPLICATION]
+  enum:     [SUBSET]
 
 # Type of merge operator to use
 cpa.constraints.mergeType = SEP
   enum:     [SEP, JOIN_FITTING_CONSTRAINT]
+
+# Whether to perform SAT checks only for the last added constraint
+cpa.constraints.minimalSatCheck = true
 
 # Type of precision to use. Has to be LOCATION if PredicateExtractionRefiner
 # is used.
@@ -1289,9 +1336,15 @@ cpa.constraints.removeOutdated = true
 # simplification
 cpa.constraints.removeTrivial = false
 
+# Resolve definite assignments
+cpa.constraints.resolveDefinites = true
+
 # When to check the satisfiability of constraints
 cpa.constraints.satCheckStrategy = AT_ASSUME
   enum:     [AT_ASSUME, AT_TARGET]
+
+# Try model of predecessor constraints state before running SMT solver
+cpa.constraints.useLastModel = true
 
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
@@ -1443,6 +1496,10 @@ cpa.lock.lockinfo = Sets.newHashSet()
 
 # reduce unused locks
 cpa.lock.reduceUselessLocks = false
+
+# Consider or not special cases with empty lock sets
+cpa.lock.stopMode = DEFAULT
+  enum:     [DEFAULT, EMPTYLOCKSET]
 
 # Number of loop iterations before the loop counter is abstracted. Zero is
 # equivalent to no limit.
@@ -2019,6 +2076,12 @@ cpa.predicate.refinement.maxPrefixLength = 1024
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
 
+# sets the level of the pathformulas to use for abstraction. 
+#   EDGE : Based on Pathformulas of every edge in ARGPath
+#   BLOCK: Based on Pathformulas at Abstractionstates
+cpa.predicate.refinement.newtonrefinement.pathFormulAbstractionLevel = EDGE
+  enum:     [BLOCK, EDGE]
+
 # use live variables in order to abstract the predicates produced while
 # NewtonRefinement
 cpa.predicate.refinement.newtonrefinement.useLiveVariables = true
@@ -2216,10 +2279,6 @@ cpa.predicate.useParameterVariablesForGlobals = false
 # that is capable of quantifiers (e.g. Z3 or PRINCESS).
 cpa.predicate.useQuantifiersOnArrays = false
 
-# Enable fallback to UFs if a solver does not support non-linear arithmetics.
-# This option only effects MULT, MOD and DIV.
-cpa.predicate.useUFsForNonLinearArithmetic = true
-
 # Do not follow states which can not syntactically lead to a target location
 cpa.property_reachability.noFollowBackwardsUnreachable = true
 
@@ -2277,13 +2336,14 @@ cpa.slicing.preRunSyntacticWeakening = true
 # (in general), so you have to turn it off.
 cpa.slicing.refinement.counterexampleCheckOnSlice = false
 
+# What kind of restart to do after a successful refinement
+cpa.slicing.refinement.restartStrategy = PIVOT
+  enum:     [PIVOT, ROOT]
+
 # Use all assumptions of a target path as counterexamples, not just the edge
 # to the target location. Always set this to `true` if you use
 # SlicingDelegatingRefiner.
 cpa.slicing.refinement.takeEagerSlice = true
-
-# Only use incremental slices, not the full slice per slicing criterion.
-cpa.slicing.refinement.takeIncrementalSlice = true
 
 # Strategy for abstracting children during CEX weakening
 cpa.slicing.removalSelectionStrategy = ALL
@@ -2517,11 +2577,11 @@ cpa.uninitvars.stop = "sep"
   allowed values: [sep, join]
 
 # functions, which stops analysis
-cpa.usage.abortfunctions = no default value
+cpa.usage.abortfunctions = {}
 
 # functions, which are used to bind variables (like list elements are binded
 # to list variable)
-cpa.usage.binderFunctions = no default value
+cpa.usage.binderFunctions = {}
 
 # export counterexample core as text file
 cpa.usage.export.witnessTemplate = "witness.%s.graphml"
@@ -2565,22 +2625,22 @@ cpa.usage.singleFileOutput = false
 cpa.usage.singleThreadFunctions = new HashSet<>()
 
 # functions, which we don't analize
-cpa.usage.skippedfunctions = no default value
+cpa.usage.skippedfunctions = {}
 
 # variables, which will be filtered by function location
-cpa.usage.skippedvariables.byFunction = no default value
+cpa.usage.skippedvariables.byFunction = {}
 
 # variables, which will be filtered by function prefix
-cpa.usage.skippedvariables.byFunctionPrefix = no default value
+cpa.usage.skippedvariables.byFunctionPrefix = {}
 
 # variables, which will be filtered by its name
-cpa.usage.skippedvariables.byName = no default value
+cpa.usage.skippedvariables.byName = {}
 
 # variables, which will be filtered by its name prefix
-cpa.usage.skippedvariables.byNamePrefix = no default value
+cpa.usage.skippedvariables.byNamePrefix = {}
 
 # variables, which will be filtered by its type
-cpa.usage.skippedvariables.byType = no default value
+cpa.usage.skippedvariables.byType = {}
 
 # clean all ARG or try to reuse some parts of it (memory consuming)
 cpa.usage.totalARGCleaning = true
@@ -2594,6 +2654,9 @@ cpa.usage.unsafedetector.intLock = no default value
 # defines what is unsafe
 cpa.usage.unsafedetector.unsafeMode = RACE
   enum:     [RACE, DEADLOCKCIRCULAR, DEADLOCKDISPATCH]
+
+# functions, which are marked as write access
+cpa.usage.writeAccessFunctions = {}
 
 # which merge operator to use for ValidVarsCPA
 cpa.validVars.merge = "JOIN"
@@ -2699,6 +2762,10 @@ cpa.value.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
 # heuristic to sort targets based on the quality of interpolants derivable
 # from them
 cpa.value.refinement.itpSortedTargets = false
+
+# File to which path constraints should be written. If null, no path
+# constraints are written
+cpa.value.refinement.pathConstraintsFile = "Counterexample.%d.symbolic-trace.txt"
 
 # whether or not to perform path slicing before interpolation
 cpa.value.refinement.pathSlicing = true
@@ -2820,6 +2887,9 @@ dependenceGraph.exportDot = "DependenceGraph.dot"
 # Run flow dependence analysis with constant propagation
 dependencegraph.flowdep.constantPropagation = false
 
+# Program to check against
+differential.program = no default value
+
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
 enabledanalysis.allowLazyRefinement = false
@@ -2827,6 +2897,32 @@ enabledanalysis.allowLazyRefinement = false
 # Which CPA is used as enabler in the current analysis.
 enabledanalysis.enablerCPA = PREDICATE
   enum:     [APRON, INTERVAL, OCTAGON, PREDICATE, VALUE]
+
+# Configuration for programs containing more than @Option adressedRatio
+# addressed vars.
+heuristicSelection.addressedConfig = no default value
+
+# Ratio of addressed vars. Values bigger than the passed value lead to
+# @option addressedConfig.
+heuristicSelection.addressedRatio = 0
+
+# Configuration for programs containing arrays.
+heuristicSelection.arrayConfig = no default value
+
+# Configuration for programs with loops and complex datastructures.
+heuristicSelection.complexLoopConfig = no default value
+
+# Configuration for programs containing composite types.
+heuristicSelection.compositeTypeConfig = no default value
+
+# Configuration for programs with loops.
+heuristicSelection.loopConfig = no default value
+
+# Configuration for loop-free programs.
+heuristicSelection.loopFreeConfig = no default value
+
+# Configuration for programs containing only relevant bool vars.
+heuristicSelection.onlyBoolConfig = no default value
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
@@ -2851,7 +2947,8 @@ interleavedAlgorithm.initCondition = false
 
 # print the statistics of each component of the interleaved algorithm
 # directly after the component's computation is finished
-interleavedAlgorithm.printIntermediateStatistics = false
+interleavedAlgorithm.intermediateStatistics = NONE
+  enum:     [EXECUTE, NONE, PRINT]
 
 # let each analysis part of the interleaved algorithm write output files and
 # not only the last one that is executed

@@ -73,6 +73,7 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
       result.addPrecision(completePrecision);
       return result;
     } finally {
+      finish(pInput, result);
       sendFinishSignal();
       postponedIterations.clear();
       totalTimer.stop();
@@ -102,6 +103,9 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
   abstract protected O getNext(I pInput);
 
   protected void init(@SuppressWarnings("unused") I pInput) {}
+
+  protected void finish(
+      @SuppressWarnings("unused") I pInput, @SuppressWarnings("unused") RefinementResult pResult) {}
 
   @ForOverride
   protected void finishIteration(

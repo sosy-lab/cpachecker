@@ -62,6 +62,6 @@ public interface MergeOperator {
    * @param precision The precision.
    * @return An abstract state between state2 and the top state.
    */
-  public AbstractState merge(AbstractState state1, AbstractState state2, Precision precision)
+  AbstractState merge(AbstractState state1, AbstractState state2, Precision precision)
       throws CPAException, InterruptedException;
 }

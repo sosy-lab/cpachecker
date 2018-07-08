@@ -48,10 +48,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 
 @Options(prefix="cpa.bam")
@@ -383,11 +383,12 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     // If no changes are found, we have found the fixpoint.
 
     // try to get previously computed states from cache
-    final Pair<ReachedSet, Collection<AbstractState>> pair =
-            //argCache.get(reducedInitialState, reducedInitialPrecision, currentBlock);
-            data.getCache().get(pCoveringLevel.getFirst(), pCoveringLevel.getSecond(), pCoveringLevel.getThird());
-    final ReachedSet reached = pair.getFirst();
-    final Collection<AbstractState> previousResult = pair.getSecond();
+    final BAMCacheEntry entry =
+        // argCache.get(reducedInitialState, reducedInitialPrecision, currentBlock);
+        data.getCache()
+            .get(pCoveringLevel.getFirst(), pCoveringLevel.getSecond(), pCoveringLevel.getThird());
+    final ReachedSet reached = entry.getReachedSet();
+    final Collection<AbstractState> previousResult = entry.getExitStates();
     final Collection<AbstractState> reducedResult;
 
     assert reached != null : "cached entry has no reached set";

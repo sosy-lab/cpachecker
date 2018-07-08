@@ -71,6 +71,6 @@ public class ValueAnalysisInformation {
 
   @Override
   public String toString() {
-    return "ValueInformation[" + assignments.toString() + "]";
+    return "ValueInformation[" + assignments + "]";
   }
 }

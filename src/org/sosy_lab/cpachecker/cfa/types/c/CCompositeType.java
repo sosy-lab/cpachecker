@@ -230,8 +230,7 @@ public final class CCompositeType implements CComplexType {
     }
 
     public String toASTString() {
-      String name = Strings.nullToEmpty(getName());
-      return getType().toASTString(name) + ";";
+      return getType().toASTString(Strings.nullToEmpty(getName())) + ";";
     }
 
     @Override

@@ -183,7 +183,7 @@ public enum MachineModel {
   private final int mSizeofCharInBits = 8;
   private final CSimpleType ptrEquivalent;
 
-  private MachineModel(
+  MachineModel(
       int pSizeofShort,
       int pSizeofInt,
       int pSizeofLongInt,

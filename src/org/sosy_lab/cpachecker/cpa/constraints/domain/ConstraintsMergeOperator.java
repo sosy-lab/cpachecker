@@ -78,8 +78,8 @@ public class ConstraintsMergeOperator implements MergeOperator, Statistics {
       return pState2;
     }
 
-    Constraint lastConstraintOfState1 = stateToUseForWeakening.getLastAddedConstraint();
-    Constraint lastConstraintOfState2 = weakenedState.getLastAddedConstraint();
+    Constraint lastConstraintOfState1 = stateToUseForWeakening.getLastAddedConstraint().get();
+    Constraint lastConstraintOfState2 = weakenedState.getLastAddedConstraint().get();
 
     if (lastConstraintOfState1 instanceof LogicalNotExpression) {
       lastConstraintOfState1 =

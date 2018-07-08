@@ -95,8 +95,7 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
 
       @Override
       public BooleanFormula getFormula(
-          FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
-          throws CPATransferException, InterruptedException {
+          FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext) {
         return pFMGR.getBooleanFormulaManager().makeBoolean(value);
       }
 

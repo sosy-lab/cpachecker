@@ -23,13 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 
 public class SMGInterpolantManager {
 
@@ -47,8 +48,8 @@ public class SMGInterpolantManager {
     return initalInterpolant;
   }
 
-  public SMGInterpolant createInterpolant(SMGState pState) {
-    return pState.createInterpolant();
+  public SMGInterpolant createInterpolant(UnmodifiableSMGState pState) {
+    return new SMGInterpolant(ImmutableSet.of(pState));
   }
 
   public SMGInterpolant getFalseInterpolant() {
@@ -59,8 +60,8 @@ public class SMGInterpolantManager {
     return SMGInterpolant.getTrueInterpolant(pTemplate);
   }
 
-  public SMGInterpolant createInterpolant(SMGState pState,
-      Set<SMGAbstractionBlock> pAbstractionBlocks) {
-    return pState.createInterpolant(pAbstractionBlocks);
+  public SMGInterpolant createInterpolant(
+      UnmodifiableSMGState pState, Set<SMGAbstractionBlock> pAbstractionBlocks) {
+    return new SMGInterpolant(ImmutableSet.of(pState), pAbstractionBlocks);
   }
 }

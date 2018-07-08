@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serializable;
 import java.util.Objects;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -36,7 +39,8 @@ public class DGNode implements Serializable {
   private CFAEdge cfaEdge;
   private MemoryLocation cause;
 
-  public DGNode(final CFAEdge pCfaEdge, final MemoryLocation pCause) {
+  public DGNode(final CFAEdge pCfaEdge, @Nullable final MemoryLocation pCause) {
+    checkNotNull(pCfaEdge);
     cfaEdge = pCfaEdge;
     cause = pCause;
   }
@@ -45,8 +49,14 @@ public class DGNode implements Serializable {
     this(pCfaEdge, null);
   }
 
+  DGNode() {}
+
   public CFAEdge getCfaEdge() {
     return cfaEdge;
+  }
+
+  public boolean isUnknownPointerNode() {
+    return false;
   }
 
   @Override
@@ -68,6 +78,44 @@ public class DGNode implements Serializable {
 
   @Override
   public String toString() {
-    return "(" + cfaEdge.toString() + ", " + cause + ")";
+    return "(" + cfaEdge + ", " + cause + ")";
+  }
+
+  /** {@link DGNode} that signalizes the dependency on an unknown memory location. * */
+  public static class UnknownPointerNode extends DGNode {
+
+    private static final long serialVersionUID = 6558402143061075378L;
+    private static final UnknownPointerNode INSTANCE = new UnknownPointerNode();
+
+    private UnknownPointerNode() {}
+
+    public static UnknownPointerNode getInstance() {
+      return INSTANCE;
+    }
+
+    @Override
+    public boolean isUnknownPointerNode() {
+      return true;
+    }
+
+    @Override
+    public CFAEdge getCfaEdge() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean equals(Object pO) {
+      return pO instanceof UnknownPointerNode;
+    }
+
+    @Override
+    public int hashCode() {
+      return 1;
+    }
+
+    @Override
+    public String toString() {
+      return "UNK-Pointer";
+    }
   }
 }
