@@ -69,7 +69,8 @@ class FunctionScopeImpl implements FunctionScope {
   @Override
   public void addDeclaration(@Nonnull final JSSimpleDeclaration pDeclaration) {
     final String origName = pDeclaration.getOrigName();
-    assert !localDeclarations.containsKey(origName);
+    assert !localDeclarations.containsKey(origName)
+        : "Duplicate declaration " + origName + " in " + qualifiedNameOfScope();
     localDeclarations.put(origName, pDeclaration);
   }
 
