@@ -1092,9 +1092,8 @@ public class JSToFormulaConverter {
     }
 
     case ReturnStatementEdge: {
-      CReturnStatementEdge returnEdge = (CReturnStatementEdge)edge;
-      return makeReturn(returnEdge.asAssignment(), returnEdge, function,
-          ssa, pts, constraints, errorConditions);
+      // TODO
+      return bfmgr.makeTrue();
     }
 
     case DeclarationEdge: {
@@ -1112,20 +1111,18 @@ public class JSToFormulaConverter {
     }
 
     case FunctionCallEdge: {
-      return makeFunctionCall((CFunctionCallEdge)edge, function,
-          ssa, pts, constraints, errorConditions);
+      // TODO
+      return bfmgr.makeTrue();
     }
 
     case FunctionReturnEdge: {
-      // get the expression from the summary edge
-      CFunctionSummaryEdge ce = ((CFunctionReturnEdge)edge).getSummaryEdge();
-      return makeExitFunction(ce, function,
-          ssa, pts, constraints, errorConditions);
+      // TODO
+      return bfmgr.makeTrue();
     }
 
-      case CallToReturnEdge:
-        CFunctionSummaryEdge ce = (CFunctionSummaryEdge) edge;
-        return makeExitFunction(ce, function, ssa, pts, constraints, errorConditions);
+    case CallToReturnEdge:
+      // TODO
+      return bfmgr.makeTrue();
 
     default:
       throw new UnrecognizedCFAEdgeException(edge);
