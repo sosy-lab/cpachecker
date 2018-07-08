@@ -142,6 +142,8 @@ public class ExpressionToFormulaVisitor
         return new TypedValue(conv.typeTags.NUMBER, conv.toNumber(operand));
       case MINUS:
         return new TypedValue(conv.typeTags.NUMBER, mgr.makeNegate(conv.toNumber(operand)));
+      case VOID:
+        return conv.tvmgr.getUndefinedValue();
       default:
         throw new UnrecognizedJSCodeException("Not implemented yet", pUnaryExpression);
     }
