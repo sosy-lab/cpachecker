@@ -92,7 +92,7 @@ public class FunctionDeclarationCFABuilderTest extends CFABuilderTestBase {
     final ParseResult parseResult = builder.getParseResult();
     Truth.assertThat(parseResult.getFunctions()).hasSize(1);
     final String functionKey = parseResult.getFunctions().firstKey();
-    Truth.assertThat(functionKey).startsWith("__CPAChecker_ANONYMOUS_FUNCTION_");
+    Truth.assertThat(functionKey).startsWith("__CPACHECKER_ANONYMOUS_FUNCTION_");
     final FunctionEntryNode functionEntryNode = parseResult.getFunctions().get(functionKey);
     Truth.assertThat(functionEntryNode).isNotNull();
     Truth.assertThat(functionEntryNode.getFunctionDefinition()).isEqualTo(result);

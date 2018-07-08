@@ -85,7 +85,7 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
     final JavaScriptCFABuilder functionCFABuilder =
         pBuilder.copyWith(entryNode, new FunctionScopeImpl(currentScope, jsFunctionDeclaration));
 
-    addFunctionEntryNode(pBuilder);
+    addFunctionEntryNode(functionCFABuilder);
 
     functionCFABuilder.append(pFunctionDeclaration.getBody());
     if (!functionCFABuilder.getExitNode().equals(exitNode)) {
@@ -142,7 +142,7 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
 
   public static String getFunctionName(final FunctionDeclaration node) {
     return node.getMethodName() == null
-        ? "__CPAChecker_ANONYMOUS_FUNCTION_" + node.hashCode()
+        ? "__CPACHECKER_ANONYMOUS_FUNCTION_" + node.hashCode()
         : ((SimpleName) node.getMethodName()).getIdentifier();
   }
 }

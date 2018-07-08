@@ -85,7 +85,7 @@ public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
     final JSIdExpression functionId =
         new JSIdExpression(
             FileLocation.DUMMY,
-            "__CPAChecker_ANONYMOUS_FUNCTION_0",
+            "__CPACHECKER_ANONYMOUS_FUNCTION_0",
             functionDeclaration);
     final JSIdExpression e1 = new JSIdExpression(FileLocation.DUMMY, "e1", null);
     final JSIdExpression e2 = new JSIdExpression(FileLocation.DUMMY, "e2", null);
