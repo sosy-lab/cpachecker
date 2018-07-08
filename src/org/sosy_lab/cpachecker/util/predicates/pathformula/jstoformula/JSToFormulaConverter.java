@@ -1577,7 +1577,8 @@ public class JSToFormulaConverter {
   }
 
   private BooleanFormula numberToBoolean(final FloatingPointFormula pValue) {
-    return bfmgr.ifThenElse(fpfmgr.isZero(pValue), bfmgr.makeFalse(), bfmgr.makeTrue());
+    return bfmgr.ifThenElse(
+        bfmgr.or(fpfmgr.isZero(pValue), fpfmgr.isNaN(pValue)), bfmgr.makeFalse(), bfmgr.makeTrue());
   }
 
   FloatingPointFormula toNumber(final TypedValue pValue) {
