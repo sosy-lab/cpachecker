@@ -1503,6 +1503,10 @@ public class JSToFormulaConverter {
       return (BooleanFormula) pValue.getValue();
     } else if (type.equals(typeTags.NUMBER)) {
       return numberToBoolean((FloatingPointFormula) pValue.getValue());
+    } else if (type.equals(typeTags.STRING)) {
+      // TODO empty string to boolean conversion of string constants should be possible
+      // For now, assume that every string is not empty.
+      return bfmgr.makeTrue();
     } else if (type.equals(typeTags.UNDEFINED)) {
       return bfmgr.makeFalse();
     } else if (type.equals(typeTags.OBJECT)) {
@@ -1530,6 +1534,11 @@ public class JSToFormulaConverter {
       return booleanToNumber((BooleanFormula) pValue.getValue());
     } else if (type.equals(typeTags.NUMBER)) {
       return (FloatingPointFormula) pValue.getValue();
+    } else if (type.equals(typeTags.STRING)) {
+      // TODO string to number conversion of string constants should be possible
+      // For now, assume that every string is not a StringNumericLiteral, see
+      // https://www.ecma-international.org/ecma-262/5.1/#sec-9.3
+      return fpfmgr.makeNaN(Types.NUMBER_TYPE);
     } else if (type.equals(typeTags.UNDEFINED)) {
       return fpfmgr.makeNaN(Types.NUMBER_TYPE);
     } else if (type.equals(typeTags.OBJECT)) {

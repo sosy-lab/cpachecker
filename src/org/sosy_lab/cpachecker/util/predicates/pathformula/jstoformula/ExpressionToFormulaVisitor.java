@@ -155,9 +155,8 @@ public class ExpressionToFormulaVisitor
   }
 
   @Override
-  public TypedValue visit(final JSStringLiteralExpression pStringLiteralExpression)
-      throws UnrecognizedJSCodeException {
-    throw new UnrecognizedJSCodeException("Not implemented yet", pStringLiteralExpression);
+  public TypedValue visit(final JSStringLiteralExpression pStringLiteralExpression) {
+    return conv.tvmgr.createStringValue(pStringLiteralExpression.getValue());
   }
 
   @Override

@@ -57,6 +57,11 @@ class TypedValueManager {
     return new TypedValue(typeTags.NUMBER, pFloatingPointFormula);
   }
 
+  @SuppressWarnings("unused")
+  TypedValue createStringValue(final String pString) {
+    return new StringValue();
+  }
+
   private class UndefinedValue extends TypedValue {
 
     UndefinedValue() {
@@ -82,6 +87,20 @@ class TypedValueManager {
     public Formula getValue() {
       throw new RuntimeException(
           "Can not get value of 'null'. Object values are not supported yet.");
+    }
+  }
+
+  private class StringValue extends TypedValue {
+
+    StringValue() {
+      super(typeTags.STRING, typeTags.OBJECT);
+    }
+
+    @Nonnull
+    @Override
+    public Formula getValue() {
+      throw new RuntimeException(
+          "Can not get value of string. String values are not supported yet.");
     }
   }
 }
