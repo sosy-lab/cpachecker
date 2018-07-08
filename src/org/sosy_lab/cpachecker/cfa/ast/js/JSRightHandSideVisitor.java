@@ -25,5 +25,14 @@ package org.sosy_lab.cpachecker.cfa.ast.js;
 
 public interface JSRightHandSideVisitor<R, X extends Exception> extends JSExpressionVisitor<R, X> {
 
-  R visit(JSFunctionCallExpression pIastFunctionCallExpression) throws X;
+  R visit(JSFunctionCallExpression pFunctionCallExpression) throws X;
+
+  @Override
+  default R visit(JSExpression pExpression) throws X {
+    if (pExpression instanceof JSFunctionCallExpression) {
+      return visit((JSFunctionCallExpression) pExpression);
+    } else {
+      return JSExpressionVisitor.super.visit(pExpression);
+    }
+  }
 }

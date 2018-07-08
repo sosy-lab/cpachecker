@@ -42,4 +42,30 @@ public interface JSExpressionVisitor<R, X extends Exception> extends JSLeftHandS
   R visit(JSUndefinedLiteralExpression pUndefinedLiteralExpression) throws X;
 
   R visit(JSThisExpression pThisExpression) throws X;
+
+  default R visit(JSExpression pExpression) throws X {
+    if (pExpression instanceof JSIdExpression) {
+      return visit((JSIdExpression) pExpression);
+    } else if (pExpression instanceof JSBinaryExpression) {
+      return visit((JSBinaryExpression) pExpression);
+    } else if (pExpression instanceof JSStringLiteralExpression) {
+      return visit((JSStringLiteralExpression) pExpression);
+    } else if (pExpression instanceof JSFloatLiteralExpression) {
+      return visit((JSFloatLiteralExpression) pExpression);
+    } else if (pExpression instanceof JSUnaryExpression) {
+      return visit((JSUnaryExpression) pExpression);
+    } else if (pExpression instanceof JSIntegerLiteralExpression) {
+      return visit((JSIntegerLiteralExpression) pExpression);
+    } else if (pExpression instanceof JSBooleanLiteralExpression) {
+      return visit((JSBooleanLiteralExpression) pExpression);
+    } else if (pExpression instanceof JSNullLiteralExpression) {
+      return visit((JSNullLiteralExpression) pExpression);
+    } else if (pExpression instanceof JSUndefinedLiteralExpression) {
+      return visit((JSUndefinedLiteralExpression) pExpression);
+    } else if (pExpression instanceof JSThisExpression) {
+      return visit((JSThisExpression) pExpression);
+    } else {
+      throw new RuntimeException("Not implemented yet");
+    }
+  }
 }
