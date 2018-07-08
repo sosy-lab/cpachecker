@@ -362,9 +362,14 @@ public class ARGToCTranslator {
         // create a new block starting with this condition
         boolean truthAssumption = getRealTruthAssumption(assumeEdge);
 
-        CompoundStatement newBlock =
-            addIfStatement(
-                currentBlock, "if (" + assumeEdge.getExpression().toQualifiedASTString() + ")");
+        String cond;
+        if (truthAssumption == assumeEdge.getTruthAssumption()) {
+          cond = "if (" + assumeEdge.getExpression().toQualifiedASTString() + ")";
+        } else {
+          cond = "if (!(" + assumeEdge.getExpression().toQualifiedASTString() + "))";
+        }
+
+        CompoundStatement newBlock = addIfStatement(currentBlock, cond);
 
         if (truthAssumption) {
           ARGEdge e = new ARGEdge(currentElement, child, edgeToChild, newBlock);
@@ -428,7 +433,11 @@ public class ARGToCTranslator {
         String cond = "";
 
         if (truthAssumption) {
-          cond = "if (" + assumeEdge.getExpression().toQualifiedASTString() + ")";
+          if (truthAssumption == assumeEdge.getTruthAssumption()) {
+            cond = "if (" + assumeEdge.getExpression().toQualifiedASTString() + ")";
+          } else {
+            cond = "if (!(" + assumeEdge.getExpression().toQualifiedASTString() + "))";
+          }
         } else {
           cond = "else ";
         }
