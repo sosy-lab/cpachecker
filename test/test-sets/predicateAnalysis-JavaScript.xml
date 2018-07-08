@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN"
+        "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="20 s" hardtimelimit="30 s" memlimit="500 MB" cpuCores="1">
+
+    <option name="-noout"/>
+    <option name="-heap">150M</option>
+
+    <rundefinition>
+        <option name="-predicateAnalysis-JavaScript-PredAbsRefiner-SBE"/>
+    </rundefinition>
+
+    <tasks>
+        <include>../programs/javascript/**.js</include>
+        <excludesfile>unimplemented-features-JavaScript.set</excludesfile>
+        <excludesfile>predicateAnalysis-JavaScript-encodeFloatAsRational.set</excludesfile>
+    </tasks>
+
+    <tasks>
+        <option name="-setprop">cpa.predicate.encodeFloatAs=rational</option>
+        <!-- TODO this option should be removed as soon as NaN and float interpolation can be used together -->
+        <option name="-setprop">cpa.predicate.js.useNaN=false</option>
+        <includesfile>predicateAnalysis-JavaScript-encodeFloatAsRational.set</includesfile>
+    </tasks>
+</benchmark>
