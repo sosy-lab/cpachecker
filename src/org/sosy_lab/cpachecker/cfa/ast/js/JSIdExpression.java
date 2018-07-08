@@ -50,6 +50,10 @@ public class JSIdExpression extends AIdExpression implements JSLeftHandSide {
     //assert pDeclaration != null;
   }
 
+  public JSIdExpression(final FileLocation pFileLocation, final JSSimpleDeclaration pDeclaration) {
+    super(pFileLocation, pDeclaration);
+  }
+
   @Override
   @Nullable
   public JSSimpleDeclaration getDeclaration() {
