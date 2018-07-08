@@ -1505,6 +1505,8 @@ public class JSToFormulaConverter {
       return numberToBoolean((FloatingPointFormula) pValue.getValue());
     } else if (type.equals(typeTags.UNDEFINED)) {
       return bfmgr.makeFalse();
+    } else if (type.equals(typeTags.OBJECT)) {
+      return bfmgr.makeFalse(); // TODO handle non null objects
     } else {
       // variable
       final IntegerFormula variable = (IntegerFormula) pValue.getValue();
@@ -1531,6 +1533,8 @@ public class JSToFormulaConverter {
       return (FloatingPointFormula) pValue.getValue();
     } else if (type.equals(typeTags.UNDEFINED)) {
       return fmgr.getFloatingPointFormulaManager().makeNaN(Types.NUMBER_TYPE);
+    } else if (type.equals(typeTags.OBJECT)) {
+      return fmgr.makeNumber(Types.NUMBER_TYPE, 0); // TODO handle non null objects
     } else {
       // variable
       final IntegerFormula variable = (IntegerFormula) pValue.getValue();

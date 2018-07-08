@@ -159,9 +159,8 @@ public class ExpressionToFormulaVisitor
   }
 
   @Override
-  public TypedValue visit(final JSNullLiteralExpression pNullLiteralExpression)
-      throws UnrecognizedJSCodeException {
-    throw new UnrecognizedJSCodeException("Not implemented yet", pNullLiteralExpression);
+  public TypedValue visit(final JSNullLiteralExpression pNullLiteralExpression) {
+    return conv.tvmgr.getNullValue();
   }
 
   @Override
