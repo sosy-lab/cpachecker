@@ -25,30 +25,24 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
 
 
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.JSToFormulaTypeUtils.getRealFieldOwner;
-
-import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.js.DefaultJSExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSNullLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSThisExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedJSCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-
-
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
-import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
-class LValueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
+@SuppressWarnings({"FieldCanBeLocal", "unused"})
+class LValueVisitor extends DefaultJSExpressionVisitor<Formula, UnrecognizedJSCodeException> {
 
   private final JSToFormulaConverter conv;
   private final CFAEdge       edge;
@@ -76,79 +70,49 @@ class LValueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCode
     errorConditions = pErrorConditions;
   }
 
+
   @Override
-  protected BitvectorFormula visitDefault(CExpression exp) throws UnrecognizedCCodeException {
-    throw new UnrecognizedCCodeException("Unknown lvalue", edge, exp);
+  protected Formula visitDefault(final JSExpression exp) throws UnrecognizedJSCodeException {
+    throw new UnrecognizedJSCodeException("Not handled yet", exp);
   }
 
   @Override
-  public Formula visit(CIdExpression idExp) {
-    return conv.makeFreshVariable(idExp.getDeclaration().getQualifiedName(), idExp.getExpressionType(), ssa);
-  }
-
-  /** This method is called when we don't know what else to do. */
-  private Formula giveUpAndJustMakeVariable(CExpression exp) {
-    return conv.makeVariableUnsafe(exp, function, ssa, true);
-  }
-
-
-  @Override
-  public Formula visit(CUnaryExpression pE) throws UnrecognizedCCodeException {
-    return giveUpAndJustMakeVariable(pE);
+  public Formula visit(final JSFloatLiteralExpression pLiteral) throws UnrecognizedJSCodeException {
+    throw new UnrecognizedJSCodeException("Not handled yet", pLiteral);
   }
 
   @Override
-  public Formula visit(CComplexCastExpression pE) throws UnrecognizedCCodeException {
-    if (pE.isImaginaryCast()) {
-      throw new UnrecognizedCCodeException("Unknown lvalue", edge, pE);
-    }
-    // TODO complex numbers are not supported for evaluation right now
-    return giveUpAndJustMakeVariable(pE);
+  public Formula visit(final JSIntegerLiteralExpression pIntegerLiteralExpression)
+      throws UnrecognizedJSCodeException {
+    throw new UnrecognizedJSCodeException("Not handled yet", pIntegerLiteralExpression);
   }
 
   @Override
-  public Formula visit(CPointerExpression pE) throws UnrecognizedCCodeException {
-    return giveUpAndJustMakeVariable(pE);
+  public Formula visit(final JSBooleanLiteralExpression pBooleanLiteralExpression)
+      throws UnrecognizedJSCodeException {
+    throw new UnrecognizedJSCodeException("Not handled yet", pBooleanLiteralExpression);
   }
 
   @Override
-  public Formula visit(CFieldReference fexp) throws UnrecognizedCCodeException {
-    if (!conv.options.handleFieldAccess()) {
-      CExpression fieldRef = fexp.getFieldOwner();
-      if (fieldRef instanceof CIdExpression) {
-        CSimpleDeclaration decl = ((CIdExpression) fieldRef).getDeclaration();
-        if (decl instanceof CDeclaration && ((CDeclaration)decl).isGlobal()) {
-          // this is the reference to a global field variable
-          // we don't need to scope the variable reference
-          String var = JSToFormulaConverter.exprToVarNameUnscoped(fexp);
-
-          return conv.makeFreshVariable(var, fexp.getExpressionType(), ssa);
-        }
-      }
-      return giveUpAndJustMakeVariable(fexp);
-    }
-
-    // s.a = ...
-    // s->b = ...
-    // make a new s and return the formula accessing the field
-    // as constraint add that all other fields (the rest of the bitvector) remains the same.
-    CExpression owner = getRealFieldOwner(fexp);
-    // This will just create the formula with the current ssa-index.
-    Formula oldStructure = conv.buildTerm(owner, edge, function, ssa, pts, constraints, errorConditions);
-    // This will eventually increment the ssa-index and return the new formula.
-    Formula newStructure = owner.accept(this);
-
-    // Other fields did not change.
-    Formula oldRestS = conv.replaceField(fexp, oldStructure, Optional.empty());
-    Formula newRestS = conv.replaceField(fexp, newStructure, Optional.empty());
-    constraints.addConstraint(conv.fmgr.makeEqual(oldRestS, newRestS));
-
-    Formula fieldFormula = conv.accessField(fexp, newStructure);
-    return fieldFormula;
+  public Formula visit(final JSNullLiteralExpression pNullLiteralExpression)
+      throws UnrecognizedJSCodeException {
+    throw new UnrecognizedJSCodeException("Not handled yet", pNullLiteralExpression);
   }
 
   @Override
-  public Formula visit(CArraySubscriptExpression pE) throws UnrecognizedCCodeException {
-    return giveUpAndJustMakeVariable(pE);
+  public Formula visit(final JSUndefinedLiteralExpression pUndefinedLiteralExpression)
+      throws UnrecognizedJSCodeException {
+    throw new UnrecognizedJSCodeException("Not handled yet", pUndefinedLiteralExpression);
+  }
+
+  @Override
+  public Formula visit(final JSThisExpression pThisExpression) throws UnrecognizedJSCodeException {
+    throw new UnrecognizedJSCodeException("Not handled yet", pThisExpression);
+  }
+
+  @Override
+  public Formula visit(final JSIdExpression pIdExpression) throws UnrecognizedJSCodeException {
+    return conv.makeFreshVariable(pIdExpression.getDeclaration().getQualifiedName(), pIdExpression.getExpressionType
+        (), ssa);
   }
 }

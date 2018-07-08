@@ -115,6 +115,9 @@ public class ExpressionToFormulaVisitor extends DefaultJSExpressionVisitor<Formu
 
   @Override
   public Formula visit(final JSIdExpression pIdExpression) throws UnrecognizedJSCodeException {
-    throw new UnrecognizedJSCodeException("Not implemented yet", pIdExpression);
+    return conv.makeVariable(
+        pIdExpression.getDeclaration().getQualifiedName(),
+        pIdExpression.getExpressionType(),
+        ssa);
   }
 }

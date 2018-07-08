@@ -199,19 +199,21 @@ public class JSToWpConverter extends JSToFormulaConverter {
 
     Formula l = null, r = null;
     if (direction == AnalysisDirection.BACKWARD) {
-      l = buildLvalueTerm(lhs, pEdge, pFunction, emptySSAMap(), pts, constraints, errorConditions);
-      r = buildTerm(rhs, pEdge, pFunction, emptySSAMap(), pts, constraints, errorConditions);
+//      l = buildLvalueTerm(lhs, pEdge, pFunction, emptySSAMap(), pts, constraints, errorConditions);
+//      r = buildTerm(rhs, pEdge, pFunction, emptySSAMap(), pts, constraints, errorConditions);
+      throw new RuntimeException("Not implemented");
     } else {
-      r = buildTerm(rhs, pEdge, pFunction, emptySSAMap(), pts, constraints, errorConditions);
-      l = buildLvalueTerm(lhs, pEdge, pFunction, emptySSAMap(), pts, constraints, errorConditions);
+//      r = buildTerm(rhs, pEdge, pFunction, emptySSAMap(), pts, constraints, errorConditions);
+//      l = buildLvalueTerm(lhs, pEdge, pFunction, emptySSAMap(), pts, constraints, errorConditions);
+      throw new RuntimeException("Not implemented");
     }
 
-    final Map<Formula, Formula> substitution = new HashMap<>();
-    substitution.put(fmgr.uninstantiate(l), fmgr.uninstantiate(r));
-
-    BooleanFormula result = fmgr.substitute(pPostcond, substitution);
-
-    return result;
+//    final Map<Formula, Formula> substitution = new HashMap<>();
+//    substitution.put(fmgr.uninstantiate(l), fmgr.uninstantiate(r));
+//
+//    BooleanFormula result = fmgr.substitute(pPostcond, substitution);
+//
+//    return result;
   }
 
   private final BooleanFormula makePreconditionForVarDeclaration(

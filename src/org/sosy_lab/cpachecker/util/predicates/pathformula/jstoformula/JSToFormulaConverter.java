@@ -70,8 +70,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializers;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSStatement;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -81,6 +88,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -96,6 +105,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
+import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -315,6 +325,10 @@ public class JSToFormulaConverter {
     return true;
   }
 
+  public final FormulaType<?> getFormulaTypeFromCType(JSType type) {
+    return FormulaType.BooleanType;
+  }
+
   public final FormulaType<?> getFormulaTypeFromCType(CType type) {
     if (type instanceof CSimpleType) {
       CSimpleType simpleType = (CSimpleType) type;
@@ -359,7 +373,7 @@ public class JSToFormulaConverter {
   }
 
   /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
-  protected int makeFreshIndex(String name, CType type, SSAMapBuilder ssa) {
+  protected int makeFreshIndex(String name, JSType type, SSAMapBuilder ssa) {
     int idx = getFreshIndex(name, type, ssa);
     ssa.setIndex(name, type, idx);
     return idx;
@@ -368,13 +382,13 @@ public class JSToFormulaConverter {
   /**
    * Produces a fresh new SSA index for an assignment,
    * but does _not_ update the SSA map.
-   * Usually you should use {@link #makeFreshIndex(String, CType, SSAMapBuilder)}
+   * Usually you should use {@link #makeFreshIndex(String, JSType, SSAMapBuilder)}
    * instead, because using variables with indices that are not stored in the SSAMap
    * is not a good idea (c.f. the comment inside getIndex()).
    * If you use this method, you need to make sure to update the SSAMap correctly.
    */
-  protected int getFreshIndex(String name, CType type, SSAMapBuilder ssa) {
-    checkSsaSavedType(name, type, ssa.getType(name));
+  protected int getFreshIndex(String name, JSType type, SSAMapBuilder ssa) {
+//    checkSsaSavedType(name, type, ssa.getType(name));
     int idx = ssa.getFreshIndex(name);
     if (idx <= 0) {
       idx = VARIABLE_FIRST_ASSIGNMENT;
@@ -388,8 +402,8 @@ public class JSToFormulaConverter {
    *
    * @return the index of the variable
    */
-  protected int getIndex(String name, CType type, SSAMapBuilder ssa) {
-    checkSsaSavedType(name, type, ssa.getType(name));
+  protected int getIndex(String name, JSType type, SSAMapBuilder ssa) {
+//    checkSsaSavedType(name, type, ssa.getType(name));
     int idx = ssa.getIndex(name);
     if (idx <= 0) {
       logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", name);
@@ -472,7 +486,7 @@ public class JSToFormulaConverter {
    *
    * This method does not update the index of the variable.
    */
-  protected Formula makeVariable(String name, CType type, SSAMapBuilder ssa) {
+  protected Formula makeVariable(String name, JSType type, SSAMapBuilder ssa) {
     int useIndex = getIndex(name, type, ssa);
     return fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, useIndex);
   }
@@ -493,9 +507,9 @@ public class JSToFormulaConverter {
       SSAMap pContextSSA,
       PointerTargetSet pContextPTS,
       String pVarName,
-      CType pType,
+      JSType pType,
       boolean forcePointerDereference) {
-    Preconditions.checkArgument(!(pType instanceof CEnumType));
+//    Preconditions.checkArgument(!(pType instanceof CEnumType));
 
     SSAMapBuilder ssa = pContextSSA.builder();
     Formula formula = makeVariable(pVarName, pType, ssa);
@@ -515,7 +529,7 @@ public class JSToFormulaConverter {
    * side of an assignment.
    * This method does not handle scoping and the NON_DET_VARIABLE!
    */
-  protected Formula makeFreshVariable(String name, CType type, SSAMapBuilder ssa) {
+  protected Formula makeFreshVariable(String name, JSType type, SSAMapBuilder ssa) {
     int useIndex;
 
     if (direction == AnalysisDirection.BACKWARD) {
@@ -534,11 +548,12 @@ public class JSToFormulaConverter {
   }
 
   protected Formula makeNondet(
-      final String name, final CType type, final SSAMapBuilder ssa, final Constraints constraints) {
+      final String name, final JSType type, final SSAMapBuilder ssa, final Constraints
+      constraints) {
     Formula newVariable = makeFreshVariable(name, type, ssa);
-    if (options.addRangeConstraintsForNondet()) {
-      addRangeConstraint(newVariable, type, constraints);
-    }
+//    if (options.addRangeConstraintsForNondet()) {
+//      addRangeConstraint(newVariable, type, constraints);
+//    }
     return newVariable;
   }
 
@@ -998,13 +1013,13 @@ public class JSToFormulaConverter {
       final CFunctionEntryNode entryNode, final SSAMapBuilder ssa, final Constraints constraints) {
     for (CParameterDeclaration param : entryNode.getFunctionDefinition().getParameters()) {
       // has side-effect of adding to SSAMap!
-      final Formula var =
-          makeFreshVariable(
-              param.getQualifiedName(), CTypes.adjustFunctionOrArrayType(param.getType()), ssa);
-
-      if (options.addRangeConstraintsForNondet()) {
-        addRangeConstraint(var, param.getType(), constraints);
-      }
+//      final Formula var =
+//          makeFreshVariable(
+//              param.getQualifiedName(), CTypes.adjustFunctionOrArrayType(param.getType()), ssa);
+//
+//      if (options.addRangeConstraintsForNondet()) {
+//        addRangeConstraint(var, param.getType(), constraints);
+//      }
     }
   }
 
@@ -1032,8 +1047,9 @@ public class JSToFormulaConverter {
         CIdExpression rhs = new CIdExpression(formalParam.getFileLocation(), tmpParameterExpression);
 
         // add assignment to constraints: "f::x" = "f::x__param__"
-        BooleanFormula eq = makeAssignment(lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
-        constraints.addConstraint(eq);
+//        BooleanFormula eq = makeAssignment(lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
+//        constraints.addConstraint(eq);
+        throw new RuntimeException("Not implemented");
       }
     }
   }
@@ -1062,13 +1078,14 @@ public class JSToFormulaConverter {
         final CIdExpression tmp = new CIdExpression(decl.getFileLocation(), tmpParameter);
         final CIdExpression glob = new CIdExpression(decl.getFileLocation(), decl);
 
-        final BooleanFormula eq;
-        if (tmpAsLHS) {
-          eq = makeAssignment(tmp, glob, glob, edge, function, ssa, pts, constraints, errorConditions);
-        } else {
-          eq = makeAssignment(glob, glob, tmp, edge, function, ssa, pts, constraints, errorConditions);
-        }
-        constraints.addConstraint(eq);
+//        final BooleanFormula eq;
+//        if (tmpAsLHS) {
+//          eq = makeAssignment(tmp, glob, glob, edge, function, ssa, pts, constraints, errorConditions);
+//        } else {
+//          eq = makeAssignment(glob, glob, tmp, edge, function, ssa, pts, constraints, errorConditions);
+//        }
+//        constraints.addConstraint(eq);
+        throw new RuntimeException("Not implemented");
       }
 
     }
@@ -1091,7 +1108,7 @@ public class JSToFormulaConverter {
              UnrecognizedJSCodeException {
     switch (edge.getEdgeType()) {
     case StatementEdge: {
-      return makeStatement((CStatementEdge) edge, function,
+      return makeStatement((JSStatementEdge) edge, function,
           ssa, pts, constraints, errorConditions);
     }
 
@@ -1101,7 +1118,8 @@ public class JSToFormulaConverter {
     }
 
     case DeclarationEdge: {
-      return makeDeclaration((CDeclarationEdge)edge, function, ssa, pts, constraints, errorConditions);
+      return makeDeclaration((JSDeclarationEdge)edge, function, ssa, pts, constraints,
+          errorConditions);
     }
 
     case AssumeEdge: {
@@ -1134,17 +1152,17 @@ public class JSToFormulaConverter {
   }
 
   private BooleanFormula makeStatement(
-      final CStatementEdge statement,
+      final JSStatementEdge statement,
       final String function,
       final SSAMapBuilder ssa,
       final PointerTargetSetBuilder pts,
       final Constraints constraints,
       final ErrorConditions errorConditions)
-      throws UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedCCodeException, InterruptedException, UnrecognizedJSCodeException {
 
-    CStatement stmt = statement.getStatement();
-    if (stmt instanceof CAssignment) {
-      CAssignment assignment = (CAssignment)stmt;
+    JSStatement stmt = statement.getStatement();
+    if (stmt instanceof JSAssignment) {
+      JSAssignment assignment = (JSAssignment)stmt;
       return makeAssignment(assignment.getLeftHandSide(), assignment.getRightHandSide(),
           statement, function, ssa, pts, constraints, errorConditions);
 
@@ -1155,8 +1173,8 @@ public class JSToFormulaConverter {
 //        CFunctionCallStatement callStmt = (CFunctionCallStatement)stmt;
 //        callStmt.getFunctionCallExpression().accept(ev);
 
-      } else if (!(stmt instanceof CExpressionStatement)) {
-        throw new UnrecognizedCCodeException("Unknown statement", statement, stmt);
+      } else if (!(stmt instanceof JSExpressionStatement)) {
+        throw new UnrecognizedJSCodeException("Unknown statement", statement, stmt);
       }
 
       // side-effect free statement, ignore
@@ -1165,31 +1183,31 @@ public class JSToFormulaConverter {
   }
 
   protected BooleanFormula makeDeclaration(
-      final CDeclarationEdge edge, final String function,
+      final JSDeclarationEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
-          throws UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedCCodeException, InterruptedException, UnrecognizedJSCodeException {
 
-    if (!(edge.getDeclaration() instanceof CVariableDeclaration)) {
+    if (!(edge.getDeclaration() instanceof JSVariableDeclaration)) {
       // struct prototype, function declaration, typedef etc.
       logfOnce(Level.FINEST, edge, "Ignoring declaration");
       return bfmgr.makeTrue();
     }
 
-    CVariableDeclaration decl = (CVariableDeclaration)edge.getDeclaration();
+    JSVariableDeclaration decl = (JSVariableDeclaration)edge.getDeclaration();
     final String varName = decl.getQualifiedName();
 
-    if (!isRelevantVariable(decl)) {
-      logger.logfOnce(Level.FINEST, "%s: Ignoring declaration of unused variable: %s",
-          decl.getFileLocation(), decl.toASTString());
-      return bfmgr.makeTrue();
-    }
-
-    checkForLargeArray(edge, decl.getType().getCanonicalType());
-
-    if (options.useParameterVariablesForGlobals() && decl.isGlobal()) {
-      globalDeclarations.add(decl);
-    }
+//    if (!isRelevantVariable(decl)) {
+//      logger.logfOnce(Level.FINEST, "%s: Ignoring declaration of unused variable: %s",
+//          decl.getFileLocation(), decl.toASTString());
+//      return bfmgr.makeTrue();
+//    }
+//
+//    checkForLargeArray(edge, decl.getType().getCanonicalType());
+//
+//    if (options.useParameterVariablesForGlobals() && decl.isGlobal()) {
+//      globalDeclarations.add(decl);
+//    }
 
     // if the var is unsigned, add the constraint that it should
     // be > 0
@@ -1214,21 +1232,21 @@ public class JSToFormulaConverter {
     // take it into account
     BooleanFormula result = bfmgr.makeTrue();
 
-    if (decl.getInitializer() instanceof CInitializerList) {
-      // If there is an initializer, all fields/elements not mentioned
-      // in the initializer are set to 0 (C standard § 6.7.9 (21)
+//    if (decl.getInitializer() instanceof CInitializerList) {
+//      // If there is an initializer, all fields/elements not mentioned
+//      // in the initializer are set to 0 (C standard § 6.7.9 (21)
+//
+//      int size = machineModel.getSizeof(decl.getType());
+//      if (size > 0) {
+//        Formula var = makeVariable(varName, decl.getType(), ssa);
+//        CType elementCType = decl.getType();
+//        FormulaType<?> elementFormulaType = getFormulaTypeFromCType(elementCType);
+//        Formula zero = fmgr.makeNumber(elementFormulaType, 0L);
+//        result = bfmgr.and(result, fmgr.assignment(var, zero));
+//      }
+//    }
 
-      int size = machineModel.getSizeof(decl.getType());
-      if (size > 0) {
-        Formula var = makeVariable(varName, decl.getType(), ssa);
-        CType elementCType = decl.getType();
-        FormulaType<?> elementFormulaType = getFormulaTypeFromCType(elementCType);
-        Formula zero = fmgr.makeNumber(elementFormulaType, 0L);
-        result = bfmgr.and(result, fmgr.assignment(var, zero));
-      }
-    }
-
-    for (CAssignment assignment : CInitializers.convertToAssignments(decl, edge)) {
+    for (JSAssignment assignment : JSInitializers.convertToAssignments(decl, edge)) {
       result = bfmgr.and(result,
           makeAssignment(
               assignment.getLeftHandSide(),
@@ -1298,7 +1316,8 @@ public class JSToFormulaConverter {
       final CIdExpression rhs = new CIdExpression(funcCallExp.getFileLocation(),
           returnVariableDeclaration.get());
 
-      return makeAssignment(exp.getLeftHandSide(), rhs, ce, callerFunction, ssa, pts, constraints, errorConditions);
+//      return makeAssignment(exp.getLeftHandSide(), rhs, ce, callerFunction, ssa, pts, constraints, errorConditions);
+      throw new RuntimeException("Not implemented");
     } else {
       throw new UnrecognizedCCodeException("Unknown function exit expression", ce, retExp);
     }
@@ -1385,8 +1404,9 @@ public class JSToFormulaConverter {
         paramLHS = lhs;
       }
 
-      BooleanFormula eq = makeAssignment(paramLHS, lhs, paramExpression, edge, callerFunction, ssa, pts, constraints, errorConditions);
-      result = bfmgr.and(result, eq);
+//      BooleanFormula eq = makeAssignment(paramLHS, lhs, paramExpression, edge, callerFunction, ssa, pts, constraints, errorConditions);
+//      result = bfmgr.and(result, eq);
+      throw new RuntimeException("Not implemented");
     }
 
     addGlobalAssignmentConstraints(edge, fn.getFunctionName(), ssa, pts, constraints, errorConditions, PARAM_VARIABLE_NAME, true);
@@ -1404,8 +1424,9 @@ public class JSToFormulaConverter {
       return bfmgr.makeTrue();
     } else {
 
-      return makeAssignment(assignment.get().getLeftHandSide(), assignment.get().getRightHandSide(),
-          edge, function, ssa, pts, constraints, errorConditions);
+//      return makeAssignment(assignment.get().getLeftHandSide(), assignment.get().getRightHandSide(),
+//          edge, function, ssa, pts, constraints, errorConditions);
+      throw new RuntimeException("Not implemented");
     }
   }
 
@@ -1416,11 +1437,11 @@ public class JSToFormulaConverter {
    * @return the assignment formula
    */
   private BooleanFormula makeAssignment(
-      final CLeftHandSide lhs, CRightHandSide rhs,
+      final JSLeftHandSide lhs, JSRightHandSide rhs,
       final CFAEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
-          throws UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedCCodeException, InterruptedException, UnrecognizedJSCodeException {
     // lhs is used twice, also as lhsForChecking!
     return makeAssignment(lhs, lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
   }
@@ -1436,28 +1457,28 @@ public class JSToFormulaConverter {
    * @throws InterruptedException may be thrown in subclasses
    */
   protected BooleanFormula makeAssignment(
-          final CLeftHandSide lhs, final CLeftHandSide lhsForChecking, CRightHandSide rhs,
+          final JSLeftHandSide lhs, final JSLeftHandSide lhsForChecking, JSRightHandSide rhs,
           final CFAEdge edge, final String function,
           final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
           final Constraints constraints, final ErrorConditions errorConditions)
-          throws UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedCCodeException, InterruptedException, UnrecognizedJSCodeException {
 
-    if (!isRelevantLeftHandSide(lhsForChecking)) {
-      // Optimization for unused variables and fields
-      return bfmgr.makeTrue();
-    }
+//    if (!isRelevantLeftHandSide(lhsForChecking)) {
+//      // Optimization for unused variables and fields
+//      return bfmgr.makeTrue();
+//    }
 
-    CType lhsType = lhs.getExpressionType().getCanonicalType();
+    JSType lhsType = lhs.getExpressionType();
 
-    if (lhsType instanceof CArrayType) {
-      // Probably a (string) initializer, ignore assignments to arrays
-      // as they cannot behandled precisely anyway.
-      return bfmgr.makeTrue();
-    }
+//    if (lhsType instanceof CArrayType) {
+//      // Probably a (string) initializer, ignore assignments to arrays
+//      // as they cannot behandled precisely anyway.
+//      return bfmgr.makeTrue();
+//    }
 
-    if (rhs instanceof CExpression) {
-      rhs = makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhsType);
-    }
+//    if (rhs instanceof CExpression) {
+//      rhs = makeCastFromArrayToPointerIfNecessary((CExpression)rhs, lhsType);
+//    }
 
     Formula l = null, r = null;
     if (direction == AnalysisDirection.BACKWARD) {
@@ -1468,12 +1489,12 @@ public class JSToFormulaConverter {
       l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
     }
 
-    r = makeCast(
-          rhs.getExpressionType(),
-          lhsType,
-          r,
-          constraints,
-          edge);
+//    r = makeCast(
+//          rhs.getExpressionType(),
+//          lhsType,
+//          r,
+//          constraints,
+//          edge);
 
     return fmgr.assignment(l, r);
   }
@@ -1492,40 +1513,40 @@ public class JSToFormulaConverter {
 
     String functionName = edge.getPredecessor().getFunctionName();
     Constraints constraints = new Constraints(bfmgr);
-    return buildTerm(
-        expr,
-        edge,
-        functionName,
-        pFormula.getSsa().builder(),
-        createPointerTargetSetBuilder(pFormula.getPointerTargetSet()),
-        constraints,
-        ErrorConditions.dummyInstance(bfmgr)
-    );
+//    return buildTerm(
+//        expr,
+//        edge,
+//        functionName,
+//        pFormula.getSsa().builder(),
+//        createPointerTargetSetBuilder(pFormula.getPointerTargetSet()),
+//        constraints,
+//        ErrorConditions.dummyInstance(bfmgr)
+//    );
+    throw new RuntimeException("Not implemented");
   }
 
   protected Formula buildTerm(
-      CRightHandSide exp,
+      JSRightHandSide exp,
       CFAEdge edge,
       String function,
       SSAMapBuilder ssa,
       PointerTargetSetBuilder pts,
       Constraints constraints,
       ErrorConditions errorConditions)
-      throws UnrecognizedCCodeException {
-    throw new RuntimeException("Not implemented");
-//    return exp.accept(
-//        createJSRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
+      throws UnrecognizedJSCodeException {
+    return exp.accept(
+        createJSRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
   }
 
   protected Formula buildLvalueTerm(
-      CLeftHandSide exp,
+      JSLeftHandSide exp,
       CFAEdge edge,
       String function,
       SSAMapBuilder ssa,
       PointerTargetSetBuilder pts,
       Constraints constraints,
       ErrorConditions errorConditions)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedJSCodeException {
     return exp.accept(new LValueVisitor(this, edge, function, ssa, pts, constraints, errorConditions));
   }
 
@@ -1754,7 +1775,7 @@ public class JSToFormulaConverter {
   /**
    * We call this method for unsupported Expressions and just make a new Variable.
    */
-  Formula makeVariableUnsafe(CExpression exp, String function, SSAMapBuilder ssa,
+  Formula makeVariableUnsafe(JSExpression exp, String function, SSAMapBuilder ssa,
       boolean makeFresh) {
 
     if (makeFresh) {
