@@ -39,13 +39,13 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.common.collect.PersistentSortedMaps;
 import org.sosy_lab.common.collect.PersistentSortedMaps.MergeConflictHandler;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
 /**
  * Maps a variable name to its latest "SSA index", that should be used when
@@ -60,10 +60,10 @@ public class SSAMap implements Serializable {
 
   private final int defaultValue;
 
-  private static MergeConflictHandler<String, CType> TYPE_CONFLICT_CHECKER =
-      new MergeConflictHandler<String, CType>() {
+  private static MergeConflictHandler<String, Type> TYPE_CONFLICT_CHECKER =
+      new MergeConflictHandler<String, Type>() {
         @Override
-        public CType resolveConflict(String name, CType type1, CType type2) {
+        public Type resolveConflict(String name, Type type1, Type type2) {
           Preconditions.checkArgument(
               type1 instanceof CFunctionType
                   || type2 instanceof CFunctionType
@@ -77,7 +77,7 @@ public class SSAMap implements Serializable {
           return type1;
         }
 
-        private boolean isEnumPointerType(CType type) {
+        private boolean isEnumPointerType(Type type) {
           if (type instanceof CPointerType) {
             type = ((CPointerType) type).getType();
             return ((type instanceof CComplexType)
@@ -102,20 +102,20 @@ public class SSAMap implements Serializable {
     private SSAMap ssa;
     private PersistentSortedMap<String, Integer> vars; // Do not update without updating varsHashCode!
     private FreshValueProvider freshValueProvider;
-    private PersistentSortedMap<String, CType> varTypes;
+    private PersistentSortedMap<String, Type> varTypes;
 
     // Instead of computing vars.hashCode(),
     // we calculate the hashCode ourselves incrementally
     // (this is possible because a Map's hashCode is clearly defined).
     private int varsHashCode;
 
-    private SSAMapBuilder(SSAMap ssa) {
-      this.ssa = ssa;
-      this.vars = ssa.vars;
-      this.freshValueProvider = ssa.freshValueProvider;
+    private SSAMapBuilder(SSAMap pSsa) {
+      this.ssa = pSsa;
+      this.vars = pSsa.vars;
+      this.freshValueProvider = pSsa.freshValueProvider;
 
-      this.varTypes = ssa.varTypes;
-      this.varsHashCode = ssa.varsHashCode;
+      this.varTypes = pSsa.varTypes;
+      this.varsHashCode = pSsa.varsHashCode;
     }
 
     public int getIndex(String variable) {
@@ -128,17 +128,19 @@ public class SSAMap implements Serializable {
     }
 
     public CType getType(String name) {
-      return varTypes.get(name);
+      return (CType) varTypes.get(name);
     }
 
     @SuppressWarnings("CheckReturnValue")
-    public SSAMapBuilder setIndex(String name, CType type, int idx) {
+    public SSAMapBuilder setIndex(String name, Type type, int idx) {
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation:", name, type, idx);
       int oldIdx = getIndex(name);
       Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, type, idx);
 
-      type = type.getCanonicalType();
-      CType oldType = varTypes.get(name);
+      if (type instanceof CType) {
+        type = ((CType) type).getCanonicalType();
+      }
+      Type oldType = varTypes.get(name);
       if (oldType != null) {
         TYPE_CONFLICT_CHECKER.resolveConflict(name, type, oldType);
       } else {
@@ -176,8 +178,8 @@ public class SSAMap implements Serializable {
       return varTypes.keySet();
     }
 
-    public SortedMap<String, CType> allVariablesWithPrefix(String prefix) {
-      return Collections3.subMapWithPrefix(varTypes, prefix);
+    public SortedMap<String, Type> allVariablesWithPrefix(String prefix) {
+      return Collections3.<Type>subMapWithPrefix(varTypes, prefix);
     }
 
     /**
@@ -254,11 +256,28 @@ public class SSAMap implements Serializable {
       defaultIndex = s1.defaultValue;
     }
 
-    PersistentSortedMap<String, CType> varTypes =
+    PersistentSortedMap<String, Type> varTypes =
         PersistentSortedMaps.merge(
             s1.varTypes,
             s2.varTypes,
-            CTypes.canonicalTypeEquivalence(),
+            new Equivalence<Type>(){
+              @Override
+              protected boolean doEquivalent(final Type pLeft, final Type pRight) {
+                if (pLeft instanceof CType && pRight instanceof CType) {
+                    return ((CType) pLeft).getCanonicalType().equals(((CType) pRight).getCanonicalType
+                        ());
+                }
+                return pLeft.equals(pRight);
+              }
+
+              @Override
+              protected int doHash(final Type pType) {
+                if (pType instanceof CType) {
+                  return ((CType) pType).getCanonicalType().hashCode();
+                }
+                return pType.hashCode();
+              }
+            },
             TYPE_CONFLICT_CHECKER,
             MapsDifference.ignoreMapsDifference());
 
@@ -267,35 +286,35 @@ public class SSAMap implements Serializable {
 
   private final PersistentSortedMap<String, Integer> vars;
   private final FreshValueProvider freshValueProvider;
-  private final PersistentSortedMap<String, CType> varTypes;
+  private final PersistentSortedMap<String, Type> varTypes;
 
   // Cache hashCode of potentially big map
   private final int varsHashCode;
 
-  private SSAMap(PersistentSortedMap<String, Integer> vars,
-                 FreshValueProvider freshValueProvider,
-                 int varsHashCode,
-                 PersistentSortedMap<String, CType> varTypes,
+  private SSAMap(PersistentSortedMap<String, Integer> pVars,
+                 FreshValueProvider pFreshvalueprovider,
+                 int pVarsHashCode,
+                 PersistentSortedMap<String, Type> pVarTypes,
                  int defaultSSAIdx) {
-    this.vars = vars;
-    this.freshValueProvider = freshValueProvider;
-    this.varTypes = varTypes;
+    this.vars = pVars;
+    this.freshValueProvider = pFreshvalueprovider;
+    this.varTypes = pVarTypes;
 
-    if (varsHashCode == 0) {
-      this.varsHashCode = vars.hashCode();
+    if (pVarsHashCode == 0) {
+      this.varsHashCode = pVars.hashCode();
     } else {
-      this.varsHashCode = varsHashCode;
-      assert varsHashCode == vars.hashCode();
+      this.varsHashCode = pVarsHashCode;
+      assert pVarsHashCode == pVars.hashCode();
     }
 
     defaultValue = defaultSSAIdx;
   }
 
-  private SSAMap(PersistentSortedMap<String, Integer> vars,
-                 FreshValueProvider freshValueProvider,
-                 int varsHashCode,
-                 PersistentSortedMap<String, CType> varTypes) {
-    this(vars, freshValueProvider, varsHashCode, varTypes, DEFAULT_DEFAULT_IDX);
+  private SSAMap(PersistentSortedMap<String, Integer> pVars,
+                 FreshValueProvider pFreshValueProvider,
+                 int pVarsHashCode,
+                 PersistentSortedMap<String, Type> pVarTypes) {
+    this(pVars, pFreshValueProvider, pVarsHashCode, pVarTypes, DEFAULT_DEFAULT_IDX);
   }
 
   /**
@@ -326,7 +345,7 @@ public class SSAMap implements Serializable {
   }
 
   public CType getType(String name) {
-    return varTypes.get(name);
+    return (CType) varTypes.get(name);
   }
 
   public SortedSet<String> allVariables() {
