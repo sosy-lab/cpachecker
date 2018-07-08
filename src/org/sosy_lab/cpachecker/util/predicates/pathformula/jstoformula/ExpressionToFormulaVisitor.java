@@ -92,27 +92,23 @@ public class ExpressionToFormulaVisitor
       case NOT_EQUAL_EQUAL:
         return conv.tvmgr.createBooleanValue(mgr.makeNot(makeEqual(leftOperand, rightOperand)));
       case PLUS:
-        return new TypedValue(
-            conv.typeTags.NUMBER,
+        return conv.tvmgr.createNumberValue(
             mgr.getFloatingPointFormulaManager()
                 .add(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
       case MINUS:
-        return new TypedValue(
-            conv.typeTags.NUMBER,
+        return conv.tvmgr.createNumberValue(
             mgr.getFloatingPointFormulaManager()
                 .subtract(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
       case TIMES:
-        return new TypedValue(
-            conv.typeTags.NUMBER,
+        return conv.tvmgr.createNumberValue(
             mgr.getFloatingPointFormulaManager()
                 .multiply(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
       case DIVIDE:
-        return new TypedValue(
-            conv.typeTags.NUMBER,
+        return conv.tvmgr.createNumberValue(
             mgr.getFloatingPointFormulaManager()
                 .divide(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
       case REMAINDER:
-        return new TypedValue(conv.typeTags.NUMBER, makeRemainder(leftOperand, rightOperand));
+        return conv.tvmgr.createNumberValue(makeRemainder(leftOperand, rightOperand));
       case LESS:
         return conv.tvmgr.createBooleanValue(
             mgr.getFloatingPointFormulaManager()
@@ -179,8 +175,7 @@ public class ExpressionToFormulaVisitor
 
   @Nonnull
   private TypedValue makeNumber(final BigDecimal pValue) {
-    return new TypedValue(
-        conv.typeTags.NUMBER,
+    return conv.tvmgr.createNumberValue(
         mgr.getFloatingPointFormulaManager()
             .makeNumber(pValue, FormulaType.getDoublePrecisionFloatingPointType()));
   }
@@ -193,9 +188,9 @@ public class ExpressionToFormulaVisitor
       case NOT:
         return conv.tvmgr.createBooleanValue(mgr.makeNot(conv.toBoolean(operand)));
       case PLUS:
-        return new TypedValue(conv.typeTags.NUMBER, conv.toNumber(operand));
+        return conv.tvmgr.createNumberValue(conv.toNumber(operand));
       case MINUS:
-        return new TypedValue(conv.typeTags.NUMBER, mgr.makeNegate(conv.toNumber(operand)));
+        return conv.tvmgr.createNumberValue(mgr.makeNegate(conv.toNumber(operand)));
       case VOID:
         return conv.tvmgr.getUndefinedValue();
       default:
@@ -243,8 +238,7 @@ public class ExpressionToFormulaVisitor
 
   private TypedValue handlePredefined(final String pName) {
     assert pName.equals("Infinity") : "Unknown variable " + pName;
-    return new TypedValue(
-        conv.typeTags.NUMBER,
+    return conv.tvmgr.createNumberValue(
         mgr.getFloatingPointFormulaManager().makePlusInfinity(Types.NUMBER_TYPE));
   }
 }
