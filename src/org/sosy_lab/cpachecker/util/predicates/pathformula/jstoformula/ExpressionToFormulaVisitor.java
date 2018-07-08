@@ -146,8 +146,10 @@ public class ExpressionToFormulaVisitor
         mgr.makeOr(
             mgr.makeEqual(conv.typeTags.UNDEFINED, leftType),
             mgr.makeOr(
-                mgr.makeAnd(
+                conv.bfmgr.and(
                     mgr.makeEqual(conv.typeTags.NUMBER, leftType),
+                    mgr.makeNot(conv.fpfmgr.isNaN(conv.toNumber(pLeftOperand))),
+                    mgr.makeNot(conv.fpfmgr.isNaN(conv.toNumber(pRightOperand))),
                     mgr.makeEqual(conv.toNumber(pLeftOperand), conv.toNumber(pRightOperand))),
                 mgr.makeAnd(
                     mgr.makeEqual(conv.typeTags.BOOLEAN, leftType),
