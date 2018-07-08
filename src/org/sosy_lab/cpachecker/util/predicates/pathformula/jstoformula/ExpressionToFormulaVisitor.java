@@ -143,17 +143,16 @@ public class ExpressionToFormulaVisitor
     final IntegerFormula rightType = pRightOperand.getType();
     return mgr.makeAnd(
         mgr.makeEqual(leftType, rightType),
-        mgr.makeOr(
+        conv.bfmgr.or(
             mgr.makeEqual(conv.typeTags.UNDEFINED, leftType),
-            mgr.makeOr(
-                conv.bfmgr.and(
-                    mgr.makeEqual(conv.typeTags.NUMBER, leftType),
-                    mgr.makeNot(conv.fpfmgr.isNaN(conv.toNumber(pLeftOperand))),
-                    mgr.makeNot(conv.fpfmgr.isNaN(conv.toNumber(pRightOperand))),
-                    mgr.makeEqual(conv.toNumber(pLeftOperand), conv.toNumber(pRightOperand))),
-                mgr.makeAnd(
-                    mgr.makeEqual(conv.typeTags.BOOLEAN, leftType),
-                    mgr.makeEqual(conv.toBoolean(pLeftOperand), conv.toBoolean(pRightOperand))))));
+            conv.bfmgr.and(
+                mgr.makeEqual(conv.typeTags.NUMBER, leftType),
+                mgr.makeNot(conv.fpfmgr.isNaN(conv.toNumber(pLeftOperand))),
+                mgr.makeNot(conv.fpfmgr.isNaN(conv.toNumber(pRightOperand))),
+                mgr.makeEqual(conv.toNumber(pLeftOperand), conv.toNumber(pRightOperand))),
+            mgr.makeAnd(
+                mgr.makeEqual(conv.typeTags.BOOLEAN, leftType),
+                mgr.makeEqual(conv.toBoolean(pLeftOperand), conv.toBoolean(pRightOperand)))));
   }
 
   @Override
