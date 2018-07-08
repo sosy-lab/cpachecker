@@ -138,18 +138,19 @@ public class JSToWpConverter extends JSToFormulaConverter {
       final CAssumeEdge pEdge, final BooleanFormula pPostcond, final String pFunction)
       throws UnrecognizedCCodeException, InterruptedException {
 
-    BooleanFormula f =
-        makePredicate(
-            pEdge.getExpression(),
-            pEdge.getTruthAssumption(),
-            pEdge,
-            pFunction,
-            emptySSAMap(),
-            pts,
-            constraints,
-            errorConditions);
-
-    return bfmgr.and(fmgr.uninstantiate(f), pPostcond);
+//    BooleanFormula f =
+//        makePredicate(
+//            pEdge.getExpression(),
+//            pEdge.getTruthAssumption(),
+//            pEdge,
+//            pFunction,
+//            emptySSAMap(),
+//            pts,
+//            constraints,
+//            errorConditions);
+//
+//    return bfmgr.and(fmgr.uninstantiate(f), pPostcond);
+    throw new RuntimeException("Not implemented");
   }
 
   private final BooleanFormula makePreconditionForStatement(

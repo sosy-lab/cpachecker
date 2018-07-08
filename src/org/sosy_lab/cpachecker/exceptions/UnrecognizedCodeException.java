@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
@@ -77,6 +78,8 @@ public class UnrecognizedCodeException extends CPATransferException {
       return "Unrecognized C code";
     case JAVA:
       return "Unrecognized Java code";
+      case JAVASCRIPT:
+      return "Unrecognized JavaScript code";
     default:
       throw new AssertionError();
     }
@@ -87,6 +90,8 @@ public class UnrecognizedCodeException extends CPATransferException {
       return Language.C;
     } else if (astNode instanceof JAstNode) {
       return Language.JAVA;
+    } else if (astNode instanceof JSAstNode) {
+      return Language.JAVASCRIPT;
     }
     throw new AssertionError();
   }

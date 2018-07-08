@@ -70,16 +70,17 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -101,6 +102,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedJSCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -935,7 +937,8 @@ public class JSToFormulaConverter {
 //  @Override
   public PathFormula makeAnd(PathFormula oldFormula,
       CFAEdge edge, ErrorConditions errorConditions)
-      throws UnrecognizedCCodeException, UnrecognizedCFAEdgeException, InterruptedException {
+      throws UnrecognizedCCodeException, UnrecognizedCFAEdgeException, InterruptedException,
+             UnrecognizedJSCodeException {
 
     String function = (edge.getPredecessor() != null)
                           ? edge.getPredecessor().getFunctionName() : null;
@@ -1084,7 +1087,8 @@ public class JSToFormulaConverter {
       final CFAEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
-          throws UnrecognizedCCodeException, UnrecognizedCFAEdgeException, InterruptedException {
+      throws UnrecognizedCCodeException, UnrecognizedCFAEdgeException, InterruptedException,
+             UnrecognizedJSCodeException {
     switch (edge.getEdgeType()) {
     case StatementEdge: {
       return makeStatement((CStatementEdge) edge, function,
@@ -1101,7 +1105,7 @@ public class JSToFormulaConverter {
     }
 
     case AssumeEdge: {
-      CAssumeEdge assumeEdge = (CAssumeEdge)edge;
+      JSAssumeEdge assumeEdge = (JSAssumeEdge)edge;
       return makePredicate(assumeEdge.getExpression(), assumeEdge.getTruthAssumption(),
           assumeEdge, function, ssa, pts, constraints, errorConditions);
     }
@@ -1146,10 +1150,10 @@ public class JSToFormulaConverter {
 
     } else {
       if (stmt instanceof CFunctionCallStatement) {
-        CRightHandSideVisitor<Formula, UnrecognizedCCodeException> ev = createCRightHandSideVisitor(
-            statement, function, ssa, pts, constraints, errorConditions);
-        CFunctionCallStatement callStmt = (CFunctionCallStatement)stmt;
-        callStmt.getFunctionCallExpression().accept(ev);
+//        CRightHandSideVisitor<Formula, UnrecognizedCCodeException> ev = createJSRightHandSideVisitor(
+//            statement, function, ssa, pts, constraints, errorConditions);
+//        CFunctionCallStatement callStmt = (CFunctionCallStatement)stmt;
+//        callStmt.getFunctionCallExpression().accept(ev);
 
       } else if (!(stmt instanceof CExpressionStatement)) {
         throw new UnrecognizedCCodeException("Unknown statement", statement, stmt);
@@ -1508,7 +1512,9 @@ public class JSToFormulaConverter {
       Constraints constraints,
       ErrorConditions errorConditions)
       throws UnrecognizedCCodeException {
-    return exp.accept(createCRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
+    throw new RuntimeException("Not implemented");
+//    return exp.accept(
+//        createJSRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
   }
 
   protected Formula buildLvalueTerm(
@@ -1531,7 +1537,9 @@ public class JSToFormulaConverter {
 
   protected final <T extends Formula> BooleanFormula toBooleanFormula(T pF) {
     // If this is not a predicate, make it a predicate by adding a "!= 0"
-    assert !fmgr.getFormulaType(pF).isBooleanType();
+    if (fmgr.getFormulaType(pF).isBooleanType()) {
+      return (BooleanFormula) pF;
+    }
 
     T zero = fmgr.makeNumber(fmgr.getFormulaType(pF), 0);
 
@@ -1552,7 +1560,7 @@ public class JSToFormulaConverter {
 
   /** @throws InterruptedException may be thrown in subclasses */
   protected BooleanFormula makePredicate(
-      CExpression exp,
+      JSExpression exp,
       boolean isTrue,
       CFAEdge edge,
       String function,
@@ -1560,9 +1568,10 @@ public class JSToFormulaConverter {
       PointerTargetSetBuilder pts,
       Constraints constraints,
       ErrorConditions errorConditions)
-      throws UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedJSCodeException, InterruptedException {
 
-    Formula f = exp.accept(createCRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
+    Formula f = exp.accept(
+        createJSRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
     BooleanFormula result = toBooleanFormula(f);
 
     if (!isTrue) {
@@ -1572,8 +1581,8 @@ public class JSToFormulaConverter {
   }
 
   public final BooleanFormula makePredicate(
-      CExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa)
-      throws UnrecognizedCCodeException, InterruptedException {
+      JSExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa)
+      throws UnrecognizedJSCodeException, InterruptedException {
     PointerTargetSetBuilder pts = createPointerTargetSetBuilder(PointerTargetSet.emptyPointerTargetSet());
     Constraints constraints = new Constraints(bfmgr);
     ErrorConditions errorConditions = ErrorConditions.dummyInstance(bfmgr);
@@ -1612,7 +1621,8 @@ public class JSToFormulaConverter {
    * @param constraints the constraints needed during visiting
    * @param errorConditions the error conditions
    */
-  protected CRightHandSideVisitor<Formula, UnrecognizedCCodeException> createCRightHandSideVisitor(
+  protected JSRightHandSideVisitor<Formula, UnrecognizedJSCodeException>
+  createJSRightHandSideVisitor(
       CFAEdge pEdge, String pFunction,
       SSAMapBuilder ssa, PointerTargetSetBuilder pts,
       Constraints constraints, ErrorConditions errorConditions) {

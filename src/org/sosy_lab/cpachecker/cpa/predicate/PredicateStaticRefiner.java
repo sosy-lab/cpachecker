@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -456,7 +457,7 @@ public class PredicateStaticRefiner extends StaticRefiner
 
       // Check whether the predicate should be used global or only local
       boolean applyGlobal = true;
-      if (applyScoped) {
+      if (applyScoped && assume instanceof CAssumeEdge) {
         for (CIdExpression idExpr :
             CFAUtils.getIdExpressionsOfExpression((CExpression) assume.getExpression())) {
           CSimpleDeclaration decl = idExpr.getDeclaration();
