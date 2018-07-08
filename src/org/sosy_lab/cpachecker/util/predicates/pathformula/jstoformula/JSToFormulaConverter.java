@@ -46,12 +46,9 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -66,9 +63,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSStatement;
@@ -76,12 +78,14 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.js.JSReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -210,7 +214,7 @@ public class JSToFormulaConverter {
 
   private final FunctionDeclaration<?> stringUfDecl;
 
-  protected final Set<CVariableDeclaration> globalDeclarations = new HashSet<>();
+  private final Set<JSVariableDeclaration> globalDeclarations = new HashSet<>();
   FloatingPointFormulaManagerView fpfmgr;
 
   public JSToFormulaConverter(FormulaEncodingOptions pOptions, FormulaManagerView pFmgr,
@@ -1070,37 +1074,49 @@ public class JSToFormulaConverter {
     }
   }
 
-  /** this function is only executed, if the option useParameterVariablesForGlobals is used,
-   * otherwise it does nothing.
-   * create and add constraints about a global variable: tmp_1_f==global1, tmp_2_f==global2, ...
-   * @param tmpAsLHS if tmpAsLHS:  tmp_result1_f := global1
-   *                 else          global1       := tmp_result1_f
+  /**
+   * this function is only executed, if the option useParameterVariablesForGlobals is used,
+   * otherwise it does nothing. create and add constraints about a global variable:
+   * tmp_1_f==global1, tmp_2_f==global2, ...
+   *
+   * @param tmpAsLHS if tmpAsLHS: tmp_result1_f := global1 else global1 := tmp_result1_f
    */
-  private void addGlobalAssignmentConstraints(final CFAEdge edge, final String function,
-                                              final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
-                                              final Constraints constraints, final ErrorConditions errorConditions,
-                                              final String tmpNamePart, final boolean tmpAsLHS)
-          throws UnrecognizedCCodeException, InterruptedException {
+  private void addGlobalAssignmentConstraints(
+      final CFAEdge edge,
+      final String function,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
+      final Constraints constraints,
+      final ErrorConditions errorConditions,
+      final String tmpNamePart,
+      final boolean tmpAsLHS)
+      throws UnrecognizedJSCodeException {
 
     if (options.useParameterVariablesForGlobals()) {
 
       // make assignments: tmp_param1_f==global1, tmp_param2_f==global2, ...
-      // function-name is important, because otherwise the name is not unique over several function-calls.
-      for (final CVariableDeclaration decl : globalDeclarations) {
-        final CParameterDeclaration tmpParameter = new CParameterDeclaration(
-                decl.getFileLocation(), decl.getType(), decl.getName() + tmpNamePart + function);
+      // function-name is important, because otherwise the name is not unique over several
+      // function-calls.
+      for (final JSVariableDeclaration decl : globalDeclarations) {
+        final JSParameterDeclaration tmpParameter =
+            new JSParameterDeclaration(
+                decl.getFileLocation(), decl.getName() + tmpNamePart + function);
         tmpParameter.setQualifiedName(decl.getQualifiedName() + tmpNamePart + function);
 
-        final CIdExpression tmp = new CIdExpression(decl.getFileLocation(), tmpParameter);
-        final CIdExpression glob = new CIdExpression(decl.getFileLocation(), decl);
+        final JSIdExpression tmp = new JSIdExpression(decl.getFileLocation(), tmpParameter);
+        final JSIdExpression glob = new JSIdExpression(decl.getFileLocation(), decl);
 
-//        final BooleanFormula eq;
-//        if (tmpAsLHS) {
-//          eq = makeAssignment(tmp, glob, glob, edge, function, ssa, pts, constraints, errorConditions);
-//        } else {
-//          eq = makeAssignment(glob, glob, tmp, edge, function, ssa, pts, constraints, errorConditions);
-//        }
-//        constraints.addConstraint(eq);
+        final BooleanFormula eq;
+        if (tmpAsLHS) {
+          eq =
+              makeAssignment(
+                  tmp, glob, glob, edge, function, ssa, pts, constraints, errorConditions);
+        } else {
+          eq =
+              makeAssignment(
+                  glob, glob, tmp, edge, function, ssa, pts, constraints, errorConditions);
+        }
+        constraints.addConstraint(eq);
         throw new RuntimeException("Not implemented");
       }
 
@@ -1129,8 +1145,17 @@ public class JSToFormulaConverter {
     }
 
     case ReturnStatementEdge: {
-      // TODO
-      return bfmgr.makeTrue();
+          final JSReturnStatementEdge returnEdge = (JSReturnStatementEdge) edge;
+          assert returnEdge.asAssignment().isPresent()
+              : "There are no void functions in JavaScript";
+          return makeReturn(
+              returnEdge.asAssignment().get(),
+              returnEdge,
+              function,
+              ssa,
+              pts,
+              constraints,
+              errorConditions);
     }
 
     case DeclarationEdge: {
@@ -1149,18 +1174,19 @@ public class JSToFormulaConverter {
     }
 
     case FunctionCallEdge: {
-      // TODO
-      return bfmgr.makeTrue();
+          return makeFunctionCall(
+              (JSFunctionCallEdge) edge, function, ssa, pts, constraints, errorConditions);
     }
 
     case FunctionReturnEdge: {
-      // TODO
-      return bfmgr.makeTrue();
+          // get the expression from the summary edge
+          JSFunctionSummaryEdge ce = ((JSFunctionReturnEdge) edge).getSummaryEdge();
+          return makeExitFunction(ce, function, ssa, pts, constraints, errorConditions);
     }
 
     case CallToReturnEdge:
-      // TODO
-      return bfmgr.makeTrue();
+        JSFunctionSummaryEdge ce = (JSFunctionSummaryEdge) edge;
+        return makeExitFunction(ce, function, ssa, pts, constraints, errorConditions);
 
     default:
       throw new UnrecognizedCFAEdgeException(edge);
@@ -1307,35 +1333,38 @@ public class JSToFormulaConverter {
   }
 
   protected BooleanFormula makeExitFunction(
-      final CFunctionSummaryEdge ce, final String calledFunction,
-      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
-      final Constraints constraints, final ErrorConditions errorConditions)
-          throws UnrecognizedCCodeException, InterruptedException {
+      final JSFunctionSummaryEdge ce,
+      final String calledFunction,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
+      final Constraints constraints,
+      final ErrorConditions errorConditions)
+      throws UnrecognizedJSCodeException, InterruptedException {
 
     addGlobalAssignmentConstraints(ce, calledFunction, ssa, pts, constraints, errorConditions, RETURN_VARIABLE_NAME, false);
 
-    CFunctionCall retExp = ce.getExpression();
-    if (retExp instanceof CFunctionCallStatement) {
+    JSFunctionCall retExp = ce.getExpression();
+    if (retExp instanceof JSFunctionCallStatement) {
       // this should be a void return, just do nothing...
       return bfmgr.makeTrue();
 
-    } else if (retExp instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement)retExp;
-      CFunctionCallExpression funcCallExp = exp.getRightHandSide();
+    } else if (retExp instanceof JSFunctionCallAssignmentStatement) {
+      JSFunctionCallAssignmentStatement exp = (JSFunctionCallAssignmentStatement) retExp;
+      JSFunctionCallExpression funcCallExp = exp.getRightHandSide();
 
       String callerFunction = ce.getSuccessor().getFunctionName();
-      final com.google.common.base.Optional<CVariableDeclaration> returnVariableDeclaration =
+      final com.google.common.base.Optional<JSVariableDeclaration> returnVariableDeclaration =
           ce.getFunctionEntry().getReturnVariable();
       if (!returnVariableDeclaration.isPresent()) {
-        throw new UnrecognizedCCodeException("Void function used in assignment", ce, retExp);
+        throw new UnrecognizedJSCodeException("Void function used in assignment", ce, retExp);
       }
-      final CIdExpression rhs = new CIdExpression(funcCallExp.getFileLocation(),
-          returnVariableDeclaration.get());
+      final JSIdExpression rhs =
+          new JSIdExpression(funcCallExp.getFileLocation(), returnVariableDeclaration.get());
 
-//      return makeAssignment(exp.getLeftHandSide(), rhs, ce, callerFunction, ssa, pts, constraints, errorConditions);
-      throw new RuntimeException("Not implemented");
+      return makeAssignment(
+          exp.getLeftHandSide(), rhs, ce, callerFunction, ssa, pts, constraints, errorConditions);
     } else {
-      throw new UnrecognizedCCodeException("Unknown function exit expression", ce, retExp);
+      throw new UnrecognizedJSCodeException("Unknown function exit expression", ce, retExp);
     }
   }
 
@@ -1373,18 +1402,21 @@ public class JSToFormulaConverter {
     return expType;
   }
 
+  private BooleanFormula makeFunctionCall(
+      final JSFunctionCallEdge edge,
+      final String callerFunction,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
+      final Constraints constraints,
+      final ErrorConditions errorConditions)
+      throws UnrecognizedCCodeException, InterruptedException, UnrecognizedJSCodeException {
 
-  protected BooleanFormula makeFunctionCall(
-      final CFunctionCallEdge edge, final String callerFunction,
-      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
-      final Constraints constraints, final ErrorConditions errorConditions)
-          throws UnrecognizedCCodeException, InterruptedException {
+    final List<JSExpression> actualParams = edge.getArguments();
 
-    List<CExpression> actualParams = edge.getArguments();
+    final JSFunctionEntryNode fn = edge.getSuccessor();
+    final List<JSParameterDeclaration> formalParams = fn.getFunctionParameters();
 
-    CFunctionEntryNode fn = edge.getSuccessor();
-    List<CParameterDeclaration> formalParams = fn.getFunctionParameters();
-
+    // TODO handle that function call has different parameter count than function definition
     if (fn.getFunctionDefinition().getType().takesVarArgs()) {
       if (formalParams.size() > actualParams.size()) {
         throw new UnrecognizedCCodeException("Number of parameters on function call does " +
@@ -1406,23 +1438,34 @@ public class JSToFormulaConverter {
 
     int i = 0;
     BooleanFormula result = bfmgr.makeTrue();
-    for (CParameterDeclaration formalParam : formalParams) {
-      CExpression paramExpression = actualParams.get(i++);
-      CIdExpression lhs = new CIdExpression(paramExpression.getFileLocation(), formalParam);
-      final CIdExpression paramLHS;
+    for (JSParameterDeclaration formalParam : formalParams) {
+      JSExpression paramExpression = actualParams.get(i++);
+      JSIdExpression lhs = new JSIdExpression(paramExpression.getFileLocation(), formalParam);
+      final JSIdExpression paramLHS;
       if (options.useParameterVariables()) {
         // make assignments: tmp_param1==arg1, tmp_param2==arg2, ...
-        CParameterDeclaration tmpParameter = new CParameterDeclaration(
-                formalParam.getFileLocation(), formalParam.getType(), formalParam.getName() + PARAM_VARIABLE_NAME);
+        JSParameterDeclaration tmpParameter =
+            new JSParameterDeclaration(
+                formalParam.getFileLocation(), formalParam.getName() + PARAM_VARIABLE_NAME);
         tmpParameter.setQualifiedName(formalParam.getQualifiedName() + PARAM_VARIABLE_NAME);
-        paramLHS = new CIdExpression(paramExpression.getFileLocation(), tmpParameter);
+        paramLHS = new JSIdExpression(paramExpression.getFileLocation(), tmpParameter);
       } else {
         paramLHS = lhs;
       }
 
-//      BooleanFormula eq = makeAssignment(paramLHS, lhs, paramExpression, edge, callerFunction, ssa, pts, constraints, errorConditions);
-//      result = bfmgr.and(result, eq);
-      throw new RuntimeException("Not implemented");
+      result =
+          bfmgr.and(
+              result,
+              makeAssignment(
+                  paramLHS,
+                  lhs,
+                  paramExpression,
+                  edge,
+                  callerFunction,
+                  ssa,
+                  pts,
+                  constraints,
+                  errorConditions));
     }
 
     addGlobalAssignmentConstraints(edge, fn.getFunctionName(), ssa, pts, constraints, errorConditions, PARAM_VARIABLE_NAME, true);
@@ -1430,34 +1473,43 @@ public class JSToFormulaConverter {
     return result;
   }
 
-  protected BooleanFormula makeReturn(final com.google.common.base.Optional<CAssignment> assignment,
-      final CReturnStatementEdge edge, final String function,
-      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
-      final Constraints constraints, final ErrorConditions errorConditions)
-          throws UnrecognizedCCodeException, InterruptedException {
-    if (!assignment.isPresent()) {
-      // this is a return from a void function, do nothing
-      return bfmgr.makeTrue();
-    } else {
-
-//      return makeAssignment(assignment.get().getLeftHandSide(), assignment.get().getRightHandSide(),
-//          edge, function, ssa, pts, constraints, errorConditions);
-      throw new RuntimeException("Not implemented");
-    }
+  private BooleanFormula makeReturn(
+      final JSAssignment assignment,
+      final JSReturnStatementEdge edge,
+      final String function,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
+      final Constraints constraints,
+      final ErrorConditions errorConditions)
+      throws UnrecognizedCCodeException, InterruptedException, UnrecognizedJSCodeException {
+    return makeAssignment(
+        assignment.getLeftHandSide(),
+        assignment.getRightHandSide(),
+        edge,
+        function,
+        ssa,
+        pts,
+        constraints,
+        errorConditions);
   }
 
   /**
    * Creates formula for the given assignment.
+   *
    * @param lhs the left-hand-side of the assignment
    * @param rhs the right-hand-side of the assignment
    * @return the assignment formula
    */
   private BooleanFormula makeAssignment(
-      final JSLeftHandSide lhs, JSRightHandSide rhs,
-      final CFAEdge edge, final String function,
-      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
-      final Constraints constraints, final ErrorConditions errorConditions)
-      throws UnrecognizedCCodeException, InterruptedException, UnrecognizedJSCodeException {
+      final JSLeftHandSide lhs,
+      JSRightHandSide rhs,
+      final CFAEdge edge,
+      final String function,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
+      final Constraints constraints,
+      final ErrorConditions errorConditions)
+      throws UnrecognizedJSCodeException {
     // lhs is used twice, also as lhsForChecking!
     return makeAssignment(lhs, lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
   }
