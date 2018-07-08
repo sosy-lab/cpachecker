@@ -88,10 +88,9 @@ public class ExpressionToFormulaVisitor
     final TypedValue rightOperand = visit(pBinaryExpression.getOperand2());
     switch (pBinaryExpression.getOperator()) {
       case EQUAL_EQUAL_EQUAL:
-        return new TypedValue(conv.typeTags.BOOLEAN, makeEqual(leftOperand, rightOperand));
+        return conv.tvmgr.createBooleanValue(makeEqual(leftOperand, rightOperand));
       case NOT_EQUAL_EQUAL:
-        return new TypedValue(
-            conv.typeTags.BOOLEAN, mgr.makeNot(makeEqual(leftOperand, rightOperand)));
+        return conv.tvmgr.createBooleanValue(mgr.makeNot(makeEqual(leftOperand, rightOperand)));
       case PLUS:
         return new TypedValue(
             conv.typeTags.NUMBER,
@@ -115,23 +114,19 @@ public class ExpressionToFormulaVisitor
       case REMAINDER:
         return new TypedValue(conv.typeTags.NUMBER, makeRemainder(leftOperand, rightOperand));
       case LESS:
-        return new TypedValue(
-            conv.typeTags.BOOLEAN,
+        return conv.tvmgr.createBooleanValue(
             mgr.getFloatingPointFormulaManager()
                 .lessThan(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
       case LESS_EQUALS:
-        return new TypedValue(
-            conv.typeTags.BOOLEAN,
+        return conv.tvmgr.createBooleanValue(
             mgr.getFloatingPointFormulaManager()
                 .lessOrEquals(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
       case GREATER:
-        return new TypedValue(
-            conv.typeTags.BOOLEAN,
+        return conv.tvmgr.createBooleanValue(
             mgr.getFloatingPointFormulaManager()
                 .greaterThan(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
       case GREATER_EQUALS:
-        return new TypedValue(
-            conv.typeTags.BOOLEAN,
+        return conv.tvmgr.createBooleanValue(
             mgr.getFloatingPointFormulaManager()
                 .greaterOrEquals(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
       default:
@@ -196,7 +191,7 @@ public class ExpressionToFormulaVisitor
     final TypedValue operand = visit(pUnaryExpression.getOperand());
     switch (pUnaryExpression.getOperator()) {
       case NOT:
-        return new TypedValue(conv.typeTags.BOOLEAN, mgr.makeNot(conv.toBoolean(operand)));
+        return conv.tvmgr.createBooleanValue(mgr.makeNot(conv.toBoolean(operand)));
       case PLUS:
         return new TypedValue(conv.typeTags.NUMBER, conv.toNumber(operand));
       case MINUS:
@@ -215,8 +210,8 @@ public class ExpressionToFormulaVisitor
 
   @Override
   public TypedValue visit(final JSBooleanLiteralExpression pBooleanLiteralExpression) {
-    return new TypedValue(
-        conv.typeTags.BOOLEAN, conv.bfmgr.makeBoolean(pBooleanLiteralExpression.getValue()));
+    return conv.tvmgr.createBooleanValue(
+        conv.bfmgr.makeBoolean(pBooleanLiteralExpression.getValue()));
   }
 
   @Override

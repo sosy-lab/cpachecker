@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
 import javax.annotation.Nonnull;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
 class TypedValueManager {
@@ -45,6 +46,10 @@ class TypedValueManager {
 
   TypedValue getNullValue() {
     return nullValue;
+  }
+
+  TypedValue createBooleanValue(final BooleanFormula pBooleanFormula) {
+    return new TypedValue(typeTags.BOOLEAN, pBooleanFormula);
   }
 
   private class UndefinedValue extends TypedValue {
