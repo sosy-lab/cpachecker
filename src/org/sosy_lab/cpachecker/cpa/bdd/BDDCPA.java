@@ -85,8 +85,13 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   private final LogManager logger;
   private final CFA cfa;
 
-  @Option(secure=true, description="mergeType")
-  private String merge = "join";
+  @Option(
+    secure = true,
+    name = "merge",
+    values = {"SEP", "JOIN"},
+    toUppercase = true,
+    description = "which merge operator to use for bdd cpa (usually join should be used)")
+  private String merge = "JOIN";
 
   @Option(secure = true, name = "logfile", description = "Dump tracked variables to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -134,7 +139,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
   @Override
   public MergeOperator getMergeOperator() {
-    return (merge.equals("sep"))
+    return (merge.equals("SEP"))
         ? MergeSepOperator.getInstance()
         : new MergeJoinOperator(getAbstractDomain());
   }

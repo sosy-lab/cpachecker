@@ -93,7 +93,7 @@ public class ToGuardedAutomatonTranslator {
         pAutomaton.createEdge(lNewInitialState, pAutomaton.getInitialState(), pAlphaLabel);
     pAutomaton.setInitialState(lNewInitialState);
 
-    // if (pUseOmegaLabel) {
+    if (pUseOmegaLabel) {
       NondeterministicFiniteAutomaton.State lNewFinalState = pAutomaton.createState();
 
       for (NondeterministicFiniteAutomaton.State lFinalState : pAutomaton.getFinalStates()) {
@@ -101,7 +101,7 @@ public class ToGuardedAutomatonTranslator {
       }
 
       pAutomaton.setFinalStates(Collections.singleton(lNewFinalState));
-    // }
+    }
     /** now we remove guarded lambda edges */
 
     NondeterministicFiniteAutomaton<GuardedLabel> lAutomaton =
