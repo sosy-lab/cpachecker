@@ -4,9 +4,15 @@
 
   <rundefinition></rundefinition>
 
-  <!-- Witness files are several GB in total, ignore them for now. Currently our BuildBot cannot handle this.
-  <resultfiles>**.graphml</resultfiles>
+  <!--
+    We collect error- and proof-witness files for further steps in our BuildBot.
+    Currently we expect about 120MB of compressed witness files from a complete benchmark set.
+    CPAchecker can compress and handle compressed witnesses automatically.
+    Please disable compression for real SVComp benchmarks!
   -->
+  <resultfiles>**.graphml*</resultfiles>
+  <option name="-setprop">cpa.arg.compressWitness=true</option>
+  <option name="-setprop">counterexample.export.compressWitness=true</option>
 
   <option name="-svcomp18"/>
   <option name="-heap">10000M</option>
