@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.test;
 
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Iterables;
 import com.google.common.truth.Truth;
 import java.util.Collection;
@@ -34,9 +35,13 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -68,17 +73,26 @@ public class SMGListsWithValuesTest {
   public SMGListLinkage linkage;
 
   private CLangSMG smg;
-  private SMGValue addressOfFirstList;
+  private SMGState state;
   private SMGRegion globalListPointer;
   private int nodeSize;
   private int dfo;
   private SMGObjectKind listKind;
 
   @Before
-  public void setUp() {
+  public void setUp() throws InvalidConfigurationException {
 
-    final int intSize = MACHINE_MODEL_FOR_TESTING.getSizeofInt();
-    final int ptrSize = MACHINE_MODEL_FOR_TESTING.getSizeofPtr();
+    smg = new CLangSMG(MACHINE_MODEL_FOR_TESTING);
+    state =
+        new SMGState(
+            LogManager.createTestLogManager(),
+            new SMGOptions(Configuration.defaultConfiguration()),
+            smg,
+            0,
+            HashBiMap.create());
+
+    final int intSize = 8 * MACHINE_MODEL_FOR_TESTING.getSizeofInt();
+    final int ptrSize = 8 * MACHINE_MODEL_FOR_TESTING.getSizeofPtr();
 
     final int hfo = 0;
     final int nfo = 0;
@@ -88,29 +102,25 @@ public class SMGListsWithValuesTest {
     nodeSize = dfo + dataSize;
     listKind = (linkage == SMGListLinkage.DOUBLY_LINKED) ? SMGObjectKind.DLL : SMGObjectKind.SLL;
 
-    smg = new CLangSMG(MACHINE_MODEL_FOR_TESTING);
-
     SMGValue[] addresses =
         SMGListAbstractionTestHelpers.addLinkedListsWithValuesToHeap(
             smg, testLists, nodeSize, hfo, nfo, pfo, dfo, dataSize, circularity, linkage);
-    addressOfFirstList = addresses[0];
 
     globalListPointer =
         SMGListAbstractionTestHelpers.addGlobalListPointerToSMG(
-            smg, addressOfFirstList, GLOBAL_LIST_POINTER_LABEL);
+            smg, addresses[0], GLOBAL_LIST_POINTER_LABEL);
 
-    SMGObject segment = smg.getObjectPointedBy(addressOfFirstList);
+    SMGObject segment = smg.getObjectPointedBy(addresses[0]);
     Assert.assertTrue(segment.isAbstract());
     Truth.assertThat(segment.getKind()).isSameAs(listKind);
-    Truth.assertThat(segment.getLevel()).isEqualTo(0);
+    Truth.assertThat(segment.getLevel()).isEqualTo(LEVEL_ZERO);
     Truth.assertThat(segment.getSize()).isEqualTo(nodeSize);
   }
 
   @Test
-  public void testAbstractionOfLinkedLists()
-      throws InvalidConfigurationException, SMGInconsistentException {
+  public void testAbstractionOfLinkedLists() throws SMGInconsistentException {
 
-    SMGListAbstractionTestHelpers.executeHeapAbstraction(smg);
+    SMGListAbstractionTestHelpers.executeHeapAbstractionWithConsistencyChecks(state, smg);
 
     Set<SMGEdgeHasValue> hvs =
         smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalListPointer));
