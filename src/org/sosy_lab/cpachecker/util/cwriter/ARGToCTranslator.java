@@ -333,7 +333,14 @@ public class ARGToCTranslator {
     if (childrenOfElement.size() == 0) {
       // if there is no child of the element, maybe it was covered by other?
       if(currentElement.isCovered()) {
-        //it was indeed covered; jump to element it was covered by
+        // it was indeed covered; jump to element it was covered by
+        if (copyValuesForGoto.containsKey(currentElement.getCoveringState())) {
+          addTmpAssignments(
+              currentBlock,
+              copyValuesForGoto.get(currentElement.getCoveringState()),
+              currentElement.getCoveringState().getStateId(),
+              false);
+        }
         currentBlock.addStatement(new SimpleStatement("goto label_" + currentElement.getCoveringState().getStateId() + ";"));
       } else {
         // check whether we have a return statement for the main method before (only when main is non-void)
