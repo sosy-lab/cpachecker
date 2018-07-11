@@ -99,7 +99,7 @@ public class UnsafeDetector {
 
   private boolean isUnsafe(SortedSet<UsagePoint> points) {
     for (UsagePoint point1 : points) {
-      for (UsagePoint point2 : points.tailSet(point1)) {
+      for (UsagePoint point2 : points) {
         if (isUnsafePair(point1, point2)) {
           return true;
         }
@@ -113,7 +113,8 @@ public class UnsafeDetector {
     Pair<UsagePoint, UsagePoint> unsafePair = null;
 
     for (UsagePoint point1 : set) {
-      for (UsagePoint point2 : set.tailSet(point1)) {
+      // Operation is not commutative, not to optimize
+      for (UsagePoint point2 : set) {
         if (isUnsafePair(point1, point2)) {
           Pair<UsagePoint, UsagePoint> newUnsafePair = Pair.of(point1, point2);
           if (unsafePair == null || compare(newUnsafePair, unsafePair) < 0) {
@@ -159,7 +160,7 @@ public class UnsafeDetector {
           return isDeadlockCircular(point1, point2);
 
         default:
-          Preconditions.checkState(false, "Unknown mode: " + unsafeMode);
+          throw new UnsupportedOperationException("Unknown mode: " + unsafeMode);
       }
     }
     return false;

@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -175,7 +176,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
         for (AbstractState state : currentReached.asCollection()) {
           // handle state
           usageProcessingTimer.start();
-          Set<UsageInfo> usages = usageProcessor.getUsagesForState(state);
+          List<UsageInfo> usages = usageProcessor.getUsagesForState(state);
           usageProcessingTimer.stop();
           usageExpandingTimer.start();
           for (UsageInfo uinfo : usages) {

@@ -26,10 +26,9 @@ package org.sosy_lab.cpachecker.cpa.usage;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -74,7 +73,8 @@ public class UsageProcessor {
   private final VariableSkipper varSkipper;
 
   private Map<CFANode, Map<GeneralIdentifier, DataType>> precision;
-  private Set<UsageInfo> result;
+  // Not a set, as usage.equals do not consider id
+  private List<UsageInfo> result;
 
   public UsageProcessor(
       Configuration config,
@@ -90,9 +90,9 @@ public class UsageProcessor {
     precision = pPrecision;
   }
 
-  public Set<UsageInfo> getUsagesForState(AbstractState pState) {
+  public List<UsageInfo> getUsagesForState(AbstractState pState) {
 
-    result = Sets.newTreeSet();
+    result = new ArrayList<>();
 
     ARGState argState = (ARGState) pState;
 
@@ -255,10 +255,7 @@ public class UsageProcessor {
     UsageState uState = UsageState.get(pState);
     pId = uState.getLinksIfNecessary(pId);
     UsageInfo usage = UsageInfo.createUsageInfo(pAccess, pState, pId);
-    addUsageIfNeccessary(pState, usage);
-  }
 
-  private void addUsageIfNeccessary(AbstractState pState, UsageInfo usage) {
     // Precise information, using results of shared analysis
     if (!usage.isRelevant()) {
       return;
