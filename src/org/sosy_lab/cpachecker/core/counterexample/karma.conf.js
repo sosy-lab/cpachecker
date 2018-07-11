@@ -13,7 +13,7 @@ module.exports = function (config) {
 
     // list of files / patterns to load in the browser
     files: [
-      { pattern: 'node_modules/babel-polyfill/browser.js', instrument: false},
+      'https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser-polyfill.js',
       'https://www.sosy-lab.org/lib/angularjs/1.7.0/angular.min.js',
       'https://cdnjs.cloudflare.com/ajax/libs/angular-mocks/1.7.2/angular-mocks.min.js',
       'https://cdnjs.cloudflare.com/ajax/libs/angular-resource/1.7.2/angular-resource.min.js',
