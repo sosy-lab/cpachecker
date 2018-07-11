@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -665,51 +664,6 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public String toString() {
       return "MATCH {"
-          + patternAST.toString().replaceAll(AutomatonASTComparator.JOKER_EXPR + "\\d+", "\\$?")
-          + "}";
-    }
-  }
-
-  /**
-   * This is used to capture function calls with return values. Unlike MatchCFAEdgeASTComparison it
-   * can process return values for functions with bodies.
-   */
-  static class MatchCFAEdgeFunctionCall implements AutomatonBoolExpr {
-
-    private final ASTMatcher patternAST;
-
-    public MatchCFAEdgeFunctionCall(ASTMatcher pPatternAST) {
-      this.patternAST = pPatternAST;
-    }
-
-    @Override
-    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
-        throws UnrecognizedCFAEdgeException {
-      Optional<?> ast = pArgs.getCfaEdge().getRawAST();
-      if (pArgs.getCfaEdge().getEdgeType() == CFAEdgeType.StatementEdge) {
-        if (pArgs.getCfaEdge() instanceof AStatementEdge) {
-          if (((AStatementEdge) pArgs.getCfaEdge()).getStatement() instanceof AFunctionCall
-              || ((AStatementEdge) pArgs.getCfaEdge()).getStatement()
-                  instanceof AFunctionCallAssignmentStatement) {
-            if (patternAST.matches((CAstNode) ast.get(), pArgs)) {
-              return CONST_TRUE;
-            }
-          }
-        }
-      } else if (pArgs.getCfaEdge().getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-        FunctionReturnEdge edge = (FunctionReturnEdge) pArgs.getCfaEdge();
-        ast = Optional.of(edge.getSummaryEdge().getExpression());
-        if (patternAST.matches((CAstNode) ast.get(), pArgs)) {
-          return CONST_TRUE;
-        }
-      }
-
-      return CONST_FALSE;
-    }
-
-    @Override
-    public String toString() {
-      return "MATCH FUNCTION {"
           + patternAST.toString().replaceAll(AutomatonASTComparator.JOKER_EXPR + "\\d+", "\\$?")
           + "}";
     }
