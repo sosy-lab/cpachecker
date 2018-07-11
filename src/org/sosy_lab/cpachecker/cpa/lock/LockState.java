@@ -205,13 +205,12 @@ public class LockState extends AbstractLockState {
 
     @Override
     public void reduceLockCounters(Set<LockIdentifier> exceptLocks) {
-      Set<LockIdentifier> reducableLocks =
-          Sets.difference(new HashSet<>(mutableLocks.keySet()), exceptLocks);
-      reducableLocks.forEach(
-          l -> {
-            mutableLocks.remove(l);
-            add(l);
-          });
+      Sets.difference(new HashSet<>(mutableLocks.keySet()), exceptLocks)
+          .forEach(
+              l -> {
+                mutableLocks.remove(l);
+                add(l);
+              });
     }
 
     public void expand(LockState rootState) {
@@ -227,11 +226,13 @@ public class LockState extends AbstractLockState {
     }
 
     @Override
-    public void expandLockCounters(LockState pRootState, Set<LockIdentifier> pRestrictedLocks) {
-      for (LockIdentifier lock : pRootState.locks.keySet()) {
+    public void expandLockCounters(
+        AbstractLockState pRootState, Set<LockIdentifier> pRestrictedLocks) {
+      SortedMap<LockIdentifier, Integer> rootLocks = ((LockState) pRootState).locks;
+      for (LockIdentifier lock : rootLocks.keySet()) {
         if (!pRestrictedLocks.contains(lock)) {
           Integer size = mutableLocks.get(lock);
-          Integer rootSize = pRootState.locks.get(lock);
+          Integer rootSize = rootLocks.get(lock);
           // null is also correct (it shows, that we've found new lock)
 
           Integer newSize;

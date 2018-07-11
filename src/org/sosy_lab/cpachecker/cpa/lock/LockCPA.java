@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
@@ -76,18 +75,7 @@ public class LockCPA extends AbstractCPA
         DelegateAbstractDomain.<AbstractLockState>getInstance(),
         new LockTransferRelation(config, logger));
     config.inject(this);
-    switch (analysisMode) {
-      case RACE:
-        reducer = new LockReducer(config);
-        break;
-
-      case DEADLOCK:
-        reducer = NoOpReducer.getInstance();
-        break;
-
-      default:
-        throw new InvalidConfigurationException("Unknown mode: " + analysisMode);
-    }
+    reducer = new LockReducer(config);
   }
 
   @Override

@@ -89,20 +89,24 @@ public class DeadLockState extends AbstractLockState {
 
     @Override
     public void add(LockIdentifier lockId) {
-      // TODO What should we do if contains?
-      if (!mutableLockList.contains(lockId)) {
-        mutableLockList.add(lockId);
-      }
+      mutableLockList.add(lockId);
     }
 
     @Override
     public void free(LockIdentifier lockId) {
-      mutableLockList.remove(lockId);
+      // Remove last!
+      for (int i = mutableLockList.size() - 1; i >= 0; i--) {
+        LockIdentifier id = mutableLockList.get(i);
+        if (id.equals(lockId)) {
+          mutableLockList.remove(i);
+          return;
+        }
+      }
     }
 
     @Override
     public void reset(LockIdentifier lockId) {
-      mutableLockList.remove(lockId);
+      while (mutableLockList.remove(lockId)) {}
     }
 
     @Override
@@ -159,8 +163,22 @@ public class DeadLockState extends AbstractLockState {
 
     @Override
     public void reduceLockCounters(Set<LockIdentifier> exceptLocks) {
-      throw new UnsupportedOperationException(
-          "Valueable reduce/expand operations are not supported for dead lock analysis");
+      int num = getTailNum(mutableLockList, exceptLocks);
+      if (num < mutableLockList.size() - 1) {
+        for (int i = mutableLockList.size() - 1; i > num; i--) {
+          mutableLockList.remove(i);
+        }
+      }
+    }
+
+    private int getTailNum(List<LockIdentifier> lockList, Set<LockIdentifier> exceptLocks) {
+      for (int i = lockList.size() - 1; i >= 0; i--) {
+        LockIdentifier id = lockList.get(i);
+        if (lockList.indexOf(id) == i || exceptLocks.contains(id)) {
+          return i;
+        }
+      }
+      return 0;
     }
 
     public void expand(LockState rootState) {
@@ -174,9 +192,15 @@ public class DeadLockState extends AbstractLockState {
     }
 
     @Override
-    public void expandLockCounters(LockState pRootState, Set<LockIdentifier> pRestrictedLocks) {
-      throw new UnsupportedOperationException(
-          "Valueable reduce/expand operations are not supported for dead lock analysis");
+    public void expandLockCounters(
+        AbstractLockState pRootState, Set<LockIdentifier> pRestrictedLocks) {
+      List<LockIdentifier> rootList = ((DeadLockState) pRootState).lockList;
+      int num = getTailNum(rootList, pRestrictedLocks);
+      if (num < rootList.size() - 1) {
+        for (int i = num + 1; i < rootList.size(); i++) {
+          mutableLockList.add(rootList.get(i));
+        }
+      }
     }
 
     @Override
