@@ -86,7 +86,27 @@ with considerably less effort */
 			});
 		});
 
-
+		// Draggable divider between error path section and file section
+		$(function resizeSection() {
+			$("#errorpath_section").resizable({
+				autoHide: true,
+				handles: 'e',
+				resize: function (e, ui) {
+					var parent = ui.element.parent();
+					//alert(parent.attr('class'));
+					var remainingSpace = parent.width() - ui.element.outerWidth(),
+						divTwo = ui.element.next(),
+						divTwoWidth = (remainingSpace - (divTwo.outerWidth() - divTwo.width())) / parent.width() * 100 + "%";
+					divTwo.width(divTwoWidth);
+				},
+				stop: function (e, ui) {
+					var parent = ui.element.parent();
+					ui.element.css({
+						width: ui.element.width() / parent.width() * 103 + "%",
+					});
+				}
+			});
+		});
 	});
 
 	var app = angular.module('report', []);
@@ -133,8 +153,9 @@ with considerably less effort */
 				$('#toggle_error_path').on('change', function () {
 					if ($(this).is(':checked')) {
 						d3.select("#errorpath_section").style("display", "inline");
+						d3.select("#errorpath_section").style("width", "25%");
 						d3.select("#externalFiles_section").style("width", "75%");
-						d3.select("#cfa-toolbar").style("width", "70%");
+						d3.select("#cfa-toolbar").style("width", "auto");
 					} else {
 						d3.select("#errorpath_section").style("display", "none");
 						d3.select("#externalFiles_section").style("width", "100%");
@@ -404,7 +425,7 @@ with considerably less effort */
 				var selection = d3.select("#cfa-node" + actualSourceAndTarget.source);
 				selection.classed("marked-cfa-node", true);
 				var boundingRect = selection.node().getBoundingClientRect();
-				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left - d3.select("#cfa-container").style("width").split("px")[0] - $("#cfa-container").scrollLeft());
+				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left - d3.select("#cfa-container").style("width").split("px")[0] - $("#cfa-container"));
 				if (actualSourceAndTarget.source in cfaJson.combinedNodes) {
 					d3.selectAll(".marked-cfa-node-label").classed("marked-cfa-node-label", false);
 					selection.selectAll("tspan").each(function (d, i) {
@@ -423,7 +444,7 @@ with considerably less effort */
 			var selection = d3.select("#cfa-edge_" + actualSourceAndTarget.source + "-" + actualSourceAndTarget.target);
 			selection.classed("marked-cfa-edge", true);
 			var boundingRect = selection.node().getBoundingClientRect();
-			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left - d3.select("#cfa-container").style("width").split("px")[0] - $("#cfa-container").scrollLeft());
+			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left - d3.select("#cfa-container").style("width").split("px")[0] - $("#cfa-container"));
 		}
 
 		function getActualSourceAndTarget(element) {
@@ -484,7 +505,7 @@ with considerably less effort */
 			var selection = d3.select(idToSelect + errPathEntry.argelem);
 			selection.classed("marked-arg-node", true);
 			var boundingRect = selection.node().getBoundingClientRect();
-			$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left - d3.select("#arg-container").style("width").split("px")[0] - $("#arg-container").scrollLeft());
+			$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left - d3.select("#arg-container").style("width").split("px")[0] - $("#arg-container"));
 		}
 
 		function markSourceLine(errPathEntry) {
@@ -630,7 +651,7 @@ with considerably less effort */
 				if (d3.select("#errorpath_section").style("display") !== "none") {
 					$("#cfa-container").scrollTop(firstElRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(firstElRect.left - $("#cfa-container").scrollLeft() - d3.select("#externalFiles_section").style("width"));
 				} else {
-					$("#cfa-container").scrollTop(firstElRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(firstElRect.left - $("#cfa-container").scrollLeft());
+					$("#cfa-container").scrollTop(firstElRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(firstElRect.left - $("#cfa-container"));
 				}
 			};
 
@@ -864,7 +885,7 @@ function init() {
 		$("#toggle_button_error_path_placeholder").hide();
 	} else {
 		d3.select("#externalFiles_section").style("width", "75%");
-		d3.select("#cfa-toolbar").style("width", "70%");
+		d3.select("#cfa-toolbar").style("width", "auto");
 	}
 
 	// ======================= Define CFA and ARG Workers logic =======================
