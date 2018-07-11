@@ -1022,7 +1022,8 @@ public class ARGToCTranslator {
   private DeclarationInfo handleDecInfoForEdge(
       final CFAEdge edge, final ARGState pred, final ARGState succ, final DeclarationInfo decInfo) {
     if (edge instanceof CFunctionCallEdge) {
-      return decInfo.fromFunctionCall();
+      return decInfo.fromFunctionCall(
+          (CFunctionCallEdge) edge, pred.getStateId() + ":" + +succ.getStateId());
     }
 
     if (edge instanceof CFunctionReturnEdge) {
@@ -1071,9 +1072,21 @@ public class ARGToCTranslator {
       return new DeclarationInfo(newFunDecInfo, calleeFunDecInfos);
     }
 
-    public DeclarationInfo fromFunctionCall() {
+    public DeclarationInfo fromFunctionCall(final CFunctionCallEdge callEdge, final String decId) {
+      Builder<CDeclaration, String> builder = ImmutableMap.builder();
+
+      for (CParameterDeclaration paramDecl :
+          callEdge
+              .getSummaryEdge()
+              .getExpression()
+              .getFunctionCallExpression()
+              .getDeclaration()
+              .getParameters()) {
+        builder.put(paramDecl.asVariableDeclaration(), decId);
+      }
+
       return new DeclarationInfo(
-          ImmutableMap.of(),
+          builder.build(),
           ImmutableList.<ImmutableMap<CDeclaration, String>>builder()
               .addAll(calleeFunDecInfos)
               .add(currentFuncDecInfo)
