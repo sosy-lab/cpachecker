@@ -29,13 +29,11 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.Assert;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
+import org.sosy_lab.cpachecker.cpa.smg.SMGRuntimeCheck;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
@@ -51,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 
 public final class SMGListAbstractionTestHelpers {
 
@@ -201,13 +200,13 @@ public final class SMGListAbstractionTestHelpers {
     // to prevent ambiguity, existing links must be deleted before the new linking
     deleteLinksOfObjects(pSmg, pAddresses, pNfo, pPfo);
 
+    CType ptrType = pSmg.getMachineModel().getPointerEquivalentSimpleType();
     final SMGValue firstAddress = pAddresses[0];
     if (!pSmg.isPointer(firstAddress)) {
       throw new IllegalArgumentException(
           "Address " + firstAddress + " is not a valid pointer in the smg.");
     }
     final SMGObject firstNode = pSmg.getObjectPointedBy(firstAddress);
-    final int nodeSize = firstNode.getSize();
 
     SMGObject node = null;
     SMGValue address = firstAddress;
@@ -225,7 +224,7 @@ public final class SMGListAbstractionTestHelpers {
       SMGEdgeHasValue previousHvNext;
       if (i == 0) {
         if (pCircularity == SMGListCircularity.OPEN && pLinkage == SMGListLinkage.DOUBLY_LINKED) {
-          hvPrev = new SMGEdgeHasValue(nodeSize, pPfo, node, SMGKnownSymValue.valueOf(0));
+          hvPrev = new SMGEdgeHasValue(ptrType, pPfo, node, SMGZeroValue.INSTANCE);
           pSmg.addHasValueEdge(hvPrev);
         }
       } else {
@@ -245,15 +244,14 @@ public final class SMGListAbstractionTestHelpers {
             } else {
               address2 = Iterables.getOnlyElement(pte).getValue();
             }
-            hvPrev = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, pPfo, node, address2);
+            hvPrev = new SMGEdgeHasValue(ptrType, pPfo, node, address2);
             pSmg.addHasValueEdge(hvPrev);
           } else {
-            hvPrev = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, pPfo, node, previousAddress);
+            hvPrev = new SMGEdgeHasValue(ptrType, pPfo, node, previousAddress);
             pSmg.addHasValueEdge(hvPrev);
           }
         }
-        previousHvNext =
-            new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, pNfo, previousNode, address);
+        previousHvNext = new SMGEdgeHasValue(ptrType, pNfo, previousNode, address);
         pSmg.addHasValueEdge(previousHvNext);
       }
     }
@@ -261,7 +259,7 @@ public final class SMGListAbstractionTestHelpers {
     SMGEdgeHasValue hvNext;
     SMGEdgeHasValue hvPrev;
     if (pCircularity.equals(SMGListCircularity.CIRCULAR)) {
-      hvNext = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, pNfo, node, firstAddress);
+      hvNext = new SMGEdgeHasValue(ptrType, pNfo, node, firstAddress);
       if (pLinkage == SMGListLinkage.DOUBLY_LINKED) {
         if (node.getKind() == SMGObjectKind.DLL) {
           SMGValue address2 = null;
@@ -278,15 +276,15 @@ public final class SMGListAbstractionTestHelpers {
           } else {
             address2 = Iterables.getOnlyElement(pte).getValue();
           }
-          hvPrev = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, pPfo, firstNode, address2);
+          hvPrev = new SMGEdgeHasValue(ptrType, pPfo, firstNode, address2);
           pSmg.addHasValueEdge(hvPrev);
         } else {
-          hvPrev = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, pPfo, firstNode, address);
+          hvPrev = new SMGEdgeHasValue(ptrType, pPfo, firstNode, address);
           pSmg.addHasValueEdge(hvPrev);
         }
       }
     } else {
-      hvNext = new SMGEdgeHasValue(nodeSize, pNfo, node, SMGKnownSymValue.valueOf(0));
+      hvNext = new SMGEdgeHasValue(ptrType, pNfo, node, SMGZeroValue.INSTANCE);
     }
     pSmg.addHasValueEdge(hvNext);
 
@@ -449,24 +447,22 @@ public final class SMGListAbstractionTestHelpers {
 
   public static SMGRegion addGlobalListPointerToSMG(
       CLangSMG pSmg, SMGValue pHeadAddress, String pLabel) {
-    SMGRegion globalVar = new SMGRegion(pSmg.getMachineModel().getSizeofPtr(), pLabel);
+    SMGRegion globalVar = new SMGRegion(8 * pSmg.getMachineModel().getSizeofPtr(), pLabel);
     SMGEdgeHasValue hv =
-        new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 0, globalVar, pHeadAddress);
+        new SMGEdgeHasValue(
+            pSmg.getMachineModel().getPointerEquivalentSimpleType(), 0, globalVar, pHeadAddress);
     pSmg.addGlobalObject(globalVar);
     pSmg.addHasValueEdge(hv);
     return globalVar;
   }
 
-  public static void executeHeapAbstraction(CLangSMG pSmg)
-      throws InvalidConfigurationException, SMGInconsistentException {
-    SMGState dummyState =
-        new SMGState(
-            LogManager.createTestLogManager(),
-            pSmg.getMachineModel(),
-            new SMGOptions(Configuration.defaultConfiguration()));
+  public static void executeHeapAbstractionWithConsistencyChecks(SMGState pState, CLangSMG pSmg)
+      throws SMGInconsistentException {
     SMGAbstractionManager manager =
-        new SMGAbstractionManager(LogManager.createTestLogManager(), pSmg, dummyState);
+        new SMGAbstractionManager(LogManager.createTestLogManager(), pSmg, pState);
+    pState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     manager.execute();
+    pState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
   }
 
   public static void assertAbstractListSegmentAsExpected(

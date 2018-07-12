@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import static org.sosy_lab.cpachecker.util.Precisions.extractPrecisionByType;
+
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
@@ -156,7 +158,8 @@ public class SMGEdgeInterpolator {
     // effort
     // Implementation detail: we compare 'Sets' for equality!
     boolean noChange = initialStates.equals(successors) || isFunctionOrTypeDeclaration(currentEdge);
-    SMGPrecision currentPrecision = SMGCEGARUtils.extractSMGPrecision(pReached, pSuccessorARGstate);
+    SMGPrecision currentPrecision = extractPrecisionByType(
+            pReached.asReachedSet().getPrecision(pSuccessorARGstate), SMGPrecision.class);
     if (noChange
         && !currentPrecision.allowsHeapAbstractionOnNode(currentEdge.getPredecessor())) {
       return Collections.singletonList(pInputInterpolant);

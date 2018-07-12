@@ -77,6 +77,10 @@ public class SMGSingleLinkedListCandidateTest {
         new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration())));
     Set<SMGObject> heap = abstractedSmg.getHeapObjects();
     Assert.assertEquals(2, heap.size());
+    Set<SMGEdgeHasValue> globalHves =
+        abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(root.getObject()));
+    root = Iterables.getOnlyElement(globalHves);
+    value = root.getValue();
     SMGObject pointedObject = abstractedSmg.getPointer(value).getObject();
     Assert.assertTrue(pointedObject instanceof SMGSingleLinkedList);
     Assert.assertTrue(pointedObject.isAbstract());
@@ -110,7 +114,10 @@ public class SMGSingleLinkedListCandidateTest {
         new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration())));
     Set<SMGObject> heap = abstractedSmg.getHeapObjects();
     Assert.assertEquals(2, heap.size());
-
+    Set<SMGEdgeHasValue> globalHves =
+        abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(root.getObject()));
+    root = Iterables.getOnlyElement(globalHves);
+    value = root.getValue();
     SMGObject sll = abstractedSmg.getPointer(value).getObject();
     Assert.assertTrue(sll.isAbstract());
     Assert.assertTrue(sll instanceof SMGSingleLinkedList);

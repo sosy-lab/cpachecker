@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.test;
 
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Iterables;
 import com.google.common.truth.Truth;
 import java.util.Collection;
@@ -36,9 +37,13 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -71,17 +76,26 @@ public class SMGRegionsWithListsTest {
   public SMGListLinkage linkage;
 
   private CLangSMG smg;
-  private SMGValue addressOfFirstRegion;
+  private SMGState state;
   private SMGRegion globalListPointer;
   private int nodeSize;
   private int dfo;
   private SMGObjectKind listKind;
 
   @Before
-  public void setUp() {
+  public void setUp() throws InvalidConfigurationException {
 
-    final int intSize = MACHINE_MODEL_FOR_TESTING.getSizeofInt();
-    final int ptrSize = MACHINE_MODEL_FOR_TESTING.getSizeofPtr();
+    smg = new CLangSMG(MACHINE_MODEL_FOR_TESTING);
+    state =
+        new SMGState(
+            LogManager.createTestLogManager(),
+            new SMGOptions(Configuration.defaultConfiguration()),
+            smg,
+            0,
+            HashBiMap.create());
+
+    final int intSize = 8 * MACHINE_MODEL_FOR_TESTING.getSizeofInt();
+    final int ptrSize = 8 * MACHINE_MODEL_FOR_TESTING.getSizeofPtr();
 
     final int hfo = 0;
     final int nfo = 0;
@@ -91,29 +105,25 @@ public class SMGRegionsWithListsTest {
     nodeSize = dfo + dataSize;
     listKind = (linkage == SMGListLinkage.DOUBLY_LINKED) ? SMGObjectKind.DLL : SMGObjectKind.SLL;
 
-    smg = new CLangSMG(MACHINE_MODEL_FOR_TESTING);
-
     SMGValue[] addresses =
         SMGListAbstractionTestHelpers.addLinkedRegionsWithSublistsWithValuesToHeap(
             smg, sublists, nodeSize, hfo, nfo, pfo, dfo, dataSize, circularity, linkage);
-    addressOfFirstRegion = addresses[0];
 
     globalListPointer =
         SMGListAbstractionTestHelpers.addGlobalListPointerToSMG(
-            smg, addressOfFirstRegion, GLOBAL_LIST_POINTER_LABEL);
+            smg, addresses[0], GLOBAL_LIST_POINTER_LABEL);
 
-    SMGObject segment = smg.getObjectPointedBy(addressOfFirstRegion);
+    SMGObject segment = smg.getObjectPointedBy(addresses[0]);
     Assert.assertFalse(segment.isAbstract());
     Truth.assertThat(segment.getKind()).isSameAs(SMGObjectKind.REG);
-    Truth.assertThat(segment.getLevel()).isEqualTo(0);
+    Truth.assertThat(segment.getLevel()).isEqualTo(LEVEL_ZERO);
     Truth.assertThat(segment.getSize()).isEqualTo(nodeSize);
   }
 
   @Test
-  public void testAbstractionOfLinkedRegionsWithSublists()
-      throws InvalidConfigurationException, SMGInconsistentException {
+  public void testAbstractionOfLinkedRegionsWithSublists() throws SMGInconsistentException {
 
-    SMGListAbstractionTestHelpers.executeHeapAbstraction(smg);
+    SMGListAbstractionTestHelpers.executeHeapAbstractionWithConsistencyChecks(state, smg);
 
     Set<SMGEdgeHasValue> hvs =
         smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalListPointer));
@@ -121,7 +131,6 @@ public class SMGRegionsWithListsTest {
 
     SMGEdgePointsTo pt = smg.getPointer(Iterables.getOnlyElement(hvs).getValue());
     SMGObject abstractionResult = pt.getObject();
-    Assert.assertTrue(abstractionResult.isAbstract());
 
     SMGListAbstractionTestHelpers.assertAbstractListSegmentAsExpected(
         abstractionResult, nodeSize, LEVEL_ZERO, listKind, sublists.length);

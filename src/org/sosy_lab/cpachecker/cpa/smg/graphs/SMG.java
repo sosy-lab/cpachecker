@@ -36,6 +36,7 @@ import java.util.TreeMap;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -46,6 +47,10 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 
+/**
+ * A graph-based representation of memory-structures. The most important part is the bipartite
+ * directed graph of {@link SMGValue}s and {@link SMGObject}s connected by {@link SMGEdge}s.
+ */
 public class SMG implements UnmodifiableSMG {
   private PersistentSet<SMGObject> objects;
   private PersistentSet<SMGValue> values;

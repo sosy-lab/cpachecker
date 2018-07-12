@@ -35,6 +35,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractListCandidateSequence;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
@@ -89,6 +91,13 @@ public class SMGDoublyLinkedListCandidateSequence extends SMGAbstractListCandida
 //      SMGDebugTest.dumpPlot("afterAbstractionBeforeRemoval", pSmgState);
 
       SMGObject newAbsObj = join.getNewAbstractObject();
+
+      SMGEdgeHasValueFilter prevFilter =
+          SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(pfo);
+      SMGValue val1 = Iterables.getOnlyElement(pSMG.getHVEdges(prevFilter)).getValue();
+      SMGValue val2 = nextEdge.getValue();
+      pSMG.replaceValue(SMGKnownSymValue.of(), val1);
+      pSMG.replaceValue(SMGKnownSymValue.of(), val2);
 
       addPointsToEdges(pSMG, nextObject, newAbsObj, SMGTargetSpecifier.LAST);
       addPointsToEdges(pSMG, prevObject, newAbsObj, SMGTargetSpecifier.FIRST);

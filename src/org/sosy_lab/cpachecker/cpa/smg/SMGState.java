@@ -344,8 +344,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
    * @param pLevel A level of the check request. When e.g. HALF is passed, it means "perform the
    *     check if the setting is HALF or finer.
    */
-  @VisibleForTesting
-  final void performConsistencyCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
+  public final void performConsistencyCheck(SMGRuntimeCheck pLevel)
+      throws SMGInconsistentException {
     if (pLevel == null || options.getRuntimeCheck().isFinerOrEqualThan(pLevel)) {
       if (!CLangSMGConsistencyVerifier.verifyCLangSMG(logger,
           heap)) { throw new SMGInconsistentException(

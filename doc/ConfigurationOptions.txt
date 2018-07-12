@@ -2079,7 +2079,7 @@ cpa.predicate.refinement.maxRefinementSize = 0
 # sets the level of the pathformulas to use for abstraction. 
 #   EDGE : Based on Pathformulas of every edge in ARGPath
 #   BLOCK: Based on Pathformulas at Abstractionstates
-cpa.predicate.refinement.newtonrefinement.pathFormulAbstractionLevel = EDGE
+cpa.predicate.refinement.newtonrefinement.pathFormulaAbstractionLevel = BLOCK
   enum:     [BLOCK, EDGE]
 
 # use live variables in order to abstract the predicates produced while
@@ -2824,7 +2824,7 @@ cpa.value.symbolic.refinement.avoidConstraints = true
 
 # The refinement strategy to use
 cpa.value.symbolic.refinement.strategy = CONSTRAINTS_FIRST
-  enum:     [CONSTRAINTS_FIRST, VALUES_FIRST, VALUES_ONLY]
+  enum:     [CONSTRAINTS_FIRST, VALUES_FIRST, ALTERNATING, VALUES_ONLY]
 
 # Whether to simplify symbolic expressions, if possible.
 cpa.value.symbolic.simplifySymbolics = true
@@ -3360,6 +3360,9 @@ precision.trackIntAddVariables = true
 # If this option is used, variables that are only compared for equality are
 # tracked.
 precision.trackIntEqualVariables = true
+
+# If this option is used, variables that are irrelevantare also tracked.
+precision.trackIrrelevantVariables = true
 
 # If this option is used, all variables that are of a different
 # classification than IntAdd, IntEq and Boolean get tracked by the precision.
