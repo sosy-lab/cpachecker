@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSDeclaredByExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
@@ -2170,6 +2171,12 @@ public abstract class AbstractExpressionValueVisitor
   @Override
   public Value visit(JThisExpression pThisExpression) {
     return UnknownValue.getInstance();
+  }
+
+  @Override
+  public Value visit(final JSDeclaredByExpression pDeclaredByExpression) throws NoException {
+    // TODO implement JSDeclaredByExpression
+    throw new RuntimeException("Evaluation of JSDeclaredByExpression not implemented yet");
   }
 
   @Override

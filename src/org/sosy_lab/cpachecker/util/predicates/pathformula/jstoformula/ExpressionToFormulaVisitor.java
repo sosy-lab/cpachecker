@@ -27,6 +27,7 @@ import java.math.BigDecimal;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSDeclaredByExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
@@ -228,6 +229,13 @@ public class ExpressionToFormulaVisitor
   public TypedValue visit(final JSThisExpression pThisExpression)
       throws UnrecognizedJSCodeException {
     throw new UnrecognizedJSCodeException("JSThisExpression not implemented yet", pThisExpression);
+  }
+
+  @Override
+  public TypedValue visit(final JSDeclaredByExpression pDeclaredByExpression)
+      throws UnrecognizedJSCodeException {
+    throw new UnrecognizedJSCodeException(
+        "JSDeclaredByExpression not handled yet", pDeclaredByExpression);
   }
 
   @Override

@@ -27,6 +27,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
 import org.sosy_lab.cpachecker.cfa.ast.js.DefaultJSExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSDeclaredByExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
@@ -108,6 +109,13 @@ class LValueVisitor extends DefaultJSExpressionVisitor<Formula, UnrecognizedJSCo
   @Override
   public Formula visit(final JSThisExpression pThisExpression) throws UnrecognizedJSCodeException {
     throw new UnrecognizedJSCodeException("Not handled yet", pThisExpression);
+  }
+
+  @Override
+  public Formula visit(final JSDeclaredByExpression pDeclaredByExpression)
+      throws UnrecognizedJSCodeException {
+    throw new UnrecognizedJSCodeException(
+        "JSDeclaredByExpression not handled yet", pDeclaredByExpression);
   }
 
   @Override
