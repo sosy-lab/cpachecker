@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import static org.sosy_lab.cpachecker.util.Precisions.extractPrecisionByType;
+
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
@@ -378,7 +380,8 @@ public class SMGRefiner implements Refiner {
     // get all unique precisions from the subtree
     Set<SMGPrecision> uniquePrecisions = Sets.newIdentityHashSet();
     for (ARGState descendant : ARGUtils.getNonCoveredStatesInSubgraph(pRefinementRoot)) {
-      uniquePrecisions.add(SMGCEGARUtils.extractSMGPrecision(pReached, descendant));
+      uniquePrecisions.add(extractPrecisionByType(
+              pReached.asReachedSet().getPrecision(descendant), SMGPrecision.class));
     }
 
     // join all unique precisions into a single precision
