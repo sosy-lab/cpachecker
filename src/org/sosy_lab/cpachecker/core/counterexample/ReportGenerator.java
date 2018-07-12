@@ -418,7 +418,7 @@ public class ReportGenerator {
                   new FileInputStream(sourcePath.toFile()),
                   Charset.defaultCharset()))) {
         writer.write(
-            "<div class=\"sourceContent content\" ng-show = \"sourceFileIsSet("
+            "<div class=\"sourceContent\" ng-show = \"sourceFileIsSet("
                 + sourceFileNumber
                 + ")\">\n<table>\n");
         String line;

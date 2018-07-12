@@ -18,7 +18,7 @@ module.exports = function (config) {
       'https://cdnjs.cloudflare.com/ajax/libs/angular-mocks/1.7.2/angular-mocks.min.js',
       'https://cdnjs.cloudflare.com/ajax/libs/angular-resource/1.7.2/angular-resource.min.js',
       'https://www.sosy-lab.org/lib/jquery/3.3.1/jquery.min.js',
-      'https://bowercdn.net/c/jasmine-jquery-2.1.1/lib/jasmine-jquery.js',
+      'https://cdn.jsdelivr.net/npm/jasmine-jquery@2.1.1/lib/jasmine-jquery.min.js',
       'https://www.sosy-lab.org/lib/bootstrap/4.1.1/js/bootstrap.min.js',
       'https://www.sosy-lab.org/lib/d3js/5.4.0/d3.min.js',
       'https://www.sosy-lab.org/lib/dagre-d3/0.5.0/dagre-d3.min.js',

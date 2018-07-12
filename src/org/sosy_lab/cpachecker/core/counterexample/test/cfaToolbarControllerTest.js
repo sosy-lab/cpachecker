@@ -15,6 +15,7 @@ describe("ReportController", function () {
         })
         jasmine.getFixtures().fixturesPath = 'base/';
         jasmine.getFixtures().load('testReport.html');
+        
     })
 
     describe("selectedCFAFunction initialization", function () {
