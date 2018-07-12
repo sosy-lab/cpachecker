@@ -196,35 +196,8 @@ public class ConstraintsSolver implements StatisticsProvider {
     if (!pConstraints.isEmpty()) {
       try {
         timeForSatChecks.start();
-        Set<Constraint> relevantConstraints = new HashSet<>();
-        if (performMinimalSatCheck && pConstraints.getLastAddedConstraint().isPresent()) {
-          try {
-            timeForIndependentComputation.start();
-            Constraint lastConstraint = pConstraints.getLastAddedConstraint().get();
-            Set<Constraint> leftOverConstraints = new HashSet<>(pConstraints);
-            Set<SymbolicIdentifier> newRelevantIdentifiers = lastConstraint.accept(locator);
-            Set<SymbolicIdentifier> relevantIdentifiers;
-            do {
-              relevantIdentifiers = ImmutableSet.copyOf(newRelevantIdentifiers);
-              Iterator<Constraint> it = leftOverConstraints.iterator();
-              while (it.hasNext()) {
-                Constraint currentC = it.next();
-                Set<SymbolicIdentifier> containedIdentifiers = currentC.accept(locator);
-                if (!Sets.intersection(containedIdentifiers, relevantIdentifiers).isEmpty()) {
-                  newRelevantIdentifiers = Sets.union(newRelevantIdentifiers, containedIdentifiers);
-                  relevantConstraints.add(currentC);
-                  it.remove();
-                }
-              }
-            } while (!newRelevantIdentifiers.equals(relevantIdentifiers));
 
-          } finally {
-            timeForIndependentComputation.stop();
-          }
-
-        } else {
-          relevantConstraints = pConstraints;
-        }
+        Set<Constraint> relevantConstraints = getRelevantConstraints(pConstraints);
 
         BooleanFormula constraintsAsFormula =
             getFullFormula(
@@ -317,6 +290,40 @@ public class ConstraintsSolver implements StatisticsProvider {
     } else {
       return false;
     }
+  }
+
+  private Set<Constraint> getRelevantConstraints(ConstraintsState pConstraints) {
+    Set<Constraint> relevantConstraints = new HashSet<>();
+    if (performMinimalSatCheck && pConstraints.getLastAddedConstraint().isPresent()) {
+      try {
+        timeForIndependentComputation.start();
+        Constraint lastConstraint = pConstraints.getLastAddedConstraint().get();
+        Set<Constraint> leftOverConstraints = new HashSet<>(pConstraints);
+        Set<SymbolicIdentifier> newRelevantIdentifiers = lastConstraint.accept(locator);
+        Set<SymbolicIdentifier> relevantIdentifiers;
+        do {
+          relevantIdentifiers = ImmutableSet.copyOf(newRelevantIdentifiers);
+          Iterator<Constraint> it = leftOverConstraints.iterator();
+          while (it.hasNext()) {
+            Constraint currentC = it.next();
+            Set<SymbolicIdentifier> containedIdentifiers = currentC.accept(locator);
+            if (!Sets.intersection(containedIdentifiers, relevantIdentifiers).isEmpty()) {
+              newRelevantIdentifiers = Sets.union(newRelevantIdentifiers, containedIdentifiers);
+              relevantConstraints.add(currentC);
+              it.remove();
+            }
+          }
+        } while (!newRelevantIdentifiers.equals(relevantIdentifiers));
+
+      } finally {
+        timeForIndependentComputation.stop();
+      }
+
+    } else {
+      relevantConstraints = pConstraints;
+    }
+
+    return relevantConstraints;
   }
 
   private void closeProver() {
