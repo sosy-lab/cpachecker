@@ -47,14 +47,7 @@ class VariableDeclarationFragmentCFABuilder implements VariableDeclarationFragme
             pBuilder.getScope().qualifiedVariableNameOf(variableIdentifier),
             new JSInitializerExpression(expression.getFileLocation(), expression));
     pBuilder.getScope().addDeclaration(variableDeclaration);
-    pBuilder.appendEdge(
-        (pPredecessor, pSuccessor) ->
-            new JSDeclarationEdge(
-                variableDeclaration.toASTString(),
-                variableDeclaration.getFileLocation(),
-                pPredecessor,
-                pSuccessor,
-                variableDeclaration));
+    pBuilder.appendEdge(JSDeclarationEdge.of(variableDeclaration));
     return variableDeclaration;
   }
 }

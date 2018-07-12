@@ -67,14 +67,7 @@ class PostfixExpressionCFABuilder implements PostfixExpressionAppendable {
                 new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ONE),
                 binaryOperator));
     pBuilder
-        .appendEdge(
-            (pPredecessor, pSuccessor) ->
-                new JSDeclarationEdge(
-                    oldValueVariableDeclaration.toASTString(),
-                    FileLocation.DUMMY,
-                    pPredecessor,
-                    pSuccessor,
-                    oldValueVariableDeclaration))
+        .appendEdge(JSDeclarationEdge.of(oldValueVariableDeclaration))
         .appendEdge(
             (pPredecessor, pSuccessor) ->
                 new JSStatementEdge(

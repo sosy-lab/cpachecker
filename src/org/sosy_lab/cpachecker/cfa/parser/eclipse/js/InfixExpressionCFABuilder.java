@@ -85,14 +85,7 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
     final JSVariableDeclaration resultVariableDeclaration = pBuilder.declareVariable();
     final JSIdExpression resultVariableId =
         new JSIdExpression(FileLocation.DUMMY, resultVariableDeclaration);
-    pBuilder.appendEdge(
-        (pPredecessor, pSuccessor) ->
-            new JSDeclarationEdge(
-                resultVariableDeclaration.toASTString(),
-                resultVariableDeclaration.getFileLocation(),
-                pPredecessor,
-                pSuccessor,
-                resultVariableDeclaration));
+    pBuilder.appendEdge(JSDeclarationEdge.of(resultVariableDeclaration));
     final CFANode exitNode = pBuilder.createNode();
     final JSExpression leftEvaluated = pBuilder.append(pInfixExpression.getLeftOperand());
 

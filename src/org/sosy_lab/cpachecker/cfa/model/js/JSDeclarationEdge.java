@@ -24,14 +24,26 @@
 package org.sosy_lab.cpachecker.cfa.model.js;
 
 import com.google.common.base.Optional;
+import java.util.function.BiFunction;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class JSDeclarationEdge extends ADeclarationEdge {
 
   private static final long serialVersionUID = 6319915232080396018L;
+
+  public static BiFunction<CFANode, CFANode, CFAEdge> of(final JSDeclaration pDeclaration) {
+    return (pPredecessor, pSuccessor) ->
+        new JSDeclarationEdge(
+            pDeclaration.toASTString(),
+            pDeclaration.getFileLocation(),
+            pPredecessor,
+            pSuccessor,
+            pDeclaration);
+  }
 
   public JSDeclarationEdge(
       final String pRawSignature,
