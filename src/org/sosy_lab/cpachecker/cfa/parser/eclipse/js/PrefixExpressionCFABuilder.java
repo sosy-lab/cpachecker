@@ -51,23 +51,16 @@ class PrefixExpressionCFABuilder implements PrefixExpressionAppendable {
               ? BinaryOperator.PLUS
               : BinaryOperator.MINUS;
       final JSIdExpression variableToIncrement = (JSIdExpression) operand;
-      final JSExpressionAssignmentStatement incrementStatement =
-          new JSExpressionAssignmentStatement(
-              FileLocation.DUMMY,
-              variableToIncrement,
-              new JSBinaryExpression(
+      pBuilder.appendEdge(
+          JSStatementEdge.of(
+              new JSExpressionAssignmentStatement(
                   FileLocation.DUMMY,
                   variableToIncrement,
-                  new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ONE),
-                  binaryOperator));
-      pBuilder.appendEdge(
-          (pPredecessor, pSuccessor) ->
-              new JSStatementEdge(
-                  incrementStatement.toASTString(),
-                  incrementStatement,
-                  incrementStatement.getFileLocation(),
-                  pPredecessor,
-                  pSuccessor));
+                  new JSBinaryExpression(
+                      FileLocation.DUMMY,
+                      variableToIncrement,
+                      new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ONE),
+                      binaryOperator))));
       return variableToIncrement;
     }
     final UnaryOperator operator = convert(pPrefixExpression.getOperator());

@@ -51,16 +51,9 @@ class AssignmentCFABuilder implements AssignmentAppendable {
         operator.isPresent()
             ? new JSBinaryExpression(FileLocation.DUMMY, varId, value, operator.get())
             : value;
-    final JSExpressionAssignmentStatement assignmentStatement =
-        new JSExpressionAssignmentStatement(FileLocation.DUMMY, varId, newValue);
     pBuilder.appendEdge(
-        (pPredecessor, pSuccessor) ->
-            new JSStatementEdge(
-                assignmentStatement.toASTString(),
-                assignmentStatement,
-                assignmentStatement.getFileLocation(),
-                pPredecessor,
-                pSuccessor));
+        JSStatementEdge.of(
+            new JSExpressionAssignmentStatement(FileLocation.DUMMY, varId, newValue)));
     return varId;
   }
 

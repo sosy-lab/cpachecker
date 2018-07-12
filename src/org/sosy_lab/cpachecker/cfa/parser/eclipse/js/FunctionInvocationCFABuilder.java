@@ -50,21 +50,14 @@ class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
     final JSVariableDeclaration resultVariableDeclaration = pBuilder.declareVariable();
     final JSIdExpression resultVariableId =
         new JSIdExpression(FileLocation.DUMMY, resultVariableDeclaration);
-    final JSFunctionCallAssignmentStatement functionCallStatement =
-        new JSFunctionCallAssignmentStatement(
-            pBuilder.getFileLocation(pNode),
-            resultVariableId,
-            new JSFunctionCallExpression(
-                pBuilder.getFileLocation(pNode), function, arguments, declaration));
 
     pBuilder.appendEdge(
-        (pPredecessor, pSuccessor) ->
-            new JSStatementEdge(
-                functionCallStatement.toASTString(),
-                functionCallStatement,
-                functionCallStatement.getFileLocation(),
-                pPredecessor,
-                pSuccessor));
+        JSStatementEdge.of(
+            new JSFunctionCallAssignmentStatement(
+                pBuilder.getFileLocation(pNode),
+                resultVariableId,
+                new JSFunctionCallExpression(
+                    pBuilder.getFileLocation(pNode), function, arguments, declaration))));
 
     return resultVariableId;
   }

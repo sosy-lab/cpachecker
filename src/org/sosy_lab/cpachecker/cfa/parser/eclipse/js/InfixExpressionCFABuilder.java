@@ -95,20 +95,14 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
         pOperator == BinaryOperator.CONDITIONAL_AND
             ? thenBranchBuilder.append(pInfixExpression.getRightOperand())
             : leftEvaluated;
-    final JSExpressionAssignmentStatement thenStatement =
-        new JSExpressionAssignmentStatement(FileLocation.DUMMY, resultVariableId, thenValue);
     final String operatorRightExprDescription =
         pOperator.getOperator() + " " + pInfixExpression.getRightOperand();
     pBuilder.addParseResult(
         thenBranchBuilder
             .appendEdge(
-                (pPredecessor, pSuccessor) ->
-                    new JSStatementEdge(
-                        thenStatement.toASTString(),
-                        thenStatement,
-                        thenStatement.getFileLocation(),
-                        pPredecessor,
-                        pSuccessor))
+                JSStatementEdge.of(
+                    new JSExpressionAssignmentStatement(
+                        FileLocation.DUMMY, resultVariableId, thenValue)))
             .appendEdge(
                 exitNode, DummyEdge.withDescription("end true " + operatorRightExprDescription))
             .getParseResult());
@@ -118,18 +112,12 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
         pOperator == BinaryOperator.CONDITIONAL_AND
             ? leftEvaluated
             : elseBranchBuilder.append(pInfixExpression.getRightOperand());
-    final JSExpressionAssignmentStatement elseStatement =
-        new JSExpressionAssignmentStatement(FileLocation.DUMMY, resultVariableId, elseValue);
     pBuilder.append(
         elseBranchBuilder
             .appendEdge(
-                (pPredecessor, pSuccessor) ->
-                    new JSStatementEdge(
-                        elseStatement.toASTString(),
-                        elseStatement,
-                        elseStatement.getFileLocation(),
-                        pPredecessor,
-                        pSuccessor))
+                JSStatementEdge.of(
+                    new JSExpressionAssignmentStatement(
+                        FileLocation.DUMMY, resultVariableId, elseValue)))
             .appendEdge(
                 exitNode, DummyEdge.withDescription("end false " + operatorRightExprDescription))
             .getBuilder());

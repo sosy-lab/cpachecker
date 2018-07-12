@@ -24,9 +24,11 @@
 package org.sosy_lab.cpachecker.cfa.model.js;
 
 import com.google.common.base.Optional;
+import java.util.function.BiFunction;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class JSStatementEdge extends AStatementEdge {
@@ -41,6 +43,16 @@ public class JSStatementEdge extends AStatementEdge {
       CFANode pSuccessor) {
 
     super(pRawStatement, pStatement, pFileLocation, pPredecessor, pSuccessor);
+  }
+
+  public static BiFunction<CFANode, CFANode, CFAEdge> of(final JSStatement pStatement) {
+    return (pPredecessor, pSuccessor) ->
+        new JSStatementEdge(
+            pStatement.toASTString(),
+            pStatement,
+            pStatement.getFileLocation(),
+            pPredecessor,
+            pSuccessor);
   }
 
   @Override

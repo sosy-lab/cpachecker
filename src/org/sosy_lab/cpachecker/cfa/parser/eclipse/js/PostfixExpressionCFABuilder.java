@@ -57,25 +57,18 @@ class PostfixExpressionCFABuilder implements PostfixExpressionAppendable {
     final JSVariableDeclaration oldValueVariableDeclaration =
         pBuilder.declareVariable(
             new JSInitializerExpression(FileLocation.DUMMY, variableToIncrement));
-    final JSExpressionAssignmentStatement incrementStatement =
-        new JSExpressionAssignmentStatement(
-            FileLocation.DUMMY,
-            variableToIncrement,
-            new JSBinaryExpression(
-                FileLocation.DUMMY,
-                variableToIncrement,
-                new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ONE),
-                binaryOperator));
     pBuilder
         .appendEdge(JSDeclarationEdge.of(oldValueVariableDeclaration))
         .appendEdge(
-            (pPredecessor, pSuccessor) ->
-                new JSStatementEdge(
-                    incrementStatement.toASTString(),
-                    incrementStatement,
-                    incrementStatement.getFileLocation(),
-                    pPredecessor,
-                    pSuccessor));
+            JSStatementEdge.of(
+                new JSExpressionAssignmentStatement(
+                    FileLocation.DUMMY,
+                    variableToIncrement,
+                    new JSBinaryExpression(
+                        FileLocation.DUMMY,
+                        variableToIncrement,
+                        new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ONE),
+                        binaryOperator))));
     return new JSIdExpression(FileLocation.DUMMY, oldValueVariableDeclaration);
   }
 
