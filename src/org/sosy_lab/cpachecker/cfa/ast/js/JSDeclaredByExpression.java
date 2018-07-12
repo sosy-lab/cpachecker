@@ -66,4 +66,12 @@ public class JSDeclaredByExpression implements JSExpression {
   public String toParenthesizedASTString(final boolean pQualified) {
     return "\"" + toASTString(pQualified) + "\"";
   }
+
+  public JSIdExpression getIdExpression() {
+    return idExpression;
+  }
+
+  public JSFunctionDeclaration getJsFunctionDeclaration() {
+    return jsFunctionDeclaration;
+  }
 }
