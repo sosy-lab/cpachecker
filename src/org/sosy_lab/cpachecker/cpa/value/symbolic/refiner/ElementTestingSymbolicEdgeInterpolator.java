@@ -326,10 +326,13 @@ public class ElementTestingSymbolicEdgeInterpolator
         ForgettingCompositeState pSuccessorState, ARGPath pSuffix)
         throws InterruptedException, CPAException {
 
-      ForgettingCompositeState reducedState = removeAllConstraints(pSuccessorState);
+      ForgettingCompositeState reducedState = pSuccessorState;
+      if (reducedState.getConstraintsSize() > 0) {
+        reducedState = removeAllConstraints(reducedState);
 
-      if (isPathFeasible(pSuffix, reducedState)) {
-        reducedState = pSuccessorState;
+        if (isPathFeasible(pSuffix, reducedState)) {
+          reducedState = pSuccessorState;
+        }
       }
 
       return delegate.reduce(reducedState, pSuffix);
