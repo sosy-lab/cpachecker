@@ -121,9 +121,13 @@ public class ConstraintsSolver implements StatisticsProvider {
 
   private final StatTimer timeForSatChecks = new StatTimer(StatKind.SUM, "Time for SAT checks");
   private final StatTimer timeForIndependentComputation =
-      new StatTimer(StatKind.SUM, "Time for " + "independent computation");
+      new StatTimer(StatKind.SUM, "Time for independent computation");
   private final StatTimer timeForDefinitesComputation =
       new StatTimer(StatKind.SUM, "Time for resolving definites");
+  private final StatTimer timeForModelReuse =
+      new StatTimer(StatKind.SUM, "Time for model re-use attempts");
+
+  private final StatCounter modelReuseSuccesses = new StatCounter("Successful model re-uses");
 
   private ConstraintsCache cache;
   private Solver solver;
@@ -231,21 +235,33 @@ public class ConstraintsSolver implements StatisticsProvider {
         Boolean unsat = null; // assign null to fail fast if assignment is missed
         ImmutableList<ValueAssignment> modelAsAssignment = pConstraints.getModel();
         ImmutableList<ValueAssignment> newModelAsAssignment = ImmutableList.of();
+
         if (useLastModel) {
-          BooleanFormula lastModel =
-              modelAsAssignment
-                  .stream()
-                  .map(ValueAssignment::getAssignmentAsFormula)
-                  .collect(booleanFormulaManager.toConjunction());
-          prover.push(lastModel);
-          unsat = prover.isUnsat();
-          if (!unsat) {
-            // get this before popping the model assignment ; the operation will be invalid
-            // otherwise
-            newModelAsAssignment = prover.getModelAssignments();
+          try {
+            timeForModelReuse.start();
+            BooleanFormula lastModel =
+                modelAsAssignment
+                    .stream()
+                    .map(ValueAssignment::getAssignmentAsFormula)
+                    .collect(booleanFormulaManager.toConjunction());
+            prover.push(lastModel);
+            unsat = prover.isUnsat();
+            if (!unsat) {
+
+              if (!modelAsAssignment.isEmpty()) {
+                modelReuseSuccesses.inc();
+              }
+
+              // get this before popping the model assignment ; the operation will be invalid
+              // otherwise
+              newModelAsAssignment = prover.getModelAssignments();
+            }
+            // We have to remove the model assignment before resolving definite assignments, below.
+            prover.pop(); // Remove model assignment from prover
+
+          } finally {
+            timeForModelReuse.stop();
           }
-          // We have to remove the model assignment before resolving definite assignments, below.
-          prover.pop(); // Remove model assignment from prover
         }
 
         boolean gotResultFromCache = false;
@@ -442,7 +458,11 @@ public class ConstraintsSolver implements StatisticsProvider {
               PrintStream out, Result result, UnmodifiableReachedSet reached) {
             StatisticsWriter.writingStatisticsTo(out)
                 .put(timeForSatChecks)
-                .put(timeForDefinitesComputation);
+                .beginLevel()
+                .put(timeForIndependentComputation)
+                .put(timeForModelReuse)
+                .put(timeForDefinitesComputation)
+                .endLevel();
           }
 
           @Override
@@ -468,7 +488,7 @@ public class ConstraintsSolver implements StatisticsProvider {
     void addUnsat(Collection<Constraint> pConstraints);
   }
 
-  private class MatchingConstraintsCache implements ConstraintsCache, StatisticsProvider {
+  private class MatchingConstraintsCache implements ConstraintsCache, Statistics {
 
     private Map<Integer, CacheResult> cacheMap = new HashMap<>();
 
@@ -514,24 +534,18 @@ public class ConstraintsSolver implements StatisticsProvider {
     }
 
     @Override
-    public void collectStatistics(Collection<Statistics> statsCollection) {
-      statsCollection.add(
-          new Statistics() {
-            @Override
-            public void printStatistics(
-                PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-              StatisticsWriter.writingStatisticsTo(pOut)
-                  .put(cacheLookups)
-                  .put(cacheHits)
-                  .put(lookupTime);
-            }
+    public void printStatistics(
+        PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+      StatisticsWriter.writingStatisticsTo(pOut)
+          .put(cacheLookups)
+          .put(cacheHits)
+          .put(lookupTime);
+    }
 
-            @Nullable
-            @Override
-            public String getName() {
-              return ConstraintsSolver.this.getClass().getSimpleName();
-            }
-          });
+    @Nullable
+    @Override
+    public String getName() {
+      return getClass().getSimpleName();
     }
   }
 
@@ -651,6 +665,12 @@ public class ConstraintsSolver implements StatisticsProvider {
               return ConstraintsSolver.this.getClass().getSimpleName();
             }
           });
+
+      if (delegate instanceof Statistics) {
+        statsCollection.add(delegate);
+      } else if (delegate instanceof StatisticsProvider) {
+        collectStatistics(statsCollection);
+      }
     }
   }
 
