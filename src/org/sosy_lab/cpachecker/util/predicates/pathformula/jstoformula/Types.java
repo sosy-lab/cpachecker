@@ -33,4 +33,5 @@ public class Types {
   static final FormulaType<IntegerFormula> JS_TYPE_TYPE = FormulaType.IntegerType;
   static final FloatingPointType NUMBER_TYPE = FormulaType.getDoublePrecisionFloatingPointType();
   static final FormulaType<BooleanFormula> BOOLEAN_TYPE = FormulaType.BooleanType;
+  static final FormulaType<IntegerFormula> FUNCTION_TYPE = FormulaType.IntegerType;
 }

@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSDeclaredByExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSNullLiteralExpression;
@@ -40,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedJSCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
@@ -147,7 +149,7 @@ public class ExpressionToFormulaVisitor
 
   @Nonnull
   private BooleanFormula makeEqual(final TypedValue pLeftOperand, final TypedValue pRightOperand) {
-    // TODO null and string
+    // TODO strings and functions
     final IntegerFormula leftType = pLeftOperand.getType();
     final IntegerFormula rightType = pRightOperand.getType();
     final BooleanFormula nanCase =
@@ -159,6 +161,7 @@ public class ExpressionToFormulaVisitor
     return mgr.makeAnd(
         mgr.makeEqual(leftType, rightType),
         conv.bfmgr.or(
+            mgr.makeEqual(conv.typeTags.OBJECT, leftType), // TODO non null objects
             mgr.makeEqual(conv.typeTags.UNDEFINED, leftType),
             conv.bfmgr.and(
                 mgr.makeEqual(conv.typeTags.NUMBER, leftType),
@@ -232,10 +235,18 @@ public class ExpressionToFormulaVisitor
   }
 
   @Override
-  public TypedValue visit(final JSDeclaredByExpression pDeclaredByExpression)
-      throws UnrecognizedJSCodeException {
-    throw new UnrecognizedJSCodeException(
-        "JSDeclaredByExpression not handled yet", pDeclaredByExpression);
+  public TypedValue visit(final JSDeclaredByExpression pDeclaredByExpression) {
+    assert pDeclaredByExpression.getIdExpression().getDeclaration() != null;
+    final IntegerFormula variable =
+        conv.makeVariable(
+            pDeclaredByExpression.getIdExpression().getDeclaration().getQualifiedName(),
+            JSAnyType.ANY,
+            ssa);
+    return conv.tvmgr.createBooleanValue(
+        mgr.makeEqual(
+            conv.typedValues.functionValue(variable),
+            mgr.makeNumber(
+                Types.FUNCTION_TYPE, pDeclaredByExpression.getJsFunctionDeclaration().hashCode())));
   }
 
   @Override
@@ -243,6 +254,9 @@ public class ExpressionToFormulaVisitor
     final JSSimpleDeclaration declaration = pIdExpression.getDeclaration();
     if (declaration == null) {
       return handlePredefined(pIdExpression);
+    } else if (declaration instanceof JSFunctionDeclaration) {
+      return conv.tvmgr.createFunctionValue(
+          mgr.makeNumber(Types.FUNCTION_TYPE, declaration.hashCode()));
     }
     final IntegerFormula variable =
         conv.makeVariable(declaration.getQualifiedName(), pIdExpression.getExpressionType(), ssa);

@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -39,35 +39,56 @@ import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 @SuppressWarnings("ResultOfMethodCallIgnored")
 class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
 
+  private final JSFunctionDeclaration unknownFunctionCallerDeclaration;
+  private final JSIdExpression unknownFunctionCallerId;
+
+  FunctionInvocationCFABuilder(final JSFunctionDeclaration pUnknownFunctionCallerDeclaration) {
+    unknownFunctionCallerDeclaration = pUnknownFunctionCallerDeclaration;
+    unknownFunctionCallerId =
+        new JSIdExpression(FileLocation.DUMMY, unknownFunctionCallerDeclaration);
+  }
+
   @Override
   public JSExpression append(final JavaScriptCFABuilder pBuilder, final FunctionInvocation pNode) {
     final JSIdExpression function =
         pNode.getName() != null
             ? pBuilder.resolve(pNode.getName())
             : (JSIdExpression) pBuilder.append(pNode.getExpression());
-    final List<JSExpression> arguments = appendArguments(pBuilder, pNode);
-    final JSFunctionDeclaration declaration = (JSFunctionDeclaration) function.getDeclaration();
+    final boolean isKnownFunctionDeclaration =
+        function.getDeclaration() instanceof JSFunctionDeclaration;
+    final JSFunctionDeclaration declaration =
+        isKnownFunctionDeclaration
+            ? (JSFunctionDeclaration) function.getDeclaration()
+            : unknownFunctionCallerDeclaration;
+    final List<JSExpression> arguments = new ArrayList<>();
+    if (!isKnownFunctionDeclaration) {
+      arguments.add(function); // function is called by unknown function caller
+    }
+    appendArguments(pBuilder, pNode, arguments);
     final JSVariableDeclaration resultVariableDeclaration = pBuilder.declareVariable();
     final JSIdExpression resultVariableId =
         new JSIdExpression(FileLocation.DUMMY, resultVariableDeclaration);
-
     pBuilder.appendEdge(
         JSStatementEdge.of(
             new JSFunctionCallAssignmentStatement(
                 pBuilder.getFileLocation(pNode),
                 resultVariableId,
                 new JSFunctionCallExpression(
-                    pBuilder.getFileLocation(pNode), function, arguments, declaration))));
-
+                    pBuilder.getFileLocation(pNode),
+                    isKnownFunctionDeclaration ? function : unknownFunctionCallerId,
+                    arguments,
+                    declaration))));
     return resultVariableId;
   }
 
   @SuppressWarnings("unchecked")
-  private List<JSExpression> appendArguments(
-      final JavaScriptCFABuilder pBuilder, final FunctionInvocation pNode) {
-    return ((List<Expression>) pNode.arguments())
+  private void appendArguments(
+      final JavaScriptCFABuilder pBuilder,
+      final FunctionInvocation pNode,
+      final List<JSExpression> pArguments) {
+    ((List<Expression>) pNode.arguments())
         .stream()
         .map(argument -> pBuilder.append(argument))
-        .collect(Collectors.toList());
+        .forEachOrdered(pArguments::add);
   }
 }

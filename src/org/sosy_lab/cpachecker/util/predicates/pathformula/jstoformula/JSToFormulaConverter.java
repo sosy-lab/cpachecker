@@ -31,6 +31,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.JS
 import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -112,8 +113,8 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedJSCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.Triple;
@@ -1554,21 +1555,60 @@ public class JSToFormulaConverter {
       throws UnrecognizedJSCodeException {
     final TypedValue r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
     final IntegerFormula l = buildLvalueTerm((JSIdExpression) lhs, ssa);
+    final IntegerFormula rType = r.getType();
+    if (rType.equals(typeTags.BOOLEAN)) {
+      return bfmgr.and(
+          fmgr.assignment(typedValues.typeof(l), typeTags.BOOLEAN),
+          fmgr.makeEqual(typedValues.booleanValue(l), r.getValue()));
+    }
+    if (rType.equals(typeTags.FUNCTION)) {
+      return bfmgr.and(
+          fmgr.assignment(typedValues.typeof(l), typeTags.FUNCTION),
+          fmgr.makeEqual(typedValues.functionValue(l), r.getValue()));
+    }
+    if (rType.equals(typeTags.NUMBER)) {
+      return bfmgr.and(
+          fmgr.assignment(typedValues.typeof(l), typeTags.NUMBER),
+          fmgr.makeEqual(typedValues.numberValue(l), r.getValue()));
+    }
     return fmgr.makeAnd(
         fmgr.assignment(typedValues.typeof(l), r.getType()),
-        fmgr.makeOr(
+        bfmgr.or(
             fmgr.makeAnd(
                 fmgr.makeEqual(typedValues.typeof(l), typeTags.BOOLEAN),
                 fmgr.makeEqual(typedValues.booleanValue(l), toBoolean(r))),
             fmgr.makeAnd(
+                fmgr.makeEqual(typedValues.typeof(l), typeTags.FUNCTION),
+                fmgr.makeEqual(typedValues.functionValue(l), toFunction(r))),
+            fmgr.makeAnd(
                 fmgr.makeEqual(typedValues.typeof(l), typeTags.NUMBER),
-                fmgr.makeEqual(typedValues.numberValue(l), toNumber(r)))));
+                fmgr.makeEqual(typedValues.numberValue(l), toNumber(r))),
+            fmgr.makeEqual(typedValues.typeof(l), typeTags.OBJECT),
+            fmgr.makeEqual(typedValues.typeof(l), typeTags.STRING),
+            fmgr.makeEqual(typedValues.typeof(l), typeTags.UNDEFINED)));
+  }
+
+  private IntegerFormula toFunction(final TypedValue pValue) {
+    final IntegerFormula type = pValue.getType();
+    final IntegerFormula notAFunction = fmgr.makeNumber(Types.FUNCTION_TYPE, 0);
+    if (Lists.newArrayList(
+            typeTags.BOOLEAN, typeTags.NUMBER, typeTags.OBJECT, typeTags.STRING, typeTags.UNDEFINED)
+        .contains(type)) {
+      return notAFunction;
+    } else if (type.equals(typeTags.FUNCTION)) {
+      return typedValues.functionValue((IntegerFormula) pValue.getValue());
+    }
+    final IntegerFormula variable = (IntegerFormula) pValue.getValue();
+    return bfmgr.ifThenElse(
+        fmgr.makeEqual(type, typeTags.FUNCTION), typedValues.functionValue(variable), notAFunction);
   }
 
   BooleanFormula toBoolean(final TypedValue pValue) {
     final IntegerFormula type = pValue.getType();
     if (type.equals(typeTags.BOOLEAN)) {
       return (BooleanFormula) pValue.getValue();
+    } else if (type.equals(typeTags.FUNCTION)) {
+      return bfmgr.makeTrue();
     } else if (type.equals(typeTags.NUMBER)) {
       return numberToBoolean((FloatingPointFormula) pValue.getValue());
     } else if (type.equals(typeTags.STRING)) {
@@ -1588,7 +1628,9 @@ public class JSToFormulaConverter {
           bfmgr.ifThenElse(
               fmgr.makeEqual(type, typeTags.NUMBER),
               numberToBoolean(typedValues.numberValue(variable)),
-              bfmgr.makeFalse()));
+              bfmgr.or(
+                  fmgr.makeEqual(type, typeTags.FUNCTION),
+                  fmgr.makeEqual(type, typeTags.STRING)))); // TODO empty string is false
     }
   }
 
@@ -1601,6 +1643,8 @@ public class JSToFormulaConverter {
     final IntegerFormula type = pValue.getType();
     if (type.equals(typeTags.BOOLEAN)) {
       return booleanToNumber((BooleanFormula) pValue.getValue());
+    } else if (type.equals(typeTags.FUNCTION)) {
+      return fpfmgr.makeNaN(Types.NUMBER_TYPE);
     } else if (type.equals(typeTags.NUMBER)) {
       return (FloatingPointFormula) pValue.getValue();
     } else if (type.equals(typeTags.STRING)) {
@@ -1618,7 +1662,13 @@ public class JSToFormulaConverter {
       return bfmgr.ifThenElse(
           fmgr.makeEqual(type, typeTags.BOOLEAN),
           booleanToNumber(typedValues.booleanValue(variable)),
-          typedValues.numberValue(variable));
+          bfmgr.ifThenElse(
+              fmgr.makeEqual(type, typeTags.NUMBER),
+              typedValues.numberValue(variable),
+              bfmgr.ifThenElse(
+                  fmgr.makeEqual(type, typeTags.OBJECT),
+                  fmgr.makeNumber(Types.NUMBER_TYPE, 0), // TODO handle non null objects
+                  fpfmgr.makeNaN(Types.NUMBER_TYPE))));
     }
   }
 

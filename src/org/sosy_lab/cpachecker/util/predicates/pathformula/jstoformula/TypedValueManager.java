@@ -27,6 +27,7 @@ import javax.annotation.Nonnull;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 class TypedValueManager {
   private final TypedValues typedValues;
@@ -60,6 +61,10 @@ class TypedValueManager {
   @SuppressWarnings("unused")
   TypedValue createStringValue(final String pString) {
     return new StringValue();
+  }
+
+  TypedValue createFunctionValue(final IntegerFormula pFunctionDeclarationId) {
+    return new TypedValue(typeTags.FUNCTION, pFunctionDeclarationId);
   }
 
   private class UndefinedValue extends TypedValue {

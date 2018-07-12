@@ -23,15 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
+
 final class ExpressionAppendableFactory {
 
-  static ExpressionAppendable withAllFeatures() {
+  static ExpressionAppendable withAllFeatures(
+      final JSFunctionDeclaration pUnknownFunctionCallerDeclaration) {
     final ExpressionCFABuilder builder = new ExpressionCFABuilder();
     builder.setAssignmentAppendable(new AssignmentCFABuilder());
     builder.setBooleanLiteralConverter(new BooleanLiteralConverterImpl());
     builder.setConditionalExpressionAppendable(new ConditionalExpressionCFABuilder());
     builder.setFunctionExpressionAppendable(new FunctionExpressionCFABuilder());
-    builder.setFunctionInvocationAppendable(new FunctionInvocationCFABuilder());
+    builder.setFunctionInvocationAppendable(
+        new FunctionInvocationCFABuilder(pUnknownFunctionCallerDeclaration));
     builder.setInfixExpressionAppendable(new InfixExpressionCFABuilder());
     builder.setNullLiteralConverter(new NullLiteralConverterImpl());
     builder.setNumberLiteralConverter(new NumberLiteralConverterImpl());

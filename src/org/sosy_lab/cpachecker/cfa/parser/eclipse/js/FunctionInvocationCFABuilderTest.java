@@ -51,6 +51,9 @@ public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
     // expected CFA: entryNode -{foo()}-> ()
 
     final JSFunctionDeclaration functionDeclaration = mock(JSFunctionDeclaration.class);
+    final JSFunctionDeclaration unknownFunctionCallerDeclaration =
+        mock(JSFunctionDeclaration.class);
+    when(unknownFunctionCallerDeclaration.getName()).thenReturn("__CPAchecker_callUnknownFunction");
     final JSIdExpression functionId =
         new JSIdExpression(FileLocation.DUMMY, "foo", functionDeclaration);
     final JSIdExpression e1 = new JSIdExpression(FileLocation.DUMMY, "e1", null);
@@ -60,7 +63,8 @@ public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
     builder.setExpressionAppendable(expressionAppendable);
 
     // TODO check return value
-    new FunctionInvocationCFABuilder().append(builder, functionInvocation);
+    new FunctionInvocationCFABuilder(unknownFunctionCallerDeclaration)
+        .append(builder, functionInvocation);
 
     Truth.assertThat(entryNode.getNumLeavingEdges()).isEqualTo(1);
     final JSStatementEdge functionInvocationEdge = (JSStatementEdge) entryNode.getLeavingEdge(0);
@@ -82,6 +86,9 @@ public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
         parseExpression(FunctionInvocation.class, "(function (a, b) {})(e1, e2)");
 
     final JSFunctionDeclaration functionDeclaration = mock(JSFunctionDeclaration.class);
+    final JSFunctionDeclaration unknownFunctionCallerDeclaration =
+        mock(JSFunctionDeclaration.class);
+    when(unknownFunctionCallerDeclaration.getName()).thenReturn("__CPAchecker_callUnknownFunction");
     final JSIdExpression functionId =
         new JSIdExpression(
             FileLocation.DUMMY,
@@ -94,7 +101,8 @@ public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
     builder.setExpressionAppendable(expressionAppendable);
 
     // TODO check return value
-    new FunctionInvocationCFABuilder().append(builder, functionInvocation);
+    new FunctionInvocationCFABuilder(unknownFunctionCallerDeclaration)
+        .append(builder, functionInvocation);
 
     Truth.assertThat(entryNode.getNumLeavingEdges()).isEqualTo(1);
     final JSStatementEdge functionInvocationEdge = (JSStatementEdge) entryNode.getLeavingEdge(0);

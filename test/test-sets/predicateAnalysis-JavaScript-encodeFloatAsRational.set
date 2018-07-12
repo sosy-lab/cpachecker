@@ -4,6 +4,7 @@
 ../programs/javascript/for-statement_true_assert.js
 ../programs/javascript/nested-function-declaration-with-parameters_true_assert.js
 ../programs/javascript/nested-function-declaration_true_assert.js
+../programs/javascript/simple-function-declaration_true_assert.js
 ../programs/javascript/simple-function-declaration-with-return_true_assert.js
 ../programs/javascript/simple-function-declaration-with-unreachable-second-return_true_assert.js
 ../programs/javascript/switch-case-without-statements-falls-through_true_assert.js
@@ -16,3 +17,5 @@
 ../programs/javascript/switch-without-cases_true_assert.js
 ../programs/javascript/switch-without-default-and-always-fall-through_true_assert.js
 ../programs/javascript/switch-without-default_true_assert.js
+../programs/javascript/unknown-function-declaration-call-with-indirect-assignment_true_assert.js
+../programs/javascript/unknown-function-declaration-call_true_assert.js
