@@ -2819,7 +2819,7 @@ cpa.value.symbolic.refinement.avoidConstraints = true
 
 # The refinement strategy to use
 cpa.value.symbolic.refinement.strategy = CONSTRAINTS_FIRST
-  enum:     [CONSTRAINTS_FIRST, VALUES_FIRST, VALUES_ONLY]
+  enum:     [CONSTRAINTS_FIRST, VALUES_FIRST, ALTERNATING, VALUES_ONLY]
 
 # Whether to simplify symbolic expressions, if possible.
 cpa.value.symbolic.simplifySymbolics = true

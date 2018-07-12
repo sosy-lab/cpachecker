@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -63,7 +66,20 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class ElementTestingSymbolicEdgeInterpolator
     implements SymbolicEdgeInterpolator {
 
-  private enum RefinementStrategy { CONSTRAINTS_FIRST, VALUES_FIRST, VALUES_ONLY }
+  private enum RefinementStrategy {
+    /* First try to delete as many constraints as possible, then assignments */
+    CONSTRAINTS_FIRST,
+    /* First try to delete as many assignments as possible, then constraints */
+    VALUES_FIRST,
+    /*
+    Alternate between constraints-first and values-first.
+    In first refinement iteration, use CONSTRAINTS_FIRST.
+    In second, use VALUES_FIRST. In third, use CONSTRAINTS_FIRST again, and so on.
+     */
+    ALTERNATING,
+    /* Always keep all constraints and only try to delete as many assignments as possible */
+    VALUES_ONLY
+  }
 
   @Option(description = "Whether to try to not use any constraints in refinement")
   private boolean avoidConstraints = true;
@@ -76,6 +92,9 @@ public class ElementTestingSymbolicEdgeInterpolator
   private final InterpolantManager<ForgettingCompositeState, SymbolicInterpolant>
       interpolantManager;
   private final MachineModel machineModel;
+
+  private List<SymbolicStateReducer> stateReducers;
+  private int currentReducerIndex = 0;
 
   private final ShutdownNotifier shutdownNotifier;
   private Precision valuePrecision;
@@ -100,6 +119,29 @@ public class ElementTestingSymbolicEdgeInterpolator
     valuePrecision = VariableTrackingPrecision.createStaticPrecision(
             pConfig, pCfa.getVarClassification(), ValueAnalysisCPA.class);
     machineModel = pCfa.getMachineModel();
+
+    switch (strategy) {
+      case ALTERNATING:
+        stateReducers = ImmutableList.of(new ConstraintsFirstReducer(), new ValuesFirstReducer());
+        break;
+      case CONSTRAINTS_FIRST:
+        stateReducers = ImmutableList.of(new ConstraintsFirstReducer());
+        break;
+      case VALUES_FIRST:
+        stateReducers = ImmutableList.of(new ValuesFirstReducer());
+        break;
+      case VALUES_ONLY:
+        stateReducers = ImmutableList.of(new ValuesOnlyReducer());
+        break;
+      default:
+        throw new AssertionError("Unhandled strategy: " + strategy);
+    }
+    if (avoidConstraints) {
+      stateReducers = stateReducers
+          .stream()
+          .map(r -> new AvoidConstraintsReducer(r))
+          .collect(Collectors.toList());
+    }
   }
 
   @Override
@@ -150,99 +192,20 @@ public class ElementTestingSymbolicEdgeInterpolator
       return interpolantManager.getTrueInterpolant();
     }
 
-    ForgettingCompositeState necessaryInfo = reduceToNecessaryState(successorState, suffix);
+    ForgettingCompositeState necessaryInfo = getReducer().reduce(successorState, suffix);
 
     return interpolantManager.createInterpolant(necessaryInfo);
   }
 
-  private ForgettingCompositeState reduceToNecessaryState(
-      final ForgettingCompositeState pSuccessorState,
-      final ARGPath pSuffix
-  ) throws CPAException, InterruptedException {
-
-    ForgettingCompositeState reducedState = pSuccessorState;
-    boolean reduceConstraints = true;
-
-    if (avoidConstraints) {
-      reducedState = removeAllConstraints(pSuccessorState);
-
-      if (isPathFeasible(pSuffix, reducedState)) {
-        reducedState = pSuccessorState;
-      }
-    }
-
-    switch (strategy) {
-      case CONSTRAINTS_FIRST:
-        if (reduceConstraints) {
-          reducedState = reduceConstraintsToNecessaryState(reducedState, pSuffix);
-        }
-        reducedState = reduceValuesToNecessaryState(reducedState, pSuffix);
-        break;
-      case VALUES_ONLY:
-        reducedState = reduceValuesToNecessaryState(reducedState, pSuffix);
-        break;
-      case VALUES_FIRST:
-        reducedState = reduceValuesToNecessaryState(reducedState, pSuffix);
-        reducedState = reduceConstraintsToNecessaryState(reducedState, pSuffix);
-        break;
-      default:
-        throw new AssertionError("Unhandled strategy " + strategy);
-    }
-
-    return reducedState;
-  }
-
-  private ForgettingCompositeState removeAllConstraints(final ForgettingCompositeState pState) {
-    IdentifierAssignment definiteAssignments = pState.getConstraintsState().getDefiniteAssignment();
-
-    return new ForgettingCompositeState(pState.getValueState(),
-                                 new ConstraintsState(new HashSet<>(), definiteAssignments));
-  }
-
-  private ForgettingCompositeState reduceConstraintsToNecessaryState(
-      final ForgettingCompositeState pSuccessorState,
-      final ARGPath pSuffix
-  ) throws CPAException, InterruptedException {
-
-    for (Constraint c : pSuccessorState.getTrackedConstraints()) {
-      shutdownNotifier.shutdownIfNecessary();
-      pSuccessorState.forget(c);
-
-      // if the suffix is feasible without the just removed constraint, it is necessary
-      // for proving the error path's infeasibility and as such we have to re-add it.
-      if (isPathFeasible(pSuffix, pSuccessorState)) {
-        pSuccessorState.remember(c);
-      }
-    }
-
-    return pSuccessorState;
-  }
-
-  private ForgettingCompositeState reduceValuesToNecessaryState(
-      final ForgettingCompositeState pSuccessorState,
-      final ARGPath pSuffix
-  ) throws CPAException, InterruptedException {
-
-    for (MemoryLocation l : pSuccessorState.getTrackedMemoryLocations()) {
-      shutdownNotifier.shutdownIfNecessary();
-
-      ValueAnalysisInformation forgottenInfo = pSuccessorState.forget(l);
-
-      // if the suffix is feasible without the just removed constraint, it is necessary
-      // for proving the error path's infeasibility and as such we have to re-add it.
-      //noinspection ConstantConditions
-      if (isPathFeasible(pSuffix, pSuccessorState)) {
-        pSuccessorState.remember(l, forgottenInfo);
-      }
-    }
-
-    return pSuccessorState;
+  private SymbolicStateReducer getReducer() {
+    SymbolicStateReducer reducer = stateReducers.get(currentReducerIndex);
+    currentReducerIndex = currentReducerIndex % stateReducers.size();
+    return reducer;
   }
 
   private boolean isPathFeasible(
-      final ARGPath pRemainingErrorPath,
-      final ForgettingCompositeState pState
-  ) throws CPAException, InterruptedException {
+      final ARGPath pRemainingErrorPath, final ForgettingCompositeState pState)
+      throws CPAException, InterruptedException {
     interpolationQueries++;
     return checker.isFeasible(pRemainingErrorPath, pState);
   }
@@ -250,5 +213,134 @@ public class ElementTestingSymbolicEdgeInterpolator
   @Override
   public int getNumberOfInterpolationQueries() {
     return interpolationQueries;
+  }
+
+  private interface SymbolicStateReducer {
+    ForgettingCompositeState reduce(ForgettingCompositeState successorState, ARGPath suffix)
+        throws InterruptedException, CPAException;
+  }
+
+  private class ValuesOnlyReducer implements SymbolicStateReducer {
+
+    @Override
+    public ForgettingCompositeState reduce(
+        ForgettingCompositeState pSuccessorState, ARGPath pSuffix)
+        throws InterruptedException, CPAException {
+
+      for (MemoryLocation l : pSuccessorState.getTrackedMemoryLocations()) {
+        shutdownNotifier.shutdownIfNecessary();
+
+        ValueAnalysisInformation forgottenInfo = pSuccessorState.forget(l);
+
+        // if the suffix is feasible without the just removed constraint, it is necessary
+        // for proving the error path's infeasibility and as such we have to re-add it.
+        //noinspection ConstantConditions
+        if (isPathFeasible(pSuffix, pSuccessorState)) {
+          pSuccessorState.remember(l, forgottenInfo);
+        }
+      }
+
+      return pSuccessorState;
+    }
+  }
+
+  private class ConstraintsOnlyReducer implements SymbolicStateReducer {
+
+    @Override
+    public ForgettingCompositeState reduce(
+        ForgettingCompositeState pSuccessorState, ARGPath pSuffix)
+        throws InterruptedException, CPAException {
+      for (Constraint c : pSuccessorState.getTrackedConstraints()) {
+        shutdownNotifier.shutdownIfNecessary();
+        pSuccessorState.forget(c);
+
+        // if the suffix is feasible without the just removed constraint, it is necessary
+        // for proving the error path's infeasibility and as such we have to re-add it.
+        if (isPathFeasible(pSuffix, pSuccessorState)) {
+          pSuccessorState.remember(c);
+        }
+      }
+
+      return pSuccessorState;
+    }
+  }
+
+  private class ValuesFirstReducer implements SymbolicStateReducer {
+
+    private SymbolicStateReducer valueReducer = new ValuesOnlyReducer();
+    private SymbolicStateReducer constraintsReducer = new ConstraintsOnlyReducer();
+
+    @Override
+    public ForgettingCompositeState reduce(
+        ForgettingCompositeState pSuccessorState, ARGPath pSuffix)
+        throws InterruptedException, CPAException {
+      return constraintsReducer.reduce(valueReducer.reduce(pSuccessorState, pSuffix), pSuffix);
+    }
+  }
+
+  private class ConstraintsFirstReducer implements SymbolicStateReducer {
+
+    private SymbolicStateReducer valueReducer = new ValuesOnlyReducer();
+    private SymbolicStateReducer constraintsReducer = new ConstraintsOnlyReducer();
+
+    @Override
+    public ForgettingCompositeState reduce(
+        ForgettingCompositeState pSuccessorState, ARGPath pSuffix)
+        throws InterruptedException, CPAException {
+      return valueReducer.reduce(constraintsReducer.reduce(pSuccessorState, pSuffix), pSuffix);
+    }
+  }
+
+  private class AlternatingReducer implements SymbolicStateReducer {
+
+    private int startIndex = 0;
+    private List<SymbolicStateReducer> reducers =
+        ImmutableList.of(new ConstraintsFirstReducer(), new ValuesFirstReducer());
+
+    @Override
+    public ForgettingCompositeState reduce(
+        ForgettingCompositeState pSuccessorState, ARGPath pSuffix)
+        throws InterruptedException, CPAException {
+
+      // determine reducer to use in list
+      startIndex = startIndex % reducers.size();
+      SymbolicStateReducer reducerToUse = reducers.get(startIndex);
+      ForgettingCompositeState state = reducerToUse.reduce(pSuccessorState, pSuffix);
+
+      // increase to use next reducer next time
+      startIndex++;
+      return state;
+    }
+  }
+
+  private class AvoidConstraintsReducer implements SymbolicStateReducer {
+
+    private SymbolicStateReducer delegate;
+
+    AvoidConstraintsReducer(SymbolicStateReducer pDelegate) {
+      delegate = pDelegate;
+    }
+
+    @Override
+    public ForgettingCompositeState reduce(
+        ForgettingCompositeState pSuccessorState, ARGPath pSuffix)
+        throws InterruptedException, CPAException {
+
+      ForgettingCompositeState reducedState = removeAllConstraints(pSuccessorState);
+
+      if (isPathFeasible(pSuffix, reducedState)) {
+        reducedState = pSuccessorState;
+      }
+
+      return delegate.reduce(reducedState, pSuffix);
+    }
+
+    private ForgettingCompositeState removeAllConstraints(final ForgettingCompositeState pState) {
+      IdentifierAssignment definiteAssignments =
+          pState.getConstraintsState().getDefiniteAssignment();
+
+      return new ForgettingCompositeState(
+          pState.getValueState(), new ConstraintsState(new HashSet<>(), definiteAssignments));
+    }
   }
 }
