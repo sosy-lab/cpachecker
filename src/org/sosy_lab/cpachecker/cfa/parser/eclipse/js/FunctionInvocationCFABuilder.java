@@ -47,18 +47,9 @@ class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
             : (JSIdExpression) pBuilder.append(pNode.getExpression());
     final List<JSExpression> arguments = appendArguments(pBuilder, pNode);
     final JSFunctionDeclaration declaration = (JSFunctionDeclaration) function.getDeclaration();
-    final String resultVariableName = pBuilder.generateVariableName();
-    final JSVariableDeclaration resultVariableDeclaration =
-        new JSVariableDeclaration(
-            FileLocation.DUMMY,
-            false,
-            resultVariableName,
-            resultVariableName,
-            pBuilder.getScope().qualifiedVariableNameOf(resultVariableName),
-            null);
+    final JSVariableDeclaration resultVariableDeclaration = pBuilder.declareVariable();
     final JSIdExpression resultVariableId =
-        new JSIdExpression(
-            FileLocation.DUMMY, resultVariableName, resultVariableDeclaration);
+        new JSIdExpression(FileLocation.DUMMY, resultVariableDeclaration);
     final JSFunctionCallAssignmentStatement functionCallStatement =
         new JSFunctionCallAssignmentStatement(
             pBuilder.getFileLocation(pNode),

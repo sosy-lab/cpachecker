@@ -154,7 +154,6 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
     javaScriptUnitAppendable = pJavaScriptUnitAppendable;
   }
 
-  // TODO replace with declareTemporaryVariable
   @Override
   public String generateVariableName() {
     return variableNameGenerator.generateVariableName();

@@ -54,14 +54,8 @@ class PostfixExpressionCFABuilder implements PostfixExpressionAppendable {
     final BinaryOperator binaryOperator = getBinaryOperator(pPostfixExpression);
     final JSIdExpression variableToIncrement =
         (JSIdExpression) pBuilder.append(pPostfixExpression.getOperand());
-    final String oldValueVariableName = pBuilder.generateVariableName();
     final JSVariableDeclaration oldValueVariableDeclaration =
-        new JSVariableDeclaration(
-            FileLocation.DUMMY,
-            false,
-            oldValueVariableName,
-            oldValueVariableName,
-            pBuilder.getScope().qualifiedVariableNameOf(oldValueVariableName),
+        pBuilder.declareVariable(
             new JSInitializerExpression(FileLocation.DUMMY, variableToIncrement));
     final JSExpressionAssignmentStatement incrementStatement =
         new JSExpressionAssignmentStatement(
@@ -89,8 +83,7 @@ class PostfixExpressionCFABuilder implements PostfixExpressionAppendable {
                     incrementStatement.getFileLocation(),
                     pPredecessor,
                     pSuccessor));
-    return new JSIdExpression(
-        FileLocation.DUMMY, oldValueVariableName, oldValueVariableDeclaration);
+    return new JSIdExpression(FileLocation.DUMMY, oldValueVariableDeclaration);
   }
 
   private BinaryOperator getBinaryOperator(final PostfixExpression pPostfixExpression) {

@@ -32,9 +32,11 @@ import org.eclipse.wst.jsdt.core.dom.Statement;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
 import org.sosy_lab.cpachecker.cfa.CFARemoveUnreachable;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -97,5 +99,20 @@ interface JavaScriptCFABuilder
             (pPredecessor, pSuccessor) -> pCreateEdge.apply(pPredecessor, pSuccessor));
     appendEdge(DummyEdge.withDescription("unreachable due to JumpExitEdge"));
     return this;
+  }
+
+  default JSVariableDeclaration declareVariable() {
+    return declareVariable(null);
+  }
+
+  default JSVariableDeclaration declareVariable(final JSInitializerExpression pInitializer) {
+    final String variableName = generateVariableName();
+    return new JSVariableDeclaration(
+        FileLocation.DUMMY,
+        false,
+        variableName,
+        variableName,
+        getScope().qualifiedVariableNameOf(variableName),
+        pInitializer);
   }
 }

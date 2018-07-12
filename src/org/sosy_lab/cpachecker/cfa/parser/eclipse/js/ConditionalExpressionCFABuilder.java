@@ -41,18 +41,9 @@ class ConditionalExpressionCFABuilder implements ConditionalExpressionAppendable
   @Override
   public JSExpression append(
       final JavaScriptCFABuilder pBuilder, final ConditionalExpression pConditionalExpression) {
-    final String resultVariableName = pBuilder.generateVariableName();
-    final JSVariableDeclaration resultVariableDeclaration =
-        new JSVariableDeclaration(
-            FileLocation.DUMMY,
-            false,
-            resultVariableName,
-            resultVariableName,
-            pBuilder.getScope().qualifiedVariableNameOf(resultVariableName),
-            null);
+    final JSVariableDeclaration resultVariableDeclaration = pBuilder.declareVariable();
     final JSIdExpression resultVariableId =
-        new JSIdExpression(
-            FileLocation.DUMMY, resultVariableName, resultVariableDeclaration);
+        new JSIdExpression(FileLocation.DUMMY, resultVariableDeclaration);
     pBuilder.appendEdge(
         (pPredecessor, pSuccessor) ->
             new JSDeclarationEdge(

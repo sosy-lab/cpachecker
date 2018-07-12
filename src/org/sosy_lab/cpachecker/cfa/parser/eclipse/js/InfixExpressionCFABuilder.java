@@ -82,18 +82,9 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
       final BinaryOperator pOperator) {
     assert ImmutableSet.of(BinaryOperator.CONDITIONAL_AND, BinaryOperator.CONDITIONAL_OR)
         .contains(pOperator);
-    final String resultVariableName = pBuilder.generateVariableName();
-    final JSVariableDeclaration resultVariableDeclaration =
-        new JSVariableDeclaration(
-            FileLocation.DUMMY,
-            false,
-            resultVariableName,
-            resultVariableName,
-            pBuilder.getScope().qualifiedVariableNameOf(resultVariableName),
-            null);
+    final JSVariableDeclaration resultVariableDeclaration = pBuilder.declareVariable();
     final JSIdExpression resultVariableId =
-        new JSIdExpression(
-            FileLocation.DUMMY, resultVariableName, resultVariableDeclaration);
+        new JSIdExpression(FileLocation.DUMMY, resultVariableDeclaration);
     pBuilder.appendEdge(
         (pPredecessor, pSuccessor) ->
             new JSDeclarationEdge(
