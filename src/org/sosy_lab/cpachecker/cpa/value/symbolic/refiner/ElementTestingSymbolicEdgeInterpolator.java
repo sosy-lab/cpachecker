@@ -291,28 +291,6 @@ public class ElementTestingSymbolicEdgeInterpolator
     }
   }
 
-  private class AlternatingReducer implements SymbolicStateReducer {
-
-    private int startIndex = 0;
-    private List<SymbolicStateReducer> reducers =
-        ImmutableList.of(new ConstraintsFirstReducer(), new ValuesFirstReducer());
-
-    @Override
-    public ForgettingCompositeState reduce(
-        ForgettingCompositeState pSuccessorState, ARGPath pSuffix)
-        throws InterruptedException, CPAException {
-
-      // determine reducer to use in list
-      startIndex = startIndex % reducers.size();
-      SymbolicStateReducer reducerToUse = reducers.get(startIndex);
-      ForgettingCompositeState state = reducerToUse.reduce(pSuccessorState, pSuffix);
-
-      // increase to use next reducer next time
-      startIndex++;
-      return state;
-    }
-  }
-
   private class AvoidConstraintsReducer implements SymbolicStateReducer {
 
     private SymbolicStateReducer delegate;

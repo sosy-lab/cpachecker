@@ -673,11 +673,7 @@ public class ConstraintsSolver implements StatisticsProvider {
             }
           });
 
-      if (delegate instanceof Statistics) {
-        statsCollection.add(delegate);
-      } else if (delegate instanceof StatisticsProvider) {
-        collectStatistics(statsCollection);
-      }
+      statsCollection.add(delegate);
     }
   }
 
