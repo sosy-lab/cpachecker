@@ -93,7 +93,7 @@ class CFABuilder implements FileLocationProvider {
   }
 
   public CFABuilder appendEdge(final BiFunction<CFANode, CFANode, CFAEdge> createEdge) {
-    return appendEdge(new CFANode(functionName), createEdge);
+    return appendEdge(createNode(), createEdge);
   }
 
   public CFABuilder appendEdge(
