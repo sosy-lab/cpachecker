@@ -210,7 +210,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
         SMGDoublyLinkedListCandidate candidate =
             new SMGDoublyLinkedListCandidate(
-                pObject, hfo, pfo, nfo, pfoType, nfoType, pSmg.getMachineModel());
+                pObject, pObject, hfo, pfo, nfo, pfoType, nfoType, pSmg.getMachineModel());
         pProgress.initializeCandidiate(candidate);
         continueTraversal(nextPointer, candidate, pSmg, pSMGState, pProgress);
       }
@@ -274,10 +274,23 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
         return;
       }
 
-      candidate = new SMGDoublyLinkedListCandidate(nextObject, hfo, pfo, nfo, pfoField.getType(), nfoField.getType(), pSmg.getMachineModel());
+      candidate =
+          new SMGDoublyLinkedListCandidate(
+              nextObject,
+              nextObject,
+              hfo,
+              pfo,
+              nfo,
+              pfoField.getType(),
+              nfoField.getType(),
+              pSmg.getMachineModel());
       pProgress.initializeLastInSequenceCandidate(candidate);
     } else {
       candidate = pProgress.getCandidate(nextObject, Pair.of(nfo, pfo));
+    }
+
+    if (candidate.getLastObject().equals(startObject)) {
+      return;
     }
 
     if (candidate.getShape().getHfo() != pPrevCandidate.getShape().getHfo()) {
