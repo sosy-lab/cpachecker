@@ -2074,7 +2074,7 @@ cpa.predicate.refinement.maxRefinementSize = 0
 # sets the level of the pathformulas to use for abstraction. 
 #   EDGE : Based on Pathformulas of every edge in ARGPath
 #   BLOCK: Based on Pathformulas at Abstractionstates
-cpa.predicate.refinement.newtonrefinement.pathFormulAbstractionLevel = EDGE
+cpa.predicate.refinement.newtonrefinement.pathFormulaAbstractionLevel = BLOCK
   enum:     [BLOCK, EDGE]
 
 # use live variables in order to abstract the predicates produced while
