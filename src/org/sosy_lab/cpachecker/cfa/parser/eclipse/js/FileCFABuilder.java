@@ -59,6 +59,7 @@ class FileCFABuilder implements JavaScriptUnitAppendable {
 
   @Override
   public void append(final JavaScriptCFABuilder pBuilder, final JavaScriptUnit pUnit) {
+    pBuilder.appendEdge(DummyEdge.withDescription("File start dummy edge"));
     javaScriptUnitAppendable.append(pBuilder, pUnit);
     pBuilder.appendEdge(exitNode, DummyEdge.withDescription("File end dummy edge"));
   }
