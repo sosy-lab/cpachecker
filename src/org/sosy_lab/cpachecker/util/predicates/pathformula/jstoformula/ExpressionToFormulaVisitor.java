@@ -83,7 +83,8 @@ public class ExpressionToFormulaVisitor
   @Override
   public TypedValue visit(final JSFunctionCallExpression pFunctionCallExpression)
       throws UnrecognizedJSCodeException {
-    throw new UnrecognizedJSCodeException("Not implemented yet", pFunctionCallExpression);
+    throw new UnrecognizedJSCodeException(
+        "JSFunctionCallExpression not implemented yet", pFunctionCallExpression);
   }
 
   @Override
@@ -123,7 +124,8 @@ public class ExpressionToFormulaVisitor
         return conv.tvmgr.createBooleanValue(
             conv.fpfmgr.greaterOrEquals(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
       default:
-        throw new UnrecognizedJSCodeException("Not implemented yet", pBinaryExpression);
+        throw new UnrecognizedJSCodeException(
+            "JSBinaryExpression not implemented yet", pBinaryExpression);
     }
   }
 
@@ -196,7 +198,8 @@ public class ExpressionToFormulaVisitor
       case VOID:
         return conv.tvmgr.getUndefinedValue();
       default:
-        throw new UnrecognizedJSCodeException("Not implemented yet", pUnaryExpression);
+        throw new UnrecognizedJSCodeException(
+            "JSUnaryExpression not implemented yet", pUnaryExpression);
     }
   }
 
@@ -224,7 +227,7 @@ public class ExpressionToFormulaVisitor
   @Override
   public TypedValue visit(final JSThisExpression pThisExpression)
       throws UnrecognizedJSCodeException {
-    throw new UnrecognizedJSCodeException("Not implemented yet", pThisExpression);
+    throw new UnrecognizedJSCodeException("JSThisExpression not implemented yet", pThisExpression);
   }
 
   @Override
