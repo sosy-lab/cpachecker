@@ -115,7 +115,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
             + "  EDGE : Based on Pathformulas of every edge in ARGPath\n"
             + "  BLOCK: Based on Pathformulas at Abstractionstates"
   )
-  private PathFormulaAbstractionLevel pathFormulAbstractionLevel = PathFormulaAbstractionLevel.EDGE;
+  private PathFormulaAbstractionLevel pathFormulaAbstractionLevel =
+      PathFormulaAbstractionLevel.BLOCK;
 
   public enum PathFormulaAbstractionLevel {
     BLOCK, //Abstracts the whole Block(between abstraction states) at once
@@ -159,7 +160,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
             pFormulas.getFormulas(), ImmutableList.of(), ImmutableMap.of());
       } else {
         List<BooleanFormula> predicates;
-        switch (pathFormulAbstractionLevel) {
+        switch (pathFormulaAbstractionLevel) {
           case EDGE:
             List<BooleanFormula> pathFormulas =
                 pathLocations
@@ -340,7 +341,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
                     + edge.getEdgeType());
         }
         if (location.hasCorrespondingARGState() && location.hasAbstractionState()) {
-          predicates.add(fmgr.simplify(postCondition));
+          predicates.add(postCondition);
         }
         // PostCondition is preCondition for next location
         preCondition = postCondition;
