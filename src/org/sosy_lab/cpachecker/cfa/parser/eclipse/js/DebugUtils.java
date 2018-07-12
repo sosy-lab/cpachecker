@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 
 final class DebugUtils {
@@ -54,6 +55,37 @@ final class DebugUtils {
                 .append(edge.toString())
                 .append('\n')
                 .append(getLeavingEdgesReport(edge.getSuccessor(), pExcludedNodes)));
+    return result.toString();
+  }
+
+  public static String getLeavingEdgesDotReport(final CFANode pNode) {
+    return "digraph G {\n"
+      + getLeavingEdgesDotReport(pNode, new HashSet<>())
+        + "}";
+  }
+
+  public static String getLeavingEdgesDotReport(
+      final CFANode pNode, final Set<CFANode> pExcludedNodes) {
+    if (pExcludedNodes.contains(pNode)) {
+      return "";
+    }
+    pExcludedNodes.add(pNode);
+    final StringBuilder result = new StringBuilder();
+    if (pNode.getNumLeavingEdges() > 0 && pNode.getLeavingEdge(0) instanceof JSAssumeEdge) {
+      result.append("  ").append(pNode).append(" [shape=diamond];\n");
+    }
+    forEachLeavingEdge(
+        pNode,
+        (edge) ->
+            result
+                .append("  ")
+                .append(pNode)
+                .append(" -> ")
+                .append(edge.getSuccessor())
+                .append(" [ label=\"")
+                .append(edge.getDescription())
+                .append("\" ];\n")
+                .append(getLeavingEdgesDotReport(edge.getSuccessor(), pExcludedNodes)));
     return result.toString();
   }
 
