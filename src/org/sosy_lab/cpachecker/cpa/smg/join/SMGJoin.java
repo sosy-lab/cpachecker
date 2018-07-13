@@ -151,7 +151,7 @@ public final class SMGJoin {
     Set<String> globals1 = globals_in_smg1.keySet();
     Set<String> globals2 = globals_in_smg2.keySet();
     for (String globalVar : Sets.intersection(globals1, globals2)) {
-      SMGRegion globalInSMG1 = globals_in_smg2.get(globalVar);
+      SMGRegion globalInSMG1 = globals_in_smg1.get(globalVar);
       SMGRegion globalInSMG2 = globals_in_smg2.get(globalVar);
       smg.addGlobalObject(globalInSMG1);
       mapping1.map(globalInSMG1, globalInSMG1);
@@ -195,7 +195,7 @@ public final class SMGJoin {
       Set<String> locals1 = frameInSMG1.getVariables().keySet();
       Set<String> locals2 = frameInSMG2.getVariables().keySet();
       for (String localVar : Sets.intersection(locals1, locals2)) {
-        SMGRegion localInSMG1 = frameInSMG2.getVariable(localVar);
+        SMGRegion localInSMG1 = frameInSMG1.getVariable(localVar);
         SMGRegion localInSMG2 = frameInSMG2.getVariable(localVar);
         smg.addStackObject(localInSMG1);
         mapping1.map(localInSMG1, localInSMG1);
