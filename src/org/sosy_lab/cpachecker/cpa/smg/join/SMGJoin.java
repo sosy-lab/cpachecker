@@ -51,6 +51,7 @@ final public class SMGJoin {
       UnmodifiableSMGState pStateOfSmg1,
       UnmodifiableSMGState pStateOfSmg2)
       throws SMGInconsistentException {
+
     smg = new CLangSMG(opSMG1.getMachineModel());
 
     SMGNodeMapping mapping1 = new SMGNodeMapping();
@@ -151,9 +152,18 @@ final public class SMGJoin {
   }
 
   public boolean isDefined() {
+    if (!defined) {
+      Preconditions.checkState(
+          status == SMGJoinStatus.INCOMPARABLE || status == SMGJoinStatus.INCOMPLETE,
+          "Join of SMGs not defined, but status is " + status);
+    }
     return defined;
   }
 
+  /**
+   * Returns the completion status of the join operation. If the status is {@link
+   * SMGJoinStatus#INCOMPARABLE} the joined SMG is undefined and should not be used.
+   */
   public SMGJoinStatus getStatus() {
     return status;
   }

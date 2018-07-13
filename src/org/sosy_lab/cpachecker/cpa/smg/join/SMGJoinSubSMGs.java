@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.HashMap;
@@ -126,20 +127,22 @@ final class SMGJoinSubSMGs {
 
       if (levelMap == null) {
         defined = false;
+        status = SMGJoinStatus.INCOMPARABLE;
         return;
       }
 
       SMGJoinValues joinValues = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG,
           mapping1, mapping2, levelMap, hvIn1.getValue(), hvIn2.getValue(), lDiff, identicalInputSmg, value1Level, value2Level, prevLevel, pSmgState1, pSmgState2);
+      status = joinValues.getStatus();
 
       /* If the join of the values is not defined and can't be
        * recovered through abstraction, the join fails.*/
       if (!joinValues.isDefined() && !joinValues.isRecoverable()) {
-        //subSmgAbstractionCandidates = ImmutableList.of();
+        // subSmgAbstractionCandidates = ImmutableList.of();
+        status = SMGJoinStatus.INCOMPARABLE;
         return;
       }
 
-      status = joinValues.getStatus();
       inputSMG1 = joinValues.getInputSMG1();
       inputSMG2 = joinValues.getInputSMG2();
       destSMG = joinValues.getDestinationSMG();
@@ -191,6 +194,7 @@ final class SMGJoinSubSMGs {
      * that a abstraction candidate is execued for the destination smg, execute the abstraction
      * so that the join of this sub SMG is complete.*/
     if(!allValuesDefined) {
+      status = SMGJoinStatus.INCOMPARABLE;
       defined = false;
       return;
     }
@@ -257,6 +261,11 @@ final class SMGJoinSubSMGs {
   }
 
   public boolean isDefined() {
+    if (!defined) {
+      Preconditions.checkState(
+          status == SMGJoinStatus.INCOMPARABLE || status == SMGJoinStatus.INCOMPLETE,
+          "Join of SubSMGs not defined, but status is " + status);
+    }
     return defined;
   }
 
