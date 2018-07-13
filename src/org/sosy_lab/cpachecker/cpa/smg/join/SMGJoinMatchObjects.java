@@ -152,19 +152,19 @@ final class SMGJoinMatchObjects {
       throw new IllegalArgumentException();
     }
 
-    if (SMGJoinMatchObjects.checkNull(pObj1, pObj2)) {
+    if (checkNull(pObj1, pObj2)) {
       return;
     }
 
-    if (SMGJoinMatchObjects.checkMatchingMapping(pObj1, pObj2, pMapping1, pMapping2)) {
+    if (checkMatchingMapping(pObj1, pObj2, pMapping1, pMapping2)) {
       return;
     }
 
-    if (SMGJoinMatchObjects.checkConsistentMapping(pObj1, pObj2, pMapping1, pMapping2)) {
+    if (checkConsistentMapping(pObj1, pObj2, pMapping1, pMapping2)) {
       return;
     }
 
-    if (SMGJoinMatchObjects.checkConsistentObjects(pObj1, pObj2, pSMG1, pSMG2)) {
+    if (checkConsistentObjects(pObj1, pObj2, pSMG1, pSMG2)) {
       return;
     }
 
@@ -178,15 +178,15 @@ final class SMGJoinMatchObjects {
       }
     }
 
-    if (SMGJoinMatchObjects.checkMatchingAbstractions(pObj1, pObj2)) {
+    if (checkMatchingAbstractions(pObj1, pObj2)) {
       return;
     }
 
-    if (SMGJoinMatchObjects.checkConsistentFields(pObj1, pObj2, pMapping1, pMapping2, pSMG1, pSMG2)) {
+    if (checkConsistentFields(pObj1, pObj2, pMapping1, pMapping2, pSMG1, pSMG2)) {
       return;
     }
 
-    status = SMGJoinMatchObjects.updateStatusForAbstractions(pObj1, pObj2, pStatus);
+    status = updateStatusForAbstractions(pObj1, pObj2, pStatus);
     defined = true;
   }
 
