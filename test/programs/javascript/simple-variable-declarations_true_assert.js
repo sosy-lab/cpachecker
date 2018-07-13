@@ -5,7 +5,8 @@ var singleQuoted = 'bar', doubleQuoted = "foobar";
 var truthy = true, falsy = false;
 var nullable = null;
 
-// Not working due to a bug in the Eclipse parser
+// Not working due to a bug in the Eclipse parser, see
+// https://bugs.eclipse.org/bugs/show_bug.cgi?id=518324
 // var notDefined = undefined;
 
 if (int !== 42) { __VERIFIER_error(); }
