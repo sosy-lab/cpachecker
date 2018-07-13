@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -89,25 +90,55 @@ public class DomainSpecificAbstraction<T> {
             - 1);
         // running the algorithm for every formula with its successor
     for (int it = 0; it < oldFormulas.size() - 1; it = it + 1) {
+      BooleanFormula oldInterpolant;
       formulas = Lists.newArrayListWithExpectedSize(oldFormulas.size
           ());
-      formulas.add(oldFormulas.get(it));
-      formulas.add(oldFormulas.get(it + 1));
       final List<Set<String>> variablesInFormulas =
           Lists.newArrayListWithExpectedSize(formulas.size());
+
       final List<Map<String, Formula>> variableTypes = Lists.newArrayListWithExpectedSize(oldFormulas.size()
           - 1);
-      for (BooleanFormula f : formulas) {
-        variablesInFormulas.add(oldFmgr.extractVariableNames(f));
-        variableTypes.add(oldFmgr.extractVariables(f));
+      if (it == 0) {
+        formulas.add(oldFormulas.get(it));
+        formulas.add(oldFormulas.get(it + 1));
+        variablesInFormulas.add(oldFmgr.extractVariableNames(oldFormulas.get(it)));
+        variableTypes.add(oldFmgr.extractVariables(oldFormulas.get(it)));
+      }
+      else {
+        oldInterpolant = oldFmgr.translateFrom(interpolants.get(it - 1), fmgr);
+        formulas.add(oldInterpolant);
+        formulas.add(oldFormulas.get(it));
+        formulas.add(oldFormulas.get(it + 1));
+        variablesInFormulas.add(oldFmgr.extractVariableNames(oldInterpolant));
+        variableTypes.add(oldFmgr.extractVariables(oldInterpolant));
+      }
+
+      for (int i = it; i < oldFormulas.size(); i++) {
+        variablesInFormulas.add(oldFmgr.extractVariableNames(oldFormulas.get(i)));
+        variableTypes.add(oldFmgr.extractVariables(oldFormulas.get(i)));
       }
       // extracting the variables that have to be renamed - make external function?
       /*List<List<IntegerFormula>> frontierList = Lists.newArrayListWithExpectedSize(formulas.size
           ()); */
       List<List<Formula>> frontierList = Lists.newArrayListWithExpectedSize(formulas.size
           ());
-      Set<String> variables1 = variablesInFormulas.get(0);
-      Set<String> variables2 = variablesInFormulas.get(1);
+      Set<String> variables1 = Sets.newHashSet();
+      Set<String> variables2 = Sets.newHashSet();
+     // for (int i = 0; i < it + 1; i++) {
+      if (it == 0) {
+        variables1 = variablesInFormulas.get(0);
+      }
+      else {
+        for (String f : variablesInFormulas.get(1)) {
+          variables1.add(f);
+        }
+      }
+     // }
+      for (int i = 2; i < variablesInFormulas.size(); i++) {
+        for (String f : variablesInFormulas.get(i)) {
+          variables2.add(f);
+        }
+      }
       Set<String> variablesThatAreUsedInBothParts = Sets.intersection(variables1, variables2)
           .immutableCopy();
       HashMap<String, FormulaType> variablesUsedInBothPartsClasses = new HashMap<>();
@@ -153,14 +184,18 @@ public class DomainSpecificAbstraction<T> {
           String[variablesThatAreUsedInBothParts.size
           ()]);
 
+
+
       for(int i = 0; i < arrayVariablesThatAreUsedInBothParts.length; i++){
         Formula helperFormula;
         FormulaType helperFormulaType;
         for (Map<String, Formula> f : variableTypes){
           helperFormula = f.get(arrayVariablesThatAreUsedInBothParts[i]);
-          helperFormulaType = oldFmgr.getFormulaType(helperFormula);
-          variablesUsedInBothPartsClasses.put(arrayVariablesThatAreUsedInBothParts[i],
-              helperFormulaType);
+          if (helperFormula != null) {
+            helperFormulaType = oldFmgr.getFormulaType(helperFormula);
+            variablesUsedInBothPartsClasses.put(arrayVariablesThatAreUsedInBothParts[i],
+                helperFormulaType);
+          }
         }
       }
       // not necessary, could be deleted
@@ -1244,13 +1279,30 @@ public class DomainSpecificAbstraction<T> {
       //arrayVariablesForFormulas = arrayVariablesThatAreUsedInBothParts;
       FirstPartRenamingFct renamer1 = new FirstPartRenamingFct(arrayVariablesThatAreUsedInBothParts);
       ScndPartRenamingFct renamer2 = new ScndPartRenamingFct(arrayVariablesThatAreUsedInBothParts);
-      BooleanFormula firstPart = formulas.get(0);
-      BooleanFormula scndPart = formulas.get(1);
-      BooleanFormula firstPartChanged = oldFmgr.renameFreeVariablesAndUFs(firstPart, renamer1);
-      BooleanFormula scndPartChanged = oldFmgr.renameFreeVariablesAndUFs(scndPart, renamer2);
+      BooleanFormula firstPart;
+      BooleanFormula scndPart;
+      if (it == 0) {
+        firstPart = formulas.get(0);
+        scndPart = formulas.get(1);
+      } else {
+        firstPart = formulas.get(1);
+        scndPart = formulas.get(2);
+      }
+      BooleanFormula firstPartChanged;
+      BooleanFormula scndPartChanged;
+      if (it == 0) {
+        firstPartChanged = oldFmgr.renameFreeVariablesAndUFs(firstPart, renamer1);
+        scndPartChanged = oldFmgr.renameFreeVariablesAndUFs(scndPart, renamer2);
+      }
+      else {
+        firstPartChanged = oldFmgr.renameFreeVariablesAndUFs(firstPart, renamer1);
+        scndPartChanged = oldFmgr.renameFreeVariablesAndUFs(scndPart, renamer2);
+      }
       List<BooleanFormula> changed_formulas =
           Lists.newArrayListWithExpectedSize(formulas.size() - 1);
-      List<BooleanFormula> changed_formulas_rest =
+      List<BooleanFormula> changed_formulas_rest1 =
+          Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+      List<BooleanFormula> changed_formulas_rest2 =
           Lists.newArrayListWithExpectedSize(formulas.size() - 1);
       changed_formulas.add(firstPartChanged);
       changed_formulas.add(scndPartChanged);
@@ -1260,18 +1312,24 @@ public class DomainSpecificAbstraction<T> {
 
       firstPartChanged = fmgr.translateFrom(firstPartChanged, oldFmgr);
       scndPartChanged = fmgr.translateFrom(scndPartChanged, oldFmgr);
-      for (int i = 0; i < it; i++){
+     /* for (int i = 0; i < it; i++){
         BooleanFormula addFormula = oldFormulas.get(i);
         BooleanFormula changedFormula = oldFmgr.renameFreeVariablesAndUFs(addFormula, renamer1);
         changedFormula = fmgr.translateFrom(changedFormula, oldFmgr);
-        changed_formulas_rest.add(changedFormula);
-      }
+        changed_formulas_rest1.add(changedFormula);
+      } */
+     if (it != 0){
+       BooleanFormula addFormula = interpolants.get(it - 1);
+       BooleanFormula changedFormula = fmgr.renameFreeVariablesAndUFs(addFormula, renamer1);
+       changed_formulas_rest1.add(changedFormula);
+     }
       for (int i = it + 2; i < oldFormulas.size(); i++){
         BooleanFormula addFormula = oldFormulas.get(i);
         BooleanFormula changedFormula = oldFmgr.renameFreeVariablesAndUFs(addFormula, renamer2);
         changedFormula = fmgr.translateFrom(changedFormula, oldFmgr);
-        changed_formulas_rest.add(changedFormula);
+        changed_formulas_rest2.add(changedFormula);
       }
+
 
       boolean abstractionFeasible = false;
       boolean isIncomparable = false;
@@ -1374,10 +1432,20 @@ public class DomainSpecificAbstraction<T> {
         } */
 
       List<T> myItpGroupIds = new ArrayList<>(formulas.size());
-     /* for (BooleanFormula f : interpolationFormulaList){
+    /*  for (BooleanFormula f : interpolationFormulaList){
         myItpGroupIds.add(myItpProver.push(f));
-      } */
+      }  */
+    /* for (BooleanFormula f : changed_formulas_rest1){
+       myItpGroupIds.add(myItpProver.push(f));
+     } */
+    if (it != 0){
+      for (BooleanFormula f : changed_formulas_rest1){
+        myItpGroupIds.add(myItpProver.push(f));
+      }
+    }
+
      myItpGroupIds.add(myItpProver.push(helperFormula1));
+      //  myItpGroupIds.add(myItpProver.push(helperFormula2));
      myItpProver.push(helperFormula2);
     /*  for (int i = 0; i < it; i++) {
         myItpProver.push(oldFormulas.get(i));
@@ -1385,8 +1453,10 @@ public class DomainSpecificAbstraction<T> {
       for (int i = it + 2; i < oldFormulas.size(); i++){
         myItpProver.push(oldFormulas.get(i));
       } */
-    for (BooleanFormula f : changed_formulas_rest){
-      myItpProver.push(f);
+    if (! changed_formulas_rest2.isEmpty()) {
+      for (BooleanFormula f : changed_formulas_rest2) {
+        myItpProver.push(f);
+      }
     }
 
         if (!myItpProver.isUnsat()) {
@@ -1399,8 +1469,10 @@ public class DomainSpecificAbstraction<T> {
 
 
           interpolants.add(myInterpolant);
+          fmgr.translateFrom(myInterpolant, mySolver.getFormulaManager());
         }
       }
+
  /*     @SuppressWarnings("unchecked")
       InterpolatingProverEnvironment<BooleanFormula> newEnvironment =
           (InterpolatingProverEnvironment<BooleanFormula>) myInterpolator.itpProver; */
@@ -1418,6 +1490,7 @@ public class DomainSpecificAbstraction<T> {
      // myInterpolator.itpProver.getInterpolant((List<T>) interpolationFormulaList);
 
    //return Collections.emptyList();
+  mySolver.close();
     return interpolants;
 
   }
