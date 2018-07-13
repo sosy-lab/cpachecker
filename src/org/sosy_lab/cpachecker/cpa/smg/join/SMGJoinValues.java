@@ -70,31 +70,32 @@ final class SMGJoinValues {
   private List<SMGGenericAbstractionCandidate> abstractionCandidates;
   private boolean recoverable;
 
-  private static boolean joinValuesIdentical(SMGJoinValues pJV, SMGValue pV1, SMGValue pV2) {
+  private boolean joinValuesIdentical(SMGValue pV1, SMGValue pV2) {
     if (pV1.equals(pV2) ) {
-      pJV.value = pV1;
-      pJV.defined = true;
+      value = pV1;
+      defined = true;
       return true;
     }
 
     return false;
   }
 
-  private static boolean joinValuesAlreadyJoined(SMGJoinValues pJV, SMGValue pV1, SMGValue pV2) {
-    if (pJV.mapping1.containsKey(pV1) && pJV.mapping2.containsKey(pV2) &&
-        pJV.mapping1.get(pV1).equals(pJV.mapping2.get(pV2))) {
-      pJV.value = pJV.mapping1.get(pV1);
-      pJV.defined = true;
+  private boolean joinValuesAlreadyJoined(SMGValue pV1, SMGValue pV2) {
+    if (mapping1.containsKey(pV1)
+        && mapping2.containsKey(pV2)
+        && mapping1.get(pV1).equals(mapping2.get(pV2))) {
+      value = mapping1.get(pV1);
+      defined = true;
       return true;
     }
 
     return false;
   }
 
-  private static boolean joinValuesNonPointers(
-      SMGJoinValues pJV, SMGValue pV1, SMGValue pV2, int pLevelV1, int pLevelV2, int lDiff) {
-    if ((! pJV.inputSMG1.isPointer(pV1)) && (! pJV.inputSMG2.isPointer(pV2))) {
-      if (pJV.mapping1.containsKey(pV1) || pJV.mapping2.containsKey(pV2)) {
+  private boolean joinValuesNonPointers(
+      SMGValue pV1, SMGValue pV2, int pLevelV1, int pLevelV2, int lDiff) {
+    if ((!inputSMG1.isPointer(pV1)) && (!inputSMG2.isPointer(pV2))) {
+      if (mapping1.containsKey(pV1) || mapping2.containsKey(pV2)) {
         return true;
       }
 
@@ -105,44 +106,38 @@ final class SMGJoinValues {
       } else {
         newValue = SMGKnownSymValue.of();
 
-        if (pJV.smgState1 == null || pJV.smgState2 == null) {
-          pJV.status = SMGJoinStatus.updateStatus(pJV.status, SMGJoinStatus.INCOMPARABLE);
+        if (smgState1 == null || smgState2 == null) {
+          status = SMGJoinStatus.updateStatus(status, SMGJoinStatus.INCOMPARABLE);
         } else {
           SMGJoinStatus v1isLessOrEqualV2 =
               valueIsLessOrEqual(
-                  (SMGKnownSymbolicValue) pV1,
-                  (SMGKnownSymbolicValue) pV2,
-                  pJV.smgState1,
-                  pJV.smgState2);
+                  (SMGKnownSymbolicValue) pV1, (SMGKnownSymbolicValue) pV2, smgState1, smgState2);
           SMGJoinStatus v2isLessOrEqualV1 =
               valueIsLessOrEqual(
-                  (SMGKnownSymbolicValue) pV2,
-                  (SMGKnownSymbolicValue) pV1,
-                  pJV.smgState2,
-                  pJV.smgState1);
+                  (SMGKnownSymbolicValue) pV2, (SMGKnownSymbolicValue) pV1, smgState2, smgState1);
 
           if (v1isLessOrEqualV2 != SMGJoinStatus.INCOMPARABLE) {
-            pJV.status = SMGJoinStatus.updateStatus(pJV.status, v1isLessOrEqualV2);
+            status = SMGJoinStatus.updateStatus(status, v1isLessOrEqualV2);
           } else if (v2isLessOrEqualV1 == SMGJoinStatus.RIGHT_ENTAIL) {
-            pJV.status = SMGJoinStatus.updateStatus(pJV.status, SMGJoinStatus.LEFT_ENTAIL);
+            status = SMGJoinStatus.updateStatus(status, SMGJoinStatus.LEFT_ENTAIL);
           } else {
-            pJV.status = SMGJoinStatus.updateStatus(pJV.status, v2isLessOrEqualV1);
+            status = SMGJoinStatus.updateStatus(status, v2isLessOrEqualV1);
           }
         }
 
       }
 
       if (pLevelV1 - pLevelV2 < lDiff) {
-        pJV.status = SMGJoinStatus.updateStatus(pJV.status, SMGJoinStatus.LEFT_ENTAIL);
+        status = SMGJoinStatus.updateStatus(status, SMGJoinStatus.LEFT_ENTAIL);
       } else if (pLevelV1 - pLevelV2 > lDiff) {
-        pJV.status = SMGJoinStatus.updateStatus(pJV.status, SMGJoinStatus.RIGHT_ENTAIL);
+        status = SMGJoinStatus.updateStatus(status, SMGJoinStatus.RIGHT_ENTAIL);
       }
 
-      pJV.destSMG.addValue(newValue);
-      pJV.mapping1.map(pV1, newValue);
-      pJV.mapping2.map(pV2, newValue);
-      pJV.defined = true;
-      pJV.value = newValue;
+      destSMG.addValue(newValue);
+      mapping1.map(pV1, newValue);
+      mapping2.map(pV2, newValue);
+      defined = true;
+      value = newValue;
       return true;
     }
     return false;
@@ -202,12 +197,11 @@ final class SMGJoinValues {
     return SMGJoinStatus.EQUAL;
   }
 
-  private static boolean joinValuesMixedPointers(SMGJoinValues pJV, SMGValue pV1, SMGValue pV2) {
-    return ((! pJV.inputSMG1.isPointer(pV1)) || (! pJV.inputSMG2.isPointer(pV2)));
+  private boolean joinValuesMixedPointers(SMGValue pV1, SMGValue pV2) {
+    return !inputSMG1.isPointer(pV1) || !inputSMG2.isPointer(pV2);
   }
 
-  private static boolean joinValuesPointers(
-      SMGJoinValues pJV,
+  private boolean joinValuesPointers(
       SMGValue pV1,
       SMGValue pV2,
       int pLevel1,
@@ -218,12 +212,12 @@ final class SMGJoinValues {
       throws SMGInconsistentException {
     SMGJoinTargetObjects jto =
         new SMGJoinTargetObjects(
-            pJV.status,
-            pJV.inputSMG1,
-            pJV.inputSMG2,
-            pJV.destSMG,
-            pJV.mapping1,
-            pJV.mapping2,
+            status,
+            inputSMG1,
+            inputSMG2,
+            destSMG,
+            mapping1,
+            mapping2,
             pLevelMap,
             pV1,
             pV2,
@@ -231,30 +225,30 @@ final class SMGJoinValues {
             pLevel2,
             ldiff,
             identicalInputSmg,
-            pJV.smgState1,
-            pJV.smgState2);
+            smgState1,
+            smgState2);
     if (jto.isDefined()) {
-      pJV.status = jto.getStatus();
-      pJV.inputSMG1 = jto.getInputSMG1();
-      pJV.inputSMG2 = jto.getInputSMG2();
-      pJV.destSMG = jto.getDestinationSMG();
-      pJV.mapping1 = jto.getMapping1();
-      pJV.mapping2 = jto.getMapping2();
-      pJV.value = jto.getValue();
-      pJV.defined = true;
-      pJV.abstractionCandidates = jto.getAbstractionCandidates();
-      pJV.recoverable = jto.isRecoverable();
+      status = jto.getStatus();
+      inputSMG1 = jto.getInputSMG1();
+      inputSMG2 = jto.getInputSMG2();
+      destSMG = jto.getDestinationSMG();
+      mapping1 = jto.getMapping1();
+      mapping2 = jto.getMapping2();
+      value = jto.getValue();
+      defined = true;
+      abstractionCandidates = jto.getAbstractionCandidates();
+      recoverable = jto.isRecoverable();
       return true;
     }
 
     if (jto.isRecoverable()) {
-      pJV.recoverable = true;
+      recoverable = true;
       return true;
     }
 
-    pJV.defined = false;
-    pJV.recoverable = false;
-    pJV.abstractionCandidates = ImmutableList.of();
+    defined = false;
+    recoverable = false;
+    abstractionCandidates = ImmutableList.of();
     return false;
   }
 
@@ -285,8 +279,7 @@ final class SMGJoinValues {
     smgState1 = pStateOfSmg1;
     smgState2 = pStateOfSmg2;
 
-
-    if (identicalInputSmg && SMGJoinValues.joinValuesIdentical(this, pValue1, pValue2)) {
+    if (identicalInputSmg && joinValuesIdentical(pValue1, pValue2)) {
       abstractionCandidates = ImmutableList.of();
       recoverable = defined;
       mapping1.map(pValue1, pValue1);
@@ -294,25 +287,26 @@ final class SMGJoinValues {
       return;
     }
 
-    if (SMGJoinValues.joinValuesAlreadyJoined(this, pValue1, pValue2)) {
+    if (joinValuesAlreadyJoined(pValue1, pValue2)) {
       abstractionCandidates = ImmutableList.of();
       recoverable = defined;
       return;
     }
 
-    if (SMGJoinValues.joinValuesNonPointers(this, pValue1, pValue2, levelV1, levelV2, pLDiff)) {
+    if (joinValuesNonPointers(pValue1, pValue2, levelV1, levelV2, pLDiff)) {
       abstractionCandidates = ImmutableList.of();
       recoverable = defined;
       return;
     }
 
-    if (SMGJoinValues.joinValuesMixedPointers(this, pValue1, pValue2)) {
+    if (joinValuesMixedPointers(pValue1, pValue2)) {
       abstractionCandidates = ImmutableList.of();
       recoverable = true;
       return;
     }
 
-    if (SMGJoinValues.joinValuesPointers(this, pValue1, pValue2, levelV1, levelV2, pLDiff, identicalInputSmg, pLevelMap)) {
+    if (joinValuesPointers(
+        pValue1, pValue2, levelV1, levelV2, pLDiff, identicalInputSmg, pLevelMap)) {
 
       if(defined) {
         abstractionCandidates = ImmutableList.of();
