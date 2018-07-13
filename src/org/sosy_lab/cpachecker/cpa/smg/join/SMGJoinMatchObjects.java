@@ -46,32 +46,28 @@ final class SMGJoinMatchObjects {
 
   private static boolean checkMatchingMapping(SMGObject pObj1, SMGObject pObj2,
                                                     SMGNodeMapping pMapping1, SMGNodeMapping pMapping2) {
-    if (pMapping1.containsKey(pObj1) && pMapping2.containsKey(pObj2) &&
-        pMapping1.get(pObj1) != pMapping2.get(pObj2)) {
-      return true;
-    }
-
-    return false;
+    return pMapping1.containsKey(pObj1)
+        && pMapping2.containsKey(pObj2)
+        && pMapping1.get(pObj1) != pMapping2.get(pObj2);
   }
 
   private static boolean checkConsistentMapping(SMGObject pObj1, SMGObject pObj2,
                                                       SMGNodeMapping pMapping1, SMGNodeMapping pMapping2) {
-    if ((pMapping1.containsKey(pObj1) && pMapping2.containsValue(pMapping1.get(pObj1))) ||
-        (pMapping2.containsKey(pObj2) && pMapping1.containsValue(pMapping2.get(pObj2)))) {
-      return true;
-    }
-
-    return false;
+    return (pMapping1.containsKey(pObj1) && pMapping2.containsValue(pMapping1.get(pObj1)))
+        || (pMapping2.containsKey(pObj2) && pMapping1.containsValue(pMapping2.get(pObj2)));
   }
 
   private static boolean checkConsistentObjects(
       SMGObject pObj1, SMGObject pObj2, UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2) {
-    if ((pObj1.getSize() != pObj2.getSize()) ||
-        (pSMG1.isObjectValid(pObj1) != pSMG2.isObjectValid(pObj2))) {
-      return true;
-    }
+    return pObj1.getSize() != pObj2.getSize()
+        || pSMG1.isObjectValid(pObj1) != pSMG2.isObjectValid(pObj2);
+  }
 
-    return false;
+  private static boolean checkConsistentShape(SMGObject pObj1, SMGObject pObj2) {
+    return pObj1.getKind() == pObj2.getKind()
+        && pObj1.isAbstract()
+        && pObj2.isAbstract()
+        && !((SMGAbstractObject) pObj1).matchSpecificShape((SMGAbstractObject) pObj2);
   }
 
   private static boolean checkConsistentFields(
@@ -148,7 +144,8 @@ final class SMGJoinMatchObjects {
       SMGNodeMapping pMapping2,
       SMGObject pObj1,
       SMGObject pObj2) {
-    if ((! pSMG1.getObjects().contains(pObj1)) || (! pSMG2.getObjects().contains(pObj2))) {
+
+    if (!pSMG1.getObjects().contains(pObj1) || !pSMG2.getObjects().contains(pObj2)) {
       throw new IllegalArgumentException();
     }
 
@@ -168,14 +165,8 @@ final class SMGJoinMatchObjects {
       return;
     }
 
-    if (pObj1.getKind() == pObj2.getKind() && pObj1.isAbstract() && pObj2.isAbstract()) {
-
-      SMGAbstractObject l1 = (SMGAbstractObject) pObj1;
-      SMGAbstractObject l2 = (SMGAbstractObject) pObj2;
-
-      if (!l1.matchSpecificShape(l2)) {
-        return;
-      }
+    if (checkConsistentShape(pObj1, pObj2)) {
+      return;
     }
 
     if (checkMatchingAbstractions(pObj1, pObj2)) {
