@@ -23,10 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
@@ -34,8 +36,13 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 
-final public class SMGJoin {
+/**
+ * Joins two SMGs and provides a new merged SMG. Can use a surrounding SMGState to extract further
+ * information.
+ */
+public final class SMGJoin {
   static public void performChecks(boolean pOn) {
     SMGJoinSubSMGs.performChecks(pOn);
   }
@@ -45,6 +52,12 @@ final public class SMGJoin {
   private final CLangSMG smg;
   final SMGLevelMapping levelMap = SMGLevelMapping.createDefaultLevelMap();
 
+  /**
+   * @param opSMG1 left SMG for the join.
+   * @param opSMG2 right SMG for the join.
+   * @param pStateOfSmg1 state containing the left SMG, can be NULL for testing only.
+   * @param pStateOfSmg2 state containing the right SMG, can be NULL for testing only.
+   */
   public SMGJoin(
       UnmodifiableCLangSMG opSMG1,
       UnmodifiableCLangSMG opSMG2,
@@ -60,78 +73,51 @@ final public class SMGJoin {
     Map<String, SMGRegion> globals_in_smg1 = opSMG1.getGlobalObjects();
     Map<String, SMGRegion> globals_in_smg2 = opSMG2.getGlobalObjects();
 
-    for (String globalVar : Sets.union(globals_in_smg1.keySet(), globals_in_smg2.keySet())) {
-      SMGRegion globalInSMG1 = globals_in_smg1.get(globalVar);
-      SMGRegion globalInSMG2 = globals_in_smg2.get(globalVar);
-      if (globalInSMG1 == null || globalInSMG2 == null) {
-        // This weird situation happens with function static variables, which are created
-        // as globals when a declaration is met. So if one path goes through function and other
-        // does not, then one SMG will have that global and the other one won't.
-        // TODO: We could actually just add that object, as that should not influence the result of
-        // the join. For now, we will treat this situation as unjoinable.
-        return;
-      }
-      smg.addGlobalObject(globalInSMG1);
-      mapping1.map(globalInSMG1, globalInSMG1);
-      mapping2.map(globalInSMG2, globalInSMG1);
+    status = joinGlobalVariables(mapping1, mapping2, globals_in_smg1, globals_in_smg2);
+    if (status == SMGJoinStatus.INCOMPARABLE) {
+      return;
     }
 
-    Iterator<CLangStackFrame> smg1stackIterator = opSMG1.getStackFrames().iterator();
-    Iterator<CLangStackFrame> smg2stackIterator = opSMG2.getStackFrames().iterator();
-
-    //TODO assert stack smg1 == stack smg2
-
-    while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ) {
-      CLangStackFrame frameInSMG1 = smg1stackIterator.next();
-      CLangStackFrame frameInSMG2 = smg2stackIterator.next();
-
-      smg.addStackFrame(frameInSMG1.getFunctionDeclaration());
-
-      for (String localVar : Sets.union(frameInSMG1.getVariables().keySet(), frameInSMG2.getVariables().keySet())) {
-        if (!frameInSMG1.containsVariable(localVar) || !frameInSMG2.containsVariable(localVar)) {
-          return;
-        }
-        SMGRegion localInSMG1 = frameInSMG1.getVariable(localVar);
-        SMGRegion localInSMG2 = frameInSMG2.getVariable(localVar);
-        smg.addStackObject(localInSMG1);
-        mapping1.map(localInSMG1, localInSMG1);
-        mapping2.map(localInSMG2, localInSMG1);
-      }
+    SMGJoinStatus tmpStatus =
+        joinStackVariables(mapping1, mapping2, opSMG1.getStackFrames(), opSMG2.getStackFrames());
+    status = SMGJoinStatus.updateStatus(status, tmpStatus);
+    if (status == SMGJoinStatus.INCOMPARABLE) {
+      return;
     }
 
-    for (Entry<String, SMGRegion> entry : globals_in_smg1.entrySet()) {
-      SMGObject globalInSMG1 = entry.getValue();
+    // join heap for globally pointed objects, global variable names are already joined
+    for (Entry<String, SMGRegion> entry : smg.getGlobalObjects().entrySet()) {
+      SMGObject globalInSMG1 = globals_in_smg1.get(entry.getKey());
       SMGObject globalInSMG2 = globals_in_smg2.get(entry.getKey());
       SMGObject destinationGlobal = mapping1.get(globalInSMG1);
       SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, levelMap, globalInSMG1, globalInSMG2, destinationGlobal, 0,false, pStateOfSmg1, pStateOfSmg2);
-      if (! jss.isDefined()) {
+      status = jss.getStatus();
+      if (!jss.isDefined()) {
         return;
       }
-      status = jss.getStatus();
     }
 
-    smg1stackIterator = opSMG1.getStackFrames().iterator();
-    smg2stackIterator = opSMG2.getStackFrames().iterator();
+    // join heap for locally pointed objects, variable names per stackframe are already joined
+    Iterator<CLangStackFrame> smg1stackIterator = opSMG1.getStackFrames().iterator();
+    Iterator<CLangStackFrame> smg2stackIterator = opSMG2.getStackFrames().iterator();
     Iterator<CLangStackFrame> destSmgStackIterator = smg.getStackFrames().iterator();
-
-    while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext()) {
+    while (smg1stackIterator.hasNext() && smg2stackIterator.hasNext()) {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
       CLangStackFrame frameInSMG2 = smg2stackIterator.next();
       CLangStackFrame destStackFrame = destSmgStackIterator.next();
 
-      for (String localVar : frameInSMG1.getVariables().keySet()) {
+      for (String localVar : destStackFrame.getVariables().keySet()) {
         SMGObject localInSMG1 = frameInSMG1.getVariable(localVar);
         SMGObject localInSMG2 = frameInSMG2.getVariable(localVar);
         SMGObject destinationLocal = mapping1.get(localInSMG1);
         SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, levelMap, localInSMG1, localInSMG2, destinationLocal, 0, false, pStateOfSmg1, pStateOfSmg2);
-        if (! jss.isDefined()) {
+        status = jss.getStatus();
+        if (!jss.isDefined()) {
           return;
         }
-        status = jss.getStatus();
       }
 
       /* Don't forget to join the return object */
-
       if (frameInSMG1.getReturnObject() != null) {
         SMGObject returnObjectInSmg1 = frameInSMG1.getReturnObject();
         SMGObject returnObjectInSmg2 = frameInSMG2.getReturnObject();
@@ -151,6 +137,76 @@ final public class SMGJoin {
     defined = true;
   }
 
+  /**
+   * searches for common global variables and copies them over into a new SMG.
+   *
+   * <p>Note that one SMG can have less variables than the other one, e.g., if refinement allows to
+   * ignore some variables.
+   */
+  private SMGJoinStatus joinGlobalVariables(
+      SMGNodeMapping mapping1,
+      SMGNodeMapping mapping2,
+      Map<String, SMGRegion> globals_in_smg1,
+      Map<String, SMGRegion> globals_in_smg2) {
+    Set<String> globals1 = globals_in_smg1.keySet();
+    Set<String> globals2 = globals_in_smg2.keySet();
+    for (String globalVar : Sets.intersection(globals1, globals2)) {
+      SMGRegion globalInSMG1 = globals_in_smg2.get(globalVar);
+      SMGRegion globalInSMG2 = globals_in_smg2.get(globalVar);
+      smg.addGlobalObject(globalInSMG1);
+      mapping1.map(globalInSMG1, globalInSMG1);
+      mapping2.map(globalInSMG2, globalInSMG1);
+    }
+    return getFlag(globals1.containsAll(globals2), globals2.containsAll(globals1));
+  }
+
+  // crosswise check all combinations
+  private static SMGJoinStatus getFlag(boolean oneInTwo, boolean twoInOne) {
+    if (oneInTwo) {
+      return twoInOne ? SMGJoinStatus.EQUAL : SMGJoinStatus.LEFT_ENTAIL;
+    } else {
+      return twoInOne ? SMGJoinStatus.RIGHT_ENTAIL : SMGJoinStatus.INCOMPARABLE;
+    }
+  }
+
+  /**
+   * merges common stack variables and copies them over into a new SMG.
+   *
+   * <p>We assume identical stack sizes (incl. function names), otherwise we return INCOMPARABLE.
+   *
+   * <p>Note that one SMG can have less variables than the other one, e.g., if refinement allows to
+   * ignore some variables.
+   */
+  private SMGJoinStatus joinStackVariables(
+      SMGNodeMapping mapping1,
+      SMGNodeMapping mapping2,
+      PersistentStack<CLangStackFrame> stack1,
+      PersistentStack<CLangStackFrame> stack2) {
+    Iterator<CLangStackFrame> smg1stackIterator = stack1.iterator();
+    Iterator<CLangStackFrame> smg2stackIterator = stack2.iterator();
+    SMGJoinStatus result = SMGJoinStatus.EQUAL;
+    while (smg1stackIterator.hasNext() && smg2stackIterator.hasNext()) {
+      CLangStackFrame frameInSMG1 = smg1stackIterator.next();
+      CLangStackFrame frameInSMG2 = smg2stackIterator.next();
+      if (!frameInSMG1.getFunctionDeclaration().equals(frameInSMG2.getFunctionDeclaration())) {
+        return SMGJoinStatus.INCOMPARABLE;
+      }
+      smg.addStackFrame(frameInSMG1.getFunctionDeclaration());
+      Set<String> locals1 = frameInSMG1.getVariables().keySet();
+      Set<String> locals2 = frameInSMG2.getVariables().keySet();
+      for (String localVar : Sets.intersection(locals1, locals2)) {
+        SMGRegion localInSMG1 = frameInSMG2.getVariable(localVar);
+        SMGRegion localInSMG2 = frameInSMG2.getVariable(localVar);
+        smg.addStackObject(localInSMG1);
+        mapping1.map(localInSMG1, localInSMG1);
+        mapping2.map(localInSMG2, localInSMG1);
+      }
+      result = SMGJoinStatus.updateStatus(
+              result, getFlag(locals1.containsAll(locals2), locals2.containsAll(locals1)));
+    }
+    return result;
+  }
+
   public boolean isDefined() {
     if (!defined) {
       Preconditions.checkState(
@@ -163,6 +219,9 @@ final public class SMGJoin {
   /**
    * Returns the completion status of the join operation. If the status is {@link
    * SMGJoinStatus#INCOMPARABLE} the joined SMG is undefined and should not be used.
+   *
+   * <p>Currently, after {@link SMGJoinStatus#INCOMPARABLE} the joined SMG represents the SMG built
+   * up until last step before aborting. A user can access this SMG for debugging. Handle with care!
    */
   public SMGJoinStatus getStatus() {
     return status;
