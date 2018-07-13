@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 final class SMGJoinMatchObjects {
@@ -105,31 +104,16 @@ final class SMGJoinMatchObjects {
       SMGAbstractObject pAbstract1 = (SMGAbstractObject)pObj1;
       SMGAbstractObject pAbstract2 = (SMGAbstractObject)pObj2;
 
-      //TODO: It should be possible to join some of the different generic shapes, i.e. a SLL
+      // TODO: It should be possible to join some of the different generic shapes, i.e. a SLL
       //      might be a more general segment than a DLL
-      if (! (pAbstract1.matchGenericShape(pAbstract2) && pAbstract1.matchSpecificShape(pAbstract2))) {
+      if (!pAbstract1.matchGenericShape(pAbstract2) || !pAbstract1.matchSpecificShape(pAbstract2)) {
 
         /*An optional object can be matched with dll or sll of the same size.*/
-        if(pObj1.getSize() != pObj2.getSize()) {
+        if (pObj1.getSize() != pObj2.getSize()) {
           return true;
         }
 
-        switch (pObj1.getKind()) {
-          case OPTIONAL:
-            switch (pObj2.getKind()) {
-              case SLL:
-              case DLL:
-              case OPTIONAL:
-                return false;
-              default:
-                return true;
-            }
-          case SLL:
-          case DLL:
-            return pObj2.getKind() != SMGObjectKind.OPTIONAL;
-          default:
-            return true;
-        }
+        return pObj1.getKind().isContainedIn(pObj2.getKind());
       }
     }
 
