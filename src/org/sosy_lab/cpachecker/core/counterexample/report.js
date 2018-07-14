@@ -619,13 +619,16 @@ with considerably less effort */
 
 	cfaToolbarController = app.controller('CFAToolbarController', ['$scope',
 		function ($scope) {
-			if (functions.length > 1) {
-				$scope.functions = ["all"].concat(functions);
-			} else {
-				$scope.functions = functions;
+			if (functions) {
+				if (functions.length > 1) {
+					$scope.functions = ["all"].concat(functions);
+				} else {
+					$scope.functions = functions;
+				}
+				$scope.selectedCFAFunction = $scope.functions[0];
+				$scope.zoomEnabled = false;
 			}
-			$scope.selectedCFAFunction = $scope.functions[0];
-			$scope.zoomEnabled = false;
+
 
 			$scope.setCFAFunction = function () {
 				if ($scope.zoomEnabled) {

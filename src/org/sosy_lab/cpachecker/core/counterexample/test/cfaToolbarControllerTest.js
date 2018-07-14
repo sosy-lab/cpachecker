@@ -15,26 +15,25 @@ describe("ReportController", function () {
         })
         jasmine.getFixtures().fixturesPath = 'base/';
         jasmine.getFixtures().load('testReport.html');
-        
+
     })
 
     describe("selectedCFAFunction initialization", function () {
         it("Should be defined", function () {
-            expect($scope.selectedCFAFunction).not.toBeUndefined();
+            if ($scope.functions) {
+                expect($scope.selectedCFAFunction).not.toBeUndefined();
+            }
         })
     })
 
     describe("zoomEnabled initialization", function () {
         it("Should be defined", function () {
-            expect($scope.zoomEnabled).not.toBeUndefined();
+            if ($scope.functions) {
+                expect($scope.zoomEnabled).not.toBeUndefined();
+            }
         })
     })
 
-    describe("functions initialization", function () {
-        it("Should be defined", function () {
-            expect($scope.functions).not.toBeUndefined();
-        })
-    })
 
     describe("showValues action handler", function () {
         it("Should be defined", function () {
@@ -66,7 +65,4 @@ describe("ReportController", function () {
         })
     })
 
-
-
-    
 });

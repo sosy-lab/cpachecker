@@ -1,5 +1,21 @@
 // Karma configuration
 // Generated on Fri Jun 29 2018 17:07:20 GMT+0530 (India Standard Time)
+var fs = require('fs');
+
+//Replace scripts tag from HTML file and generate report.html for testing
+fs.readFile('report.html', 'utf8', function (err, data) {
+  if (err) {
+    throw err;
+  }
+  theFile = data.toString().split("\n");
+  theFile.splice(11, 33);
+  fs.writeFile('testReport.html', theFile.join("\n"), function (err) {
+    if (err) {
+      return console.log(err);
+    }
+  });
+});
+
 
 module.exports = function (config) {
   config.set({
@@ -18,6 +34,7 @@ module.exports = function (config) {
       'https://cdnjs.cloudflare.com/ajax/libs/angular-mocks/1.7.2/angular-mocks.min.js',
       'https://cdnjs.cloudflare.com/ajax/libs/angular-resource/1.7.2/angular-resource.min.js',
       'https://www.sosy-lab.org/lib/jquery/3.3.1/jquery.min.js',
+      'https://www.sosy-lab.org/lib/jquery-ui/1.12.1/jquery-ui.min.js',
       'https://cdn.jsdelivr.net/npm/jasmine-jquery@2.1.1/lib/jasmine-jquery.min.js',
       'https://www.sosy-lab.org/lib/bootstrap/4.1.1/js/bootstrap.min.js',
       'https://www.sosy-lab.org/lib/d3js/5.4.0/d3.min.js',
@@ -26,7 +43,7 @@ module.exports = function (config) {
       'https://www.sosy-lab.org/lib/popper.js/1.14.3/umd/popper.min.js',
       'https://www.sosy-lab.org/lib/google-code-prettify/2018-04-29-453bd5f/prettify.js',
       'testReport.html',
-      'testReport.js',
+      'report.js',
       'test/*.js',
     ],
 
