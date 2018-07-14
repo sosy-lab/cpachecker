@@ -65,6 +65,10 @@ public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandida
       SMGEdgeHasValue nextEdge = Iterables.getOnlyElement(pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(prevObject).filterAtOffset(nfo)));
       SMGObject nextObject = pSMG.getPointer(nextEdge.getValue()).getObject();
 
+      if (nextObject == prevObject) {
+        throw new AssertionError("Invalid candidate sequence: Attempt to merge object with itself");
+      }
+
       if (length > 1) {
         SMGJoinSubSMGsForAbstraction jointest =
             new SMGJoinSubSMGsForAbstraction(
