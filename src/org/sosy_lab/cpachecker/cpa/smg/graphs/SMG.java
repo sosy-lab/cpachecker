@@ -549,7 +549,9 @@ public class SMG implements UnmodifiableSMG {
       pt_edges = pt_edges.removeAndCopy(pt_edge);
       Preconditions.checkArgument(!pt_edges.containsEdgeWithValue(fresh));
       pt_edges =
-          pt_edges.addAndCopy(new SMGEdgePointsTo(fresh, pt_edge.getObject(), pt_edge.getOffset()));
+          pt_edges.addAndCopy(
+              new SMGEdgePointsTo(
+                  fresh, pt_edge.getObject(), pt_edge.getOffset(), pt_edge.getTargetSpecifier()));
     }
   }
 
