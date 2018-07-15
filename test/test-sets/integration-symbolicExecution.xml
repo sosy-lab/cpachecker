@@ -56,6 +56,9 @@
     <exclude>../programs/benchmarks/seq-pthread/cs_queue_false-unreach-call.i</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-pthread/cs_stack_false-unreach-call.i</exclude> <!-- flapping timeout / unknown -->
     <exclude>../programs/benchmarks/seq-pthread/cs_stack_true-unreach-call.i</exclude> <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/seq-pthread/cs_read_write_lock_false-unreach-call.i</exclude> <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/seq-pthread/cs_read_write_lock_true-unreach-call.i</exclude> <!-- flapping timeout / unknown -->
+    <exclude>../programs/benchmarks/seq-pthread/cs_sync_true-unreach-call.i</exclude> <!-- flapping timeout / unknown -->
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
 
