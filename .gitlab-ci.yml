@@ -111,7 +111,10 @@ unit-tests-counterexample-report:
   cache:
     paths:
     - node_modules/
-   
+
+  stage:
+    - test 
+  
   script:
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - ./node_modules/.bin/npm test --watch=false --single-run=true
