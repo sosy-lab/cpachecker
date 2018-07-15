@@ -105,19 +105,16 @@ unit-tests-counterexample-report:
   image: node:8.9.4
 
   before_script:
+    - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - npm install
 
   cache:
     paths:
     - node_modules/
-
-  stages:
-    - test
-
-  test_report:
-    stage: test
-    script:
-      - ./node_modules/.bin/npm test --watch=false --single-run=true
+   
+  script:
+    - cd src/org/sosy_lab/cpachecker/core/counterexample/
+    - ./node_modules/.bin/npm test --watch=false --single-run=true
 
 # Disable some checks because they are not used for CPAchecker
 check-format:
