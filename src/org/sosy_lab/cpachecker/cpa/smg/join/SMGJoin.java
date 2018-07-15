@@ -73,17 +73,13 @@ public final class SMGJoin {
     Map<String, SMGRegion> globals_in_smg1 = opSMG1.getGlobalObjects();
     Map<String, SMGRegion> globals_in_smg2 = opSMG2.getGlobalObjects();
 
-    status = joinGlobalVariables(mapping1, mapping2, globals_in_smg1, globals_in_smg2);
-    if (status == SMGJoinStatus.INCOMPARABLE) {
-      return;
-    }
+    SMGJoinStatus tmpStatus1 =
+        joinGlobalVariables(mapping1, mapping2, globals_in_smg1, globals_in_smg2);
+    status = status.updateWith(tmpStatus1);
 
-    SMGJoinStatus tmpStatus =
+    SMGJoinStatus tmpStatus2 =
         joinStackVariables(mapping1, mapping2, opSMG1.getStackFrames(), opSMG2.getStackFrames());
-    status = status.updateWith(tmpStatus);
-    if (status == SMGJoinStatus.INCOMPARABLE) {
-      return;
-    }
+    status = status.updateWith(tmpStatus2);
 
     // join heap for globally pointed objects, global variable names are already joined
     for (Entry<String, SMGRegion> entry : smg.getGlobalObjects().entrySet()) {
