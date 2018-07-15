@@ -72,11 +72,12 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
@@ -143,11 +144,14 @@ public class SymbolicValueAnalysisRefiner
 
   private final MachineModel machineModel;
 
-  public static SymbolicValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
+  public static Refiner create(final ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
+    return AbstractARGBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa);
+  }
+
+  public static ARGBasedRefiner create0(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
-    final ARGCPA argCpa =
-        CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SymbolicValueAnalysisRefiner.class);
     final ValueAnalysisCPA valueAnalysisCpa =
         CPAs.retrieveCPAOrFail(pCpa, ValueAnalysisCPA.class, SymbolicValueAnalysisRefiner.class);
     final ConstraintsCPA constraintsCpa =
@@ -202,7 +206,6 @@ public class SymbolicValueAnalysisRefiner
                                     cfa);
 
     return new SymbolicValueAnalysisRefiner(
-        argCpa,
         cfa,
         feasibilityChecker,
         strongestPostOperator,
@@ -213,7 +216,6 @@ public class SymbolicValueAnalysisRefiner
   }
 
   public SymbolicValueAnalysisRefiner(
-      final ARGCPA pCpa,
       final CFA pCfa,
       final FeasibilityChecker<ForgettingCompositeState> pFeasibilityChecker,
       final SymbolicStrongestPostOperator pStrongestPostOperator,
@@ -223,8 +225,7 @@ public class SymbolicValueAnalysisRefiner
       final LogManager pLogger)
       throws InvalidConfigurationException {
 
-    super(pCpa,
-          pFeasibilityChecker,
+    super(pFeasibilityChecker,
           pInterpolator,
           SymbolicInterpolantManager.getInstance(),
           pPathExtractor,
@@ -248,15 +249,15 @@ public class SymbolicValueAnalysisRefiner
   }
 
   @Override
-  public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
-    CounterexampleInfo cex = performRefinementAndGetCex(pReached);
-
-    if (cex.isSpurious()) {
-      return true;
-    } else if (pathConstraintsOutputFile != null) {
-      addSymbolicInformationToCex(cex, pathConstraintsOutputFile);
+  public CounterexampleInfo performRefinementForPath(
+      ARGReachedSet pReached, ARGPath targetPathToUse)
+      throws CPAException, InterruptedException {
+    CounterexampleInfo info = super.performRefinementForPath(pReached, targetPathToUse);
+    if (!info.isSpurious()
+        && pathConstraintsOutputFile != null) {
+      addSymbolicInformationToCex(info, pathConstraintsOutputFile);
     }
-    return false;
+    return info;
   }
 
   private List<Pair<ForgettingCompositeState, List<CFAEdge>>> evaluate(

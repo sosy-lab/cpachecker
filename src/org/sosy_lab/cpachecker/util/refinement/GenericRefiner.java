@@ -43,13 +43,10 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -75,7 +72,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  */
 @Options(prefix = "cpa.value.refinement")
 public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Interpolant<S>>
-    implements Refiner, StatisticsProvider {
+    implements ARGBasedRefiner, StatisticsProvider {
 
   @Option(secure = true, description = "when to export the interpolation tree"
       + "\nNEVER:   never export the interpolation tree"
@@ -106,8 +103,6 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
 
   protected final LogManager logger;
 
-  private final ARGCPA argCpa;
-
   private final PathInterpolator<I> interpolator;
 
   private final FeasibilityChecker<S> checker;
@@ -124,7 +119,6 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   private final StatTimer refinementTime = new StatTimer("Time for completing refinement");
 
   public GenericRefiner(
-      final ARGCPA pArgCpa,
       final FeasibilityChecker<S> pFeasibilityChecker,
       final PathInterpolator<I> pPathInterpolator,
       final InterpolantManager<S, I> pInterpolantManager,
@@ -136,7 +130,6 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     pConfig.inject(this, GenericRefiner.class);
 
     logger = pLogger;
-    argCpa = pArgCpa;
     interpolator = pPathInterpolator;
     interpolantManager = pInterpolantManager;
     checker = pFeasibilityChecker;
@@ -154,17 +147,6 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     return progress;
   }
 
-  @Override
-  public boolean performRefinement(final ReachedSet pReached)
-      throws CPAException, InterruptedException {
-    return performRefinementAndGetCex(pReached).isSpurious();
-  }
-
-  protected CounterexampleInfo performRefinementAndGetCex(final ReachedSet pReached)
-      throws CPAException, InterruptedException {
-    return performRefinement(new ARGReachedSet(pReached, argCpa));
-  }
-
   protected CounterexampleInfo performRefinement(final ARGReachedSet pReached)
       throws CPAException, InterruptedException {
 
@@ -179,33 +161,8 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     return performRefinementForPaths(pReached, targets, targetPaths);
   }
 
-  /**
-   * Provide an adaptor from {@link GenericRefiner} (which implements {@link Refiner})
-   * and provides global refinements) to {@link ARGBasedRefiner},
-   * which provides path-specific refinements.
-   */
-  public ARGBasedRefiner asARGBasedRefiner() {
-    class GenericRefinerToARGBasedRefinerAdaptor implements ARGBasedRefiner, StatisticsProvider {
-      @Override
-      public CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
-          throws CPAException, InterruptedException {
-        return GenericRefiner.this.performRefinementForPath(pReached, pPath);
-      }
-
-      @Override
-      public void collectStatistics(Collection<Statistics> pStatsCollection) {
-        GenericRefiner.this.collectStatistics(pStatsCollection);
-      }
-
-      @Override
-      public String toString() {
-        return GenericRefiner.this.toString();
-      }
-    }
-    return new GenericRefinerToARGBasedRefinerAdaptor();
-  }
-
-  private final CounterexampleInfo performRefinementForPath(
+  @Override
+  public CounterexampleInfo performRefinementForPath(
       final ARGReachedSet pReached, ARGPath targetPathToUse)
       throws CPAException, InterruptedException {
     Collection<ARGState> targets = Collections.singleton(targetPathToUse.getLastState());

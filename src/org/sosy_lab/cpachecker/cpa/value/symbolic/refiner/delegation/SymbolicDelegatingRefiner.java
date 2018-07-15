@@ -34,13 +34,14 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.RefinableConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
@@ -71,7 +72,7 @@ import org.sosy_lab.cpachecker.util.refinement.PathInterpolator;
  * {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}
  * that tries to refine precision using only the {@link ValueAnalysisCPA}, first.
  */
-public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
+public class SymbolicDelegatingRefiner implements ARGBasedRefiner, StatisticsProvider {
 
   private final SymbolicValueAnalysisRefiner explicitRefiner;
   private final SymbolicValueAnalysisRefiner symbolicRefiner;
@@ -89,8 +90,6 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
   public static SymbolicDelegatingRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
-    final ARGCPA argCpa =
-        CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SymbolicValueAnalysisRefiner.class);
     final ValueAnalysisCPA valueAnalysisCpa =
         CPAs.retrieveCPAOrFail(pCpa, ValueAnalysisCPA.class, SymbolicValueAnalysisRefiner.class);
     final ConstraintsCPA constraintsCpa =
@@ -186,7 +185,6 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
             config, logger, shutdownNotifier, cfa);
 
     return new SymbolicDelegatingRefiner(
-        argCpa,
         feasibilityChecker,
         cfa,
         pathInterpolator,
@@ -198,7 +196,6 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
   }
 
   public SymbolicDelegatingRefiner(
-      final ARGCPA pArgCPA,
       final SymbolicFeasibilityChecker pSymbolicFeasibilityChecker,
       final CFA pCfa,
       final SymbolicPathInterpolator pSymbolicInterpolator,
@@ -213,7 +210,6 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
     // RepeatedCounterexample error will occur when symbolicRefiner starts refinement.
     symbolicRefiner =
         new SymbolicValueAnalysisRefiner(
-            pArgCPA,
             pCfa,
             pSymbolicFeasibilityChecker,
             pSymbolicStrongestPost,
@@ -224,7 +220,6 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
 
     explicitRefiner =
         new SymbolicValueAnalysisRefiner(
-            pArgCPA,
             pCfa,
             pExplicitFeasibilityChecker,
             pSymbolicStrongestPost,
@@ -233,39 +228,6 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
             pConfig,
             pLogger);
     logger = pLogger;
-  }
-
-  @Override
-  public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
-    logger.log(Level.FINER, "Trying to refine using explicit refiner only");
-    explicitRefinements++;
-    explicitRefinementTime.start();
-
-    boolean refinementSuccessful = explicitRefiner.performRefinement(pReached);
-
-    explicitRefinementTime.stop();
-
-    if (!refinementSuccessful) {
-      logger.log(Level.FINER, "Refinement using explicit refiner only failed");
-      logger.log(Level.FINER, "Trying to refine using symbolic refiner");
-      symbolicRefinements++;
-      symbolicRefinementTime.start();
-
-      refinementSuccessful = symbolicRefiner.performRefinement(pReached);
-
-      symbolicRefinementTime.stop();
-      logger.logf(Level.FINER,
-          "Refinement using symbolic refiner finished with status %s", refinementSuccessful);
-
-      if (refinementSuccessful) {
-        successfulSymbolicRefinements++;
-      }
-    } else {
-      logger.log(Level.FINER, "Refinement using explicit refiner only successful");
-      successfulExplicitRefinements++;
-    }
-
-    return refinementSuccessful;
   }
 
   @Override
@@ -289,5 +251,39 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
         return SymbolicDelegatingRefiner.class.getSimpleName();
       }
     });
+  }
+
+  @Override
+  public CounterexampleInfo performRefinementForPath(
+      ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException {
+    logger.log(Level.FINER, "Trying to refine using explicit refiner only");
+    explicitRefinements++;
+    explicitRefinementTime.start();
+
+    CounterexampleInfo cex = explicitRefiner.performRefinementForPath(pReached, pPath);
+
+    explicitRefinementTime.stop();
+
+    if (!cex.isSpurious()) {
+      logger.log(Level.FINER, "Refinement using explicit refiner only failed");
+      logger.log(Level.FINER, "Trying to refine using symbolic refiner");
+      symbolicRefinements++;
+      symbolicRefinementTime.start();
+
+      cex = symbolicRefiner.performRefinementForPath(pReached, pPath);
+
+      symbolicRefinementTime.stop();
+      logger.logf(Level.FINER,
+          "Refinement using symbolic refiner finished with status %s", cex.isSpurious());
+
+      if (cex.isSpurious()) {
+        successfulSymbolicRefinements++;
+      }
+    } else {
+      logger.log(Level.FINER, "Refinement using explicit refiner only successful");
+      successfulExplicitRefinements++;
+    }
+
+    return cex;
   }
 }
