@@ -60,11 +60,11 @@ public enum SMGJoinStatus {
    * </pre>
    */
   // TODO handle "INCOMPLETE"?
-  public static SMGJoinStatus updateStatus(SMGJoinStatus pStatus1, SMGJoinStatus pStatus2) {
-    if (pStatus1 == SMGJoinStatus.EQUAL || pStatus1 == pStatus2) {
+  public SMGJoinStatus updateWith(SMGJoinStatus pStatus2) {
+    if (this == SMGJoinStatus.EQUAL || this == pStatus2) {
       return pStatus2;
     } else if (pStatus2 == SMGJoinStatus.EQUAL) {
-      return pStatus1;
+      return this;
     }
     return SMGJoinStatus.INCOMPARABLE;
   }

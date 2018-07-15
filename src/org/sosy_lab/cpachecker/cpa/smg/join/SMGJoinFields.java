@@ -123,7 +123,7 @@ class SMGJoinFields {
       Entry<Long, Integer> newFloorEntry = newNullEdges.floorEntry(origEdge.getKey());
       if (newFloorEntry == null || newFloorEntry.getValue() + newFloorEntry.getKey() <
                                     origEdge.getValue() + origEdge.getKey()) {
-        return SMGJoinStatus.updateStatus(pCurStatus, pNewStatus);
+        return pCurStatus.updateWith(pNewStatus);
       }
     }
     return pCurStatus;

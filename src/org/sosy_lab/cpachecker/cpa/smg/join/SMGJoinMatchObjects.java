@@ -169,11 +169,11 @@ final class SMGJoinMatchObjects {
     SMGJoinStatus result = pStatus;
 
     if (pObj1.join(pObj2, pObj1.getLevel()).isMoreGeneral(pObj2)) {
-      result = SMGJoinStatus.updateStatus(result, SMGJoinStatus.LEFT_ENTAIL);
+      result = result.updateWith(SMGJoinStatus.LEFT_ENTAIL);
     }
 
     if (pObj2.join(pObj1, pObj2.getLevel()).isMoreGeneral(pObj1)) {
-      result = SMGJoinStatus.updateStatus(result, SMGJoinStatus.RIGHT_ENTAIL);
+      result = result.updateWith(SMGJoinStatus.RIGHT_ENTAIL);
     }
 
     return result;

@@ -107,7 +107,7 @@ final class SMGJoinValues {
         newValue = SMGKnownSymValue.of();
 
         if (smgState1 == null || smgState2 == null) {
-          status = SMGJoinStatus.updateStatus(status, SMGJoinStatus.INCOMPARABLE);
+          status = status.updateWith(SMGJoinStatus.INCOMPARABLE);
         } else {
           SMGJoinStatus v1isLessOrEqualV2 =
               valueIsLessOrEqual(
@@ -117,20 +117,20 @@ final class SMGJoinValues {
                   (SMGKnownSymbolicValue) pV2, (SMGKnownSymbolicValue) pV1, smgState2, smgState1);
 
           if (v1isLessOrEqualV2 != SMGJoinStatus.INCOMPARABLE) {
-            status = SMGJoinStatus.updateStatus(status, v1isLessOrEqualV2);
+            status = status.updateWith(v1isLessOrEqualV2);
           } else if (v2isLessOrEqualV1 == SMGJoinStatus.RIGHT_ENTAIL) {
-            status = SMGJoinStatus.updateStatus(status, SMGJoinStatus.LEFT_ENTAIL);
+            status = status.updateWith(SMGJoinStatus.LEFT_ENTAIL);
           } else {
-            status = SMGJoinStatus.updateStatus(status, v2isLessOrEqualV1);
+            status = status.updateWith(v2isLessOrEqualV1);
           }
         }
 
       }
 
       if (pLevelV1 - pLevelV2 < lDiff) {
-        status = SMGJoinStatus.updateStatus(status, SMGJoinStatus.LEFT_ENTAIL);
+        status = status.updateWith(SMGJoinStatus.LEFT_ENTAIL);
       } else if (pLevelV1 - pLevelV2 > lDiff) {
-        status = SMGJoinStatus.updateStatus(status, SMGJoinStatus.RIGHT_ENTAIL);
+        status = status.updateWith(SMGJoinStatus.RIGHT_ENTAIL);
       }
 
       destSMG.addValue(newValue);
@@ -505,7 +505,7 @@ final class SMGJoinValues {
     SMGJoinStatus newJoinStatus = pTarget.getKind() == SMGObjectKind.OPTIONAL
         ? SMGJoinStatus.RIGHT_ENTAIL : SMGJoinStatus.INCOMPARABLE;
 
-    SMGJoinStatus updatedStatus = SMGJoinStatus.updateStatus(pStatus, newJoinStatus);
+    SMGJoinStatus updatedStatus = pStatus.updateWith(newJoinStatus);
 
     /*Join next pointer with value1. And insert optional object if succesfully joined.*/
     SMGJoinValues jv =
@@ -760,7 +760,7 @@ final class SMGJoinValues {
     SMGJoinStatus newJoinStatus = pTarget.getKind() == SMGObjectKind.OPTIONAL
         ? SMGJoinStatus.LEFT_ENTAIL : SMGJoinStatus.INCOMPARABLE;
 
-    SMGJoinStatus updatedStatus = SMGJoinStatus.updateStatus(pStatus, newJoinStatus);
+    SMGJoinStatus updatedStatus = pStatus.updateWith(newJoinStatus);
 
     /*Join next pointer with value2. And insert optional object if succesfully joined.*/
     SMGJoinValues jv =
@@ -978,7 +978,7 @@ final class SMGJoinValues {
     SMGJoinStatus newJoinStatus =
         length == 0 ? SMGJoinStatus.LEFT_ENTAIL : SMGJoinStatus.INCOMPARABLE;
 
-    newStatus = SMGJoinStatus.updateStatus(newStatus, newJoinStatus);
+    newStatus = newStatus.updateWith(newJoinStatus);
 
     int lvlDiff = pPrevDestLevel - pTarget.getLevel();
 
@@ -1224,7 +1224,7 @@ final class SMGJoinValues {
     SMGJoinStatus newJoinStatus =
         length == 0 ? SMGJoinStatus.RIGHT_ENTAIL : SMGJoinStatus.INCOMPARABLE;
 
-    newStatus = SMGJoinStatus.updateStatus(newStatus, newJoinStatus);
+    newStatus = newStatus.updateWith(newJoinStatus);
 
     int levelDiff = pPrevDestLevel - pTarget.getLevel();
 

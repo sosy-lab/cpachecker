@@ -80,7 +80,7 @@ public final class SMGJoin {
 
     SMGJoinStatus tmpStatus =
         joinStackVariables(mapping1, mapping2, opSMG1.getStackFrames(), opSMG2.getStackFrames());
-    status = SMGJoinStatus.updateStatus(status, tmpStatus);
+    status = status.updateWith(tmpStatus);
     if (status == SMGJoinStatus.INCOMPARABLE) {
       return;
     }
@@ -201,8 +201,8 @@ public final class SMGJoin {
         mapping1.map(localInSMG1, localInSMG1);
         mapping2.map(localInSMG2, localInSMG1);
       }
-      result = SMGJoinStatus.updateStatus(
-              result, getFlag(locals1.containsAll(locals2), locals2.containsAll(locals1)));
+      result =
+          status.updateWith(getFlag(locals1.containsAll(locals2), locals2.containsAll(locals1)));
     }
     return result;
   }
