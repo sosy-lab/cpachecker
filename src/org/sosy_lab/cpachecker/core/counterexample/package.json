@@ -4,7 +4,7 @@
   "description": "Report gererated by the CPAchecker",
   "main": "report.js",
   "scripts": {
-    "test": "karma start karma.conf.js"
+    "test": "karma start karma.conf.js --no-auto-watch --single-run"
   },
   "author": "",
   "license": "ISC",
