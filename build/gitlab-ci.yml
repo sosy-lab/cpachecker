@@ -6,6 +6,7 @@ stages:
   - dependencies
   - build
   - checks
+  - test
   - deploy
 
 image: ${CI_REGISTRY_IMAGE}/test:jdk-8
