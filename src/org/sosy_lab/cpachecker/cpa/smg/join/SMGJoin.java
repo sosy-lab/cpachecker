@@ -53,6 +53,8 @@ public final class SMGJoin {
   final SMGLevelMapping levelMap = SMGLevelMapping.createDefaultLevelMap();
 
   /**
+   * Algorithm 10 from FIT-TR-2012-04.
+   *
    * @param opSMG1 left SMG for the join.
    * @param opSMG2 right SMG for the join.
    * @param pStateOfSmg1 state containing the left SMG, can be NULL for testing only.
@@ -73,14 +75,17 @@ public final class SMGJoin {
     Map<String, SMGRegion> globals_in_smg1 = opSMG1.getGlobalObjects();
     Map<String, SMGRegion> globals_in_smg2 = opSMG2.getGlobalObjects();
 
+    // FIT-TR-2012-04, Alg 10, line 2
     SMGJoinStatus tmpStatus1 =
         joinGlobalVariables(mapping1, mapping2, globals_in_smg1, globals_in_smg2);
     status = status.updateWith(tmpStatus1);
 
+    // FIT-TR-2012-04, Alg 10, line 2
     SMGJoinStatus tmpStatus2 =
         joinStackVariables(mapping1, mapping2, opSMG1.getStackFrames(), opSMG2.getStackFrames());
     status = status.updateWith(tmpStatus2);
 
+    // FIT-TR-2012-04, Alg 10, line 3
     // join heap for globally pointed objects, global variable names are already joined
     for (Entry<String, SMGRegion> entry : smg.getGlobalObjects().entrySet()) {
       SMGObject globalInSMG1 = globals_in_smg1.get(entry.getKey());
@@ -93,6 +98,7 @@ public final class SMGJoin {
       }
     }
 
+    // FIT-TR-2012-04, Alg 10, line 3
     // join heap for locally pointed objects, variable names per stackframe are already joined
     Iterator<CLangStackFrame> smg1stackIterator = opSMG1.getStackFrames().iterator();
     Iterator<CLangStackFrame> smg2stackIterator = opSMG2.getStackFrames().iterator();
@@ -212,13 +218,6 @@ public final class SMGJoin {
     return defined;
   }
 
-  /**
-   * Returns the completion status of the join operation. If the status is {@link
-   * SMGJoinStatus#INCOMPARABLE} the joined SMG is undefined and should not be used.
-   *
-   * <p>Currently, after {@link SMGJoinStatus#INCOMPARABLE} the joined SMG represents the SMG built
-   * up until last step before aborting. A user can access this SMG for debugging. Handle with care!
-   */
   public SMGJoinStatus getStatus() {
     return status;
   }

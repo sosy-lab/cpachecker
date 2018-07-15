@@ -252,6 +252,7 @@ final class SMGJoinValues {
     return false;
   }
 
+  /** Algorithm 5 from FIT-TR-2012-04 */
   public SMGJoinValues(
       SMGJoinStatus pStatus,
       final UnmodifiableSMG pNewInputSMG1,
@@ -279,6 +280,7 @@ final class SMGJoinValues {
     smgState1 = pStateOfSmg1;
     smgState2 = pStateOfSmg2;
 
+    // Algorithm 5 from FIT-TR-2012-04, line 1, change: only for identical SMGs
     if (identicalInputSmg && joinValuesIdentical(pValue1, pValue2)) {
       abstractionCandidates = ImmutableList.of();
       recoverable = defined;
@@ -287,24 +289,28 @@ final class SMGJoinValues {
       return;
     }
 
+    // Algorithm 5 from FIT-TR-2012-04, line 2
     if (joinValuesAlreadyJoined(pValue1, pValue2)) {
       abstractionCandidates = ImmutableList.of();
       recoverable = defined;
       return;
     }
 
+    // Algorithm 5 from FIT-TR-2012-04, line 3
     if (joinValuesNonPointers(pValue1, pValue2, levelV1, levelV2, pLDiff)) {
       abstractionCandidates = ImmutableList.of();
       recoverable = defined;
       return;
     }
 
+    // Algorithm 5 from FIT-TR-2012-04, line 4
     if (joinValuesMixedPointers(pValue1, pValue2)) {
       abstractionCandidates = ImmutableList.of();
       recoverable = true;
       return;
     }
 
+    // Algorithm 5 from FIT-TR-2012-04, line 5
     if (joinValuesPointers(
         pValue1, pValue2, levelV1, levelV2, pLDiff, identicalInputSmg, pLevelMap)) {
 
@@ -316,11 +322,13 @@ final class SMGJoinValues {
 
       if(recoverable) {
 
+        // Algorithm 5 from FIT-TR-2012-04, line 6
         SMGObject target1 = inputSMG1.getObjectPointedBy(pValue1);
         SMGObject target2 = inputSMG2.getObjectPointedBy(pValue2);
 
         if(target1.isAbstract() || target2.isAbstract()) {
 
+          // Algorithm 5 from FIT-TR-2012-04, line 7
           if (target1.getKind() == SMGObjectKind.DLL || target1.getKind() == SMGObjectKind.SLL) {
 
             Pair<Boolean, Boolean> result = insertLeftListAndJoin(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pLevelMap, pValue1,
@@ -337,6 +345,7 @@ final class SMGJoinValues {
             }
           }
 
+          // Algorithm 5 from FIT-TR-2012-04, line 8
           if (target2.getKind() == SMGObjectKind.DLL || target2.getKind() == SMGObjectKind.SLL) {
 
             Pair<Boolean, Boolean> result = insertRightListAndJoin(status, inputSMG1, inputSMG2,
@@ -833,6 +842,7 @@ final class SMGJoinValues {
     return Pair.of(true, true);
   }
 
+  /** Algorithm 9 from FIT-TR-2012-04 */
   private Pair<Boolean, Boolean> insertLeftListAndJoin(
       SMGJoinStatus pStatus,
       UnmodifiableSMG pInputSMG1,
@@ -907,6 +917,7 @@ final class SMGJoinValues {
       nextPointer = Iterables.getOnlyElement(hvesNp).getValue();
     }
 
+    // Algorithm 9 from FIT-TR-2012-04, line 4
     if (newMapping1.containsKey(pTarget)) {
       SMGObject jointList = newMapping1.get(pTarget);
       if (newMapping2.containsValue(jointList)) {
@@ -966,6 +977,7 @@ final class SMGJoinValues {
       }
     }
 
+    // Algorithm 9 from FIT-TR-2012-04, line 5
     // TODO v1 == v2 Identical in conditions??
     if (newMapping1.containsKey(nextPointer)
         && newMapping2.containsKey(pointer2)
@@ -973,6 +985,7 @@ final class SMGJoinValues {
       return Pair.of(false, true);
     }
 
+    // Algorithm 9 from FIT-TR-2012-04, line 6
     SMGJoinStatus newJoinStatus =
         length == 0 ? SMGJoinStatus.LEFT_ENTAIL : SMGJoinStatus.INCOMPARABLE;
 
@@ -984,6 +997,7 @@ final class SMGJoinValues {
       lvlDiff = lvlDiff + 1;
     }
 
+    // Algorithm 9 from FIT-TR-2012-04, line 7
     copyDlsSubSmgToDestSMG(pTarget, newMapping1, newInputSMG1, newDestSMG, lvlDiff);
 
     SMGObject list = newMapping1.get(pTarget);
@@ -998,7 +1012,8 @@ final class SMGJoinValues {
       resultPointer = Iterables.getOnlyElement(edges).getValue();
     }
 
-    if(resultPointer == null) {
+    // Algorithm 9 from FIT-TR-2012-04, line 9
+    if (resultPointer == null) {
       resultPointer = SMGKnownSymValue.of();
       SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, list, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
       newDestSMG.addValue(resultPointer);
@@ -1006,6 +1021,7 @@ final class SMGJoinValues {
       newMapping1.map(pointer1, resultPointer);
     }
 
+    // Algorithm 9 from FIT-TR-2012-04, line 10
     SMGJoinValues jv =
         new SMGJoinValues(
             newStatus,
@@ -1045,6 +1061,7 @@ final class SMGJoinValues {
 
     CType nfType = getType(pTarget, nf, newInputSMG1);
 
+    // Algorithm 9 from FIT-TR-2012-04, line 11
     SMGEdgeHasValue newHve = new SMGEdgeHasValue(nfType, nf, list, newAdressFromDLS);
 
     if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list).filterAtOffset(nf).filterHavingValue(newAdressFromDLS)).isEmpty()) {

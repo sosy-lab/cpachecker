@@ -120,6 +120,7 @@ final class SMGJoinMatchObjects {
     return false;
   }
 
+  /** Algorithm 8 from FIT-TR-2012-04 */
   public SMGJoinMatchObjects(
       SMGJoinStatus pStatus,
       UnmodifiableSMG pSMG1,
@@ -133,22 +134,27 @@ final class SMGJoinMatchObjects {
       throw new IllegalArgumentException();
     }
 
+    // Algorithm 8 from FIT-TR-2012-04, line 1
     if (checkNull(pObj1, pObj2)) {
       return;
     }
 
+    // Algorithm 8 from FIT-TR-2012-04, line 2
     if (checkMatchingMapping(pObj1, pObj2, pMapping1, pMapping2)) {
       return;
     }
 
+    // Algorithm 8 from FIT-TR-2012-04, line 3+4
     if (checkConsistentMapping(pObj1, pObj2, pMapping1, pMapping2)) {
       return;
     }
 
+    // Algorithm 8 from FIT-TR-2012-04, line 5
     if (checkConsistentObjects(pObj1, pObj2, pSMG1, pSMG2)) {
       return;
     }
 
+    // Algorithm 8 from FIT-TR-2012-04, line 6
     if (checkConsistentShape(pObj1, pObj2)) {
       return;
     }
@@ -157,10 +163,12 @@ final class SMGJoinMatchObjects {
       return;
     }
 
+    // Algorithm 8 from FIT-TR-2012-04, line 7+8
     if (checkConsistentFields(pObj1, pObj2, pMapping1, pMapping2, pSMG1, pSMG2)) {
       return;
     }
 
+    // Algorithm 8 from FIT-TR-2012-04, line 9+10
     status = updateStatusForAbstractions(pObj1, pObj2, pStatus);
     defined = true;
   }

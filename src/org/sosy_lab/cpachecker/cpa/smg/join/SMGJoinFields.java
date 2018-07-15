@@ -46,6 +46,7 @@ class SMGJoinFields {
   private final UnmodifiableSMG newSMG2;
   private SMGJoinStatus status = SMGJoinStatus.EQUAL;
 
+  /** Algorithm 3 from FIT-TR-2012-04 */
   public SMGJoinFields(
       final UnmodifiableSMG pSMG1, final UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
 
@@ -59,15 +60,18 @@ class SMGJoinFields {
     final SMG joinedSmg1 = pSMG1.copyOf();
     final SMG joinedSmg2 = pSMG2.copyOf();
 
+    // Algorithm 3 from FIT-TR-2012-04, line 2
     setCompatibleHVEdgesToSMG(joinedSmg1, pSMG2, pObj1, pObj2);
     setCompatibleHVEdgesToSMG(joinedSmg2, pSMG1, pObj2, pObj1);
 
+    // Algorithm 3 from FIT-TR-2012-04, line 4
     status = joinFieldsRelaxStatus(pSMG1, joinedSmg1, status, SMGJoinStatus.RIGHT_ENTAIL, pObj1);
     status = joinFieldsRelaxStatus(pSMG2, joinedSmg2, status, SMGJoinStatus.LEFT_ENTAIL, pObj2);
 
     Set<SMGEdgeHasValue> smg2Extension = mergeNonNullHasValueEdges(pSMG1, pSMG2, pObj1, pObj2);
     Set<SMGEdgeHasValue> smg1Extension = mergeNonNullHasValueEdges(pSMG2, pSMG1, pObj2, pObj1);
 
+    // Algorithm 3 from FIT-TR-2012-04, line 5
     for (SMGEdgeHasValue edge : smg1Extension) {
       joinedSmg1.addValue(edge.getValue());
       joinedSmg1.addHasValueEdge(edge);

@@ -42,6 +42,7 @@ final class SMGJoinMapTargetAddress {
   private final SMGNodeMapping mapping2;
   private final SMGValue value;
 
+  /** Algorithm 7 from FIT-TR-2012-04 */
   public SMGJoinMapTargetAddress(
       UnmodifiableSMG pSMG1,
       UnmodifiableSMG pSMG2,
@@ -58,6 +59,8 @@ final class SMGJoinMapTargetAddress {
     // TODO: Ugly, refactor
     SMGEdgePointsTo pt = pSMG1.getPointer(pAddress1);
     SMGEdgePointsTo pt2 = pSMG2.getPointer(pAddress2);
+
+    // Algorithm 7 from FIT-TR-2012-04, line 2
     if (pt.getObject() != SMGNullObject.INSTANCE) {
       target = pMapping1.get(pt.getObject());
     }
@@ -65,6 +68,7 @@ final class SMGJoinMapTargetAddress {
     SMGTargetSpecifier tg;
 
     /*When mapping optional object to other abstract object, use tg of other object.*/
+    // Algorithm 7 from FIT-TR-2012-04, line 3
     if ((pt.getObject().isAbstract() && pt.getObject().getKind() != SMGObjectKind.OPTIONAL)
         || pt2 == null
         || pt2.getObject().getKind() == SMGObjectKind.OPTIONAL) {
@@ -73,7 +77,12 @@ final class SMGJoinMapTargetAddress {
       tg = pt2.getTargetSpecifier();
     }
 
-    Set<SMGEdgePointsTo> edges = smg.getPtEdges(SMGEdgePointsToFilter.targetObjectFilter(target).filterAtTargetOffset(pt.getOffset()).filterByTargetSpecifier(tg));
+    // Algorithm 7 from FIT-TR-2012-04, line 4
+    Set<SMGEdgePointsTo> edges =
+        smg.getPtEdges(
+            SMGEdgePointsToFilter.targetObjectFilter(target)
+                .filterAtTargetOffset(pt.getOffset())
+                .filterByTargetSpecifier(tg));
 
     if (!edges.isEmpty()) {
       value = Iterables.getOnlyElement(edges).getValue();
@@ -86,11 +95,14 @@ final class SMGJoinMapTargetAddress {
       value = SMGKnownSymValue.of();
     }
 
+    // Algorithm 7 from FIT-TR-2012-04, line 5
     smg.addValue(value);
 
     SMGEdgePointsTo nPtEdge = new SMGEdgePointsTo(value, target, pt.getOffset(), tg);
 
     smg.addPointsToEdge(nPtEdge);
+
+    // Algorithm 7 from FIT-TR-2012-04, line 6
     mapping1.map(pAddress1, value);
     mapping2.map(pAddress2, value);
   }

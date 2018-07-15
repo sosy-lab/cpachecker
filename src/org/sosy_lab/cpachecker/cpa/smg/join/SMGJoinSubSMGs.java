@@ -59,6 +59,7 @@ final class SMGJoinSubSMGs {
   private SMGNodeMapping mapping2 = null;
   private final List<SMGGenericAbstractionCandidate> subSmgAbstractionCandidates;
 
+  /** Algorithm 4 from FIT-TR-2012-04. */
   public SMGJoinSubSMGs(
       SMGJoinStatus initialStatus,
       UnmodifiableSMG pSMG1,
@@ -76,8 +77,8 @@ final class SMGJoinSubSMGs {
       UnmodifiableSMGState pSmgState2)
       throws SMGInconsistentException {
 
+    // Algorithm 4 from FIT-TR-2012-04, line 1
     SMGJoinFields joinFields = new SMGJoinFields(pSMG1, pSMG2, pObj1, pObj2);
-
     subSmgAbstractionCandidates = ImmutableList.of();
     inputSMG1 = joinFields.getSMG1();
     inputSMG2 = joinFields.getSMG2();
@@ -97,6 +98,8 @@ final class SMGJoinSubSMGs {
      * SMG.
      */
 
+    // Algorithm 4 from FIT-TR-2012-04, line 2 and 3 interleaved
+    // TODO seems to be buggy, does not fully match the algorithm from TR.
     SMGEdgeHasValueFilter filterOnSMG1 = SMGEdgeHasValueFilter.objectFilter(pObj1);
     SMGEdgeHasValueFilter filterOnSMG2 = SMGEdgeHasValueFilter.objectFilter(pObj2);
     Map<SMGValue, List<SMGGenericAbstractionCandidate>> valueAbstractionCandidates = new HashMap<>();
@@ -144,7 +147,6 @@ final class SMGJoinSubSMGs {
       if (joinValues.isDefined()) {
 
         SMGEdgeHasValue newHV;
-
         if (hvIn1.getObject().equals(pNewObject)
             && joinValues.getValue().equals(hvIn1.getValue())) {
           newHV = hvIn1;

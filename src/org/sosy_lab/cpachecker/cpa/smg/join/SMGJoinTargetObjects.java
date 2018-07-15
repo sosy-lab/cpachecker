@@ -100,6 +100,7 @@ final class SMGJoinTargetObjects {
     return false;
   }
 
+  /** Algorithm 6 from FIT-TR-2012-04 */
   public SMGJoinTargetObjects(
       SMGJoinStatus pStatus,
       UnmodifiableSMG pSMG1,
@@ -128,12 +129,14 @@ final class SMGJoinTargetObjects {
     SMGEdgePointsTo pt1 = inputSMG1.getPointer(pAddress1);
     SMGEdgePointsTo pt2 = inputSMG2.getPointer(pAddress2);
 
-    if(pLevel1 - pLevel2 != ldiff) {
+    // Algorithm 6 from FIT-TR-2012-04, line 1
+    if (pLevel1 - pLevel2 != ldiff) {
       defined = false;
       recoverable = true;
       return;
     }
 
+    // Algorithm 6 from FIT-TR-2012-04, line 1
     if (matchOffsets(pt1, pt2)) {
       abstractionCandidates = ImmutableList.of();
       return;
@@ -142,12 +145,15 @@ final class SMGJoinTargetObjects {
     SMGObject target1 = pt1.getObject();
     SMGObject target2 = pt2.getObject();
 
+    // Algorithm 6 from FIT-TR-2012-04, line 2
     if (checkAlreadyJoined(target1, target2, pAddress1, pAddress2)) {
       abstractionCandidates = ImmutableList.of();
       return;
     }
 
-    if (target1.getKind() != target2.getKind() && mapping1.containsKey(target1)
+    // Algorithm 6 from FIT-TR-2012-04, line 5
+    if (target1.getKind() != target2.getKind()
+        && mapping1.containsKey(target1)
         && mapping2.containsKey(target2)
         && !mapping1.get(target1).equals(mapping2.get(target2))) {
       recoverable = true;
@@ -155,6 +161,7 @@ final class SMGJoinTargetObjects {
       return;
     }
 
+    // Algorithm 6 from FIT-TR-2012-04, line 4
     if (target1.getKind() == target2.getKind()
         && pt1.getTargetSpecifier() != pt2.getTargetSpecifier()) {
       recoverable = true;
@@ -162,12 +169,15 @@ final class SMGJoinTargetObjects {
       return;
     }
 
+    // Algorithm 6 from FIT-TR-2012-04, line 6
     if (checkObjectMatch(target1, target2)) {
       abstractionCandidates = ImmutableList.of();
       return;
     }
 
-    SMGObject newObject = target1.join(target2, pLevelMapping.get(SMGJoinLevel.valueOf(pLevel1, pLevel2)));
+    // Algorithm 6 from FIT-TR-2012-04, line 7
+    SMGObject newObject =
+        target1.join(target2, pLevelMapping.get(SMGJoinLevel.valueOf(pLevel1, pLevel2)));
 
     if (destSMG instanceof CLangSMG) {
       ((CLangSMG)destSMG).addHeapObject(newObject);
@@ -177,17 +187,21 @@ final class SMGJoinTargetObjects {
 
     destSMG.setValidity(newObject, inputSMG1.isObjectValid(target1));
 
+    // Algorithm 6 from FIT-TR-2012-04, line 11
     delayedJoin(target1, target2, newObject);
 
+    // Algorithm 6 from FIT-TR-2012-04, line 12
     mapping1.map(target1, newObject);
     mapping2.map(target2, newObject);
 
+    // Algorithm 6 from FIT-TR-2012-04, line 13
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pAddress1, pAddress2);
     destSMG = mta.getSMG();
     mapping1 = mta.getMapping1();
     mapping2 = mta.getMapping2();
     value = mta.getValue();
 
+    // Algorithm 6 from FIT-TR-2012-04, line 14
     SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, inputSMG1, inputSMG2, destSMG,
         mapping1, mapping2, pLevelMapping,
         target1, target2, newObject, ldiff, identicalInputSmgs, pSmgState1, pSmgState2);
