@@ -115,7 +115,8 @@ unit-tests-counterexample-report:
   stage: test 
   
   script:
-    - ./node_modules/.bin/npm test --watch=false --single-run=true
+    - cd node_modules/.bin/ 
+    - npm test --watch=false --single-run=true
 
 # Disable some checks because they are not used for CPAchecker
 check-format:
