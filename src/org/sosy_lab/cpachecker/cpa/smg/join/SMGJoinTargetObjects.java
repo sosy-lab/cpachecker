@@ -57,49 +57,46 @@ final class SMGJoinTargetObjects {
 
   private List<SMGGenericAbstractionCandidate> abstractionCandidates;
 
-  private static boolean matchOffsets(SMGJoinTargetObjects pJto, SMGEdgePointsTo pt1, SMGEdgePointsTo pt2) {
+  private boolean matchOffsets(SMGEdgePointsTo pt1, SMGEdgePointsTo pt2) {
     if (pt1.getOffset() != pt2.getOffset()) {
-      pJto.defined = false;
-      pJto.recoverable = true;
+      defined = false;
+      recoverable = true;
       return true;
     }
 
     return false;
   }
 
-  private static boolean checkAlreadyJoined(
-      SMGJoinTargetObjects pJto,
-      SMGObject pObj1,
-      SMGObject pObj2,
-      SMGValue pAddress1,
-      SMGValue pAddress2) {
+  private boolean checkAlreadyJoined(
+      SMGObject pObj1, SMGObject pObj2, SMGValue pAddress1, SMGValue pAddress2) {
     if ((pObj1 == SMGNullObject.INSTANCE && pObj2 == SMGNullObject.INSTANCE)
-        || (pJto.mapping1.containsKey(pObj1)
-            && pJto.mapping2.containsKey(pObj2)
-            && pJto.mapping1.get(pObj1) == pJto.mapping2.get(pObj2))) {
-      SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(pJto.inputSMG1, pJto.inputSMG2, pJto.destSMG, pJto.mapping1,
-                                                        pJto.mapping2, pAddress1,
-                                                        pAddress2);
-      pJto.defined = true;
-      pJto.destSMG = mta.getSMG();
-      pJto.mapping1 = mta.getMapping1();
-      pJto.mapping2 = mta.getMapping2();
-      pJto.value = mta.getValue();
+        || (mapping1.containsKey(pObj1)
+            && mapping2.containsKey(pObj2)
+            && mapping1.get(pObj1) == mapping2.get(pObj2))) {
+      SMGJoinMapTargetAddress mta =
+          new SMGJoinMapTargetAddress(
+              inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pAddress1, pAddress2);
+      defined = true;
+      destSMG = mta.getSMG();
+      mapping1 = mta.getMapping1();
+      mapping2 = mta.getMapping2();
+      value = mta.getValue();
       return true;
     }
 
     return false;
   }
 
-  private static boolean checkObjectMatch(SMGJoinTargetObjects pJto, SMGObject pObj1, SMGObject pObj2) {
-    SMGJoinMatchObjects mo = new SMGJoinMatchObjects(pJto.status, pJto.inputSMG1, pJto.inputSMG2, pJto.mapping1, pJto.mapping2, pObj1, pObj2);
+  private boolean checkObjectMatch(SMGObject pObj1, SMGObject pObj2) {
+    SMGJoinMatchObjects mo =
+        new SMGJoinMatchObjects(status, inputSMG1, inputSMG2, mapping1, mapping2, pObj1, pObj2);
     if (! mo.isDefined()) {
-      pJto.defined = false;
-      pJto.recoverable = true;
+      defined = false;
+      recoverable = true;
       return true;
     }
 
-    pJto.status = mo.getStatus();
+    status = mo.getStatus();
     return false;
   }
 
@@ -137,7 +134,7 @@ final class SMGJoinTargetObjects {
       return;
     }
 
-    if (SMGJoinTargetObjects.matchOffsets(this, pt1, pt2)) {
+    if (matchOffsets(pt1, pt2)) {
       abstractionCandidates = ImmutableList.of();
       return;
     }
@@ -145,7 +142,7 @@ final class SMGJoinTargetObjects {
     SMGObject target1 = pt1.getObject();
     SMGObject target2 = pt2.getObject();
 
-    if (SMGJoinTargetObjects.checkAlreadyJoined(this, target1, target2, pAddress1, pAddress2)) {
+    if (checkAlreadyJoined(target1, target2, pAddress1, pAddress2)) {
       abstractionCandidates = ImmutableList.of();
       return;
     }
@@ -165,7 +162,7 @@ final class SMGJoinTargetObjects {
       return;
     }
 
-    if (SMGJoinTargetObjects.checkObjectMatch(this, target1, target2)) {
+    if (checkObjectMatch(target1, target2)) {
       abstractionCandidates = ImmutableList.of();
       return;
     }
