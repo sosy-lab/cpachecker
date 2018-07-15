@@ -112,8 +112,7 @@ unit-tests-counterexample-report:
     paths:
     - node_modules/
 
-  stage:
-    - test 
+  stage: test 
   
   script:
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
