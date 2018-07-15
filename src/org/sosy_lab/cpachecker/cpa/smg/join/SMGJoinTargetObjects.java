@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import java.util.HashSet;
 import java.util.List;
@@ -52,8 +53,8 @@ final class SMGJoinTargetObjects {
   private final UnmodifiableSMG inputSMG2;
   private SMG destSMG;
   private SMGValue value;
-  private SMGNodeMapping mapping1;
-  private SMGNodeMapping mapping2;
+  @VisibleForTesting final SMGNodeMapping mapping1;
+  @VisibleForTesting final SMGNodeMapping mapping2;
 
   private List<SMGGenericAbstractionCandidate> abstractionCandidates;
 
@@ -78,8 +79,6 @@ final class SMGJoinTargetObjects {
               inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pAddress1, pAddress2);
       defined = true;
       destSMG = mta.getSMG();
-      mapping1 = mta.getMapping1();
-      mapping2 = mta.getMapping2();
       value = mta.getValue();
       return true;
     }
@@ -197,8 +196,6 @@ final class SMGJoinTargetObjects {
     // Algorithm 6 from FIT-TR-2012-04, line 13
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pAddress1, pAddress2);
     destSMG = mta.getSMG();
-    mapping1 = mta.getMapping1();
-    mapping2 = mta.getMapping2();
     value = mta.getValue();
 
     // Algorithm 6 from FIT-TR-2012-04, line 14
@@ -343,10 +340,6 @@ final class SMGJoinTargetObjects {
     return destSMG;
   }
 
-  public SMGNodeMapping getMapping1() {
-    return mapping1;
-  }
-
   public SMGValue getValue() {
     return value;
   }
@@ -357,10 +350,6 @@ final class SMGJoinTargetObjects {
 
   public UnmodifiableSMG getInputSMG2() {
     return inputSMG2;
-  }
-
-  public SMGNodeMapping getMapping2() {
-    return mapping2;
   }
 
   public List<SMGGenericAbstractionCandidate> getAbstractionCandidates() {

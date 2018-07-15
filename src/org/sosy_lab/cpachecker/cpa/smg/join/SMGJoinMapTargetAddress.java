@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
@@ -38,8 +39,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 final class SMGJoinMapTargetAddress {
   private final SMG smg;
-  private final SMGNodeMapping mapping1;
-  private final SMGNodeMapping mapping2;
+  @VisibleForTesting final SMGNodeMapping mapping1;
+  @VisibleForTesting final SMGNodeMapping mapping2;
   private final SMGValue value;
 
   /** Algorithm 7 from FIT-TR-2012-04 */
@@ -109,14 +110,6 @@ final class SMGJoinMapTargetAddress {
 
   public SMG getSMG() {
     return smg;
-  }
-
-  public SMGNodeMapping getMapping1() {
-    return mapping1;
-  }
-
-  public SMGNodeMapping getMapping2() {
-    return mapping2;
   }
 
   public SMGValue getValue() {

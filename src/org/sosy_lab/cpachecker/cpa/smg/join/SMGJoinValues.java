@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.HashSet;
@@ -60,8 +61,8 @@ final class SMGJoinValues {
   private UnmodifiableSMG inputSMG2;
   private SMG destSMG;
   private SMGValue value;
-  private SMGNodeMapping mapping1;
-  private SMGNodeMapping mapping2;
+  @VisibleForTesting final SMGNodeMapping mapping1;
+  @VisibleForTesting final SMGNodeMapping mapping2;
   private boolean defined = false;
 
   private final UnmodifiableSMGState smgState1;
@@ -232,8 +233,6 @@ final class SMGJoinValues {
       inputSMG1 = jto.getInputSMG1();
       inputSMG2 = jto.getInputSMG2();
       destSMG = jto.getDestinationSMG();
-      mapping1 = jto.getMapping1();
-      mapping2 = jto.getMapping2();
       value = jto.getValue();
       defined = true;
       abstractionCandidates = jto.getAbstractionCandidates();
@@ -331,9 +330,21 @@ final class SMGJoinValues {
           // Algorithm 5 from FIT-TR-2012-04, line 7
           if (target1.getKind() == SMGObjectKind.DLL || target1.getKind() == SMGObjectKind.SLL) {
 
-            Pair<Boolean, Boolean> result = insertLeftListAndJoin(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pLevelMap, pValue1,
-                pValue2, target1, pLDiff, levelV1, levelV2,
-                identicalInputSmg, pPrevDestLevel);
+            Pair<Boolean, Boolean> result =
+                insertLeftListAndJoin(
+                    status,
+                    inputSMG1,
+                    inputSMG2,
+                    destSMG,
+                    pLevelMap,
+                    pValue1,
+                    pValue2,
+                    target1,
+                    pLDiff,
+                    levelV1,
+                    levelV2,
+                    identicalInputSmg,
+                    pPrevDestLevel);
 
             if(result.getSecond()) {
               if(result.getFirst()) {
@@ -348,10 +359,21 @@ final class SMGJoinValues {
           // Algorithm 5 from FIT-TR-2012-04, line 8
           if (target2.getKind() == SMGObjectKind.DLL || target2.getKind() == SMGObjectKind.SLL) {
 
-            Pair<Boolean, Boolean> result = insertRightListAndJoin(status, inputSMG1, inputSMG2,
-                destSMG, mapping1, mapping2, pLevelMap, pValue1,
-                pValue2, target2, pLDiff, levelV1, levelV2,
-                identicalInputSmg, pPrevDestLevel);
+            Pair<Boolean, Boolean> result =
+                insertRightListAndJoin(
+                    status,
+                    inputSMG1,
+                    inputSMG2,
+                    destSMG,
+                    pLevelMap,
+                    pValue1,
+                    pValue2,
+                    target2,
+                    pLDiff,
+                    levelV1,
+                    levelV2,
+                    identicalInputSmg,
+                    pPrevDestLevel);
 
             if(result.getSecond()) {
               if(result.getFirst()) {
@@ -365,9 +387,21 @@ final class SMGJoinValues {
         }
 
         /*Try to create an optional object.*/
-        Pair<Boolean, Boolean> result = insertLeftObjectAsOptional(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pLevelMap, pValue1,
-            pValue2, target1, pLDiff, levelV1, levelV2,
-            identicalInputSmg, pPrevDestLevel);
+        Pair<Boolean, Boolean> result =
+            insertLeftObjectAsOptional(
+                status,
+                inputSMG1,
+                inputSMG2,
+                destSMG,
+                pLevelMap,
+                pValue1,
+                pValue2,
+                target1,
+                pLDiff,
+                levelV1,
+                levelV2,
+                identicalInputSmg,
+                pPrevDestLevel);
 
         if(result.getSecond()) {
           if(result.getFirst()) {
@@ -378,9 +412,21 @@ final class SMGJoinValues {
           return;
         }
 
-        result = insertRightObjectAsOptional(status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pLevelMap, pValue1,
-            pValue2, target2, pLDiff, levelV1, levelV2,
-            identicalInputSmg, pPrevDestLevel);
+        result =
+            insertRightObjectAsOptional(
+                status,
+                inputSMG1,
+                inputSMG2,
+                destSMG,
+                pLevelMap,
+                pValue1,
+                pValue2,
+                target2,
+                pLDiff,
+                levelV1,
+                levelV2,
+                identicalInputSmg,
+                pPrevDestLevel);
 
         if(result.getSecond()) {
           if(result.getFirst()) {
@@ -405,8 +451,6 @@ final class SMGJoinValues {
       UnmodifiableSMG pInputSMG1,
       UnmodifiableSMG pInputSMG2,
       SMG pDestSMG,
-      SMGNodeMapping pMapping1,
-      SMGNodeMapping pMapping2,
       SMGLevelMapping pLevelMap,
       SMGValue pValue1,
       SMGValue pValue2,
@@ -476,15 +520,13 @@ final class SMGJoinValues {
     }
 
     /*Check if pointer was already joint*/
-    if (pMapping2.containsKey(pTarget)) {
-      if (pMapping2.containsKey(pValue2)) {
-        this.value = pMapping2.get(pValue2);
+    if (mapping2.containsKey(pTarget)) {
+      if (mapping2.containsKey(pValue2)) {
+        this.value = mapping2.get(pValue2);
         this.defined = true;
         this.inputSMG1 = pInputSMG1;
         this.inputSMG2 = pInputSMG2;
         this.destSMG = pDestSMG;
-        this.mapping1 = pMapping1;
-        this.mapping2 = pMapping2;
         this.status = pStatus;
         return Pair.of(true, true);
       } else {
@@ -500,7 +542,7 @@ final class SMGJoinValues {
 
     /*Create optional object*/
     SMGObject optionalObject = new SMGOptionalObject(pTarget.getSize(), level);
-    pMapping2.map(pTarget, optionalObject);
+    mapping2.map(pTarget, optionalObject);
     ((CLangSMG) pDestSMG).addHeapObject(optionalObject);
 
     /*Create pointer to optional object.*/
@@ -508,7 +550,7 @@ final class SMGJoinValues {
     SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, optionalObject, pointedToTargetEdge.getOffset(), SMGTargetSpecifier.OPT);
     pDestSMG.addValue(resultPointer);
     pDestSMG.addPointsToEdge(newJointPtEdge);
-    pMapping2.map(pValue2, resultPointer);
+    mapping2.map(pValue2, resultPointer);
     pDestSMG.setValidity(optionalObject, pInputSMG2.isObjectValid(pTarget));
 
     SMGJoinStatus newJoinStatus = pTarget.getKind() == SMGObjectKind.OPTIONAL
@@ -523,8 +565,8 @@ final class SMGJoinValues {
             pInputSMG1,
             pInputSMG2,
             pDestSMG,
-            pMapping1,
-            pMapping2,
+            mapping1,
+            mapping2,
             newLevelMap,
             pValue1,
             nextPointer,
@@ -552,8 +594,6 @@ final class SMGJoinValues {
       this.inputSMG1 = jv.getInputSMG1();
       this.inputSMG2 = jv.getInputSMG2();
       this.destSMG = jv.getDestinationSMG();
-      this.mapping1 = jv.getMapping1();
-      this.mapping2 = jv.getMapping2();
       this.value = resultPointer;
       this.defined = jv.defined;
 
@@ -575,11 +615,11 @@ final class SMGJoinValues {
         SMGValue val = field.getValue();
         SMGValue newVal;
 
-        if (pMapping1.containsKey(val) || val.isZero()) {
+        if (mapping1.containsKey(val) || val.isZero()) {
           newVal = val;
         } else {
           newVal = SMGKnownSymValue.of();
-          pMapping2.map(val, newVal);
+          mapping2.map(val, newVal);
           pDestSMG.addValue(newVal);
         }
 
@@ -655,8 +695,6 @@ final class SMGJoinValues {
       UnmodifiableSMG pInputSMG1,
       UnmodifiableSMG pInputSMG2,
       SMG pDestSMG,
-      SMGNodeMapping pMapping1,
-      SMGNodeMapping pMapping2,
       SMGLevelMapping pLevelMapping,
       SMGValue pValue1,
       SMGValue pValue2,
@@ -676,7 +714,7 @@ final class SMGJoinValues {
         return Pair.of(false, true);
     }
 
-    if(pMapping1.containsKey(pTarget)) {
+    if (mapping1.containsKey(pTarget)) {
       SMGObject jointObject = mapping1.get(pTarget);
       if(mapping2.containsValue(jointObject)) {
         return Pair.of(false, true);
@@ -726,15 +764,13 @@ final class SMGJoinValues {
     }
 
     /*Check if pointer was already joint*/
-    if (pMapping1.containsKey(pTarget)) {
-      if (pMapping1.containsKey(pValue1)) {
-        this.value = pMapping1.get(pValue1);
+    if (mapping1.containsKey(pTarget)) {
+      if (mapping1.containsKey(pValue1)) {
+        this.value = mapping1.get(pValue1);
         this.defined = true;
         this.inputSMG1 = pInputSMG1;
         this.inputSMG2 = pInputSMG2;
         this.destSMG = pDestSMG;
-        this.mapping1 = pMapping1;
-        this.mapping2 = pMapping2;
         this.status = pStatus;
         return Pair.of(true, true);
       } else {
@@ -751,7 +787,7 @@ final class SMGJoinValues {
 
     /*Create optional object*/
     SMGObject optionalObject = new SMGOptionalObject(pTarget.getSize(), level);
-    pMapping1.map(pTarget, optionalObject);
+    mapping1.map(pTarget, optionalObject);
     ((CLangSMG) pDestSMG).addHeapObject(optionalObject);
     pDestSMG.setValidity(optionalObject, pInputSMG1.isObjectValid(pTarget));
 
@@ -760,7 +796,7 @@ final class SMGJoinValues {
     SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, optionalObject, pointedToTargetEdge.getOffset(), SMGTargetSpecifier.OPT);
     pDestSMG.addValue(resultPointer);
     pDestSMG.addPointsToEdge(newJointPtEdge);
-    pMapping1.map(pValue1, resultPointer);
+    mapping1.map(pValue1, resultPointer);
 
     SMGJoinStatus newJoinStatus = pTarget.getKind() == SMGObjectKind.OPTIONAL
         ? SMGJoinStatus.LEFT_ENTAIL : SMGJoinStatus.INCOMPARABLE;
@@ -774,8 +810,8 @@ final class SMGJoinValues {
             pInputSMG1,
             pInputSMG2,
             pDestSMG,
-            pMapping1,
-            pMapping2,
+            mapping1,
+            mapping2,
             newLevelMap,
             nextPointer,
             pValue2,
@@ -803,8 +839,6 @@ final class SMGJoinValues {
       this.inputSMG1 = jv.getInputSMG1();
       this.inputSMG2 = jv.getInputSMG2();
       this.destSMG = jv.getDestinationSMG();
-      this.mapping1 = jv.getMapping1();
-      this.mapping2 = jv.getMapping2();
       this.value = resultPointer;
       this.defined = jv.defined;
 
@@ -826,11 +860,11 @@ final class SMGJoinValues {
         SMGValue val = field.getValue();
         SMGValue newVal;
 
-        if (pMapping1.containsKey(val) || val.isZero()) {
+        if (mapping1.containsKey(val) || val.isZero()) {
           newVal = val;
         } else {
           newVal = SMGKnownSymValue.of();
-          pMapping1.map(val, newVal);
+          mapping1.map(val, newVal);
           pDestSMG.addValue(newVal);
         }
 
@@ -848,8 +882,6 @@ final class SMGJoinValues {
       UnmodifiableSMG pInputSMG1,
       UnmodifiableSMG pInputSMG2,
       SMG pDestSMG,
-      SMGNodeMapping pMapping1,
-      SMGNodeMapping pMapping2,
       SMGLevelMapping pLevelMap,
       SMGValue pointer1,
       SMGValue pointer2,
@@ -866,8 +898,6 @@ final class SMGJoinValues {
     UnmodifiableSMG newInputSMG1 = pInputSMG1;
     UnmodifiableSMG newInputSMG2 = pInputSMG2;
     SMG newDestSMG = pDestSMG;
-    SMGNodeMapping newMapping1 = pMapping1;
-    SMGNodeMapping newMapping2 = pMapping2;
 
     long nf;
     int length;
@@ -918,28 +948,26 @@ final class SMGJoinValues {
     }
 
     // Algorithm 9 from FIT-TR-2012-04, line 4
-    if (newMapping1.containsKey(pTarget)) {
-      SMGObject jointList = newMapping1.get(pTarget);
-      if (newMapping2.containsValue(jointList)) {
+    if (mapping1.containsKey(pTarget)) {
+      SMGObject jointList = mapping1.get(pTarget);
+      if (mapping2.containsValue(jointList)) {
         return Pair.of(false, true);
       }
 
-      if (!newMapping1.containsKey(pointer1)) {
+      if (!mapping1.containsKey(pointer1)) {
 
         SMGValue resultPointer = SMGKnownSymValue.of();
         SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, jointList, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
         newDestSMG.addValue(resultPointer);
         newDestSMG.addPointsToEdge(newJointPtEdge);
 
-        newMapping1.map(pointer1, resultPointer);
+        mapping1.map(pointer1, resultPointer);
       } else {
-        this.value = newMapping1.get(pointer1);
+        this.value = mapping1.get(pointer1);
         this.defined = true;
         this.inputSMG1 = newInputSMG1;
         this.inputSMG2 = newInputSMG2;
         this.destSMG = newDestSMG;
-        this.mapping1 = newMapping1;
-        this.mapping2 = newMapping2;
         this.status = newStatus;
         return Pair.of(true, true);
       }
@@ -950,8 +978,8 @@ final class SMGJoinValues {
               newInputSMG1,
               newInputSMG2,
               newDestSMG,
-              newMapping1,
-              newMapping2,
+              mapping1,
+              mapping2,
               pLevelMap,
               nextPointer,
               pointer2,
@@ -969,8 +997,6 @@ final class SMGJoinValues {
         newInputSMG1 = jv.getInputSMG1();
         newInputSMG2 = jv.getInputSMG2();
         newDestSMG = jv.getDestinationSMG();
-        newMapping1 = jv.getMapping1();
-        newMapping2 = jv.getMapping2();
 
       } else {
         return Pair.of(false, false);
@@ -979,9 +1005,9 @@ final class SMGJoinValues {
 
     // Algorithm 9 from FIT-TR-2012-04, line 5
     // TODO v1 == v2 Identical in conditions??
-    if (newMapping1.containsKey(nextPointer)
-        && newMapping2.containsKey(pointer2)
-        && !newMapping2.get(pointer2).equals(newMapping1.get(nextPointer))) {
+    if (mapping1.containsKey(nextPointer)
+        && mapping2.containsKey(pointer2)
+        && !mapping2.get(pointer2).equals(mapping1.get(nextPointer))) {
       return Pair.of(false, true);
     }
 
@@ -998,9 +1024,9 @@ final class SMGJoinValues {
     }
 
     // Algorithm 9 from FIT-TR-2012-04, line 7
-    copyDlsSubSmgToDestSMG(pTarget, newMapping1, newInputSMG1, newDestSMG, lvlDiff);
+    copyDlsSubSmgToDestSMG(pTarget, mapping1, newInputSMG1, newDestSMG, lvlDiff);
 
-    SMGObject list = newMapping1.get(pTarget);
+    SMGObject list = mapping1.get(pTarget);
 
     SMGValue resultPointer = null;
 
@@ -1018,7 +1044,7 @@ final class SMGJoinValues {
       SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, list, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
       newDestSMG.addValue(resultPointer);
       newDestSMG.addPointsToEdge(newJointPtEdge);
-      newMapping1.map(pointer1, resultPointer);
+      mapping1.map(pointer1, resultPointer);
     }
 
     // Algorithm 9 from FIT-TR-2012-04, line 10
@@ -1028,8 +1054,8 @@ final class SMGJoinValues {
             newInputSMG1,
             newInputSMG2,
             newDestSMG,
-            newMapping1,
-            newMapping2,
+            mapping1,
+            mapping2,
             pLevelMap,
             nextPointer,
             pointer2,
@@ -1049,8 +1075,6 @@ final class SMGJoinValues {
       this.inputSMG1 = jv.getInputSMG1();
       this.inputSMG2 = jv.getInputSMG2();
       this.destSMG = jv.getDestinationSMG();
-      this.mapping1 = jv.getMapping1();
-      this.mapping2 = jv.getMapping2();
       newAdressFromDLS = jv.getValue();
       this.value = resultPointer;
       this.defined = jv.defined;
@@ -1105,8 +1129,6 @@ final class SMGJoinValues {
       UnmodifiableSMG pInputSMG1,
       UnmodifiableSMG pInputSMG2,
       SMG pDestSMG,
-      SMGNodeMapping pMapping1,
-      SMGNodeMapping pMapping2,
       SMGLevelMapping pLevelMap,
       SMGValue pointer1,
       SMGValue pointer2,
@@ -1123,8 +1145,6 @@ final class SMGJoinValues {
     UnmodifiableSMG newInputSMG1 = pInputSMG1;
     UnmodifiableSMG newInputSMG2 = pInputSMG2;
     SMG newDestSMG = pDestSMG;
-    SMGNodeMapping nodeMapping1 = pMapping1;
-    SMGNodeMapping nodeMapping2 = pMapping2;
 
     long nf;
     int length;
@@ -1174,28 +1194,26 @@ final class SMGJoinValues {
       nextPointer = Iterables.getOnlyElement(npHves).getValue();
     }
 
-    if (nodeMapping2.containsKey(pTarget)) {
-      SMGObject jointList = nodeMapping2.get(pTarget);
-      if (nodeMapping1.containsValue(jointList)) {
+    if (mapping2.containsKey(pTarget)) {
+      SMGObject jointList = mapping2.get(pTarget);
+      if (mapping1.containsValue(jointList)) {
         return Pair.of(false, true);
       }
 
-      if (!nodeMapping2.containsKey(pointer2)) {
+      if (!mapping2.containsKey(pointer2)) {
 
         SMGValue resultPointer = SMGKnownSymValue.of();
         SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, jointList, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
         newDestSMG.addValue(resultPointer);
         newDestSMG.addPointsToEdge(newJointPtEdge);
 
-        nodeMapping2.map(pointer2, resultPointer);
+        mapping2.map(pointer2, resultPointer);
       } else {
-        this.value = nodeMapping2.get(pointer2);
+        this.value = mapping2.get(pointer2);
         this.defined = true;
         this.inputSMG1 = newInputSMG1;
         this.inputSMG2 = newInputSMG2;
         this.destSMG = newDestSMG;
-        this.mapping1 = nodeMapping1;
-        this.mapping2 = nodeMapping2;
         this.status = newStatus;
         return Pair.of(true, true);
       }
@@ -1206,8 +1224,8 @@ final class SMGJoinValues {
               newInputSMG1,
               newInputSMG2,
               newDestSMG,
-              nodeMapping1,
-              nodeMapping2,
+              mapping1,
+              mapping2,
               pLevelMap,
               pointer1,
               nextPointer,
@@ -1225,17 +1243,15 @@ final class SMGJoinValues {
         newInputSMG1 = jv.getInputSMG1();
         newInputSMG2 = jv.getInputSMG2();
         newDestSMG = jv.getDestinationSMG();
-        nodeMapping1 = jv.getMapping1();
-        nodeMapping2 = jv.getMapping2();
       } else {
         return Pair.of(false, false);
       }
     }
 
     // TODO v1 == v2 Identical in conditions??
-    if (nodeMapping2.containsKey(nextPointer)
-        && nodeMapping1.containsKey(pointer1)
-        && !nodeMapping1.get(pointer1).equals(nodeMapping2.get(nextPointer))) {
+    if (mapping2.containsKey(nextPointer)
+        && mapping1.containsKey(pointer1)
+        && !mapping1.get(pointer1).equals(mapping2.get(nextPointer))) {
       return Pair.of(false, true);
     }
 
@@ -1250,9 +1266,9 @@ final class SMGJoinValues {
       levelDiff = levelDiff + 1;
     }
 
-    copyDlsSubSmgToDestSMG(pTarget, nodeMapping2, newInputSMG2, newDestSMG, levelDiff);
+    copyDlsSubSmgToDestSMG(pTarget, mapping2, newInputSMG2, newDestSMG, levelDiff);
 
-    SMGObject list = nodeMapping2.get(pTarget);
+    SMGObject list = mapping2.get(pTarget);
 
     SMGValue resultPointer = null;
 
@@ -1269,7 +1285,7 @@ final class SMGJoinValues {
       SMGEdgePointsTo newJointPtEdge = new SMGEdgePointsTo(resultPointer, list, ptEdge.getOffset(), ptEdge.getTargetSpecifier());
       newDestSMG.addValue(resultPointer);
       newDestSMG.addPointsToEdge(newJointPtEdge);
-      nodeMapping2.map(pointer2, resultPointer);
+      mapping2.map(pointer2, resultPointer);
     }
 
     SMGJoinValues jv =
@@ -1278,8 +1294,8 @@ final class SMGJoinValues {
             newInputSMG1,
             newInputSMG2,
             newDestSMG,
-            nodeMapping1,
-            nodeMapping2,
+            mapping1,
+            mapping2,
             pLevelMap,
             pointer1,
             nextPointer,
@@ -1299,8 +1315,6 @@ final class SMGJoinValues {
       this.inputSMG1 = jv.getInputSMG1();
       this.inputSMG2 = jv.getInputSMG2();
       this.destSMG = jv.getDestinationSMG();
-      this.mapping1 = jv.getMapping1();
-      this.mapping2 = jv.getMapping2();
       newAdressFromDLS = jv.getValue();
       this.value = resultPointer;
       this.defined = jv.defined;
@@ -1526,14 +1540,6 @@ final class SMGJoinValues {
 
   public SMGValue getValue() {
     return value;
-  }
-
-  public SMGNodeMapping getMapping1() {
-    return mapping1;
-  }
-
-  public SMGNodeMapping getMapping2() {
-    return mapping2;
   }
 
   public boolean isDefined() {

@@ -97,8 +97,8 @@ public class SMGJoinValuesTest {
     Assert.assertSame(smg1, jv.getInputSMG1());
     Assert.assertSame(smg2, jv.getInputSMG2());
     Assert.assertSame(smgDest, jv.getDestinationSMG());
-    Assert.assertSame(mapping1, jv.getMapping1());
-    Assert.assertSame(mapping2, jv.getMapping2());
+    Assert.assertSame(mapping1, jv.mapping1);
+    Assert.assertSame(mapping2, jv.mapping2);
     Assert.assertEquals(value3, jv.getValue());
   }
 
@@ -125,8 +125,8 @@ public class SMGJoinValuesTest {
     Assert.assertSame(smg1, jv.getInputSMG1());
     Assert.assertSame(smg2, jv.getInputSMG2());
     Assert.assertSame(smgDest, jv.getDestinationSMG());
-    Assert.assertSame(mapping1, jv.getMapping1());
-    Assert.assertSame(mapping2, jv.getMapping2());
+    Assert.assertSame(mapping1, jv.mapping1);
+    Assert.assertSame(mapping2, jv.mapping2);
     Assert.assertNotEquals(value1, jv.getValue());
     Assert.assertNotEquals(value2, jv.getValue());
     Assert.assertNotEquals(value3, jv.getValue());

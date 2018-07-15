@@ -67,7 +67,7 @@ public class SMGJoinMapTargetAddressTest {
 
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, smg1, destSMG, mapping1, mapping1, SMGZeroValue.INSTANCE, SMGZeroValue.INSTANCE);
     Assert.assertEquals(origDestSMG, mta.getSMG());
-    Assert.assertEquals(origMapping1, mta.getMapping1());
+    Assert.assertEquals(origMapping1, mta.mapping1);
     Assert.assertSame(SMGZeroValue.INSTANCE, mta.getValue());
   }
 
@@ -90,7 +90,7 @@ public class SMGJoinMapTargetAddressTest {
 
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, smg1, destSMG, mapping1, mapping1, value1, value1);
     Assert.assertEquals(origDestSMG, mta.getSMG());
-    Assert.assertEquals(origMapping1, mta.getMapping1());
+    Assert.assertEquals(origMapping1, mta.mapping1);
     Assert.assertSame(destValue, mta.getValue());
   }
 
@@ -110,8 +110,8 @@ public class SMGJoinMapTargetAddressTest {
 
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(smg1, smg1, destSMG, mapping1, mapping2, value1, value2);
     Assert.assertNotEquals(origDestSMG, mta.getSMG());
-    Assert.assertNotEquals(origMapping1, mta.getMapping1());
-    Assert.assertNotEquals(origMapping2, mta.getMapping2());
+    Assert.assertNotEquals(origMapping1, mta.mapping1);
+    Assert.assertNotEquals(origMapping2, mta.mapping2);
 
     Assert.assertFalse(origDestSMG.getValues().contains(mta.getValue()));
 
@@ -119,7 +119,7 @@ public class SMGJoinMapTargetAddressTest {
     Assert.assertSame(destObj, newEdge.getObject());
     Assert.assertEquals(0, newEdge.getOffset());
 
-    Assert.assertSame(mta.getValue(), mta.getMapping1().get(value1));
-    Assert.assertSame(mta.getValue(), mta.getMapping2().get(value2));
+    Assert.assertSame(mta.getValue(), mta.mapping1.get(value1));
+    Assert.assertSame(mta.getValue(), mta.mapping2.get(value2));
   }
 }

@@ -80,14 +80,4 @@ public class SMGJoinSubSMGsTest {
   public void testGetDestSMG() {
     Assert.assertNotNull(jssDefined.getDestSMG());
   }
-
-  @Test
-  public void testGetMapping1() {
-    Assert.assertNotNull(jssDefined.getMapping1());
-  }
-
-  @Test
-  public void testGetMapping2() {
-    Assert.assertNotNull(jssDefined.getMapping2());
-  }
 }

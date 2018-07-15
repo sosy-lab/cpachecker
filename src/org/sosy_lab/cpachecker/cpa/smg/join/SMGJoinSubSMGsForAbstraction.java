@@ -158,8 +158,6 @@ final public class SMGJoinSubSMGsForAbstraction {
     }
 
     SMGJoinStatus s = jss.getStatus();
-    mapping1 = jss.getMapping1();
-    mapping2 = jss.getMapping2();
 
     //TODO Contains abstract 0Cycle?
 

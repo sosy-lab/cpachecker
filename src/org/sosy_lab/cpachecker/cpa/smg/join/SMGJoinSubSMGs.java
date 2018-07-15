@@ -55,8 +55,8 @@ final class SMGJoinSubSMGs {
   private UnmodifiableSMG inputSMG2;
   private SMG destSMG;
 
-  private SMGNodeMapping mapping1 = null;
-  private SMGNodeMapping mapping2 = null;
+  private final SMGNodeMapping mapping1;
+  private final SMGNodeMapping mapping2;
   private final List<SMGGenericAbstractionCandidate> subSmgAbstractionCandidates;
 
   /** Algorithm 4 from FIT-TR-2012-04. */
@@ -141,8 +141,6 @@ final class SMGJoinSubSMGs {
       inputSMG1 = joinValues.getInputSMG1();
       inputSMG2 = joinValues.getInputSMG2();
       destSMG = joinValues.getDestinationSMG();
-      mapping1 = joinValues.getMapping1();
-      mapping2 = joinValues.getMapping2();
 
       if (joinValues.isDefined()) {
 
@@ -277,14 +275,6 @@ final class SMGJoinSubSMGs {
 
   public UnmodifiableSMG getDestSMG() {
     return destSMG;
-  }
-
-  public SMGNodeMapping getMapping1() {
-    return mapping1;
-  }
-
-  public SMGNodeMapping getMapping2() {
-    return mapping2;
   }
 
   public List<SMGGenericAbstractionCandidate> getSubSmgAbstractionCandidates() {
