@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.HashSet;
@@ -47,12 +48,13 @@ class SMGJoinFields {
 
   public SMGJoinFields(
       final UnmodifiableSMG pSMG1, final UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
-    if (pObj1.getSize() != pObj2.getSize()) {
-      throw new IllegalArgumentException("SMGJoinFields object arguments need to have identical size");
-    }
-    if (!(pSMG1.getObjects().contains(pObj1) && pSMG2.getObjects().contains(pObj2))) {
-      throw new IllegalArgumentException("SMGJoinFields object arguments need to be included in parameter SMGs");
-    }
+
+    Preconditions.checkArgument(
+        pObj1.getSize() == pObj2.getSize(),
+        "SMGJoinFields object arguments need to have identical size");
+    Preconditions.checkArgument(
+        pSMG1.getObjects().contains(pObj1) && pSMG2.getObjects().contains(pObj2),
+        "SMGJoinFields object arguments need to be included in parameter SMGs");
 
     final SMG joinedSmg1 = pSMG1.copyOf();
     final SMG joinedSmg2 = pSMG2.copyOf();

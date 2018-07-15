@@ -574,8 +574,7 @@ final class SMGJoinValues {
           pDestSMG.addValue(newVal);
         }
 
-        newHve = new SMGEdgeHasValue(field.getType(), field.getOffset(), optionalObject,
-            newVal);
+        newHve = new SMGEdgeHasValue(field.getType(), field.getOffset(), optionalObject, newVal);
       }
       pDestSMG.addHasValueEdge(newHve);
     }
@@ -618,9 +617,7 @@ final class SMGJoinValues {
         switch (destSmgSourceObject.getKind()) {
           case DLL:
             SMGDoublyLinkedList dll = (SMGDoublyLinkedList) destSmgSourceObject;
-
-            if (arbitraryOffset != dll.getNfo()
-                && arbitraryOffset != dll.getPfo()) {
+            if (arbitraryOffset != dll.getNfo() && arbitraryOffset != dll.getPfo()) {
               return destSmgSourceObject.getLevel() + 1;
             } else {
               return destSmgSourceObject.getLevel();
@@ -628,7 +625,6 @@ final class SMGJoinValues {
 
           case SLL:
             SMGSingleLinkedList sll = (SMGSingleLinkedList) destSmgSourceObject;
-
             if (arbitraryOffset != sll.getNfo()) {
               return destSmgSourceObject.getLevel() + 1;
             } else {
@@ -829,8 +825,7 @@ final class SMGJoinValues {
           pDestSMG.addValue(newVal);
         }
 
-        newHve = new SMGEdgeHasValue(field.getType(), field.getOffset(), optionalObject,
-            newVal);
+        newHve = new SMGEdgeHasValue(field.getType(), field.getOffset(), optionalObject, newVal);
       }
       pDestSMG.addHasValueEdge(newHve);
     }
@@ -873,25 +868,28 @@ final class SMGJoinValues {
     switch (ptEdge.getTargetSpecifier()) {
       case FIRST:
         if (pTarget.getKind() == SMGObjectKind.DLL) {
-          nf = ((SMGDoublyLinkedList) pTarget).getNfo();
-          hfo = ((SMGDoublyLinkedList) pTarget).getHfo();
+          final SMGDoublyLinkedList dll = (SMGDoublyLinkedList) pTarget;
+          nf = dll.getNfo();
+          hfo = dll.getHfo();
           nfo = nf;
-          pfo = ((SMGDoublyLinkedList) pTarget).getPfo();
-          length = ((SMGDoublyLinkedList) pTarget).getMinimumLength();
+          pfo = dll.getPfo();
+          length = dll.getMinimumLength();
         } else {
-          nf = ((SMGSingleLinkedList) pTarget).getNfo();
-          hfo = ((SMGSingleLinkedList) pTarget).getHfo();
+          final SMGSingleLinkedList sll = (SMGSingleLinkedList) pTarget;
+          nf = sll.getNfo();
+          hfo = sll.getHfo();
           nfo = nf;
           pfo = -1;
-          length = ((SMGSingleLinkedList) pTarget).getMinimumLength();
+          length = sll.getMinimumLength();
         }
         break;
       case LAST:
-        nf = ((SMGDoublyLinkedList) pTarget).getPfo();
-        hfo = ((SMGDoublyLinkedList) pTarget).getHfo();
-        nfo = ((SMGDoublyLinkedList) pTarget).getPfo();
+        final SMGDoublyLinkedList dll = (SMGDoublyLinkedList) pTarget;
+        nf = dll.getPfo();
+        hfo = dll.getHfo();
+        nfo = dll.getPfo();
         pfo = nf;
-        length = ((SMGDoublyLinkedList) pTarget).getMinimumLength();
+        length = dll.getMinimumLength();
         break;
       default:
         return Pair.of(false, true);
@@ -1120,25 +1118,28 @@ final class SMGJoinValues {
     switch (ptEdge.getTargetSpecifier()) {
       case FIRST:
         if (pTarget.getKind() == SMGObjectKind.DLL) {
-          nf = ((SMGDoublyLinkedList) pTarget).getNfo();
-          hfo = ((SMGDoublyLinkedList) pTarget).getHfo();
+          final SMGDoublyLinkedList dll = (SMGDoublyLinkedList) pTarget;
+          nf = dll.getNfo();
+          hfo = dll.getHfo();
           nfo = nf;
-          pfo = ((SMGDoublyLinkedList) pTarget).getPfo();
-          length = ((SMGDoublyLinkedList) pTarget).getMinimumLength();
+          pfo = dll.getPfo();
+          length = dll.getMinimumLength();
         } else {
-          nf = ((SMGSingleLinkedList) pTarget).getNfo();
-          hfo = ((SMGSingleLinkedList) pTarget).getHfo();
+          final SMGSingleLinkedList sll = (SMGSingleLinkedList) pTarget;
+          nf = sll.getNfo();
+          hfo = sll.getHfo();
           nfo = nf;
           pfo = -1;
-          length = ((SMGSingleLinkedList) pTarget).getMinimumLength();
+          length = sll.getMinimumLength();
         }
         break;
       case LAST:
-        nf = ((SMGDoublyLinkedList) pTarget).getPfo();
-        hfo = ((SMGDoublyLinkedList) pTarget).getHfo();
-        nfo = ((SMGDoublyLinkedList) pTarget).getPfo();
+        final SMGDoublyLinkedList dll = (SMGDoublyLinkedList) pTarget;
+        nf = dll.getPfo();
+        hfo = dll.getHfo();
+        nfo = dll.getPfo();
         pfo = nf;
-        length = ((SMGDoublyLinkedList) pTarget).getMinimumLength();
+        length = dll.getMinimumLength();
         break;
       default:
         return Pair.of(false, true);
@@ -1335,15 +1336,16 @@ final class SMGJoinValues {
 
       switch (pList.getKind()) {
         case DLL:
-          nfo = ((SMGDoublyLinkedList) pList).getNfo();
-          pfo = ((SMGDoublyLinkedList) pList).getPfo();
-          long hfo = ((SMGDoublyLinkedList) pList).getHfo();
-          listCopy = new SMGDoublyLinkedList(pList.getSize(), hfo, nfo, pfo,
-              0, listLevel);
+          final SMGDoublyLinkedList dll = (SMGDoublyLinkedList) pList;
+          nfo = dll.getNfo();
+          pfo = dll.getPfo();
+          long hfo = dll.getHfo();
+          listCopy = new SMGDoublyLinkedList(pList.getSize(), hfo, nfo, pfo, 0, listLevel);
           break;
         case SLL:
-          nfo = ((SMGSingleLinkedList) pList).getNfo();
-          hfo = ((SMGSingleLinkedList) pList).getHfo();
+          final SMGSingleLinkedList sll = (SMGSingleLinkedList) pList;
+          nfo = sll.getNfo();
+          hfo = sll.getHfo();
           listCopy = new SMGSingleLinkedList(pList.getSize(), hfo, nfo, 0, listLevel);
           break;
         default:
@@ -1391,7 +1393,6 @@ final class SMGJoinValues {
               pMapping.map(subDlsValue, newVal);
 
               SMGTargetSpecifier newTg;
-
               if (copyOfReachedObject instanceof SMGRegion) {
                 newTg = SMGTargetSpecifier.REGION;
               } else {

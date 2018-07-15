@@ -81,15 +81,14 @@ final class SMGJoinSubSMGs {
     subSmgAbstractionCandidates = ImmutableList.of();
     inputSMG1 = joinFields.getSMG1();
     inputSMG2 = joinFields.getSMG2();
-
-    if (SMGJoinSubSMGs.performChecks) {
-      SMGJoinFields.checkResultConsistency(inputSMG1, inputSMG2, pObj1, pObj2);
-    }
-
     destSMG = pDestSMG;
     status = initialStatus.updateWith(joinFields.getStatus());
     mapping1 = pMapping1;
     mapping2 = pMapping2;
+
+    if (SMGJoinSubSMGs.performChecks) {
+      SMGJoinFields.checkResultConsistency(inputSMG1, inputSMG2, pObj1, pObj2);
+    }
 
     /*
      * After joinFields, the objects have identical set of fields. Therefore, to iterate
@@ -100,27 +99,20 @@ final class SMGJoinSubSMGs {
 
     SMGEdgeHasValueFilter filterOnSMG1 = SMGEdgeHasValueFilter.objectFilter(pObj1);
     SMGEdgeHasValueFilter filterOnSMG2 = SMGEdgeHasValueFilter.objectFilter(pObj2);
-
-    Map<SMGValue, List<SMGGenericAbstractionCandidate>> valueAbstractionCandidates =
-        new HashMap<>();
+    Map<SMGValue, List<SMGGenericAbstractionCandidate>> valueAbstractionCandidates = new HashMap<>();
     boolean allValuesDefined = true;
 
     int prevLevel = pLevelMap.get(SMGJoinLevel.valueOf(pObj1.getLevel(), pObj2.getLevel()));
 
     for (SMGEdgeHasValue hvIn1 : inputSMG1.getHVEdges(filterOnSMG1)) {
       filterOnSMG2.filterAtOffset(hvIn1.getOffset());
-
-      int lDiff = pLDiff;
-
       SMGEdgeHasValue hvIn2 = Iterables.getOnlyElement(inputSMG2.getHVEdges(filterOnSMG2));
 
       int value1Level = getValueLevel(pObj1, hvIn1.getValue(), inputSMG1);
       int value2Level = getValueLevel(pObj2, hvIn2.getValue(), inputSMG2);
-
       int levelDiff1 = value1Level - pObj1.getLevel();
       int levelDiff2 = value2Level - pObj2.getLevel();
-
-      lDiff = lDiff + (levelDiff1 - levelDiff2);
+      int lDiff = pLDiff + (levelDiff1 - levelDiff2);
 
       SMGLevelMapping levelMap =
           updateLevelMap(value1Level, value2Level, pLevelMap, pObj1.getLevel(), pObj2.getLevel());
