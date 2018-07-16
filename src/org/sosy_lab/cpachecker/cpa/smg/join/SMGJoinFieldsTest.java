@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -180,20 +180,22 @@ public class SMGJoinFieldsTest {
     smg1.addHasValueEdge(nullifyObj1);
     smg2.addHasValueEdge(nonPointer);
 
-    Set<SMGEdgeHasValue> hvSet = SMGJoinFields.getHVSetOfMissingNullValues(smg1, smg2, obj1, obj2);
-    assertThat(hvSet).hasSize(0);
+    Set<SMGEdgeHasValue> hvSet1 = SMGJoinFields.getHVSetOfMissingNullValues(smg1, smg2, obj1, obj2);
+    assertThat(hvSet1).hasSize(1);
 
+    // adding a "back" edge should not change anything
     smg2.addPointsToEdge(new SMGEdgePointsTo(value2, obj2, 0));
 
-    hvSet = SMGJoinFields.getHVSetOfMissingNullValues(smg1, smg2, obj1, obj2);
-    assertThat(hvSet).hasSize(1);
+    Set<SMGEdgeHasValue> hvSet2 = SMGJoinFields.getHVSetOfMissingNullValues(smg1, smg2, obj1, obj2);
+    assertThat(hvSet2).hasSize(1);
 
-    SMGEdgeHasValue newHv = Iterables.getOnlyElement(hvSet);
-    assertThat(newHv.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
-    assertThat(newHv.getObject()).isSameAs(obj1);
-    assertThat(newHv.getSizeInBits(MachineModel.LINUX64)).isEqualTo(32);
-    assertThat(newHv.getOffset()).isEqualTo(16);
-    Assert.assertTrue(newHv.isCompatibleField(nonPointer));
+    for (SMGEdgeHasValue hv : Sets.union(hvSet1, hvSet2)) { // just two edges in there
+      assertThat(hv.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
+      assertThat(hv.getObject()).isSameAs(obj1);
+      assertThat(hv.getSizeInBits(MachineModel.LINUX64)).isEqualTo(32);
+      assertThat(hv.getOffset()).isEqualTo(16);
+      Assert.assertTrue(hv.isCompatibleField(nonPointer));
+    }
   }
 
   @Test
