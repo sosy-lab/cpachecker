@@ -628,7 +628,7 @@ final class SMGJoinValues {
       if (!pDestSMG.getValues().contains(newHve.getValue())) {
         pDestSMG.addValue(newHve.getValue());
       }
-      if (!mapping1.containsKey(newHve.getValue())) {
+      if (!mapping1.containsKey(field.getValue())) {
         mapping1.map(field.getValue(), newHve.getValue());
       }
       pDestSMG.addHasValueEdge(newHve);
@@ -879,7 +879,7 @@ final class SMGJoinValues {
       if (!pDestSMG.getValues().contains(newHve.getValue())) {
         pDestSMG.addValue(newHve.getValue());
       }
-      if (!mapping1.containsKey(newHve.getValue())) {
+      if (!mapping1.containsKey(field.getValue())) {
         mapping1.map(field.getValue(), newHve.getValue());
       }
       pDestSMG.addHasValueEdge(newHve);
@@ -1452,7 +1452,7 @@ final class SMGJoinValues {
           if (!pDestSMG.getValues().contains(newVal)) {
             pDestSMG.addValue(newVal);
           }
-          if (!pMapping.containsKey(newVal)) {
+          if (!pMapping.containsKey(subDlsValue)) {
             pMapping.map(subDlsValue, newVal);
           }
           pDestSMG.addHasValueEdge(
@@ -1539,7 +1539,7 @@ final class SMGJoinValues {
         if (!pDestSMG.getValues().contains(newVal)) {
           pDestSMG.addValue(newVal);
         }
-        if (!pMapping.containsKey(newVal)) {
+        if (!pMapping.containsKey(subDlsValue)) {
           pMapping.map(subDlsValue, newVal);
         }
         pDestSMG.addHasValueEdge(
