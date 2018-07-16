@@ -43,6 +43,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -707,6 +708,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     Set<Long> restriction = ImmutableSet.of(pListSeg.getNfo(), pListSeg.getPfo());
 
+    addMissingNullifiedLinksToDls(pListSeg);
+
     copyRestrictedSubSmgToObject(pListSeg, newConcreteRegion, restriction);
 
     SMGTargetSpecifier tg = pPointerToAbstractObject.getTargetSpecifier();
@@ -811,6 +814,74 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         this, SMGKnownAddressValue.valueOf(newPtEdgeToNewRegionFromOutsideSMG));
   }
 
+  private void addMissingNullifiedLinksToDls(SMGDoublyLinkedList pList) {
+    Preconditions.checkNotNull(pList);
+    SMGEdgeHasValueFilter listFilter = SMGEdgeHasValueFilter.objectFilter(pList);
+    Set<SMGEdgeHasValue> nextEdges = heap.getHVEdges(listFilter.filterAtOffset(pList.getNfo()));
+    Set<SMGEdgeHasValue> prevEdges = heap.getHVEdges(listFilter.filterAtOffset(pList.getPfo()));
+
+    if (nextEdges.isEmpty() || prevEdges.isEmpty()) {
+      List<Long> hvOffsets =
+          heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pList))
+              .stream()
+              .map(e -> e.getOffset())
+              .sorted()
+              .collect(Collectors.toList());
+      Long nfo = pList.getNfo();
+      Long pfo = pList.getPfo();
+      if (!nextEdges.isEmpty() && prevEdges.isEmpty()) {
+        addNullifiedLinkToDls(pList, pfo, hvOffsets);
+      } else if (nextEdges.isEmpty() && !prevEdges.isEmpty()) {
+        addNullifiedLinkToDls(pList, nfo, hvOffsets);
+      } else {
+        addNullifiedLinkToDls(pList, pfo, hvOffsets);
+        addNullifiedLinkToDls(pList, nfo, hvOffsets);
+      }
+    }
+  }
+
+  private void addNullifiedLinkToDls(
+      SMGDoublyLinkedList pList, Long pLinkOffset, List<Long> pOffsets) {
+    Preconditions.checkNotNull(pList);
+    Preconditions.checkNotNull(pOffsets);
+    Preconditions.checkArgument(!pOffsets.isEmpty());
+    // loop over offsets and find offsets before and after link offset
+    int j = -1, k = 0;
+    if (pOffsets.size() == 1) {
+      j = 0;
+      k = 1;
+    } else {
+      for (int i = 1; i < pOffsets.size(); i++) {
+        if (pLinkOffset < pOffsets.get(i)) {
+          j = i - 1;
+          k = i;
+          break;
+        }
+      }
+    }
+    if (j == -1) {
+      j = pOffsets.size() - 1;
+      k = pOffsets.size();
+    }
+    SMGEdgeHasValue hvBefore =
+        Iterables.getOnlyElement(
+            heap.getHVEdges(
+                SMGEdgeHasValueFilter.objectFilter(pList).filterAtOffset(pOffsets.get(j))));
+    heap.removeHasValueEdge(hvBefore);
+    int size = pLinkOffset.intValue() - pOffsets.get(j).intValue();
+    heap.addHasValueEdge(
+        new SMGEdgeHasValue(
+            (int) (pLinkOffset - pOffsets.get(j)),
+            hvBefore.getOffset(),
+            hvBefore.getObject(),
+            hvBefore.getValue()));
+    size =
+        k >= pOffsets.size()
+            ? (int) (pList.getSize() - pLinkOffset)
+            : (int) (pOffsets.get(k) - pLinkOffset);
+    heap.addHasValueEdge(new SMGEdgeHasValue(size, pLinkOffset, pList, SMGZeroValue.INSTANCE));
+  }
+
   private void copyRestrictedSubSmgToObject(SMGObject pRoot, SMGRegion pNewRegion,
       Set<Long> pRestriction) {
 
@@ -878,8 +949,15 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
           long offset = hve.getOffset() + model.getSizeofPtrInBits();
           int sizeInBits = sizeOfHveInBits - model.getSizeofPtrInBits();
           SMGEdgeHasValue expandedZeroEdge =
-              new SMGEdgeHasValue(sizeInBits, offset, pNewRegion, SMGZeroValue.INSTANCE);
+              new SMGEdgeHasValue(sizeInBits, offset, hve.getObject(), SMGZeroValue.INSTANCE);
           heap.addHasValueEdge(expandedZeroEdge);
+          heap.removeHasValueEdge(hve);
+          heap.addHasValueEdge(
+              new SMGEdgeHasValue(
+                  model.getSizeofPtrInBits(),
+                  hve.getOffset(),
+                  hve.getObject(),
+                  SMGZeroValue.INSTANCE));
         }
       }
     }
