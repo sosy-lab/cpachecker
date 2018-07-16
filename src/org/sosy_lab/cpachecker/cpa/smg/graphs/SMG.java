@@ -468,12 +468,14 @@ public class SMG implements UnmodifiableSMG {
     // then filter out overlapping intervals of offsets
     TreeMap<Long, Integer> resultOffsetToSize = new TreeMap<>();
     if (!offsetToSize.isEmpty()) {
-      Iterator<Long> offsetsIterator = offsetToSize.keySet().iterator();
-      long resultOffset = offsetsIterator.next();
-      int resultSize = offsetToSize.get(resultOffset);
+      Iterator<Entry<Long, Integer>> offsetsIterator = offsetToSize.entrySet().iterator();
+      Entry<Long, Integer> entry = offsetsIterator.next();
+      long resultOffset = entry.getKey();
+      int resultSize = entry.getValue();
       while (offsetsIterator.hasNext()) {
-        long nextOffset = offsetsIterator.next();
-        int nextSize = offsetToSize.get(nextOffset);
+        entry = offsetsIterator.next();
+        long nextOffset = entry.getKey();
+        int nextSize = entry.getValue();
         if (nextOffset <= resultOffset + resultSize) {
           resultSize = Math.toIntExact(Long.max(nextSize + nextOffset - resultOffset, resultSize));
         } else {
