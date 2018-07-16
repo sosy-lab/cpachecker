@@ -1437,6 +1437,12 @@ final class SMGJoinValues {
         }
 
         if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(listCopy).filterAtOffset(hve.getOffset())).isEmpty()) {
+          if (!pDestSMG.getValues().contains(newVal)) {
+            pDestSMG.addValue(newVal);
+          }
+          if (!pMapping.containsKey(newVal)) {
+            pMapping.map(subDlsValue, newVal);
+          }
           pDestSMG.addHasValueEdge(new SMGEdgeHasValue(hve.getType(), hve.getOffset(), listCopy, newVal));
         }
       }
@@ -1517,6 +1523,12 @@ final class SMGJoinValues {
       }
 
       if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(newObj).filterAtOffset(hve.getOffset())).isEmpty()) {
+        if (!pDestSMG.getValues().contains(newVal)) {
+          pDestSMG.addValue(newVal);
+        }
+        if (!pMapping.containsKey(newVal)) {
+          pMapping.map(subDlsValue, newVal);
+        }
         pDestSMG.addHasValueEdge(new SMGEdgeHasValue(hve.getType(), hve.getOffset(), newObj, newVal));
       }
     }
