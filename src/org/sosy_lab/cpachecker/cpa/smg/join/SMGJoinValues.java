@@ -625,6 +625,12 @@ final class SMGJoinValues {
 
         newHve = new SMGEdgeHasValue(field.getType(), field.getOffset(), optionalObject, newVal);
       }
+      if (!pDestSMG.getValues().contains(newHve.getValue())) {
+        pDestSMG.addValue(newHve.getValue());
+      }
+      if (!mapping1.containsKey(newHve.getValue())) {
+        mapping1.map(field.getValue(), newHve.getValue());
+      }
       pDestSMG.addHasValueEdge(newHve);
     }
 
@@ -869,6 +875,12 @@ final class SMGJoinValues {
         }
 
         newHve = new SMGEdgeHasValue(field.getType(), field.getOffset(), optionalObject, newVal);
+      }
+      if (!pDestSMG.getValues().contains(newHve.getValue())) {
+        pDestSMG.addValue(newHve.getValue());
+      }
+      if (!mapping1.containsKey(newHve.getValue())) {
+        mapping1.map(field.getValue(), newHve.getValue());
       }
       pDestSMG.addHasValueEdge(newHve);
     }
@@ -1443,7 +1455,8 @@ final class SMGJoinValues {
           if (!pMapping.containsKey(newVal)) {
             pMapping.map(subDlsValue, newVal);
           }
-          pDestSMG.addHasValueEdge(new SMGEdgeHasValue(hve.getType(), hve.getOffset(), listCopy, newVal));
+          pDestSMG.addHasValueEdge(
+              new SMGEdgeHasValue(hve.getType(), hve.getOffset(), listCopy, newVal));
         }
       }
     }
@@ -1529,7 +1542,8 @@ final class SMGJoinValues {
         if (!pMapping.containsKey(newVal)) {
           pMapping.map(subDlsValue, newVal);
         }
-        pDestSMG.addHasValueEdge(new SMGEdgeHasValue(hve.getType(), hve.getOffset(), newObj, newVal));
+        pDestSMG.addHasValueEdge(
+            new SMGEdgeHasValue(hve.getType(), hve.getOffset(), newObj, newVal));
       }
     }
   }
