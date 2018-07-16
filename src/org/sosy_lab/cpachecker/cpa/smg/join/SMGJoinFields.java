@@ -173,10 +173,6 @@ class SMGJoinFields {
         SMGEdgeHasValueFilter.objectFilter(pObj1).filterNotHavingValue(SMGZeroValue.INSTANCE);
 
     for (SMGEdgeHasValue edge : pSMG2.getHVEdges(nonNullPtrInSmg2)) {
-      if (! pSMG2.isPointer(edge.getValue())) {
-        continue;
-      }
-
       nonNullPtrInSmg1.filterAtOffset(edge.getOffset());
 
       if (pSMG1.getHVEdges(nonNullPtrInSmg1).isEmpty()) {
