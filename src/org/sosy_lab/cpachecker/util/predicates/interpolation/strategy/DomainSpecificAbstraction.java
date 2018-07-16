@@ -129,6 +129,9 @@ public class DomainSpecificAbstraction<T> {
         variables1 = variablesInFormulas.get(0);
       }
       else {
+        for (String f : variablesInFormulas.get(0)) {
+          variables1.add(f);
+        }
         for (String f : variablesInFormulas.get(1)) {
           variables1.add(f);
         }
@@ -1360,7 +1363,13 @@ public class DomainSpecificAbstraction<T> {
         BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
         List<BooleanFormula> toCheckFormulaList =
             Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+        for (BooleanFormula f : changed_formulas_rest1){
+          toCheckFormulaList.add(f);
+        }
         toCheckFormulaList.add(toCheckFormula);
+        for (BooleanFormula f : changed_formulas_rest2){
+          toCheckFormulaList.add(f);
+        }
         BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
 
         abstractionFeasible = prove(toCheckFormulaBlocked, mySolver);
@@ -1380,12 +1389,12 @@ public class DomainSpecificAbstraction<T> {
                 relationAbstraction2, relationAbstraction1Formula,
                 relationAbstraction2Formula, lattice, fullLatticeNames, h, mySolver);
             frontierList.add(new_frontier_elem);
-
           }
         }
       }
       helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
+
 
       for (/*List<IntegerFormula> */ List<Formula> x : frontierList) {
 
