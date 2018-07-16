@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.TreeMultimap;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -438,35 +437,47 @@ public class SMG implements UnmodifiableSMG {
   /**
    * Obtains a TreeMap offset to size signifying where the object bytes are nullified.
    *
-   * Constant.
+   * <p>Constant.
+   *
+   * <p>Example: an entry "{0:32,48:16}" represents a region of at least 64b with two ZERO values
+   * located at offset 0 (length 32) and 48 (length 16).
    *
    * @param pObj SMGObject for which the information is to be obtained
-   * @return A TreeMap offsets to size which are covered by a HasValue edge leading from an
-   * object to null value
+   * @return A mapping of offsets to sizes which are covered by a HasValue edge leading from the
+   *     object to NULL value
    */
   @Override
   public TreeMap<Long, Integer> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj) {
-    SMGEdgeHasValueFilter objectFilter =
+
+    // first get all possible offsets with their size, sorted by starting point
+    SMGEdgeHasValueFilter nullValueFilter =
         SMGEdgeHasValueFilter.objectFilter(pObj).filterHavingValue(SMGZeroValue.INSTANCE);
-    TreeMultimap<Long, Integer> offsetToSize = TreeMultimap.create();
-    for (SMGEdgeHasValue edge : objectFilter.filter(hv_edges)) {
-      offsetToSize.put(edge.getOffset(), edge.getSizeInBits(machine_model));
+    TreeMap<Long, Integer> offsetToSize = new TreeMap<>();
+    for (SMGEdgeHasValue edge : nullValueFilter.filter(hv_edges)) {
+      long offset = edge.getOffset();
+      int size = edge.getSizeInBits(machine_model);
+      Integer existingSize = offsetToSize.get(offset);
+      if (existingSize != null) {
+        size = Math.max(size, existingSize);
+      }
+      offsetToSize.put(offset, size);
     }
 
+    // then filter out overlapping intervals of offsets
     TreeMap<Long, Integer> resultOffsetToSize = new TreeMap<>();
     if (!offsetToSize.isEmpty()) {
       Iterator<Long> offsetsIterator = offsetToSize.keySet().iterator();
       long resultOffset = offsetsIterator.next();
-      Integer resultSize = offsetToSize.get(resultOffset).last();
+      int resultSize = offsetToSize.get(resultOffset);
       while (offsetsIterator.hasNext()) {
         long nextOffset = offsetsIterator.next();
+        int nextSize = offsetToSize.get(nextOffset);
         if (nextOffset <= resultOffset + resultSize) {
-          resultSize = Math.toIntExact(Long.max(offsetToSize.get(nextOffset).last() + nextOffset -
-              resultOffset, resultSize));
+          resultSize = Math.toIntExact(Long.max(nextSize + nextOffset - resultOffset, resultSize));
         } else {
           resultOffsetToSize.put(resultOffset, resultSize);
           resultOffset = nextOffset;
-          resultSize = offsetToSize.get(nextOffset).last();
+          resultSize = nextSize;
         }
       }
       resultOffsetToSize.put(resultOffset, resultSize);
