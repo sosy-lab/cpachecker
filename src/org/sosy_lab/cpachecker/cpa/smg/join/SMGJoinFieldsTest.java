@@ -362,45 +362,27 @@ public class SMGJoinFieldsTest {
     smg08.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, object, SMGZeroValue.INSTANCE));
     smg08.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, object, SMGZeroValue.INSTANCE));
 
-    Assert.assertEquals(SMGJoinStatus.INCOMPARABLE,
-        SMGJoinFields.joinFieldsRelaxStatus(smg04, smg48,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
-    Assert.assertEquals(SMGJoinStatus.INCOMPARABLE,
-        SMGJoinFields.joinFieldsRelaxStatus(smg04, smg26,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
-    Assert.assertEquals(SMGJoinStatus.EQUAL,
-        SMGJoinFields.joinFieldsRelaxStatus(smg04, smg08,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg04, smg48, object);
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg04, smg26, object);
+    checkStatusAfterRelax(SMGJoinStatus.EQUAL, smg04, smg08, object);
 
-    Assert.assertEquals(SMGJoinStatus.INCOMPARABLE,
-        SMGJoinFields.joinFieldsRelaxStatus(smg48, smg04,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
-    Assert.assertEquals(SMGJoinStatus.INCOMPARABLE,
-        SMGJoinFields.joinFieldsRelaxStatus(smg48, smg26,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
-    Assert.assertEquals(SMGJoinStatus.EQUAL,
-        SMGJoinFields.joinFieldsRelaxStatus(smg48, smg08,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg48, smg04, object);
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg48, smg26, object);
+    checkStatusAfterRelax(SMGJoinStatus.EQUAL, smg48, smg08, object);
 
-    Assert.assertEquals(SMGJoinStatus.INCOMPARABLE,
-        SMGJoinFields.joinFieldsRelaxStatus(smg26, smg04,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
-    Assert.assertEquals(SMGJoinStatus.INCOMPARABLE,
-        SMGJoinFields.joinFieldsRelaxStatus(smg26, smg48,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
-    Assert.assertEquals(SMGJoinStatus.EQUAL,
-        SMGJoinFields.joinFieldsRelaxStatus(smg26, smg08,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg26, smg04, object);
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg26, smg48, object);
+    checkStatusAfterRelax(SMGJoinStatus.EQUAL, smg26, smg08, object);
 
-    Assert.assertEquals(SMGJoinStatus.INCOMPARABLE,
-        SMGJoinFields.joinFieldsRelaxStatus(smg08, smg04,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
-    Assert.assertEquals(SMGJoinStatus.INCOMPARABLE,
-        SMGJoinFields.joinFieldsRelaxStatus(smg08, smg48,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
-    Assert.assertEquals(SMGJoinStatus.INCOMPARABLE,
-        SMGJoinFields.joinFieldsRelaxStatus(smg08, smg26,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg08, smg04, object);
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg08, smg48, object);
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg08, smg26, object);
+  }
+
+  private void checkStatusAfterRelax(SMGJoinStatus expected, SMG a, SMG b, SMGRegion object) {
+    SMGJoinFields js = new SMGJoinFields(a, a, object, object); // dummy instantiation
+    js.joinFieldsRelaxStatus(a, b, SMGJoinStatus.INCOMPARABLE, object);
+    Assert.assertEquals(expected, js.getStatus());
   }
 
   @SuppressWarnings("unused")

@@ -69,6 +69,7 @@ public final class SMGJoin {
 
     smg = new CLangSMG(opSMG1.getMachineModel());
 
+    // the mapping collects all visited nodes and is used for terminating the algorithms.
     SMGNodeMapping mapping1 = new SMGNodeMapping();
     SMGNodeMapping mapping2 = new SMGNodeMapping();
 

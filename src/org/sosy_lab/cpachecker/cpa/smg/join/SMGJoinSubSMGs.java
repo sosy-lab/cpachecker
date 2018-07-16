@@ -79,11 +79,11 @@ final class SMGJoinSubSMGs {
 
     // Algorithm 4 from FIT-TR-2012-04, line 1
     SMGJoinFields joinFields = new SMGJoinFields(pSMG1, pSMG2, pObj1, pObj2);
-    subSmgAbstractionCandidates = ImmutableList.of();
     inputSMG1 = joinFields.getSMG1();
     inputSMG2 = joinFields.getSMG2();
-    destSMG = pDestSMG;
     status = initialStatus.updateWith(joinFields.getStatus());
+    subSmgAbstractionCandidates = ImmutableList.of();
+    destSMG = pDestSMG;
     mapping1 = pMapping1;
     mapping2 = pMapping2;
 
