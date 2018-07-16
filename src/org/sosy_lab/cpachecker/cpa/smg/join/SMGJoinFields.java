@@ -131,6 +131,9 @@ class SMGJoinFields {
     }
   }
 
+  /**
+   * split nullified fields such that each (partial) field corresponds to a field in the other SMG.
+   */
   @VisibleForTesting
   static void setCompatibleHVEdgesToSMG(
       SMG pSMG, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
@@ -155,16 +158,19 @@ class SMGJoinFields {
     }
   }
 
+  /**
+   * get all HV-Edges that are part of both SMGs, such that in one SMG the edge points to NULL and
+   * in the other one the edge points to a non-NULL value.
+   */
   @VisibleForTesting
   static Set<SMGEdgeHasValue> getHVSetOfMissingNullValues(
       UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
     Set<SMGEdgeHasValue> retset = new HashSet<>();
 
-    SMGEdgeHasValueFilter nonNullPtrInSmg2 = SMGEdgeHasValueFilter.objectFilter(pObj2);
-    nonNullPtrInSmg2.filterNotHavingValue(SMGZeroValue.INSTANCE);
-
-    SMGEdgeHasValueFilter nonNullPtrInSmg1 = SMGEdgeHasValueFilter.objectFilter(pObj1);
-    nonNullPtrInSmg1.filterNotHavingValue(SMGZeroValue.INSTANCE);
+    SMGEdgeHasValueFilter nonNullPtrInSmg2 =
+        SMGEdgeHasValueFilter.objectFilter(pObj2).filterNotHavingValue(SMGZeroValue.INSTANCE);
+    SMGEdgeHasValueFilter nonNullPtrInSmg1 =
+        SMGEdgeHasValueFilter.objectFilter(pObj1).filterNotHavingValue(SMGZeroValue.INSTANCE);
 
     for (SMGEdgeHasValue edge : pSMG2.getHVEdges(nonNullPtrInSmg2)) {
       if (! pSMG2.isPointer(edge.getValue())) {
@@ -173,8 +179,7 @@ class SMGJoinFields {
 
       nonNullPtrInSmg1.filterAtOffset(edge.getOffset());
 
-      if (pSMG1.getHVEdges(nonNullPtrInSmg1).size() == 0) {
-
+      if (pSMG1.getHVEdges(nonNullPtrInSmg1).isEmpty()) {
         TreeMap <Long, Integer> newNullEdgesOffsetToSize =
             pSMG1.getNullEdgesMapOffsetToSizeForObject(pObj1);
 
@@ -198,6 +203,7 @@ class SMGJoinFields {
     return new SMGEdgeHasValue(resultSize, resultOffset, pObj1, SMGZeroValue.INSTANCE);
   }
 
+  /** get all HV-Edges that are common in both SMGs, i.e. where both objects point to NULL. */
   @VisibleForTesting
   static Set<SMGEdgeHasValue> getHVSetOfCommonNullValues(
       UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {

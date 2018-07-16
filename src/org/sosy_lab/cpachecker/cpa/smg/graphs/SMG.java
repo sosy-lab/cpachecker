@@ -440,7 +440,9 @@ public class SMG implements UnmodifiableSMG {
    * <p>Constant.
    *
    * <p>Example: an entry "{0:32,48:16}" represents a region of at least 64b with two ZERO values
-   * located at offset 0 (length 32) and 48 (length 16).
+   * located at offset 0 (length 32) and 48 (length 16). We assure that the returned intervals do
+   * not overlap, i.e., we never return something like {0:32,16:32} or {0:32,32:32}, but would
+   * return {0:48} or {0:64} here.
    *
    * @param pObj SMGObject for which the information is to be obtained
    * @return A mapping of offsets to sizes which are covered by a HasValue edge leading from the
