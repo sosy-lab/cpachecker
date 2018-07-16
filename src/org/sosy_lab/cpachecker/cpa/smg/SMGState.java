@@ -559,6 +559,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     /*First, set all sub smgs of dll to be removed to invalid.*/
     Set<Long> restriction = ImmutableSet.of(pListSeg.getNfo(), pListSeg.getPfo());
 
+    addMissingNullifiedLinksToDls(pListSeg);
+
     removeRestrictedSubSmg(pListSeg, restriction);
 
     /*When removing dll, connect target specifier first pointer to next field,
