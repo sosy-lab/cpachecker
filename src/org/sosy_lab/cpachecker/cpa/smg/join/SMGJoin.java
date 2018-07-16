@@ -130,10 +130,10 @@ public final class SMGJoin {
         SMGJoinSubSMGs jss =
             new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, levelMap, returnObjectInSmg1,
                 returnObjectInSmg2, destinationLocal, 0, false, pStateOfSmg1, pStateOfSmg2);
+        status = jss.getStatus();
         if (!jss.isDefined()) {
           return;
         }
-        status = jss.getStatus();
       }
     }
 
