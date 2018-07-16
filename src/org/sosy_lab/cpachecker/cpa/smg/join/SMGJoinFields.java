@@ -67,8 +67,8 @@ class SMGJoinFields {
     joinFieldsRelaxStatus(pSMG1, newSMG1, SMGJoinStatus.RIGHT_ENTAIL, pObj1);
     joinFieldsRelaxStatus(pSMG2, newSMG2, SMGJoinStatus.LEFT_ENTAIL, pObj2);
 
-    Set<SMGEdgeHasValue> smg2Extension = mergeNonNullHasValueEdges(pSMG1, pSMG2, pObj1, pObj2);
-    Set<SMGEdgeHasValue> smg1Extension = mergeNonNullHasValueEdges(pSMG2, pSMG1, pObj2, pObj1);
+    Set<SMGEdgeHasValue> smg2Extension = mergeNonNullHasValueEdges(pSMG1, newSMG2, pObj1, pObj2);
+    Set<SMGEdgeHasValue> smg1Extension = mergeNonNullHasValueEdges(pSMG2, newSMG1, pObj2, pObj1);
 
     // Algorithm 3 from FIT-TR-2012-04, line 5
     for (SMGEdgeHasValue edge : smg1Extension) {
