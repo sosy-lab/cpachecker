@@ -134,7 +134,7 @@ class SMGJoinFields {
       if (// if there is none (meaning the block got shortened from the start)
           newNullBlock == null ||
           // or the new block has different size (got shortened from the end)
-          newNullBlock != origEdge.getValue()) {
+          newNullBlock.intValue() != origEdge.getValue().intValue()) {
 
         // check whether the block really got smaller and not bigger on its end
         // there is also un-checked possibility that the block got bigger on its start
