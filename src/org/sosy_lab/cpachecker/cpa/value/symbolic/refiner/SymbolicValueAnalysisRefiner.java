@@ -146,12 +146,7 @@ public class SymbolicValueAnalysisRefiner
 
   public static Refiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-
-    final ValueAnalysisCPA valueAnalysisCpa =
-        CPAs.retrieveCPAOrFail(pCpa, ValueAnalysisCPA.class, SymbolicValueAnalysisRefiner.class);
-    final Configuration config = valueAnalysisCpa.getConfiguration();
-
-    return AbstractARGBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa, config);
+    return AbstractARGBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa);
   }
 
   public static ARGBasedRefiner create0(final ConfigurableProgramAnalysis pCpa)

@@ -177,23 +177,15 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPathToUse);
     }
 
-    return performRefinementForPaths(pReached, ImmutableList.of(targetPathToUse));
-  }
-
-  @Override
-  public CounterexampleInfo performRefinementForPaths(
-      final ARGReachedSet pReached,
-      final List<ARGPath> pTargetPaths
-  ) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "performing refinement ...");
     refinementTime.start();
     refinementCounter.inc();
-    numberOfTargets.setNextValue(pTargetPaths.size());
+    numberOfTargets.setNextValue(targets.size());
 
-    CounterexampleInfo cex = isAnyPathFeasible(pReached, pTargetPaths);
+    CounterexampleInfo cex = isPathFeasible(targetPathToUse);
 
     if (cex.isSpurious()) {
-      refineUsingInterpolants(pReached, obtainInterpolants(pTargetPaths));
+      refineUsingInterpolants(pReached, obtainInterpolants(targetPathToUse));
     }
 
     refinementTime.stop();
@@ -206,10 +198,11 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       final InterpolationTree<S, I> pInterpolationTree
       ) throws InterruptedException;
 
-  private InterpolationTree<S, I> obtainInterpolants(List<ARGPath> pTargetPaths)
+  private InterpolationTree<S, I> obtainInterpolants(ARGPath pTargetPath)
       throws CPAException, InterruptedException {
 
-    InterpolationTree<S, I> interpolationTree = createInterpolationTree(pTargetPaths);
+    InterpolationTree<S, I> interpolationTree =
+        createInterpolationTree(ImmutableList.of(pTargetPath));
 
     while (interpolationTree.hasNextPathForInterpolation()) {
       performPathInterpolation(interpolationTree);
@@ -263,43 +256,26 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     return checker.isFeasible(errorPath, initialItp.reconstructState());
   }
 
-  private CounterexampleInfo isAnyPathFeasible(
-      final ARGReachedSet pReached,
-      final Collection<ARGPath> pErrorPaths
+  private CounterexampleInfo isPathFeasible(
+      final ARGPath pErrorPaths
   ) throws CPAException, InterruptedException {
 
-    ARGPath feasiblePath = null;
-    for (ARGPath currentPath : pErrorPaths) {
+    if (isErrorPathFeasible(pErrorPaths)) {
+      madeProgress(pErrorPaths);
 
-      if (isErrorPathFeasible(currentPath)) {
-        if (feasiblePath == null) {
-          madeProgress(currentPath);
-          feasiblePath = currentPath;
-        }
-
-        pathExtractor.addFeasibleTarget(currentPath.getLastState());
-      }
-    }
-
-    // remove all other target states, so that only one is left (for CEX-checker)
-    if (feasiblePath != null) {
-      for (ARGPath others : pErrorPaths) {
-        if (others != feasiblePath) {
-          pReached.removeSubtree(others.getLastState());
-        }
-      }
+      pathExtractor.addFeasibleTarget(pErrorPaths.getLastState());
 
       logger.log(Level.FINEST, "found a feasible counterexample");
       // we use the imprecise version of the CounterexampleInfo, due to the possible
       // merges which are done in the used CPAs, but if we (can) compute a path with assignments,
       // it is probably precise.
       CFAPathWithAssumptions assignments = addAssumptionsToCex
-          ? createModel(feasiblePath)
-          : CFAPathWithAssumptions.empty();
+                                           ? createModel(pErrorPaths)
+                                           : CFAPathWithAssumptions.empty();
       if (!assignments.isEmpty()) {
-        return CounterexampleInfo.feasiblePrecise(feasiblePath, assignments);
+        return CounterexampleInfo.feasiblePrecise(pErrorPaths, assignments);
       } else {
-        return CounterexampleInfo.feasibleImprecise(feasiblePath);
+        return CounterexampleInfo.feasibleImprecise(pErrorPaths);
       }
     }
 

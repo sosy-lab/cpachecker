@@ -26,9 +26,6 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import java.util.List;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -67,12 +64,8 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
   private final AbstractBAMCPA bamCpa;
 
   private BAMBasedRefiner(
-      ARGBasedRefiner pRefiner,
-      ARGCPA pArgCpa,
-      AbstractBAMCPA pBamCpa,
-      LogManager pLogger,
-      Configuration pConfig) throws InvalidConfigurationException {
-    super(pRefiner, pArgCpa, pLogger, pConfig);
+      ARGBasedRefiner pRefiner, ARGCPA pArgCpa, AbstractBAMCPA pBamCpa, LogManager pLogger) {
+    super(pRefiner, pArgCpa, pLogger);
 
     bamCpa = pBamCpa;
     bamCpa.getStatistics().addRefiner(this);
@@ -93,40 +86,30 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
     }
     AbstractBAMCPA bamCpa = (AbstractBAMCPA) pCpa;
     ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, Refiner.class);
-    return new BAMBasedRefiner(pRefiner, argCpa, bamCpa, bamCpa.getLogger(),
-        bamCpa.getConfiguration());
+    return new BAMBasedRefiner(pRefiner, argCpa, bamCpa, bamCpa.getLogger());
   }
 
   @Override
-  protected final CounterexampleInfo performRefinementForPaths(
-      ARGReachedSet pReached, List<ARGPath> pPaths) throws CPAException, InterruptedException {
+  protected final CounterexampleInfo performRefinementForPath(
+      ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException {
     checkArgument(!(pReached instanceof BAMReachedSet),
         "Wrapping of BAM-based refiners inside BAM-based refiners is not allowed.");
+    assert pPath == null || pPath.size() > 0;
 
+    if (pPath == null) {
 
-    for (ARGPath path : pPaths) {
-      assert path == null || path.size() > 0;
+      // The counter-example-path could not be constructed, because of missing blocks (aka "holes").
+      // We directly return SPURIOUS and let the CPA-algorithm run again.
+      // During the counter-example-path-building we already re-added the start-states of all blocks,
+      // that lead to the missing block, to the waitlists of those blocks.
+      // Thus missing blocks are analyzed and rebuild again in the next CPA-algorithm.
+      return CounterexampleInfo.spurious();
+    } else {
 
-      if (path == null) {
-
-        // The counter-example-path could not be constructed, because of missing blocks (aka "holes").
-        // We directly return SPURIOUS and let the CPA-algorithm run again.
-        // During the counter-example-path-building we already re-added the start-states of all blocks,
-        // that lead to the missing block, to the waitlists of those blocks.
-        // Thus missing blocks are analyzed and rebuild again in the next CPA-algorithm.
-        return CounterexampleInfo.spurious();
-      } else {
-
-        // wrap the original reached-set to have a valid "view" on all reached states.
-        pReached = new BAMReachedSet(bamCpa, pReached, path, removeCachedSubtreeTimer);
-        CounterexampleInfo cex = super.performRefinementForPaths(pReached, ImmutableList.of(path));
-
-        if (!cex.isSpurious()) {
-          return cex;
-        }
-      }
+      // wrap the original reached-set to have a valid "view" on all reached states.
+      pReached = new BAMReachedSet(bamCpa, pReached, pPath, removeCachedSubtreeTimer);
+      return super.performRefinementForPath(pReached, pPath);
     }
-    return CounterexampleInfo.spurious();
   }
 
   @Override

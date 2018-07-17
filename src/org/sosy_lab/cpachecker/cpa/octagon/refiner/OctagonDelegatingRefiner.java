@@ -83,6 +83,6 @@ public abstract class OctagonDelegatingRefiner implements Refiner {
             valueChecker,
             interpolatingRefiner);
 
-    return AbstractARGBasedRefiner.forARGBasedRefiner(refiner, cpa, config);
+    return AbstractARGBasedRefiner.forARGBasedRefiner(refiner, cpa);
   }
 }
