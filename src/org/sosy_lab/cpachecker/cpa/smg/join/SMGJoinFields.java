@@ -119,13 +119,21 @@ class SMGJoinFields {
       UnmodifiableSMG pNewSMG,
       SMGJoinStatus pNewStatus,
       SMGObject pObject) {
+    // consecutive null edge block maps (offset, length)
     TreeMap<Long, Integer> origNullEdges = pOrigSMG.getNullEdgesMapOffsetToSizeForObject(pObject);
     TreeMap<Long, Integer> newNullEdges = pNewSMG.getNullEdgesMapOffsetToSizeForObject(pObject);
+
+    // important: the new null edge block can only by same size or smaller!
+
+    // for each consecutive null edge block, that was originally there
     for (Entry<Long, Integer> origEdge : origNullEdges.entrySet()) {
-      Entry<Long, Integer> newFloorEntry = newNullEdges.floorEntry(origEdge.getKey());
-      if (newFloorEntry == null
-          || newFloorEntry.getValue() + newFloorEntry.getKey()
-              < origEdge.getValue() + origEdge.getKey()) {
+      // find a null edge block that is in the modified SMG, and starts at the same offset
+      Integer newEdgeSize = newNullEdges.get(origEdge.getKey());
+      if (// if there is none (meaning the block got shortened from the start)
+          newEdgeSize == null ||
+              // or the new block is smaller (got shortened from the end)
+              newEdgeSize < origEdge.getValue()) {
+        // then update the status accordingly
         status = status.updateWith(pNewStatus);
       }
     }
