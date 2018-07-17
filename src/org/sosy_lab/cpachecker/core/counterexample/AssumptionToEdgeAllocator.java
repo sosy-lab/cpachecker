@@ -286,6 +286,10 @@ public class AssumptionToEdgeAllocator {
       List<AExpressionStatement> stmtAssumptions =
           handleStatement(pCFAEdge, ((AStatementEdge) pCFAEdge).getStatement(), pConcreteState);
       result.addAll(stmtAssumptions);
+    } else if (pCFAEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+      List<AExpressionStatement> stmtAssumptions =
+          handleAssumeStatement((AssumeEdge) pCFAEdge, pConcreteState);
+      result.addAll(stmtAssumptions);
     }
 
     if (pCFAEdge.getEdgeType() == CFAEdgeType.BlankEdge
@@ -369,6 +373,38 @@ public class AssumptionToEdgeAllocator {
         return op.toASTString() + " == " + value.toString();
       } else {
         return "";
+      }
+    }
+  }
+
+  private List<AExpressionStatement> handleAssumeStatement(
+      AssumeEdge pCFAEdge,
+      ConcreteState pConcreteState) {
+
+    if (!(pCFAEdge instanceof CAssumeEdge)) {
+      return Collections.emptyList();
+
+    } else {
+      CExpression pCExpression = ((CAssumeEdge) pCFAEdge).getExpression();
+
+      if (!(pCExpression instanceof CBinaryExpression)) {
+        return Collections.emptyList();
+
+      } else {
+        CBinaryExpression binExp = ((CBinaryExpression) pCExpression);
+
+        CExpression op1 = binExp.getOperand1();
+        CExpression op2 = binExp.getOperand2();
+
+        List<AExpressionStatement> result = new ArrayList<>();
+        if (op1 instanceof CLeftHandSide) {
+          result.addAll(handleAssignment(pCFAEdge, (CLeftHandSide) op1, pConcreteState));
+        }
+
+        if (op2 instanceof CLeftHandSide) {
+          result.addAll(handleAssignment(pCFAEdge, (CLeftHandSide) op2, pConcreteState));
+        }
+        return result;
       }
     }
   }
