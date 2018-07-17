@@ -966,6 +966,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
           SMGEdgeHasValue expandedZeroEdge =
               new SMGEdgeHasValue(sizeInBits, offset, hve.getObject(), SMGZeroValue.INSTANCE);
           heap.addHasValueEdge(expandedZeroEdge);
+          heap.addHasValueEdge(
+              new SMGEdgeHasValue(sizeInBits, offset, pNewRegion, SMGZeroValue.INSTANCE));
           heap.removeHasValueEdge(hve);
           heap.addHasValueEdge(
               new SMGEdgeHasValue(
