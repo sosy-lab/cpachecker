@@ -69,6 +69,8 @@ public abstract class PredicateExtractionRefiner implements Refiner {
             predicateCPA.getSolver());
 
     return AbstractARGBasedRefiner.forARGBasedRefiner(
-        new PredicateCPARefinerFactory(pCpa).forbidStaticRefinements().create(strategy), pCpa);
+        new PredicateCPARefinerFactory(pCpa).forbidStaticRefinements().create(strategy),
+        pCpa,
+        config);
   }
 }

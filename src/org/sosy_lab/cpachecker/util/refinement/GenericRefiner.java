@@ -185,7 +185,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     CounterexampleInfo cex = isPathFeasible(targetPathToUse);
 
     if (cex.isSpurious()) {
-      refineUsingInterpolants(pReached, obtainInterpolants(targetPathToUse));
+      refineUsingInterpolants(pReached, obtainInterpolants(ImmutableList.of(targetPathToUse)));
     }
 
     refinementTime.stop();
@@ -198,11 +198,11 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       final InterpolationTree<S, I> pInterpolationTree
       ) throws InterruptedException;
 
-  private InterpolationTree<S, I> obtainInterpolants(ARGPath pTargetPath)
+  private InterpolationTree<S, I> obtainInterpolants(List<ARGPath> pTargetPath)
       throws CPAException, InterruptedException {
 
     InterpolationTree<S, I> interpolationTree =
-        createInterpolationTree(ImmutableList.of(pTargetPath));
+        createInterpolationTree(pTargetPath);
 
     while (interpolationTree.hasNextPathForInterpolation()) {
       performPathInterpolation(interpolationTree);
