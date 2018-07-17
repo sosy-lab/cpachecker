@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
@@ -523,6 +524,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     /*First, set all sub smgs of sll to be removed to invalid.*/
     Set<Long> restriction = ImmutableSet.of(pListSeg.getNfo());
 
+    addMissingNullifiedLinksToList(pListSeg, pListSeg.getNfo());
+
     removeRestrictedSubSmg(pListSeg, restriction);
 
     /*When removing sll, connect target specifier first pointer to next field*/
@@ -559,7 +562,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     /*First, set all sub smgs of dll to be removed to invalid.*/
     Set<Long> restriction = ImmutableSet.of(pListSeg.getNfo(), pListSeg.getPfo());
 
-    addMissingNullifiedLinksToDls(pListSeg);
+    addMissingNullifiedLinksToList(pListSeg, pListSeg.getNfo(), pListSeg.getPfo());
 
     removeRestrictedSubSmg(pListSeg, restriction);
 
@@ -621,6 +624,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     heap.addHeapObject(newConcreteRegion);
 
     Set<Long> restriction = ImmutableSet.of(pListSeg.getNfo());
+
+    addMissingNullifiedLinksToList(pListSeg, pListSeg.getNfo());
 
     copyRestrictedSubSmgToObject(pListSeg, newConcreteRegion, restriction);
 
@@ -710,7 +715,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     Set<Long> restriction = ImmutableSet.of(pListSeg.getNfo(), pListSeg.getPfo());
 
-    addMissingNullifiedLinksToDls(pListSeg);
+    addMissingNullifiedLinksToList(pListSeg, pListSeg.getNfo(), pListSeg.getPfo());
 
     copyRestrictedSubSmgToObject(pListSeg, newConcreteRegion, restriction);
 
@@ -816,11 +821,15 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         this, SMGKnownAddressValue.valueOf(newPtEdgeToNewRegionFromOutsideSMG));
   }
 
-  private void addMissingNullifiedLinksToDls(SMGDoublyLinkedList pList) {
+  private void addMissingNullifiedLinksToList(SMGAbstractList<?> pList, long nfo) {
+    addMissingNullifiedLinksToList(pList, nfo, -1);
+  }
+
+  private void addMissingNullifiedLinksToList(SMGAbstractList<?> pList, long nfo, long pfo) {
     Preconditions.checkNotNull(pList);
     SMGEdgeHasValueFilter listFilter = SMGEdgeHasValueFilter.objectFilter(pList);
-    Set<SMGEdgeHasValue> nextEdges = heap.getHVEdges(listFilter.filterAtOffset(pList.getNfo()));
-    Set<SMGEdgeHasValue> prevEdges = heap.getHVEdges(listFilter.filterAtOffset(pList.getPfo()));
+    Set<SMGEdgeHasValue> nextEdges = heap.getHVEdges(listFilter.filterAtOffset(nfo));
+    Set<SMGEdgeHasValue> prevEdges = heap.getHVEdges(listFilter.filterAtOffset(pfo));
 
     if (nextEdges.isEmpty() || prevEdges.isEmpty()) {
       List<Long> hvOffsets =
@@ -829,21 +838,29 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
               .map(e -> e.getOffset())
               .sorted()
               .collect(Collectors.toList());
-      Long nfo = pList.getNfo();
-      Long pfo = pList.getPfo();
-      if (!nextEdges.isEmpty() && prevEdges.isEmpty()) {
-        addNullifiedLinkToDls(pList, pfo, hvOffsets);
-      } else if (nextEdges.isEmpty() && !prevEdges.isEmpty()) {
-        addNullifiedLinkToDls(pList, nfo, hvOffsets);
+
+      if (pfo < 0) {
+        if (nextEdges.isEmpty()) {
+          addNullCoveredLinksToList(pList, nfo, hvOffsets);
+        } else {
+          return;
+        }
       } else {
-        addNullifiedLinkToDls(pList, pfo, hvOffsets);
-        addNullifiedLinkToDls(pList, nfo, hvOffsets);
+
+        if (!nextEdges.isEmpty() && prevEdges.isEmpty()) {
+          addNullCoveredLinksToList(pList, pfo, hvOffsets);
+        } else if (nextEdges.isEmpty() && !prevEdges.isEmpty()) {
+          addNullCoveredLinksToList(pList, nfo, hvOffsets);
+        } else {
+          addNullCoveredLinksToList(pList, pfo, hvOffsets);
+          addNullCoveredLinksToList(pList, nfo, hvOffsets);
+        }
       }
     }
   }
 
-  private void addNullifiedLinkToDls(
-      SMGDoublyLinkedList pList, Long pLinkOffset, List<Long> pOffsets) {
+  private void addNullCoveredLinksToList(
+      SMGAbstractList<?> pList, Long pLinkOffset, List<Long> pOffsets) {
     Preconditions.checkNotNull(pList);
     Preconditions.checkNotNull(pOffsets);
     Preconditions.checkArgument(!pOffsets.isEmpty());
@@ -872,11 +889,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     heap.removeHasValueEdge(hvBefore);
     int size = pLinkOffset.intValue() - pOffsets.get(j).intValue();
     heap.addHasValueEdge(
-        new SMGEdgeHasValue(
-            (int) (pLinkOffset - pOffsets.get(j)),
-            hvBefore.getOffset(),
-            hvBefore.getObject(),
-            hvBefore.getValue()));
+        new SMGEdgeHasValue(size, hvBefore.getOffset(), hvBefore.getObject(), hvBefore.getValue()));
     size =
         k >= pOffsets.size()
             ? (int) (pList.getSize() - pLinkOffset)
