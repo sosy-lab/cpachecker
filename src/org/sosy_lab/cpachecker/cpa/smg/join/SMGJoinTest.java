@@ -38,9 +38,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -51,6 +53,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class SMGJoinTest {
@@ -334,5 +337,42 @@ public class SMGJoinTest {
         SMGJoinStatus.RIGHT_ENTAIL);
     joinUpdateUnit(SMGJoinStatus.INCOMPARABLE, SMGJoinStatus.INCOMPARABLE,
         SMGJoinStatus.INCOMPARABLE);
+  }
+
+  // tests, whether the SMGJoinFields has an appropriate effect on the join status
+  @Test
+  public void nullifiedBlocksJoinTest() throws SMGInconsistentException {
+
+    CType mockType4b = TypeUtils.createTypeWithLength(32);
+
+    smg1.addStackFrame(functionDeclaration3);
+    smg2.addStackFrame(functionDeclaration3);
+
+    Pair<SMGRegion, SMGRegion> objs = addHeapWithoutValueToBoth("Object", 64);
+
+    // more general
+    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0 , objs.getFirst(), SMGZeroValue.INSTANCE));
+
+    smg2.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0 , objs.getSecond(), SMGZeroValue.INSTANCE));
+    smg2.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, objs.getSecond(), SMGZeroValue.INSTANCE));
+
+    Pair<SMGRegion, SMGRegion> global = addGlobalWithoutValueToBoth("global", 128);
+    addPointerValueToBoth(global, 0, 100, 32, objs, 0);
+
+    SMGJoin join = new SMGJoin(smg1, smg2, null, null);
+    Assert.assertTrue(join.isDefined());
+    assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.RIGHT_ENTAIL);
+
+    // this will lead to incomparable, undefined, you can not join 0(ptr valuu) with 666(nonptr val)
+    // one might expect SMGJoinValues.joinValuesNonPointers to be used,
+    // but 0 is considered a pointer value ( SMG.isPointer() )
+    // this join fails due to SMGJoinValues not due to SMGJoinFields!
+    SMGValue un = SMGKnownSymValue.valueOf(666);
+    smg1.addValue(un);
+    smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, objs.getFirst(), un));
+
+    SMGJoin join2 = new SMGJoin(smg1, smg2, null, null);
+    Assert.assertFalse(join2.isDefined());
+    assertThat(join2.getStatus()).isEqualTo(SMGJoinStatus.INCOMPARABLE);
   }
 }
