@@ -188,6 +188,10 @@ analysis.algorithm.undefinedFunctionCollector = false
 # run the parallel BAM algortihm.
 analysis.algorithm.useParallelBAM = false
 
+# If not already done by the analysis, store a found counterexample in the
+# ARG for later re-use. Does nothing if no ARGCPA is used
+analysis.alwaysStoreCounterexamples = true
+
 # Construct a residual program from condition and verify residual program
 analysis.asConditionalVerifier = false
 
