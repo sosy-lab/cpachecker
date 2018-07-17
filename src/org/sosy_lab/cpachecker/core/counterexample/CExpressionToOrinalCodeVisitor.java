@@ -119,6 +119,9 @@ public class CExpressionToOrinalCodeVisitor
     if (substitute != null) {
       return substitute;
     }
+    if (pIdExpression.getDeclaration() == null) {
+      return pIdExpression.getName();
+    }
     return pIdExpression.getDeclaration().getOrigName();
   }
 
