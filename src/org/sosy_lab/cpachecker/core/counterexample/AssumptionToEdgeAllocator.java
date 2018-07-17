@@ -272,7 +272,6 @@ public class AssumptionToEdgeAllocator {
         + " == " + address.getCommentRepresentation();
   }
 
-  @Nullable
   private Collection<AExpressionStatement> createAssignmentsAtEdge(CFAEdge pCFAEdge, ConcreteState pConcreteState) {
 
     Set<AExpressionStatement> result = new LinkedHashSet<>();
@@ -422,7 +421,6 @@ public class AssumptionToEdgeAllocator {
     return result;
   }
 
-  @Nullable
   private List<AExpressionStatement> handleAssignment(CFAEdge pCFAEdge, CLeftHandSide pLeftHandSide, ConcreteState pConcreteState) {
 
     String functionName = pCFAEdge.getPredecessor().getFunctionName();
