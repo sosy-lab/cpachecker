@@ -113,6 +113,8 @@ class SMGJoinFields {
     return returnSet;
   }
 
+  // Checks whether the nullified blocks are same in the new SMG as in the original SMG
+  // or they got shrank / removed
   @VisibleForTesting
   void joinFieldsRelaxStatus(
       UnmodifiableSMG pOrigSMG,
@@ -120,19 +122,24 @@ class SMGJoinFields {
       SMGJoinStatus pNewStatus,
       SMGObject pObject) {
     // consecutive null edge block maps (offset, length)
-    TreeMap<Long, Integer> origNullEdges = pOrigSMG.getNullEdgesMapOffsetToSizeForObject(pObject);
-    TreeMap<Long, Integer> newNullEdges = pNewSMG.getNullEdgesMapOffsetToSizeForObject(pObject);
+    TreeMap<Long, Integer> origNullBlocks = pOrigSMG.getNullEdgesMapOffsetToSizeForObject(pObject);
+    TreeMap<Long, Integer> newNullBlocks = pNewSMG.getNullEdgesMapOffsetToSizeForObject(pObject);
 
     // important: the new null edge block can only by same size or smaller!
 
     // for each consecutive null edge block, that was originally there
-    for (Entry<Long, Integer> origEdge : origNullEdges.entrySet()) {
+    for (Entry<Long, Integer> origEdge : origNullBlocks.entrySet()) {
       // find a null edge block that is in the modified SMG, and starts at the same offset
-      Integer newEdgeSize = newNullEdges.get(origEdge.getKey());
+      Integer newNullBlock = newNullBlocks.get(origEdge.getKey());
       if (// if there is none (meaning the block got shortened from the start)
-          newEdgeSize == null ||
-              // or the new block is smaller (got shortened from the end)
-              newEdgeSize < origEdge.getValue()) {
+          newNullBlock == null ||
+          // or the new block has different size (got shortened from the end)
+          newNullBlock != origEdge.getValue()) {
+
+        // check whether the block really got smaller and not bigger on its end
+        // there is also un-checked possibility that the block got bigger on its start
+        Preconditions.checkState(newNullBlock == null || newNullBlock < origEdge.getValue());
+
         // then update the status accordingly
         status = status.updateWith(pNewStatus);
       }

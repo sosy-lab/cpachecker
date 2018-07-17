@@ -353,37 +353,54 @@ public class SMGJoinFieldsTest {
     SMGRegion object = new SMGRegion(64, "Object");
     smg1.addObject(object);
 
-    SMG smg04 = smg1.copyOf();
-    SMG smg48 = smg1.copyOf();
-    SMG smg26 = smg1.copyOf();
-    SMG smg08 = smg1.copyOf();
+    SMG smg0_0B_4B = smg1.copyOf();
+    SMG smg0_2B_6B = smg1.copyOf();
+    SMG smg0_4B_8B = smg1.copyOf();
+    SMG smg0_0B_8B = smg1.copyOf();
 
-    smg04.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, object, SMGZeroValue.INSTANCE));
-    smg48.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, object, SMGZeroValue.INSTANCE));
-    smg26.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 16, object, SMGZeroValue.INSTANCE));
-    smg08.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, object, SMGZeroValue.INSTANCE));
-    smg08.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, object, SMGZeroValue.INSTANCE));
+    smg0_0B_4B.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, object, SMGZeroValue.INSTANCE));
+    smg0_2B_6B.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 16, object, SMGZeroValue.INSTANCE));
+    smg0_4B_8B.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, object, SMGZeroValue.INSTANCE));
+    smg0_0B_8B.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, object, SMGZeroValue.INSTANCE));
+    smg0_0B_8B.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, object, SMGZeroValue.INSTANCE));
 
-    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg04, smg48, object);
-    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg04, smg26, object);
-    checkStatusAfterRelax(SMGJoinStatus.EQUAL, smg04, smg08, object);
+    // these test invalid inputs, so they are disabled now
+    /*
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_0B_4B, smg0_4B_8B, object); // invalid use
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_0B_4B, smg0_2B_6B, object); // invalid use
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_0B_4B, smg0_0B_8B, object); // invalid use, should throw
 
-    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg48, smg04, object);
-    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg48, smg26, object);
-    checkStatusAfterRelax(SMGJoinStatus.EQUAL, smg48, smg08, object);
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_4B_8B, smg0_0B_4B, object); // invalid use
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_4B_8B, smg0_2B_6B, object); // invalid use
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_4B_8B, smg0_0B_8B, object); // invalid use
 
-    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg26, smg04, object);
-    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg26, smg48, object);
-    checkStatusAfterRelax(SMGJoinStatus.EQUAL, smg26, smg08, object);
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_2B_6B, smg0_0B_4B, object); // invalid use
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_2B_6B, smg0_4B_8B, object); // invalid use
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_2B_6B, smg0_0B_8B, object); // invalid use
+    */
 
-    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg08, smg04, object);
-    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg08, smg48, object);
-    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg08, smg26, object);
+    checkStatusAfterRelax(SMGJoinStatus.EQUAL       , smg0_0B_8B, smg0_0B_8B, object); // OK
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_0B_8B, smg0_0B_4B, object); // OK
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_0B_8B, smg0_4B_8B, object); // OK
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_0B_8B, smg0_2B_6B, object); // OK
+
+    checkStatusAfterJoinFields(SMGJoinStatus.EQUAL       , smg0_0B_8B, smg0_0B_8B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL , smg0_0B_8B, smg0_0B_4B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL , smg0_0B_8B, smg0_2B_6B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL , smg0_0B_8B, smg0_4B_8B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.RIGHT_ENTAIL, smg0_0B_4B, smg0_0B_8B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.RIGHT_ENTAIL, smg0_2B_6B, smg0_0B_8B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.RIGHT_ENTAIL, smg0_4B_8B, smg0_0B_8B, object);
   }
 
   private void checkStatusAfterRelax(SMGJoinStatus expected, SMG a, SMG b, SMGRegion object) {
     SMGJoinFields js = new SMGJoinFields(a, a, object, object); // dummy instantiation
     js.joinFieldsRelaxStatus(a, b, SMGJoinStatus.INCOMPARABLE, object);
+    Assert.assertEquals(expected, js.getStatus());
+  }
+
+  private void checkStatusAfterJoinFields(SMGJoinStatus expected, SMG a, SMG b, SMGRegion object) {
+    SMGJoinFields js = new SMGJoinFields(a, b, object, object); // join fields
     Assert.assertEquals(expected, js.getStatus());
   }
 
