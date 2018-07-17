@@ -52,9 +52,11 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
@@ -303,8 +305,8 @@ public class SMGStateTest {
     int size = 96;
     long hfo = 0;
     long nfo = 0;
-    long pfo = 32;
-    long dfo = 64;
+    long pfo = 32; // hidden nullified part
+    long dfo = 64; // hidden nullified part
     int minLength = 3;
     int level = 0;
 
@@ -325,7 +327,7 @@ public class SMGStateTest {
     SMGDoublyLinkedList dll = new SMGDoublyLinkedList(size, hfo, nfo, pfo, minLength, level);
 
     // the whole abstract segment is nullified
-    SMGEdgeHasValue nextField = new SMGEdgeHasValue(mockType96b, hfo, dll, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue nextField = new SMGEdgeHasValue(mockType96b, nfo, dll, SMGZeroValue.INSTANCE);
     heap.addHeapObject(dll);
     heap.setValidity(dll, true);
     heap.addHasValueEdge(nextField);
@@ -342,9 +344,9 @@ public class SMGStateTest {
             HashBiMap.create());
 
     smg1State.addStackFrame(functionDeclaration3);
-    SMGObject head = smg1State.addGlobalVariable(machineModel.getSizeofPtrInBits(), "head");
 
-    smg1State.writeValue(head, hfo, pointerType, value8);
+    SMGObject head = smg1State.addGlobalVariable(machineModel.getSizeofPtrInBits(), "head");
+    smg1State.writeValue(head, hfo, pointerType, value6);
 
     smg1State.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
@@ -395,6 +397,101 @@ public class SMGStateTest {
         .isEqualTo(dll.getMinimumLength() - 1);
     Truth.assertThat(prevField.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
     Truth.assertThat(dataField.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
+  }
+
+  @Test
+  public void materialiseNullifiedSlsWithHiddenNextFieldTest()
+      throws SMGInconsistentException, InvalidConfigurationException {
+
+    int size = 96;
+    long hfo = 0;
+    long dfo1 = 0;
+    long nfo = 32; // hidden nullified part
+    long dfo2 = 64; // hidden nullified part
+    int minLength = 3;
+    int level = 0;
+
+    MachineModel machineModel = MachineModel.LINUX32;
+    int ptrSize = machineModel.getSizeofPtrInBits();
+    CLangSMG heap = new CLangSMG(machineModel);
+
+    SMGSymbolicValue value6 = SMGKnownSymValue.valueOf(6);
+    heap.addValue(value6);
+
+    SMGSingleLinkedList sll = new SMGSingleLinkedList(size, hfo, nfo, minLength, level);
+
+    // the whole abstract segment is nullified
+    SMGEdgeHasValue initialDataField =
+        new SMGEdgeHasValue(mockType96b, hfo, sll, SMGZeroValue.INSTANCE);
+    heap.addHeapObject(sll);
+    heap.setValidity(sll, true);
+    heap.addHasValueEdge(initialDataField);
+
+    heap.addPointsToEdge(new SMGEdgePointsTo(value6, sll, hfo, SMGTargetSpecifier.FIRST));
+
+    SMGState smg1State =
+        new SMGState(
+            logger,
+            new SMGOptions(Configuration.defaultConfiguration()),
+            heap,
+            0,
+            HashBiMap.create());
+
+    smg1State.addStackFrame(functionDeclaration3);
+
+    SMGObject head = smg1State.addGlobalVariable(machineModel.getSizeofPtrInBits(), "head");
+    smg1State.writeValue(head, hfo, pointerType, value6);
+
+    smg1State.performConsistencyCheck(SMGRuntimeCheck.FORCED);
+
+    // trigger materialisation
+    List<SMGAddressValueAndState> valAndStates1 = smg1State.getPointerFromValue(value6);
+
+    Truth.assertThat(valAndStates1.size()).isEqualTo(1);
+    valAndStates1.get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.FORCED);
+
+    UnmodifiableSMGState newState = valAndStates1.get(0).getSmgState();
+    UnmodifiableSMG newSMG = newState.getHeap();
+    SMGObject concreteRegion = newSMG.getObjectPointedBy(value6);
+
+    SMGEdgeHasValueFilter regFilter = SMGEdgeHasValueFilter.objectFilter(concreteRegion);
+
+    Set<SMGEdgeHasValue> datasBefore = newSMG.getHVEdges(regFilter.filterAtOffset(dfo1));
+    Set<SMGEdgeHasValue> nexts = newSMG.getHVEdges(regFilter.filterAtOffset(nfo));
+    Set<SMGEdgeHasValue> datasAfter = newSMG.getHVEdges(regFilter.filterAtOffset(dfo2));
+
+    // after materialisation also the next edge and the second data edge should be present
+    Truth.assertThat(datasBefore).hasSize(1);
+    Truth.assertThat(nexts).hasSize(1);
+    Truth.assertThat(datasAfter).hasSize(1);
+
+    SMGEdgeHasValue dataFieldBeforeNext = Iterables.getOnlyElement(datasBefore);
+    SMGEdgeHasValue nextField = Iterables.getOnlyElement(nexts);
+    SMGEdgeHasValue dataFieldAfterNext = Iterables.getOnlyElement(datasAfter);
+
+    Truth.assertThat(dataFieldBeforeNext.getSizeInBits(machineModel)).isEqualTo(ptrSize);
+    Truth.assertThat(nextField.getSizeInBits(machineModel)).isEqualTo(ptrSize);
+    Truth.assertThat(dataFieldAfterNext.getSizeInBits(machineModel)).isEqualTo(ptrSize);
+    Truth.assertThat(dataFieldBeforeNext.getOffset()).isEqualTo(dfo1);
+    Truth.assertThat(nextField.getOffset()).isEqualTo(nfo);
+    Truth.assertThat(dataFieldAfterNext.getOffset()).isEqualTo(dfo2);
+
+    // next of new region should point to new sll
+    Truth.assertThat(newSMG.isPointer(nextField.getValue())).isTrue();
+    SMGObject newSll = newSMG.getPointer(nextField.getValue()).getObject();
+
+    // assert that region points to sll
+    SMGValue sllAddress =
+        Iterables.getOnlyElement(
+                newSMG.getPtEdges(
+                    SMGEdgePointsToFilter.targetObjectFilter(newSll).filterAtTargetOffset(hfo)))
+            .getValue();
+    Truth.assertThat(nextField.getValue()).isEqualTo(sllAddress);
+    Truth.assertThat(dataFieldBeforeNext.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
+    Truth.assertThat(dataFieldAfterNext.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
+    Truth.assertThat(newSll).isInstanceOf(SMGSingleLinkedList.class);
+    Truth.assertThat(((SMGSingleLinkedList) newSll).getMinimumLength())
+        .isEqualTo(sll.getMinimumLength() - 1);
   }
 
   @SuppressWarnings("unchecked")
