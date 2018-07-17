@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import java.util.Collection;
 import java.util.Map;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
@@ -79,6 +80,8 @@ import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -586,7 +589,7 @@ public class CoreComponentsFactory {
     return terminationSpecification;
   }
 
-  private static class CexStoreAlgorithm implements Algorithm {
+  private static class CexStoreAlgorithm implements Algorithm, StatisticsProvider {
 
     private final Algorithm algorithm;
     private final ARGCPA argCpa;
@@ -645,6 +648,13 @@ public class CoreComponentsFactory {
       final Map<ARGState, CounterexampleInfo> preciseCounterexamples =
           Maps.filterValues(allCounterexamples, cex -> cex.isPreciseCounterExample());
       return preciseCounterexamples.isEmpty() ? allCounterexamples : preciseCounterexamples;
+    }
+
+    @Override
+    public void collectStatistics(Collection<Statistics> statsCollection) {
+      if (algorithm instanceof StatisticsProvider) {
+        ((StatisticsProvider) algorithm).collectStatistics(statsCollection);
+      }
     }
   }
 }
