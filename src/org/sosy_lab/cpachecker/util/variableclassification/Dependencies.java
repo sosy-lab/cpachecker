@@ -173,7 +173,7 @@ class Dependencies {
   public String toString() {
     StringBuilder str = new StringBuilder("[");
     Joiner.on(",\n").appendTo(str, partitions);
-    str.append("]\n\n");
+    str.append("]");
 
     //      for (Pair<CFAEdge, Integer> edge : edgeToPartition.keySet()) {
     //        str.append(edge.getFirst().getRawStatement() + " :: "
