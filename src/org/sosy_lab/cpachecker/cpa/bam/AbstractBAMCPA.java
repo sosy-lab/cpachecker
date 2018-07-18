@@ -104,6 +104,7 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
 
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
+  private final Configuration config;
   protected final BlockPartitioning blockPartitioning;
   private final BAMCPAStatistics stats;
   private final BAMARGStatistics argStats;
@@ -126,6 +127,7 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
 
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+    config = pConfig;
 
     blockPartitioningTimer.start();
     blockPartitioning = buildBlockPartitioning(pCfa, pConfig);
@@ -166,6 +168,10 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
 
   LogManager getLogger() {
     return logger;
+  }
+
+  Configuration getConfiguration() {
+    return config;
   }
 
   TimedReducer getReducer() {

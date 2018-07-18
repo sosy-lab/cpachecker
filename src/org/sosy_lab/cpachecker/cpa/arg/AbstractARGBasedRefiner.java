@@ -30,8 +30,10 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.errorprone.annotations.ForOverride;
 import java.util.Collection;
+import java.util.List;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -47,13 +49,14 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 
 /**
  * Base implementation for {@link Refiner}s that provides access to ARG utilities
  * (e.g., it provide an error path to the actual refinement code).
  *
  * To use this, implement {@link ARGBasedRefiner} and call
- * {@link AbstractARGBasedRefiner#forARGBasedRefiner(ARGBasedRefiner, ConfigurableProgramAnalysis)}.
+ * {@link AbstractARGBasedRefiner#forARGBasedRefiner(ARGBasedRefiner, ConfigurableProgramAnalysis, Configuration)}.
  */
 public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
 
@@ -63,29 +66,35 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
   private final ARGCPA argCpa;
   private final LogManager logger;
 
+  private final PathExtractor pathExtractor;
+
   protected AbstractARGBasedRefiner(AbstractARGBasedRefiner pAbstractARGBasedRefiner) {
     refiner = pAbstractARGBasedRefiner.refiner;
     argCpa = pAbstractARGBasedRefiner.argCpa;
     logger = pAbstractARGBasedRefiner.logger;
+
+    pathExtractor = pAbstractARGBasedRefiner.pathExtractor;
   }
 
-  protected AbstractARGBasedRefiner(ARGBasedRefiner pRefiner, ARGCPA pCpa, LogManager pLogger) {
+  protected AbstractARGBasedRefiner(ARGBasedRefiner pRefiner, ARGCPA pCpa, LogManager pLogger, Configuration pConfig)
+      throws InvalidConfigurationException {
     refiner = pRefiner;
     argCpa = pCpa;
     logger = pLogger;
+    pathExtractor = new PathExtractor(logger, pConfig);
   }
 
   /**
    * Create a {@link Refiner} instance from a {@link ARGBasedRefiner} instance.
    */
   public static Refiner forARGBasedRefiner(
-      final ARGBasedRefiner pRefiner, final ConfigurableProgramAnalysis pCpa)
+      final ARGBasedRefiner pRefiner, final ConfigurableProgramAnalysis pCpa, final Configuration pConfig)
       throws InvalidConfigurationException {
     checkArgument(
         !(pRefiner instanceof Refiner),
         "ARGBasedRefiners may not implement Refiner, choose between these two!");
     ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, Refiner.class);
-    return new AbstractARGBasedRefiner(pRefiner, argCpa, argCpa.getLogger());
+    return new AbstractARGBasedRefiner(pRefiner, argCpa, argCpa.getLogger(), pConfig);
   }
 
   private static final Function<CFAEdge, String> pathToFunctionCalls
@@ -97,22 +106,29 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
 
     assert ARGUtils.checkARG(pReached) : "ARG and reached set do not match before refinement";
 
-    final ARGState lastElement = (ARGState)pReached.getLastState();
-    assert lastElement.isTarget() : "Last element in reached is not a target state before refinement";
     ARGReachedSet reached = new ARGReachedSet(pReached, argCpa, refinementNumber++);
 
-    final @Nullable ARGPath path = computePath(lastElement, reached);
+    final Collection<ARGState> targets = pathExtractor.getTargetStates(reached);
 
-    if (logger.wouldBeLogged(Level.ALL) && path != null) {
-      logger.log(Level.ALL, "Error path:\n", path);
-      logger.log(Level.ALL, "Function calls on Error path:\n",
-          Joiner.on("\n ").skipNulls().join(Collections2.transform(path.getFullPath(), pathToFunctionCalls)));
+    List<ARGPath> targetPaths = pathExtractor.getTargetPaths(targets);
+
+    if (logger.wouldBeLogged(Level.ALL) && !targetPaths.isEmpty()) {
+      for (ARGPath path : targetPaths) {
+        logger.log(Level.ALL, "Error path:\n", path);
+        logger.log(
+            Level.ALL,
+            "Function calls on Error path:\n",
+            Joiner.on("\n ")
+                .skipNulls()
+                .join(Collections2.transform(path.getFullPath(), pathToFunctionCalls)));
+      }
     }
 
     final CounterexampleInfo counterexample;
     try {
-      counterexample = performRefinementForPath(reached, path);
+      counterexample = performRefinementForPaths(reached, targetPaths);
     } catch (RefinementFailedException e) {
+      ARGPath path = targetPaths.get(0);
       if (e.getErrorPath() == null) {
         e.setErrorPath(path);
       }
@@ -121,7 +137,7 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
       // so it can be used for debugging
       // we don't know if the path is precise here, so we assume it is imprecise
       // (this only affects the CEXExporter)
-      lastElement.addCounterexampleInformation(
+      path.getLastState().addCounterexampleInformation(
           CounterexampleInfo.feasibleImprecise(e.getErrorPath()));
       throw e;
     }
@@ -130,18 +146,18 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
 
     if (!counterexample.isSpurious()) {
       ARGPath targetPath = counterexample.getTargetPath();
+      ARGState lastElement = targetPath.getLastState();
 
       // new targetPath must contain root and error node
-      assert path != null : "Counterexample should come from a correct path.";
-      assert targetPath.getFirstState() == path.getFirstState() : "Target path from refiner does not contain root node";
-      assert targetPath.getLastState()  == path.getLastState() : "Target path from refiner does not contain target state";
-
+      assert targetPath.getFirstState() == pReached.getFirstState() : "Target path from refiner does not contain root node";
+      assert targetPath.getLastState().isTarget() : "Target path from refiner does not contain target state";
       lastElement.addCounterexampleInformation(counterexample);
 
       logger.log(Level.FINEST, "Counterexample", counterexample.getUniqueId(), "has been found.");
 
       // Print error trace if cpa.arg.printErrorPath = true
       argCpa.getARGExporter().exportCounterexampleOnTheFly(lastElement, counterexample);
+
     }
 
     logger.log(Level.FINEST, "ARG based refinement finished, result is", counterexample.isSpurious());
@@ -149,16 +165,15 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
     return counterexample.isSpurious();
   }
 
-
   /**
    * Perform refinement.
    * @param pReached the reached set
-   * @param pPath the potential error path
+   * @param pTargetPaths the potential error paths
    * @return Information about the counterexample.
    */
-  protected CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
+  protected CounterexampleInfo performRefinementForPaths(ARGReachedSet pReached, List<ARGPath> pTargetPaths)
       throws CPAException, InterruptedException {
-    return refiner.performRefinementForPath(pReached, pPath);
+    return refiner.performRefinementForPaths(pReached, pTargetPaths);
   }
 
   /**

@@ -143,7 +143,11 @@ public class ValueAnalysisRefiner
 
   public static Refiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    return AbstractARGBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa);
+    final ValueAnalysisCPA valueAnalysisCpa =
+        CPAs.retrieveCPAOrFail(pCpa, ValueAnalysisCPA.class, ValueAnalysisRefiner.class);
+    final Configuration config = valueAnalysisCpa.getConfiguration();
+
+    return AbstractARGBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa, config);
   }
 
   public static ARGBasedRefiner create0(final ConfigurableProgramAnalysis pCpa)

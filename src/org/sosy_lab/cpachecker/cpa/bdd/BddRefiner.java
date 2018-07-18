@@ -72,6 +72,6 @@ public abstract class BddRefiner implements Refiner {
             cfa);
 
     BddArgBasedRefiner refiner = new BddArgBasedRefiner(feasibilityChecker, pathInterpolator);
-    return AbstractARGBasedRefiner.forARGBasedRefiner(refiner, cpa);
+    return AbstractARGBasedRefiner.forARGBasedRefiner(refiner, cpa, config);
   }
 }

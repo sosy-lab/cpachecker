@@ -82,6 +82,6 @@ public abstract class ApronDelegatingRefiner implements Refiner {
             apronCPA.getTransferRelation(),
             feasibilityChecker,
             interpolatingRefiner);
-    return AbstractARGBasedRefiner.forARGBasedRefiner(refiner, cpa);
+    return AbstractARGBasedRefiner.forARGBasedRefiner(refiner, cpa, config);
   }
 }

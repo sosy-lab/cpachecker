@@ -106,14 +106,15 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
         new ImpactDelegateRefiner(checker, strongestPostOperator, pathExtractor, prefixProvider,
             config, logger, valueAnalysisCpa.getShutdownNotifier(), valueAnalysisCpa.getCFA());
 
-    return new ValueAnalysisImpactRefiner(delegate, argCpa, logger);
+    return new ValueAnalysisImpactRefiner(delegate, argCpa, logger, config);
   }
 
   ValueAnalysisImpactRefiner(
       final ImpactDelegateRefiner pDelegate,
       final ARGCPA pArgCpa,
-      final LogManager pLogger) {
-    super(pDelegate, pArgCpa, pLogger);
+      final LogManager pLogger,
+      final Configuration pConfig) throws InvalidConfigurationException {
+    super(pDelegate, pArgCpa, pLogger, pConfig);
   }
 
   @Override
