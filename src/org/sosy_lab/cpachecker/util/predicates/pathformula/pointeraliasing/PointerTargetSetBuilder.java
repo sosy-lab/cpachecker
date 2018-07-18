@@ -374,16 +374,14 @@ public interface PointerTargetSetBuilder {
       } else if (cType instanceof CCompositeType) {
         final CCompositeType compositeType = (CCompositeType) cType;
         assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-        final boolean isTargetComposite =
-            CTypeUtils.typeToString(compositeType)
-                .equals(CTypeUtils.typeToString(field.getOwnerType()));
+        final boolean isTargetComposite = compositeType.equals(field.getOwnerType());
         for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
           final long offset = typeHandler.getBitOffset(compositeType, memberDeclaration);
           if (tracksField(CompositeField.of(compositeType, memberDeclaration))) {
             addTargets(
                 base, memberDeclaration.getType(), offset, containerOffset + properOffset, field);
           }
-          if (isTargetComposite && memberDeclaration.getName().equals(field.getFieldName())) {
+          if (isTargetComposite && memberDeclaration.equals(field.getFieldDeclaration())) {
             MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
             targets = ptsMgr.addToTargets(base, newRegion, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);
           }
