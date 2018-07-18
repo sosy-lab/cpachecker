@@ -378,7 +378,7 @@ public interface PointerTargetSetBuilder {
             CTypeUtils.typeToString(compositeType)
                 .equals(CTypeUtils.typeToString(field.getOwnerType()));
         for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-          final long offset = typeHandler.getBitOffset(compositeType, memberDeclaration.getName());
+          final long offset = typeHandler.getBitOffset(compositeType, memberDeclaration);
           if (tracksField(CompositeField.of(compositeType, memberDeclaration))) {
             addTargets(
                 base, memberDeclaration.getType(), offset, containerOffset + properOffset, field);

@@ -570,7 +570,7 @@ class PointerTargetSetManager {
       final CCompositeType compositeType = (CCompositeType) cType;
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        final long offset = typeHandler.getBitOffset(compositeType, memberDeclaration.getName());
+        final long offset = typeHandler.getBitOffset(compositeType, memberDeclaration);
         if (fields.containsKey(CompositeField.of(compositeType, memberDeclaration))) {
           MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
           targets = addToTargets(base, newRegion, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);

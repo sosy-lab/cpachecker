@@ -510,11 +510,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CCompositeType compositeType = (CCompositeType) baseType;
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        final String memberName = memberDeclaration.getName();
-        final long offset = typeHandler.getBitOffset(compositeType, memberName);
+        final long offset = typeHandler.getBitOffset(compositeType, memberDeclaration);
         final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
         final String newBaseName = getFieldAccessName(baseName, memberDeclaration);
-        if (isRelevantField(compositeType, memberName)) {
+        if (isRelevantField(compositeType, memberDeclaration)) {
           fields.add(CompositeField.of(compositeType, memberDeclaration));
           MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
           addValueImportConstraints(
@@ -1383,10 +1382,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return super.isRelevantLeftHandSide(pLhs);
   }
 
-  /** {@inheritDoc} */
-  @Override
-  protected boolean isRelevantField(CCompositeType pCompositeType, String pFieldName) {
-    return super.isRelevantField(pCompositeType, pFieldName);
+  protected boolean isRelevantField(
+      CCompositeType pCompositeType, CCompositeTypeMemberDeclaration pField) {
+    return super.isRelevantField(pCompositeType, pField.getName());
   }
 
   /** {@inheritDoc} */

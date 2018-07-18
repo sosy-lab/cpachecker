@@ -146,6 +146,11 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
     return simplifyType(field.getType());
   }
 
+  /** @see #getBitOffset(CCompositeType, String) */
+  long getBitOffset(CCompositeType compositeType, final CCompositeTypeMemberDeclaration member) {
+    return getBitOffset(compositeType, member.getName());
+  }
+
   /**
    * The method is used to speed up member offset computation for declared composite types.
    *

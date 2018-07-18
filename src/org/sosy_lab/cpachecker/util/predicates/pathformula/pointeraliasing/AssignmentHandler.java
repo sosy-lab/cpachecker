@@ -594,10 +594,9 @@ class AssignmentHandler {
     BooleanFormula result = bfmgr.makeTrue();
     for (final CCompositeTypeMemberDeclaration memberDeclaration :
         lvalueCompositeType.getMembers()) {
-      final String memberName = memberDeclaration.getName();
       final CType newLvalueType = typeHandler.getSimplifiedType(memberDeclaration);
       // Optimizing away the assignments from uninitialized fields
-      if (conv.isRelevantField(lvalueCompositeType, memberName)
+      if (conv.isRelevantField(lvalueCompositeType, memberDeclaration)
           && (
           // Assignment to a variable, no profit in optimizing it
           !lvalue.isAliased()
@@ -615,7 +614,7 @@ class AssignmentHandler {
                       newLvalueType,
                       ssa)))) {
 
-        final long offset = typeHandler.getBitOffset(lvalueCompositeType, memberName);
+        final long offset = typeHandler.getBitOffset(lvalueCompositeType, memberDeclaration);
         final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);
         final Location newLvalue;
         if (lvalue.isAliased()) {
@@ -858,7 +857,7 @@ class AssignmentHandler {
           // calculate right indices. GCC orders fields in structs the other way around!
           // C11 6.7.2.1 (11) allows for arbitrary ordering, but we will stick to GCC behavior
           int fieldOffset =
-              (int) typeHandler.getBitOffset(((CCompositeType) memberType), innerMember.getName());
+              (int) typeHandler.getBitOffset(((CCompositeType) memberType), innerMember);
           int fieldSize = typeHandler.getBitSizeof(innerMember.getType());
           assert fieldSize > 0;
           int structSize = ((BitvectorType) conv.getFormulaTypeFromCType(memberType)).getSize();
