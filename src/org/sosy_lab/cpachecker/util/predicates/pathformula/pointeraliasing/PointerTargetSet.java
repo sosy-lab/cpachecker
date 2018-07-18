@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.io.IOException;
@@ -40,7 +39,6 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -49,62 +47,6 @@ import org.sosy_lab.java_smt.api.Formula;
 
 @Immutable
 public final class PointerTargetSet implements Serializable {
-
-  /**
-   * The objects of the class are used to keep the set of currently tracked fields in a {@link PersistentSortedMap}.
-   * Objects of {@link CompositeField} are used as keys and place-holders of type {@link Boolean} are used as values.
-   * <p>
-   * This allows one to check if a particular field is tracked using a temporary object of {@link CompositeField} and
-   * keep the set of currently tracked fields in rather simple way (no special-case merging is required).
-   * </p>
-   */
-  @Immutable
-  static class CompositeField implements Comparable<CompositeField>, Serializable {
-
-    private static final long serialVersionUID = -5194535211223682619L;
-
-    private CompositeField(final String compositeType, final String fieldName) {
-      this.compositeType = compositeType;
-      this.fieldName = fieldName;
-    }
-
-    static CompositeField of(final CCompositeType compositeType, final String fieldName) {
-      return new CompositeField(CTypeUtils.typeToString(compositeType), fieldName);
-    }
-
-    @Override
-    public String toString() {
-      return compositeType + "." + fieldName;
-    }
-
-    @Override
-    public int compareTo(final CompositeField other) {
-      return ComparisonChain.start()
-          .compare(this.compositeType, other.compositeType)
-          .compare(this.fieldName, other.fieldName)
-          .result();
-    }
-
-    @Override
-    public boolean equals(final Object obj) {
-      if (this == obj) {
-        return true;
-      } else if (!(obj instanceof CompositeField)) {
-        return false;
-      } else {
-        CompositeField other = (CompositeField) obj;
-        return compositeType.equals(other.compositeType) && fieldName.equals(other.fieldName);
-      }
-    }
-
-    @Override
-    public int hashCode() {
-      return compositeType.hashCode() * 17 + fieldName.hashCode();
-    }
-
-    private final String compositeType;
-    private final String fieldName;
-  }
 
   static String getBaseName(final String name) {
     return BASE_PREFIX + name;

@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
@@ -168,7 +167,7 @@ class AssignmentHandler {
 
     pts.addEssentialFields(rhsVisitor.getInitializedFields());
     pts.addEssentialFields(rhsVisitor.getUsedFields());
-    final List<Pair<CCompositeType, String>> rhsAddressedFields = rhsVisitor.getAddressedFields();
+    final List<CompositeField> rhsAddressedFields = rhsVisitor.getAddressedFields();
     final Map<String, CType> rhsLearnedPointersTypes = rhsVisitor.getLearnedPointerTypes();
 
     // LHS handling
@@ -226,8 +225,8 @@ class AssignmentHandler {
       }
     }
 
-    for (final Pair<CCompositeType, String> field : rhsAddressedFields) {
-      pts.addField(field.getFirst(), field.getSecond());
+    for (final CompositeField field : rhsAddressedFields) {
+      pts.addField(field);
     }
     return result;
   }
@@ -607,7 +606,7 @@ class AssignmentHandler {
               || // This is initialization, so the assignment is mandatory
               rvalue.isValue()
               || // The field is tracked as essential
-              pts.tracksField(lvalueCompositeType, memberName)
+              pts.tracksField(CompositeField.of(lvalueCompositeType, memberDeclaration))
               || // The variable representing the RHS was used somewhere (i.e. has SSA index)
               (!rvalue.isAliasedLocation()
                   && conv.hasIndex(

@@ -63,7 +63,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
@@ -342,7 +341,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         final AliasedLocation base = e.getFieldOwner().accept(this).asAliasedLocation();
 
         final String fieldName = e.getFieldName();
-        usedFields.add(Pair.of((CCompositeType) fieldOwnerType, fieldName));
+        usedFields.add(CompositeField.of((CCompositeType) fieldOwnerType, fieldName));
         final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
                                                     typeHandler.getBitOffset((CCompositeType) fieldOwnerType, fieldName));
 
@@ -477,7 +476,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         // the fields f1 and f2 along with the field s{1,2}.ss1 should be tracked from the first line onwards, because
         // it's too hard to determine (without the help of some alias analysis)
         // whether f1 assigned in the second line is an outer or inner structure field.
-        final List<Pair<CCompositeType, String>> alreadyUsedFields = ImmutableList.copyOf(usedFields);
+        final List<CompositeField> alreadyUsedFields = ImmutableList.copyOf(usedFields);
         usedFields.clear();
 
         if (errorConditions.isEnabled() && operand instanceof CFieldReference) {
@@ -498,7 +497,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
             final String fieldName = field.getFieldName();
             final CCompositeType compositeType =
                 (CCompositeType) CTypeUtils.checkIsSimplified(pointerType.getType());
-            usedFields.add(Pair.of(compositeType, fieldName));
+            usedFields.add(CompositeField.of(compositeType, fieldName));
             final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
                                                         typeHandler.getBitOffset(compositeType, fieldName));
             addressExpression = AliasedLocation.ofAddress(conv.fmgr.makePlus(base, offset));
@@ -760,7 +759,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    *
    * @return A list of the used fields.
    */
-  List<Pair<CCompositeType, String>> getUsedFields() {
+  List<CompositeField> getUsedFields() {
     return Collections.unmodifiableList(usedFields);
   }
 
@@ -769,7 +768,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    *
    * @return A list of the initialized fields.
    */
-  List<Pair<CCompositeType, String>> getInitializedFields() {
+  List<CompositeField> getInitializedFields() {
     return Collections.unmodifiableList(initializedFields);
   }
 
@@ -778,7 +777,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    *
    * @return A list of the addressed fields.
    */
-  List<Pair<CCompositeType, String>> getAddressedFields() {
+  List<CompositeField> getAddressedFields() {
     return Collections.unmodifiableList(addressedFields);
   }
 
@@ -803,8 +802,8 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
   private final ExpressionToFormulaVisitor delegate;
 
-  private final List<Pair<CCompositeType, String>> usedFields = new ArrayList<>(1);
-  private final List<Pair<CCompositeType, String>> initializedFields = new ArrayList<>();
-  private final List<Pair<CCompositeType, String>> addressedFields = new ArrayList<>();
+  private final List<CompositeField> usedFields = new ArrayList<>(1);
+  private final List<CompositeField> initializedFields = new ArrayList<>();
+  private final List<CompositeField> addressedFields = new ArrayList<>();
   private final Map<String, CType> learnedPointerTypes = Maps.newHashMapWithExpectedSize(1);
 }

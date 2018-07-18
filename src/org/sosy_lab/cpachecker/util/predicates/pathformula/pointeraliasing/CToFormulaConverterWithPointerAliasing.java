@@ -87,7 +87,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -499,7 +498,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final Formula address,
       final String baseName,
       final CType baseType,
-      final List<Pair<CCompositeType, String>> fields,
+      final List<CompositeField> fields,
       final SSAMapBuilder ssa,
       final Constraints constraints,
       @Nullable final MemoryRegion region) {
@@ -516,7 +515,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
         final String newBaseName = getFieldAccessName(baseName, memberDeclaration);
         if (isRelevantField(compositeType, memberName)) {
-          fields.add(Pair.of(compositeType, memberName));
+          fields.add(CompositeField.of(compositeType, memberDeclaration));
           MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
           addValueImportConstraints(
               fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset)),
