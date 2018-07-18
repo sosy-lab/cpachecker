@@ -676,7 +676,7 @@ class AssignmentHandler {
    * Creates a formula for a simple destructive assignment.
    *
    * @param lvalueType The type of the lvalue.
-   * @param rvalueType The type of the rvalue.
+   * @param pRvalueType The type of the rvalue.
    * @param lvalue The location of the lvalue.
    * @param rvalue The rvalue expression.
    * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
@@ -686,14 +686,14 @@ class AssignmentHandler {
    */
   private BooleanFormula makeSimpleDestructiveAssignment(
       CType lvalueType,
-      CType rvalueType,
+      final CType pRvalueType,
       final Location lvalue,
       Expression rvalue,
       final boolean useOldSSAIndices,
       final @Nullable Set<MemoryRegion> updatedRegions)
       throws UnrecognizedCodeException {
     // Arrays and functions are implicitly converted to pointers
-    rvalueType = implicitCastToPointer(rvalueType);
+    CType rvalueType = implicitCastToPointer(pRvalueType);
 
     checkArgument(isSimpleType(lvalueType));
     checkArgument(isSimpleType(rvalueType));
@@ -702,11 +702,17 @@ class AssignmentHandler {
     final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lvalueType);
     final BooleanFormula result;
 
-    final Optional<Formula> value = getValueFormula(rvalueType, rvalue);
-    Formula rhs =
-        value.isPresent()
-            ? conv.makeCast(rvalueType, lvalueType, value.get(), constraints, edge)
-            : null;
+    Formula rhs;
+    if (pRvalueType instanceof CArrayType && rvalue.isAliasedLocation()) {
+      // When assigning an array to a pointer, the address of the array is taken
+      rhs = rvalue.asAliasedLocation().getAddress();
+    } else {
+      final Optional<Formula> value = getValueFormula(rvalueType, rvalue);
+      rhs =
+          value.isPresent()
+              ? conv.makeCast(rvalueType, lvalueType, value.get(), constraints, edge)
+              : null;
+    }
 
     if (!lvalue.isAliased()) { // Unaliased LHS
       assert !useOldSSAIndices;
