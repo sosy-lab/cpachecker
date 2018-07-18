@@ -24,14 +24,8 @@
 package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.base.Verify.verifyNotNull;
-import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
-import java.util.Collection;
-import java.util.Map;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -42,7 +36,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
@@ -76,28 +69,19 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramCon
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
-import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CPAs;
 
 /**
  * Factory class for the three core components of CPAchecker:
@@ -589,72 +573,4 @@ public class CoreComponentsFactory {
     return terminationSpecification;
   }
 
-  private static class CexStoreAlgorithm implements Algorithm, StatisticsProvider {
-
-    private final Algorithm algorithm;
-    private final ARGCPA argCpa;
-    private final AssumptionToEdgeAllocator allocator;
-
-    public CexStoreAlgorithm(
-        final Algorithm pCpaAlgorithm,
-        final ConfigurableProgramAnalysis pCpa,
-        final Configuration pConfig,
-        final LogManager pLogger,
-        final MachineModel pMachineModel
-    )
-        throws InvalidConfigurationException {
-
-      algorithm = pCpaAlgorithm;
-      argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, CexStoreAlgorithm.class);
-      allocator = AssumptionToEdgeAllocator.create(pConfig, pLogger, pMachineModel);
-    }
-
-    @Override
-    public AlgorithmStatus run(ReachedSet pReachedSet)
-        throws CPAException, InterruptedException {
-
-      AlgorithmStatus status = algorithm.run(pReachedSet);
-
-      if (pReachedSet.hasViolatedProperties()) {
-        Map<ARGState, CounterexampleInfo> cexs = getAllCounterexamples(pReachedSet);
-
-        for (Map.Entry<ARGState, CounterexampleInfo> e : cexs.entrySet()) {
-          ARGState targetState = e.getKey();
-          if (!targetState.getCounterexampleInformation().isPresent()) {
-            targetState.addCounterexampleInformation(e.getValue());
-          }
-        }
-
-      }
-
-      return status;
-    }
-
-    public Map<ARGState, CounterexampleInfo> getAllCounterexamples(
-        final UnmodifiableReachedSet pReached) {
-      ImmutableMap.Builder<ARGState, CounterexampleInfo> counterexamples = ImmutableMap.builder();
-
-      for (AbstractState targetState : from(pReached).filter(IS_TARGET_STATE)) {
-        ARGState s = (ARGState) targetState;
-        CounterexampleInfo cex =
-            ARGUtils.tryGetOrCreateCounterexampleInformation(s, argCpa, allocator)
-                .orElse(null);
-        if (cex != null) {
-          counterexamples.put(s, cex);
-        }
-      }
-
-      Map<ARGState, CounterexampleInfo> allCounterexamples = counterexamples.build();
-      final Map<ARGState, CounterexampleInfo> preciseCounterexamples =
-          Maps.filterValues(allCounterexamples, cex -> cex.isPreciseCounterExample());
-      return preciseCounterexamples.isEmpty() ? allCounterexamples : preciseCounterexamples;
-    }
-
-    @Override
-    public void collectStatistics(Collection<Statistics> statsCollection) {
-      if (algorithm instanceof StatisticsProvider) {
-        ((StatisticsProvider) algorithm).collectStatistics(statsCollection);
-      }
-    }
-  }
 }
