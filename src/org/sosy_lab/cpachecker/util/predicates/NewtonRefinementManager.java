@@ -475,7 +475,6 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
       List<BooleanFormula> newPredicates = new ArrayList<>();
 
-      // FIXME: The order of the new predicates is lost, major problem
       for (Entry<Integer, BooleanFormula> predEntry : predPosition.entrySet()) {
         BooleanFormula pred = predEntry.getValue(); // The predicate
         int predPos = predEntry.getKey(); // The position in the path
