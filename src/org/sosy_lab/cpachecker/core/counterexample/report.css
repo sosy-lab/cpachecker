@@ -163,6 +163,7 @@ input:checked+.slider:before {
 }
 
 #errorpath_section {
+	width: 25%;
 	float: left;
 	min-width: 0px;
 	height: inherit;
@@ -469,11 +470,11 @@ input[type=text] {
 	height: 34px;
 }
 
-#arg-container{
+#arg-container {
 	top: 200px;
 }
 
-#cfa-container{
+#cfa-container {
 	top: 200px;
 }
 
