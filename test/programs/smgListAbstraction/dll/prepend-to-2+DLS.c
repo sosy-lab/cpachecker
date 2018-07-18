@@ -6,50 +6,63 @@ struct DLL {
   int data;
 };
 
-typedef struct DLL *node;
+typedef struct DLL node;
 
-node create_node() {
-  node temp = (struct DLL *) malloc(sizeof(struct DLL));
+node* create_node(int data) {
+  node* temp = (node *) malloc(sizeof(node));
   temp->next = NULL;
   temp->prev = NULL;
-  temp->data = 0;
+  temp->data = data;
   return temp;
 }
 
-void free_dll(node head) {
-  node p = head;
-  while(NULL != p) {
-    node q = p->next;
-    free(p);
-    p = q;
+void ASSERT(int x) {
+  if(!x) {
+    // create memory leak
+    create_node(-1);
   }
 }
 
-node prepend_to_dll(node head, int data) {
-  node new_head = create_node();
-  new_head->data = data;
-  if(NULL != head) {
-    new_head->next = head;
-    head->prev = new_head;
+void check_data(node* head, int expected) {
+  while(NULL != head) {
+    node* temp = head->next;
+    ASSERT(expected == head->data);
+    head = temp;
   }
-  return new_head;
+}
+
+void prepend_to_dll(node** head, int data) {
+  node* old_head = *head;
+  *head = create_node(data);
+  (*head)->next = old_head;
+  old_head->prev = *head;
+}
+
+void free_dll(node* head) {
+  while(NULL != head) {
+    node* temp = head->next;
+    free(head);
+    head = temp;
+  }
 }
 
 int main(void) {
 
-  node a = create_node();
-  node b = create_node();
-  a->data = 5;
-  b->data = 5;
+  const int FIVE = 5;
+
+  node* a = create_node(FIVE);
+  node* b = create_node(FIVE);
   a->next = b;
   b->prev = a;
 
   // remove external pointer
   b = NULL;
 
-  a = prepend_to_dll(a, 7);
+  prepend_to_dll(&a, FIVE);
+
+  check_data(a, FIVE);
   
   free_dll(a);
-  
+
   return 0;
 }

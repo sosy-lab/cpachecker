@@ -1,72 +1,54 @@
 #include <stdlib.h>
-extern int __VERIFIER_nondet_int(void);
-extern void __VERIFIER_assume(int);
+extern int __VERIFIER_nondet_int();
+extern void __VERIFIER_error();
 
 struct DLL {
-  struct DLL *next;
-  struct DLL *prev;
+  struct DLL* next;
+  struct DLL* prev;
   int data;
 };
 
-typedef struct DLL *node;
+typedef struct DLL node;
 
-node create_node() {
-  node temp = (struct DLL *) malloc(sizeof(struct DLL));
+node* create_node(int data) {
+  node* temp = (node *) malloc(sizeof(node));
   temp->next = NULL;
   temp->prev = NULL;
-  temp->data = 0;
+  temp->data = data;
   return temp;
 }
 
-void free_dll(node head) {
-  while(NULL != head) {
-    node second = head->next;
-    free(head);
-    head = second;
-  } 
-}
-
-node append_to_dll(node head, int data) {
-  node new_last = create_node();
-  new_last->data = data;
-  if(NULL == head) {
-    return new_last;
-  } else {
-    node last = head;
-    while(NULL != last->next) {
-      last = last->next;
-    }
-    last->next = new_last;
-    new_last->prev = last;
-    return head;
+void ASSERT(int x) {
+  if(!x) {
+    // invalid memory leak
+    create_node(-1);
   }
 }
 
-int main(void) {
+int main() {
 
-  // create list nodes
-  node a = create_node();
-  node b = create_node();
-  a->data = 5;
-  b->data = 5;
+  const int FIVE = 5;
+
+  node* a = create_node(FIVE);
+  node* b = create_node(FIVE);
+
   a->next = b;
-  b->prev = a;
 
   // remove external pointer
   b = NULL;
 
-  int data = 1;
   while(__VERIFIER_nondet_int()) {
-    a = append_to_dll(a, data);
-  }
-  
-  node p = a;
-  while(p != NULL) {
-    __VERIFIER_assume(1 == p->data);
-    p = p->next;
+    node* temp = create_node(FIVE);
+    temp->next = a;
+    a = temp;
   }
 
-  free_dll(a);
-  
+  while(NULL != a) {
+    node* temp = a->next;
+    ASSERT(FIVE == a->data);
+    free(a);
+    a = temp;
+  }
+
   return 0;
 }
