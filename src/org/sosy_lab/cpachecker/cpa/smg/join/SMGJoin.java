@@ -50,6 +50,10 @@ public final class SMGJoin {
   private boolean defined = false;
   private SMGJoinStatus status = SMGJoinStatus.EQUAL;
   private final CLangSMG smg;
+
+  // the mapping collects all visited nodes and is used for terminating the algorithms.
+  private final SMGNodeMapping mapping1 = new SMGNodeMapping();
+  private final SMGNodeMapping mapping2 = new SMGNodeMapping();
   final SMGLevelMapping levelMap = SMGLevelMapping.createDefaultLevelMap();
 
   /**
@@ -69,28 +73,19 @@ public final class SMGJoin {
 
     smg = new CLangSMG(opSMG1.getMachineModel());
 
-    // the mapping collects all visited nodes and is used for terminating the algorithms.
-    SMGNodeMapping mapping1 = new SMGNodeMapping();
-    SMGNodeMapping mapping2 = new SMGNodeMapping();
-
-    Map<String, SMGRegion> globals_in_smg1 = opSMG1.getGlobalObjects();
-    Map<String, SMGRegion> globals_in_smg2 = opSMG2.getGlobalObjects();
-
     // FIT-TR-2012-04, Alg 10, line 2
-    SMGJoinStatus tmpStatus1 =
-        joinGlobalVariables(mapping1, mapping2, globals_in_smg1, globals_in_smg2);
+    SMGJoinStatus tmpStatus1 = joinGlobalVariables(opSMG1.getGlobalObjects(), opSMG2.getGlobalObjects());
     status = status.updateWith(tmpStatus1);
 
     // FIT-TR-2012-04, Alg 10, line 2
-    SMGJoinStatus tmpStatus2 =
-        joinStackVariables(mapping1, mapping2, opSMG1.getStackFrames(), opSMG2.getStackFrames());
+    SMGJoinStatus tmpStatus2 = joinStackVariables(opSMG1.getStackFrames(), opSMG2.getStackFrames());
     status = status.updateWith(tmpStatus2);
 
     // FIT-TR-2012-04, Alg 10, line 3
     // join heap for globally pointed objects, global variable names are already joined
     for (Entry<String, SMGRegion> entry : smg.getGlobalObjects().entrySet()) {
-      SMGObject globalInSMG1 = globals_in_smg1.get(entry.getKey());
-      SMGObject globalInSMG2 = globals_in_smg2.get(entry.getKey());
+      SMGObject globalInSMG1 = opSMG1.getGlobalObjects().get(entry.getKey());
+      SMGObject globalInSMG2 = opSMG2.getGlobalObjects().get(entry.getKey());
       SMGObject destinationGlobal = mapping1.get(globalInSMG1);
       SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, opSMG1, opSMG2, smg, mapping1, mapping2, levelMap, globalInSMG1, globalInSMG2, destinationGlobal, 0,false, pStateOfSmg1, pStateOfSmg2);
       status = jss.getStatus();
@@ -147,8 +142,6 @@ public final class SMGJoin {
    * ignore some variables.
    */
   private SMGJoinStatus joinGlobalVariables(
-      SMGNodeMapping mapping1,
-      SMGNodeMapping mapping2,
       Map<String, SMGRegion> globals_in_smg1,
       Map<String, SMGRegion> globals_in_smg2) {
     Set<String> globals1 = globals_in_smg1.keySet();
@@ -181,8 +174,6 @@ public final class SMGJoin {
    * ignore some variables.
    */
   private SMGJoinStatus joinStackVariables(
-      SMGNodeMapping mapping1,
-      SMGNodeMapping mapping2,
       PersistentStack<CLangStackFrame> stack1,
       PersistentStack<CLangStackFrame> stack2) {
     Iterator<CLangStackFrame> smg1stackIterator = stack1.iterator();
