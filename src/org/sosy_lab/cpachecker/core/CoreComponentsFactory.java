@@ -186,7 +186,7 @@ public class CoreComponentsFactory {
       description = "If not already done by the analysis,"
           + " store a found counterexample in the ARG for later re-use. Does nothing"
           + " if no ARGCPA is used")
-  private boolean forceCexStore = true;
+  private boolean forceCexStore = false;
 
   @Option(
     secure = true,
