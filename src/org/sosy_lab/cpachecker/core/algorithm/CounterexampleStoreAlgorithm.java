@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core;
+package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
@@ -34,7 +34,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -49,13 +48,13 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-class CexStoreAlgorithm implements Algorithm, StatisticsProvider {
+public final class CounterexampleStoreAlgorithm implements Algorithm, StatisticsProvider {
 
   private final Algorithm algorithm;
   private final ARGCPA argCpa;
   private final AssumptionToEdgeAllocator allocator;
 
-  public CexStoreAlgorithm(
+  public CounterexampleStoreAlgorithm(
       final Algorithm pCpaAlgorithm,
       final ConfigurableProgramAnalysis pCpa,
       final Configuration pConfig,
@@ -65,7 +64,7 @@ class CexStoreAlgorithm implements Algorithm, StatisticsProvider {
       throws InvalidConfigurationException {
 
     algorithm = pCpaAlgorithm;
-    argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, CexStoreAlgorithm.class);
+    argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, CounterexampleStoreAlgorithm.class);
     allocator = AssumptionToEdgeAllocator.create(pConfig, pLogger, pMachineModel);
   }
 
