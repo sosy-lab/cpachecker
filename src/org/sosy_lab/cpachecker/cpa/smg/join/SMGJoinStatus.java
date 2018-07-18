@@ -32,8 +32,7 @@ public enum SMGJoinStatus {
   EQUAL("≃"),
   LEFT_ENTAIL("⊏"),
   RIGHT_ENTAIL("⊐"),
-  INCOMPARABLE("⋈"),
-  INCOMPLETE("?");
+  INCOMPARABLE("⋈");
 
   private final String name;
 

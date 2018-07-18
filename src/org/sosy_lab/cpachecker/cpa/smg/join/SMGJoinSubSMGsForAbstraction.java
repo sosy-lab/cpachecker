@@ -147,7 +147,7 @@ final public class SMGJoinSubSMGsForAbstraction {
     SMGJoinSubSMGs jss = new SMGJoinSubSMGs(SMGJoinStatus.EQUAL, inputSMG, inputSMG, smg, mapping1, mapping2, levelMap, obj1, obj2, newAbstractObject, lDiff, true, pStateOfSmg, pStateOfSmg);
 
     if(!jss.isDefined()) {
-      status = SMGJoinStatus.INCOMPLETE;
+      status = SMGJoinStatus.INCOMPARABLE;
       defined = false;
       resultSMG = null;
       nonSharedObjectsFromSMG1 = null;

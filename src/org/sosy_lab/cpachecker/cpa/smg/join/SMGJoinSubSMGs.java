@@ -255,7 +255,7 @@ final class SMGJoinSubSMGs {
   public boolean isDefined() {
     if (!defined) {
       Preconditions.checkState(
-          status == SMGJoinStatus.INCOMPARABLE || status == SMGJoinStatus.INCOMPLETE,
+          status == SMGJoinStatus.INCOMPARABLE,
           "Join of SubSMGs not defined, but status is " + status);
     }
     return defined;
