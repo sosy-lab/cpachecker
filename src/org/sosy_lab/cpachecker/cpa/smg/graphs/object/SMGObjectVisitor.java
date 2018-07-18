@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object;
 
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.array.SMGAbstractArray;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.GenericAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.optional.SMGOptionalObject;
@@ -39,6 +40,8 @@ public interface SMGObjectVisitor<T> {
   T visit(SMGDoublyLinkedList pObject);
 
   T visit(SMGOptionalObject pObject);
+
+  T visit(SMGAbstractArray pObject);
 
   T visit(GenericAbstraction pObject);
 }

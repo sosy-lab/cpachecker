@@ -31,7 +31,9 @@ public enum SMGObjectKind {
   SLL("SingleyLinkedList"),
   NULL("NullObject"),
   GENERIC("GenericAbstraction"),
-  OPTIONAL("OptionalObject");
+  OPTIONAL("OptionalObject"),
+  ARRAY("AbstractArray")
+  ;
 
   private final String name;
 

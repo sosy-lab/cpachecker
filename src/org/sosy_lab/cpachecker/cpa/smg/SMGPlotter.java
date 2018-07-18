@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.array.SMGAbstractArray;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.GenericAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.optional.SMGOptionalObject;
@@ -124,6 +125,11 @@ public final class SMGPlotter {
     @Override
     public SMGObjectNode visit(SMGOptionalObject opt) {
       return defaultNode("opt", opt);
+    }
+
+    @Override
+    public SMGObjectNode visit(SMGAbstractArray obj) {
+      return defaultNode("array", obj);
     }
 
     @Override
