@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
 struct SLL {
-  struct SLL* next;
+  struct SLL *next;
   int data;
 };
 
@@ -26,7 +26,14 @@ void append_to_sll(node** head, int data) {
       temp = temp->next;
     }
     temp->next = new_node;
-    *head = temp;
+  }
+}
+
+void free_sll(node* head) {
+  while(NULL != head) {
+    node* temp = head->next;
+    free(head);
+    head = temp;
   }
 }
 
@@ -48,14 +55,17 @@ int main(void) {
   const int STORED_VALUE = 1;
   const int LIST_LENGTH = 5;
 
-  node lst = create_node(STORED_VALUE);
+  node* lst = NULL;
 
   int i = 0;
   while(i < LIST_LENGTH) {
     append_to_sll(&lst, STORED_VALUE);
+    ++i;
   }
 
   ASSERT(LIST_LENGTH == len(lst));
+
+  free_sll(lst);
 
   return 0;
 }
