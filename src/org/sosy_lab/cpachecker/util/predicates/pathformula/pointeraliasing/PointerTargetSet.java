@@ -40,6 +40,7 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -67,8 +68,8 @@ public final class PointerTargetSet implements Serializable {
       this.fieldName = fieldName;
     }
 
-    static CompositeField of(final String compositeType, final String fieldName) {
-      return new CompositeField(compositeType, fieldName);
+    static CompositeField of(final CCompositeType compositeType, final String fieldName) {
+      return new CompositeField(CTypeUtils.typeToString(compositeType), fieldName);
     }
 
     @Override
