@@ -1411,11 +1411,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     SMGJoin join = new SMGJoin(this.heap, reachedState.getHeap(), this, reachedState);
 
-    if(join.getStatus() != SMGJoinStatus.INCOMPARABLE) {
-      return reachedState;
-    }
-
-    if (!join.isDefined()) {
+    if (!(join.getStatus() == SMGJoinStatus.INCOMPARABLE && join.isDefined())) {
       return reachedState;
     }
 
