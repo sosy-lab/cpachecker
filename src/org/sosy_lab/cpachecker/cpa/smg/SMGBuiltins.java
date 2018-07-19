@@ -30,7 +30,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -44,6 +48,7 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGRightHandSideEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGArraySymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
@@ -384,6 +389,22 @@ public class SMGBuiltins {
     }
   }
 
+  public static class UnableToComputeAllocationSizeException extends UnsupportedCodeException
+  {
+    public UnableToComputeAllocationSizeException(
+        String msg,
+        @Nullable CFAEdge edge,
+        @Nullable AAstNode astNode) {
+      super(msg, edge, astNode);
+    }
+
+    public UnableToComputeAllocationSizeException(
+        String msg,
+        @Nullable CFAEdge cfaEdge) {
+      super(msg, cfaEdge);
+    }
+  }
+
   private List<SMGExplicitValueAndState> getAllocateFunctionParameter(int pParameterNumber, CFunctionCallExpression functionCall,
       SMGState pState, CFAEdge cfaEdge) throws CPATransferException {
     CRightHandSide sizeExpr;
@@ -429,7 +450,7 @@ public class SMGBuiltins {
               resultValueAndState =
                   SMGExplicitValueAndState.of(currentState, SMGZeroValue.INSTANCE);
             } else {
-              throw new UnsupportedCodeException("Not able to compute allocation size", cfaEdge);
+              throw new UnableToComputeAllocationSizeException("Not able to compute allocation size", cfaEdge);
             }
           }
         } else {
@@ -437,7 +458,7 @@ public class SMGBuiltins {
             resultValueAndState =
                 SMGExplicitValueAndState.of(currentState, SMGZeroValue.INSTANCE);
           } else {
-            throw new UnsupportedCodeException("Not able to compute allocation size", cfaEdge);
+            throw new UnableToComputeAllocationSizeException("Not able to compute allocation size", cfaEdge);
           }
         }
       }
@@ -453,11 +474,65 @@ public class SMGBuiltins {
 
     String functionName = functionCall.getFunctionNameExpression().toASTString();
     List<SMGAddressValueAndState> result = new ArrayList<>();
-    for (SMGExplicitValueAndState sizeAndState :
-        getAllocateFunctionSize(pState, cfaEdge, functionCall)) {
 
-      int size = sizeAndState.getObject().getAsInt();
-      SMGState currentState = sizeAndState.getSmgState();
+    try {
+      for (SMGExplicitValueAndState sizeAndState :
+          getAllocateFunctionSize(pState, cfaEdge, functionCall)) {
+
+        int size = sizeAndState.getObject().getAsInt();
+        SMGState currentState = sizeAndState.getSmgState();
+
+        // TODO line numbers are not unique when we have multiple input files!
+        String allocation_label =
+            functionName
+                + "_ID"
+                + SMGCPA.getNewValue()
+                + "_Line:"
+                + functionCall.getFileLocation().getStartingLineNumber();
+        SMGAddressValue new_address =
+            currentState.addNewHeapAllocation(
+                size * machineModel.getSizeofCharInBits(), allocation_label);
+
+        SMGState newState = currentState;
+        if (options.getZeroingMemoryAllocation().contains(functionName)) {
+          newState =
+              expressionEvaluator.writeValue(
+                  currentState,
+                  new_address.getObject(),
+                  0,
+                  TypeUtils.createTypeWithLength(size * machineModel.getSizeofCharInBits()),
+                  SMGZeroValue.INSTANCE,
+                  cfaEdge);
+        }
+        result.add(SMGAddressValueAndState.of(newState, new_address));
+
+        // If malloc can fail, handle fail with alternative state
+        if (options.isEnableMallocFailure()) {
+          result.add(SMGAddressValueAndState.of(currentState.copyOf(), SMGZeroValue.INSTANCE));
+        }
+      }
+    }
+    catch (UnableToComputeAllocationSizeException ex)
+    {
+      CExpression sizeExpr;
+      if (options.getArrayAllocationFunctions().contains(functionName))
+      {
+        // calloc
+        sizeExpr = new CBinaryExpression(functionCall.getFileLocation(), functionCall.getExpressionType(), functionCall.getExpressionType(),
+            functionCall.getParameterExpressions().get(0),
+            functionCall.getParameterExpressions().get(1),
+            BinaryOperator.MULTIPLY
+        );
+      }
+      else
+      {
+        // malloc
+        sizeExpr = functionCall.getParameterExpressions().get(0);
+      }
+      String exprLabel = sizeExpr.toASTString();
+      SMGArraySymbolicValue arrLenVal = new SMGArraySymbolicValue(8,16, exprLabel); //TEMP
+
+      SMGState currentState = pState.copyOf();
 
       // TODO line numbers are not unique when we have multiple input files!
       String allocation_label =
@@ -466,9 +541,10 @@ public class SMGBuiltins {
               + SMGCPA.getNewValue()
               + "_Line:"
               + functionCall.getFileLocation().getStartingLineNumber();
+
       SMGAddressValue new_address =
-          currentState.addNewHeapAllocation(
-              size * machineModel.getSizeofCharInBits(), allocation_label);
+          currentState.addHeapAbstractArrayAllocation(
+              machineModel.getSizeofCharInBits(), arrLenVal, allocation_label);
 
       SMGState newState = currentState;
       if (options.getZeroingMemoryAllocation().contains(functionName)) {
@@ -477,7 +553,7 @@ public class SMGBuiltins {
                 currentState,
                 new_address.getObject(),
                 0,
-                TypeUtils.createTypeWithLength(size * machineModel.getSizeofCharInBits()),
+                TypeUtils.createTypeWithLength(machineModel.getSizeofCharInBits()),
                 SMGZeroValue.INSTANCE,
                 cfaEdge);
       }

@@ -70,11 +70,14 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.array.SMGAbstractArrayProxy;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.array.SMGAbstractArrayProxy.SMGAbstractArrayProxySegment;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.optional.SMGOptionalObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGArraySymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
@@ -1543,6 +1546,19 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGEdgePointsTo pointsTo = new SMGEdgePointsTo(new_value, new_object, offset);
     heap.addPointsToEdge(pointsTo);
     heap.setExternallyAllocatedFlag(new_object, external);
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
+    return SMGKnownAddressValue.valueOf(pointsTo);
+  }
+
+  public SMGAddressValue addHeapAbstractArrayAllocation(int size, SMGArraySymbolicValue len, String label)
+      throws SMGInconsistentException {
+    SMGObject new_object = SMGAbstractArrayProxy.createArray(size, len, 0, label);
+    SMGKnownSymbolicValue new_value = SMGKnownSymValue.of();
+    heap.addHeapObject(new_object);
+    heap.addValue(new_value);
+    SMGEdgePointsTo pointsTo = new SMGEdgePointsTo(new_value, new_object, 0);
+    heap.addPointsToEdge(pointsTo);
+    heap.setExternallyAllocatedFlag(new_object, false);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
     return SMGKnownAddressValue.valueOf(pointsTo);
   }
