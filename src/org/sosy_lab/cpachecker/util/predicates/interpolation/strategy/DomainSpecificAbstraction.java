@@ -1360,6 +1360,7 @@ public class DomainSpecificAbstraction<T> {
           }
         }
 
+
         BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
         List<BooleanFormula> toCheckFormulaList =
             Lists.newArrayListWithExpectedSize(formulas.size() - 1);
@@ -1676,11 +1677,12 @@ public class DomainSpecificAbstraction<T> {
   }
     String[] helperArray = new String[2];
 
-    int i = 0, j = 0;
+    int j = 0;
     Iterable<String> splitOperator = Splitter.on(" ,").split(input);
     for (String s : splitOperator) {
       FormulaType currentType = formulaTypes.get(j);
       if (s.contains(" - ")){
+        int i = 0;
         Iterable<String> splitOperator2 = Splitter.on(" - ").split(s);
         for (String t : splitOperator2){
           helperArray[i] = t;
