@@ -17,13 +17,15 @@ node* create_node(int data) {
 }
 
 void free_dll(node* head) {
-  node* p = head->next;
-  while(p != head) {
-    node* q = p->next;
-    free(p);
-    p = q;
+  if(NULL != head) {
+    node* p = head->next;
+    while(p != head) {
+      node* q = p->next;
+      free(p);
+      p = q;
+    }
+    free(head);
   }
-  free(head);
 }
 
 void ASSERT(int x) {
@@ -34,10 +36,12 @@ void ASSERT(int x) {
 }
 
 void check_data(node* head, int expected) {
-  while(head != head->next) {
-    node* temp = head->next;
-    ASSERT(expected == head->data);
-    head = temp;
+  if(NULL != head) {
+    while(head != head->next) {
+      node* temp = head->next;
+      ASSERT(expected == head->data);
+      head = temp;
+    }
   }
 }
 
@@ -59,22 +63,21 @@ void prepend_to_circular_dll(node** head, int data) {
 
 int main(void) {
 
-  const int FIVE = 5;
+  const int STORED_VALUE = 5;
 
-  node* a = create_node(FIVE);
-  node* b = create_node(FIVE);
+  node* a = create_node(STORED_VALUE);
+  node* b = create_node(STORED_VALUE);
 
   a->next = b;
   b->prev = a;
 
-  // add circular links
   a->prev = b;
   b->next = a;
   
   // remove external pointer
   b = NULL;
 
-  prepend_to_circular_dll(a, FIVE);
+  prepend_to_circular_dll(a, STORED_VALUE);
 
   // expected to fail!
   check_data(a, 7);
