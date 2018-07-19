@@ -39,9 +39,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 enum IsConstantExpressionVisitor
-    implements CExpressionVisitor<Boolean, RuntimeException> {
+    implements CExpressionVisitor<Boolean, NoException> {
   INSTANCE;
 
   @Override

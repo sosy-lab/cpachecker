@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 /**
- * A view on a CLangSMG, where no modifications are allowed.
+ * A view on a {@link SMG}, where no modifications are allowed.
  *
  * <p>All returned Collections are unmodifiable.
  */

@@ -15,6 +15,9 @@ Run `ant tests` from the project root directory.
 An HTML report with the results will be generated as `JUnit.html`.
 Of course the unit tests can also be executed from within your IDE.
 
+These tests are also executed by [BuildBot](https://buildbot.sosy-lab.org/buildbot/waterfall) (only for trunk)
+and by [GitLab](https://gitlab.com/sosy-lab/software/cpachecker/pipelines) (for all branches).
+
 Structure of Tests
 ------------------
 

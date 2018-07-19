@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAd
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * This class evaluates expressions that evaluate to a
@@ -95,10 +95,13 @@ class ArrayVisitor extends AddressVisitor
       arrayOffset = lVarInBinaryExp;
       addressType = rVarInBinaryExpType;
     } else {
-      throw new UnrecognizedCCodeException("Expected either "
-          + lVarInBinaryExp.toASTString() + " or "
-          + rVarInBinaryExp.toASTString() +
-          "to be a pointer to an array.", binaryExp);
+      throw new UnrecognizedCodeException(
+          "Expected either "
+              + lVarInBinaryExp.toASTString()
+              + " or "
+              + rVarInBinaryExp.toASTString()
+              + "to be a pointer to an array.",
+          binaryExp);
     }
 
     // a = &a[0]

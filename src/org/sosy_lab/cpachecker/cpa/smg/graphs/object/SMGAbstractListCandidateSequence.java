@@ -25,11 +25,15 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.object;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 
@@ -107,6 +111,17 @@ public abstract class SMGAbstractListCandidateSequence<C extends SMGListCandidat
           pSMG.addPointsToEdge(newPte);
           reached.put(newPte.getOffset(), newPte.getValue());
         }
+      }
+    }
+  }
+
+  protected void replaceSourceValues(CLangSMG pSMG, SMGObject pTargetObject) {
+    Set<SMGEdgePointsTo> ptes =
+        pSMG.getPtEdges(SMGEdgePointsToFilter.targetObjectFilter(pTargetObject));
+    for (SMGEdgePointsTo pt : ptes) {
+      SMGValue val = pt.getValue();
+      if (val instanceof SMGKnownAddressValue) {
+        pSMG.replaceValue(SMGKnownSymValue.of(), val);
       }
     }
   }

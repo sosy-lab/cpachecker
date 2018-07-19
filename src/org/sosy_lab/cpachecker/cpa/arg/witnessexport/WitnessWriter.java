@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -113,9 +114,11 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition.Scope;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
@@ -241,7 +244,7 @@ class WitnessWriter implements EdgeAppender {
 
         private boolean isEffectivelyPointer(CExpression pLeftSide) {
           return pLeftSide.accept(
-              new DefaultCExpressionVisitor<Boolean, RuntimeException>() {
+              new DefaultCExpressionVisitor<Boolean, NoException>() {
 
                 @Override
                 public Boolean visit(CComplexCastExpression pComplexCastExpression) {
@@ -311,6 +314,7 @@ class WitnessWriter implements EdgeAppender {
   private final NumericIdProvider numericThreadIdProvider = NumericIdProvider.create();
 
   private boolean isFunctionScope = false;
+  private final Multimap<String, ASimpleDeclaration> seenDeclarations = HashMultimap.create();
   protected Set<AdditionalInfoConverter> additionalInfoConverters = ImmutableSet.of();
 
   WitnessWriter(
@@ -737,12 +741,23 @@ class WitnessWriter implements EdgeAppender {
         assert resultVariable.isPresent() == resultFunction.isPresent();
 
         if (!assignments.isEmpty()) {
-          code.add(
-              factory.and(
-                  Collections2.transform(
-                      assignments,
-                      pExpressionStatement ->
-                          LeafExpression.of(pExpressionStatement.getExpression()))));
+          Collection<AExpression> expressions =
+              assignments
+                  .stream()
+                  .map(AExpressionStatement::getExpression)
+                  .collect(Collectors.toCollection(ArrayDeque::new));
+
+          // Determine the scope of this CFA edge and remove all expressions
+          // that are ambiguous.
+          Scope scope =
+              filterExpressionsForScope(pEdge, result.getScope(), functionName, expressions);
+          result = result.withScope(scope);
+
+          if (!expressions.isEmpty()) {
+            code.add(
+                factory.and(
+                    Collections2.transform(expressions, pExpr -> LeafExpression.of(pExpr))));
+          }
         }
       }
     }
@@ -805,6 +820,66 @@ class WitnessWriter implements EdgeAppender {
     }
 
     return Collections.singleton(result);
+  }
+
+  private Scope filterExpressionsForScope(
+      CFAEdge pEdge, Scope pScope, String pFunctionName, Collection<AExpression> pExpressions) {
+
+    Scope scope = pScope;
+    Optional<String> scopeFunctionName =
+        isFunctionScope ? Optional.of(pFunctionName) : Optional.empty();
+
+    // Extend the "scope" by the declarations on the current CFA edge
+    Set<ASimpleDeclaration> declarations =
+        FluentIterable.from(CFAUtils.getAstNodesFromCfaEdge(pEdge))
+            .filter(ASimpleDeclaration.class)
+            .toSet();
+    for (ASimpleDeclaration declaration : declarations) {
+      String ambiguousName = getAmbiguousName(declaration, scopeFunctionName);
+      seenDeclarations.put(ambiguousName, declaration);
+    }
+    Optional<Scope> extendedScope = scope.extendBy(scopeFunctionName, declarations);
+
+    if (extendedScope.isPresent()) {
+      scope = extendedScope.get();
+      Iterator<AExpression> expressionIt = pExpressions.iterator();
+
+      // For each expression, check if it can be added unambiguously within the scope
+      while (expressionIt.hasNext()) {
+        declarations =
+            CFAUtils.traverseRecursively(expressionIt.next())
+                .filter(AIdExpression.class)
+                .transform(AIdExpression::getDeclaration)
+                .filter(ASimpleDeclaration.class)
+                .toSet();
+        boolean containsAmbiguousVariables = false;
+        for (ASimpleDeclaration expressionDeclaration : declarations) {
+          String ambiguousName = getAmbiguousName(expressionDeclaration, scopeFunctionName);
+          if (seenDeclarations
+                  .get(ambiguousName)
+                  .stream()
+                  .anyMatch(decl -> !decl.equals(expressionDeclaration))
+              && !scope.getUsedDeclarations().contains(expressionDeclaration)) {
+            containsAmbiguousVariables = true;
+            break;
+          }
+        }
+
+        if (!containsAmbiguousVariables) {
+          extendedScope = scope.extendBy(scopeFunctionName, declarations);
+          if (extendedScope.isPresent()) {
+            scope = extendedScope.get();
+          } else {
+            expressionIt.remove();
+          }
+        } else {
+          expressionIt.remove();
+        }
+      }
+    } else {
+      pExpressions.clear();
+    }
+    return scope;
   }
 
   /**
@@ -1392,7 +1467,7 @@ class WitnessWriter implements EdgeAppender {
 
           if (Iterables.all(
               leavingEdges.get(pEdge.getSource()),
-              pLeavingEdge -> pLeavingEdge.getLabel().getMapping().isEmpty())) {
+              pLeavingEdge -> !pLeavingEdge.getLabel().hasTransitionRestrictions())) {
             return true;
           }
 
@@ -1894,5 +1969,13 @@ class WitnessWriter implements EdgeAppender {
     public int hashCode() {
       return Objects.hash(loopHead, gotoLoop);
     }
+  }
+
+  private static String getAmbiguousName(ASimpleDeclaration pDeclaration, Optional<String> pQualifier) {
+    String ambiguousName = pDeclaration.getOrigName();
+    if (!pQualifier.isPresent()) {
+      return ambiguousName;
+    }
+    return pQualifier.get() + "::" + pDeclaration.getOrigName();
   }
 }

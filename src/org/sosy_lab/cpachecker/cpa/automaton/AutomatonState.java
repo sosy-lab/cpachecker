@@ -276,8 +276,8 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
           pPreviousState.getVars(),
           pPreviousState.getInternalState(),
           pPreviousState.automatonCPA,
-          pPreviousState.getAssumptions(),
-          pPreviousState.getCandidateInvariants(),
+          ImmutableList.of(),
+          ExpressionTrees.getTrue(),
           -1,
           -1,
           null);

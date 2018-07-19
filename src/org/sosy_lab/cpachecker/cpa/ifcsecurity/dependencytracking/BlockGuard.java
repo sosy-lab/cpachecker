@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -100,7 +100,7 @@ public class BlockGuard implements Cloneable, Serializable{
      * @param pExpression Expression of the control branch
      * @param pValue Truth value of the expression if the branch is taken
      */
-    public void addDependancy(CFANode pNodeV, CFANode pNodeW, CExpression pExpression, boolean pValue) throws UnsupportedCCodeException{
+    public void addDependancy(CFANode pNodeV, CFANode pNodeW, CExpression pExpression, boolean pValue) throws UnsupportedCodeException{
       VariableDependancy visitor=new VariableDependancy();
       pExpression.accept(visitor);
       SortedSet<Variable> varl=visitor.getResult();
@@ -218,7 +218,7 @@ public class BlockGuard implements Cloneable, Serializable{
     * @param pOther the other Blockguard.
     * @return A new BlockGuard that is the intersection of both BlockGuards.
     */
-   public BlockGuard meet(BlockGuard pOther) throws UnsupportedCCodeException{
+   public BlockGuard meet(BlockGuard pOther) throws UnsupportedCodeException{
      BlockGuard result=this.clone();
 
 

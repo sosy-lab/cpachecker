@@ -111,4 +111,9 @@ public class SMGNodeMapping {
   public Set<Entry<SMGValue, SMGValue>> getValue_mapEntrySet() {
     return value_map.entrySet();
   }
+
+  @Override
+  public String toString() {
+    return "Objects:\n" + object_map + "\nValues:\n" + value_map;
+  }
 }

@@ -188,6 +188,10 @@ analysis.algorithm.undefinedFunctionCollector = false
 # run the parallel BAM algortihm.
 analysis.algorithm.useParallelBAM = false
 
+# If not already done by the analysis, store a found counterexample in the
+# ARG for later re-use. Does nothing if no ARGCPA is used
+analysis.alwaysStoreCounterexamples = false
+
 # Construct a residual program from condition and verify residual program
 analysis.asConditionalVerifier = false
 
@@ -682,28 +686,6 @@ cfa.threads.threadSelfCreate = "pthread_create_N"
 
 # A name of thread_join_N function
 cfa.threads.threadSelfJoin = "pthread_join_N"
-
-# This option causes the control flow automaton to be transformed into the
-# automaton of an equivalent program with one single loop and an artificial
-# program counter.
-cfa.transformIntoSingleLoop = false
-
-# Single loop transformation builds a decision tree based on the program
-# counter values. This option causes the last program counter value not to be
-# explicitly assumed in the decision tree, so that it is only indirectly
-# represented by the assumption of falsehood for all other assumptions in the
-# decision tree.
-cfa.transformIntoSingleLoop.omitExplicitLastProgramCounterAssumption = false
-
-# This option controls the size of the subgraphs referred to by program
-# counter values. The larger the subgraphs, the fewer program counter values
-# are required. Possible values are  MULTIPLE_PATHS, SINGLE_PATH and
-# SINGLE_EDGE, where MULTIPLE_PATHS has the largest subgraphs (and fewest
-# program counter values) and SINGLE_EDGE has the smallest subgraphs (and
-# most program counter values). The larger the subgraphs, the closer the
-# resulting graph will look like the original CFA.
-cfa.transformIntoSingleLoop.subgraphGrowthStrategy = MULTIPLE_PATHS
-  enum:     [MULTIPLE_PATHS, SINGLE_PATH, SINGLE_EDGE]
 
 # clone functions of the CFA, such that there are several identical CFAs for
 # each function, only with different names.
@@ -1519,6 +1501,10 @@ cpa.lock.lockinfo = Sets.newHashSet()
 # reduce unused locks
 cpa.lock.reduceUselessLocks = false
 
+# Consider or not special cases with empty lock sets
+cpa.lock.stopMode = DEFAULT
+  enum:     [DEFAULT, EMPTYLOCKSET]
+
 # Number of loop iterations before the loop counter is abstracted. Zero is
 # equivalent to no limit.
 cpa.loopbound.loopIterationsBeforeAbstraction = 0
@@ -1541,10 +1527,6 @@ cpa.loopbound.maxLoopIterationsUpperBound = 0
 
 # enable stack-based tracking of loops
 cpa.loopbound.trackStack = false
-
-# this option determines which merge operator to use
-cpa.loopinvariants.mergeType = "SEP"
-  allowed values: [SEP, MERGE]
 
 # Where to perform abstraction
 cpa.lpi.abstractionLocations = LOOPHEAD
@@ -2096,7 +2078,7 @@ cpa.predicate.refinement.maxRefinementSize = 0
 # sets the level of the pathformulas to use for abstraction. 
 #   EDGE : Based on Pathformulas of every edge in ARGPath
 #   BLOCK: Based on Pathformulas at Abstractionstates
-cpa.predicate.refinement.newtonrefinement.pathFormulAbstractionLevel = EDGE
+cpa.predicate.refinement.newtonrefinement.pathFormulaAbstractionLevel = BLOCK
   enum:     [BLOCK, EDGE]
 
 # use live variables in order to abstract the predicates produced while
@@ -2841,7 +2823,7 @@ cpa.value.symbolic.refinement.avoidConstraints = true
 
 # The refinement strategy to use
 cpa.value.symbolic.refinement.strategy = CONSTRAINTS_FIRST
-  enum:     [CONSTRAINTS_FIRST, VALUES_FIRST, VALUES_ONLY]
+  enum:     [CONSTRAINTS_FIRST, VALUES_FIRST, ALTERNATING, VALUES_ONLY]
 
 # Whether to simplify symbolic expressions, if possible.
 cpa.value.symbolic.simplifySymbolics = true
@@ -3377,6 +3359,9 @@ precision.trackIntAddVariables = true
 # If this option is used, variables that are only compared for equality are
 # tracked.
 precision.trackIntEqualVariables = true
+
+# If this option is used, variables that are irrelevantare also tracked.
+precision.trackIrrelevantVariables = true
 
 # If this option is used, all variables that are of a different
 # classification than IntAdd, IntEq and Boolean get tracked by the precision.

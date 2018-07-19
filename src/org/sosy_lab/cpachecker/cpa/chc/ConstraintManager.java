@@ -62,7 +62,7 @@ import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class ConstraintManager {
@@ -341,9 +341,8 @@ public class ConstraintManager {
     return ac;
   }
 
-
   public static Constraint getConstraint(FunctionReturnEdge fretEdge)
-    throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     FunctionSummaryEdge summaryEdge = fretEdge.getSummaryEdge();
     AFunctionCall exprOnSummary  = summaryEdge.getExpression();
@@ -369,7 +368,7 @@ public class ConstraintManager {
       else if (op1 instanceof CArraySubscriptExpression) {
         return new Constraint();
       } else {
-        throw new UnrecognizedCCodeException("on function return", summaryEdge, null);
+        throw new UnrecognizedCodeException("on function return", summaryEdge, null);
       }
     }
     return new Constraint();

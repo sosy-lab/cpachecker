@@ -108,6 +108,14 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   )
   private boolean trackVariablesBesidesEqAddBool = true;
 
+  @Option(
+      secure = true,
+      description =
+          "If this option is used, variables that are irrelevant"
+              + "are also tracked."
+  )
+  private boolean trackIrrelevantVariables = true;
+
   private transient Optional<VariableClassification> vc;
   private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
 
@@ -124,7 +132,9 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
 
   @Override
   public boolean allowsAbstraction() {
-    return !trackBooleanVariables
+    return
+        !trackIrrelevantVariables
+        || !trackBooleanVariables
         || !trackIntEqualVariables
         || !trackIntAddVariables
         || !trackAddressedVariables
@@ -146,9 +156,25 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   }
 
   private boolean isTracking(MemoryLocation pVariable) {
-    return isOnWhitelist(pVariable.getIdentifier())
-        || (!isOnBlacklist(pVariable.getIdentifier())
-            && isInTrackedVarClass(pVariable.getAsSimpleString()));
+    if (isOnWhitelist(pVariable.getIdentifier())) {
+      return true;
+    }
+
+    if (isOnBlacklist(pVariable.getIdentifier())) {
+      return false;
+    }
+
+    if (pVariable.isReference()) {
+      MemoryLocation owner;
+      if (pVariable.isOnFunctionStack()) {
+        owner = MemoryLocation.valueOf(pVariable.getFunctionName(), pVariable.getIdentifier());
+      } else {
+        owner = MemoryLocation.valueOf(pVariable.getIdentifier());
+      }
+      return isInTrackedVarClass(owner.getAsSimpleString());
+    } else {
+      return isInTrackedVarClass(pVariable.getAsSimpleString());
+    }
   }
 
   private boolean isOnBlacklist(String variable) {
@@ -175,6 +201,11 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     // therefore, when a variable is addressed but addressed variables should
     // not be tracked, we do not consider the other parts of the variable classification
     if (varIsAddressed && !trackAddressedVariables) {
+      return false;
+
+      // If we don't track irrelevant variables, check whether this is the case
+    } else if (!trackIrrelevantVariables
+        && !varClass.getRelevantVariables().contains(variableName)) {
       return false;
 
       // in this case addressed variables can at most be included in the

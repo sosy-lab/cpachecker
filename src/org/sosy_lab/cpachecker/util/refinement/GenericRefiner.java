@@ -43,13 +43,10 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -75,7 +72,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  */
 @Options(prefix = "cpa.value.refinement")
 public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Interpolant<S>>
-    implements Refiner, StatisticsProvider {
+    implements ARGBasedRefiner, StatisticsProvider {
 
   @Option(secure = true, description = "when to export the interpolation tree"
       + "\nNEVER:   never export the interpolation tree"
@@ -106,8 +103,6 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
 
   protected final LogManager logger;
 
-  private final ARGCPA argCpa;
-
   private final PathInterpolator<I> interpolator;
 
   private final FeasibilityChecker<S> checker;
@@ -124,7 +119,6 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   private final StatTimer refinementTime = new StatTimer("Time for completing refinement");
 
   public GenericRefiner(
-      final ARGCPA pArgCpa,
       final FeasibilityChecker<S> pFeasibilityChecker,
       final PathInterpolator<I> pPathInterpolator,
       final InterpolantManager<S, I> pInterpolantManager,
@@ -136,7 +130,6 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     pConfig.inject(this, GenericRefiner.class);
 
     logger = pLogger;
-    argCpa = pArgCpa;
     interpolator = pPathInterpolator;
     interpolantManager = pInterpolantManager;
     checker = pFeasibilityChecker;
@@ -155,57 +148,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   }
 
   @Override
-  public boolean performRefinement(final ReachedSet pReached)
-      throws CPAException, InterruptedException {
-    return performRefinementAndGetCex(pReached).isSpurious();
-  }
-
-  protected CounterexampleInfo performRefinementAndGetCex(final ReachedSet pReached)
-      throws CPAException, InterruptedException {
-    return performRefinement(new ARGReachedSet(pReached, argCpa));
-  }
-
-  protected CounterexampleInfo performRefinement(final ARGReachedSet pReached)
-      throws CPAException, InterruptedException {
-
-    Collection<ARGState> targets = pathExtractor.getTargetStates(pReached);
-    List<ARGPath> targetPaths = pathExtractor.getTargetPaths(targets);
-
-    if (!madeProgress(targetPaths.get(0))) {
-      throw new RefinementFailedException(Reason.RepeatedCounterexample,
-          targetPaths.get(0));
-    }
-
-    return performRefinementForPaths(pReached, targets, targetPaths);
-  }
-
-  /**
-   * Provide an adaptor from {@link GenericRefiner} (which implements {@link Refiner})
-   * and provides global refinements) to {@link ARGBasedRefiner},
-   * which provides path-specific refinements.
-   */
-  public ARGBasedRefiner asARGBasedRefiner() {
-    class GenericRefinerToARGBasedRefinerAdaptor implements ARGBasedRefiner, StatisticsProvider {
-      @Override
-      public CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
-          throws CPAException, InterruptedException {
-        return GenericRefiner.this.performRefinementForPath(pReached, pPath);
-      }
-
-      @Override
-      public void collectStatistics(Collection<Statistics> pStatsCollection) {
-        GenericRefiner.this.collectStatistics(pStatsCollection);
-      }
-
-      @Override
-      public String toString() {
-        return GenericRefiner.this.toString();
-      }
-    }
-    return new GenericRefinerToARGBasedRefinerAdaptor();
-  }
-
-  private final CounterexampleInfo performRefinementForPath(
+  public CounterexampleInfo performRefinementForPath(
       final ARGReachedSet pReached, ARGPath targetPathToUse)
       throws CPAException, InterruptedException {
     Collection<ARGState> targets = Collections.singleton(targetPathToUse.getLastState());
@@ -234,23 +177,15 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPathToUse);
     }
 
-    return performRefinementForPaths(pReached, targets, ImmutableList.of(targetPathToUse));
-  }
-
-  private CounterexampleInfo performRefinementForPaths(
-      final ARGReachedSet pReached,
-      final Collection<ARGState> pTargets,
-      final List<ARGPath> pTargetPaths
-  ) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "performing refinement ...");
     refinementTime.start();
     refinementCounter.inc();
-    numberOfTargets.setNextValue(pTargets.size());
+    numberOfTargets.setNextValue(targets.size());
 
-    CounterexampleInfo cex = isAnyPathFeasible(pReached, pTargetPaths);
+    CounterexampleInfo cex = isPathFeasible(targetPathToUse);
 
     if (cex.isSpurious()) {
-      refineUsingInterpolants(pReached, obtainInterpolants(pTargetPaths));
+      refineUsingInterpolants(pReached, obtainInterpolants(targetPathToUse));
     }
 
     refinementTime.stop();
@@ -263,10 +198,11 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       final InterpolationTree<S, I> pInterpolationTree
       ) throws InterruptedException;
 
-  private InterpolationTree<S, I> obtainInterpolants(List<ARGPath> pTargetPaths)
+  private InterpolationTree<S, I> obtainInterpolants(ARGPath pTargetPath)
       throws CPAException, InterruptedException {
 
-    InterpolationTree<S, I> interpolationTree = createInterpolationTree(pTargetPaths);
+    InterpolationTree<S, I> interpolationTree =
+        createInterpolationTree(ImmutableList.of(pTargetPath));
 
     while (interpolationTree.hasNextPathForInterpolation()) {
       performPathInterpolation(interpolationTree);
@@ -320,43 +256,26 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     return checker.isFeasible(errorPath, initialItp.reconstructState());
   }
 
-  private CounterexampleInfo isAnyPathFeasible(
-      final ARGReachedSet pReached,
-      final Collection<ARGPath> pErrorPaths
+  private CounterexampleInfo isPathFeasible(
+      final ARGPath pErrorPaths
   ) throws CPAException, InterruptedException {
 
-    ARGPath feasiblePath = null;
-    for (ARGPath currentPath : pErrorPaths) {
+    if (isErrorPathFeasible(pErrorPaths)) {
+      madeProgress(pErrorPaths);
 
-      if (isErrorPathFeasible(currentPath)) {
-        if(feasiblePath == null) {
-          madeProgress(currentPath);
-          feasiblePath = currentPath;
-        }
-
-        pathExtractor.addFeasibleTarget(currentPath.getLastState());
-      }
-    }
-
-    // remove all other target states, so that only one is left (for CEX-checker)
-    if (feasiblePath != null) {
-      for (ARGPath others : pErrorPaths) {
-        if (others != feasiblePath) {
-          pReached.removeSubtree(others.getLastState());
-        }
-      }
+      pathExtractor.addFeasibleTarget(pErrorPaths.getLastState());
 
       logger.log(Level.FINEST, "found a feasible counterexample");
       // we use the imprecise version of the CounterexampleInfo, due to the possible
       // merges which are done in the used CPAs, but if we (can) compute a path with assignments,
       // it is probably precise.
       CFAPathWithAssumptions assignments = addAssumptionsToCex
-          ? createModel(feasiblePath)
-          : CFAPathWithAssumptions.empty();
+                                           ? createModel(pErrorPaths)
+                                           : CFAPathWithAssumptions.empty();
       if (!assignments.isEmpty()) {
-        return CounterexampleInfo.feasiblePrecise(feasiblePath, assignments);
+        return CounterexampleInfo.feasiblePrecise(pErrorPaths, assignments);
       } else {
-        return CounterexampleInfo.feasibleImprecise(feasiblePath);
+        return CounterexampleInfo.feasibleImprecise(pErrorPaths);
       }
     }
 

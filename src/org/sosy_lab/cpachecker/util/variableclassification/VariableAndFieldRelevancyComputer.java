@@ -67,7 +67,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
@@ -458,7 +458,7 @@ final class VariableAndFieldRelevancyComputer {
   }
 
   public static VarFieldDependencies handleEdge(CFA pCfa, CFAEdge edge)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     checkNotNull(pCfa);
     VarFieldDependencies result = VarFieldDependencies.emptyDependencies();
 
@@ -522,7 +522,7 @@ final class VariableAndFieldRelevancyComputer {
                           .withDependencies(
                               rhs.accept(CollectingRHSVisitor.create(pCfa, r.getFirst()))));
             } else {
-              throw new UnrecognizedCCodeException("Unhandled assignment", edge, assignment);
+              throw new UnrecognizedCodeException("Unhandled assignment", edge, assignment);
             }
           } else if (statement instanceof CFunctionCallStatement) {
             ((CFunctionCallStatement) statement)
@@ -600,7 +600,7 @@ final class VariableAndFieldRelevancyComputer {
 
       default:
         {
-          throw new UnrecognizedCCodeException("Unknown edge type: " + edge.getEdgeType(), edge);
+          throw new UnrecognizedCodeException("Unknown edge type: " + edge.getEdgeType(), edge);
         }
     }
 

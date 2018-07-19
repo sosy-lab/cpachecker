@@ -107,7 +107,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -923,7 +923,7 @@ public class SMGTransferRelation
           + " should not appear at this point.");
 
     } else {
-      throw new UnrecognizedCCodeException("Did not recognize Initializer", pInitializer);
+      throw new UnrecognizedCodeException("Did not recognize Initializer", pInitializer);
     }
   }
 
@@ -963,7 +963,7 @@ public class SMGTransferRelation
       List<CCompositeTypeMemberDeclaration> pMemberTypes,
       CDesignatedInitializer pInitializer,
       CCompositeType pLValueType)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     // TODO More Designators?
     assert pInitializer.getDesignators().size() == 1;
@@ -1005,7 +1005,7 @@ public class SMGTransferRelation
         }
       }
     }
-    throw new UnrecognizedCCodeException("CDesignator field name not in struct.", pInitializer);
+    throw new UnrecognizedCodeException("CDesignator field name not in struct.", pInitializer);
   }
 
   private List<SMGState> handleInitializerList(
@@ -1068,12 +1068,13 @@ public class SMGTransferRelation
       }
 
       if (listCounter >= memberTypes.size()) {
-        throw new UnrecognizedCCodeException(
-          "More Initializer in initializer list "
-              + pNewInitializer.toASTString()
-              + " than fit in type "
-              + pLValueType.toASTString(""),
-          pEdge); }
+        throw new UnrecognizedCodeException(
+            "More Initializer in initializer list "
+                + pNewInitializer.toASTString()
+                + " than fit in type "
+                + pLValueType.toASTString(""),
+            pEdge);
+      }
 
       CType memberType = memberTypes.get(listCounter).getType();
       List<Pair<SMGState, Long>> resultOffsetAndStates = new ArrayList<>();

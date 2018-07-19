@@ -23,12 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
+import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.ImmutableMap;
+import java.util.Collection;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.TreeMap;
+import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
 /** an immutable map of facts about the transition. */
@@ -38,14 +46,18 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
 
   private final EnumMap<KeyDef, String> keyValues;
 
+  private final Scope scope;
+
   private int hashCode = 0;
 
   private TransitionCondition() {
     keyValues = new EnumMap<>(KeyDef.class);
+    scope = new Scope(Optional.empty(), ImmutableMap.of());
   }
 
-  private TransitionCondition(EnumMap<KeyDef, String> pKeyValues) {
+  private TransitionCondition(EnumMap<KeyDef, String> pKeyValues, Scope pScope) {
     keyValues = pKeyValues;
+    scope = pScope;
   }
 
   public TransitionCondition putAndCopy(final KeyDef pKey, final String pValue) {
@@ -54,10 +66,14 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
     }
     EnumMap<KeyDef, String> newMap = keyValues.clone();
     newMap.put(pKey, pValue);
-    return new TransitionCondition(newMap);
+    return new TransitionCondition(newMap, scope);
   }
 
   public TransitionCondition putAllAndCopy(TransitionCondition tc) {
+    Optional<Scope> newScope = scope.mergeWith(tc.scope);
+    if (!newScope.isPresent()) {
+      throw new IllegalArgumentException("Cannot merge transitions due to conflicting scopes.");
+    }
     EnumMap<KeyDef, String> newMap = null;
     for (Entry<KeyDef, String> e : keyValues.entrySet()) {
       if (!tc.keyValues.containsKey(e.getKey())) {
@@ -67,14 +83,14 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
         newMap.put(e.getKey(), e.getValue());
       }
     }
-    return newMap == null ? tc : new TransitionCondition(newMap);
+    return newMap == null ? tc : new TransitionCondition(newMap, newScope.get());
   }
 
   public TransitionCondition removeAndCopy(final KeyDef pKey) {
     if (keyValues.containsKey(pKey)) {
       EnumMap<KeyDef, String> newMap = keyValues.clone();
       newMap.remove(pKey);
-      return new TransitionCondition(newMap);
+      return new TransitionCondition(newMap, scope);
     } else {
       return this;
     }
@@ -86,11 +102,16 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
       return true;
     }
     return pOther instanceof TransitionCondition
-        && this.keyValues.equals(((TransitionCondition)pOther).keyValues);
+        && this.keyValues.equals(((TransitionCondition) pOther).keyValues)
+        && scope.equals(((TransitionCondition) pOther).scope);
   }
 
   public Map<KeyDef, String> getMapping() {
     return keyValues;
+  }
+
+  public Scope getScope() {
+    return scope;
   }
 
   public boolean hasTransitionRestrictions() {
@@ -100,7 +121,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
   @Override
   public int hashCode() {
     if (hashCode == 0) {
-      hashCode = keyValues.hashCode();
+      hashCode = keyValues.hashCode() * 31 + scope.hashCode();
     }
     return hashCode;
   }
@@ -149,6 +170,11 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
         return false;
       }
     }
+
+    if (!scope.mergeWith(pLabel.scope).isPresent()) {
+      return false;
+    }
+
     return true;
   }
 
@@ -174,10 +200,164 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
     if (!entryIterator.hasNext()) {
       return -1;
     }
-    return 1;
+    if (!otherEntryIterator.hasNext()) {
+      return 1;
+    }
+    return scope.compareTo(pO.scope);
   }
 
   public static TransitionCondition empty() {
     return EMPTY;
+  }
+
+  class Scope implements Comparable<Scope> {
+
+    private final Optional<String> functionName;
+
+    private final ImmutableMap<String, ASimpleDeclaration> usedDeclarations;
+
+    private Scope(
+        Optional<String> pFunctionName, Map<String, ASimpleDeclaration> pUsedDeclarations) {
+      functionName = pFunctionName;
+      usedDeclarations = ImmutableMap.copyOf(pUsedDeclarations);
+      for (ASimpleDeclaration decl : pUsedDeclarations.values()) {
+        if (decl instanceof AVariableDeclaration) {
+          AVariableDeclaration varDecl = (AVariableDeclaration) decl;
+          if (!varDecl.isGlobal() && !functionName.isPresent()) {
+            throw new IllegalArgumentException("Cannot create a global scope with non-global variable declarations.");
+          }
+        }
+      }
+    }
+
+    public boolean isGlobal() {
+      return !functionName.isPresent();
+    }
+
+    public String getFunctionName() {
+      return functionName.get();
+    }
+
+    public Collection<ASimpleDeclaration> getUsedDeclarations() {
+      return usedDeclarations.values();
+    }
+
+    @Override
+    public int hashCode() {
+      return usedDeclarations.hashCode() * 31 + functionName.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object pOther) {
+      if (this == pOther) {
+        return true;
+      }
+      if (pOther instanceof Scope) {
+        Scope other = (Scope) pOther;
+        return functionName.equals(other.functionName)
+            && usedDeclarations.equals(other.usedDeclarations);
+      }
+      return false;
+    }
+
+    @Override
+    public String toString() {
+      final String prefix;
+      if (isGlobal()) {
+        prefix = "";
+      } else {
+        prefix = getFunctionName() + ": ";
+      }
+      return prefix + usedDeclarations;
+    }
+
+    @Override
+    public int compareTo(Scope pOther) {
+      return ComparisonChain.start()
+          .compareTrueFirst(isGlobal(), pOther.isGlobal())
+          .compare(functionName.get(), pOther.functionName.get())
+          .compare(
+              usedDeclarations,
+              pOther.usedDeclarations,
+              (a, b) -> {
+                Iterator<Map.Entry<String, ASimpleDeclaration>> aIt = a.entrySet().iterator();
+                Iterator<Map.Entry<String, ASimpleDeclaration>> bIt = b.entrySet().iterator();
+                while (aIt.hasNext() && bIt.hasNext()) {
+                  Map.Entry<String, ASimpleDeclaration> aEntry = aIt.next();
+                  Map.Entry<String, ASimpleDeclaration> bEntry = bIt.next();
+                  int entryComp =
+                      ComparisonChain.start()
+                          .compare(aEntry.getKey(), bEntry.getKey())
+                          .compare(
+                              aEntry.getValue().getQualifiedName(),
+                              bEntry.getValue().getQualifiedName())
+                          .result();
+                  if (entryComp != 0) {
+                    return entryComp;
+                  }
+                }
+                if (aIt.hasNext()) {
+                  return -1;
+                }
+                if (bIt.hasNext()) {
+                  return 1;
+                }
+                return 0;
+              })
+          .result();
+    }
+
+    public Optional<Scope> extendBy(
+        Optional<String> pNewFunctionName, Collection<ASimpleDeclaration> pUsedDeclarations) {
+      final Optional<String> newFunctionName;
+      if (pNewFunctionName.isPresent()) {
+        if (functionName.isPresent() && !functionName.get().equals(pNewFunctionName.get())) {
+          return Optional.empty();
+        }
+        if (!functionName.isPresent() && !usedDeclarations.isEmpty()) {
+          return Optional.empty();
+        }
+        newFunctionName = pNewFunctionName;
+      } else {
+        if (pUsedDeclarations.isEmpty()) {
+          return Optional.of(this);
+        }
+        newFunctionName = functionName;
+      }
+      Map<String, ASimpleDeclaration> newUsed = new TreeMap<>(usedDeclarations);
+      for (ASimpleDeclaration decl : pUsedDeclarations) {
+        boolean isGlobalVarDecl = isGlobalVarDecl(decl);
+        if (!isGlobalVarDecl && !newFunctionName.isPresent()) {
+          return Optional.empty();
+        }
+        String potentiallyAmbiguousName = decl.getOrigName();
+        ASimpleDeclaration conflictingDecl = newUsed.get(potentiallyAmbiguousName);
+        if (conflictingDecl == null) {
+          newUsed.put(potentiallyAmbiguousName, decl);
+        } else if (!decl.equals(conflictingDecl)) {
+          return Optional.empty();
+        }
+      }
+      return Optional.of(new Scope(newFunctionName, newUsed));
+    }
+
+    public Optional<Scope> mergeWith(Scope pOther) {
+      return extendBy(pOther.functionName, pOther.getUsedDeclarations());
+    }
+  }
+
+  public TransitionCondition withScope(Scope pScope) {
+    if (pScope == scope) {
+      return this;
+    }
+    return new TransitionCondition(keyValues, pScope);
+  }
+
+  private static boolean isGlobalVarDecl(@Nullable ASimpleDeclaration pDecl) {
+    if (pDecl instanceof AVariableDeclaration) {
+      AVariableDeclaration varDecl = (AVariableDeclaration) pDecl;
+      return varDecl.isGlobal();
+    }
+    return false;
   }
 }

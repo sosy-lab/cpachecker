@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -114,7 +115,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
             + "  EDGE : Based on Pathformulas of every edge in ARGPath\n"
             + "  BLOCK: Based on Pathformulas at Abstractionstates"
   )
-  private PathFormulaAbstractionLevel pathFormulAbstractionLevel = PathFormulaAbstractionLevel.EDGE;
+  private PathFormulaAbstractionLevel pathFormulaAbstractionLevel =
+      PathFormulaAbstractionLevel.BLOCK;
 
   public enum PathFormulaAbstractionLevel {
     BLOCK, //Abstracts the whole Block(between abstraction states) at once
@@ -158,7 +160,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
             pFormulas.getFormulas(), ImmutableList.of(), ImmutableMap.of());
       } else {
         List<BooleanFormula> predicates;
-        switch (pathFormulAbstractionLevel) {
+        switch (pathFormulaAbstractionLevel) {
           case EDGE:
             List<BooleanFormula> pathFormulas =
                 pathLocations
@@ -339,7 +341,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
                     + edge.getEdgeType());
         }
         if (location.hasCorrespondingARGState() && location.hasAbstractionState()) {
-          predicates.add(fmgr.simplify(postCondition));
+          predicates.add(postCondition);
         }
         // PostCondition is preCondition for next location
         preCondition = postCondition;
@@ -451,7 +453,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
       }
 
       Map<String, Integer> lastOccurance = new HashMap<>(); // Last occurance of var
-      Map<Integer, BooleanFormula> predPosition = new HashMap<>(); // Pos of pred
+      Map<Integer, BooleanFormula> predPosition = new TreeMap<>(); // Pos of pred
       int predCounter = 0;
 
       for (PathLocation location : pPathLocations) {

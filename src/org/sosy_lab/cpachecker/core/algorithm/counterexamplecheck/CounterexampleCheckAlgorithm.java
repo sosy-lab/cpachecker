@@ -118,7 +118,7 @@ public class CounterexampleCheckAlgorithm
       AssumptionToEdgeAllocator assumptionToEdgeAllocator =
           AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
       checker =
-          new CounterexampleCPAChecker(
+          new CounterexampleCPAchecker(
               config,
               pSpecification,
               logger,

@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AssumptionReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
@@ -81,7 +81,9 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
     return Collections.singleton(strengthen(asmptStorageElem, others, edge));
   }
 
-  AssumptionStorageState strengthen(AssumptionStorageState pAsmptStorageElem, List<AbstractState> pOthers, CFAEdge pEdge) throws UnrecognizedCCodeException, InterruptedException {
+  AssumptionStorageState strengthen(
+      AssumptionStorageState pAsmptStorageElem, List<AbstractState> pOthers, CFAEdge pEdge)
+      throws UnrecognizedCodeException, InterruptedException {
     BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
 
     final CFANode currentLocation =

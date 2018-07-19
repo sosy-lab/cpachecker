@@ -43,10 +43,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
-class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeException> {
+class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoException> {
 
-  private class CTypeTransformerVisitor implements CTypeVisitor<CType, RuntimeException> {
+  private class CTypeTransformerVisitor implements CTypeVisitor<CType, NoException> {
 
     private CTypeTransformerVisitor(final boolean ignoreConst, final boolean ignoreVolatile) {
       this.ignoreConst = ignoreConst;
@@ -177,7 +178,7 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
     }
 
     @Override
-    public CType visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+    public CType visit(CBitFieldType pCBitFieldType) {
       CType type = pCBitFieldType.getType().accept(this);
       if (type != pCBitFieldType.getType()) {
         return new CBitFieldType(type, pCBitFieldType.getBitFieldSize());

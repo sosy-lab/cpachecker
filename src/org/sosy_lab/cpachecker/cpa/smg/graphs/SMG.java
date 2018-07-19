@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.TreeMultimap;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -36,6 +35,7 @@ import java.util.TreeMap;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -46,6 +46,10 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 
+/**
+ * A graph-based representation of memory-structures. The most important part is the bipartite
+ * directed graph of {@link SMGValue}s and {@link SMGObject}s connected by {@link SMGEdge}s.
+ */
 public class SMG implements UnmodifiableSMG {
   private PersistentSet<SMGObject> objects;
   private PersistentSet<SMGValue> values;
@@ -433,35 +437,51 @@ public class SMG implements UnmodifiableSMG {
   /**
    * Obtains a TreeMap offset to size signifying where the object bytes are nullified.
    *
-   * Constant.
+   * <p>Constant.
+   *
+   * <p>Example: an entry "{0:32,48:16}" represents a region of at least 64b with two ZERO values
+   * located at offset 0 (length 32) and 48 (length 16). We assure that the returned intervals do
+   * not overlap, i.e., we never return something like {0:32,16:32} or {0:32,32:32}, but would
+   * return {0:48} or {0:64} here.
    *
    * @param pObj SMGObject for which the information is to be obtained
-   * @return A TreeMap offsets to size which are covered by a HasValue edge leading from an
-   * object to null value
+   * @return A mapping of offsets to sizes which are covered by a HasValue edge leading from the
+   *     object to NULL value
    */
   @Override
   public TreeMap<Long, Integer> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj) {
-    SMGEdgeHasValueFilter objectFilter =
+
+    // first get all possible offsets with their size, sorted by starting point
+    SMGEdgeHasValueFilter nullValueFilter =
         SMGEdgeHasValueFilter.objectFilter(pObj).filterHavingValue(SMGZeroValue.INSTANCE);
-    TreeMultimap<Long, Integer> offsetToSize = TreeMultimap.create();
-    for (SMGEdgeHasValue edge : objectFilter.filter(hv_edges)) {
-      offsetToSize.put(edge.getOffset(), edge.getSizeInBits(machine_model));
+    TreeMap<Long, Integer> offsetToSize = new TreeMap<>();
+    for (SMGEdgeHasValue edge : nullValueFilter.filter(hv_edges)) {
+      long offset = edge.getOffset();
+      int size = edge.getSizeInBits(machine_model);
+      Integer existingSize = offsetToSize.get(offset);
+      if (existingSize != null) {
+        size = Math.max(size, existingSize);
+      }
+      offsetToSize.put(offset, size);
     }
 
+    // then filter out overlapping intervals of offsets
     TreeMap<Long, Integer> resultOffsetToSize = new TreeMap<>();
     if (!offsetToSize.isEmpty()) {
-      Iterator<Long> offsetsIterator = offsetToSize.keySet().iterator();
-      long resultOffset = offsetsIterator.next();
-      Integer resultSize = offsetToSize.get(resultOffset).last();
+      Iterator<Entry<Long, Integer>> offsetsIterator = offsetToSize.entrySet().iterator();
+      Entry<Long, Integer> entry = offsetsIterator.next();
+      long resultOffset = entry.getKey();
+      int resultSize = entry.getValue();
       while (offsetsIterator.hasNext()) {
-        long nextOffset = offsetsIterator.next();
+        entry = offsetsIterator.next();
+        long nextOffset = entry.getKey();
+        int nextSize = entry.getValue();
         if (nextOffset <= resultOffset + resultSize) {
-          resultSize = Math.toIntExact(Long.max(offsetToSize.get(nextOffset).last() + nextOffset -
-              resultOffset, resultSize));
+          resultSize = Math.toIntExact(Long.max(nextSize + nextOffset - resultOffset, resultSize));
         } else {
           resultOffsetToSize.put(resultOffset, resultSize);
           resultOffset = nextOffset;
-          resultSize = offsetToSize.get(nextOffset).last();
+          resultSize = nextSize;
         }
       }
       resultOffsetToSize.put(resultOffset, resultSize);
@@ -544,7 +564,9 @@ public class SMG implements UnmodifiableSMG {
       pt_edges = pt_edges.removeAndCopy(pt_edge);
       Preconditions.checkArgument(!pt_edges.containsEdgeWithValue(fresh));
       pt_edges =
-          pt_edges.addAndCopy(new SMGEdgePointsTo(fresh, pt_edge.getObject(), pt_edge.getOffset()));
+          pt_edges.addAndCopy(
+              new SMGEdgePointsTo(
+                  fresh, pt_edge.getObject(), pt_edge.getOffset(), pt_edge.getTargetSpecifier()));
     }
   }
 

@@ -30,6 +30,7 @@ import java.util.OptionalInt;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
  * Helper methods for CType instances.
@@ -422,7 +423,7 @@ public final class CTypes {
     return pType;
   }
 
-  private enum ForceConstVisitor implements CTypeVisitor<CType, RuntimeException> {
+  private enum ForceConstVisitor implements CTypeVisitor<CType, NoException> {
     FALSE(false),
     TRUE(true);
 
@@ -488,13 +489,13 @@ public final class CTypes {
     }
 
     @Override
-    public CType visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+    public CType visit(CBitFieldType pCBitFieldType) {
       return new CBitFieldType(
           pCBitFieldType.getType().accept(this), pCBitFieldType.getBitFieldSize());
     }
   }
 
-  private enum ForceVolatileVisitor implements CTypeVisitor<CType, RuntimeException> {
+  private enum ForceVolatileVisitor implements CTypeVisitor<CType, NoException> {
     FALSE(false),
     TRUE(true);
 
@@ -560,7 +561,7 @@ public final class CTypes {
     }
 
     @Override
-    public CType visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+    public CType visit(CBitFieldType pCBitFieldType) {
       return new CBitFieldType(
           pCBitFieldType.getType().accept(this), pCBitFieldType.getBitFieldSize());
     }

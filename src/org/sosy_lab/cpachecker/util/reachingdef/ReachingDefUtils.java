@@ -56,7 +56,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -204,7 +204,7 @@ public class ReachingDefUtils {
    * occurring in a visited expression.
    */
   public static class VariableExtractor
-      extends DefaultCExpressionVisitor<MemoryLocation, UnsupportedCCodeException> {
+      extends DefaultCExpressionVisitor<MemoryLocation, UnsupportedCodeException> {
 
     private CFAEdge edgeForExpression;
     private String warning;
@@ -228,29 +228,30 @@ public class ReachingDefUtils {
     // TODO adapt, need more
     @Override
     public MemoryLocation visit(CArraySubscriptExpression pIastArraySubscriptExpression)
-        throws UnsupportedCCodeException {
+        throws UnsupportedCodeException {
       warning = "Analysis may be unsound in case of aliasing.";
       return pIastArraySubscriptExpression.getArrayExpression().accept(this);
     }
 
     @Override
     public MemoryLocation visit(CCastExpression pIastCastExpression)
-        throws UnsupportedCCodeException {
+        throws UnsupportedCodeException {
       return pIastCastExpression.getOperand().accept(this);
     }
 
     @Override
     public MemoryLocation visit(CComplexCastExpression pIastCastExpression)
-        throws UnsupportedCCodeException {
+        throws UnsupportedCodeException {
       return pIastCastExpression.getOperand().accept(this);
     }
 
     @Override
     public MemoryLocation visit(CFieldReference pIastFieldReference)
-        throws UnsupportedCCodeException {
+        throws UnsupportedCodeException {
       if (pIastFieldReference.isPointerDereference()) {
-        throw new UnsupportedCCodeException(
-            "Does not support assignment to dereferenced variable due to missing aliasing support", edgeForExpression,
+        throw new UnsupportedCodeException(
+            "Does not support assignment to dereferenced variable due to missing aliasing support",
+            edgeForExpression,
             pIastFieldReference);
       }
       warning = "Analysis may be unsound in case of aliasing.";
@@ -264,16 +265,17 @@ public class ReachingDefUtils {
 
     @Override
     public MemoryLocation visit(CUnaryExpression pIastUnaryExpression)
-        throws UnsupportedCCodeException {
+        throws UnsupportedCodeException {
       return pIastUnaryExpression.getOperand().accept(this);
     }
 
     @Override
     public MemoryLocation visit(CPointerExpression pIastUnaryExpression)
-        throws UnsupportedCCodeException {
-        throw new UnsupportedCCodeException(
-            "Does not support assignment to dereferenced variable due to missing aliasing support", edgeForExpression,
-            pIastUnaryExpression);
+        throws UnsupportedCodeException {
+      throw new UnsupportedCodeException(
+          "Does not support assignment to dereferenced variable due to missing aliasing support",
+          edgeForExpression,
+          pIastUnaryExpression);
     }
   }
 

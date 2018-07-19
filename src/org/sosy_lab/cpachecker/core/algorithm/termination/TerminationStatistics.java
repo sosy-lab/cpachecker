@@ -155,6 +155,10 @@ public class TerminationStatistics implements Statistics {
 
   private final Timer lassoConstructionTime = new Timer();
 
+  private final Timer lassoStemLoopConstructionTime = new Timer();
+
+  private final Timer lassosCreationTime = new Timer();
+
   private final Timer lassoNonTerminationTime = new Timer();
 
   private final Timer lassoTerminationTime = new Timer();
@@ -265,6 +269,22 @@ public class TerminationStatistics implements Statistics {
 
   public void lassoConstructionFinished() {
     lassoConstructionTime.stop();
+  }
+
+  public void stemAndLoopConstructionStarted() {
+    lassoStemLoopConstructionTime.start();
+  }
+
+  public void stemAndLoopConstructionFinished() {
+    lassoStemLoopConstructionTime.stop();
+  }
+
+  public void lassosCreationStarted() {
+    lassosCreationTime.start();
+  }
+
+  public void lassosCreationFinished() {
+    lassosCreationTime.stop();
   }
 
   public void nonTerminationAnalysisOfLassoStarted() {
@@ -391,6 +411,24 @@ public class TerminationStatistics implements Statistics {
     pOut.println(
         "    Max time for lasso construction per iteration:  "
             + format(lassoConstructionTime.getMaxTime()));
+    pOut.println(
+        "      Time for stem and loop construction:                     "
+            + lassoStemLoopConstructionTime);
+    pOut.println(
+        "        Avg time for stem and loop construction per iteration:  "
+            + format(lassoStemLoopConstructionTime.getAvgTime()));
+    pOut.println(
+        "        Max time for stem and loop construction per iteration:  "
+            + format(lassoStemLoopConstructionTime.getMaxTime()));
+
+    pOut.println("      Time for lassos creation:                     " + lassosCreationTime);
+    pOut.println(
+        "        Avg time for lassos creation per iteration:  "
+            + format(lassosCreationTime.getAvgTime()));
+    pOut.println(
+        "        Max time for lassos creation per iteration:  "
+            + format(lassosCreationTime.getMaxTime()));
+
     pOut.println("  Total time for non-termination analysis:          " + lassoNonTerminationTime);
     pOut.println(
         "    Avg time for non-termination analysis per lasso:"

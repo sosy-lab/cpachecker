@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.andersen;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -49,11 +52,7 @@ import org.sosy_lab.cpachecker.cpa.andersen.util.BaseConstraint;
 import org.sosy_lab.cpachecker.cpa.andersen.util.ComplexConstraint;
 import org.sosy_lab.cpachecker.cpa.andersen.util.SimpleConstraint;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.logging.Level;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class AndersenTransferRelation extends SingleEdgeTransferRelation {
 
@@ -110,8 +109,9 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  private AndersenState handleStatement(AndersenState pElement, CStatement pExpression, CFAEdge pCfaEdge)
-      throws UnrecognizedCCodeException {
+  private AndersenState handleStatement(
+      AndersenState pElement, CStatement pExpression, CFAEdge pCfaEdge)
+      throws UnrecognizedCodeException {
 
     // e.g. a = b;
     if (pExpression instanceof CAssignment) {
@@ -121,12 +121,13 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
     } else if (pExpression instanceof CExpressionStatement) {
       return pElement;
     } else {
-      throw new UnrecognizedCCodeException("unknown statement", pCfaEdge, pExpression);
+      throw new UnrecognizedCodeException("unknown statement", pCfaEdge, pExpression);
     }
   }
 
-  private AndersenState handleAssignment(AndersenState pElement, CAssignment pAssignExpression, CFAEdge pCfaEdge)
-      throws UnrecognizedCCodeException {
+  private AndersenState handleAssignment(
+      AndersenState pElement, CAssignment pAssignExpression, CFAEdge pCfaEdge)
+      throws UnrecognizedCodeException {
 
     CExpression op1 = pAssignExpression.getLeftHandSide();
     CRightHandSide op2 = pAssignExpression.getRightHandSide();
@@ -149,11 +150,11 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
         return pElement.addConstraint(new ComplexConstraint(op2.toASTString(), op1.toASTString(), false));
 
       } else {
-        throw new UnrecognizedCCodeException("not supported", pCfaEdge, op2);
+        throw new UnrecognizedCodeException("not supported", pCfaEdge, op2);
       }
 
     } else {
-      throw new UnrecognizedCCodeException("not supported", pCfaEdge, op1);
+      throw new UnrecognizedCodeException("not supported", pCfaEdge, op1);
     }
   }
 
@@ -171,7 +172,7 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
    * @return <code>element</code>'s successor.
    */
   private AndersenState handleAssignmentTo(String pOp1, CRightHandSide pOp2, AndersenState pElement, CFAEdge pCfaEdge)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     // unpack cast if necessary
     while (pOp2 instanceof CCastExpression) {
@@ -195,7 +196,7 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
         return pElement.addConstraint(new BaseConstraint(pOp2.toASTString(), pOp1));
 
       } else {
-        throw new UnrecognizedCCodeException("not supported", pCfaEdge, pOp2);
+        throw new UnrecognizedCodeException("not supported", pCfaEdge, pOp2);
       }
 
     } else if (pOp2 instanceof CPointerExpression) {
@@ -209,7 +210,7 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
         return pElement.addConstraint(new ComplexConstraint(pOp2.toASTString(), pOp1, true));
 
       } else {
-        throw new UnrecognizedCCodeException("not supported", pCfaEdge, pOp2);
+        throw new UnrecognizedCodeException("not supported", pCfaEdge, pOp2);
       }
 
     } else if (pOp2 instanceof CFunctionCallExpression
@@ -226,7 +227,7 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private AndersenState handleDeclaration(AndersenState pElement, CDeclarationEdge pDeclarationEdge)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     if (!(pDeclarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
       // nothing interesting to see here, please move along

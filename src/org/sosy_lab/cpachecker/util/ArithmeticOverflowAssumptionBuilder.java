@@ -83,7 +83,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions.GenericAssumptionBuilder;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * Generate assumptions related to over/underflow
@@ -175,7 +175,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
    */
   @Override
   public List<CExpression> assumptionsForEdge(CFAEdge pEdge)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     Set<CExpression> result = new LinkedHashSet<>();
 
     // Node is used for liveness calculation, and predecessor will contain
@@ -234,7 +234,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
       CExpression exp,
       Set<CExpression> result,
       CFANode node)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     CType typ = exp.getExpressionType();
 
     if (useLiveness) {
@@ -296,7 +296,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
    * see {@link ArithmeticOverflowAssumptionBuilder#getAdditiveAssumption(CExpression, CExpression, BinaryOperator, CLiteralExpression, boolean)}
    */
   private CExpression getUpperAssumption(CExpression operand1, CExpression operand2, BinaryOperator operator,
-      CLiteralExpression max) throws UnrecognizedCCodeException {
+      CLiteralExpression max) throws UnrecognizedCodeException {
     return getAdditiveAssumption(operand1, operand2, operator, max, true);
   }
 
@@ -304,7 +304,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
    * see {@link ArithmeticOverflowAssumptionBuilder#getAdditiveAssumption(CExpression, CExpression, BinaryOperator, CLiteralExpression, boolean)}
    */
   private CExpression getLowerAssumption(CExpression operand1, CExpression operand2, BinaryOperator operator,
-      CLiteralExpression min) throws UnrecognizedCCodeException {
+      CLiteralExpression min) throws UnrecognizedCodeException {
     return getAdditiveAssumption(operand1, operand2, operator, min, false);
   }
 
@@ -343,7 +343,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
    */
   private CExpression getAdditiveAssumption(CExpression operand1, CExpression operand2,
       BinaryOperator operator, CLiteralExpression limit, boolean isUpperLimit)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     boolean isMinusMode = (operator == BinaryOperator.MINUS);
     assert (isMinusMode
@@ -411,7 +411,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
    */
   private void addMultiplicationAssumptions(CExpression operand1, CExpression operand2,
       CLiteralExpression pLowerLimit, CLiteralExpression pUpperLimit, Set<CExpression> result)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     for (boolean operand1isFirstOperand : new boolean[] { false, true }) {
       CExpression firstOperand = operand1isFirstOperand ? operand1 : operand2;
@@ -469,9 +469,9 @@ public final class ArithmeticOverflowAssumptionBuilder implements
    * @param limit the smallest value in the expression's type
    * @param result the set to which the generated assumptions are added
    */
-  private void addDivisionAssumption(CExpression operand1, CExpression operand2,
-      CLiteralExpression limit,
-      Set<CExpression> result) throws UnrecognizedCCodeException {
+  private void addDivisionAssumption(
+      CExpression operand1, CExpression operand2, CLiteralExpression limit, Set<CExpression> result)
+      throws UnrecognizedCodeException {
 
     // operand1 != limit
     CExpression term1 =
@@ -501,7 +501,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
       CLiteralExpression limit,
       CLiteralExpression pWidth,
       Set<CExpression> result)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     // For no undefined behavior, both operands need to be positive:
     // But this is (currently) not considered as overflow!
@@ -528,11 +528,10 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     return BigInteger.valueOf(pMax.bitLength() + 1);
   }
 
-  private class AssumptionsFinder
-      extends DefaultCExpressionVisitor<Void,UnrecognizedCCodeException>
-      implements CStatementVisitor<Void, UnrecognizedCCodeException>,
-      CSimpleDeclarationVisitor<Void, UnrecognizedCCodeException>,
-      CInitializerVisitor<Void, UnrecognizedCCodeException> {
+  private class AssumptionsFinder extends DefaultCExpressionVisitor<Void, UnrecognizedCodeException>
+      implements CStatementVisitor<Void, UnrecognizedCodeException>,
+          CSimpleDeclarationVisitor<Void, UnrecognizedCodeException>,
+          CInitializerVisitor<Void, UnrecognizedCodeException> {
 
     private final Set<CExpression> assumptions;
     private final CFANode node;
@@ -543,8 +542,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     }
 
     @Override
-    public Void visit(CBinaryExpression pIastBinaryExpression)
-        throws UnrecognizedCCodeException {
+    public Void visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCodeException {
       if (resultCanOverflow(pIastBinaryExpression)) {
         addAssumptionOnBounds(pIastBinaryExpression, assumptions, node);
       }
@@ -554,32 +552,29 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     }
 
     @Override
-    protected Void visitDefault(CExpression exp)
-        throws UnrecognizedCCodeException {
+    protected Void visitDefault(CExpression exp) throws UnrecognizedCodeException {
       return null;
     }
 
     @Override
     public Void visit(CArraySubscriptExpression pIastArraySubscriptExpression)
-        throws UnrecognizedCCodeException {
+        throws UnrecognizedCodeException {
       return pIastArraySubscriptExpression.getSubscriptExpression().accept(this);
     }
 
     @Override
-    public Void visit(CPointerExpression pointerExpression)
-        throws UnrecognizedCCodeException {
+    public Void visit(CPointerExpression pointerExpression) throws UnrecognizedCodeException {
       return pointerExpression.getOperand().accept(this);
     }
 
     @Override
     public Void visit(CComplexCastExpression complexCastExpression)
-        throws UnrecognizedCCodeException {
+        throws UnrecognizedCodeException {
       return complexCastExpression.getOperand().accept(this);
     }
 
     @Override
-    public Void visit(CUnaryExpression pIastUnaryExpression)
-        throws UnrecognizedCCodeException {
+    public Void visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCodeException {
       if (resultCanOverflow(pIastUnaryExpression)) {
         addAssumptionOnBounds(pIastUnaryExpression, assumptions, node);
       }
@@ -587,27 +582,26 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     }
 
     @Override
-    public Void visit(CCastExpression pIastCastExpression)
-        throws UnrecognizedCCodeException {
+    public Void visit(CCastExpression pIastCastExpression) throws UnrecognizedCodeException {
       // TODO: can cast itself cause overflows?
       return pIastCastExpression.getOperand().accept(this);
     }
 
     @Override
     public Void visit(CExpressionStatement pIastExpressionStatement)
-        throws UnrecognizedCCodeException {
+        throws UnrecognizedCodeException {
       return pIastExpressionStatement.getExpression().accept(this);
     }
 
     @Override
     public Void visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement)
-        throws UnrecognizedCCodeException {
+        throws UnrecognizedCodeException {
       return pIastExpressionAssignmentStatement.getRightHandSide().accept(this);
     }
 
     @Override
     public Void visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement)
-        throws UnrecognizedCCodeException {
+        throws UnrecognizedCodeException {
       for (CExpression arg : pIastFunctionCallAssignmentStatement
           .getRightHandSide().getParameterExpressions()) {
         arg.accept(this);
@@ -617,7 +611,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
 
     @Override
     public Void visit(CFunctionCallStatement pIastFunctionCallStatement)
-        throws UnrecognizedCCodeException {
+        throws UnrecognizedCodeException {
       for (CExpression arg : pIastFunctionCallStatement
           .getFunctionCallExpression()
           .getParameterExpressions()) {
@@ -627,25 +621,25 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     }
 
     @Override
-    public Void visit(CFunctionDeclaration pDecl) throws UnrecognizedCCodeException {
+    public Void visit(CFunctionDeclaration pDecl) throws UnrecognizedCodeException {
       // no overflows in CFunctionDeclaration
       return null;
     }
 
     @Override
-    public Void visit(CComplexTypeDeclaration pDecl) throws UnrecognizedCCodeException {
+    public Void visit(CComplexTypeDeclaration pDecl) throws UnrecognizedCodeException {
       // no overflows in CComplexTypeDeclaration
       return null;
     }
 
     @Override
-    public Void visit(CTypeDefDeclaration pDecl) throws UnrecognizedCCodeException {
+    public Void visit(CTypeDefDeclaration pDecl) throws UnrecognizedCodeException {
       // no overflows in CTypeDefDeclaration
       return null;
     }
 
     @Override
-    public Void visit(CVariableDeclaration pDecl) throws UnrecognizedCCodeException {
+    public Void visit(CVariableDeclaration pDecl) throws UnrecognizedCodeException {
       // rhs of CVariableDeclaration can contain overflows!
       if (pDecl.getInitializer() != null) {
         pDecl.getInitializer().accept(this);
@@ -654,27 +648,27 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     }
 
     @Override
-    public Void visit(CParameterDeclaration pDecl) throws UnrecognizedCCodeException {
+    public Void visit(CParameterDeclaration pDecl) throws UnrecognizedCodeException {
       // no overflows in CParameterDeclaration
       return null;
     }
 
     @Override
-    public Void visit(CEnumerator pDecl) throws UnrecognizedCCodeException {
+    public Void visit(CEnumerator pDecl) throws UnrecognizedCodeException {
       // no overflows in CEnumerator
       return null;
     }
 
     @Override
     public Void visit(CInitializerExpression pInitializerExpression)
-        throws UnrecognizedCCodeException {
+        throws UnrecognizedCodeException {
       // CInitializerExpression has a CExpression that can contain an overflow:
       pInitializerExpression.getExpression().accept(this);
       return null;
     }
 
     @Override
-    public Void visit(CInitializerList pInitializerList) throws UnrecognizedCCodeException {
+    public Void visit(CInitializerList pInitializerList) throws UnrecognizedCodeException {
       // check each CInitializer for overflow:
       for (CInitializer initializer : pInitializerList.getInitializers()) {
         initializer.accept(this);
@@ -684,7 +678,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
 
     @Override
     public Void visit(CDesignatedInitializer pCStructInitializerPart)
-        throws UnrecognizedCCodeException {
+        throws UnrecognizedCodeException {
       // CDesignatedInitializer has a CInitializer on the rhs that can contain an overflow:
       pCStructInitializerPart.getRightHandSide().accept(this);
       return null;

@@ -56,5 +56,10 @@ public final class SMGZeroValue extends SMGKnownExpValue
   public SMGExplicitValue getOffset() {
     return this;
   }
+
+  @Override
+  public BigInteger getId() {
+    return BigInteger.ZERO;
+  }
 }
 

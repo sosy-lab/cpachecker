@@ -63,7 +63,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -174,7 +174,7 @@ public class CustomInstructionApplications {
 
     public abstract CustomInstructionApplications identifyCIApplications()
         throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException,
-        UnrecognizedCCodeException;
+            UnrecognizedCodeException;
 
     public static CustomInstructionApplicationBuilder getBuilder(CIDescriptionType type,
         Configuration pConfig, LogManager pLogger, ShutdownNotifier pSdNotifier, CFA pCfa)
@@ -240,7 +240,8 @@ public class CustomInstructionApplications {
     }
 
     private CustomInstructionApplications findSimpleCustomInstructionApplications()
-        throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException, UnrecognizedCCodeException {
+        throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException,
+            UnrecognizedCodeException {
       // build simple custom instruction, is of the form r= x pOp y;
      // create variable expressions
       CType type = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
@@ -303,8 +304,9 @@ public class CustomInstructionApplications {
     }
 
     @Override
-    public CustomInstructionApplications identifyCIApplications() throws UnrecognizedCCodeException,
-        AppliedCustomInstructionParsingFailedException, IOException, InterruptedException {
+    public CustomInstructionApplications identifyCIApplications()
+        throws UnrecognizedCodeException, AppliedCustomInstructionParsingFailedException,
+            IOException, InterruptedException {
       CustomInstructionApplications cia = findSimpleCustomInstructionApplications();
       logger.log(Level.INFO, "Found ", cia.getMapping().size(), " applications of binary operatior",
           binaryOperatorForSimpleCustomInstruction, " in code.");
