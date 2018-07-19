@@ -28,26 +28,22 @@ import static com.google.common.truth.Truth.assertThat;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.array.SMGAbstractArray.ArraySymVal;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGArraySymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 
-public class SMGAbstractArrayTest {
+public class SMGAbstractArrayProxyTest {
 
   // private SMGState dummyState;
   static private final CType mockType4b = TypeUtils.createTypeWithLength(32);
@@ -66,15 +62,13 @@ public class SMGAbstractArrayTest {
 
   @Test
   public void simpleTest() throws SMGInconsistentException {
-    ArraySymVal symLen = new ArraySymVal();
-    symLen.low = 8;
-    symLen.high = 16;
+    SMGArraySymbolicValue symLen = new SMGArraySymbolicValue(8, 16, "new array");
 
     SMGRegion global1 = new SMGRegion(32, "global", 0);
     SMGRegion global2 = new SMGRegion(32, "global", 0);
 
-    SMGAbstractArray arr1 = new SMGAbstractArray(32, symLen, 0);
-    SMGAbstractArray arr2 = new SMGAbstractArray(32, symLen, 0);
+    SMGAbstractArrayProxy arr1 = SMGAbstractArrayProxy.createArray(32, symLen, 0, "array");
+    SMGAbstractArrayProxy arr2 = SMGAbstractArrayProxy.createArray(32, symLen, 0, "array");
 
     SMGValue ptrVal1 = SMGKnownSymValue.valueOf(51);
     SMGEdgeHasValue hv1 = new SMGEdgeHasValue(mockType4b, 0, global1, ptrVal1);

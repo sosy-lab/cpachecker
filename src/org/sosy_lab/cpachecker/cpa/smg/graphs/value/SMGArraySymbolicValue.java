@@ -21,27 +21,21 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg.graphs.object;
+package org.sosy_lab.cpachecker.cpa.smg.graphs.value;
 
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.array.SMGAbstractArrayProxy;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.GenericAbstraction;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.optional.SMGOptionalObject;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
+public class SMGArraySymbolicValue {
+  public final int low;
+  public final int high;
+  public final String label;
 
-public interface SMGObjectVisitor<T> {
+  public SMGArraySymbolicValue(int pLow, int pHigh) {
+    this(pLow, pHigh, "NO-LABEL");
+  }
 
-  T visit(SMGNullObject pObject);
+  public SMGArraySymbolicValue(int pLow, int pHigh, String pLabel) {
+    this.low = pLow;
+    this.high = pHigh;
+    this.label = pLabel;
+  }
 
-  T visit(SMGRegion pObject);
-
-  T visit(SMGSingleLinkedList pObject);
-
-  T visit(SMGDoublyLinkedList pObject);
-
-  T visit(SMGOptionalObject pObject);
-
-  T visit(SMGAbstractArrayProxy pObject);
-
-  T visit(GenericAbstraction pObject);
 }
