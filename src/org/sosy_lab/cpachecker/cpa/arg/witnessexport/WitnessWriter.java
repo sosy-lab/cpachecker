@@ -104,6 +104,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -276,7 +277,8 @@ class WitnessWriter implements EdgeAppender {
 
                 @Override
                 protected Boolean visitDefault(CExpression pExp) {
-                  return pExp.getExpressionType().getCanonicalType() instanceof CPointerType;
+                  CType type = pExp.getExpressionType().getCanonicalType();
+                  return type instanceof CPointerType || type instanceof CFunctionType;
                 }
               });
         }
