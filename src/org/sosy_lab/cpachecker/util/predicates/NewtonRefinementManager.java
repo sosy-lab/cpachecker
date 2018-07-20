@@ -397,7 +397,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     // Get all intermediate Variables, stored in map to hold both String and Formula
     // Mutable as removing entries might be necessary.
     Map<String, Formula> intermediateVars =
-        Maps.newHashMap(
+        ImmutableMap.copyOf(
             Maps.filterEntries(
                 fmgr.extractVariables(toExist),
                 new Predicate<Entry<String, Formula>>() {
@@ -418,8 +418,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     }
     // Now we existentially quantify all intermediate Variables
     // and use quantifier elimination to obtain a quantifier free formula
-    Optional<BooleanFormula> result =
-        qeManager.eliminateQuantifiers(ImmutableMap.copyOf(intermediateVars), toExist);
+    Optional<BooleanFormula> result = qeManager.eliminateQuantifiers(intermediateVars, toExist);
     if (result.isPresent()) {
       return result.get();
     } else {
