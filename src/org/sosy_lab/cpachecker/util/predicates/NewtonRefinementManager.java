@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -93,7 +94,6 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
   private final NewtonStatistics stats = new NewtonStatistics();
 
-
   @Option(
     secure = true,
     description =
@@ -122,7 +122,6 @@ public class NewtonRefinementManager implements StatisticsProvider {
     BLOCK, //Abstracts the whole Block(between abstraction states) at once
     EDGE //Abstracts every edge of the ARGPath
   }
-
 
   public NewtonRefinementManager(
       LogManager pLogger, Solver pSolver, PathFormulaManager pPfmgr, Configuration config)
@@ -215,16 +214,18 @@ public class NewtonRefinementManager implements StatisticsProvider {
   private List<BooleanFormula> computeUnsatCore(List<BooleanFormula> pFormulas, ARGPath pPath)
       throws RefinementFailedException, InterruptedException {
     stats.unsatCoreTimer.start();
-
     try {
+      logger.log(
+          Level.FINEST, String.format("Compute unsatisfiable core of:\n%s", pFormulas.toString()));
       // Compute the unsat core
       List<BooleanFormula> unsatCore;
       try {
-        unsatCore = solver.unsatCore(new HashSet<>(pFormulas));
+        unsatCore = solver.unsatCore(ImmutableSet.copyOf(pFormulas));
       } catch (SolverException e) {
         //Solver failed while computing unsat core
         throw new RefinementFailedException(Reason.NewtonRefinementFailed, pPath, e);
       }
+      logger.log(Level.FINEST, String.format("Unsatisfiable Core is:%s", unsatCore.toString()));
       return ImmutableList.copyOf(unsatCore);
     } finally {
       stats.unsatCoreTimer.stop();
@@ -243,6 +244,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
   private boolean isFeasible(List<BooleanFormula> pFormulas, ARGPath pPath)
       throws RefinementFailedException, InterruptedException {
     boolean isFeasible;
+    logger.log(Level.FINEST, String.format("Show feasiblity for:%s", pFormulas.toString()));
     try (ProverEnvironment prover = solver.newProverEnvironment()) {
       for (BooleanFormula formula : pFormulas) {
         prover.push(formula);
@@ -252,6 +254,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
       // Prover failed while proving unsatisfiability
       throw new RefinementFailedException(Reason.NewtonRefinementFailed, pPath, e);
     }
+    logger.log(Level.FINEST, isFeasible ? "The trace is feasible." : "The trace is infeasible");
     return isFeasible;
   }
 
@@ -417,8 +420,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
     }
     // Now we existentially quantify all intermediate Variables
     // and use quantifier elimination to obtain a quantifier free formula
-
-    Optional<BooleanFormula> result = qeManager.eliminateQuantifiers(intermediateVars, toExist);
+    Optional<BooleanFormula> result =
+        qeManager.eliminateQuantifiers(ImmutableMap.copyOf(intermediateVars), toExist);
     if (result.isPresent()) {
       return result.get();
     } else {
@@ -492,7 +495,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
         // quantify the previously identified variables
         if (!toQuantify.isEmpty()) {
-          Optional<BooleanFormula> quantifiedPred = qeManager.eliminateQuantifiers(toQuantify, pred);
+          Optional<BooleanFormula> quantifiedPred =
+              qeManager.eliminateQuantifiers(toQuantify, pred);
           if (quantifiedPred.isPresent()) {
             newPredicates.add(quantifiedPred.get());
             stats.noOfQuantifiedFutureLives += toQuantify.size();
@@ -553,7 +557,6 @@ public class NewtonRefinementManager implements StatisticsProvider {
   private List<BooleanFormula> experimentalUnsatCoreWithoutNewtonRefinement(
       ARGPath pPath, BlockFormulas pFormulas)
       throws InterruptedException, RefinementFailedException {
-
     List<BooleanFormula> unsatCore = computeUnsatCore(pFormulas.getFormulas(), pPath);
     List<BooleanFormula> predicates = new ArrayList<>();
 
