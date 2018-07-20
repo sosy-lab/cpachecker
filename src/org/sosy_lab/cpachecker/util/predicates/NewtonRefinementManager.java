@@ -167,8 +167,6 @@ public class NewtonRefinementManager implements StatisticsProvider {
                     .map(l -> l.getPathFormula().getFormula())
                     .collect(Collectors.toList());
 
-            // TODO: Fails in some cases, most interestingly those simple tests called SSAMap Bug
-            // Question: What was the ssa bug and how was it solved?
             assert isFeasible(pFormulas.getFormulas(), pAllStatesTrace)
                 == isFeasible(pathFormulas, pAllStatesTrace);
 
@@ -216,7 +214,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     stats.unsatCoreTimer.start();
     try {
       logger.log(
-          Level.FINEST, String.format("Compute unsatisfiable core of:\n%s", pFormulas.toString()));
+          Level.FINEST, "Compute unsatisfiable core of: ", pFormulas);
       // Compute the unsat core
       List<BooleanFormula> unsatCore;
       try {
@@ -225,7 +223,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
         //Solver failed while computing unsat core
         throw new RefinementFailedException(Reason.NewtonRefinementFailed, pPath, e);
       }
-      logger.log(Level.FINEST, String.format("Unsatisfiable Core is:%s", unsatCore.toString()));
+      logger.log(Level.FINEST, "Unsatisfiable Core is: ", unsatCore);
       return ImmutableList.copyOf(unsatCore);
     } finally {
       stats.unsatCoreTimer.stop();
@@ -244,7 +242,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
   private boolean isFeasible(List<BooleanFormula> pFormulas, ARGPath pPath)
       throws RefinementFailedException, InterruptedException {
     boolean isFeasible;
-    logger.log(Level.FINEST, String.format("Show feasiblity for:%s", pFormulas.toString()));
+    logger.log(Level.FINEST, "Show feasiblity for:", pFormulas);
     try (ProverEnvironment prover = solver.newProverEnvironment()) {
       for (BooleanFormula formula : pFormulas) {
         prover.push(formula);
