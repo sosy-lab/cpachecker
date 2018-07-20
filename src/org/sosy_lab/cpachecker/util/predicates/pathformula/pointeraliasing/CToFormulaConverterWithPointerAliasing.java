@@ -710,6 +710,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       }
     } else {
       assert isSimpleType(type);
+      if (type.equals(CPointerType.POINTER_TO_CHAR)
+          && alreadyAssigned.contains(lhs.toString() + "[0]")) {
+        // A string constant has been assigned to this char pointer
+        return;
+      }
       CExpression initExp = ((CInitializerExpression)CDefaults.forType(type, lhs.getFileLocation())).getExpression();
       defaultAssignments.add(new CExpressionAssignmentStatement(lhs.getFileLocation(), lhs, initExp));
     }
