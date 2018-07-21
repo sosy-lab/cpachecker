@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -168,7 +169,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
             predicates = createPredicatesEdgeLevel(pAllStatesTrace, pFormulas, pathLocations);
             break;
           case BLOCK:
-            predicates = createPredicatesBlockLevel(pAllStatesTrace, pFormulas);
+            predicates = createPredicatesBlockLevel(pAllStatesTrace, pFormulas, pathLocations);
             break;
           default:
             throw new UnsupportedOperationException(
@@ -232,22 +233,35 @@ public class NewtonRefinementManager implements StatisticsProvider {
    *
    * @param pPath The Error Path
    * @param pFormulas The BlockFormulas
+   * @param pPathLocations List of location on error trace
    * @return A list of Formulas, each Formula represents an assertion at the corresponding
    *     abstraction state
    * @throws InterruptedException if interrupted
    * @throws RefinementFailedException if the refinement failed
    */
-  private List<BooleanFormula> createPredicatesBlockLevel(ARGPath pPath, BlockFormulas pFormulas)
+  private List<BooleanFormula> createPredicatesBlockLevel(
+      ARGPath pPath, BlockFormulas pFormulas, List<PathLocation> pPathLocations)
       throws InterruptedException, RefinementFailedException {
     List<BooleanFormula> unsatCore = computeUnsatCore(pFormulas.getFormulas(), pPath);
     List<BooleanFormula> predicates = new ArrayList<>();
 
+    // Filter pathlocations to only abstractionstate locations
+    Iterator<PathLocation> abstractionLocations =
+        pPathLocations
+            .stream()
+            .filter(l -> l.hasAbstractionState())
+            .collect(Collectors.toList())
+            .iterator();
+
+
     BooleanFormula pred = bfmgr.makeTrue();
     for (BooleanFormula pathFormula : pFormulas.getFormulas()) {
+      assert abstractionLocations.hasNext();
+      PathFormula pathFormulaWithSsa = abstractionLocations.next().getPathFormula();
+
       if (unsatCore.contains(pathFormula)) {
         pred = bfmgr.and(pred, pathFormula);
-
-        // TODO Implement Quantifier elimination
+        pred = eliminateIntermediateVariables(pathFormulaWithSsa, pred);
         pred = fmgr.simplify(pred);
       }
       predicates.add(pred);
@@ -393,6 +407,20 @@ public class NewtonRefinementManager implements StatisticsProvider {
       return toExist;
     }
 
+    return eliminateIntermediateVariables(pathFormula, toExist);
+  }
+
+  /**
+   * Try to eliminate Intermediate Variables from a Formula
+   *
+   * @param pathFormula the pathformula needed for SSaMap
+   * @param toExist the formula to eliminate the vars in
+   * @return The formula after eliminating Variables or the original formula if elimination not
+   *     possible
+   * @throws InterruptedException if interrupted
+   */
+  private BooleanFormula eliminateIntermediateVariables(
+      PathFormula pathFormula, BooleanFormula toExist) throws InterruptedException {
     // Get all intermediate Variables, stored in map to hold both String and Formula
     // Mutable as removing entries might be necessary.
     Map<String, Formula> intermediateVars =
