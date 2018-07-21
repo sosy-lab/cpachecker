@@ -126,6 +126,14 @@ public class NewtonRefinementManager implements StatisticsProvider {
     EDGE //Abstracts every edge of the ARGPath
   }
 
+  //TODO: Default true once it is tested
+  @Option(
+    secure = true,
+    description =
+        "Activate fallback to interpolation. Typically in case of a repeated counterexample."
+  )
+  private boolean fallbackToInterpolation = false;
+
   public NewtonRefinementManager(
       LogManager pLogger, Solver pSolver, PathFormulaManager pPfmgr, Configuration config)
       throws InvalidConfigurationException {
@@ -186,6 +194,15 @@ public class NewtonRefinementManager implements StatisticsProvider {
     } finally {
       stats.totalTimer.stop();
     }
+  }
+
+  /**
+   * Check if fallback to interpolation-based refinement is active
+   *
+   * @return true if active
+   */
+  public boolean fallbackToInterpolation() {
+    return fallbackToInterpolation;
   }
 
   /**
