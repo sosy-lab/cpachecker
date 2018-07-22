@@ -531,8 +531,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     SMGValue nextPointer = readValue(pListSeg, nfo, CPointerType.POINTER_TO_VOID).getObject();
 
-    SMGEdgePointsTo nextPointerEdge = heap.getPointer(nextPointer);
-
     SMGValue firstPointer = getAddress(pListSeg, hfo, SMGTargetSpecifier.FIRST);
 
     heap.removeHeapObjectAndEdges(pListSeg);
@@ -540,7 +538,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     heap.replaceValue(nextPointer, firstPointer);
 
     if (firstPointer.equals(pPointerToAbstractObject.getValue())) {
-      return getPointerFromValue(nextPointerEdge.getValue());
+      return getPointerFromValue(nextPointer);
     } else {
       throw new AssertionError(
           "Unexpected dereference of pointer " + pPointerToAbstractObject.getValue()
@@ -569,9 +567,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGValue nextPointer = readValue(pListSeg, nfo, CPointerType.POINTER_TO_VOID).getObject();
     SMGValue prevPointer = readValue(pListSeg, pfo, CPointerType.POINTER_TO_VOID).getObject();
 
-    SMGEdgePointsTo nextPointerEdge = heap.getPointer(nextPointer);
-    SMGEdgePointsTo prevPointerEdge = heap.getPointer(prevPointer);
-
     SMGSymbolicValue firstPointer = getAddress(pListSeg, hfo, SMGTargetSpecifier.FIRST);
     SMGSymbolicValue lastPointer = getAddress(pListSeg, hfo, SMGTargetSpecifier.LAST);
 
@@ -589,9 +584,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
 
     if (firstPointer != null && firstPointer.equals(pPointerToAbstractObject.getValue())) {
-      return getPointerFromValue(nextPointerEdge.getValue());
+      return getPointerFromValue(nextPointer);
     } else if (lastPointer != null && lastPointer.equals(pPointerToAbstractObject.getValue())) {
-      return getPointerFromValue(prevPointerEdge.getValue());
+      return getPointerFromValue(prevPointer);
     } else {
       throw new AssertionError(
           "Unexpected dereference of pointer " + pPointerToAbstractObject.getValue()
@@ -623,6 +618,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     Set<SMGEdgeHasValue> oldSllFieldsToOldRegion =
         heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(nfo));
+    SMGSymbolicValue oldPointerToRegion =
+        readValue(pListSeg, nfo, CPointerType.POINTER_TO_VOID).getObject();
     if (!oldSllFieldsToOldRegion.isEmpty()) {
       SMGEdgeHasValue oldSllFieldToOldRegion = Iterables.getOnlyElement(oldSllFieldsToOldRegion);
       heap.removeHasValueEdge(oldSllFieldToOldRegion);
@@ -656,7 +653,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGEdgePointsTo newPtEdgeToNewRegionFromOutsideSMG =
         new SMGEdgePointsTo(oldPointerToSll, newConcreteRegion, hfo);
 
-    SMGValue newPointerToSll = SMGKnownSymValue.of();
+    SMGSymbolicValue newPointerToSll = SMGKnownSymValue.of();
 
     /*If you can't find the pointer, use generic pointer type*/
     CType typeOfPointerToSll;
@@ -670,7 +667,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       typeOfPointerToSll = fieldsContainingOldPointerToSll.iterator().next().getType();
     }
 
-    writeValue(newConcreteRegion, nfo, typeOfPointerToSll, (SMGSymbolicValue) newPointerToSll);
+    writeValue(newConcreteRegion, nfo, typeOfPointerToSll, newPointerToSll);
 
     SMGEdgePointsTo newPtEToSll =
         new SMGEdgePointsTo(newPointerToSll, newSll, hfo, SMGTargetSpecifier.FIRST);
@@ -690,6 +687,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     heap.addValue(newPointerToSll);
 
     heap.addPointsToEdge(newPtEToSll);
+
+    writeValue(newSll, nfo, CPointerType.POINTER_TO_VOID, oldPointerToRegion);
 
     return SMGAddressValueAndState.of(
         this, SMGKnownAddressValue.valueOf(newPtEdgeToNewRegionFromOutsideSMG));
