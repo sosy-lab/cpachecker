@@ -494,6 +494,96 @@ public class SMGStateTest {
         .isEqualTo(sll.getMinimumLength() - 1);
   }
 
+  @Test
+  public void materialiseSllWithOverlappingNullifiedFieldsTest()
+      throws SMGInconsistentException, InvalidConfigurationException {
+
+    int sizeInBits = 128;
+    long hfo = 64;
+    long dfo = -64; // data field offset
+    long nfo = 0;
+    int minLength = 3;
+    int level = 0;
+
+    final MachineModel machineModel64 = MachineModel.LINUX64;
+    int ptrSizeInBits = machineModel64.getSizeofPtrInBits();
+    CLangSMG heap = new CLangSMG(machineModel64);
+
+    SMGSymbolicValue value6 = SMGKnownSymValue.valueOf(6);
+    heap.addValue(value6);
+
+    SMGSingleLinkedList sll = new SMGSingleLinkedList(sizeInBits, hfo, nfo, minLength, level);
+    heap.addHeapObject(sll);
+    heap.setValidity(sll, true);
+
+    // add two overlapping fields with nullified data
+    SMGEdgeHasValue initialDataField = new SMGEdgeHasValue(sizeInBits, dfo, sll, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue initialNextField =
+        new SMGEdgeHasValue(sizeInBits / 2, nfo, sll, SMGZeroValue.INSTANCE);
+    heap.addHasValueEdge(initialDataField);
+    heap.addHasValueEdge(initialNextField);
+
+    heap.addPointsToEdge(new SMGEdgePointsTo(value6, sll, hfo, SMGTargetSpecifier.FIRST));
+
+    SMGState smgState =
+        new SMGState(
+            logger,
+            new SMGOptions(Configuration.defaultConfiguration()),
+            heap,
+            0,
+            HashBiMap.create());
+
+    smgState.addStackFrame(functionDeclaration3);
+
+    SMGObject head = smgState.addGlobalVariable(ptrSizeInBits, "head");
+    smgState.writeValue(head, 0, pointerType, value6);
+
+    smgState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
+
+    // trigger materialisation
+    List<SMGAddressValueAndState> valAndStates = smgState.getPointerFromValue(value6);
+
+    Truth.assertThat(valAndStates.size()).isEqualTo(1);
+    valAndStates.get(0).getSmgState().performConsistencyCheck(SMGRuntimeCheck.FORCED);
+
+    UnmodifiableSMGState newState = valAndStates.get(0).getSmgState();
+    UnmodifiableSMG newSMG = newState.getHeap();
+    SMGObject concreteRegion = newSMG.getObjectPointedBy(value6);
+
+    SMGEdgeHasValueFilter regFilter = SMGEdgeHasValueFilter.objectFilter(concreteRegion);
+
+    Set<SMGEdgeHasValue> datasBefore = newSMG.getHVEdges(regFilter.filterAtOffset(dfo));
+    Set<SMGEdgeHasValue> nexts = newSMG.getHVEdges(regFilter.filterAtOffset(nfo));
+
+    Truth.assertThat(datasBefore).hasSize(1);
+    Truth.assertThat(nexts).hasSize(1);
+
+    SMGEdgeHasValue dataFieldBeforeNext = Iterables.getOnlyElement(datasBefore);
+    SMGEdgeHasValue nextField = Iterables.getOnlyElement(nexts);
+
+    // data at nfo is not zero anymore, overlap is not allowed anymore
+    Truth.assertThat(dataFieldBeforeNext.getSizeInBits(machineModel64)).isEqualTo(sizeInBits - ptrSizeInBits);
+    Truth.assertThat(nextField.getSizeInBits(machineModel64)).isEqualTo(ptrSizeInBits);
+    Truth.assertThat(dataFieldBeforeNext.getOffset()).isEqualTo(dfo);
+    Truth.assertThat(nextField.getOffset()).isEqualTo(nfo);
+
+    // next pointer of new region should point to new sll
+    Truth.assertThat(newSMG.isPointer(nextField.getValue())).isTrue();
+    SMGObject newSll = newSMG.getPointer(nextField.getValue()).getObject();
+
+    // assert that region points to sll
+    SMGValue sllAddress =
+        Iterables.getOnlyElement(
+                newSMG.getPtEdges(
+                    SMGEdgePointsToFilter.targetObjectFilter(newSll).filterAtTargetOffset(hfo)))
+            .getValue();
+    Truth.assertThat(nextField.getValue()).isEqualTo(sllAddress);
+    Truth.assertThat(dataFieldBeforeNext.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
+    Truth.assertThat(newSll).isInstanceOf(SMGSingleLinkedList.class);
+    Truth.assertThat(((SMGSingleLinkedList) newSll).getMinimumLength())
+        .isEqualTo(sll.getMinimumLength() == 0 ? 0 : sll.getMinimumLength() - 1);
+  }
+
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() throws SMGInconsistentException, InvalidConfigurationException {
