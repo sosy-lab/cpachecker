@@ -28,6 +28,8 @@ import com.google.common.collect.Multiset;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ObjectOutputStream;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -54,6 +56,7 @@ import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.cpa.lock.LockState;
 import org.sosy_lab.cpachecker.cpa.lock.LockState.LockStateBuilder;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -175,15 +178,24 @@ public class UsageReachedSet extends PartitionedReachedSet {
         LockState locks, expandedLocks;
         Map<LockState, LockState> reduceToExpand = new HashMap<>();
         SortedSet<AbstractState> sortedSet = new TreeSet<>(currentReached.asCollection());
+        Map<AbstractState, List<UsageInfo>> stateToUsage = new HashMap<>();
 
         for (AbstractState state : sortedSet) {
           // handle state
           usageProcessingTimer.start();
           List<UsageInfo> usages = usageProcessor.getUsagesForState(state);
           usageProcessingTimer.stop();
+          List<UsageInfo> expandedUsages = new ArrayList<>();
+          ARGState argState = (ARGState) state;
+          Collection<ARGState> parents = argState.getParents();
+          for (ARGState parent : parents) {
+            if (stateToUsage.containsKey(parent)) {
+              expandedUsages.addAll(stateToUsage.get(parent));
+            }
+          }
+
           usageExpandingTimer.start();
           for (UsageInfo uinfo : usages) {
-            SingleIdentifier id = uinfo.getId();
             UsageInfo expandedUsage;
             if (currentEffects.isEmpty()) {
               expandedUsage = uinfo;
@@ -199,9 +211,22 @@ public class UsageReachedSet extends PartitionedReachedSet {
               }
               expandedUsage = uinfo.expand(expandedLocks);
             }
-            container.add(id, expandedUsage);
+            expandedUsages.add(expandedUsage);
           }
           usageExpandingTimer.stop();
+
+          PredicateAbstractState predicateState =
+              AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+          if (predicateState == null
+              || predicateState.isAbstractionState()
+                  && !predicateState.getAbstractionFormula().isFalse()) {
+            for (UsageInfo usage : expandedUsages) {
+              SingleIdentifier id = usage.getId();
+              container.add(id, usage);
+            }
+          } else {
+            stateToUsage.put(state, expandedUsages);
+          }
 
           // Search state in the BAM cache
           if (manager.hasInitialState(state)) {
