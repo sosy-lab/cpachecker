@@ -35,6 +35,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -172,8 +174,9 @@ public class UsageReachedSet extends PartitionedReachedSet {
         Multiset<LockEffect> currentEffects = currentPair.getSecond();
         LockState locks, expandedLocks;
         Map<LockState, LockState> reduceToExpand = new HashMap<>();
+        SortedSet<AbstractState> sortedSet = new TreeSet<>(currentReached.asCollection());
 
-        for (AbstractState state : currentReached.asCollection()) {
+        for (AbstractState state : sortedSet) {
           // handle state
           usageProcessingTimer.start();
           List<UsageInfo> usages = usageProcessor.getUsagesForState(state);
