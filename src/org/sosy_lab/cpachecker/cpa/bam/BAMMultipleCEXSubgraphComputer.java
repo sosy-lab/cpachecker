@@ -105,7 +105,8 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
       inCallstackFunction = false;
       if (currentState.getParents().isEmpty()) {
         // Find correct expanded state
-        Collection<AbstractState> expandedStates = data.getNonReducedInitialStates(currentState);
+        Collection<AbstractState> expandedStates =
+            new TreeSet<>(data.getNonReducedInitialStates(currentState));
 
         if (expandedStates.isEmpty()) {
           // children are a normal successors -> create an connection from parent to children
@@ -130,7 +131,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
       }
 
       // add parent for further processing
-      openElements.add(currentState.getParents().iterator().next());
+      openElements.addAll(currentState.getParents());
 
       if (data.hasInitialState(currentState) && !inCallstackFunction) {
         // If child-state is an expanded state, the child is at the exit-location of a block.
@@ -221,7 +222,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
     return restorePathFrom(new BackwardARGState(pLastElement), Collections.emptySet());
   }
 
-  private boolean checkThePathHasRepeatedStates(ARGPath path, Set<List<Integer>> pRefinedStates) {
+  boolean checkThePathHasRepeatedStates(ARGPath path, Set<List<Integer>> pRefinedStates) {
     List<Integer> ids =
         from(path.asStatesList())
         .transform(getStateId)

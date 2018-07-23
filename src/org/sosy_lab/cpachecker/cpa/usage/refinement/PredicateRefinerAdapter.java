@@ -25,13 +25,10 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -40,7 +37,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
@@ -49,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMBlockFormulaStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateAbstractionRefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateCPA;
@@ -59,8 +56,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefinerFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -74,12 +71,9 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   private final UsageStatisticsRefinementStrategy strategy;
   private ARGReachedSet ARGReached;
 
-  private final Map<Set<CFAEdge>, PredicatePrecision> falseCache = new HashMap<>();
-  private final Map<Set<CFAEdge>, PredicatePrecision> falseCacheForCurrentIteration = new HashMap<>();
-  //private final Multimap<SingleIdentifier, Set<CFAEdge>> idCached = LinkedHashMultimap.create();
-  private final Set<Set<CFAEdge>> trueCache = new HashSet<>();
+  private final Set<List<CFAEdge>> falseCacheForCurrentIteration = new HashSet<>();
+  private final Set<List<CFAEdge>> trueCache = new HashSet<>();
 
-  // private final Set<Set<CFAEdge>> potentialLoopTraces = new HashSet<>();
   // Statistics
   private StatCounter solverFailures = new StatCounter("Solver failures");
   private StatCounter numberOfrepeatedPaths = new StatCounter("Number of repeated paths");
@@ -120,57 +114,23 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   public RefinementResult call(ExtendedARGPath pInput) throws CPAException, InterruptedException {
     RefinementResult result;
 
-    Set<CFAEdge> currentPath = Sets.newHashSet(pInput.getInnerEdges());
+    List<CFAEdge> currentPath = pInput.getInnerEdges();
 
     if (trueCache.contains(currentPath)) {
       //Somewhen we have already refined this path as true
       result = RefinementResult.createTrue();
+    } else if (falseCacheForCurrentIteration.contains(currentPath)) {
+      // We refined it for other usage
+      // just return the result;
+      result = RefinementResult.createFalse();
     } else {
-      Set<CFAEdge> edgeSet = Sets.newHashSet(currentPath);
-      if (falseCache.containsKey(edgeSet)) {
-        PredicatePrecision previousPreds = falseCache.get(edgeSet);
-        Precision currentPrecision = getCurrentPrecision();
-        PredicatePrecision currentPreds = Precisions.extractPrecisionByType(currentPrecision, PredicatePrecision.class);
-
-        if (previousPreds.calculateDifferenceTo(currentPreds) == 0) {
-          // if (potentialLoopTraces.contains(edgeSet)) {
-          // Second time, we obtain it
-          numberOfrepeatedPaths.inc();
-            logger.log(Level.WARNING, "Path is repeated, BAM is looped");
-            pInput.getUsageInfo().setAsLooped();
-            result = RefinementResult.createTrue();
-          /*  potentialLoopTraces.remove(edgeSet);
-          } else {
-            result = performPredicateRefinement(pInput);
-            logger.log(Level.WARNING, "Path is repeated, hope BAM can handle it itself");
-            //BAM can refine with updated predicate refiner, congratulate him.
-            numberOfBAMupdates.inc();
-            potentialLoopTraces.add(edgeSet);
-          }*/
-        } else {
-          //rerefine it to obtain new states
-          logger.log(Level.WARNING, "Path is repeated, but predicates are missed");
-          result = performPredicateRefinement(pInput);
-          //We expect the same result
-          //but in case of loop the transformation path -> set is not correct, so, there can be a true result
-          //assert result.isFalse() : "Current result is " + result;
+      /*if (!totalARGCleaning) {
+        subtreesRemover.addStateForRemoving((ARGState)target.getKeyState());
+        for (ARGState state : strategy.lastAffectedStates) {
+          subtreesRemover.addStateForRemoving(state);
         }
-        //pInput.failureFlag = true;
-      } else {
-        if (falseCacheForCurrentIteration.containsKey(edgeSet)) {
-          //We refined it for other usage
-          //just return the result;
-          result = RefinementResult.createFalse();
-        } else {
-          /*if (!totalARGCleaning) {
-            subtreesRemover.addStateForRemoving((ARGState)target.getKeyState());
-            for (ARGState state : strategy.lastAffectedStates) {
-              subtreesRemover.addStateForRemoving(state);
-            }
-          }*/
-          result = performPredicateRefinement(pInput);
-        }
-      }
+      }*/
+      result = performPredicateRefinement(pInput);
     }
     return result;
   }
@@ -180,24 +140,35 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
     try {
       numberOfrefinedPaths.inc();
       CounterexampleInfo cex = refiner.performRefinementForPath(ARGReached, path);
-      Set<CFAEdge> edgeSet = Sets.newHashSet(path.getInnerEdges());
+      List<CFAEdge> edges = path.getInnerEdges();
 
       if (!cex.isSpurious()) {
-        trueCache.add(edgeSet);
+        trueCache.add(edges);
         result = RefinementResult.createTrue();
       } else {
         result = RefinementResult.createFalse();
-        result.addInfo(PredicateRefinerAdapter.class, getLastAffectedStates());
-        result.addPrecision(getLastPrecision());
-        falseCacheForCurrentIteration.put(edgeSet, getLastPrecision());
+        List<ARGState> affectedStates = getLastAffectedStates();
+        if (!affectedStates.isEmpty()) {
+          // it may be, if there are no valuable interpolants: ..., true, false, ...
+          result.addInfo(PredicateRefinerAdapter.class, affectedStates);
+          PredicatePrecision lastPrecision = getLastPrecision();
+          assert (lastPrecision != null);
+          result.addPrecision(lastPrecision);
+        }
+        falseCacheForCurrentIteration.add(edges);
       }
 
     } catch (IllegalStateException e) {
-      //msat_solver return -1 <=> unknown
-      //consider its as true;
+      // msat_solver return -1 <=> unknown
+      // consider its as true;
       logger.log(Level.WARNING, "Solver exception: " + e.getMessage());
       solverFailures.inc();
       result = RefinementResult.createUnknown();
+    } catch (RefinementFailedException e) {
+      numberOfrepeatedPaths.inc();
+      logger.log(Level.WARNING, "Path is repeated, BAM is looped");
+      path.getUsageInfo().setAsLooped();
+      result = RefinementResult.createTrue();
     }
     return result;
   }
@@ -218,7 +189,6 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
       //false cache may contain other precision
       //It happens if we clean it for other Id and rerefine it now
       //Just replace old precision
-      falseCacheForCurrentIteration.forEach(falseCache::put);
       falseCacheForCurrentIteration.clear();
       ARGReached = null;
       strategy.lastAffectedStates.clear();
@@ -233,7 +203,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
         .put(numberOfrepeatedPaths)
         .put(solverFailures)
         .put(numberOfBAMupdates)
-        .put("Size of false cache", falseCache.size());
+        .put("Size of true cache", trueCache.size());
   }
 
   @Override
@@ -250,10 +220,6 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
 
   private PredicatePrecision getLastPrecision() {
     return strategy.lastAddedPrecision;
-  }
-
-  private Precision getCurrentPrecision() {
-    return ARGReached.asReachedSet().getPrecision(ARGReached.asReachedSet().getFirstState());
   }
 
   private void updateReachedSet(ReachedSet pReached) {
@@ -281,10 +247,19 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
             boolean pRepeatedCounterexample)
         throws CPAException, InterruptedException {
 
-      super.finishRefinementOfPath(pUnreachableState, pAffectedStates, pReached, abstractionStatesTrace, pRepeatedCounterexample);
+      if (!pAffectedStates.isEmpty()) {
+        super.finishRefinementOfPath(
+            pUnreachableState,
+            pAffectedStates,
+            pReached,
+            abstractionStatesTrace,
+            pRepeatedCounterexample);
 
-      lastAffectedStates.clear();
-      lastAffectedStates.addAll(pAffectedStates);
+        lastAffectedStates.clear();
+        from(pAffectedStates)
+            .transform(s -> ((BackwardARGState) s).getARGState())
+            .forEach(lastAffectedStates::add);
+      }
     }
 
     @Override

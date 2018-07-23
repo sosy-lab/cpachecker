@@ -147,7 +147,7 @@ public class BAMSubgraphComputer {
 
       // add parent for further processing
       if (!currentState.getParents().isEmpty()) {
-        waitlist.add(currentState.getParents().iterator().next());
+        waitlist.addAll(currentState.getParents());
       }
 
       final Set<BackwardARGState> childrenInSubgraph = new TreeSet<>();
@@ -314,7 +314,7 @@ public class BAMSubgraphComputer {
    * <p>TODO we could replace the BackwardARGState completely by a normal ARGState, we just keep it
    * for debugging.
    */
-  static class BackwardARGState extends ARGState {
+  public static class BackwardARGState extends ARGState {
 
     private static final long serialVersionUID = -3279533907385516993L;
 

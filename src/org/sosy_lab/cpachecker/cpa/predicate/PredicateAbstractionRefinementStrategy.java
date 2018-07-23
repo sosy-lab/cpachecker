@@ -252,7 +252,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
 
   @Override
   protected final void startRefinementOfPath() {
-    checkState(newPredicates == null);
+    // Can not check newPredicates == null,
+    // As there are problems with repeated counterexamples, and there is no call of finishRefinement
+    // checkState(newPredicates == null);
     // needs to be a fully deterministic data structure,
     // thus a Multimap based on a LinkedHashMap
     // (we iterate over the keys)

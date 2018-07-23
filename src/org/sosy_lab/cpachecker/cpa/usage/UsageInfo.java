@@ -166,6 +166,9 @@ public class UsageInfo implements Comparable<UsageInfo> {
       sb.append(locks);
     }
 
+    sb.append(", ");
+    sb.append(core.node);
+
     return sb.toString();
   }
 

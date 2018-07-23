@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.collect.Iterables.getOnlyElement;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.collect.Iterables;
@@ -164,22 +163,21 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
       PathFormula currentFormula;
       if (!pathElements.isEmpty() && pathElements.get(0).equals(currentState)) {
         // abstraction element is the start of a new part of the ARG
+        assert currentFormulas.size() > 0;
 
-        // assert waitlist.isEmpty() : "todo should be empty, because of the special ARG structure";
-        /*assert currentState.getParents().size() == 1
-        : "there should be only one parent, because of the special ARG structure";*/
-
+        /*assert waitlist.isEmpty() : "todo should be empty, because of the special ARG structure";
+        assert currentFormulas.size() == 1
+        : "todo should be empty, because of the special ARG structure";
+        assert currentState.getParents().size() == 1
+        : "there should be only one parent, because of the special ARG structure";
+        */
         // finishedFormulas.clear(); // free some memory
         // TODO disabled, we need to keep callStates for later usage
 
         // start new block with empty formula
-        currentFormula = getOnlyElement(currentFormulas);
+        // currentFormula = getOnlyElement(currentFormulas);
         pathElements.remove(0);
-        Iterator<PathFormula> it = currentFormulas.iterator();
-        currentFormula = it.next();
-        while (it.hasNext()) {
-          currentFormula = pfmgr.makeOr(currentFormula, it.next());
-        }
+        currentFormula = mergeFormulas(currentFormulas);
         BooleanFormula bFormula =
             pfmgr.addBitwiseAxiomsIfNeeded(
                 currentFormula.getFormula(), currentFormula.getFormula());
@@ -188,11 +186,7 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
 
       } else {
         // merge the formulas
-        Iterator<PathFormula> it = currentFormulas.iterator();
-        currentFormula = it.next();
-        while (it.hasNext()) {
-          currentFormula = pfmgr.makeOr(currentFormula, it.next());
-        }
+        currentFormula = mergeFormulas(currentFormulas);
       }
       assert !finishedFormulas.containsKey(currentState) : "a state should only be finished once";
       finishedFormulas.put(currentState, currentFormula);
@@ -202,6 +196,15 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
     BooleanFormula branchingFormula =
         pfmgr.buildBranchingFormula(finishedFormulas.keySet(), branchingFormulas);
     return new BlockFormulas(abstractionFormulas, branchingFormula);
+  }
+
+  private PathFormula mergeFormulas(List<PathFormula> formulas) throws InterruptedException {
+    Iterator<PathFormula> it = formulas.iterator();
+    PathFormula currentFormula = it.next();
+    while (it.hasNext()) {
+      currentFormula = pfmgr.makeOr(currentFormula, it.next());
+    }
+    return currentFormula;
   }
 
   /** Add additional information from other CPAs. */

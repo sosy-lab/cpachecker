@@ -56,6 +56,7 @@ public class PathPairIterator extends
   private final BAMCPA bamCpa;
   private BAMMultipleCEXSubgraphComputer subgraphComputer;
   private final Map<UsageInfo, BAMSubgraphIterator> targetToPathIterator;
+  private final Set<UsageInfo> skippedUsages;
 
   //Statistics
   private StatTimer computingPath = new StatTimer("Time for path computing");
@@ -95,6 +96,7 @@ public class PathPairIterator extends
 
     }
     targetToPathIterator = new IdentityHashMap<>();
+    skippedUsages = new HashSet<>();
   }
 
   @Override
@@ -110,6 +112,12 @@ public class PathPairIterator extends
     UsageInfo firstUsage, secondUsage;
     firstUsage = pInput.getFirst();
     secondUsage = pInput.getSecond();
+
+    if (skippedUsages.contains(firstUsage) || skippedUsages.contains(secondUsage)) {
+      // We know, that it have no valuable paths
+      // Note, there are some paths, but they are declined by 'refinedStates'
+      return null;
+    }
 
     if (firstPath == null) {
       //First time or it was unreachable last time
@@ -211,6 +219,7 @@ public class PathPairIterator extends
     } else if (callerClass.equals(PointIterator.class)) {
       currentIterators.clear();
       computedPathsForUsage.clear();
+      skippedUsages.clear();
     }
   }
 
@@ -241,7 +250,8 @@ public class PathPairIterator extends
 
   private ExtendedARGPath getNextPath(UsageInfo info) {
     ARGPath currentPath;
-    //Start from already computed set (it is partially refined)
+    // Start from already computed set (it is partially refined)
+    numberOfPathCalculated.inc();
     Iterator<ExtendedARGPath> iterator = currentIterators.get(info);
     if (iterator == null && computedPathsForUsage.containsKey(info)) {
       // first call
@@ -268,17 +278,21 @@ public class PathPairIterator extends
     computingPath.stop();
 
     if (currentPath == null) {
-      //no path to iterate, finishing
+      // no path to iterate, finishing
+      if (!computedPathsForUsage.containsKey(info) || computedPathsForUsage.get(info).size() == 0) {
+        skippedUsages.add(info);
+      }
       return null;
     }
+    numberOfPathFinished.inc();
     //Not add result now, only after refinement
     return new ExtendedARGPath(currentPath, info);
   }
 
   private void handleAffectedStates(List<ARGState> affectedStates) {
-    //ARGState nextStart;
-    //if (affectedStates != null) {
-      List<Integer>changedStateNumbers = from(affectedStates).transform(idExtractor).toList();
+    // ARGState nextStart;
+    // if (affectedStates != null) {
+    List<Integer> changedStateNumbers = from(affectedStates).transform(idExtractor).toList();
       refinedStates.add(changedStateNumbers);
 
     /*  nextStart = affectedStates.get(affectedStates.size() - 1);

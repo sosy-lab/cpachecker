@@ -47,6 +47,7 @@ public class BAMSubgraphIterator {
   private BackwardARGState firstState;
   //Iterators for branching points
   private Map<BackwardARGState, Iterator<ARGState>> toCallerStatesIterator = new HashMap<>();
+  private boolean hasNextPath;
 
   BAMSubgraphIterator(
       ARGState pTargetState, BAMMultipleCEXSubgraphComputer sComputer, BAMDataManager pData) {
@@ -54,6 +55,7 @@ public class BAMSubgraphIterator {
     subgraphComputer = sComputer;
     data = pData;
     firstState = null;
+    hasNextPath = true;
   }
 
   //Actually it is possible to implement an optimization,
@@ -103,7 +105,7 @@ public class BAMSubgraphIterator {
     BackwardARGState root = stateOnClonedPath;
 
     while (!stateOnOriginPath.getChildren().isEmpty()) {
-      assert stateOnOriginPath.getChildren().size() == 1;
+      // assert stateOnOriginPath.getChildren().size() == 1;
       stateOnOriginPath = getNextStateOnPath(stateOnOriginPath);
       tmpStateOnPath = stateOnOriginPath.copy();
       tmpStateOnPath.addParent(stateOnClonedPath);
@@ -129,7 +131,7 @@ public class BAMSubgraphIterator {
       iterator = toCallerStatesIterator.get(forkChildInPath);
     } else {
       ARGState forkChildInARG = forkChildInPath.getARGState();
-      assert forkChildInARG.getParents().size() == 1;
+      // assert forkChildInARG.getParents().size() == 1;
       ARGState reducedStateInARG = forkChildInARG.getParents().iterator().next();
 
       iterator =
@@ -167,7 +169,7 @@ public class BAMSubgraphIterator {
 
     while (currentStateOnPath.getChildren().size() > 0) {
 
-      assert currentStateOnPath.getChildren().size() == 1;
+      // assert currentStateOnPath.getChildren().size() == 1;
       currentStateOnPath = getNextStateOnPath(currentStateOnPath);
       ARGState currentStateInARG = currentStateOnPath.getARGState();
 
@@ -204,15 +206,26 @@ public class BAMSubgraphIterator {
 
   public ARGPath nextPath(Set<List<Integer>> pRefinedStatesIds) {
     ARGPath path;
-    if (firstState == null) {
-      //The first time, we have no path to iterate
-      path = subgraphComputer.restorePathFrom(new BackwardARGState(targetState), pRefinedStatesIds);
-    } else {
-      path = computeNextPath(firstState, pRefinedStatesIds);
+    if (!hasNextPath) {
+      return null;
     }
-    if (path != null) {
-      //currentPath may become null if it goes through repeated (refined) states
-      firstState = (BackwardARGState) path.getFirstState();
+    do {
+      if (firstState == null) {
+        // The first time, we have no path to iterate
+        path =
+            subgraphComputer.restorePathFrom(new BackwardARGState(targetState), pRefinedStatesIds);
+      } else {
+        path = computeNextPath(firstState, pRefinedStatesIds);
+      }
+      if (path != null) {
+        // currentPath may become null if it goes through repeated (refined) states
+        firstState = (BackwardARGState) path.getFirstState();
+      }
+    } while (path != null
+        && subgraphComputer.checkThePathHasRepeatedStates(path, pRefinedStatesIds));
+
+    if (path == null) {
+      hasNextPath = false;
     }
 
     return path;
