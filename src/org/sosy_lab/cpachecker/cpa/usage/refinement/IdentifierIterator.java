@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicates;
+import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
@@ -100,6 +101,12 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
   )
   private boolean totalARGCleaning = true;
 
+  @Option(
+      name = "hideFilteredUnsafes",
+      description = "filtered unsafes, which can not be removed using precision, may be hidden",
+      secure = true)
+  private boolean hideFilteredUnsafes = false;
+
   private final BAMTransferRelation transfer;
 
   int i = 0;
@@ -164,7 +171,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
 
       AdjustablePrecision info = result.getPrecision();
 
-      if (info != null) {
+      if (!info.isEmpty()) {
         AdjustablePrecision updatedPrecision;
         if (precisionMap.containsKey(currentId)) {
           updatedPrecision = precisionMap.get(currentId).add(info);
@@ -179,7 +186,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       if (result.isTrue()) {
         container.setAsRefined(currentId, result);
         processedUnsafes.add(currentId);
-      } else if (result.isFalse() && !isPrecisionChanged) {
+      } else if (hideFilteredUnsafes && result.isFalse() && !isPrecisionChanged) {
         //We do not add a precision, but consider the unsafe as false
         //set it as false now, because it will occur again, as precision is not changed
         //We can not look at precision size here - the result can be false due to heuristics
@@ -212,6 +219,8 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       }
       pReached.clear();
 
+      processedUnsafes.addAll(
+          Sets.intersection(precisionMap.keySet(), container.getFalseUnsafes()));
       for (AdjustablePrecision prec :
           from(processedUnsafes).transform(precisionMap::remove).filter(Predicates.notNull())) {
         finalPrecision = finalPrecision.subtract(prec);

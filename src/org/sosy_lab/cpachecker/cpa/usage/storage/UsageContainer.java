@@ -58,6 +58,7 @@ public class UsageContainer {
   private final UnsafeDetector detector;
 
   private final Set<SingleIdentifier> falseUnsafes;
+  private final Set<SingleIdentifier> initialUnsafes;
 
   // Only for statistics
   private int initialUsages = 0;
@@ -80,6 +81,7 @@ public class UsageContainer {
     refinedIds = new TreeMap<>();
     failedIds = new TreeMap<>();
     falseUnsafes = new TreeSet<>();
+    initialUnsafes = new TreeSet<>();
     logger = l;
     detector = new UnsafeDetector(config);
   }
@@ -124,6 +126,17 @@ public class UsageContainer {
       }
       toDelete.forEach(unrefinedIds::remove);
 
+      if (!oneTotalIteration) {
+        initialUnsafes.addAll(unrefinedIds.keySet());
+      } else {
+        Set<SingleIdentifier> newFalseIds = new TreeSet<>(initialUnsafes);
+        newFalseIds.removeAll(falseUnsafes);
+        newFalseIds.removeAll(unrefinedIds.keySet());
+        newFalseIds.removeAll(refinedIds.keySet());
+        newFalseIds.removeAll(failedIds.keySet());
+        falseUnsafes.addAll(newFalseIds);
+      }
+
       unsafeDetectionTimer.stop();
     }
   }
@@ -132,20 +145,14 @@ public class UsageContainer {
     return falseUnsafes;
   }
 
-  private Set<SingleIdentifier> getAllUnsafes() {
-    calculateUnsafesIfNecessary();
-    Set<SingleIdentifier> result = new TreeSet<>(unrefinedIds.keySet());
-    result.addAll(refinedIds.keySet());
-    result.addAll(failedIds.keySet());
-    return result;
-  }
-
   public Iterator<SingleIdentifier> getUnsafeIterator() {
-    if (printOnlyTrueUnsafes) {
-      return refinedIds.keySet().iterator();
-    } else {
-      return getAllUnsafes().iterator();
+    Set<SingleIdentifier> result = new TreeSet<>(refinedIds.keySet());
+    result.addAll(failedIds.keySet());
+    if (!printOnlyTrueUnsafes) {
+      calculateUnsafesIfNecessary();
+      result.addAll(unrefinedIds.keySet());
     }
+    return result.iterator();
   }
 
   public Iterator<SingleIdentifier> getUnrefinedUnsafeIterator() {
@@ -157,7 +164,7 @@ public class UsageContainer {
   public int getUnsafeSize() {
     calculateUnsafesIfNecessary();
     if (printOnlyTrueUnsafes) {
-      return refinedIds.size();
+      return getProcessedUnsafeSize();
     } else {
       return getTotalUnsafeSize();
     }
@@ -180,8 +187,7 @@ public class UsageContainer {
     resetTimer.start();
     usagesCalculated = false;
     oneTotalIteration = true;
-    unrefinedIds.values()
-      .forEach(UnrefinedUsagePointSet::reset);
+    unrefinedIds.forEach((k, v) -> v.reset());
     logger.log(Level.FINE, "Unsafes are reseted");
     resetTimer.stop();
   }
@@ -210,10 +216,9 @@ public class UsageContainer {
     Preconditions.checkArgument(result.isTrue(), "Result is not true, can not set the set as refined");
     Preconditions.checkArgument(detector.isUnsafe(getUsages(id)), "Refinement is successful, but the unsafe is absent for identifier " + id);
 
-    setAsRefined(id, result.getTrueRace().getFirst(), result.getTrueRace().getSecond());
-  }
+    UsageInfo firstUsage = result.getTrueRace().getFirst();
+    UsageInfo secondUsage = result.getTrueRace().getSecond();
 
-  public void setAsRefined(SingleIdentifier id, UsageInfo firstUsage, UsageInfo secondUsage) {
     RefinedUsagePointSet rSet = RefinedUsagePointSet.create(firstUsage, secondUsage);
     if (firstUsage.isLooped() || secondUsage.isLooped()) {
       failedIds.put(id, rSet);

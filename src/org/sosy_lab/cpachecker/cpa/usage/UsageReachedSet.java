@@ -218,8 +218,8 @@ public class UsageReachedSet extends PartitionedReachedSet {
           PredicateAbstractState predicateState =
               AbstractStates.extractStateByType(state, PredicateAbstractState.class);
           if (predicateState == null
-              || predicateState.isAbstractionState()
-                  && !predicateState.getAbstractionFormula().isFalse()) {
+              || (predicateState.isAbstractionState()
+                  && !predicateState.getAbstractionFormula().isFalse())) {
             for (UsageInfo usage : expandedUsages) {
               SingleIdentifier id = usage.getId();
               container.add(id, usage);

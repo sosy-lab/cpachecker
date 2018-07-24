@@ -416,6 +416,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
     return difference;
   }
 
+  @Override
   public boolean isEmpty() {
     return getGlobalPredicates().isEmpty()
         && getFunctionPredicates().isEmpty()
