@@ -343,6 +343,26 @@ public class ConfigurationFileChecks {
                 StandardCharsets.UTF_8)) {
       CharStreams.copy(r, w);
     }
+    try (Reader r =
+            Files.newBufferedReader(Paths.get("config/specification/modifications-present.spc"));
+        Writer w =
+            IO.openOutputFile(
+                Paths.get(
+                    tempFolder.getRoot().getAbsolutePath()
+                        + "/config/specification/modifications-present.spc"),
+                StandardCharsets.UTF_8)) {
+      CharStreams.copy(r, w);
+    }
+    try (Reader r =
+            Files.newBufferedReader(Paths.get("config/specification/sv-comp-reachability.spc"));
+        Writer w =
+            IO.openOutputFile(
+                Paths.get(
+                    tempFolder.getRoot().getAbsolutePath()
+                        + "/config/specification/sv-comp-reachability.spc"),
+                StandardCharsets.UTF_8)) {
+      CharStreams.copy(r, w);
+    }
     try (Reader r = Files.newBufferedReader(Paths.get("config/specification/TargetState.spc"));
         Writer w =
             IO.openOutputFile(
