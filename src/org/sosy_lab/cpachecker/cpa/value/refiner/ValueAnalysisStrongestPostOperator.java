@@ -41,11 +41,11 @@ import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
+import org.sosy_lab.cpachecker.cpa.value.UnknownValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
@@ -69,7 +69,7 @@ public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator
             pLogger,
             pCfa,
             new ValueAnalysisTransferRelation.ValueTransferOptions(pConfig),
-            new SymbolicValueAssigner(pConfig),
+            new UnknownValueAssigner(),
             new ConstraintsStrengthenOperator(pConfig, pLogger, pCfa.getMachineModel()),
             null);
   }
