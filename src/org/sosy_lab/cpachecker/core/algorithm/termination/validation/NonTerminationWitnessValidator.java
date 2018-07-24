@@ -453,7 +453,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       AlgorithmStatus result = algorithm.run(reached);
 
       if (result.isPrecise()) {
-        if (!reached.hasViolatedProperties()) {
+        if (reached.hasViolatedProperties()) {
           logger.log(Level.INFO, "Recurrent set is reachable.");
           return true;
         }
