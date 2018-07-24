@@ -83,6 +83,8 @@ public class ModificationsTransferRelation extends SingleEdgeTransferRelation {
     String firstAst = pEdgeInGiven.getRawStatement();
     String sndAst = pEdgeInOriginal.getRawStatement();
 
-    return firstAst.equals(sndAst);
+    return firstAst.equals(sndAst)
+        && pEdgeInGiven.getPredecessor().getClass() == pEdgeInOriginal.getPredecessor().getClass()
+        && pEdgeInGiven.getSuccessor().getClass() == pEdgeInOriginal.getSuccessor().getClass();
   }
 }
