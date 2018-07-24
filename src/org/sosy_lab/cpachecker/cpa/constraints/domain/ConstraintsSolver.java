@@ -119,13 +119,16 @@ public class ConstraintsSolver implements StatisticsProvider {
 
   private final LogManagerWithoutDuplicates logger;
 
-  private final StatTimer timeForSatChecks = new StatTimer(StatKind.SUM, "Time for SAT checks");
+  private final StatTimer
+      timeForSolving = new StatTimer(StatKind.SUM, "Time for solving constraints");
   private final StatTimer timeForIndependentComputation =
       new StatTimer(StatKind.SUM, "Time for independent computation");
   private final StatTimer timeForDefinitesComputation =
       new StatTimer(StatKind.SUM, "Time for resolving definites");
   private final StatTimer timeForModelReuse =
       new StatTimer(StatKind.SUM, "Time for model re-use attempts");
+  private final StatTimer timeForSatCheck =
+      new StatTimer(StatKind.SUM, "Time for SMT check");
 
   private final StatCounter modelReuseSuccesses = new StatCounter("Successful model re-uses");
 
@@ -166,22 +169,14 @@ public class ConstraintsSolver implements StatisticsProvider {
     } else {
       cache = new DummyCache();
     }
-
   }
 
   public boolean isUnsat(
       Constraint pConstraint, IdentifierAssignment pAssignment, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException, SolverException {
-    try {
-      timeForSatChecks.start();
-
-      BooleanFormula constraintAsFormula =
-          getFullFormula(Collections.singleton(pConstraint), pAssignment, pFunctionName);
-      return solver.isUnsat(constraintAsFormula);
-
-    } finally {
-      timeForSatChecks.stop();
-    }
+    BooleanFormula constraintAsFormula =
+        getFullFormula(Collections.singleton(pConstraint), pAssignment, pFunctionName);
+    return solver.isUnsat(constraintAsFormula);
   }
 
   /**
@@ -195,7 +190,7 @@ public class ConstraintsSolver implements StatisticsProvider {
 
     if (!pConstraints.isEmpty()) {
       try {
-        timeForSatChecks.start();
+        timeForSolving.start();
 
         Set<Constraint> relevantConstraints = getRelevantConstraints(pConstraints);
 
@@ -256,7 +251,12 @@ public class ConstraintsSolver implements StatisticsProvider {
             prover.close();
             prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
             prover.push(constraintsAsFormula);
-            unsat = prover.isUnsat();
+            try {
+              timeForSatCheck.start();
+              unsat = prover.isUnsat();
+            } finally {
+              timeForSatCheck.stop();
+            }
 
             if (!unsat) {
               newModelAsAssignment = prover.getModelAssignments();
@@ -284,7 +284,7 @@ public class ConstraintsSolver implements StatisticsProvider {
 
       } finally {
         closeProver();
-        timeForSatChecks.stop();
+        timeForSolving.stop();
       }
 
     } else {
@@ -464,7 +464,7 @@ public class ConstraintsSolver implements StatisticsProvider {
           public void printStatistics(
               PrintStream out, Result result, UnmodifiableReachedSet reached) {
             StatisticsWriter.writingStatisticsTo(out)
-                .put(timeForSatChecks)
+                .put(timeForSolving)
                 .beginLevel()
                 .put(timeForIndependentComputation)
                 .put(timeForModelReuse)

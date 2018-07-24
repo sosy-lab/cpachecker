@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAd
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -96,6 +97,13 @@ public class ValueAnalysisCPA
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPrecisionFile = null;
 
+  @Option(secure=true,
+      name="symbolic.useSymbolicValues",
+      description="Use symbolic values. This allows tracking of non-deterministic values."
+          + " Symbolic values should always be used in conjunction with ConstraintsCPA."
+          + " Otherwise, symbolic values will be created, but not evaluated.")
+  private boolean useSymbolicValues = false;
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ValueAnalysisCPA.class);
   }
@@ -116,6 +124,7 @@ public class ValueAnalysisCPA
 
   private MemoryLocationValueHandler unknownValueHandler;
   private final ConstraintsStrengthenOperator constraintsStrengthenOperator;
+  private final PrecisionAdjustment precisionAdjustmentOperator;
   private final ValueTransferOptions transferOptions;
   private final PrecAdjustmentOptions precisionAdjustmentOptions;
   private final PrecAdjustmentStatistics precisionAdjustmentStatistics;
@@ -133,12 +142,27 @@ public class ValueAnalysisCPA
     statistics          = new ValueAnalysisCPAStatistics(this, config);
     writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
     errorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(config, logger, cfa.getMachineModel());
-    unknownValueHandler = new SymbolicValueAssigner(config);
+
+    if (useSymbolicValues) {
+      unknownValueHandler = new SymbolicValueAssigner(config);
+    } else {
+      unknownValueHandler = new UnknownValueAssigner();
+    }
+
     constraintsStrengthenOperator =
         new ConstraintsStrengthenOperator(config, logger, cfa.getMachineModel());
     transferOptions = new ValueTransferOptions(config);
     precisionAdjustmentOptions = new PrecAdjustmentOptions(config, cfa);
     precisionAdjustmentStatistics = new PrecAdjustmentStatistics();
+
+    if (useSymbolicValues) {
+      precisionAdjustmentOperator = new SymbolicValueAnalysisPrecisionAdjustment(
+          statistics, cfa, precisionAdjustmentOptions, precisionAdjustmentStatistics);
+
+    } else {
+      precisionAdjustmentOperator = new ValueAnalysisPrecisionAdjustment(
+          statistics, cfa, precisionAdjustmentOptions, precisionAdjustmentStatistics);
+    }
   }
 
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa) throws InvalidConfigurationException {
@@ -276,8 +300,7 @@ public class ValueAnalysisCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return new ValueAnalysisPrecisionAdjustment(
-        statistics, cfa, precisionAdjustmentOptions, precisionAdjustmentStatistics);
+    return precisionAdjustmentOperator;
   }
 
   public Configuration getConfiguration() {
@@ -305,6 +328,9 @@ public class ValueAnalysisCPA
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
     pStatsCollection.add(precisionAdjustmentStatistics);
+    if (precisionAdjustmentOperator instanceof StatisticsProvider) {
+      ((StatisticsProvider) precisionAdjustmentOperator).collectStatistics(pStatsCollection);
+    }
     writer.collectStatistics(pStatsCollection);
   }
 

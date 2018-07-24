@@ -54,17 +54,9 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 /**
  * This class allows assignment of new {@link SymbolicIdentifier}s
  * to {@link MemoryLocation}s of {@link ValueAnalysisState} object.
- * If property <code>cpa.value.symbolic.useSymbolicValues</code> is set to <code>false</code>,
- * memory locations passed to {@link #handle} will just be removed from the state.
  */
 @Options(prefix="cpa.value.symbolic")
 public class SymbolicValueAssigner implements MemoryLocationValueHandler {
-
-  @Option(secure=true,
-      description="Use symbolic values. This allows tracking of non-deterministic values."
-          + " Symbolic values should always be used in conjunction with ConstraintsCPA."
-          + " Otherwise, symbolic values will be created, but not evaluated.")
-  private boolean useSymbolicValues = false;
 
   @Option(description="If this option is set to true, an own symbolic identifier is assigned to"
       + " each struct member when handling non-deterministic structs.")
@@ -94,17 +86,14 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
 
 
   /**
-   * Assigns new symbolic identifiers or removes the memory location from the state, depending on
-   * {@link #useSymbolicValues}.
-   * If <code>true</code> and the variable is neither a struct nor an array, a new symbolic
-   * identifier is assigned to the variable at the given memory location. If the variable is a
-   * struct or array, behaviour is defined by {@link #handleStructs} and {@link #handleArrays}.
-   *
+   * Assigns a new symbolic identifier to the variable at the given memory location.
+   * If the variable is a struct or array, behaviour is defined by {@link #handleStructs}
+   * and {@link #handleArrays}.
    *
    * @param pVarLocation the memory location of the variable to handle
    * @param pVarType the type of th evariable
    * @param pState the {@link ValueAnalysisState} to use.
-   *    Value assignments will happen in this state
+   *    Value assignments will happen directly in this state
    * @param pValueVisitor a value visitor for possibly needed evaluations or computations
    * @throws UnrecognizedCodeException thrown if a {@link MemoryLocation} can't be evaluated
    */
@@ -270,10 +259,6 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
 
 
   private boolean isEligibleForSymbolicValue(Type pDeclarationType) {
-    if (!useSymbolicValues) {
-      return false;
-    }
-
     if (pDeclarationType instanceof CType) {
       CType canonicalType = ((CType) pDeclarationType).getCanonicalType();
 
