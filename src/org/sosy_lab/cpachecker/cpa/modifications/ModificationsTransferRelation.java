@@ -27,7 +27,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -47,10 +49,10 @@ public class ModificationsTransferRelation extends SingleEdgeTransferRelation {
       CFANode nodeInGiven = locations.getLocationInGivenCfa();
       CFANode nodeInOriginal = locations.getLocationInOriginalCfa();
 
-      if (CFAUtils.allLeavingEdges(nodeInGiven).contains(pCfaEdge)) {
+      if (CFAUtils.leavingEdges(nodeInGiven).contains(pCfaEdge)) {
         CFANode succInGiven = pCfaEdge.getSuccessor();
         Collection<ModificationsState> successors = new HashSet<>();
-        for (CFAEdge edgeInOriginal : CFAUtils.allLeavingEdges(nodeInOriginal)) {
+        for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
           if (edgesMatch(pCfaEdge, edgeInOriginal)) {
             // We assume that the edges leaving a node are disjunct.
             // Otherwise, we'll have to collect the set of differential states here
@@ -62,7 +64,7 @@ public class ModificationsTransferRelation extends SingleEdgeTransferRelation {
 
         // If no outgoing edge matched, add all outgoing edges to list of modified edges
         if (successors.isEmpty()) {
-          for (CFAEdge edgeInOriginal : CFAUtils.allLeavingEdges(nodeInOriginal)) {
+          for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
             successors.add(
                 new ModificationsState(succInGiven, edgeInOriginal.getSuccessor(), true));
           }
@@ -84,7 +86,30 @@ public class ModificationsTransferRelation extends SingleEdgeTransferRelation {
     String sndAst = pEdgeInOriginal.getRawStatement();
 
     return firstAst.equals(sndAst)
-        && pEdgeInGiven.getPredecessor().getClass() == pEdgeInOriginal.getPredecessor().getClass()
-        && pEdgeInGiven.getSuccessor().getClass() == pEdgeInOriginal.getSuccessor().getClass();
+        && pEdgeInGiven.getEdgeType() == pEdgeInOriginal.getEdgeType()
+        && successorsMatch(pEdgeInGiven, pEdgeInOriginal);
+  }
+
+  private boolean successorsMatch(final CFAEdge pEdgeInGiven, final CFAEdge pEdgeInOriginal) {
+    CFANode givenSuccessor = pEdgeInGiven.getSuccessor(),
+        originalSuccessor = pEdgeInOriginal.getSuccessor();
+    if (pEdgeInGiven.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+      nextEdge:
+      for (CFAEdge enterBeforeCall :
+          CFAUtils.enteringEdges(
+              ((FunctionReturnEdge) pEdgeInGiven).getSummaryEdge().getPredecessor())) {
+        for (CFAEdge enterOriginalBeforeCAll :
+            CFAUtils.enteringEdges(
+                ((FunctionReturnEdge) pEdgeInOriginal).getSummaryEdge().getPredecessor())) {
+          if (edgesMatch(enterBeforeCall, enterOriginalBeforeCAll)) {
+            continue nextEdge;
+          }
+        }
+        return false;
+      }
+    }
+
+    return givenSuccessor.getClass() == originalSuccessor.getClass()
+        && givenSuccessor.getFunctionName().equals(originalSuccessor.getFunctionName());
   }
 }
