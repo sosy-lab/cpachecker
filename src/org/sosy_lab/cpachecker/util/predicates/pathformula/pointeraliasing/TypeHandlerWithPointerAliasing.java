@@ -53,6 +53,9 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
   private final CachingCanonizingCTypeVisitor canonizingVisitor =
       new CachingCanonizingCTypeVisitor(
           /*ignoreConst=*/ true, /*ignoreVolatile=*/ true, /*ignoreSignedness=*/ false);
+  private final CachingCanonizingCTypeVisitor canonizingVisitorWithoutSignedness =
+      new CachingCanonizingCTypeVisitor(
+          /*ignoreConst=*/ true, /*ignoreVolatile=*/ true, /*ignoreSignedness=*/ true);
 
   private final Map<CType, String> pointerNameCache = new IdentityHashMap<>();
 
@@ -153,6 +156,17 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
   }
 
   /**
+   * Get a simplified type that is suited for identifying a target region on the heap. This means
+   * that two types which are compatible (i.e., where pointer aliasing may occur) need to have the
+   * same type returned by this method.
+   *
+   * <p>This is different from {@link #simplifyType(CType)}, which just canonicalizes types.
+   */
+  CType simplifyTypeForPointerAccess(final CType type) {
+    return type.accept(canonizingVisitorWithoutSignedness);
+  }
+
+  /**
    * Checks, whether a symbol is a pointer access encoded in SMT.
    *
    * @param symbol The name of the symbol.
@@ -173,7 +187,8 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
     if (result != null) {
       return result;
     } else {
-      result = POINTER_NAME_PREFIX + CTypeUtils.typeToString(type).replace(' ', '_');
+      result =
+          POINTER_NAME_PREFIX + simplifyTypeForPointerAccess(type).toString().replace(' ', '_');
       pointerNameCache.put(type, result);
       return result;
     }

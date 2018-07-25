@@ -1315,6 +1315,12 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    */
   @Override
   protected int getIndex(String pName, CType pType, SSAMapBuilder pSsa) {
+    if (TypeHandlerWithPointerAliasing.isPointerAccessSymbol(pName)) {
+      // Types of pointer-target variables in SSAMap need special treatment
+      // (signed and unsigned types need to be treated as equal).
+      // SSAMap requires canonical types, which will add a signed modifier, but that is irrelevant.
+      pType = typeHandler.simplifyTypeForPointerAccess(pType).getCanonicalType();
+    }
     return super.getIndex(pName, pType, pSsa);
   }
 
@@ -1323,12 +1329,20 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    */
   @Override
   protected int getFreshIndex(String pName, CType pType, SSAMapBuilder pSsa) {
+    if (TypeHandlerWithPointerAliasing.isPointerAccessSymbol(pName)) {
+      // Types of pointer-target variables in SSAMap need special treatment (cf. above).
+      pType = typeHandler.simplifyTypeForPointerAccess(pType).getCanonicalType();
+    }
     return super.getFreshIndex(pName, pType, pSsa);
   }
 
   /** {@inheritDoc} */
   @Override
   protected int makeFreshIndex(String pName, CType pType, SSAMapBuilder pSsa) {
+    if (TypeHandlerWithPointerAliasing.isPointerAccessSymbol(pName)) {
+      // Types of pointer-target variables in SSAMap need special treatment (cf. above).
+      pType = typeHandler.simplifyTypeForPointerAccess(pType).getCanonicalType();
+    }
     return super.makeFreshIndex(pName, pType, pSsa);
   }
 

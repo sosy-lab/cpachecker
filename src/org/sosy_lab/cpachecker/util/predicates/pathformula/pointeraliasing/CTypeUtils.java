@@ -197,14 +197,11 @@ class CTypeUtils {
   }
 
   /**
-   * The method is used in two cases:
+   * The method is used to convert {@link CType}s to strings in order to use them as keys in a
+   * {@link PathCopyingPersistentTreeMap}.
    *
-   * <ul>
-   *   <li>by {@link TypeHandlerWithPointerAliasing#getPointerAccessNameForType(CType)} to get the
-   *       UF name corresponding to the given type.
-   *   <li>to convert {@link CType}s to strings in order to use them as keys in a {@link
-   *       PathCopyingPersistentTreeMap}.
-   * </ul>
+   * <p>Note that {@link TypeHandlerWithPointerAliasing#getPointerAccessNameForType(CType)} also
+   * converts types to string but in a different context.
    *
    * @param type The type
    * @return The string representation of the type
