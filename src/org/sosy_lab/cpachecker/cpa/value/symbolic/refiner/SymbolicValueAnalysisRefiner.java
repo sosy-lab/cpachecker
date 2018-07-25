@@ -255,9 +255,10 @@ public class SymbolicValueAnalysisRefiner
     CounterexampleInfo info = super.performRefinementForPath(pReached, targetPathToUse);
     if (!info.isSpurious()
         && pathConstraintsOutputFile != null) {
-      addSymbolicInformationToCex(info, pathConstraintsOutputFile);
+      return getCexWithSymbolicInformation(info, pathConstraintsOutputFile);
+    } else {
+      return info;
     }
-    return info;
   }
 
   private List<Pair<ForgettingCompositeState, List<CFAEdge>>> evaluate(
@@ -325,7 +326,7 @@ public class SymbolicValueAnalysisRefiner
     return stateSequence;
   }
 
-  private void addSymbolicInformationToCex(CounterexampleInfo pCex, PathTemplate pOutputFile)
+  private CounterexampleInfo getCexWithSymbolicInformation(CounterexampleInfo pCex, PathTemplate pOutputFile)
       throws CPAException, InterruptedException {
     ARGPath tp = pCex.getTargetPath();
     StringBuilder symbolicInfo = new StringBuilder();
@@ -416,7 +417,7 @@ public class SymbolicValueAnalysisRefiner
     CounterexampleInfo concreteCex = CounterexampleInfo.feasiblePrecise(tp, assumptionsPath);
 
     concreteCex.addFurtherInformation(symbolicInfo, pOutputFile);
-    tp.getLastState().addCounterexampleInformation(concreteCex);
+    return concreteCex;
   }
 
   private CIdExpression getCorrespondingIdExpression(MemoryLocation pMemLoc, CType pType) {
