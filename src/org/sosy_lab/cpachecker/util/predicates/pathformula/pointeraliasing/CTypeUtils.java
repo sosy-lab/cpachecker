@@ -44,7 +44,9 @@ class CTypeUtils {
 
   private CTypeUtils() { }
 
-  private static final CachingCanonizingCTypeVisitor typeVisitor = new CachingCanonizingCTypeVisitor(true, true);
+  private static final CachingCanonizingCTypeVisitor typeVisitor =
+      new CachingCanonizingCTypeVisitor(
+          /*ignoreConst=*/ true, /*ignoreVolatile=*/ true, /*ignoreSignedness=*/ false);
 
   /**
    * Return the length of an array, honoring the options for maximum and default array length.

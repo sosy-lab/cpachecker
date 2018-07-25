@@ -48,7 +48,8 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
   private final MachineModel model;
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final CachingCanonizingCTypeVisitor canonizingVisitor =
-      new CachingCanonizingCTypeVisitor(true, true);
+      new CachingCanonizingCTypeVisitor(
+          /*ignoreConst=*/ true, /*ignoreVolatile=*/ true, /*ignoreSignedness=*/ false);
 
   /*
    * Use Multiset<String> instead of Map<String, Integer> because it is more
