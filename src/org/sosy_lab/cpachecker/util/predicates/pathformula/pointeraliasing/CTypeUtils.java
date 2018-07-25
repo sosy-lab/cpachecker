@@ -198,14 +198,14 @@ class CTypeUtils {
 
   /**
    * The method is used in two cases:
+   *
    * <ul>
-   * <li>
-   * by {@link CToFormulaConverterWithPointerAliasing#getPointerAccessNameForType(CType)} to get the UF name corresponding to the given type.
-   * </li>
-   * <li>
-   * to convert {@link CType}s to strings in order to use them as keys in a {@link PathCopyingPersistentTreeMap}.
-   * </li>
+   *   <li>by {@link TypeHandlerWithPointerAliasing#getPointerAccessNameForType(CType)} to get the
+   *       UF name corresponding to the given type.
+   *   <li>to convert {@link CType}s to strings in order to use them as keys in a {@link
+   *       PathCopyingPersistentTreeMap}.
    * </ul>
+   *
    * @param type The type
    * @return The string representation of the type
    */

@@ -420,11 +420,11 @@ class DynamicMemoryHandler {
    * @param allocationId A unique ID for this allocation
    * @return A name for allocations.
    */
-  private static String makeAllocVariableName(
+  private String makeAllocVariableName(
       final String functionName, final CType type, final int allocationId) {
     return functionName
         + "_"
-        + CToFormulaConverterWithPointerAliasing.getPointerAccessNameForType(type)
+        + typeHandler.getPointerAccessNameForType(type)
         + MALLOC_INDEX_SEPARATOR
         + allocationId;
   }

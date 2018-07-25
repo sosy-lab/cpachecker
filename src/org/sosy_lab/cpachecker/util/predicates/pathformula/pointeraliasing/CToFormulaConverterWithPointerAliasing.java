@@ -36,7 +36,6 @@ import java.io.PrintStream;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -197,33 +196,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   /**
-   * Returns the SMT symbol name for encoding a pointer access for a C type.
-   *
-   * @param type The type to get the symbol name for.
-   * @return The symbol name for the type.
-   */
-  public static String getPointerAccessNameForType(final CType type) {
-    String result = pointerNameCache.get(type);
-    if (result != null) {
-      return result;
-    } else {
-      result = POINTER_NAME_PREFIX + CTypeUtils.typeToString(type).replace(' ', '_');
-      pointerNameCache.put(type, result);
-      return result;
-    }
-  }
-
-  /**
-   * Checks, whether a symbol is a pointer access encoded in SMT.
-   *
-   * @param symbol The name of the symbol.
-   * @return Whether the symbol is a pointer access or not.
-   */
-  private static boolean isPointerAccessSymbol(final String symbol) {
-    return symbol.startsWith(POINTER_NAME_PREFIX);
-  }
-
-  /**
    * Creates a formula for the base address of a term.
    *
    * @param address The formula to create a base address for.
@@ -277,9 +249,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       throws InterruptedException {
     checkArgument(oldIndex > 0 && newIndex > oldIndex);
 
-    if (isPointerAccessSymbol(symbolName)) {
+    if (TypeHandlerWithPointerAliasing.isPointerAccessSymbol(symbolName)) {
       if(!options.useMemoryRegions()) {
-        assert symbolName.equals(getPointerAccessNameForType(symbolType));
+        assert symbolName.equals(typeHandler.getPointerAccessNameForType(symbolType));
       } else {
         //TODO: find a better assertion for the memory regions case
       }
@@ -1201,11 +1173,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   private final Optional<VariableClassification> variableClassification;
 
-  private static final String POINTER_NAME_PREFIX = "*";
-
   private static final String FIELD_NAME_SEPARATOR = "$";
-
-  private static final Map<CType, String> pointerNameCache = new IdentityHashMap<>();
 
   // Overrides just for visibility in other classes of this package
 
