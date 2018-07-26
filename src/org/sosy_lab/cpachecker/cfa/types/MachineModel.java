@@ -432,7 +432,7 @@ public enum MachineModel {
   }
 
   /** returns INT, if the type is smaller than INT, else the type itself. */
-  public CSimpleType getPromotedCType(CSimpleType pType) {
+  public CType getPromotedCType(CType pType) {
     checkArgument(CTypes.isIntegerType(pType), "Integer promotion cannot be applied to %s", pType);
     /*
      * ISO-C99 (6.3.1.1 #2):
