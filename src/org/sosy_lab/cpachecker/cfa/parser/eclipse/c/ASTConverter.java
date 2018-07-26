@@ -1316,8 +1316,11 @@ class ASTConverter {
         // because CDT only makes the operand long if there is a 'L' at the end
         // => we cannot use e.getExpressionType() here!
         CSimpleType innerType = (CSimpleType) operand.getExpressionType();
-        // now do not forget: operand should get promoted to int if its type is smaller than int:
-        type = machinemodel.getPromotedCType(innerType);
+          // now do not forget: operand should get promoted to int if its type is smaller than int:
+          type =
+              CTypes.isIntegerType(innerType)
+                  ? machinemodel.getPromotedCType(innerType)
+                  : innerType;
       } else {
         type = typeConverter.convert(e.getExpressionType());
       }
