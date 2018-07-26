@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.FunctionIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.LocalVariableIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
@@ -211,6 +212,7 @@ public class UsageProcessor {
 
     } else {
       fcExpression.getParameterExpressions().forEach(p -> visitStatement(pState, p, Access.READ));
+      visitStatement(pState, fcExpression.getFunctionNameExpression(), Access.READ);
     }
   }
 
@@ -300,6 +302,10 @@ public class UsageProcessor {
         && !singleId.isGlobal()
         && !singleId.isDereferenced()) {
       // skips such cases, as 'a.b'
+      return;
+    }
+
+    if (singleId instanceof FunctionIdentifier) {
       return;
     }
 

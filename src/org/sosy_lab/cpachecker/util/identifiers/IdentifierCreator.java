@@ -31,11 +31,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -56,12 +58,14 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
     String name = decl.getName();
     CType type = decl.getType();
 
-    if (decl instanceof CDeclaration) {
+    if (decl instanceof CVariableDeclaration) {
       if (((CDeclaration) decl).isGlobal()) {
         return new GlobalVariableIdentifier(name, type, dereference);
       } else {
         return new LocalVariableIdentifier(name, type, function, dereference);
       }
+    } else if (decl instanceof CFunctionDeclaration) {
+      return new FunctionIdentifier(name, type, dereference);
     } else if (decl instanceof CParameterDeclaration) {
       return new LocalVariableIdentifier(name, type, function, dereference);
     } else if (decl instanceof CEnumerator) {
