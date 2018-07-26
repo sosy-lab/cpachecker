@@ -308,6 +308,7 @@ public class CtoFormulaConverter {
   }
 
   public final FormulaType<?> getFormulaTypeFromCType(CType type) {
+    type = type.getCanonicalType();
     if (type instanceof CSimpleType) {
       CSimpleType simpleType = (CSimpleType) type;
       switch (simpleType.getType()) {

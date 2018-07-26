@@ -485,8 +485,13 @@ public class ExpressionToFormulaVisitor
       if (!returnFormulaType.equals(mgr.getFormulaType(ret))) {
         ret = conv.makeCast(t, returnType, ret, constraints, edge);
       }
-      assert returnFormulaType.equals(mgr.getFormulaType(ret))
-            : "Returntype and Formulatype do not match in visit(CUnaryExpression)";
+          assert returnFormulaType.equals(mgr.getFormulaType(ret))
+              : "Returntype "
+                  + returnFormulaType
+                  + " and Formulatype "
+                  + mgr.getFormulaType(ret)
+                  + " do not match in visit(CUnaryExpression) for "
+                  + exp;
       return ret;
     }
 
