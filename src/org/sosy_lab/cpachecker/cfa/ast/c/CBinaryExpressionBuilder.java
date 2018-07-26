@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** This Class build binary expression.
@@ -594,7 +595,7 @@ public class CBinaryExpressionBuilder {
   }
 
   private static void checkIntegerType(final CType pType, final BinaryOperator op, CExpression e) throws UnrecognizedCodeException {
-    if (!((CSimpleType) pType).getType().isIntegerType()) {
+    if (!CTypes.isIntegerType(pType)) {
       throw new UnrecognizedCodeException(
           "Operator " + op + " needs integer type, but is used with " + pType, e);
     }
