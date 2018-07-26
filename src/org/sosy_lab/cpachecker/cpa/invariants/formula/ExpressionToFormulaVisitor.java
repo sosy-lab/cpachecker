@@ -268,7 +268,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
     t = t.getCanonicalType();
     if (CTypes.isIntegerType(t)) {
       // Integer types smaller than int are promoted when an operation is performed on them.
-      return machineModel.getPromotedCType(t);
+      return machineModel.applyIntegerPromotion(t);
     }
     return t;
   }

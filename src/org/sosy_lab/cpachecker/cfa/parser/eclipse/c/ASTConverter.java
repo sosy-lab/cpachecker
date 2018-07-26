@@ -1319,7 +1319,7 @@ class ASTConverter {
           // now do not forget: operand should get promoted to int if its type is smaller than int:
           type =
               CTypes.isIntegerType(innerType)
-                  ? machinemodel.getPromotedCType(innerType)
+                  ? machinemodel.applyIntegerPromotion(innerType)
                   : innerType;
       } else {
         type = typeConverter.convert(e.getExpressionType());
