@@ -29,7 +29,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ObjectOutputStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -37,8 +36,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -177,43 +174,55 @@ public class UsageReachedSet extends PartitionedReachedSet {
         Multiset<LockEffect> currentEffects = currentPair.getSecond();
         LockState locks, expandedLocks;
         Map<LockState, LockState> reduceToExpand = new HashMap<>();
-        SortedSet<AbstractState> sortedSet = new TreeSet<>(currentReached.asCollection());
         Map<AbstractState, List<UsageInfo>> stateToUsage = new HashMap<>();
+        Set<AbstractState> processedStates = new HashSet<>();
+        Deque<AbstractState> stateWaitlist = new ArrayDeque<>();
+        stateWaitlist.add(currentReached.getFirstState());
+        processedStates.add(currentReached.getFirstState());
 
-        for (AbstractState state : sortedSet) {
-          // handle state
-          usageProcessingTimer.start();
-          List<UsageInfo> usages = usageProcessor.getUsagesForState(state);
-          usageProcessingTimer.stop();
+        while (!stateWaitlist.isEmpty()) {
+          AbstractState state = stateWaitlist.poll();
           List<UsageInfo> expandedUsages = new ArrayList<>();
           ARGState argState = (ARGState) state;
-          Collection<ARGState> parents = argState.getParents();
-          for (ARGState parent : parents) {
+          for (ARGState covered : argState.getCoveredByThis()) {
+            if (stateToUsage.containsKey(covered)) {
+              expandedUsages.addAll(stateToUsage.get(covered));
+            }
+          }
+          for (ARGState parent : argState.getParents()) {
             if (stateToUsage.containsKey(parent)) {
               expandedUsages.addAll(stateToUsage.get(parent));
             }
           }
+          // handle state
+          boolean alreadyProcessed = processedStates.contains(state);
+          if (!alreadyProcessed) {
 
-          usageExpandingTimer.start();
-          for (UsageInfo uinfo : usages) {
-            UsageInfo expandedUsage;
-            if (currentEffects.isEmpty()) {
-              expandedUsage = uinfo;
-            } else {
-              locks = (LockState) uinfo.getLockState();
-              if (reduceToExpand.containsKey(locks)) {
-                expandedLocks = reduceToExpand.get(locks);
+            usageProcessingTimer.start();
+            List<UsageInfo> usages = usageProcessor.getUsagesForState(state);
+            usageProcessingTimer.stop();
+
+            usageExpandingTimer.start();
+            for (UsageInfo uinfo : usages) {
+              UsageInfo expandedUsage;
+              if (currentEffects.isEmpty()) {
+                expandedUsage = uinfo;
               } else {
-                LockStateBuilder builder = locks.builder();
-                currentEffects.forEach(e -> e.effect(builder));
-                expandedLocks = builder.build();
-                reduceToExpand.put(locks, expandedLocks);
+                locks = (LockState) uinfo.getLockState();
+                if (reduceToExpand.containsKey(locks)) {
+                  expandedLocks = reduceToExpand.get(locks);
+                } else {
+                  LockStateBuilder builder = locks.builder();
+                  currentEffects.forEach(e -> e.effect(builder));
+                  expandedLocks = builder.build();
+                  reduceToExpand.put(locks, expandedLocks);
+                }
+                expandedUsage = uinfo.expand(expandedLocks);
               }
-              expandedUsage = uinfo.expand(expandedLocks);
+              expandedUsages.add(expandedUsage);
             }
-            expandedUsages.add(expandedUsage);
+            usageExpandingTimer.stop();
           }
-          usageExpandingTimer.stop();
 
           PredicateAbstractState predicateState =
               AbstractStates.extractStateByType(state, PredicateAbstractState.class);
@@ -224,8 +233,21 @@ public class UsageReachedSet extends PartitionedReachedSet {
               SingleIdentifier id = usage.getId();
               container.add(id, usage);
             }
+            expandedUsages.clear();
+            for (ARGState child : argState.getChildren()) {
+              if (!processedStates.contains(child)) {
+                stateWaitlist.add(child);
+              }
+            }
           } else {
+            stateWaitlist.addAll(argState.getChildren());
+            if (argState.isCovered()) {
+              stateWaitlist.add(argState.getCoveringState());
+            }
             stateToUsage.put(state, expandedUsages);
+          }
+          if (!alreadyProcessed) {
+            processedStates.add(argState);
           }
 
           // Search state in the BAM cache

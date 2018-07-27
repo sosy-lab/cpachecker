@@ -247,19 +247,17 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
             boolean pRepeatedCounterexample)
         throws CPAException, InterruptedException {
 
-      if (!pAffectedStates.isEmpty()) {
-        super.finishRefinementOfPath(
-            pUnreachableState,
-            pAffectedStates,
-            pReached,
-            abstractionStatesTrace,
-            pRepeatedCounterexample);
+      super.finishRefinementOfPath(
+          pUnreachableState,
+          pAffectedStates,
+          pReached,
+          abstractionStatesTrace,
+          pRepeatedCounterexample);
 
         lastAffectedStates.clear();
         from(pAffectedStates)
             .transform(s -> ((BackwardARGState) s).getARGState())
             .forEach(lastAffectedStates::add);
-      }
     }
 
     @Override
