@@ -156,8 +156,9 @@ public class PathChecker {
 
   /**
    * Create a {@link CounterexampleInfo} object for a given counterexample.
-   * If the path has branching it will be checked again with an SMT solver to extract a model
+   * The path will be checked again with an SMT solver to extract a model
    * that is as precise and simple as possible.
+   * We assume that one additional SMT query will not cause too much overhead.
    * If the double-check fails, an imprecise result is returned.
    *
    * @param precisePath The precise ARGPath that represents the counterexample.
@@ -174,7 +175,6 @@ public class PathChecker {
     CFAPathWithAssumptions pathWithAssignments;
     CounterexampleTraceInfo preciseInfo;
     try {
-      if (pathHasBranching) {
         Pair<CounterexampleTraceInfo, CFAPathWithAssumptions> replayedPathResult =
             checkPath(precisePath);
 
@@ -187,15 +187,6 @@ public class PathChecker {
           preciseInfo = replayedPathResult.getFirst();
           pathWithAssignments = replayedPathResult.getSecond();
         }
-
-      } else {
-        preciseInfo = pInfo;
-        List<SSAMap> ssamaps = createPrecisePathFormula(precisePath).getSecond();
-        pathWithAssignments =
-            assignmentToPathAllocator.allocateAssignmentsToPath(
-                precisePath, pInfo.getModel(), ssamaps);
-      }
-
     } catch (SolverException | CPATransferException e) {
       // path is now suddenly a problem
       logger.logUserException(Level.WARNING, e, "Could not replay error path to get a more precise model");
