@@ -151,7 +151,7 @@ public class PathChecker {
       targetPath = allStatesTrace;
     }
 
-    return createCounterexample(targetPath, counterexample, branchingOccurred);
+    return createCounterexample(targetPath, counterexample);
   }
 
   /**
