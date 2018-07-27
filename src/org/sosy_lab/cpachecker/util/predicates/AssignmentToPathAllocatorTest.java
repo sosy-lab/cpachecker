@@ -58,6 +58,7 @@ public class AssignmentToPathAllocatorTest {
             MachineModel.LINUX32);
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testFindFirstOccurrenceOfVariable() {
 
@@ -105,6 +106,10 @@ public class AssignmentToPathAllocatorTest {
     assertEquals(1, allocator.findFirstOccurrenceOfVariable(varX, ssaMaps));
     assertEquals(2, allocator.findFirstOccurrenceOfVariable(varY, ssaMaps));
     assertEquals(2, allocator.findFirstOccurrenceOfVariable(varZ, ssaMaps));
+
+    assertEquals(1, allocator.findFirstOccurrenceOf(varX, ssaMaps));
+    assertEquals(2, allocator.findFirstOccurrenceOf(varY, ssaMaps));
+    assertEquals(2, allocator.findFirstOccurrenceOf(varZ, ssaMaps));
   }
 
 }
