@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
@@ -86,6 +87,12 @@ public class BlockOperator {
 
   @Option(secure=true, description="force abstractions at each branch node, regardless of threshold")
   private boolean alwaysAtBranch = false;
+
+  @Option(
+      secure = true,
+      description =
+          "force abstractions at each branch node after assume edges, regardless of threshold")
+  private boolean alwaysAfterAssume = false;
 
   @Option(secure = true, description="force abstractions at program exit (program end, abort, etc.), regardless of threshold")
   private boolean alwaysAtProgramExit = false;
@@ -167,6 +174,10 @@ public class BlockOperator {
       return true;
     }
 
+    if (alwaysAfterAssume && isNodeAfterAssume(loc)) {
+      return true;
+    }
+
     if (alwaysAtProgramExit && isProgramExit(loc)) {
       numBlkExit++;
       return true;
@@ -240,6 +251,17 @@ public class BlockOperator {
 
   protected boolean isJoinNode(CFANode pSuccLoc) {
     return pSuccLoc.getNumEnteringEdges()>1;
+  }
+
+  protected boolean isNodeAfterAssume(CFANode pSuccLoc) {
+    for (int i = 0; i < pSuccLoc.getNumEnteringEdges(); i++) {
+      CFAEdge edge = pSuccLoc.getEnteringEdge(i);
+      if (edge instanceof CAssumeEdge) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   protected boolean isThresholdFulfilled(int thresholdValue) {
