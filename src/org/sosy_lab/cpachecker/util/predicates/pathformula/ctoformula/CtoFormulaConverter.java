@@ -300,8 +300,14 @@ public class CtoFormulaConverter {
         isRelevantVariable |=
             variableClassification.get().getIntOverflowVars().contains(var.getQualifiedName());
       }
+      isRelevantVariable |= isAddressedVariable(var);
       return isRelevantVariable;
     }
+    return true;
+  }
+
+  protected boolean isAddressedVariable(CSimpleDeclaration pVar) {
+    // dummy
     return true;
   }
 
@@ -1072,6 +1078,7 @@ public class CtoFormulaConverter {
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
           throws UnrecognizedCCodeException, UnrecognizedCFAEdgeException, InterruptedException {
+
     switch (edge.getEdgeType()) {
     case StatementEdge: {
       return makeStatement((CStatementEdge) edge, function,

@@ -936,8 +936,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     CType declarationType = typeHandler.getSimplifiedType(declaration);
 
-    if (!isRelevantVariable(declaration) &&
-        !isAddressedVariable(declaration)) {
+    if (!isRelevantVariable(declaration)) {
       // The variable is unused
       logDebug("Ignoring declaration of unused variable", declarationEdge);
       return bfmgr.makeTrue();
