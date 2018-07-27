@@ -147,7 +147,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       try (DeleteOnCloseFile automatonFile =
           TempFile.builder()
               .prefix("counterexample-automaton")
-              .suffix(".txt")
+              .suffix(".graphml")
               .createDeleteOnClose()) {
 
         return checkCounterexample(pRootState, pErrorState, pErrorPathStates,
