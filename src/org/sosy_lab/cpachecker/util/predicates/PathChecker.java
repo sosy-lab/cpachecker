@@ -30,7 +30,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Ordering;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,6 +49,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -55,6 +59,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.predicate.BAMBlockFormulaStrategy;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -275,9 +280,10 @@ public class PathChecker {
   }
 
   /**
-   * Calculate the precise PathFormula and SSAMaps for the given path.
-   * Multi-edges will be resolved. The resulting list of SSAMaps
-   * need not be the same size as the given path.
+   * Calculate the precise PathFormula and SSAMaps for the given path. Multi-edges will be resolved.
+   * The resulting list of SSAMaps need not be the same size as the given path.
+   *
+   * <p>If the path traverses recursive function calls, the path formula updates the SSAMaps.
    *
    * @param pPath calculate the precise list of SSAMaps for this path.
    * @return the PathFormula and the precise list of SSAMaps for the given path.
@@ -291,10 +297,26 @@ public class PathChecker {
 
     PathIterator pathIt = pPath.fullPathIterator();
 
+    // for recursion we need to update SSA-indices after returning from a function call,
+    // in non-recursive cases this should not change anything.
+    Deque<PathFormula> callstack = new ArrayDeque<>();
+
     while (pathIt.hasNext()) {
       pathFormula = handlePreconditionAssumptions(pathFormula, pathIt.getNextAbstractState());
       CFAEdge edge = pathIt.getOutgoingEdge();
       pathIt.advance();
+
+      // for recursion
+      if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+        callstack.push(pathFormula);
+      }
+
+      // for recursion
+      if (!callstack.isEmpty() && edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+        pathFormula =
+            BAMBlockFormulaStrategy.rebuildStateAfterFunctionCall(
+                pmgr, pathFormula, callstack.pop(), ((FunctionReturnEdge) edge).getPredecessor());
+      }
 
       pathFormula = pmgr.makeAnd(pathFormula, edge);
       ssaMaps.add(pathFormula.getSsa());
