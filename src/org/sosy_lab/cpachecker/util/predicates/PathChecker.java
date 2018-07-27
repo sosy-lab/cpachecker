@@ -163,14 +163,10 @@ public class PathChecker {
    *
    * @param precisePath The precise ARGPath that represents the counterexample.
    * @param pInfo More information about the counterexample
-   * @param pathHasBranching Whether there are branches in the ARG for this path
    * @return a {@link CounterexampleInfo} instance
    */
   public CounterexampleInfo createCounterexample(
-      final ARGPath precisePath,
-      final CounterexampleTraceInfo pInfo,
-      final boolean pathHasBranching)
-      throws InterruptedException {
+      final ARGPath precisePath, final CounterexampleTraceInfo pInfo) throws InterruptedException {
 
     CFAPathWithAssumptions pathWithAssignments;
     CounterexampleTraceInfo preciseInfo;
