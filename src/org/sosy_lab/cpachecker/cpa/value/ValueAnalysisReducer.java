@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import com.google.common.base.Splitter;
 import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -42,7 +43,7 @@ class ValueAnalysisReducer extends GenericReducer<ValueAnalysisState, VariableTr
     ValueAnalysisState clonedElement = ValueAnalysisState.copyOf(pExpandedState);
     for (MemoryLocation trackedVar : pExpandedState.getTrackedMemoryLocations()) {
       // ignore offset (like "3" from "array/3") to match assignments in loops ("array[i]=12;")
-      final String simpleName = trackedVar.getAsSimpleString().split("/")[0];
+      final String simpleName = Splitter.on("/").splitToList(trackedVar.getAsSimpleString()).get(0);
       if (!pContext.getVariables().contains(simpleName)) {
         clonedElement.forget(trackedVar);
       }
