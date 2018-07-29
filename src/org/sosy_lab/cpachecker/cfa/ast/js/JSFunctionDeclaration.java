@@ -39,10 +39,12 @@ import org.sosy_lab.cpachecker.cfa.types.js.JSFunctionType;
 public class JSFunctionDeclaration extends AFunctionDeclaration implements JSDeclaration {
 
   private static final long serialVersionUID = -6049361884111627710L;
+  private final Scope scope;
   private final String qualifiedName;
 
   public JSFunctionDeclaration(
       FileLocation pFileLocation,
+      final org.sosy_lab.cpachecker.cfa.ast.js.Scope pScope,
       String pName,
       @Nonnull final String pOrigName,
       @Nonnull final String pQualifiedName,
@@ -53,7 +55,14 @@ public class JSFunctionDeclaration extends AFunctionDeclaration implements JSDec
         checkNotNull(pName),
         checkNotNull(pOrigName),
         parameters);
+    scope = pScope;
     qualifiedName = checkNotNull(pQualifiedName);
+  }
+
+  @Nonnull
+  @Override
+  public Scope getScope() {
+    return scope;
   }
 
   @Override

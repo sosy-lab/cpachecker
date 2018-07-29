@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Ty
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.JS_TYPE_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.NUMBER_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.SCOPE_TYPE;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.STRING_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.VARIABLE_TYPE;
 
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
@@ -51,7 +52,7 @@ class TypedValues {
     booleanValueDeclaration = pFfmgr.declareUF("booleanValue", BOOLEAN_TYPE, VARIABLE_TYPE);
     numberValueDeclaration = pFfmgr.declareUF("numberValue", NUMBER_TYPE, VARIABLE_TYPE);
     functionValueDeclaration = pFfmgr.declareUF("functionValue", FUNCTION_TYPE, VARIABLE_TYPE);
-    stringValueDeclaration = pFfmgr.declareUF("stringValue", FUNCTION_TYPE, VARIABLE_TYPE);
+    stringValueDeclaration = pFfmgr.declareUF("stringValue", STRING_TYPE, VARIABLE_TYPE);
     varDeclaration = pFfmgr.declareUF("var", VARIABLE_TYPE, SCOPE_TYPE, VARIABLE_TYPE);
   }
 

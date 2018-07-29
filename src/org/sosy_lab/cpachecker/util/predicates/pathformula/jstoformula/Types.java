@@ -25,15 +25,19 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.ArrayFormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 public class Types {
   static final FormulaType<IntegerFormula> SCOPE_TYPE = FormulaType.IntegerType;
+  static final ArrayFormulaType<IntegerFormula, IntegerFormula> SCOPE_STACK_TYPE =
+      FormulaType.getArrayType(FormulaType.IntegerType, SCOPE_TYPE);
   static final FormulaType<IntegerFormula> VARIABLE_TYPE = FormulaType.IntegerType;
   static final FormulaType<IntegerFormula> JS_TYPE_TYPE = FormulaType.IntegerType;
   static final FloatingPointType NUMBER_TYPE = FormulaType.getDoublePrecisionFloatingPointType();
   static final FormulaType<BooleanFormula> BOOLEAN_TYPE = FormulaType.BooleanType;
   static final FormulaType<IntegerFormula> FUNCTION_TYPE = FormulaType.IntegerType;
+  static final FormulaType<IntegerFormula> FUNCTION_DECLARATION_TYPE = FormulaType.IntegerType;
   static final FormulaType<IntegerFormula> STRING_TYPE = FormulaType.IntegerType;
 }

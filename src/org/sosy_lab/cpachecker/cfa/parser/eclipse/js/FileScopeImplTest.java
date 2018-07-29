@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import static org.mockito.Mockito.mock;
+
 import com.google.common.truth.Truth;
 import java.util.Optional;
 import org.junit.Before;
@@ -86,7 +88,12 @@ public class FileScopeImplTest {
   public void testManagementOfDeclarations() {
     final JSVariableDeclaration declaration =
         new JSVariableDeclaration(
-            FileLocation.DUMMY, false, "name", "originalName", "qualified::name", null);
+            FileLocation.DUMMY,
+            mock(org.sosy_lab.cpachecker.cfa.ast.js.Scope.class),
+            "name",
+            "originalName",
+            "qualified::name",
+            null);
     Truth.assertThat(fileScope.findDeclaration(declaration.getOrigName()))
         .isEqualTo(Optional.empty());
     fileScope.addDeclaration(declaration);

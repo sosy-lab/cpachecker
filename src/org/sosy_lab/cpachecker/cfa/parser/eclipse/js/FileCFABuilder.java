@@ -47,7 +47,12 @@ class FileCFABuilder implements JavaScriptUnitAppendable {
     javaScriptUnitAppendable = pJavaScriptUnitAppendable;
     final JSFunctionDeclaration functionDeclaration =
         new JSFunctionDeclaration(
-            FileLocation.DUMMY, functionName, functionName, functionName, Collections.emptyList());
+            FileLocation.DUMMY,
+            org.sosy_lab.cpachecker.cfa.ast.js.Scope.GLOBAL,
+            functionName,
+            functionName,
+            functionName,
+            Collections.emptyList());
     exitNode = new FunctionExitNode(functionName);
     final JSFunctionEntryNode entryNode =
         new JSFunctionEntryNode(

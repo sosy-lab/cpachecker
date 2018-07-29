@@ -23,12 +23,19 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.FUNCTION_DECLARATION_TYPE;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.FUNCTION_TYPE;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.SCOPE_STACK_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.SCOPE_TYPE;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.VARIABLE_TYPE;
 
 import com.google.common.collect.Lists;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
@@ -39,7 +46,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
@@ -48,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSLeftHandSide;
@@ -58,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.js.Scope;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
@@ -82,15 +90,18 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.DummyPointerTargetSetBuilder;
+import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
+import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 /** Class containing all the code that converts C code into a formula. */
@@ -108,13 +119,17 @@ public class JSToFormulaConverter {
   final TypedValues typedValues;
   final TypeTags typeTags;
   final TypedValueManager tvmgr;
-  private final StringIds stringIds;
+  private final Ids<String> stringIds;
+  final Ids<JSFunctionDeclaration> functionDeclarationIds;
 
   private final FormulaEncodingOptions options;
   protected final MachineModel machineModel;
 
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bfmgr;
+  private final FunctionFormulaManagerView ffmgr;
+  private final ArrayFormulaManagerView afmgr;
+  private final IntegerFormulaManagerView ifmgr;
   protected final LogManagerWithoutDuplicates logger;
   protected final ShutdownNotifier shutdownNotifier;
 
@@ -135,7 +150,13 @@ public class JSToFormulaConverter {
   @Option(secure = true, description = "Do not check for NaN in operations")
   private boolean useNaN = true;
 
+  private final FunctionDeclaration<IntegerFormula> scopeOfDeclaration;
+  private final FunctionDeclaration<ArrayFormula<IntegerFormula, IntegerFormula>>
+      scopeStackDeclaration;
+  private final FunctionDeclaration<IntegerFormula> declarationOfDeclaration;
   private final IntegerFormula mainScope;
+  private final ArrayFormula<IntegerFormula, IntegerFormula> globalScopeStack;
+  private int scopeCounter;
 
   public JSToFormulaConverter(
       FormulaEncodingOptions pOptions,
@@ -154,8 +175,8 @@ public class JSToFormulaConverter {
     this.machineModel = pMachineModel;
 
     this.bfmgr = pFmgr.getBooleanFormulaManager();
-    final IntegerFormulaManagerView nfmgr = pFmgr.getIntegerFormulaManager();
-    final FunctionFormulaManagerView ffmgr = pFmgr.getFunctionFormulaManager();
+    ifmgr = pFmgr.getIntegerFormulaManager();
+    ffmgr = pFmgr.getFunctionFormulaManager();
     this.fpfmgr = pFmgr.getFloatingPointFormulaManager();
     this.logger = new LogManagerWithoutDuplicates(pLogger);
     this.shutdownNotifier = pShutdownNotifier;
@@ -163,10 +184,18 @@ public class JSToFormulaConverter {
     this.direction = pDirection;
 
     typedValues = new TypedValues(ffmgr);
-    typeTags = new TypeTags(nfmgr);
+    typeTags = new TypeTags(ifmgr);
     tvmgr = new TypedValueManager(typedValues, typeTags);
-    stringIds = new StringIds();
+    stringIds = new Ids<>();
+    functionDeclarationIds = new Ids<>();
+    scopeOfDeclaration = ffmgr.declareUF("scopeOf", SCOPE_TYPE, VARIABLE_TYPE);
+    afmgr = fmgr.getArrayFormulaManager();
+    scopeStackDeclaration = ffmgr.declareUF("scopeStack", SCOPE_STACK_TYPE, SCOPE_TYPE);
+    declarationOfDeclaration =
+        ffmgr.declareUF("declarationOf", FUNCTION_DECLARATION_TYPE, FUNCTION_TYPE);
     mainScope = fmgr.makeNumber(SCOPE_TYPE, 0);
+    globalScopeStack = afmgr.makeArray("globalScopeStack", SCOPE_STACK_TYPE);
+    scopeCounter = 0;
   }
 
   @SuppressWarnings("SameParameterValue")
@@ -621,10 +650,59 @@ public class JSToFormulaConverter {
           new JSIdExpression(funcCallExp.getFileLocation(), returnVariableDeclaration.get());
 
       return makeAssignment(
-          exp.getLeftHandSide(), rhs, ce, callerFunction, ssa, constraints, errorConditions);
+          exp.getLeftHandSide(),
+          rhs,
+          ce,
+          callerFunction,
+          calledFunction,
+          ssa,
+          constraints,
+          errorConditions);
     } else {
       throw new UnrecognizedCodeException("Unknown function exit expression", ce, retExp);
     }
+  }
+
+  @Nonnull
+  private IntegerFormula scopeOf(
+      final String pCurrentFunction,
+      final JSSimpleDeclaration pDeclaration,
+      final SSAMapBuilder pSsa) {
+    final Scope scope = pDeclaration.getScope();
+    final boolean isGlobal = scope.isGlobalScope() || scope.getNestingLevel() == 0;
+    if (isGlobal) {
+      return mainScope;
+    }
+    assert !pCurrentFunction.equals("main")
+        : pDeclaration.getQualifiedName()
+            + " has nesting level of "
+            + scope.getNestingLevel()
+            + " in main function";
+    return afmgr.select(
+        scopeStack(getCurrentScope(pCurrentFunction, pSsa)),
+        ifmgr.makeNumber(scope.getNestingLevel()));
+  }
+
+  IntegerFormula scopeOf(final IntegerFormula pFunctionObject) {
+    return ffmgr.callUF(scopeOfDeclaration, pFunctionObject);
+  }
+
+  private ArrayFormula<IntegerFormula, IntegerFormula> scopeStack(final IntegerFormula pScope) {
+    return ffmgr.callUF(scopeStackDeclaration, pScope);
+  }
+
+  IntegerFormula declarationOf(final IntegerFormula pFunctionObject) {
+    return ffmgr.callUF(declarationOfDeclaration, pFunctionObject);
+  }
+
+  IntegerFormula getCurrentScope(final String pFunction, final SSAMapBuilder pSsa) {
+    return pFunction.equals("main") ? mainScope : makeVariable(pFunction + "_currentScope", pSsa);
+  }
+
+  @Nonnull
+  private IntegerFormula createCurrentScope(final String pFunction, final SSAMapBuilder ssa) {
+    assert !pFunction.equals("main");
+    return makeFreshVariable(pFunction + "_currentScope", ssa);
   }
 
   private BooleanFormula makeFunctionCall(
@@ -634,6 +712,42 @@ public class JSToFormulaConverter {
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException {
+    final List<BooleanFormula> result = new ArrayList<>();
+    final JSFunctionCallExpression functionCallExpression =
+        edge.getSummaryEdge().getExpression().getFunctionCallExpression();
+    final String calledFunctionName = functionCallExpression.getDeclaration().getQualifiedName();
+    final Optional<JSIdExpression> functionObject = functionCallExpression.getFunctionObject();
+    final IntegerFormula callerScopeVariable = getCurrentScope(callerFunction, ssa);
+    final IntegerFormula currentScopeVariable = createCurrentScope(calledFunctionName, ssa);
+    result.add(fmgr.makeEqual(currentScopeVariable, createScope()));
+    // TODO refactor
+    final ArrayFormula<IntegerFormula, IntegerFormula> ss;
+    if (functionCallExpression.getDeclaration().isGlobal()) {
+      ss = globalScopeStack;
+    } else if (functionObject.isPresent()) {
+      ss =
+          scopeStack(
+              scopeOf(
+                  scopedVariable(
+                      callerFunction,
+                      Objects.requireNonNull(functionObject.get().getDeclaration()),
+                      ssa)));
+    } else {
+      ss =
+          scopeStack(
+              afmgr.select(
+                  scopeStack(callerScopeVariable),
+                  ifmgr.makeNumber(
+                      functionCallExpression.getDeclaration().getScope().getNestingLevel())));
+    }
+    result.add(
+        fmgr.makeEqual(
+            scopeStack(currentScopeVariable),
+            afmgr.store(
+                ss,
+                ifmgr.makeNumber(
+                    functionCallExpression.getDeclaration().getScope().getNestingLevel() + 1),
+                currentScopeVariable)));
 
     final Iterator<JSExpression> actualParams = edge.getArguments().iterator();
 
@@ -647,7 +761,6 @@ public class JSToFormulaConverter {
               + " (configured in UnknownFunctionCallerDeclarationBuilder.maxParameterCount)",
           edge);
     }
-    BooleanFormula result = bfmgr.makeTrue();
     for (JSParameterDeclaration formalParam : formalParams) {
       JSExpression paramExpression =
           actualParams.hasNext()
@@ -666,23 +779,26 @@ public class JSToFormulaConverter {
         paramLHS = lhs;
       }
 
-      result =
-          bfmgr.and(
-              result,
-              makeAssignment(
-                  paramLHS,
-                  paramExpression,
-                  edge,
-                  callerFunction,
-                  ssa,
-                  constraints,
-                  errorConditions));
+      result.add(
+          makeAssignment(
+              paramLHS,
+              paramExpression,
+              edge,
+              calledFunctionName,
+              callerFunction,
+              ssa,
+              constraints,
+              errorConditions));
     }
 
     addGlobalAssignmentConstraints(
         edge, fn.getFunctionName(), ssa, constraints, errorConditions, PARAM_VARIABLE_NAME, true);
 
-    return result;
+    return bfmgr.and(result);
+  }
+
+  private IntegerFormula createScope() {
+    return fmgr.makeNumber(SCOPE_TYPE, ++scopeCounter);
   }
 
   private BooleanFormula makeReturn(
@@ -704,12 +820,11 @@ public class JSToFormulaConverter {
   }
 
   IntegerFormula scopedVariable(
+      final String pCurrentFunction,
       final JSSimpleDeclaration pDeclaration,
       final SSAMapBuilder pSsa) {
-    final boolean isGlobal =
-        pDeclaration instanceof ADeclaration && ((ADeclaration) pDeclaration).isGlobal();
     return typedValues.var(
-        isGlobal ? mainScope : fmgr.makeNumber(SCOPE_TYPE, 1),
+        scopeOf(pCurrentFunction, pDeclaration, pSsa),
         makeVariable(pDeclaration.getQualifiedName(), pSsa));
   }
 
@@ -729,50 +844,68 @@ public class JSToFormulaConverter {
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException {
-    final TypedValue r = buildTerm(rhs, edge, function, ssa, constraints, errorConditions);
+    return makeAssignment(lhs, rhs, edge, function, function, ssa, constraints, errorConditions);
+  }
+
+  private BooleanFormula makeAssignment(
+      final JSLeftHandSide lhs,
+      JSRightHandSide rhs,
+      final CFAEdge edge,
+      final String lhsFunction,
+      final String rhsFunction,
+      final SSAMapBuilder ssa,
+      final Constraints constraints,
+      final ErrorConditions errorConditions)
+      throws UnrecognizedCodeException {
+    final TypedValue r = buildTerm(rhs, edge, rhsFunction, ssa, constraints, errorConditions);
     assert lhs instanceof JSIdExpression
         : "Only assignment to variable is implemented yet";
     final JSSimpleDeclaration declaration = ((JSIdExpression) lhs).getDeclaration();
     assert declaration != null;
-    final IntegerFormula l = buildLvalueTerm(declaration, ssa);
-    final IntegerFormula rType = r.getType();
+    final IntegerFormula l = buildLvalueTerm(lhsFunction, declaration, ssa);
+    return makeAssignment(l, r);
+  }
+
+  @Nonnull
+  private BooleanFormula makeAssignment(final IntegerFormula pLeft, final TypedValue pRight) {
+    final IntegerFormula rType = pRight.getType();
     if (rType.equals(typeTags.BOOLEAN)) {
       return bfmgr.and(
-          fmgr.assignment(typedValues.typeof(l), typeTags.BOOLEAN),
-          fmgr.makeEqual(typedValues.booleanValue(l), r.getValue()));
+          fmgr.assignment(typedValues.typeof(pLeft), typeTags.BOOLEAN),
+          fmgr.makeEqual(typedValues.booleanValue(pLeft), pRight.getValue()));
     }
     if (rType.equals(typeTags.FUNCTION)) {
       return bfmgr.and(
-          fmgr.assignment(typedValues.typeof(l), typeTags.FUNCTION),
-          fmgr.makeEqual(typedValues.functionValue(l), r.getValue()));
+          fmgr.assignment(typedValues.typeof(pLeft), typeTags.FUNCTION),
+          fmgr.makeEqual(typedValues.functionValue(pLeft), pRight.getValue()));
     }
     if (rType.equals(typeTags.NUMBER)) {
       return bfmgr.and(
-          fmgr.assignment(typedValues.typeof(l), typeTags.NUMBER),
-          fmgr.makeEqual(typedValues.numberValue(l), r.getValue()));
+          fmgr.assignment(typedValues.typeof(pLeft), typeTags.NUMBER),
+          fmgr.makeEqual(typedValues.numberValue(pLeft), pRight.getValue()));
     }
     if (rType.equals(typeTags.STRING)) {
       return bfmgr.and(
-          fmgr.assignment(typedValues.typeof(l), typeTags.STRING),
-          fmgr.makeEqual(typedValues.stringValue(l), r.getValue()));
+          fmgr.assignment(typedValues.typeof(pLeft), typeTags.STRING),
+          fmgr.makeEqual(typedValues.stringValue(pLeft), pRight.getValue()));
     }
     return fmgr.makeAnd(
-        fmgr.assignment(typedValues.typeof(l), r.getType()),
+        fmgr.assignment(typedValues.typeof(pLeft), pRight.getType()),
         bfmgr.or(
             fmgr.makeAnd(
-                fmgr.makeEqual(typedValues.typeof(l), typeTags.BOOLEAN),
-                fmgr.makeEqual(typedValues.booleanValue(l), toBoolean(r))),
+                fmgr.makeEqual(typedValues.typeof(pLeft), typeTags.BOOLEAN),
+                fmgr.makeEqual(typedValues.booleanValue(pLeft), toBoolean(pRight))),
             fmgr.makeAnd(
-                fmgr.makeEqual(typedValues.typeof(l), typeTags.FUNCTION),
-                fmgr.makeEqual(typedValues.functionValue(l), toFunction(r))),
+                fmgr.makeEqual(typedValues.typeof(pLeft), typeTags.FUNCTION),
+                fmgr.makeEqual(typedValues.functionValue(pLeft), toFunction(pRight))),
             fmgr.makeAnd(
-                fmgr.makeEqual(typedValues.typeof(l), typeTags.NUMBER),
-                fmgr.makeEqual(typedValues.numberValue(l), toNumber(r))),
+                fmgr.makeEqual(typedValues.typeof(pLeft), typeTags.NUMBER),
+                fmgr.makeEqual(typedValues.numberValue(pLeft), toNumber(pRight))),
             fmgr.makeAnd(
-                fmgr.makeEqual(typedValues.typeof(l), typeTags.STRING),
-                fmgr.makeEqual(typedValues.stringValue(l), toStringFormula(r))),
-            fmgr.makeEqual(typedValues.typeof(l), typeTags.OBJECT),
-            fmgr.makeEqual(typedValues.typeof(l), typeTags.UNDEFINED)));
+                fmgr.makeEqual(typedValues.typeof(pLeft), typeTags.STRING),
+                fmgr.makeEqual(typedValues.stringValue(pLeft), toStringFormula(pRight))),
+            fmgr.makeEqual(typedValues.typeof(pLeft), typeTags.OBJECT),
+            fmgr.makeEqual(typedValues.typeof(pLeft), typeTags.UNDEFINED)));
   }
 
   private IntegerFormula toFunction(final TypedValue pValue) {
@@ -894,12 +1027,11 @@ public class JSToFormulaConverter {
   }
 
   private IntegerFormula buildLvalueTerm(
+      final String pCurrentFunction,
       final JSSimpleDeclaration pDeclaration,
       final SSAMapBuilder pSsa) {
-    final boolean isGlobal =
-        pDeclaration instanceof ADeclaration && ((ADeclaration) pDeclaration).isGlobal();
     return typedValues.var(
-        isGlobal ? mainScope : fmgr.makeNumber(SCOPE_TYPE, 1),
+        scopeOf(pCurrentFunction, pDeclaration, pSsa),
         makeFreshVariable(pDeclaration.getQualifiedName(), pSsa));
   }
 

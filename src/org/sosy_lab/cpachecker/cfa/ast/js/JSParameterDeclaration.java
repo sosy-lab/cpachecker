@@ -37,14 +37,14 @@ public final class JSParameterDeclaration extends AParameterDeclaration
 
   private static final long serialVersionUID = 4718050921269110062L;
   private String qualifiedName;
+  private Scope scope;
 
   public JSParameterDeclaration(FileLocation pFileLocation, String pName) {
     super(pFileLocation, JSAnyType.ANY, checkNotNull(pName));
   }
 
   /**
-   * Is set in {@link
-   * org.sosy_lab.cpachecker.cfa.parser.eclipse.js.FunctionScopeImpl#setQualifiedNameOfParameters()}.
+   * Is set in {@link FunctionScopeImpl#setQualifiedNameOfParameters()}.
    *
    * @param pQualifiedName The qualified name of the parameter, which depends on the qualified name
    *     of the function scope.
@@ -72,5 +72,14 @@ public final class JSParameterDeclaration extends AParameterDeclaration
   @Override
   public <R, X extends Exception> R accept(JSAstNodeVisitor<R, X> pV) throws X {
     return pV.visit(this);
+  }
+
+  public void setScope(final Scope pScope) {
+    scope = pScope;
+  }
+
+  @Override
+  public Scope getScope() {
+    return scope;
   }
 }

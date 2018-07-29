@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.js;
 
+import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 
@@ -37,6 +38,9 @@ import org.sosy_lab.cpachecker.cfa.types.js.JSType;
  * parameters.
  */
 public interface JSSimpleDeclaration extends ASimpleDeclaration, JSAstNode {
+
+  @Nonnull
+  Scope getScope();
 
   @Override
   public JSType getType();

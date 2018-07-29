@@ -58,16 +58,19 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
     final JSFunctionDeclaration jsFunctionDeclaration =
         new JSFunctionDeclaration(
             pBuilder.getFileLocation(pFunctionDeclaration),
+            ScopeConverter.toCFAScope(pBuilder.getScope()),
             functionName,
             originalFunctionName,
             functionQualifiedName,
             parameters);
     currentScope.addDeclaration(jsFunctionDeclaration);
+    final FunctionScopeImpl functionScope =
+        new FunctionScopeImpl(currentScope, jsFunctionDeclaration);
     final String returnVariableName = "__retval__";
     final JSVariableDeclaration returnVariableDeclaration =
         new JSVariableDeclaration(
             FileLocation.DUMMY,
-            false,
+            ScopeConverter.toCFAScope(functionScope),
             returnVariableName,
             returnVariableName,
             returnVariableName,
@@ -82,8 +85,7 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
             exitNode,
             Optional.of(returnVariableDeclaration));
     exitNode.setEntryNode(entryNode);
-    final JavaScriptCFABuilder functionCFABuilder =
-        pBuilder.copyWith(entryNode, new FunctionScopeImpl(currentScope, jsFunctionDeclaration));
+    final JavaScriptCFABuilder functionCFABuilder = pBuilder.copyWith(entryNode, functionScope);
 
     addFunctionEntryNode(functionCFABuilder);
 

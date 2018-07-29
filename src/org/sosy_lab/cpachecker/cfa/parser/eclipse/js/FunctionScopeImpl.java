@@ -45,6 +45,7 @@ class FunctionScopeImpl implements FunctionScope {
     parentScope = pParentScope;
     functionDeclaration = pFunctionDeclaration;
     setQualifiedNameOfParameters();
+    setScopeOfParameters();
   }
 
   /**
@@ -58,6 +59,13 @@ class FunctionScopeImpl implements FunctionScope {
       assert !getParentScope().findDeclaration(parameterName).isPresent()
           : "Parameter name " + parameterName + " may not shadow identifier of parent scope";
       parameterDeclaration.setQualifiedName(qualifiedVariableNameOf(parameterName));
+    }
+  }
+
+  private void setScopeOfParameters() {
+    for (final JSParameterDeclaration parameterDeclaration : functionDeclaration.getParameters()) {
+      final org.sosy_lab.cpachecker.cfa.ast.js.Scope cfaScope = ScopeConverter.toCFAScope(this);
+      parameterDeclaration.setScope(cfaScope);
     }
   }
 

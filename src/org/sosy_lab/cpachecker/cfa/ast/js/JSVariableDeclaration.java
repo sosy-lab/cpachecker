@@ -39,10 +39,11 @@ import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 public final class JSVariableDeclaration extends AVariableDeclaration implements JSDeclaration {
 
   private static final long serialVersionUID = 8864367789579668073L;
+  private final Scope scope;
 
   public JSVariableDeclaration(
       FileLocation pFileLocation,
-      boolean pIsGlobal,
+      Scope pScope,
       String pName,
       String pOrigName,
       String pQualifiedName,
@@ -50,22 +51,19 @@ public final class JSVariableDeclaration extends AVariableDeclaration implements
 
     super(
         pFileLocation,
-        pIsGlobal,
+        pScope.isGlobalScope(),
         JSAnyType.ANY,
         checkNotNull(pName),
         pOrigName,
         pQualifiedName,
         pInitializer);
+    scope = pScope;
   }
 
-  /**
-   * Creates a local variable declaration with dummy file location, no initializer and same names.
-   *
-   * @param pName Used as name, original name and qualified name.
-   * @return Local variable declaration with dummy file location, no initializer and same names.
-   */
-  public static JSVariableDeclaration local(final @Nonnull String pName) {
-    return new JSVariableDeclaration(FileLocation.DUMMY, false, pName, pName, pName, null);
+  @Nonnull
+  @Override
+  public Scope getScope() {
+    return scope;
   }
 
   @Override

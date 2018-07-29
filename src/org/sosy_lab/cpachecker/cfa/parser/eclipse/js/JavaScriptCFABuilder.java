@@ -109,7 +109,7 @@ interface JavaScriptCFABuilder
     final String variableName = generateVariableName();
     return new JSVariableDeclaration(
         FileLocation.DUMMY,
-        false,
+        ScopeConverter.toCFAScope(getScope()),
         variableName,
         variableName,
         getScope().qualifiedVariableNameOf(variableName),

@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.js.Scope;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -86,14 +87,17 @@ public class UnknownFunctionCallerDeclarationBuilder implements FunctionDeclarat
     unknownFunctionCallerDeclaration =
         new JSFunctionDeclaration(
             FileLocation.DUMMY,
+            Scope.GLOBAL,
             functionName,
             originalFunctionName,
             functionQualifiedName,
             parameters);
+    // TODO has parameter scope to be set?
     final JSVariableDeclaration returnVariableDeclaration =
         new JSVariableDeclaration(
             FileLocation.DUMMY,
-            false,
+            org.sosy_lab.cpachecker.cfa.ast.js.Scope.GLOBAL.createChildScope(
+                unknownFunctionCallerDeclaration),
             returnVariableName,
             returnVariableName,
             returnVariableName,
@@ -118,9 +122,10 @@ public class UnknownFunctionCallerDeclarationBuilder implements FunctionDeclarat
     final JSFunctionDeclaration jsFunctionDeclaration =
         functionDeclarationAppendable.append(pBuilder, pFunctionDeclaration);
     initUnknownFunctionCallerCFABuilder(pBuilder);
+    final JSIdExpression functionObjectParameterId =
+        new JSIdExpression(FileLocation.DUMMY, functionObjectParameter);
     final JSExpression condition =
-        new JSDeclaredByExpression(
-            new JSIdExpression(FileLocation.DUMMY, functionObjectParameter), jsFunctionDeclaration);
+        new JSDeclaredByExpression(functionObjectParameterId, jsFunctionDeclaration);
     if (lastDefaultReturnEdge != null) {
       CFACreationUtils.removeEdgeFromNodes(lastDefaultReturnEdge);
     }
@@ -143,7 +148,8 @@ public class UnknownFunctionCallerDeclarationBuilder implements FunctionDeclarat
                             functionDeclarationFileLocation,
                             new JSIdExpression(FileLocation.DUMMY, jsFunctionDeclaration),
                             getParameterIds(jsFunctionDeclaration),
-                            jsFunctionDeclaration))))
+                            jsFunctionDeclaration,
+                            java.util.Optional.of(functionObjectParameterId)))))
             .appendEdge(exitNode, returnEdgeWithValue(resultVariableId))
             .getParseResult());
     unknownFunctionCallerCFABuilder.appendEdge(assume(condition, false));

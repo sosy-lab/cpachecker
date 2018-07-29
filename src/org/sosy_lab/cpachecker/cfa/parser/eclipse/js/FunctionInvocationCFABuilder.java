@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -77,7 +78,8 @@ class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
                     pBuilder.getFileLocation(pNode),
                     isKnownFunctionDeclaration ? function : unknownFunctionCallerId,
                     arguments,
-                    declaration))));
+                    declaration,
+                    Optional.empty()))));
     return resultVariableId;
   }
 

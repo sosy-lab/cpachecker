@@ -54,7 +54,13 @@ public class FunctionScopeImplTest {
   @Before
   public void init() {
     varAlreadyDeclaredInParentScope =
-        JSVariableDeclaration.local("varAlreadyDeclaredInParentScope");
+        new JSVariableDeclaration(
+            FileLocation.DUMMY,
+            mock(org.sosy_lab.cpachecker.cfa.ast.js.Scope.class),
+            "varAlreadyDeclaredInParentScope",
+            "varAlreadyDeclaredInParentScope",
+            "varAlreadyDeclaredInParentScope",
+            null);
     parentFileScope = mock(FileScope.class);
     when(parentFileScope.qualifiedNameOfScope()).thenReturn("");
     parentScope =
@@ -88,7 +94,13 @@ public class FunctionScopeImplTest {
                 new JSParameterDeclaration(FileLocation.DUMMY, "p0"),
                 new JSParameterDeclaration(FileLocation.DUMMY, "p1")));
     functionDeclaration =
-        new JSFunctionDeclaration(FileLocation.DUMMY, name, originalName, name, parameters);
+        new JSFunctionDeclaration(
+            FileLocation.DUMMY,
+            org.sosy_lab.cpachecker.cfa.ast.js.Scope.GLOBAL,
+            name,
+            originalName,
+            name,
+            parameters);
     functionScope = new FunctionScopeImpl(parentScope, functionDeclaration);
   }
 
@@ -153,7 +165,12 @@ public class FunctionScopeImplTest {
     }
     final JSVariableDeclaration declaration =
         new JSVariableDeclaration(
-            FileLocation.DUMMY, false, "name", "originalName", "qualified::name", null);
+            FileLocation.DUMMY,
+            mock(org.sosy_lab.cpachecker.cfa.ast.js.Scope.class),
+            "name",
+            "originalName",
+            "qualified::name",
+            null);
     Truth.assertThat(functionScope.findDeclaration(declaration.getOrigName()))
         .isEqualTo(Optional.empty());
     functionScope.addDeclaration(declaration);
@@ -163,7 +180,7 @@ public class FunctionScopeImplTest {
     final JSVariableDeclaration shadowVarAlreadyDeclaredInParentScope =
         new JSVariableDeclaration(
             FileLocation.DUMMY,
-            false,
+            mock(org.sosy_lab.cpachecker.cfa.ast.js.Scope.class),
             "shadowedVar",
             varAlreadyDeclaredInParentScope.getOrigName(),
             "qualified::shadowedVar",

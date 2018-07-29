@@ -240,12 +240,15 @@ public class ExpressionToFormulaVisitor
   public TypedValue visit(final JSDeclaredByExpression pDeclaredByExpression) {
     assert pDeclaredByExpression.getIdExpression().getDeclaration() != null;
     final IntegerFormula variable =
-        conv.scopedVariable(pDeclaredByExpression.getIdExpression().getDeclaration(), ssa);
+        conv.scopedVariable(
+            function, pDeclaredByExpression.getIdExpression().getDeclaration(), ssa);
+    final IntegerFormula functionDeclarationId =
+        mgr.makeNumber(
+            Types.FUNCTION_DECLARATION_TYPE,
+            conv.functionDeclarationIds.get(pDeclaredByExpression.getJsFunctionDeclaration()));
     return conv.tvmgr.createBooleanValue(
         mgr.makeEqual(
-            conv.typedValues.functionValue(variable),
-            mgr.makeNumber(
-                Types.FUNCTION_TYPE, pDeclaredByExpression.getJsFunctionDeclaration().hashCode())));
+            conv.declarationOf(conv.typedValues.functionValue(variable)), functionDeclarationId));
   }
 
   @Override
@@ -254,10 +257,21 @@ public class ExpressionToFormulaVisitor
     if (declaration == null) {
       return handlePredefined(pIdExpression);
     } else if (declaration instanceof JSFunctionDeclaration) {
-      return conv.tvmgr.createFunctionValue(
-          mgr.makeNumber(Types.FUNCTION_TYPE, declaration.hashCode()));
+      final JSFunctionDeclaration functionDeclaration = (JSFunctionDeclaration) declaration;
+      final IntegerFormula functionDeclarationId =
+          mgr.makeNumber(Types.FUNCTION_TYPE, conv.functionDeclarationIds.get(functionDeclaration));
+      final IntegerFormula functionValueFormula =
+          functionDeclaration.isGlobal()
+              ? functionDeclarationId
+              : conv.scopedVariable(function, functionDeclaration, ssa);
+      constraints.addConstraint(
+          mgr.makeEqual(conv.declarationOf(functionValueFormula), functionDeclarationId));
+      // TODO function might be declared outside of current function
+      constraints.addConstraint(
+          mgr.makeEqual(conv.scopeOf(functionValueFormula), conv.getCurrentScope(function, ssa)));
+      return conv.tvmgr.createFunctionValue(functionValueFormula);
     }
-    final IntegerFormula variable = conv.scopedVariable(declaration, ssa);
+    final IntegerFormula variable = conv.scopedVariable(function, declaration, ssa);
     return new TypedValue(conv.typedValues.typeof(variable), variable);
   }
 

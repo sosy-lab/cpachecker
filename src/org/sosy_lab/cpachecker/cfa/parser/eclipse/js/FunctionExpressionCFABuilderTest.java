@@ -36,6 +36,7 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.Scope;
 
 public class FunctionExpressionCFABuilderTest extends CFABuilderTestBase {
 
@@ -46,7 +47,8 @@ public class FunctionExpressionCFABuilderTest extends CFABuilderTestBase {
             parseExpression(ParenthesizedExpression.class, "(function () {})").getExpression();
 
     final JSFunctionDeclaration jsFunctionDeclaration =
-        new JSFunctionDeclaration(FileLocation.DUMMY, "", "", "", Collections.emptyList());
+        new JSFunctionDeclaration(
+            FileLocation.DUMMY, Scope.GLOBAL, "", "", "", Collections.emptyList());
 
     final FunctionDeclarationAppendable functionDeclarationAppendable =
         mock(FunctionDeclarationAppendable.class);

@@ -23,24 +23,19 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.google.common.truth.Truth;
+import org.junit.Test;
 
-class StringIds {
-  private final Map<String, Integer> ids;
-  private int currentId;
-
-  StringIds() {
-    currentId = 0;
-    ids = new HashMap<>();
-  }
-
-  public int get(final String pValue) {
-    if (ids.containsKey(pValue)) {
-      return ids.get(pValue);
-    }
-    ++currentId;
-    ids.put(pValue, currentId);
-    return currentId;
+public class IdsTest {
+  @Test
+  public final void testStrings() {
+    final Ids<String> ids = new Ids<>();
+    Truth.assertThat(ids.get("foo")).isEqualTo(1);
+    Truth.assertThat(ids.get("bar")).isEqualTo(2);
+    Truth.assertThat(ids.get("foo")).isEqualTo(1);
+    Truth.assertThat(ids.get("foobar")).isEqualTo(3);
+    Truth.assertThat(ids.get("foobar")).isEqualTo(3);
+    Truth.assertThat(ids.get("bar")).isEqualTo(2);
+    Truth.assertThat(ids.get("Bar")).isEqualTo(4);
   }
 }

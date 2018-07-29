@@ -46,7 +46,7 @@ class VariableDeclarationFragmentCFABuilder implements VariableDeclarationFragme
     final JSVariableDeclaration variableDeclaration =
         new JSVariableDeclaration(
             pBuilder.getFileLocation(pVariableDeclarationFragment),
-            pBuilder.getScope().getParentScope() instanceof FileScope,
+            ScopeConverter.toCFAScope(pBuilder.getScope()),
             variableIdentifier,
             variableIdentifier,
             pBuilder.getScope().qualifiedVariableNameOf(variableIdentifier),
