@@ -115,7 +115,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedJSCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -476,15 +475,13 @@ public class JSToFormulaConverter {
    * @param oldIndex The previous SSA index.
    * @param newIndex The new SSA index.
    * @param pts The previous PointerTargetSet.
-   * @throws InterruptedException If execution is interrupted.
    */
   public BooleanFormula makeSsaUpdateTerm(
       final String variableName,
       final CType variableType,
       final int oldIndex,
       final int newIndex,
-      final PointerTargetSet pts)
-      throws InterruptedException {
+      final PointerTargetSet pts) {
     checkArgument(oldIndex > 0 && newIndex > oldIndex);
 
     final FormulaType<?> variableFormulaType = getFormulaTypeFromCType(variableType);
@@ -985,12 +982,9 @@ public class JSToFormulaConverter {
     return false;
   }
 
-
-//  @Override
-  public PathFormula makeAnd(PathFormula oldFormula,
-      CFAEdge edge, ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException,
-             UnrecognizedJSCodeException {
+  //  @Override
+  public PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge, ErrorConditions errorConditions)
+      throws UnrecognizedCFAEdgeException, InterruptedException, UnrecognizedCodeException {
 
     String function = (edge.getPredecessor() != null)
                           ? edge.getPredecessor().getFunctionName() : null;
@@ -1066,11 +1060,14 @@ public class JSToFormulaConverter {
    *
    * This function is usually only relevant with options.useParameterVariables().
    */
-  private void addParameterConstraints(final CFAEdge edge, final String function,
-                                       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
-                                       final Constraints constraints, final ErrorConditions errorConditions,
-                                       final CFunctionEntryNode entryNode)
-          throws UnrecognizedCodeException, InterruptedException {
+  private void addParameterConstraints(
+      final CFAEdge edge,
+      final String function,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
+      final Constraints constraints,
+      final ErrorConditions errorConditions,
+      final CFunctionEntryNode entryNode) {
 
     if (options.useParameterVariables()) {
       for (CParameterDeclaration formalParam : entryNode.getFunctionParameters()) {
@@ -1107,7 +1104,7 @@ public class JSToFormulaConverter {
       final ErrorConditions errorConditions,
       final String tmpNamePart,
       final boolean tmpAsLHS)
-      throws UnrecognizedJSCodeException {
+      throws UnrecognizedCodeException {
 
     if (options.useParameterVariablesForGlobals()) {
 
@@ -1150,11 +1147,13 @@ public class JSToFormulaConverter {
    * @return the formula for the edge
    */
   private BooleanFormula createFormulaForEdge(
-      final CFAEdge edge, final String function,
-      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
-      final Constraints constraints, final ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException,
-             UnrecognizedJSCodeException {
+      final CFAEdge edge,
+      final String function,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
+      final Constraints constraints,
+      final ErrorConditions errorConditions)
+      throws UnrecognizedCFAEdgeException, InterruptedException, UnrecognizedCodeException {
     switch (edge.getEdgeType()) {
     case StatementEdge: {
       return makeStatement((JSStatementEdge) edge, function,
@@ -1217,7 +1216,7 @@ public class JSToFormulaConverter {
       final PointerTargetSetBuilder pts,
       final Constraints constraints,
       final ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, InterruptedException, UnrecognizedJSCodeException {
+      throws UnrecognizedCodeException {
 
     JSStatement stmt = statement.getStatement();
     if (stmt instanceof JSAssignment) {
@@ -1233,7 +1232,7 @@ public class JSToFormulaConverter {
 //        callStmt.getFunctionCallExpression().accept(ev);
 
       } else if (!(stmt instanceof JSExpressionStatement)) {
-        throw new UnrecognizedJSCodeException("Unknown statement", statement, stmt);
+        throw new UnrecognizedCodeException("Unknown statement", statement, stmt);
       }
 
       // side-effect free statement, ignore
@@ -1242,10 +1241,13 @@ public class JSToFormulaConverter {
   }
 
   protected BooleanFormula makeDeclaration(
-      final JSDeclarationEdge edge, final String function,
-      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
-      final Constraints constraints, final ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, InterruptedException, UnrecognizedJSCodeException {
+      final JSDeclarationEdge edge,
+      final String function,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
+      final Constraints constraints,
+      final ErrorConditions errorConditions)
+      throws UnrecognizedCodeException {
 
     if (!(edge.getDeclaration() instanceof JSVariableDeclaration)) {
       // struct prototype, function declaration, typedef etc.
@@ -1356,7 +1358,7 @@ public class JSToFormulaConverter {
       final PointerTargetSetBuilder pts,
       final Constraints constraints,
       final ErrorConditions errorConditions)
-      throws UnrecognizedJSCodeException, InterruptedException {
+      throws UnrecognizedCodeException {
 
     addGlobalAssignmentConstraints(ce, calledFunction, ssa, pts, constraints, errorConditions, RETURN_VARIABLE_NAME, false);
 
@@ -1373,7 +1375,7 @@ public class JSToFormulaConverter {
       final com.google.common.base.Optional<JSVariableDeclaration> returnVariableDeclaration =
           ce.getFunctionEntry().getReturnVariable();
       if (!returnVariableDeclaration.isPresent()) {
-        throw new UnrecognizedJSCodeException("Void function used in assignment", ce, retExp);
+        throw new UnrecognizedCodeException("Void function used in assignment", ce, retExp);
       }
       final JSIdExpression rhs =
           new JSIdExpression(funcCallExp.getFileLocation(), returnVariableDeclaration.get());
@@ -1381,7 +1383,7 @@ public class JSToFormulaConverter {
       return makeAssignment(
           exp.getLeftHandSide(), rhs, ce, callerFunction, ssa, pts, constraints, errorConditions);
     } else {
-      throw new UnrecognizedJSCodeException("Unknown function exit expression", ce, retExp);
+      throw new UnrecognizedCodeException("Unknown function exit expression", ce, retExp);
     }
   }
 
@@ -1426,7 +1428,7 @@ public class JSToFormulaConverter {
       final PointerTargetSetBuilder pts,
       final Constraints constraints,
       final ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, InterruptedException, UnrecognizedJSCodeException {
+      throws UnrecognizedCodeException {
 
     final List<JSExpression> actualParams = edge.getArguments();
 
@@ -1498,7 +1500,7 @@ public class JSToFormulaConverter {
       final PointerTargetSetBuilder pts,
       final Constraints constraints,
       final ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, InterruptedException, UnrecognizedJSCodeException {
+      throws UnrecognizedCodeException {
     return makeAssignment(
         assignment.getLeftHandSide(),
         assignment.getRightHandSide(),
@@ -1526,7 +1528,7 @@ public class JSToFormulaConverter {
       final PointerTargetSetBuilder pts,
       final Constraints constraints,
       final ErrorConditions errorConditions)
-      throws UnrecognizedJSCodeException {
+      throws UnrecognizedCodeException {
     // lhs is used twice, also as lhsForChecking!
     return makeAssignment(lhs, lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
   }
@@ -1552,7 +1554,7 @@ public class JSToFormulaConverter {
       final PointerTargetSetBuilder pts,
       final Constraints constraints,
       final ErrorConditions errorConditions)
-      throws UnrecognizedJSCodeException {
+      throws UnrecognizedCodeException {
     final TypedValue r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
     final IntegerFormula l = buildLvalueTerm((JSIdExpression) lhs, ssa);
     final IntegerFormula rType = r.getType();
@@ -1691,7 +1693,7 @@ public class JSToFormulaConverter {
    * @return Created formula.
    */
   public final Formula buildTermFromPathFormula(
-      PathFormula pFormula, CIdExpression expr, CFAEdge edge) throws UnrecognizedCodeException {
+      PathFormula pFormula, CIdExpression expr, CFAEdge edge) {
 
     String functionName = edge.getPredecessor().getFunctionName();
     Constraints constraints = new Constraints(bfmgr);
@@ -1715,7 +1717,7 @@ public class JSToFormulaConverter {
       PointerTargetSetBuilder pts,
       Constraints constraints,
       ErrorConditions errorConditions)
-      throws UnrecognizedJSCodeException {
+      throws UnrecognizedCodeException {
     return exp.accept(
         createJSRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
   }
@@ -1728,7 +1730,7 @@ public class JSToFormulaConverter {
       PointerTargetSetBuilder pts,
       Constraints constraints,
       ErrorConditions errorConditions)
-      throws UnrecognizedJSCodeException {
+      throws UnrecognizedCodeException {
     return exp.accept(new LValueVisitor(this, edge, function, ssa, pts, constraints, errorConditions));
   }
 
@@ -1761,7 +1763,6 @@ public class JSToFormulaConverter {
     return bfmgr.not(fmgr.makeEqual(pF, zero));
   }
 
-  /** @throws InterruptedException may be thrown in subclasses */
   protected BooleanFormula makePredicate(
       JSExpression exp,
       boolean isTrue,
@@ -1771,7 +1772,7 @@ public class JSToFormulaConverter {
       PointerTargetSetBuilder pts,
       Constraints constraints,
       ErrorConditions errorConditions)
-      throws UnrecognizedJSCodeException, InterruptedException {
+      throws UnrecognizedCodeException {
 
     final TypedValue condition =
         exp.accept(
@@ -1786,7 +1787,7 @@ public class JSToFormulaConverter {
 
   public final BooleanFormula makePredicate(
       JSExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa)
-      throws UnrecognizedJSCodeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
     PointerTargetSetBuilder pts = createPointerTargetSetBuilder(PointerTargetSet.emptyPointerTargetSet());
     Constraints constraints = new Constraints(bfmgr);
     ErrorConditions errorConditions = ErrorConditions.dummyInstance(bfmgr);
@@ -1808,11 +1809,9 @@ public class JSToFormulaConverter {
    * @param pts1 the first PointerTargetset
    * @param pts2 the second PointerTargetset
    * @param ssa the SSAMap to use
-   * @throws InterruptedException may be thrown in subclasses
    */
   public MergeResult<PointerTargetSet> mergePointerTargetSets(
-      final PointerTargetSet pts1, final PointerTargetSet pts2, final SSAMap ssa)
-      throws InterruptedException {
+      final PointerTargetSet pts1, final PointerTargetSet pts2, final SSAMap ssa) {
     return MergeResult.trivial(pts1, bfmgr);
   }
 
@@ -1826,7 +1825,7 @@ public class JSToFormulaConverter {
    * @param constraints the constraints needed during visiting
    * @param errorConditions the error conditions
    */
-  private JSRightHandSideVisitor<TypedValue, UnrecognizedJSCodeException>
+  private JSRightHandSideVisitor<TypedValue, UnrecognizedCodeException>
       createJSRightHandSideVisitor(
           CFAEdge pEdge,
           String pFunction,

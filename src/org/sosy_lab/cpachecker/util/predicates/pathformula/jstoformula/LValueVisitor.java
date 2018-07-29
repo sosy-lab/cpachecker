@@ -36,14 +36,14 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedJSCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.java_smt.api.Formula;
 
 @SuppressWarnings({"FieldCanBeLocal", "unused"})
-class LValueVisitor extends DefaultJSExpressionVisitor<Formula, UnrecognizedJSCodeException> {
+class LValueVisitor extends DefaultJSExpressionVisitor<Formula, UnrecognizedCodeException> {
 
   private final JSToFormulaConverter conv;
   private final CFAEdge       edge;
@@ -71,55 +71,54 @@ class LValueVisitor extends DefaultJSExpressionVisitor<Formula, UnrecognizedJSCo
     errorConditions = pErrorConditions;
   }
 
-
   @Override
-  protected Formula visitDefault(final JSExpression exp) throws UnrecognizedJSCodeException {
-    throw new UnrecognizedJSCodeException("Not handled yet", exp);
+  protected Formula visitDefault(final JSExpression exp) throws UnrecognizedCodeException {
+    throw new UnrecognizedCodeException("Not handled yet", exp);
   }
 
   @Override
-  public Formula visit(final JSFloatLiteralExpression pLiteral) throws UnrecognizedJSCodeException {
-    throw new UnrecognizedJSCodeException("Not handled yet", pLiteral);
+  public Formula visit(final JSFloatLiteralExpression pLiteral) throws UnrecognizedCodeException {
+    throw new UnrecognizedCodeException("Not handled yet", pLiteral);
   }
 
   @Override
   public Formula visit(final JSIntegerLiteralExpression pIntegerLiteralExpression)
-      throws UnrecognizedJSCodeException {
-    throw new UnrecognizedJSCodeException("Not handled yet", pIntegerLiteralExpression);
+      throws UnrecognizedCodeException {
+    throw new UnrecognizedCodeException("Not handled yet", pIntegerLiteralExpression);
   }
 
   @Override
   public Formula visit(final JSBooleanLiteralExpression pBooleanLiteralExpression)
-      throws UnrecognizedJSCodeException {
-    throw new UnrecognizedJSCodeException("Not handled yet", pBooleanLiteralExpression);
+      throws UnrecognizedCodeException {
+    throw new UnrecognizedCodeException("Not handled yet", pBooleanLiteralExpression);
   }
 
   @Override
   public Formula visit(final JSNullLiteralExpression pNullLiteralExpression)
-      throws UnrecognizedJSCodeException {
-    throw new UnrecognizedJSCodeException("Not handled yet", pNullLiteralExpression);
+      throws UnrecognizedCodeException {
+    throw new UnrecognizedCodeException("Not handled yet", pNullLiteralExpression);
   }
 
   @Override
   public Formula visit(final JSUndefinedLiteralExpression pUndefinedLiteralExpression)
-      throws UnrecognizedJSCodeException {
-    throw new UnrecognizedJSCodeException("Not handled yet", pUndefinedLiteralExpression);
+      throws UnrecognizedCodeException {
+    throw new UnrecognizedCodeException("Not handled yet", pUndefinedLiteralExpression);
   }
 
   @Override
-  public Formula visit(final JSThisExpression pThisExpression) throws UnrecognizedJSCodeException {
-    throw new UnrecognizedJSCodeException("Not handled yet", pThisExpression);
+  public Formula visit(final JSThisExpression pThisExpression) throws UnrecognizedCodeException {
+    throw new UnrecognizedCodeException("Not handled yet", pThisExpression);
   }
 
   @Override
   public Formula visit(final JSDeclaredByExpression pDeclaredByExpression)
-      throws UnrecognizedJSCodeException {
-    throw new UnrecognizedJSCodeException(
+      throws UnrecognizedCodeException {
+    throw new UnrecognizedCodeException(
         "JSDeclaredByExpression not handled yet", pDeclaredByExpression);
   }
 
   @Override
-  public Formula visit(final JSIdExpression pIdExpression) throws UnrecognizedJSCodeException {
+  public Formula visit(final JSIdExpression pIdExpression) throws UnrecognizedCodeException {
     return conv.makeFreshVariable(pIdExpression.getDeclaration().getQualifiedName(), pIdExpression.getExpressionType
         (), ssa);
   }

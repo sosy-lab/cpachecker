@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedJSCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -53,7 +53,7 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 @SuppressWarnings({"FieldCanBeLocal", "unused"})
 public class ExpressionToFormulaVisitor
-    implements JSRightHandSideVisitor<TypedValue, UnrecognizedJSCodeException> {
+    implements JSRightHandSideVisitor<TypedValue, UnrecognizedCodeException> {
 
   // TODO this option should be removed as soon as NaN and float interpolation can be used together
   private boolean useNaN;
@@ -85,14 +85,14 @@ public class ExpressionToFormulaVisitor
 
   @Override
   public TypedValue visit(final JSFunctionCallExpression pFunctionCallExpression)
-      throws UnrecognizedJSCodeException {
-    throw new UnrecognizedJSCodeException(
+      throws UnrecognizedCodeException {
+    throw new UnrecognizedCodeException(
         "JSFunctionCallExpression not implemented yet", pFunctionCallExpression);
   }
 
   @Override
   public TypedValue visit(final JSBinaryExpression pBinaryExpression)
-      throws UnrecognizedJSCodeException {
+      throws UnrecognizedCodeException {
     final TypedValue leftOperand = visit(pBinaryExpression.getOperand1());
     final TypedValue rightOperand = visit(pBinaryExpression.getOperand2());
     switch (pBinaryExpression.getOperator()) {
@@ -127,7 +127,7 @@ public class ExpressionToFormulaVisitor
         return conv.tvmgr.createBooleanValue(
             conv.fpfmgr.greaterOrEquals(conv.toNumber(leftOperand), conv.toNumber(rightOperand)));
       default:
-        throw new UnrecognizedJSCodeException(
+        throw new UnrecognizedCodeException(
             "JSBinaryExpression not implemented yet", pBinaryExpression);
     }
   }
@@ -190,7 +190,7 @@ public class ExpressionToFormulaVisitor
 
   @Override
   public TypedValue visit(final JSUnaryExpression pUnaryExpression)
-      throws UnrecognizedJSCodeException {
+      throws UnrecognizedCodeException {
     final TypedValue operand = visit(pUnaryExpression.getOperand());
     switch (pUnaryExpression.getOperator()) {
       case NOT:
@@ -202,7 +202,7 @@ public class ExpressionToFormulaVisitor
       case VOID:
         return conv.tvmgr.getUndefinedValue();
       default:
-        throw new UnrecognizedJSCodeException(
+        throw new UnrecognizedCodeException(
             "JSUnaryExpression not implemented yet", pUnaryExpression);
     }
   }
@@ -229,9 +229,8 @@ public class ExpressionToFormulaVisitor
   }
 
   @Override
-  public TypedValue visit(final JSThisExpression pThisExpression)
-      throws UnrecognizedJSCodeException {
-    throw new UnrecognizedJSCodeException("JSThisExpression not implemented yet", pThisExpression);
+  public TypedValue visit(final JSThisExpression pThisExpression) throws UnrecognizedCodeException {
+    throw new UnrecognizedCodeException("JSThisExpression not implemented yet", pThisExpression);
   }
 
   @Override
@@ -250,7 +249,7 @@ public class ExpressionToFormulaVisitor
   }
 
   @Override
-  public TypedValue visit(final JSIdExpression pIdExpression) throws UnrecognizedJSCodeException {
+  public TypedValue visit(final JSIdExpression pIdExpression) throws UnrecognizedCodeException {
     final JSSimpleDeclaration declaration = pIdExpression.getDeclaration();
     if (declaration == null) {
       return handlePredefined(pIdExpression);
@@ -264,7 +263,7 @@ public class ExpressionToFormulaVisitor
   }
 
   private TypedValue handlePredefined(final JSIdExpression pIdExpression)
-      throws UnrecognizedJSCodeException {
+      throws UnrecognizedCodeException {
     final String name = pIdExpression.getName();
     switch (name) {
       case "Infinity":
@@ -272,7 +271,7 @@ public class ExpressionToFormulaVisitor
       case "NaN":
         return conv.tvmgr.createNumberValue(conv.fpfmgr.makeNaN(Types.NUMBER_TYPE));
       default:
-        throw new UnrecognizedJSCodeException(
+        throw new UnrecognizedCodeException(
             "Variable without declaration is not defined on global object", pIdExpression);
     }
   }

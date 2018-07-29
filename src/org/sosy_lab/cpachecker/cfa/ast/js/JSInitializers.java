@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast.js;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedJSCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class JSInitializers {
 
@@ -39,7 +39,7 @@ public class JSInitializers {
    * @return A (possibly empty) list of assignment statements.
    */
   public static List<JSExpressionAssignmentStatement> convertToAssignments(
-      JSVariableDeclaration decl, CFAEdge edge) throws UnrecognizedJSCodeException {
+      JSVariableDeclaration decl, CFAEdge edge) throws UnrecognizedCodeException {
 
     JSInitializer init = decl.getInitializer();
     if (init == null) {
@@ -56,7 +56,7 @@ public class JSInitializers {
       return ImmutableList.of(assignment);
 
     } else {
-      throw new UnrecognizedJSCodeException("Unknown initializer type", edge, init);
+      throw new UnrecognizedCodeException("Unknown initializer type", edge, init);
     }
   }
 
