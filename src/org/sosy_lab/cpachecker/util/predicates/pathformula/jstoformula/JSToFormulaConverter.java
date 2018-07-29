@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.JSToFormulaTypeUtils.areEqualWithMatchingPointerArray;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.JSToFormulaTypeUtils.getRealFieldOwner;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.SCOPE_TYPE;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableMap;
@@ -229,6 +230,7 @@ public class JSToFormulaConverter {
   // TODO this option should be removed as soon as NaN and float interpolation can be used together
   @Option(secure = true, description = "Do not check for NaN in operations")
   private boolean useNaN = true;
+  protected final IntegerFormula mainScope;
 
   public JSToFormulaConverter(
       FormulaEncodingOptions pOptions,
@@ -267,6 +269,7 @@ public class JSToFormulaConverter {
     typeTags = new TypeTags(nfmgr);
     tvmgr = new TypedValueManager(typedValues, typeTags);
     stringIds = new StringIds();
+    mainScope = fmgr.makeNumber(SCOPE_TYPE, 0);
   }
 
   void logfOnce(Level level, CFAEdge edge, String msg, Object... args) {
@@ -1552,7 +1555,9 @@ public class JSToFormulaConverter {
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException {
     final TypedValue r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
-    final IntegerFormula l = buildLvalueTerm((JSIdExpression) lhs, ssa);
+    assert lhs instanceof JSIdExpression
+        : "Only assignment to variable is implemented yet";
+    final IntegerFormula l = typedValues.var(mainScope, buildLvalueTerm((JSIdExpression) lhs, ssa));
     final IntegerFormula rType = r.getType();
     if (rType.equals(typeTags.BOOLEAN)) {
       return bfmgr.and(

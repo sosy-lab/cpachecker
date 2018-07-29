@@ -29,6 +29,7 @@ import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 public class Types {
+  static final FormulaType<IntegerFormula> SCOPE_TYPE = FormulaType.IntegerType;
   static final FormulaType<IntegerFormula> VARIABLE_TYPE = FormulaType.IntegerType;
   static final FormulaType<IntegerFormula> JS_TYPE_TYPE = FormulaType.IntegerType;
   static final FloatingPointType NUMBER_TYPE = FormulaType.getDoublePrecisionFloatingPointType();

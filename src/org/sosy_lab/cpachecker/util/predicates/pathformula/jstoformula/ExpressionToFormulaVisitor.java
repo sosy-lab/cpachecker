@@ -247,7 +247,7 @@ public class ExpressionToFormulaVisitor
             ssa);
     return conv.tvmgr.createBooleanValue(
         mgr.makeEqual(
-            conv.typedValues.functionValue(variable),
+            conv.typedValues.functionValue(conv.typedValues.var(conv.mainScope, variable)),
             mgr.makeNumber(
                 Types.FUNCTION_TYPE, pDeclaredByExpression.getJsFunctionDeclaration().hashCode())));
   }
@@ -262,7 +262,9 @@ public class ExpressionToFormulaVisitor
           mgr.makeNumber(Types.FUNCTION_TYPE, declaration.hashCode()));
     }
     final IntegerFormula variable =
-        conv.makeVariable(declaration.getQualifiedName(), pIdExpression.getExpressionType(), ssa);
+        conv.typedValues.var(
+            conv.mainScope,
+            conv.makeVariable(declaration.getQualifiedName(), pIdExpression.getExpressionType(), ssa));
     return new TypedValue(conv.typedValues.typeof(variable), variable);
   }
 

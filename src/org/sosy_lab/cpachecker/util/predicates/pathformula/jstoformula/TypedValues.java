@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Ty
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.FUNCTION_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.JS_TYPE_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.NUMBER_TYPE;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.SCOPE_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.VARIABLE_TYPE;
 
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
@@ -42,6 +43,7 @@ class TypedValues {
   private final FunctionDeclaration<FloatingPointFormula> numberValueDeclaration;
   private final FunctionDeclaration<IntegerFormula> functionValueDeclaration;
   private final FunctionDeclaration<IntegerFormula> stringValueDeclaration;
+  private final FunctionDeclaration<IntegerFormula> varDeclaration;
 
   TypedValues(final FunctionFormulaManagerView pFfmgr) {
     ffmgr = pFfmgr;
@@ -50,6 +52,7 @@ class TypedValues {
     numberValueDeclaration = pFfmgr.declareUF("numberValue", NUMBER_TYPE, VARIABLE_TYPE);
     functionValueDeclaration = pFfmgr.declareUF("functionValue", FUNCTION_TYPE, VARIABLE_TYPE);
     stringValueDeclaration = pFfmgr.declareUF("stringValue", FUNCTION_TYPE, VARIABLE_TYPE);
+    varDeclaration = pFfmgr.declareUF("var", VARIABLE_TYPE, SCOPE_TYPE, VARIABLE_TYPE);
   }
 
   IntegerFormula typeof(final IntegerFormula pVariable) {
@@ -70,5 +73,9 @@ class TypedValues {
 
   IntegerFormula stringValue(final IntegerFormula pVariable) {
     return ffmgr.callUF(stringValueDeclaration, pVariable);
+  }
+
+  IntegerFormula var(final IntegerFormula pScope, final IntegerFormula pVariable) {
+    return ffmgr.callUF(varDeclaration, pScope, pVariable);
   }
 }
