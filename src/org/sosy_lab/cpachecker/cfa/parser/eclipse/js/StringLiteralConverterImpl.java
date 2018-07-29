@@ -31,7 +31,6 @@ public class StringLiteralConverterImpl implements StringLiteralConverter {
   public JSStringLiteralExpression convert(
       final FileLocationProvider pFileLocationProvider, final StringLiteral pStringLiteral) {
     return new JSStringLiteralExpression(
-        pFileLocationProvider.getFileLocation(pStringLiteral),
-        pStringLiteral.getEscapedValue());
+        pFileLocationProvider.getFileLocation(pStringLiteral), pStringLiteral.getLiteralValue());
   }
 }
