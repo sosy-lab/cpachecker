@@ -1,5 +1,5 @@
 /*
- * CPAchecker is a tool for configurable software verification.
+ *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2018  Dirk Beyer
@@ -23,16 +23,24 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.FormulaType;
-import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
-import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import java.util.HashMap;
+import java.util.Map;
 
-public class Types {
-  static final FormulaType<IntegerFormula> VARIABLE_TYPE = FormulaType.IntegerType;
-  static final FormulaType<IntegerFormula> JS_TYPE_TYPE = FormulaType.IntegerType;
-  static final FloatingPointType NUMBER_TYPE = FormulaType.getDoublePrecisionFloatingPointType();
-  static final FormulaType<BooleanFormula> BOOLEAN_TYPE = FormulaType.BooleanType;
-  static final FormulaType<IntegerFormula> FUNCTION_TYPE = FormulaType.IntegerType;
-  static final FormulaType<IntegerFormula> STRING_TYPE = FormulaType.IntegerType;
+class StringIds {
+  private final Map<String, Integer> ids;
+  private int currentId;
+
+  StringIds() {
+    currentId = 0;
+    ids = new HashMap<>();
+  }
+
+  public int get(final String pValue) {
+    if (ids.containsKey(pValue)) {
+      return ids.get(pValue);
+    }
+    ++currentId;
+    ids.put(pValue, currentId);
+    return currentId;
+  }
 }

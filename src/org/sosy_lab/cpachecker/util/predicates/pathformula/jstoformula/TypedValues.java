@@ -41,6 +41,7 @@ class TypedValues {
   private final FunctionDeclaration<BooleanFormula> booleanValueDeclaration;
   private final FunctionDeclaration<FloatingPointFormula> numberValueDeclaration;
   private final FunctionDeclaration<IntegerFormula> functionValueDeclaration;
+  private final FunctionDeclaration<IntegerFormula> stringValueDeclaration;
 
   TypedValues(final FunctionFormulaManagerView pFfmgr) {
     ffmgr = pFfmgr;
@@ -48,6 +49,7 @@ class TypedValues {
     booleanValueDeclaration = pFfmgr.declareUF("booleanValue", BOOLEAN_TYPE, VARIABLE_TYPE);
     numberValueDeclaration = pFfmgr.declareUF("numberValue", NUMBER_TYPE, VARIABLE_TYPE);
     functionValueDeclaration = pFfmgr.declareUF("functionValue", FUNCTION_TYPE, VARIABLE_TYPE);
+    stringValueDeclaration = pFfmgr.declareUF("stringValue", FUNCTION_TYPE, VARIABLE_TYPE);
   }
 
   IntegerFormula typeof(final IntegerFormula pVariable) {
@@ -64,5 +66,9 @@ class TypedValues {
 
   IntegerFormula functionValue(final IntegerFormula pVariable) {
     return ffmgr.callUF(functionValueDeclaration, pVariable);
+  }
+
+  IntegerFormula stringValue(final IntegerFormula pVariable) {
+    return ffmgr.callUF(stringValueDeclaration, pVariable);
   }
 }

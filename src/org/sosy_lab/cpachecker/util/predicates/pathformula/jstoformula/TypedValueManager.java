@@ -58,9 +58,8 @@ class TypedValueManager {
     return new TypedValue(typeTags.NUMBER, pFloatingPointFormula);
   }
 
-  @SuppressWarnings("unused")
-  TypedValue createStringValue(final String pString) {
-    return new StringValue();
+  TypedValue createStringValue(final IntegerFormula pStringId) {
+    return new TypedValue(typeTags.STRING, pStringId);
   }
 
   TypedValue createFunctionValue(final IntegerFormula pFunctionDeclarationId) {
@@ -95,17 +94,4 @@ class TypedValueManager {
     }
   }
 
-  private class StringValue extends TypedValue {
-
-    StringValue() {
-      super(typeTags.STRING, typeTags.OBJECT);
-    }
-
-    @Nonnull
-    @Override
-    public Formula getValue() {
-      throw new RuntimeException(
-          "Can not get value of string. String values are not supported yet.");
-    }
-  }
 }

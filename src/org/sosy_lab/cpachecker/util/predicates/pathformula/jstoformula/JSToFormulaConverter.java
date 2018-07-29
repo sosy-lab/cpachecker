@@ -43,6 +43,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.logging.Level;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -196,6 +197,7 @@ public class JSToFormulaConverter {
   final TypedValues typedValues;
   final TypeTags typeTags;
   final TypedValueManager tvmgr;
+  private final StringIds stringIds;
   private int nextStringLitIndex = 0;
 
   final FormulaEncodingOptions options;
@@ -264,6 +266,7 @@ public class JSToFormulaConverter {
     typedValues = new TypedValues(ffmgr);
     typeTags = new TypeTags(nfmgr);
     tvmgr = new TypedValueManager(typedValues, typeTags);
+    stringIds = new StringIds();
   }
 
   void logfOnce(Level level, CFAEdge edge, String msg, Object... args) {
@@ -1566,6 +1569,11 @@ public class JSToFormulaConverter {
           fmgr.assignment(typedValues.typeof(l), typeTags.NUMBER),
           fmgr.makeEqual(typedValues.numberValue(l), r.getValue()));
     }
+    if (rType.equals(typeTags.STRING)) {
+      return bfmgr.and(
+          fmgr.assignment(typedValues.typeof(l), typeTags.STRING),
+          fmgr.makeEqual(typedValues.stringValue(l), r.getValue()));
+    }
     return fmgr.makeAnd(
         fmgr.assignment(typedValues.typeof(l), r.getType()),
         bfmgr.or(
@@ -1578,8 +1586,10 @@ public class JSToFormulaConverter {
             fmgr.makeAnd(
                 fmgr.makeEqual(typedValues.typeof(l), typeTags.NUMBER),
                 fmgr.makeEqual(typedValues.numberValue(l), toNumber(r))),
+            fmgr.makeAnd(
+                fmgr.makeEqual(typedValues.typeof(l), typeTags.STRING),
+                fmgr.makeEqual(typedValues.stringValue(l), toStringFormula(r))),
             fmgr.makeEqual(typedValues.typeof(l), typeTags.OBJECT),
-            fmgr.makeEqual(typedValues.typeof(l), typeTags.STRING),
             fmgr.makeEqual(typedValues.typeof(l), typeTags.UNDEFINED)));
   }
 
@@ -1598,6 +1608,31 @@ public class JSToFormulaConverter {
         fmgr.makeEqual(type, typeTags.FUNCTION), typedValues.functionValue(variable), notAFunction);
   }
 
+  IntegerFormula toStringFormula(final TypedValue pValue) {
+    final IntegerFormula type = pValue.getType();
+    final IntegerFormula unknownStringValue = fmgr.makeNumber(Types.STRING_TYPE, 0);
+    if (Lists.newArrayList(
+            typeTags.BOOLEAN,
+            typeTags.NUMBER,
+            typeTags.OBJECT,
+            typeTags.FUNCTION,
+            typeTags.UNDEFINED)
+        .contains(type)) {
+      return unknownStringValue;
+    } else if (type.equals(typeTags.STRING)) {
+      return (IntegerFormula) pValue.getValue();
+    }
+    final IntegerFormula variable = (IntegerFormula) pValue.getValue();
+    return bfmgr.ifThenElse(
+        fmgr.makeEqual(type, typeTags.STRING),
+        typedValues.stringValue(variable),
+        unknownStringValue);
+  }
+
+  IntegerFormula getStringFormula(final String pValue) {
+    return fmgr.makeNumber(Types.STRING_TYPE, stringIds.get(pValue));
+  }
+
   BooleanFormula toBoolean(final TypedValue pValue) {
     final IntegerFormula type = pValue.getType();
     if (type.equals(typeTags.BOOLEAN)) {
@@ -1607,9 +1642,7 @@ public class JSToFormulaConverter {
     } else if (type.equals(typeTags.NUMBER)) {
       return numberToBoolean((FloatingPointFormula) pValue.getValue());
     } else if (type.equals(typeTags.STRING)) {
-      // TODO empty string to boolean conversion of string constants should be possible
-      // For now, assume that every string is not empty.
-      return bfmgr.makeTrue();
+      return stringToBoolean((IntegerFormula) pValue.getValue());
     } else if (type.equals(typeTags.UNDEFINED)) {
       return bfmgr.makeFalse();
     } else if (type.equals(typeTags.OBJECT)) {
@@ -1623,10 +1656,16 @@ public class JSToFormulaConverter {
           bfmgr.ifThenElse(
               fmgr.makeEqual(type, typeTags.NUMBER),
               numberToBoolean(typedValues.numberValue(variable)),
-              bfmgr.or(
-                  fmgr.makeEqual(type, typeTags.FUNCTION),
-                  fmgr.makeEqual(type, typeTags.STRING)))); // TODO empty string is false
+              bfmgr.ifThenElse(
+                  fmgr.makeEqual(type, typeTags.STRING),
+                  stringToBoolean(typedValues.stringValue(variable)),
+                  fmgr.makeEqual(type, typeTags.FUNCTION))));
     }
+  }
+
+  @Nonnull
+  private BooleanFormula stringToBoolean(final IntegerFormula pValue) {
+    return bfmgr.not(fmgr.makeEqual(pValue, getStringFormula("")));
   }
 
   private BooleanFormula numberToBoolean(final FloatingPointFormula pValue) {

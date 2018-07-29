@@ -169,12 +169,16 @@ public class ExpressionToFormulaVisitor
                 mgr.makeEqual(conv.toNumber(pLeftOperand), conv.toNumber(pRightOperand))),
             mgr.makeAnd(
                 mgr.makeEqual(conv.typeTags.BOOLEAN, leftType),
-                mgr.makeEqual(conv.toBoolean(pLeftOperand), conv.toBoolean(pRightOperand)))));
+                mgr.makeEqual(conv.toBoolean(pLeftOperand), conv.toBoolean(pRightOperand))),
+            mgr.makeAnd(
+                mgr.makeEqual(conv.typeTags.STRING, leftType),
+                mgr.makeEqual(
+                    conv.toStringFormula(pLeftOperand), conv.toStringFormula(pRightOperand)))));
   }
 
   @Override
   public TypedValue visit(final JSStringLiteralExpression pStringLiteralExpression) {
-    return conv.tvmgr.createStringValue(pStringLiteralExpression.getValue());
+    return conv.tvmgr.createStringValue(conv.getStringFormula(pStringLiteralExpression.getValue()));
   }
 
   @Override

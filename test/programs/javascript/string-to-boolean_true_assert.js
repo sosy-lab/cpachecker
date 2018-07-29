@@ -1,10 +1,10 @@
 function __VERIFIER_error() {}
 
-if ('0' === 0){
+var empty = '';
+if (empty) {
   __VERIFIER_error();
 }
-
-var str = 'foo';
-if (str !== 'foo') {
+var notEmpty = 'abc';
+if (!notEmpty) {
   __VERIFIER_error();
 }

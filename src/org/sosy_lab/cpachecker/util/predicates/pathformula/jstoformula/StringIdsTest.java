@@ -1,5 +1,5 @@
 /*
- * CPAchecker is a tool for configurable software verification.
+ *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2018  Dirk Beyer
@@ -23,16 +23,19 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.FormulaType;
-import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
-import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import com.google.common.truth.Truth;
+import org.junit.Test;
 
-public class Types {
-  static final FormulaType<IntegerFormula> VARIABLE_TYPE = FormulaType.IntegerType;
-  static final FormulaType<IntegerFormula> JS_TYPE_TYPE = FormulaType.IntegerType;
-  static final FloatingPointType NUMBER_TYPE = FormulaType.getDoublePrecisionFloatingPointType();
-  static final FormulaType<BooleanFormula> BOOLEAN_TYPE = FormulaType.BooleanType;
-  static final FormulaType<IntegerFormula> FUNCTION_TYPE = FormulaType.IntegerType;
-  static final FormulaType<IntegerFormula> STRING_TYPE = FormulaType.IntegerType;
+public class StringIdsTest {
+  @Test
+  public final void test() {
+    final StringIds ids = new StringIds();
+    Truth.assertThat(ids.get("foo")).isEqualTo(1);
+    Truth.assertThat(ids.get("bar")).isEqualTo(2);
+    Truth.assertThat(ids.get("foo")).isEqualTo(1);
+    Truth.assertThat(ids.get("foobar")).isEqualTo(3);
+    Truth.assertThat(ids.get("foobar")).isEqualTo(3);
+    Truth.assertThat(ids.get("bar")).isEqualTo(2);
+    Truth.assertThat(ids.get("Bar")).isEqualTo(4);
+  }
 }
