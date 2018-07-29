@@ -27,8 +27,10 @@ import static org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge.assume;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.BiFunction;
+import javax.annotation.Nonnull;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -53,11 +55,13 @@ import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 
 public class UnknownFunctionCallerDeclarationBuilder implements FunctionDeclarationAppendable {
   private static final String returnVariableName = "__retval__";
+  public static final int maxParameterCount = 10;
   private final FunctionDeclarationAppendable functionDeclarationAppendable;
   private final JSFunctionDeclaration unknownFunctionCallerDeclaration;
   private final JSFunctionEntryNode entryNode;
   private final FunctionExitNode exitNode;
   private final JSParameterDeclaration functionObjectParameter;
+  private final ArrayList<JSExpression> parameterIds;
   private CFAEdge lastDefaultReturnEdge;
   private JavaScriptCFABuilder unknownFunctionCallerCFABuilder;
   private JSIdExpression returnVariableId;
@@ -71,13 +75,21 @@ public class UnknownFunctionCallerDeclarationBuilder implements FunctionDeclarat
     final String functionName = originalFunctionName;
     final String functionQualifiedName = originalFunctionName;
     functionObjectParameter = new JSParameterDeclaration(FileLocation.DUMMY, "functionObject");
+    parameterIds = new ArrayList<>(maxParameterCount);
+    final ArrayList<JSParameterDeclaration> parameters =
+        Lists.newArrayList(functionObjectParameter);
+    for (int i = 0; i < maxParameterCount; i++) {
+      final JSParameterDeclaration p = new JSParameterDeclaration(FileLocation.DUMMY, "p" + i);
+      parameters.add(p);
+      parameterIds.add(new JSIdExpression(FileLocation.DUMMY, p));
+    }
     unknownFunctionCallerDeclaration =
         new JSFunctionDeclaration(
             FileLocation.DUMMY,
             functionName,
             originalFunctionName,
             functionQualifiedName,
-            Lists.newArrayList(functionObjectParameter));
+            parameters);
     final JSVariableDeclaration returnVariableDeclaration =
         new JSVariableDeclaration(
             FileLocation.DUMMY,
@@ -130,7 +142,7 @@ public class UnknownFunctionCallerDeclarationBuilder implements FunctionDeclarat
                         new JSFunctionCallExpression(
                             functionDeclarationFileLocation,
                             new JSIdExpression(FileLocation.DUMMY, jsFunctionDeclaration),
-                            Collections.emptyList(), // TODO forward parameters
+                            getParameterIds(jsFunctionDeclaration),
                             jsFunctionDeclaration))))
             .appendEdge(exitNode, returnEdgeWithValue(resultVariableId))
             .getParseResult());
@@ -139,6 +151,13 @@ public class UnknownFunctionCallerDeclarationBuilder implements FunctionDeclarat
     CFACreationUtils.addEdgeToCFA(lastDefaultReturnEdge, pBuilder.getLogger());
     pBuilder.addParseResult(unknownFunctionCallerCFABuilder.getParseResult());
     return jsFunctionDeclaration;
+  }
+
+  @Nonnull
+  private List<JSExpression> getParameterIds(final JSFunctionDeclaration pJsFunctionDeclaration) {
+    final int parameterCount = pJsFunctionDeclaration.getParameters().size();
+    assert parameterCount <= maxParameterCount;
+    return parameterIds.subList(0, parameterCount);
   }
 
   private void initUnknownFunctionCallerCFABuilder(final JavaScriptCFABuilder pBuilder) {

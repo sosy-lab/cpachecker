@@ -1,9 +1,14 @@
 ../programs/javascript/break-while-statement_true_assert.js
+../programs/javascript/closure-immediately-invoked-function-expression_true_assert.js
 ../programs/javascript/continue-labeled-while-statement_true_assert.js
 ../programs/javascript/continue-while-statement_true_assert.js
 ../programs/javascript/for-statement_true_assert.js
 ../programs/javascript/nested-function-declaration-with-parameters_true_assert.js
 ../programs/javascript/nested-function-declaration_true_assert.js
+../programs/javascript/pass-fewer-arguments-to-function-than-declared_false_assert.js
+../programs/javascript/pass-fewer-arguments-to-function-than-declared_true_assert.js
+../programs/javascript/pass-more-arguments-to-function-than-declared_false_assert.js
+../programs/javascript/pass-more-arguments-to-function-than-declared_true_assert.js
 ../programs/javascript/simple-function-declaration_true_assert.js
 ../programs/javascript/simple-function-declaration-with-return_true_assert.js
 ../programs/javascript/simple-function-declaration-with-unreachable-second-return_true_assert.js
@@ -18,4 +23,6 @@
 ../programs/javascript/switch-without-default-and-always-fall-through_true_assert.js
 ../programs/javascript/switch-without-default_true_assert.js
 ../programs/javascript/unknown-function-declaration-call-with-indirect-assignment_true_assert.js
+../programs/javascript/unknown-function-declaration-call-with-parameters_true_assert.js
+../programs/javascript/unknown-function-declaration-call-with-parameters_false_assert.js
 ../programs/javascript/unknown-function-declaration-call_true_assert.js

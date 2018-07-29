@@ -36,6 +36,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -51,6 +52,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
@@ -79,6 +81,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSStatement;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -92,6 +95,7 @@ import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.js.UnknownFunctionCallerDeclarationBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -1430,35 +1434,24 @@ public class JSToFormulaConverter {
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException {
 
-    final List<JSExpression> actualParams = edge.getArguments();
+    final Iterator<JSExpression> actualParams = edge.getArguments().iterator();
 
     final JSFunctionEntryNode fn = edge.getSuccessor();
     final List<JSParameterDeclaration> formalParams = fn.getFunctionParameters();
 
-    // TODO handle that function call has different parameter count than function definition
-    if (fn.getFunctionDefinition().getType().takesVarArgs()) {
-      if (formalParams.size() > actualParams.size()) {
-        throw new UnrecognizedCodeException("Number of parameters on function call does " +
-            "not match function definition", edge);
-      }
-
-      if (!SAFE_VAR_ARG_FUNCTIONS.contains(fn.getFunctionName())) {
-        logfOnce(Level.WARNING, edge,
-            "Ignoring parameters passed as varargs to function %s",
-            fn.getFunctionName());
-      }
-
-    } else {
-      if (formalParams.size() != actualParams.size()) {
-        throw new UnrecognizedCodeException("Number of parameters on function call does " +
-            "not match function definition", edge);
-      }
+    if (UnknownFunctionCallerDeclarationBuilder.maxParameterCount < edge.getArguments().size()) {
+      throw new UnrecognizedCodeException(
+          "Cannot handle more function arguments than "
+              + UnknownFunctionCallerDeclarationBuilder.maxParameterCount
+              + " (configured in UnknownFunctionCallerDeclarationBuilder.maxParameterCount)",
+          edge);
     }
-
-    int i = 0;
     BooleanFormula result = bfmgr.makeTrue();
     for (JSParameterDeclaration formalParam : formalParams) {
-      JSExpression paramExpression = actualParams.get(i++);
+      JSExpression paramExpression =
+          actualParams.hasNext()
+              ? actualParams.next()
+              : new JSUndefinedLiteralExpression(FileLocation.DUMMY);
       JSIdExpression lhs = new JSIdExpression(paramExpression.getFileLocation(), formalParam);
       final JSIdExpression paramLHS;
       if (options.useParameterVariables()) {
