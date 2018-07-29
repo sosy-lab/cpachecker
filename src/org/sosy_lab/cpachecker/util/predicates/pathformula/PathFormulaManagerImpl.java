@@ -71,7 +71,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoWpConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.JSToFormulaConverter;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.JSToFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
@@ -132,11 +131,16 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         pCfa.getVarClassification(), pDirection);
   }
 
-  public PathFormulaManagerImpl(FormulaManagerView pFmgr,
-      Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
+  @SuppressWarnings("ResultOfMethodCallIgnored")
+  public PathFormulaManagerImpl(
+      FormulaManagerView pFmgr,
+      Configuration config,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
       MachineModel pMachineModel,
-      Optional<VariableClassification> pVariableClassification, AnalysisDirection pDirection)
-          throws InvalidConfigurationException {
+      Optional<VariableClassification> pVariableClassification,
+      AnalysisDirection pDirection)
+      throws InvalidConfigurationException {
 
     config.inject(this, PathFormulaManagerImpl.class);
 
@@ -205,10 +209,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             config,
             fmgr,
             pMachineModel,
-            pVariableClassification,
             logger,
             shutdownNotifier,
-            new JSToFormulaTypeHandler(pLogger, pMachineModel),
             pDirection);
 
     NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
@@ -223,6 +225,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return Pair.of(pf, errorConditions);
   }
 
+  @SuppressWarnings("ResultOfMethodCallIgnored")
   private PathFormula makeAnd(
       PathFormula pOldFormula, final CFAEdge pEdge, ErrorConditions errorConditions)
       throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
