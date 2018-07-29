@@ -1145,6 +1145,9 @@ public class FormulaManagerView {
           } else {
             out = manager.makeApplication(decl, newArgs);
           }
+          if (out instanceof WrappingFormula) {
+            out = ((WrappingFormula<?,?>) out).getWrapped();
+          }
           pCache.put(f, out);
         }
         return null;
