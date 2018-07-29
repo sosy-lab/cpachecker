@@ -54,6 +54,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -82,6 +83,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
@@ -515,8 +517,8 @@ public class JSToFormulaConverter {
    *
    * <p>This method does not update the index of the variable.
    */
-  protected IntegerFormula makeVariable(String name, JSType type, SSAMapBuilder ssa) {
-    int useIndex = getIndex(name, type, ssa);
+  protected IntegerFormula makeVariable(String name, SSAMapBuilder ssa) {
+    int useIndex = getIndex(name, JSAnyType.ANY, ssa);
     return fmgr.makeVariable(Types.VARIABLE_TYPE, name, useIndex);
   }
 
@@ -541,7 +543,7 @@ public class JSToFormulaConverter {
 //    Preconditions.checkArgument(!(pType instanceof CEnumType));
 
     SSAMapBuilder ssa = pContextSSA.builder();
-    Formula formula = makeVariable(pVarName, pType, ssa);
+    Formula formula = makeVariable(pVarName, ssa);
 
     if (!ssa.build().equals(pContextSSA)) {
       throw new IllegalArgumentException(
@@ -1532,6 +1534,16 @@ public class JSToFormulaConverter {
     return makeAssignment(lhs, lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
   }
 
+  IntegerFormula scopedVariable(
+      final JSSimpleDeclaration pDeclaration,
+      final SSAMapBuilder pSsa) {
+    final boolean isGlobal =
+        pDeclaration instanceof ADeclaration && ((ADeclaration) pDeclaration).isGlobal();
+    return typedValues.var(
+        isGlobal ? mainScope : fmgr.makeNumber(SCOPE_TYPE, 1),
+        makeVariable(pDeclaration.getQualifiedName(), pSsa));
+  }
+
   /**
    * Creates formula for the given assignment.
    *
@@ -1557,7 +1569,7 @@ public class JSToFormulaConverter {
     final TypedValue r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
     assert lhs instanceof JSIdExpression
         : "Only assignment to variable is implemented yet";
-    final IntegerFormula l = typedValues.var(mainScope, buildLvalueTerm((JSIdExpression) lhs, ssa));
+    final IntegerFormula l = buildLvalueTerm(((JSIdExpression) lhs).getDeclaration(), ssa);
     final IntegerFormula rType = r.getType();
     if (rType.equals(typeTags.BOOLEAN)) {
       return bfmgr.and(
@@ -1716,8 +1728,14 @@ public class JSToFormulaConverter {
         pValue, fmgr.makeNumber(Types.NUMBER_TYPE, 1), fmgr.makeNumber(Types.NUMBER_TYPE, 0));
   }
 
-  private IntegerFormula buildLvalueTerm(final JSIdExpression pLhs, final SSAMapBuilder pSsa) {
-    return makeFreshVariable(pLhs.getDeclaration().getQualifiedName(), pSsa);
+  private IntegerFormula buildLvalueTerm(
+      final JSSimpleDeclaration pDeclaration,
+      final SSAMapBuilder pSsa) {
+    final boolean isGlobal =
+        pDeclaration instanceof ADeclaration && ((ADeclaration) pDeclaration).isGlobal();
+    return typedValues.var(
+        isGlobal ? mainScope : fmgr.makeNumber(SCOPE_TYPE, 1),
+        makeFreshVariable(pDeclaration.getQualifiedName(), pSsa));
   }
 
   /**
@@ -2011,7 +2029,7 @@ public class JSToFormulaConverter {
     if (makeFresh) {
       return makeFreshVariable(var, exp.getExpressionType(), ssa);
     } else {
-      return makeVariable(var, exp.getExpressionType(), ssa);
+      return makeVariable(var, ssa);
     }
   }
 

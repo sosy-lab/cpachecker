@@ -241,13 +241,10 @@ public class ExpressionToFormulaVisitor
   public TypedValue visit(final JSDeclaredByExpression pDeclaredByExpression) {
     assert pDeclaredByExpression.getIdExpression().getDeclaration() != null;
     final IntegerFormula variable =
-        conv.makeVariable(
-            pDeclaredByExpression.getIdExpression().getDeclaration().getQualifiedName(),
-            JSAnyType.ANY,
-            ssa);
+        conv.scopedVariable(pDeclaredByExpression.getIdExpression().getDeclaration(), ssa);
     return conv.tvmgr.createBooleanValue(
         mgr.makeEqual(
-            conv.typedValues.functionValue(conv.typedValues.var(conv.mainScope, variable)),
+            conv.typedValues.functionValue(variable),
             mgr.makeNumber(
                 Types.FUNCTION_TYPE, pDeclaredByExpression.getJsFunctionDeclaration().hashCode())));
   }
@@ -261,10 +258,7 @@ public class ExpressionToFormulaVisitor
       return conv.tvmgr.createFunctionValue(
           mgr.makeNumber(Types.FUNCTION_TYPE, declaration.hashCode()));
     }
-    final IntegerFormula variable =
-        conv.typedValues.var(
-            conv.mainScope,
-            conv.makeVariable(declaration.getQualifiedName(), pIdExpression.getExpressionType(), ssa));
+    final IntegerFormula variable = conv.scopedVariable(declaration, ssa);
     return new TypedValue(conv.typedValues.typeof(variable), variable);
   }
 
