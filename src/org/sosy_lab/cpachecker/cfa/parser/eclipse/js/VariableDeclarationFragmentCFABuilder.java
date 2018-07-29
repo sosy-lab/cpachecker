@@ -24,8 +24,10 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 
@@ -37,7 +39,10 @@ class VariableDeclarationFragmentCFABuilder implements VariableDeclarationFragme
       final JavaScriptCFABuilder pBuilder,
       final VariableDeclarationFragment pVariableDeclarationFragment) {
     final String variableIdentifier = pVariableDeclarationFragment.getName().getIdentifier();
-    final JSExpression expression = pBuilder.append(pVariableDeclarationFragment.getInitializer());
+    final JSExpression expression =
+        pVariableDeclarationFragment.getInitializer() == null
+          ? new JSUndefinedLiteralExpression(FileLocation.DUMMY)
+          : pBuilder.append(pVariableDeclarationFragment.getInitializer());
     final JSVariableDeclaration variableDeclaration =
         new JSVariableDeclaration(
             pBuilder.getFileLocation(pVariableDeclarationFragment),
