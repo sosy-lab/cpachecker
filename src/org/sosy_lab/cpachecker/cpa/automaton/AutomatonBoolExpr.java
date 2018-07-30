@@ -1314,7 +1314,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   /** Tests whether two instances of {@link AutomatonIntExpr} evaluate to different integers. */
   static class IntNotEqTest extends IntBinaryTest {
     public IntNotEqTest(AutomatonIntExpr pA, AutomatonIntExpr pB) {
-      super(pA, pB, ((a, b) -> a.equals(b)), "!=");
+      super(pA, pB, ((a, b) -> !a.equals(b)), "!=");
     }
   }
 
