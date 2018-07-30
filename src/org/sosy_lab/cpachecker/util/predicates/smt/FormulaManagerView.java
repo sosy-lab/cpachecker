@@ -1075,6 +1075,8 @@ public class FormulaManagerView {
     toProcess.push(pFormula);
 
     FormulaVisitor<Void> process = new FormulaVisitor<Void>() {
+      // This visitor works with unwrapped formulas.
+      // After calls to other methods that might return wrapped formulas we need to unwrap them.
 
       @Override
       public Void visitFreeVariable(Formula f, String name) {
@@ -1129,11 +1131,10 @@ public class FormulaManagerView {
           Formula out;
           if (decl.getKind() == FunctionDeclarationKind.UF) {
 
-            out = functionFormulaManager.declareAndCallUF(
-                pRenameFunction.apply(decl.getName()),
-                getFormulaType(f),
-                newArgs
-            );
+            out =
+                unwrap(
+                    functionFormulaManager.declareAndCallUF(
+                        pRenameFunction.apply(decl.getName()), getFormulaType(f), newArgs));
 
           } else {
             out = manager.makeApplication(decl, newArgs);
