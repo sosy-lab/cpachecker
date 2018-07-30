@@ -1,54 +1,74 @@
 #include <stdlib.h>
 
-struct SLL {
-  struct SLL *next;
+typedef struct node {
+  struct node* next;
   int data;
-};
+} *SLL;
 
-typedef struct SLL *node;
-
-node create_node() {
-  node temp = (struct SLL *) malloc(sizeof(struct SLL));
+SLL create_node(int data) {
+  SLL temp = (SLL) malloc(sizeof(struct node));
   temp->next = NULL;
-  temp->data = 0;
+  temp->data = data;
   return temp;
 }
 
-void update_sll_node(node head, int idx, int data) {
-  if(NULL == head) {
-    return;
-  } else {
-    node p = head;
-    while(head != p->next && idx > 0) {
-      p = p->next;
-      --idx;
+void _assert(int x) {
+  if(!x) {
+    create_node(-1);
+  }
+}
+
+void sll_check_data(SLL head, int expected) {
+  if(head) {
+    SLL temp = head->next;
+    while(head != temp) {
+      _assert(expected == temp->data);
+      temp = temp->next;
     }
-    if(0 == idx) {
-      p->data = data;
+    _assert(expected = head->data);
+  }
+}
+
+void sll_update_all(SLL head, int new_value) {
+  if(head) {
+    SLL temp = head->next;
+    while(head != temp) {
+      temp->data = new_value;
+      temp = temp->next;
     }
+    head->data = new_value;
+  }
+}
+
+void sll_circular_destroy(SLL head) {
+  if(head) {
+    SLL p = head->next;
+    while(head != p) {
+      SLL q = p->next;
+      free(p);
+      p = q;
+    }
+    free(head);
   }
 }
 
 int main(void) {
 
-  node a = create_node();
-  node b = create_node();
-  a->data = 5;
-  b->data = 5;
+  const int data_1 = 5;
+  const int data_2 = 7;
+
+  SLL a = create_node(data_1);
+  SLL b = create_node(data_1);
   a->next = b;
   b->next = a;
-
-  // remove external pointer
+  
   b = NULL;
+  sll_check_data(a, data_1);
+  
+  sll_update_all(a, data_2);
+  sll_check_data(a, data_2);
 
-  int i = 0;
-  while(i < 2) {
-    update_sll_node(a, i, 7);
-    ++i;
-  }
-  
-  free(a->next);
-  free(a);
-  
-  return EXIT_SUCCESS;
+  sll_circular_destroy(a);
+
+  return 0;
 }

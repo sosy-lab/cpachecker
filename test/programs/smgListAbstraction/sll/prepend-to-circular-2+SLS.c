@@ -1,58 +1,64 @@
 #include <stdlib.h>
 
-struct SLL {
-  struct SLL *next;
+typedef struct node {
+  struct node *next;
   int data;
-};
+} *SLL;
 
-typedef struct SLL *node;
-
-node create_node() {
-  node temp = (struct SLL *) malloc(sizeof(struct SLL));
+SLL node_create(int data) {
+  SLL temp = (SLL) malloc(sizeof(struct node));
   temp->next = NULL;
-  temp->data = 0;
+  temp->data = data;
   return temp;
 }
 
-void free_sll(node head) {
-  node p = head->next;
-  while(p != head) {
-    node q = p->next;
-    free(p);
-    p = q;
+void _assert(int x) {
+  if(!x) {
+    node_create(-1);
   }
-  free(head);
 }
 
-node prepend_to_cyclic_sll(node head, int data) {
-  node new_head = create_node();
-  new_head->data = data;
-  new_head->next = head;
-  if(NULL != head) {
-    node last = head;
-    while(head != last->next) {
+void sll_circular_check_and_destroy(SLL head, int expected) {
+  if(head) {
+    SLL p = head->next;
+    while(p != head) {
+      SLL q = p->next;
+      _assert(expected == p->data);
+      free(p);
+      p = q;
+    }
+    free(head);
+  }
+}
+
+void sll_circular_prepend(SLL* head, int data) {
+  SLL new_head = node_create(data);
+  if(NULL == *head) {
+    new_head->next = new_head;
+  } else {
+    new_head->next = *head;
+    SLL last = *head;
+    while(*head != last->next) {
       last = last->next;
     }
     last->next = new_head;
   }
-  return new_head;
+  *head = new_head;
 }
 
 int main(void) {
 
-  node a = create_node();
-  node b = create_node();
-  a->data = 5;
-  b->data = 5;
+  const int data = 5;
+
+  SLL a = node_create(data);
+  SLL b = node_create(data);
   a->next = b;
   b->next = a;
 
-  // remove external pointer
   b = NULL;
+  sll_circular_prepend(&a, data);
 
-  a = prepend_to_cyclic_sll(a, 7);
-
-  free_sll(a);
+  sll_circular_check_and_destroy(a, data);
   
   return 0;
 }

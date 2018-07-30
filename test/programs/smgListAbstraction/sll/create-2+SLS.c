@@ -1,39 +1,35 @@
 #include <stdlib.h>
 
-struct SLL {
-  struct SLL *next;
+typedef struct node {
+  struct node* next;
   int data;
-};
+} *SLL;
 
-typedef struct SLL *node;
-
-node create_node() {
-  node temp = (struct SLL *) malloc(sizeof(struct SLL));
+SLL node_create(int data) {
+  SLL temp = (node *) malloc(sizeof(struct node));
   temp->next = NULL;
-  temp->data = 0;
+  temp->data = data;
   return temp;
 }
 
-void free_sll(node head) {
-  while(NULL != head) {
-    node p = head->next;
+void sll_destroy(SLL head) {
+  while(head) {
+    SLL temp = head->next;
     free(head);
-    head = p;
+    head = temp;
   }
 }
 
-int main() {
+int main(void) {
 
-  node a = create_node();
-  node b = create_node();
-  a->data = 5;
-  b->data = 5;
+  const int data = 5;
+
+  SLL a = node_create(data);
+  SLL b = node_create(data);
   a->next = b;
 
-  // remove external pointer
   b = NULL;
-  
-  free_sll(a);
+  sll_destroy(a);
     
   return 0;
 }

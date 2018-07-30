@@ -1,42 +1,48 @@
 #include <stdlib.h>
 
-struct SLL {
-  struct SLL *next;
+typedef struct node {
+  struct node* next;
   int data;
-};
+} *SLL;
 
-typedef struct SLL *node;
-
-node create_node() {
-  node temp = (struct SLL *) malloc(sizeof(struct SLL));
+SLL node_create(int data) {
+  SLL temp = (SLL) malloc(sizeof(struct node));
   temp->next = NULL;
-  temp->data = 0;
+  temp->data = data;
   return temp;
 }
 
-void free_circular_SLL(node head) {
-  node second = head->next;
-  while(second != head) {
-    node third = second->next;
-    free(second);
-    second = third;
+void _assert(int x) {
+  if(!x) {
+    node_create(-1);
   }
-  free(head);
 }
 
-int main() {
+void sll_check_and_destroy(SLL head, int expected) {
+  if(head) {
+    SLL p = head->next;
+    while(p != head) {
+      SLL q = p->next;
+      _assert(expected == p->data);
+      free(p);
+      p = q;
+    }
+    _assert(expected == head->data);
+    free(head);
+  }
+}
 
-  node a = create_node();
-  node b = create_node();
-  a->data = 5;
-  b->data = 7;
+int main(void) {
+
+  const int data = 5;
+
+  SLL a = node_create(data);
+  SLL b = node_create(data);
   a->next = b;
   b->next = a;
 
-  // remove external pointer
   b = NULL;
+  sll_check_and_destroy(a, data);
 
-  free_circular_SLL(a);
-    
   return 0;
 }

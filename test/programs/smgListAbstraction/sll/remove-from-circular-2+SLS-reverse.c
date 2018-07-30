@@ -1,53 +1,44 @@
 #include <stdlib.h>
 
-struct SLL {
-  struct SLL *next;
+typedef struct node {
+  struct node *next;
   int data;
-};
+} *SLL;
 
-typedef struct SLL *node;
-
-node create_node() {
-  node temp = (struct SLL *) malloc(sizeof(struct SLL));
+SLL node_create(int data) {
+  SLL temp = (SLL) malloc(sizeof(struct node));
   temp->next = NULL;
-  temp->data = 0;
+  temp->data = data;
   return temp;
 }
 
-node remove_last_node_from_sll(node head) {
-  if(NULL == head) {
-    return NULL;
-  } else if(head == head->next) {
-    free(head);
-    return NULL;
-  } else {
-    node last = head->next;
-    node second_to_last = head;
-    while(head != last->next) {
+void sll_reverse_destroy(SLL head) {
+  while(head) {
+    SLL second_to_last = NULL;
+    SLL last = head;
+    while(last->next) {
       second_to_last = last;
       last = last->next;
     }
     free(last);
-    second_to_last->next = head;
-    return head;
+    if(second_to_last) {
+      second_to_last->next = NULL;
+    }
   }
 }
 
 int main(void) {
 
-  node a = create_node();
-  node b = create_node();
-  a->data = 5;
-  b->data = 5;
+  const int data = 5;
+
+  SLL a = node_create(data);
+  SLL b = node_create(data);
   a->next = b;
   b->next = a;
 
-  // remove external pointer
   b = NULL;
 
-  while(NULL != a) {
-    a = remove_last_node_from_sll(a);
-  }
+  sll_reverse_destroy(a);
   
   return 0;
 }

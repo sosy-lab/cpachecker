@@ -1,69 +1,69 @@
 #include <stdlib.h>
 
-struct SLL {
-  struct SLL *next;
+#include <stdlib.h>
+
+typedef struct node {
+  struct node* next;
   int data;
-};
+} *SLL;
 
-typedef struct SLL node;
-
-int len(node* head) {
-  int l = 0;
-  while(NULL != head) {
-    l++;
-    head = head->next;
-  }
-  return l;
+SLL node_create(int data) {
+  SLL temp = (SLL) malloc(sizeof(struct node));
+  temp->next = NULL;
+  temp->data = data;
+  return temp;
 }
 
-void append_to_sll(node** head, int data) {
-  node* new_node = create_node(data);
+void sll_append(SLL* head, int data) {
+  SLL new_node = node_create(data);
   if(NULL == *head) {
     *head = new_node;
   } else {
-    node* temp = *head;
-    while(NULL != temp->next) {
+    SLL temp = *head;
+    while(temp->next) {
       temp = temp->next;
     }
     temp->next = new_node;
   }
 }
 
-void free_sll(node* head) {
-  while(NULL != head) {
-    node* temp = head->next;
+void _assert(int x) {
+  if(!x) {
+    node_create(-1);
+  }
+}
+
+int sll_length(SLL head) {
+  int len = 0;
+  while(head) {
+    len++;
+    head = head->next;
+  }
+  return len;
+}
+
+void free_sll(SLL head) {
+  while(head) {
+    SLL temp = head->next;
     free(head);
     head = temp;
   }
 }
 
-void ASSERT(int x) {
-  if(!x) {
-    // create memory leak
-    create_node(-1);
-  }
-}
-
-node* create_node(int data) {
-  node* temp = (node *) malloc(sizeof(node));
-  temp->next = NULL;
-  temp->data = data;
-  return temp;
-}
-
 int main(void) {
-  const int STORED_VALUE = 1;
-  const int LIST_LENGTH = 5;
 
-  node* lst = NULL;
+  const int data = 1;
+  const int len = 5;
+
+  SLL lst = NULL;
 
   int i = 0;
-  while(i < LIST_LENGTH) {
-    append_to_sll(&lst, STORED_VALUE);
-    ++i;
+  while(i < len) {
+    sll_append(&lst, data);
+    i++;
   }
 
-  ASSERT(LIST_LENGTH == len(lst));
+  _assert(len == sll_length(lst));
 
   free_sll(lst);
 

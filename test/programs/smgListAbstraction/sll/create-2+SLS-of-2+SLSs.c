@@ -1,39 +1,43 @@
 #include <stdlib.h>
 
-struct inner_sll {
-  struct inner_sll *next;
+typedef struct inner_node {
+  struct inner_node* next;
   int data;
-};
+} *SLL_inner;
 
-struct outer_sll {
-  struct outer_sll *next;
-  struct inner_sll *inner;
-};
+typedef struct outer_node {
+  struct outer_node* next;
+  struct inner_node* inner;
+} *SLL_outer;
 
-typedef struct outer_sll *outer_node;
-typedef struct inner_sll *inner_node;
-
-outer_node create_outer_node() {
-  outer_node temp = (struct outer_sll *) malloc(sizeof(struct outer_sll));
+SLL_outer node_outer_create() {
+  SLL_outer temp = (SLL_outer) malloc(sizeof(struct outer_node));
   temp->next = NULL;
   temp->inner = NULL;
   return temp;
 }
 
-inner_node create_inner_node() {
-  inner_node temp = (struct inner_sll *) malloc(sizeof(struct inner_sll));
+SLL_inner node_inner_create(int data) {
+  SLL_inner temp = (SLL_inner) malloc(sizeof(struct inner_node));
   temp->next = NULL;
-  temp->data = 0;
+  temp->data = data;
   return temp;
 }
 
-void free_hierarchical_SLL(outer_node head) {
-  outer_node p = head;
-  while(NULL != p) {
-    inner_node p_inner = p->inner;
-    outer_node q = p->next;
-    while(NULL != p_inner) {
-      inner_node q_inner = p_inner->next;
+void _assert(int x) {
+  if(!x) {
+    node_inner_create(-1);
+  }
+}
+
+void sll_hierarchical_check_and_destroy(SLL_outer head, int expected) {
+  SLL_outer p = head;
+  while(p) {
+    SLL_inner p_inner = p->inner;
+    SLL_outer q = p->next;
+    while(p_inner) {
+      SLL_inner q_inner = p_inner->next;
+      _assert(p_inner->data);
       free(p_inner);
       p_inner = q_inner;
     }
@@ -44,37 +48,29 @@ void free_hierarchical_SLL(outer_node head) {
 
 int main(void) {
 
-  outer_node a = create_outer_node();
-  outer_node b = create_outer_node();
+  const int data = 5;
   
-  inner_node a_0 = create_inner_node();
-  inner_node a_1 = create_inner_node();
-  inner_node b_0 = create_inner_node();
-  inner_node b_1 = create_inner_node();
-  a_0->data = 5;
-  a_1->data = 5;
-  b_0->data = 5;
-  b_1->data = 5;
+  SLL_outer a = node_outer_create();
+  SLL_outer b = node_outer_create();
+
+  SLL_inner a_0 = node_inner_create(data);
+  SLL_inner a_1 = node_inner_create(data);
+  SLL_inner b_0 = node_inner_create(data);
+  SLL_inner b_1 = node_inner_create(data);
   
-  // connect inner nodes
   a->inner = a_0;
   a_0->next = a_1;
-  a_1->next = NULL;
   b->inner = b_0;
   b_0->next = b_1;
-  b_1->next = NULL;
   
-  // connect outer nodes
   a->next = b;
 
-  // remove external pointers
   a_0 = NULL;
   a_1 = NULL;
   b_0 = NULL;
   b_1 = NULL;
   b = NULL;
-
-  free_hierarchical_SLL(a);
+  sll_hierarchical_check_and_destroy(a, data);
   
   return 0;
 }
