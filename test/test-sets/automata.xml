@@ -1,5 +1,12 @@
 <?xml version="1.0" ?>
 <benchmark memlimit="4GB" timelimit="100" tool="cpachecker" cpuCores="2">
+    <!--
+     TODO: These tests should be added to the integration test set
+     to check complex automata specifications.
+     In order to do it, CPAchecker should be able to process the "observer-automaton.prp"
+     property file and BenchExec should support expected results for the 
+     "observer-automaton" property.
+    -->
     <option name="-ldv"/>
     <option name="-heap">3g</option>
     <option name="-setprop">limits.time.cpu=100s</option>
