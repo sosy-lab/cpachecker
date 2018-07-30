@@ -30,6 +30,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.common.io.CharSource;
 import com.google.common.io.CharStreams;
 import com.google.common.io.MoreFiles;
@@ -57,6 +59,8 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonSetVariable;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -212,6 +216,64 @@ public class AutomatonInternalTest {
 
     result = args.replaceVariables("$1 == $5");
     assertThat(result).isNull(); // $5 has not been found
+    // this test should issue a log message!
+    verify(mockLogger).log(eq(Level.WARNING), (Object[]) any());
+  }
+
+  @Test
+  public void automataVariableReplacement() {
+    LogManager mockLogger = mock(LogManager.class);
+    Map<String, AutomatonVariable> automatonVariables = Maps.newHashMap();
+    AutomatonVariable intVar1 = AutomatonVariable.createAutomatonVariable("int", "intVar1");
+    AutomatonVariable intVar2 = AutomatonVariable.createAutomatonVariable("Integer", "intVar2");
+    ((AutomatonIntVariable) intVar2).setValue(10);
+    AutomatonVariable setVar1 = AutomatonVariable.createAutomatonVariable("Set", "setVar1", "int");
+    AutomatonVariable setVar2 =
+        AutomatonVariable.createAutomatonVariable("SET", "setVar2", "string", "elem1, elem2");
+
+    automatonVariables.putAll(
+        ImmutableMap.of(
+            intVar1.getName(),
+            intVar1,
+            intVar2.getName(),
+            intVar2,
+            setVar1.getName(),
+            setVar1,
+            setVar2.getName(),
+            setVar2));
+
+    AutomatonExpressionArguments args =
+        new AutomatonExpressionArguments(null, automatonVariables, null, null, mockLogger);
+    args.putTransitionVariable(1, TestDataTools.makeVariable("programVar", CNumericTypes.INT));
+
+    // actual test
+    String result = args.replaceVariables("$1 == $$intVar1");
+    assertThat(result).isEqualTo("programVar == 0");
+
+    result = args.replaceVariables("$$intVar2 == 0");
+    assertThat(result).isEqualTo("10 == 0");
+
+    ((AutomatonIntVariable) intVar1).setValue(5);
+    result = args.replaceVariables("$1 + $$intVar1");
+    assertThat(result).isEqualTo("programVar + 5");
+
+    result = args.replaceVariables("$$setVar1");
+    assertThat(result).isEqualTo("0");
+
+    result = args.replaceVariables("$$setVar2");
+    assertThat(result).isEqualTo("1");
+
+    ((AutomatonSetVariable<?>) setVar1).add(1);
+    result = args.replaceVariables("$$setVar1");
+    assertThat(result).isEqualTo("1");
+
+    ((AutomatonSetVariable<?>) setVar2).remove("elem1");
+    ((AutomatonSetVariable<?>) setVar2).remove("elem2");
+    result = args.replaceVariables("$$setVar2");
+    assertThat(result).isEqualTo("0");
+
+    result = args.replaceVariables("$1 == $$intVar3");
+    assertThat(result).isNull(); // automaton variable intVar3 does not exist
     // this test should issue a log message!
     verify(mockLogger).log(eq(Level.WARNING), (Object[]) any());
   }
