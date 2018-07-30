@@ -31,6 +31,8 @@
 	<classpathentry kind="lib" path="lib/java/test/truth-java8-extension.jar" sourcepath="lib/java-contrib/truth-java8-extension-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/checker-compat-qual.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/jhoafparser.jar"/>
+	<classpathentry kind="lib" path="lib/com.google.javascript.jar" sourcepath="lib/com.google.javascript.source.jar"/>
+	<classpathentry kind="lib" path="lib/org.eclipse.wst.jsdt.core.jar" sourcepath="lib/org.eclipse.wst.jsdt.core.source.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 	<classpathentry kind="lib" path="lib/java/test/objenesis.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/byte-buddy.jar"/>
