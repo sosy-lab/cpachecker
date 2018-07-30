@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.ltl;
 
+import com.google.common.base.Splitter;
+import com.google.common.collect.Iterables;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -46,16 +48,18 @@ import jhoafparser.storage.StoredAutomaton;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.LtlParserUtils;
-import org.sosy_lab.cpachecker.util.ltl.formulas.LtlFormula;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.ltl.formulas.LabelledFormula;
+import org.sosy_lab.cpachecker.util.ltl.formulas.Literal;
 
 public class Ltl2BuechiConverter {
 
   private static final String LTL3BA = "./ltl3ba";
 
-  private final LtlFormula ltlFormula;
+  private final LabelledFormula labelledFormula;
   private final ProcessBuilder builder;
 
-  public static Automaton convertFormula(LtlFormula pFormula)
+  public static Automaton convertFormula(LabelledFormula pFormula)
       throws InterruptedException, LtlParseException {
     Objects.requireNonNull(pFormula);
 
@@ -67,6 +71,25 @@ public class Ltl2BuechiConverter {
       HOAConsumerStore consumer = new HOAConsumerStore();
       HOAFParser.parseHOA(is, consumer);
       storedAutomaton = consumer.getStoredAutomaton();
+
+      // Convert the aliases back to their original ap's
+      List<String> list = new ArrayList<>(storedAutomaton.getStoredHeader().getAPs().size());
+      for (String s : storedAutomaton.getStoredHeader().getAPs()) {
+        int index = Integer.parseInt(Iterables.get(Splitter.on("val").split(s), 1));
+        list.add(pFormula.getAPs().get(index).getAtom());
+      }
+      storedAutomaton.getStoredHeader().setAPs(list);
+
+      if (!storedAutomaton
+          .getStoredHeader()
+          .getAPs()
+          .stream()
+          .anyMatch(x -> pFormula.getAPs().contains(Literal.of(x, false)))) {
+        throw new RuntimeException(
+            "Output from external tool contains APs that are not consistent with the parsed ltl formula");
+      }
+
+      // TODO: replace outputstream with logger
       storedAutomaton.feedToConsumer(new HOAConsumerPrint(System.out));
 
     } catch (ParseException e) {
@@ -78,11 +101,15 @@ public class Ltl2BuechiConverter {
       throw new LtlParseException(e.getMessage(), e);
     }
 
-    return LtlParserUtils.transform(storedAutomaton);
+    try {
+      return LtlParserUtils.transform(storedAutomaton);
+    } catch (UnrecognizedCodeException e) {
+      throw new LtlParseException(e.getMessage(), e);
+    }
   }
 
-  private Ltl2BuechiConverter(LtlFormula pFormula) {
-    ltlFormula = pFormula;
+  private Ltl2BuechiConverter(LabelledFormula pFormula) {
+    labelledFormula = pFormula;
     builder = new ProcessBuilder();
 
     Path nativeLibraryPath = NativeLibraries.getNativeLibraryPath();
@@ -92,7 +119,9 @@ public class Ltl2BuechiConverter {
      * '-H' to build and output the buechi-automaton in HOA format
      * '-f "formula"' to translate the LTL formula into a never claim
      */
-    builder.command(LTL3BA, "-H", "-f", ltlFormula.toString());
+    String formula =
+        LtlStringVisitor.toString(labelledFormula.getFormula(), labelledFormula.getAPs());
+    builder.command(LTL3BA, "-H", "-f", formula);
   }
 
   private InputStream runLtlExec() throws InterruptedException, LtlParseException {

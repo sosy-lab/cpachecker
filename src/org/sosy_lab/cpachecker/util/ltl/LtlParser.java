@@ -36,23 +36,24 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ConsoleErrorListener;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.sosy_lab.cpachecker.util.ltl.formulas.LabelledFormula;
 import org.sosy_lab.cpachecker.util.ltl.formulas.LtlFormula;
-import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarBaseVisitor;
-import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarLexer;
 import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParser;
+import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParserBaseVisitor;
+import org.sosy_lab.cpachecker.util.ltl.generated.LtlLexer;
 
-abstract class LtlParser extends LtlGrammarBaseVisitor<LtlFormula> {
+abstract class LtlParser extends LtlGrammarParserBaseVisitor<LtlFormula> {
 
   private final CharStream input;
 
-  LtlParser(CharStream input) {
-    this.input = input;
+  LtlParser(CharStream pInput) {
+    this.input = pInput;
   }
 
-  public static LtlFormula parseString(String fRaw) {
-    Objects.requireNonNull(fRaw);
+  public static LabelledFormula parseString(String pRaw) {
+    Objects.requireNonNull(pRaw);
 
-    return new LtlFormulaParser(CharStreams.fromString(fRaw)).doParse();
+    return new LtlFormulaParser(CharStreams.fromString(pRaw)).doParse();
   }
 
   /**
@@ -60,40 +61,41 @@ abstract class LtlParser extends LtlGrammarBaseVisitor<LtlFormula> {
    * is a valid ltl-formula. This method should be used for testing only.
    *
    * <p>The syntax is taken from <a href="https://github.com/ultimate-pa/ultimate/issues/119">issue
-   * 119 of ultimate-pa</a>
+   * 119</a> from ultimate-pa
    *
-   * <p>For examples c.f. <a
+   * <p>Examples for property-files can be found <a
    * href="https://github.com/ultimate-pa/ultimate/tree/dev/trunk/examples/LTL/svcomp17format/ltl-eca">
-   * example files from ultimate</a>
+   * at the ultimate-repository</a>
    *
-   * @param fRaw a string with valid SVComp syntax
+   * @param pRaw a string with a valid SVComp syntax
    * @return a strongly typed {@link LtlFormula}
    */
   @VisibleForTesting
-  static LtlFormula parseRaw_SVCompSyntax(String fRaw) {
-    Objects.requireNonNull(fRaw);
+  static LabelledFormula parseRaw_SVCompSyntax(String pRaw) {
+    Objects.requireNonNull(pRaw);
 
-    return new LtlPropertyFileParser(CharStreams.fromString(fRaw)).doParse();
+    return new LtlPropertyFileParser(CharStreams.fromString(pRaw)).doParse();
   }
 
-  public static LtlFormula parsePropertyFromFile(String fPath) throws LtlParseException {
-    Objects.requireNonNull(fPath);
+  public static LabelledFormula parsePropertyFromFile(String pPath) throws LtlParseException {
+    Objects.requireNonNull(pPath);
 
-    String raw = parseFile(fPath);
-    // Logger.getAnonymousLogger().log(Level.FINEST, "Ltl property retrieved from path: %s", raw);
+    String raw = parseFile(pPath);
+    // TODO: add logging information
+    //    Logger.log(String.format("Ltl property retrieved from path: %s", raw));
 
-    if (isPropertyFile(fPath)) {
+    if (isPropertyFile(pPath)) {
       return new LtlPropertyFileParser(CharStreams.fromString(raw)).doParse();
     } else {
       return parseString(raw);
     }
   }
 
-  abstract ParseTree getParseTree(LtlGrammarParser parser);
+  abstract ParseTree getParseTree(LtlGrammarParser pParser);
 
-  LtlFormula doParse() {
+  LabelledFormula doParse() {
     // Tokenize the stream
-    LtlGrammarLexer lexer = new LtlGrammarLexer(input);
+    LtlLexer lexer = new LtlLexer(input);
     // Raise an exception instead of printing long error messages on the console
     // For more informations, see https://stackoverflow.com/a/26573239/8204996
     lexer.removeErrorListener(ConsoleErrorListener.INSTANCE);
@@ -109,7 +111,7 @@ abstract class LtlParser extends LtlGrammarBaseVisitor<LtlFormula> {
 
     LtlFormulaTreeVisitor visitor = new LtlFormulaTreeVisitor();
     ParseTree tree = getParseTree(parser);
-    return visitor.visit(tree);
+    return LabelledFormula.of(visitor.visit(tree), visitor.getAPs());
   }
 
   private static boolean isPropertyFile(String pName) {
@@ -136,7 +138,8 @@ abstract class LtlParser extends LtlGrammarBaseVisitor<LtlFormula> {
               pPath, file.getAbsolutePath()));
     }
 
-    //    Logger.getAnonymousLogger().log(Level.FINEST, "Reading from path %s", pPath);
+    // TODO: add logging information
+    //    Logger.log(String.format("Reading from path %s", pPath));
 
     String ltlProperty = null;
 

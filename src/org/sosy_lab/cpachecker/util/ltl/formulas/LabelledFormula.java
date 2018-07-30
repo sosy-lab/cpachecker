@@ -16,32 +16,35 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.util.ltl.formulas;
 
-import org.sosy_lab.cpachecker.util.ltl.LtlFormulaVisitor;
+import com.google.common.collect.ImmutableList;
+import java.util.List;
 
-public interface LtlFormula {
+public class LabelledFormula {
 
-  /**
-   * Syntactically negate this formula.
-   *
-   * @return The negation of this formula in NNF.
-   */
-  LtlFormula not();
+  public static LabelledFormula of(LtlFormula pFormula, List<Literal> pList) {
+    return new LabelledFormula(pFormula, pList);
+  }
 
-  String accept(LtlFormulaVisitor v);
+  private final LtlFormula formula;
+  private final ImmutableList<Literal> atomicPropositions;
 
-  @Override
-  int hashCode();
+  private LabelledFormula(LtlFormula pFormula, List<Literal> pList) {
+    formula = pFormula;
+    atomicPropositions = ImmutableList.copyOf(pList);
+  }
 
-  @Override
-  boolean equals(Object obj);
+  public LabelledFormula not() {
+    return of(formula.not(), atomicPropositions);
+  }
 
-  @Override
-  String toString();
+  public LtlFormula getFormula() {
+    return formula;
+  }
+
+  public ImmutableList<Literal> getAPs() {
+    return atomicPropositions;
+  }
 }

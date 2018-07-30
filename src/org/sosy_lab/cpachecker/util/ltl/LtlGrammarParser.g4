@@ -21,9 +21,10 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-grammar LtlGrammar;
+parser grammar LtlGrammarParser;
 
 options {
+  tokenVocab = LtlLexer;
   language = Java;
 }
 
@@ -54,7 +55,7 @@ unaryExpression : op=unaryOp inner=binaryExpression # unaryOperation
                 ;
 
 atomExpression : constant=bool # boolean
-               | QUOTATIONMARK var=VARIABLE EQUALS val=VALUE QUOTATIONMARK # quotedVariable
+               | QUOTATIONMARK_START var=PARAM comp=COMPARATOR val=VALUE (MATHOP VALUE)* QUOTATIONMARK_END # quotedVariable
                | var=VARIABLE # variable
                | LPAREN nested=expression RPAREN # nested
                ;
@@ -77,58 +78,4 @@ binaryOp : EQUIV
 bool : TRUE
      | FALSE
      ;
-
-
-/* 
- * Lexer Rules
- */
-
-// LOGIC
-TRUE            : 'TRUE' | 'True' | 'true' | '1' ;
-FALSE           : 'FALSE' | 'False' | 'false' | '0' ;
-
-// Logical Unary
-NOT             : '!' | 'NOT' ;
-
-// Logical Binary
-IMP             : '->' | '-->' | '=>' | '==>' | 'IMP' ;
-EQUIV           : '<->' | '<=>' | 'EQUIV' ;
-XOR             : '^' | 'XOR' ;
-
-// Logical n-ary
-AND             : '&&' | '&' | 'AND' ;
-OR              : '||' | '|' | 'OR' ;
-
-// Modal Unary
-FINALLY         : 'F' | '<>' ;
-GLOBALLY        : 'G' | '[]' ;
-NEXT            : 'X' ;
-
-// Modal Binary
-UNTIL           : 'U' ;
-WUNTIL          : 'W' | 'WU' ;
-RELEASE         : 'R' | 'V' ;
-SRELEASE        : 'S' ; 
-
-// Parantheses
-LPAREN          : '(' ;
-RPAREN          : ')' ;
-
-// Keywords for parsing a ltl-property file (that is, a file ending with "*.prp")
-CHECK : 'CHECK' ;
-INIT : 'init' ;
-LTL : 'LTL' ;
-COMMA : ',' ;
-QUOTATIONMARK : '"' ;
-EQUALS : '==' ;
-FUNCTIONNAME : [a-zA-Z]+ '()' ;
-
-// Variables
-VARIABLE        : [a-z][a-zA-Z0-9]* ;      // match lower-case identifier followed by any letter or number
-
-// Values
-VALUE           : [0-9]+ ;      // match any non-empty number
-
-// Whitespace
-WS              : [ \t\r\n\f] -> skip ;   // skip spaces, tabs, newlines
 

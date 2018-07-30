@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.ltl.formulas;
 
+import org.sosy_lab.cpachecker.util.ltl.LtlFormulaVisitor;
+
 /** Next. */
 public final class Next extends UnaryFormula {
 
@@ -56,5 +58,10 @@ public final class Next extends UnaryFormula {
   @Override
   public LtlFormula not() {
     return new Next(operand.not());
+  }
+
+  @Override
+  public String accept(LtlFormulaVisitor v) {
+    return v.visit(this);
   }
 }
