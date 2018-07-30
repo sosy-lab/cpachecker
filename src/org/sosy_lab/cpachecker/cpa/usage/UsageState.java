@@ -28,8 +28,8 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
-import java.util.Collections;
-import java.util.List;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
 import java.util.Map.Entry;
 import java.util.Objects;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -253,10 +253,10 @@ public class UsageState extends AbstractSingleWrapperState
   public UsageState reduce(final AbstractState wrappedState) {
     LockState rootLockState = AbstractStates.extractStateByType(this, LockState.class);
     LockState reducedLockState = AbstractStates.extractStateByType(wrappedState, LockState.class);
-    List<LockEffect> difference;
+    Multiset<LockEffect> difference;
     if (rootLockState == null || reducedLockState == null) {
       // No LockCPA
-      difference = Collections.emptyList();
+      difference = HashMultiset.create();
     } else {
       difference = reducedLockState.getDifference(rootLockState);
     }

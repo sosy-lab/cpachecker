@@ -36,12 +36,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
  * Visitor that fills in missing bindings of CElaboratedTypes with a given
  * target type (if name and kind match, of course).
  */
-class FillInBindingVisitor extends DefaultCTypeVisitor<Void, RuntimeException> {
+class FillInBindingVisitor extends DefaultCTypeVisitor<Void, NoException> {
 
   private final ComplexTypeKind kind;
   private final String name;
@@ -105,7 +106,7 @@ class FillInBindingVisitor extends DefaultCTypeVisitor<Void, RuntimeException> {
   }
 
   @Override
-  public @Nullable Void visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+  public @Nullable Void visit(CBitFieldType pCBitFieldType) {
     pCBitFieldType.getType().accept(this);
     return null;
   }

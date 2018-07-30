@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
@@ -48,7 +47,9 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
@@ -165,7 +166,7 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
 
     if(rSymValue.isUnknown()) {
 
-      rSymValue = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
+      rSymValue = SMGKnownSymValue.of();
 
       LValueAssignmentVisitor visitor = smgRightHandSideEvaluator.getLValueAssignmentVisitor(edge, assignableState);
 
@@ -185,7 +186,7 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
           smgRightHandSideEvaluator.writeValue(
               assignableState,
               addressOfField.getObject(),
-              addressOfField.getOffset().getAsInt(),
+              addressOfField.getOffset().getAsLong(),
               TypeUtils.getRealExpressionType(lValue),
               rSymValue,
               edge);
@@ -196,11 +197,11 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
     assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
     if (truthValue) {
       if (op == BinaryOperator.EQUALS) {
-        assignableState.putExplicit((SMGKnownSymValue) rSymValue, (SMGKnownExpValue) rValue);
+        assignableState.putExplicit((SMGKnownSymbolicValue) rSymValue, (SMGKnownExpValue) rValue);
       }
     } else {
       if (op == BinaryOperator.NOT_EQUALS) {
-        assignableState.putExplicit((SMGKnownSymValue) rSymValue, (SMGKnownExpValue) rValue);
+        assignableState.putExplicit((SMGKnownSymbolicValue) rSymValue, (SMGKnownExpValue) rValue);
         //TODO more precise
       }
     }
@@ -257,8 +258,7 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
     // This symbolic value should have been added when evaluating the assume
     assert !value.isUnknown();
 
-    assignableState.putExplicit((SMGKnownSymValue)value, SMGKnownExpValue.ZERO);
-
+    assignableState.putExplicit((SMGKnownSymbolicValue) value, SMGZeroValue.INSTANCE);
   }
 
   private CExpression unwrap(CExpression expression) {

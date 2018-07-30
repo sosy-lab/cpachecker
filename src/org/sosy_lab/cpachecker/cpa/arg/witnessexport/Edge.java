@@ -30,6 +30,7 @@ import com.google.common.collect.MapDifference.ValueDifference;
 import com.google.common.collect.Maps;
 import java.util.Map;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition.Scope;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
 /**
@@ -119,6 +120,11 @@ class Edge implements Comparable<Edge> {
       return Optional.empty();
     }
     TransitionCondition newLabel = pOther.label;
+    Optional<Scope> newScope = label.getScope().mergeWith(newLabel.getScope());
+    if (!newScope.isPresent()) {
+      return Optional.empty();
+    }
+    newLabel = newLabel.withScope(newScope.get());
     newLabel = newLabel.putAllAndCopy(label);
     for (Map.Entry<KeyDef, ValueDifference<String>> diffEntry :
         difference.entriesDiffering().entrySet()) {

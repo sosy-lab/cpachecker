@@ -44,8 +44,9 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGNodeMapping;
 
 public final class SMGIntersectStates {
@@ -66,7 +67,8 @@ public final class SMGIntersectStates {
   private final CLangSMG destSMG;
 
   /** the destination values will be build up when calling {@link #intersect}. */
-  private final BiMap<SMGKnownSymValue, SMGKnownExpValue> destExplicitValues = HashBiMap.create();
+  private final BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> destExplicitValues =
+      HashBiMap.create();
 
   /** initialize the intersection-process. */
   public SMGIntersectStates(UnmodifiableSMGState pSmgState1, UnmodifiableSMGState pSmgState2) {
@@ -206,17 +208,17 @@ public final class SMGIntersectStates {
       SMGNodeMapping pMapping) {
 
     SMGObject destObject = pMapping.get(pHve.getObject());
-    int value = pHve.getValue();
+    SMGValue value = pHve.getValue();
 
     intersectValueWithTop(value, pSmg, pSmgState, pMapping);
 
-    int destValue = pMapping.get(value);
+    SMGValue destValue = pMapping.get(value);
     SMGEdgeHasValue destHve = new SMGEdgeHasValue(pHve.getType(), pHve.getOffset(), destObject, destValue);
     destSMG.addHasValueEdge(destHve);
   }
 
   private void intersectValueWithTop(
-      int pValue,
+      SMGValue pValue,
       UnmodifiableCLangSMG pSmg,
       UnmodifiableSMGState pSmgState,
       SMGNodeMapping pMapping) {
@@ -227,7 +229,7 @@ public final class SMGIntersectStates {
 
     pMapping.map(pValue, pValue);
 
-    SMGKnownSymValue symVal = SMGKnownSymValue.valueOf(pValue);
+    SMGKnownSymbolicValue symVal = (SMGKnownSymbolicValue) pValue;
     if (pSmgState.isExplicit(symVal)) {
       destExplicitValues.put(symVal, (SMGKnownExpValue) pSmgState.getExplicit(symVal));
     }
@@ -304,8 +306,8 @@ public final class SMGIntersectStates {
   private boolean intersectPairHveEdges(
       SMGEdgeHasValue pHve1, SMGEdgeHasValue pHve2, SMGObject pDestObject) {
 
-    int value1 = pHve1.getValue();
-    int value2 = pHve2.getValue();
+    SMGValue value1 = pHve1.getValue();
+    SMGValue value2 = pHve2.getValue();
 
     boolean defined = intersectValues(value1, value2);
 
@@ -313,7 +315,7 @@ public final class SMGIntersectStates {
       return false;
     }
 
-    int destValue = mapping1.get(value1);
+    SMGValue destValue = mapping1.get(value1);
 
     SMGEdgeHasValue destHveEdge =
         new SMGEdgeHasValue(pHve1.getType(), pHve1.getOffset(), pDestObject, destValue);
@@ -322,7 +324,7 @@ public final class SMGIntersectStates {
     return true;
   }
 
-  private boolean intersectValues(int pValue1, int pValue2) {
+  private boolean intersectValues(SMGValue pValue1, SMGValue pValue2) {
 
     boolean containsValue1 = mapping1.containsKey(pValue1);
     boolean containsValue2 = mapping2.containsKey(pValue2);
@@ -337,7 +339,7 @@ public final class SMGIntersectStates {
       return false;
     }
 
-    int destValue = pValue1;
+    SMGValue destValue = pValue1;
 
     mapping1.map(pValue1, destValue);
     mapping2.map(pValue2, destValue);
@@ -361,12 +363,12 @@ public final class SMGIntersectStates {
       }
     }
 
-    SMGKnownSymValue symVal1 = SMGKnownSymValue.valueOf(pValue1);
-    SMGKnownSymValue symVal2 = SMGKnownSymValue.valueOf(pValue2);
-    SMGKnownSymValue symDestVal = symVal1;
+    SMGKnownSymbolicValue symVal1 = (SMGKnownSymbolicValue) pValue1;
+    SMGKnownSymbolicValue symVal2 = (SMGKnownSymbolicValue) pValue2;
+    SMGKnownSymbolicValue symDestVal = symVal1;
 
-    SMGExplicitValue expVal1 = SMGUnknownValue.getInstance();
-    SMGExplicitValue expVal2 = SMGUnknownValue.getInstance();
+    SMGExplicitValue expVal1 = SMGUnknownValue.INSTANCE;
+    SMGExplicitValue expVal2 = SMGUnknownValue.INSTANCE;
 
     if (smgState1.isExplicit(symVal1)) {
       expVal1 = smgState1.getExplicit(symVal1);
@@ -392,7 +394,7 @@ public final class SMGIntersectStates {
   }
 
   private boolean intersectPairPointsToEdges(
-      SMGEdgePointsTo pPte1, SMGEdgePointsTo pPte2, int destValue) {
+      SMGEdgePointsTo pPte1, SMGEdgePointsTo pPte2, SMGValue destValue) {
 
     long offset1 = pPte1.getOffset();
     long offset2 = pPte2.getOffset();

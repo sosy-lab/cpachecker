@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,13 +30,14 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGJoinValuesTest {
   private SMG smg1;
@@ -48,9 +49,9 @@ public class SMGJoinValuesTest {
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
 
-  private final Integer value1 = SMGCPA.getNewValue();
-  private final Integer value2 = SMGCPA.getNewValue();
-  private final Integer value3 = SMGCPA.getNewValue();
+  private final SMGValue value1 = SMGKnownSymValue.of();
+  private final SMGValue value2 = SMGKnownSymValue.of();
+  private final SMGValue value3 = SMGKnownSymValue.of();
 
   @Before
   public void setUp() throws InvalidConfigurationException {
@@ -96,8 +97,8 @@ public class SMGJoinValuesTest {
     Assert.assertSame(smg1, jv.getInputSMG1());
     Assert.assertSame(smg2, jv.getInputSMG2());
     Assert.assertSame(smgDest, jv.getDestinationSMG());
-    Assert.assertSame(mapping1, jv.getMapping1());
-    Assert.assertSame(mapping2, jv.getMapping2());
+    Assert.assertSame(mapping1, jv.mapping1);
+    Assert.assertSame(mapping2, jv.mapping2);
     Assert.assertEquals(value3, jv.getValue());
   }
 
@@ -124,8 +125,8 @@ public class SMGJoinValuesTest {
     Assert.assertSame(smg1, jv.getInputSMG1());
     Assert.assertSame(smg2, jv.getInputSMG2());
     Assert.assertSame(smgDest, jv.getDestinationSMG());
-    Assert.assertSame(mapping1, jv.getMapping1());
-    Assert.assertSame(mapping2, jv.getMapping2());
+    Assert.assertSame(mapping1, jv.mapping1);
+    Assert.assertSame(mapping2, jv.mapping2);
     Assert.assertNotEquals(value1, jv.getValue());
     Assert.assertNotEquals(value2, jv.getValue());
     Assert.assertNotEquals(value3, jv.getValue());

@@ -23,16 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class ARGTransferRelation implements TransferRelation {
 
@@ -59,7 +58,7 @@ public class ARGTransferRelation implements TransferRelation {
     Collection<? extends AbstractState> successors;
     try {
       successors = transferRelation.getAbstractSuccessors(wrappedState, pPrecision);
-    } catch (UnsupportedCodeException e) {
+    } catch (UnrecognizedCodeException e) {
       // setting parent of this unsupported code part
       e.setParentState(element);
       throw e;

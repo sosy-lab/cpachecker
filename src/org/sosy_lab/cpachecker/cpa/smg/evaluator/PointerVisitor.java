@@ -51,14 +51,14 @@ import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
-import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * This class evaluates expressions that evaluate to a
@@ -78,25 +78,25 @@ public class PointerVisitor extends ExpressionValueVisitor {
   }
 
   @Override
-  public List<? extends SMGValueAndState> visit(CIntegerLiteralExpression exp)
+  public List<SMGAddressValueAndState> visit(CIntegerLiteralExpression exp)
       throws CPATransferException {
     return smgExpressionEvaluator.getAddressFromSymbolicValues(super.visit(exp));
   }
 
   @Override
-  public List<? extends SMGValueAndState> visit(CCharLiteralExpression exp)
+  public List<SMGAddressValueAndState> visit(CCharLiteralExpression exp)
       throws CPATransferException {
     return smgExpressionEvaluator.getAddressFromSymbolicValues(super.visit(exp));
   }
 
   @Override
-  public List<? extends SMGValueAndState> visit(CFloatLiteralExpression pExp)
+  public List<SMGAddressValueAndState> visit(CFloatLiteralExpression pExp)
       throws CPATransferException {
     return smgExpressionEvaluator.getAddressFromSymbolicValues(super.visit(pExp));
   }
 
   @Override
-  public List<? extends SMGValueAndState> visit(CIdExpression exp) throws CPATransferException {
+  public List<SMGAddressValueAndState> visit(CIdExpression exp) throws CPATransferException {
 
     CType c = TypeUtils.getRealExpressionType(exp);
 
@@ -109,7 +109,7 @@ public class PointerVisitor extends ExpressionValueVisitor {
   }
 
   @Override
-  public List<? extends SMGValueAndState> visit(CUnaryExpression unaryExpression)
+  public List<SMGAddressValueAndState> visit(CUnaryExpression unaryExpression)
       throws CPATransferException {
 
     UnaryOperator unaryOperator = unaryExpression.getOperator();
@@ -121,7 +121,7 @@ public class PointerVisitor extends ExpressionValueVisitor {
       return handleAmper(unaryOperand);
 
     case SIZEOF:
-      throw new UnrecognizedCCodeException("Misinterpreted the expression type of "
+      throw new UnrecognizedCodeException("Misinterpreted the expression type of "
           + unaryOperand.toASTString()
           + " as pointer type", cfaEdge, unaryExpression);
 
@@ -133,7 +133,7 @@ public class PointerVisitor extends ExpressionValueVisitor {
     }
   }
 
-  private List<? extends SMGValueAndState> handleAmper(CRightHandSide amperOperand)
+  private List<SMGAddressValueAndState> handleAmper(CRightHandSide amperOperand)
       throws CPATransferException {
 
     if (TypeUtils.getRealExpressionType(amperOperand) instanceof CFunctionType
@@ -170,10 +170,10 @@ public class PointerVisitor extends ExpressionValueVisitor {
       return Collections.singletonList(SMGAddressValueAndState.of(state));
     }
 
-    return smgExpressionEvaluator.createAddress(state, functionObject, SMGKnownExpValue.ZERO);
+    return smgExpressionEvaluator.createAddress(state, functionObject, SMGZeroValue.INSTANCE);
   }
 
-  private List<? extends SMGValueAndState> createAddressOfArraySubscript(
+  private List<SMGAddressValueAndState> createAddressOfArraySubscript(
       CArraySubscriptExpression lValue) throws CPATransferException {
 
     CExpression arrayExpression = lValue.getArrayExpression();
@@ -254,7 +254,8 @@ public class PointerVisitor extends ExpressionValueVisitor {
       return Collections.singletonList(SMGAddressValueAndState.of(state));
     } else {
       state.addElementToCurrentChain(variableObject);
-      return smgExpressionEvaluator.createAddress(state, variableObject, SMGKnownExpValue.ZERO);
+      return smgExpressionEvaluator.createAddress(
+          state, variableObject, SMGZeroValue.INSTANCE);
     }
   }
 
@@ -293,7 +294,7 @@ public class PointerVisitor extends ExpressionValueVisitor {
       pointerOffset = lVarInBinaryExp;
       addressType = (CPointerType) rVarInBinaryExpType;
     } else {
-      throw new UnrecognizedCCodeException("Expected either "
+      throw new UnrecognizedCodeException("Expected either "
     + lVarInBinaryExp.toASTString() + " or "
     + rVarInBinaryExp.toASTString() +
     "to be a pointer.", binaryExp);

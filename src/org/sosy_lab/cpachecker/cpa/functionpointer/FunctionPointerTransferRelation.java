@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cpa.functionpointer;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
-
+import java.util.Collection;
+import java.util.List;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -83,12 +85,8 @@ import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.InvalidT
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NamedFunctionTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.UnknownTarget;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.logging.Level;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 @Options(prefix="cpa.functionpointer")
 class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
@@ -159,7 +157,8 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     return ImmutableSet.of(newState.build());
   }
 
-  private boolean shouldGoByEdge(FunctionPointerState oldState, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+  private boolean shouldGoByEdge(FunctionPointerState oldState, CFAEdge cfaEdge)
+      throws UnrecognizedCodeException {
     if (cfaEdge.getEdgeType()==CFAEdgeType.AssumeEdge) {
       CAssumeEdge a = (CAssumeEdge)cfaEdge;
       CExpression exp = a.getExpression();
@@ -232,7 +231,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     return true;
   }
 
-  private String getFunctionPointerCall(CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
+  private String getFunctionPointerCall(CFAEdge pCfaEdge) throws UnrecognizedCodeException {
     if (pCfaEdge.getEdgeType() != CFAEdgeType.StatementEdge) {
       return null;
     }
@@ -276,7 +275,10 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       // TODO double dereference (**f)()
       return null;
     } else {
-      throw new UnrecognizedCCodeException("unknown function call expression of type " + nameExp.getClass().getSimpleName(), pCfaEdge, nameExp);
+      throw new UnrecognizedCodeException(
+          "unknown function call expression of type " + nameExp.getClass().getSimpleName(),
+          pCfaEdge,
+          nameExp);
     }
   }
 
@@ -332,7 +334,8 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  private void handleDeclaration(FunctionPointerState.Builder pNewState, CDeclarationEdge declEdge) throws UnrecognizedCCodeException {
+  private void handleDeclaration(FunctionPointerState.Builder pNewState, CDeclarationEdge declEdge)
+      throws UnrecognizedCodeException {
 
     if (!(declEdge.getDeclaration() instanceof CVariableDeclaration)) {
       // not a variable declaration
@@ -357,8 +360,9 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     pNewState.setTarget(name, initialValue);
   }
 
-  private void handleStatement(FunctionPointerState.Builder pNewState, CStatement pStatement,
-        CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
+  private void handleStatement(
+      FunctionPointerState.Builder pNewState, CStatement pStatement, CFAEdge pCfaEdge)
+      throws UnrecognizedCodeException {
 
     if (pStatement instanceof CAssignment) {
       // assignment like "a = b" or "a = foo()"
@@ -371,12 +375,13 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       // side-effect free statement
 
     } else {
-      throw new UnrecognizedCCodeException("unknown statement", pCfaEdge, pStatement);
+      throw new UnrecognizedCodeException("unknown statement", pCfaEdge, pStatement);
     }
   }
 
-  private void handleAssignment(FunctionPointerState.Builder pNewState, CAssignment assignment, CFAEdge pCfaEdge)
-      throws UnrecognizedCCodeException {
+  private void handleAssignment(
+      FunctionPointerState.Builder pNewState, CAssignment assignment, CFAEdge pCfaEdge)
+      throws UnrecognizedCodeException {
     String varName = getLeftHandSide(assignment.getLeftHandSide(), pCfaEdge);
 
     if (varName != null) {
@@ -385,7 +390,9 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  private void handleFunctionCall(FunctionPointerState.Builder pNewState, CFunctionCallEdge callEdge) throws UnrecognizedCCodeException {
+  private void handleFunctionCall(
+      FunctionPointerState.Builder pNewState, CFunctionCallEdge callEdge)
+      throws UnrecognizedCodeException {
 
     CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
 
@@ -394,14 +401,16 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
     if (functionEntryNode.getFunctionDefinition().getType().takesVarArgs()) {
       if (formalParams.size() > arguments.size()) {
-        throw new UnrecognizedCCodeException("Number of parameters on function call does " +
-            "not match function definition", callEdge);
+        throw new UnrecognizedCodeException(
+            "Number of parameters on function call does " + "not match function definition",
+            callEdge);
       }
 
     } else {
       if (formalParams.size() != arguments.size()) {
-        throw new UnrecognizedCCodeException("Number of parameters on function call does " +
-            "not match function definition", callEdge);
+        throw new UnrecognizedCodeException(
+            "Number of parameters on function call does " + "not match function definition",
+            callEdge);
       }
     }
 
@@ -419,17 +428,20 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  private void handleReturnStatement(FunctionPointerState.Builder pNewState,
+  private void handleReturnStatement(
+      FunctionPointerState.Builder pNewState,
       Optional<CAssignment> returnStatement,
-      CFAEdge pCfaEdge) throws UnrecognizedCCodeException {
+      CFAEdge pCfaEdge)
+      throws UnrecognizedCodeException {
 
     if (returnStatement.isPresent()) {
       handleAssignment(pNewState, returnStatement.get(), pCfaEdge);
     }
   }
 
-
-  private void handleFunctionReturn(FunctionPointerState.Builder pNewState, CFunctionReturnEdge pFunctionReturnEdge) throws UnrecognizedCCodeException {
+  private void handleFunctionReturn(
+      FunctionPointerState.Builder pNewState, CFunctionReturnEdge pFunctionReturnEdge)
+      throws UnrecognizedCodeException {
     CFunctionSummaryEdge summaryEdge = pFunctionReturnEdge.getSummaryEdge();
     assert summaryEdge != null;
 
@@ -456,7 +468,8 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     pNewState.clearVariablesForFunction(calledFunction);
   }
 
-  private String getLeftHandSide(CExpression lhsExpression, CFAEdge edge) throws UnrecognizedCCodeException {
+  private String getLeftHandSide(CExpression lhsExpression, CFAEdge edge)
+      throws UnrecognizedCodeException {
 
     if (lhsExpression instanceof CIdExpression) {
       // a = ...
@@ -481,17 +494,20 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       }
 
     } else {
-      throw new UnrecognizedCCodeException("left operand of assignment has to be a variable", edge, lhsExpression);
+      throw new UnrecognizedCodeException(
+          "left operand of assignment has to be a variable", edge, lhsExpression);
     }
     return null;
   }
 
-  private FunctionPointerTarget getValue(CRightHandSide exp, FunctionPointerState.Builder element) throws UnrecognizedCCodeException {
+  private FunctionPointerTarget getValue(CRightHandSide exp, FunctionPointerState.Builder element)
+      throws UnrecognizedCodeException {
     return exp.accept(new ExpressionValueVisitor(element, invalidFunctionPointerTarget));
   }
 
-  private static class ExpressionValueVisitor extends DefaultCExpressionVisitor<FunctionPointerTarget, UnrecognizedCCodeException>
-                                              implements CRightHandSideVisitor<FunctionPointerTarget, UnrecognizedCCodeException> {
+  private static class ExpressionValueVisitor
+      extends DefaultCExpressionVisitor<FunctionPointerTarget, UnrecognizedCodeException>
+      implements CRightHandSideVisitor<FunctionPointerTarget, UnrecognizedCodeException> {
 
     private final FunctionPointerState.Builder state;
     private final FunctionPointerTarget targetForInvalidPointers;
@@ -502,7 +518,8 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     }
 
     @Override
-    public FunctionPointerTarget visit(CArraySubscriptExpression pE) throws UnrecognizedCCodeException {
+    public FunctionPointerTarget visit(CArraySubscriptExpression pE)
+        throws UnrecognizedCodeException {
       if (pE.getSubscriptExpression() instanceof CIntegerLiteralExpression
           && pE.getArrayExpression() instanceof CIdExpression) {
 
@@ -552,12 +569,12 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     }
 
     @Override
-    public FunctionPointerTarget visit(CCastExpression pE) throws UnrecognizedCCodeException {
+    public FunctionPointerTarget visit(CCastExpression pE) throws UnrecognizedCodeException {
       return pE.getOperand().accept(this);
     }
 
     @Override
-    public FunctionPointerTarget visit(CComplexCastExpression pE) throws UnrecognizedCCodeException {
+    public FunctionPointerTarget visit(CComplexCastExpression pE) throws UnrecognizedCodeException {
       // evaluation of complex numbers is not supported by now
       return UnknownTarget.getInstance();
     }

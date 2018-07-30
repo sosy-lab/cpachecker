@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -85,6 +86,13 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   @Option(secure=true, name="export", description="write collected assumptions to file")
   private boolean exportAssumptions = true;
+
+  @Option(
+    secure = true,
+    name = "export.location",
+    description = "export assumptions collected per location"
+  )
+  private boolean exportLocationAssumptions = true;
 
   @Option(secure=true, name="file", description="write collected assumptions to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -333,14 +341,14 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   /**
    * Create a String containing the assumption automaton.
    * @param sb Where to write the String into.
-   * @param initialState The initial state of the automaton.
+   * @param pInitialState The initial state of the automaton.
    * @param relevantStates A set with all states with non-trivial assumptions (all others will have assumption TRUE).
    * @param falseAssumptionStates A set with all states with the assumption FALSE
    * @param branchingThreshold After branchingThreshold many branches on a path the automaton will be ignored (0 to disable)")
    * @param ignoreAssumptions if set to true, the automaton does not add assumption which is considered to continue path with corresponding this edge.
    * @return the number of states contained in the written automaton
    */
-  public static int writeAutomaton(Appendable sb, ARGState initialState,
+  public static int writeAutomaton(Appendable sb, ARGState pInitialState,
       Set<ARGState> relevantStates, Set<AbstractState> falseAssumptionStates, int branchingThreshold,
       boolean ignoreAssumptions) throws IOException {
    int numProducedStates = 0;
@@ -356,13 +364,16 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       actionOnFinalEdges = "DO branchingCount = 0 ";
     }
 
-    sb.append("INITIAL STATE ARG" + initialState.getStateId() + ";\n\n");
-    sb.append("STATE __TRUE :\n");
-    if (ignoreAssumptions) {
-      sb.append("    TRUE -> GOTO __TRUE;\n\n");
+    String initialStateName;
+    if (relevantStates.isEmpty()) {
+      initialStateName = "__TRUE";
     } else {
-      sb.append("    TRUE -> ASSUME {true} GOTO __TRUE;\n\n");
+      initialStateName = "ARG" + pInitialState.getStateId();
     }
+
+    sb.append("INITIAL STATE ").append(initialStateName).append(";\n\n");
+    sb.append("STATE __TRUE :\n");
+    sb.append("    TRUE -> GOTO __TRUE;\n\n");
 
     if (!falseAssumptionStates.isEmpty()) {
       sb.append("STATE __FALSE :\n");
@@ -453,11 +464,15 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   private static void addAssumption(final Appendable writer, final AssumptionStorageState assumptionState,
       boolean ignoreAssumptions) throws IOException {
    if (!ignoreAssumptions) {
-      BooleanFormula assumption = assumptionState.getFormulaManager().getBooleanFormulaManager()
-              .and(assumptionState.getAssumption(), assumptionState.getStopFormula());
-      writer.append("ASSUME {");
-      escape(assumption.toString(), writer);
-      writer.append("} ");
+      final BooleanFormulaManagerView bmgr =
+          assumptionState.getFormulaManager().getBooleanFormulaManager();
+      BooleanFormula assumption =
+          bmgr.and(assumptionState.getAssumption(), assumptionState.getStopFormula());
+      if (!bmgr.isTrue(assumption)) {
+        writer.append("ASSUME {");
+        escape(assumption.toString(), writer);
+        writer.append("} ");
+      }
     }
   }
 
@@ -543,12 +558,15 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     @Override
     public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
-      AssumptionWithLocation resultAssumption = collectLocationAssumptions(pReached, exceptionAssumptions);
+      AssumptionWithLocation resultAssumption = null;
 
-      put(out, "Number of locations with assumptions", resultAssumption.getNumberOfLocations());
+      if (exportLocationAssumptions) {
+        resultAssumption = collectLocationAssumptions(pReached, exceptionAssumptions);
+        put(out, "Number of locations with assumptions", resultAssumption.getNumberOfLocations());
+      }
 
       if (exportAssumptions) {
-        if (assumptionsFile != null) {
+        if (exportLocationAssumptions && assumptionsFile != null) {
           try {
             IO.writeFile(assumptionsFile, Charset.defaultCharset(), resultAssumption);
           } catch (IOException e) {

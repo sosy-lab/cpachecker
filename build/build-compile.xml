@@ -4,7 +4,10 @@
 
     <!-- Targets for compilation. -->
 
-    <!-- Keep this file synchronized between SoSy-Lab Common, CPAchecker, JavaSMT, and VerifierCloud. -->
+    <!-- DO NOT EDIT LOCALLY!
+         Keep this file synchronized with
+         https://gitlab.com/sosy-lab/software/java-project-template
+    -->
 
     <!-- These properties can be overridden from including file. -->
     <property name="source.format" value="1.8"/>

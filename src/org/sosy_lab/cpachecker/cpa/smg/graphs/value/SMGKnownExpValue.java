@@ -27,14 +27,25 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.math.BigInteger;
 
-public final class SMGKnownExpValue extends SMGKnownValue implements SMGExplicitValue {
+public class SMGKnownExpValue extends SMGKnownValue implements SMGExplicitValue {
 
-  public static final SMGKnownExpValue ONE = new SMGKnownExpValue(BigInteger.ONE);
-
-  public static final SMGKnownExpValue ZERO = new SMGKnownExpValue(BigInteger.ZERO);
-
-  private SMGKnownExpValue(BigInteger pValue) {
+  protected SMGKnownExpValue(BigInteger pValue) {
     super(pValue);
+  }
+
+  @Override // override for visibility
+  public BigInteger getValue() {
+    return super.getValue();
+  }
+
+  @Override
+  public final int getAsInt() {
+    return getValue().intValue();
+  }
+
+  @Override
+  public final long getAsLong() {
+    return getValue().longValue();
   }
 
   @Override
@@ -50,7 +61,7 @@ public final class SMGKnownExpValue extends SMGKnownValue implements SMGExplicit
   @Override
   public SMGExplicitValue xor(SMGExplicitValue pRVal) {
     if (pRVal.isUnknown()) {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
     return valueOf(getValue().xor(pRVal.getValue()));
   }
@@ -58,7 +69,7 @@ public final class SMGKnownExpValue extends SMGKnownValue implements SMGExplicit
   @Override
   public SMGExplicitValue or(SMGExplicitValue pRVal) {
     if (pRVal.isUnknown()) {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
     return valueOf(getValue().or(pRVal.getValue()));
   }
@@ -66,7 +77,7 @@ public final class SMGKnownExpValue extends SMGKnownValue implements SMGExplicit
   @Override
   public SMGExplicitValue and(SMGExplicitValue pRVal) {
     if (pRVal.isUnknown()) {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
     return valueOf(getValue().and(pRVal.getValue()));
   }
@@ -74,15 +85,15 @@ public final class SMGKnownExpValue extends SMGKnownValue implements SMGExplicit
   @Override
   public SMGExplicitValue shiftLeft(SMGExplicitValue pRVal) {
     if (pRVal.isUnknown()) {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
-    return valueOf(getValue().shiftLeft(pRVal.getAsInt()));
+    return valueOf(getValue().shiftLeft(pRVal.getValue().intValue()));
   }
 
   @Override
   public SMGExplicitValue multiply(SMGExplicitValue pRVal) {
     if (pRVal.isUnknown()) {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
     return valueOf(getValue().multiply(pRVal.getValue()));
   }
@@ -90,7 +101,7 @@ public final class SMGKnownExpValue extends SMGKnownValue implements SMGExplicit
   @Override
   public SMGExplicitValue divide(SMGExplicitValue pRVal) {
     if (pRVal.isUnknown()) {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
     return valueOf(getValue().divide(pRVal.getValue()));
   }
@@ -98,7 +109,7 @@ public final class SMGKnownExpValue extends SMGKnownValue implements SMGExplicit
   @Override
   public SMGExplicitValue subtract(SMGExplicitValue pRVal) {
     if (pRVal.isUnknown()) {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
     return valueOf(getValue().subtract(pRVal.getValue()));
   }
@@ -106,7 +117,7 @@ public final class SMGKnownExpValue extends SMGKnownValue implements SMGExplicit
   @Override
   public SMGExplicitValue add(SMGExplicitValue pRVal) {
     if (pRVal.isUnknown()) {
-      return SMGUnknownValue.getInstance();
+      return SMGUnknownValue.INSTANCE;
     }
     return valueOf(getValue().add(pRVal.getValue()));
   }
@@ -124,12 +135,15 @@ public final class SMGKnownExpValue extends SMGKnownValue implements SMGExplicit
     checkNotNull(pValue);
 
     if (pValue.equals(BigInteger.ZERO)) {
-      return ZERO;
-    } else if (pValue.equals(BigInteger.ONE)) {
-      return ONE;
+      return SMGZeroValue.INSTANCE;
     } else {
       return new SMGKnownExpValue(pValue);
     }
+  }
+
+  @Override
+  public String asDotId() {
+    return getValue().toString();
   }
 }
 

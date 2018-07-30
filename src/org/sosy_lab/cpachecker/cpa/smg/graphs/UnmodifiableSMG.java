@@ -33,9 +33,10 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 /**
- * A view on a CLangSMG, where no modifications are allowed.
+ * A view on a {@link SMG}, where no modifications are allowed.
  *
  * <p>All returned Collections are unmodifiable.
  */
@@ -51,7 +52,7 @@ public interface UnmodifiableSMG {
 
   PredRelation getErrorPredicateRelation();
 
-  Set<Integer> getValues();
+  Set<SMGValue> getValues();
 
   Set<SMGObject> getObjects();
 
@@ -64,7 +65,7 @@ public interface UnmodifiableSMG {
   SMGPointsToEdges getPTEdges();
 
   @Nullable
-  SMGObject getObjectPointedBy(Integer pValue);
+  SMGObject getObjectPointedBy(SMGValue pValue);
 
   boolean isObjectValid(SMGObject pObject);
 
@@ -74,15 +75,15 @@ public interface UnmodifiableSMG {
 
   TreeMap<Long, Integer> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj);
 
-  boolean isPointer(Integer value);
+  boolean isPointer(SMGValue value);
 
-  SMGEdgePointsTo getPointer(Integer value);
+  SMGEdgePointsTo getPointer(SMGValue value);
 
   boolean isCoveredByNullifiedBlocks(SMGEdgeHasValue pEdge);
 
   boolean isCoveredByNullifiedBlocks(SMGObject pObject, long pOffset, CType pType);
 
-  boolean haveNeqRelation(Integer pV1, Integer pV2);
+  boolean haveNeqRelation(SMGValue pV1, SMGValue pV2);
 
-  Set<Integer> getNeqsForValue(Integer pV);
+  Set<SMGValue> getNeqsForValue(SMGValue pV);
 }

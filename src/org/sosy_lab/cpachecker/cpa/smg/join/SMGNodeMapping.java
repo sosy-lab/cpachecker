@@ -29,10 +29,11 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGNodeMapping {
   private final Map<SMGObject, SMGObject> object_map = new HashMap<>();
-  private final Map<Integer, Integer> value_map = new HashMap<>();
+  private final Map<SMGValue, SMGValue> value_map = new HashMap<>();
 
   @Override
   public int hashCode() {
@@ -56,7 +57,7 @@ public class SMGNodeMapping {
     value_map.putAll(origin.value_map);
   }
 
-  public Integer get(Integer i) {
+  public SMGValue get(SMGValue i) {
     return value_map.get(i);
   }
 
@@ -68,13 +69,13 @@ public class SMGNodeMapping {
     object_map.put(key, value);
   }
 
-  public void map(Integer key, Integer value) {
+  public void map(SMGValue key, SMGValue value) {
     value_map.put(key, value);
   }
 
-  public void removeValue(Integer value) {
+  public void removeValue(SMGValue value) {
 
-    for (Entry<Integer, Integer> entry : value_map.entrySet()) {
+    for (Entry<SMGValue, SMGValue> entry : value_map.entrySet()) {
       if (entry.getValue().equals(value)) {
         value_map.remove(entry.getKey());
         return;
@@ -91,7 +92,7 @@ public class SMGNodeMapping {
     }
   }
 
-  public boolean containsKey(Integer key) {
+  public boolean containsKey(SMGValue key) {
     return value_map.containsKey(key);
   }
 
@@ -107,7 +108,12 @@ public class SMGNodeMapping {
     return object_map.entrySet();
   }
 
-  public Set<Entry<Integer, Integer>> getValue_mapEntrySet() {
+  public Set<Entry<SMGValue, SMGValue>> getValue_mapEntrySet() {
     return value_map.entrySet();
+  }
+
+  @Override
+  public String toString() {
+    return "Objects:\n" + object_map + "\nValues:\n" + value_map;
   }
 }

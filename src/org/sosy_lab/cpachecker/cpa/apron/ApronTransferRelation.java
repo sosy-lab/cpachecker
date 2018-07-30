@@ -101,8 +101,8 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState.Type;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -452,7 +452,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
 
           break;
         default:
-          throw new UnrecognizedCCodeException("unknown binary operator", edge, binExp);
+            throw new UnrecognizedCodeException("unknown binary operator", edge, binExp);
         }
       }
     }
@@ -665,7 +665,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     } else if (exprOnSummary instanceof CFunctionCallStatement) {
 
     } else {
-      throw new UnrecognizedCCodeException("on function return", cfaEdge, exprOnSummary);
+      throw new UnrecognizedCodeException("on function return", cfaEdge, exprOnSummary);
     }
 
     return Collections.singleton(state.removeLocalVars(calledFunctionName));
@@ -759,7 +759,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       if (fn instanceof CIdExpression) {
         String func = ((CIdExpression)fn).getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
-          throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
+          throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
         }
       }
     }
@@ -803,7 +803,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
 
     }
 
-    throw new UnrecognizedCCodeException("unknown statement", cfaEdge, statement);
+    throw new UnrecognizedCodeException("unknown statement", cfaEdge, statement);
   }
 
   private MemoryLocation buildVarName(CLeftHandSide left, String pFunctionName) {

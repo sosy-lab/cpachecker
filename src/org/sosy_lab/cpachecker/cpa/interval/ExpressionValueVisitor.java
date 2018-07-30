@@ -37,11 +37,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** Visitor that get's the interval from an expression, */
-class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, UnrecognizedCCodeException>
-    implements CRightHandSideVisitor<Interval, UnrecognizedCCodeException> {
+class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, UnrecognizedCodeException>
+    implements CRightHandSideVisitor<Interval, UnrecognizedCodeException> {
 
   private final IntervalAnalysisState readableState;
 
@@ -58,7 +58,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
   }
 
   @Override
-  public Interval visit(CBinaryExpression binaryExpression) throws UnrecognizedCCodeException {
+  public Interval visit(CBinaryExpression binaryExpression) throws UnrecognizedCodeException {
     Interval interval1 = binaryExpression.getOperand1().accept(this);
     Interval interval2 = binaryExpression.getOperand2().accept(this);
 
@@ -149,7 +149,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
   }
 
   @Override
-  public Interval visit(CCastExpression cast) throws UnrecognizedCCodeException {
+  public Interval visit(CCastExpression cast) throws UnrecognizedCodeException {
     return cast.getOperand().accept(this);
   }
 
@@ -164,7 +164,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
   }
 
   @Override
-  public Interval visit(CImaginaryLiteralExpression exp) throws UnrecognizedCCodeException {
+  public Interval visit(CImaginaryLiteralExpression exp) throws UnrecognizedCodeException {
     return exp.getValue().accept(this);
   }
 
@@ -188,7 +188,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
   }
 
   @Override
-  public Interval visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
+  public Interval visit(CUnaryExpression unaryExpression) throws UnrecognizedCodeException {
     Interval interval = unaryExpression.getOperand().accept(this);
     switch (unaryExpression.getOperator()) {
       case MINUS:
@@ -199,7 +199,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
         return Interval.UNBOUND; // valid expression, but it's a pointer value
 
       default:
-        throw new UnrecognizedCCodeException("unknown unary operator", cfaEdge, unaryExpression);
+        throw new UnrecognizedCodeException("unknown unary operator", cfaEdge, unaryExpression);
     }
   }
 }

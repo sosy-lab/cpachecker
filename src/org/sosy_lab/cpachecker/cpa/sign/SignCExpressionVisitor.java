@@ -25,7 +25,11 @@ package org.sosy_lab.cpachecker.cpa.sign;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -47,14 +51,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
-
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class SignCExpressionVisitor
   extends DefaultCExpressionVisitor<SIGN, UnrecognizedCodeException>
@@ -127,7 +124,8 @@ public class SignCExpressionVisitor
     return result;
   }
 
-  private SIGN evaluateExpression(SIGN pLeft, CBinaryExpression pExp, SIGN pRight) throws UnsupportedCCodeException {
+  private SIGN evaluateExpression(SIGN pLeft, CBinaryExpression pExp, SIGN pRight)
+      throws UnsupportedCodeException {
     SIGN result = SIGN.EMPTY;
     switch (pExp.getOperator()) {
     case PLUS:
@@ -164,8 +162,7 @@ public class SignCExpressionVisitor
       result = evaluateEqualOperator(pLeft, pRight);
       break;
     default:
-      throw new UnsupportedCCodeException(
-          "Not supported", edgeOfExpr);
+        throw new UnsupportedCodeException("Not supported", edgeOfExpr);
     }
     return result;
   }
@@ -216,9 +213,7 @@ public class SignCExpressionVisitor
       }
       return result;
     default:
-      throw new UnsupportedCCodeException(
-          "Not supported", edgeOfExpr,
-          pIastUnaryExpression);
+        throw new UnsupportedCodeException("Not supported", edgeOfExpr, pIastUnaryExpression);
     }
   }
 

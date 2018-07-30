@@ -137,7 +137,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     pConfig.inject(this);
     cfa = pCfa;
     locationCPA = LocationCPA.create(pCfa, pConfig);
-    callstackCPA = new CallstackCPA(pConfig, pLogger, pCfa);
+    callstackCPA = new CallstackCPA(pConfig, pLogger);
     logger = new LogManagerWithoutDuplicates(pLogger);
   }
 

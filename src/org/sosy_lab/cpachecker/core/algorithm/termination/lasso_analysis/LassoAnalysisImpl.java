@@ -231,14 +231,19 @@ public class LassoAnalysisImpl implements LassoAnalysis {
             pCfa,
             AnalysisDirection.FORWARD);
 
-    lassoBuilder = new LassoBuilder(
+    lassoBuilder =
+        new LassoBuilder(
             pConfig,
             pLogger,
             shutdownNotifier,
             formulaManager,
             formulaManagerView,
-            () -> solverContext.newProverEnvironment(), // Eclipse compiler crashes if a method reference is used here.
-            pathFormulaManager);
+            () ->
+                solverContext
+                    .newProverEnvironment(), // Eclipse compiler crashes if a method reference is
+                                             // used here.
+            pathFormulaManager,
+            statistics);
     rankingRelationBuilder =
         new RankingRelationBuilder(
             pCfa.getMachineModel(),

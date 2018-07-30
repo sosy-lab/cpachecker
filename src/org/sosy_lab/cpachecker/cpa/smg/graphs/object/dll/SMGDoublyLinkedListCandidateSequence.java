@@ -66,7 +66,7 @@ public class SMGDoublyLinkedListCandidateSequence extends SMGAbstractListCandida
       SMGObject nextObject = pSMG.getPointer(nextEdge.getValue()).getObject();
 
       if (nextObject == prevObject) {
-        return pSMG;
+        throw new AssertionError("Invalid candidate sequence: Attempt to merge object with itself");
       }
 
       if (length > 1) {
@@ -114,6 +114,8 @@ public class SMGDoublyLinkedListCandidateSequence extends SMGAbstractListCandida
       pSMG.addHasValueEdge(pfoHve);
 
       pSmgState.pruneUnreachable();
+
+      replaceSourceValues(pSMG, newAbsObj);
 
 //      SMGDebugTest.dumpPlot("afterAbstractionAfterRemoval", pSmgState);
     }

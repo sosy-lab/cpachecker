@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
 
@@ -72,7 +72,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
       final TypeHandlerWithPointerAliasing pTypeHandler,
       final CFAEdge pCfaEdge,
       final PointerTargetSetBuilder pPts)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     LvalueToPointerTargetPatternVisitor v =
         new LvalueToPointerTargetPatternVisitor(pTypeHandler, pCfaEdge, pPts);
     return lhs.accept(v).build();

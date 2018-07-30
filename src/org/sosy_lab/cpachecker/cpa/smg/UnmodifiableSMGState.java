@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,8 +40,9 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -61,7 +62,7 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
    * Returns mutable instance of subclass, with the given SMG and ExplicitValues. Changes to the
    * returned instance are independent of this immutable instance and do not change it.
    */
-  SMGState copyWith(CLangSMG pSmg, BiMap<SMGKnownSymValue, SMGKnownExpValue> pValues);
+  SMGState copyWith(CLangSMG pSmg, BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> pValues);
 
   /**
    * Returns mutable instance of subclass, with the flag for blockEnd. Changes to the returned
@@ -122,11 +123,12 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
    */
   UnmodifiableSMGState withErrorDescription(String pErrorDescription);
 
-  List<SMGAddressValueAndState> getPointerFromValue(Integer pValue) throws SMGInconsistentException;
+  List<SMGAddressValueAndState> getPointerFromValue(SMGValue pValue)
+      throws SMGInconsistentException;
 
   boolean isBlockEnded();
 
-  Set<Entry<SMGKnownSymValue, SMGKnownExpValue>> getExplicitValues();
+  Set<Entry<SMGKnownSymbolicValue, SMGKnownExpValue>> getExplicitValues();
 
   @Override
   UnmodifiableSMGState join(UnmodifiableSMGState reachedState) throws SMGInconsistentException;
@@ -143,7 +145,7 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
    * @return Address of the given field, or NULL, if such an address does not yet exist in the SMG.
    */
   @Nullable
-  default Integer getAddress(SMGRegion memory, long offset) {
+  default SMGSymbolicValue getAddress(SMGRegion memory, long offset) {
     return getAddress(memory, offset, null);
   }
 
@@ -156,7 +158,7 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
    * @return Address of the given field, or NULL, if such an address does not yet exist in the SMG.
    */
   @Nullable
-  public Integer getAddress(SMGObject memory, long offset, SMGTargetSpecifier tg);
+  public SMGSymbolicValue getAddress(SMGObject memory, long offset, SMGTargetSpecifier tg);
 
   Collection<Object> getInvalidChain();
 
@@ -168,9 +170,9 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
 
   PredRelation getErrorPredicateRelation();
 
-  boolean isExplicit(SMGKnownSymValue value);
+  boolean isExplicit(SMGKnownSymbolicValue value);
 
-  SMGExplicitValue getExplicit(SMGKnownSymValue pKey);
+  SMGExplicitValue getExplicit(SMGKnownSymbolicValue pKey);
 
   boolean hasMemoryErrors();
 

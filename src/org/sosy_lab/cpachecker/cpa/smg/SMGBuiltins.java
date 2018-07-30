@@ -45,12 +45,14 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 public class SMGBuiltins {
 
@@ -112,21 +114,23 @@ public class SMGBuiltins {
       bufferExpr = functionCall.getParameterExpressions().get(MEMSET_BUFFER_PARAMETER);
     } catch (IndexOutOfBoundsException e) {
       logger.logDebugException(e);
-      throw new UnrecognizedCCodeException("Memset buffer argument not found.", cfaEdge, functionCall);
+      throw new UnrecognizedCodeException(
+          "Memset buffer argument not found.", cfaEdge, functionCall);
     }
 
     try {
       chExpr = functionCall.getParameterExpressions().get(MEMSET_CHAR_PARAMETER);
     } catch (IndexOutOfBoundsException e) {
       logger.logDebugException(e);
-      throw new UnrecognizedCCodeException("Memset ch argument not found.", cfaEdge, functionCall);
+      throw new UnrecognizedCodeException("Memset ch argument not found.", cfaEdge, functionCall);
     }
 
     try {
       countExpr = functionCall.getParameterExpressions().get(MEMSET_COUNT_PARAMETER);
     } catch (IndexOutOfBoundsException e) {
       logger.logDebugException(e);
-      throw new UnrecognizedCCodeException("Memset count argument not found.", cfaEdge, functionCall);
+      throw new UnrecognizedCodeException(
+          "Memset count argument not found.", cfaEdge, functionCall);
     }
 
     List<SMGAddressValueAndState> result = new ArrayList<>(4);
@@ -180,14 +184,14 @@ public class SMGBuiltins {
 
     if (ch.isUnknown()) {
       // If the symbolic value is not known create a new one.
-      ch = SMGKnownSymValue.valueOf(SMGCPA.getNewValue());
+      ch = SMGKnownSymValue.of();
     }
 
     SMGObject bufferMemory =  bufferAddress.getObject();
 
     long offset =  bufferAddress.getOffset().getAsLong();
 
-    if (ch.equals(SMGKnownSymValue.ZERO)) {
+    if (ch.equals(SMGZeroValue.INSTANCE)) {
       // Create one large edge
       currentState =
           expressionEvaluator.writeValue(
@@ -212,7 +216,7 @@ public class SMGBuiltins {
       }
 
       if (!expValue.isUnknown()) {
-        currentState.putExplicit((SMGKnownSymValue) ch, (SMGKnownExpValue) expValue);
+        currentState.putExplicit((SMGKnownSymbolicValue) ch, (SMGKnownExpValue) expValue);
       }
     }
 
@@ -236,7 +240,7 @@ public class SMGBuiltins {
   }
 
   public final List<SMGAddressValueAndState> evaluateExternalAllocation(
-      CFunctionCallExpression pFunctionCall, SMGState pState) {
+      CFunctionCallExpression pFunctionCall, SMGState pState) throws SMGInconsistentException {
 
     String functionName = pFunctionCall.getFunctionNameExpression().toASTString();
 
@@ -269,7 +273,7 @@ public class SMGBuiltins {
       sizeExpr = functionCall.getParameterExpressions().get(MALLOC_PARAMETER);
     } catch (IndexOutOfBoundsException e) {
       logger.logDebugException(e);
-      throw new UnrecognizedCCodeException("alloca argument not found.", cfaEdge, functionCall);
+      throw new UnrecognizedCodeException("alloca argument not found.", cfaEdge, functionCall);
     }
 
     List<SMGAddressValueAndState> result = new ArrayList<>();
@@ -315,18 +319,16 @@ public class SMGBuiltins {
         if (sizeValue.isUnknown()) {
 
           if (smgTransferRelation.kind == SMGTransferRelationKind.REFINEMENT) {
-            sizeValue = SMGKnownExpValue.ZERO;
+            sizeValue = SMGZeroValue.INSTANCE;
           } else {
-            throw new UnrecognizedCCodeException(
-                "Not able to compute allocation size", cfaEdge);
+            throw new UnsupportedCodeException("Not able to compute allocation size", cfaEdge);
           }
         }
       } else {
         if (smgTransferRelation.kind == SMGTransferRelationKind.REFINEMENT) {
-          sizeValue = SMGKnownExpValue.ZERO;
+          sizeValue = SMGZeroValue.INSTANCE;
         } else {
-          throw new UnrecognizedCCodeException(
-              "Not able to compute allocation size", cfaEdge);
+          throw new UnsupportedCodeException("Not able to compute allocation size", cfaEdge);
         }
       }
     }
@@ -343,8 +345,7 @@ public class SMGBuiltins {
 
     // If malloc can fail, handle fail with alternative state
     if (options.isEnableMallocFailure()) {
-      result.add(
-          SMGAddressValueAndState.of(currentState.copyOf(), SMGKnownAddressValue.ZERO_ADDRESS));
+      result.add(SMGAddressValueAndState.of(currentState.copyOf(), SMGZeroValue.INSTANCE));
     }
 
     return result;
@@ -392,7 +393,8 @@ public class SMGBuiltins {
       sizeExpr = functionCall.getParameterExpressions().get(pParameterNumber);
     } catch (IndexOutOfBoundsException e) {
       logger.logDebugException(e);
-      throw new UnrecognizedCCodeException(functionName + " argument #" + pParameterNumber + " not found.", cfaEdge, functionCall);
+      throw new UnrecognizedCodeException(
+          functionName + " argument #" + pParameterNumber + " not found.", cfaEdge, functionCall);
     }
 
     List<SMGExplicitValueAndState> result = new ArrayList<>();
@@ -424,18 +426,18 @@ public class SMGBuiltins {
 
           if(value.isUnknown()) {
             if (smgTransferRelation.kind == SMGTransferRelationKind.REFINEMENT) {
-              resultValueAndState = SMGExplicitValueAndState.of(currentState ,SMGKnownExpValue.ZERO);
+              resultValueAndState =
+                  SMGExplicitValueAndState.of(currentState, SMGZeroValue.INSTANCE);
             } else {
-              throw new UnrecognizedCCodeException(
-                  "Not able to compute allocation size", cfaEdge);
+              throw new UnsupportedCodeException("Not able to compute allocation size", cfaEdge);
             }
           }
         } else {
           if (smgTransferRelation.kind == SMGTransferRelationKind.REFINEMENT) {
-            resultValueAndState = SMGExplicitValueAndState.of(currentState, SMGKnownExpValue.ZERO);
+            resultValueAndState =
+                SMGExplicitValueAndState.of(currentState, SMGZeroValue.INSTANCE);
           } else {
-            throw new UnrecognizedCCodeException(
-                "Not able to compute allocation size", cfaEdge);
+            throw new UnsupportedCodeException("Not able to compute allocation size", cfaEdge);
           }
         }
       }
@@ -476,15 +478,14 @@ public class SMGBuiltins {
                 new_address.getObject(),
                 0,
                 TypeUtils.createTypeWithLength(size * machineModel.getSizeofCharInBits()),
-                SMGKnownSymValue.ZERO,
+                SMGZeroValue.INSTANCE,
                 cfaEdge);
       }
       result.add(SMGAddressValueAndState.of(newState, new_address));
 
       // If malloc can fail, handle fail with alternative state
       if (options.isEnableMallocFailure()) {
-        result.add(
-            SMGAddressValueAndState.of(currentState.copyOf(), SMGKnownAddressValue.ZERO_ADDRESS));
+        result.add(SMGAddressValueAndState.of(currentState.copyOf(), SMGZeroValue.INSTANCE));
       }
     }
 
@@ -499,7 +500,8 @@ public class SMGBuiltins {
       pointerExp = pFunctionCall.getParameterExpressions().get(0);
     } catch (IndexOutOfBoundsException e) {
       logger.logDebugException(e);
-      throw new UnrecognizedCCodeException("Built-in free(): No parameter passed", cfaEdge, pFunctionCall);
+      throw new UnrecognizedCodeException(
+          "Built-in free(): No parameter passed", cfaEdge, pFunctionCall);
     }
 
     List<SMGState> resultStates = new ArrayList<>();
@@ -522,12 +524,12 @@ public class SMGBuiltins {
         continue;
       }
 
-      if (address.getAsInt() == 0) {
+      if (address.isZero()) {
         logger.log(Level.INFO, pFunctionCall.getFileLocation(), ":",
             "The argument of a free invocation:", cfaEdge.getRawStatement(), "is 0");
 
       } else {
-        currentState = currentState.free(address.getAsInt(), address.getOffset().getAsInt(), address.getObject());
+        currentState = currentState.free(address.getOffset().getAsInt(), address.getObject());
       }
 
       resultStates.add(currentState);
@@ -574,21 +576,24 @@ public class SMGBuiltins {
       targetStr1Expr = pFunctionCall.getParameterExpressions().get(MEMCPY_TARGET_PARAMETER);
     } catch (IndexOutOfBoundsException e) {
       logger.logDebugException(e);
-      throw new UnrecognizedCCodeException("Memcpy target argument not found.", pCfaEdge, pFunctionCall);
+      throw new UnrecognizedCodeException(
+          "Memcpy target argument not found.", pCfaEdge, pFunctionCall);
     }
 
     try {
       sourceStr2Expr = pFunctionCall.getParameterExpressions().get(MEMCPY_SOURCE_PARAMETER);
     } catch (IndexOutOfBoundsException e) {
       logger.logDebugException(e);
-      throw new UnrecognizedCCodeException("Memcpy source argument not found.", pCfaEdge, pFunctionCall);
+      throw new UnrecognizedCodeException(
+          "Memcpy source argument not found.", pCfaEdge, pFunctionCall);
     }
 
     try {
       sizeExpr = pFunctionCall.getParameterExpressions().get(MEMCPY_SIZE_PARAMETER);
     } catch (IndexOutOfBoundsException e) {
       logger.logDebugException(e);
-      throw new UnrecognizedCCodeException("Memcpy count argument not found.", pCfaEdge, pFunctionCall);
+      throw new UnrecognizedCodeException(
+          "Memcpy count argument not found.", pCfaEdge, pFunctionCall);
     }
 
     List<SMGAddressValueAndState> result = new ArrayList<>(4);

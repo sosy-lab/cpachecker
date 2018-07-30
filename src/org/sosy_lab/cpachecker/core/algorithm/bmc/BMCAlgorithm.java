@@ -320,8 +320,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       CounterexampleTraceInfo cexInfo =
           CounterexampleTraceInfo.feasible(
               ImmutableList.of(cexFormula), model, branchingInformation);
-      CounterexampleInfo counterexample =
-          pathChecker.createCounterexample(targetPath, cexInfo, shouldCheckBranching);
+      CounterexampleInfo counterexample = pathChecker.createCounterexample(targetPath, cexInfo);
       counterexample.getTargetState().addCounterexampleInformation(counterexample);
 
     } finally {

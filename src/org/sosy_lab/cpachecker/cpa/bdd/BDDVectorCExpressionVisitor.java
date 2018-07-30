@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 /**
@@ -61,7 +61,7 @@ import org.sosy_lab.cpachecker.util.predicates.regions.Region;
  * value without losing information.
  */
 public class BDDVectorCExpressionVisitor
-    extends DefaultCExpressionVisitor<Region[], UnsupportedCCodeException> {
+    extends DefaultCExpressionVisitor<Region[], UnsupportedCodeException> {
 
   private final MachineModel machineModel;
   protected final PredicateManager predMgr;
@@ -88,7 +88,7 @@ public class BDDVectorCExpressionVisitor
   }
 
   @Override
-  public Region[] visit(final CBinaryExpression pE) throws UnsupportedCCodeException {
+  public Region[] visit(final CBinaryExpression pE) throws UnsupportedCodeException {
     final Region[] lVal = pE.getOperand1().accept(this);
     final Region[] rVal = pE.getOperand2().accept(this);
     if (lVal == null || rVal == null) { return null; }
@@ -255,7 +255,7 @@ public class BDDVectorCExpressionVisitor
   }
 
   @Override
-  public Region[] visit(CCastExpression pE) throws UnsupportedCCodeException {
+  public Region[] visit(CCastExpression pE) throws UnsupportedCodeException {
     return castCValue(
         pE.getOperand().accept(this),
         pE.getOperand().getExpressionType(),
@@ -285,15 +285,14 @@ public class BDDVectorCExpressionVisitor
   }
 
   @Override
-  public Region[] visit(CImaginaryLiteralExpression pE) throws UnsupportedCCodeException {
+  public Region[] visit(CImaginaryLiteralExpression pE) throws UnsupportedCodeException {
     return pE.getValue().accept(this);
   }
 
   @Override
   public Region[] visit(final CArraySubscriptExpression expression)
-      throws UnsupportedCCodeException {
-    throw new UnsupportedCCodeException(
-        "BDD-analysis does not support arrays: " + expression, null);
+      throws UnsupportedCodeException {
+    throw new UnsupportedCodeException("BDD-analysis does not support arrays: " + expression, null);
   }
 
   @Override
@@ -325,7 +324,7 @@ public class BDDVectorCExpressionVisitor
   }
 
   @Override
-  public Region[] visit(final CUnaryExpression unaryExpression) throws UnsupportedCCodeException {
+  public Region[] visit(final CUnaryExpression unaryExpression) throws UnsupportedCodeException {
     final UnaryOperator unaryOperator = unaryExpression.getOperator();
     final CExpression unaryOperand = unaryExpression.getOperand();
 
@@ -375,7 +374,7 @@ public class BDDVectorCExpressionVisitor
    * @return if evaluation successful, then value, else null
    */
   public Region[] evaluate(final CExpression pExp, final CType pTargetType)
-      throws UnsupportedCCodeException {
+      throws UnsupportedCodeException {
     return castCValue(
         pExp.accept(this), pExp.getExpressionType(), pTargetType, bvmgr, machineModel);
   }

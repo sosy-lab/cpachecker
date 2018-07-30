@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierLocator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -119,11 +119,18 @@ public class ConstraintsSolver implements StatisticsProvider {
 
   private final LogManagerWithoutDuplicates logger;
 
-  private final StatTimer timeForSatChecks = new StatTimer(StatKind.SUM, "Time for SAT checks");
+  private final StatTimer
+      timeForSolving = new StatTimer(StatKind.SUM, "Time for solving constraints");
   private final StatTimer timeForIndependentComputation =
-      new StatTimer(StatKind.SUM, "Time for " + "independent computation");
+      new StatTimer(StatKind.SUM, "Time for independent computation");
   private final StatTimer timeForDefinitesComputation =
       new StatTimer(StatKind.SUM, "Time for resolving definites");
+  private final StatTimer timeForModelReuse =
+      new StatTimer(StatKind.SUM, "Time for model re-use attempts");
+  private final StatTimer timeForSatCheck =
+      new StatTimer(StatKind.SUM, "Time for SMT check");
+
+  private final StatCounter modelReuseSuccesses = new StatCounter("Successful model re-uses");
 
   private ConstraintsCache cache;
   private Solver solver;
@@ -162,22 +169,14 @@ public class ConstraintsSolver implements StatisticsProvider {
     } else {
       cache = new DummyCache();
     }
-
   }
 
   public boolean isUnsat(
       Constraint pConstraint, IdentifierAssignment pAssignment, String pFunctionName)
-      throws UnrecognizedCCodeException, InterruptedException, SolverException {
-    try {
-      timeForSatChecks.start();
-
-      BooleanFormula constraintAsFormula =
-          getFullFormula(Collections.singleton(pConstraint), pAssignment, pFunctionName);
-      return solver.isUnsat(constraintAsFormula);
-
-    } finally {
-      timeForSatChecks.stop();
-    }
+      throws UnrecognizedCodeException, InterruptedException, SolverException {
+    BooleanFormula constraintAsFormula =
+        getFullFormula(Collections.singleton(pConstraint), pAssignment, pFunctionName);
+    return solver.isUnsat(constraintAsFormula);
   }
 
   /**
@@ -187,40 +186,13 @@ public class ConstraintsSolver implements StatisticsProvider {
    * @return <code>true</code> if this state is unsatisfiable, <code>false</code> otherwise
    */
   public boolean isUnsat(ConstraintsState pConstraints, String pFunctionName)
-      throws SolverException, InterruptedException, UnrecognizedCCodeException {
+      throws SolverException, InterruptedException, UnrecognizedCodeException {
 
     if (!pConstraints.isEmpty()) {
       try {
-        timeForSatChecks.start();
-        Set<Constraint> relevantConstraints = new HashSet<>();
-        if (performMinimalSatCheck && pConstraints.getLastAddedConstraint().isPresent()) {
-          try {
-            timeForIndependentComputation.start();
-            Constraint lastConstraint = pConstraints.getLastAddedConstraint().get();
-            Set<Constraint> leftOverConstraints = new HashSet<>(pConstraints);
-            Set<SymbolicIdentifier> newRelevantIdentifiers = lastConstraint.accept(locator);
-            Set<SymbolicIdentifier> relevantIdentifiers;
-            do {
-              relevantIdentifiers = ImmutableSet.copyOf(newRelevantIdentifiers);
-              Iterator<Constraint> it = leftOverConstraints.iterator();
-              while (it.hasNext()) {
-                Constraint currentC = it.next();
-                Set<SymbolicIdentifier> containedIdentifiers = currentC.accept(locator);
-                if (!Sets.intersection(containedIdentifiers, relevantIdentifiers).isEmpty()) {
-                  newRelevantIdentifiers = Sets.union(newRelevantIdentifiers, containedIdentifiers);
-                  relevantConstraints.add(currentC);
-                  it.remove();
-                }
-              }
-            } while (!newRelevantIdentifiers.equals(relevantIdentifiers));
+        timeForSolving.start();
 
-          } finally {
-            timeForIndependentComputation.stop();
-          }
-
-        } else {
-          relevantConstraints = pConstraints;
-        }
+        Set<Constraint> relevantConstraints = getRelevantConstraints(pConstraints);
 
         BooleanFormula constraintsAsFormula =
             getFullFormula(
@@ -231,21 +203,33 @@ public class ConstraintsSolver implements StatisticsProvider {
         Boolean unsat = null; // assign null to fail fast if assignment is missed
         ImmutableList<ValueAssignment> modelAsAssignment = pConstraints.getModel();
         ImmutableList<ValueAssignment> newModelAsAssignment = ImmutableList.of();
+
         if (useLastModel) {
-          BooleanFormula lastModel =
-              modelAsAssignment
-                  .stream()
-                  .map(ValueAssignment::getAssignmentAsFormula)
-                  .collect(booleanFormulaManager.toConjunction());
-          prover.push(lastModel);
-          unsat = prover.isUnsat();
-          if (!unsat) {
-            // get this before popping the model assignment ; the operation will be invalid
-            // otherwise
-            newModelAsAssignment = prover.getModelAssignments();
+          try {
+            timeForModelReuse.start();
+            BooleanFormula lastModel =
+                modelAsAssignment
+                    .stream()
+                    .map(ValueAssignment::getAssignmentAsFormula)
+                    .collect(booleanFormulaManager.toConjunction());
+            prover.push(lastModel);
+            unsat = prover.isUnsat();
+            if (!unsat) {
+
+              if (!modelAsAssignment.isEmpty()) {
+                modelReuseSuccesses.inc();
+              }
+
+              // get this before popping the model assignment ; the operation will be invalid
+              // otherwise
+              newModelAsAssignment = prover.getModelAssignments();
+            }
+            // We have to remove the model assignment before resolving definite assignments, below.
+            prover.pop(); // Remove model assignment from prover
+
+          } finally {
+            timeForModelReuse.stop();
           }
-          // We have to remove the model assignment before resolving definite assignments, below.
-          prover.pop(); // Remove model assignment from prover
         }
 
         boolean gotResultFromCache = false;
@@ -267,7 +251,12 @@ public class ConstraintsSolver implements StatisticsProvider {
             prover.close();
             prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
             prover.push(constraintsAsFormula);
-            unsat = prover.isUnsat();
+            try {
+              timeForSatCheck.start();
+              unsat = prover.isUnsat();
+            } finally {
+              timeForSatCheck.stop();
+            }
 
             if (!unsat) {
               newModelAsAssignment = prover.getModelAssignments();
@@ -295,12 +284,46 @@ public class ConstraintsSolver implements StatisticsProvider {
 
       } finally {
         closeProver();
-        timeForSatChecks.stop();
+        timeForSolving.stop();
       }
 
     } else {
       return false;
     }
+  }
+
+  private Set<Constraint> getRelevantConstraints(ConstraintsState pConstraints) {
+    Set<Constraint> relevantConstraints = new HashSet<>();
+    if (performMinimalSatCheck && pConstraints.getLastAddedConstraint().isPresent()) {
+      try {
+        timeForIndependentComputation.start();
+        Constraint lastConstraint = pConstraints.getLastAddedConstraint().get();
+        Set<Constraint> leftOverConstraints = new HashSet<>(pConstraints);
+        Set<SymbolicIdentifier> newRelevantIdentifiers = lastConstraint.accept(locator);
+        Set<SymbolicIdentifier> relevantIdentifiers;
+        do {
+          relevantIdentifiers = ImmutableSet.copyOf(newRelevantIdentifiers);
+          Iterator<Constraint> it = leftOverConstraints.iterator();
+          while (it.hasNext()) {
+            Constraint currentC = it.next();
+            Set<SymbolicIdentifier> containedIdentifiers = currentC.accept(locator);
+            if (!Sets.intersection(containedIdentifiers, relevantIdentifiers).isEmpty()) {
+              newRelevantIdentifiers = Sets.union(newRelevantIdentifiers, containedIdentifiers);
+              relevantConstraints.add(currentC);
+              it.remove();
+            }
+          }
+        } while (!newRelevantIdentifiers.equals(relevantIdentifiers));
+
+      } finally {
+        timeForIndependentComputation.stop();
+      }
+
+    } else {
+      relevantConstraints = pConstraints;
+    }
+
+    return relevantConstraints;
   }
 
   private void closeProver() {
@@ -386,12 +409,12 @@ public class ConstraintsSolver implements StatisticsProvider {
    * constraints exist, this method will return <code>null</code>.
    *
    * @return the formula representing the conjunction of all constraints of this state
-   * @throws UnrecognizedCCodeException see {@link FormulaCreator#createFormula(Constraint)}
+   * @throws UnrecognizedCodeException see {@link FormulaCreator#createFormula(Constraint)}
    * @throws InterruptedException see {@link FormulaCreator#createFormula(Constraint)}
    */
   private BooleanFormula getFullFormula(
       Collection<Constraint> pConstraints, IdentifierAssignment pAssignment, String pFunctionName)
-      throws UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
     List<BooleanFormula> formulas = new ArrayList<>(pConstraints.size());
     for (Constraint c : pConstraints) {
       int constraintsId = getConstraintId(c);
@@ -426,7 +449,7 @@ public class ConstraintsSolver implements StatisticsProvider {
 
   private BooleanFormula createConstraintFormulas(
       Constraint pConstraint, IdentifierAssignment pAssignment, String pFunctionName)
-      throws UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
     assert !constraintFormulas.contains(getConstraintId(pConstraint), getAssignmentId(pAssignment))
         : "Trying to add a formula that already exists!";
 
@@ -441,7 +464,10 @@ public class ConstraintsSolver implements StatisticsProvider {
           public void printStatistics(
               PrintStream out, Result result, UnmodifiableReachedSet reached) {
             StatisticsWriter.writingStatisticsTo(out)
-                .put(timeForSatChecks)
+                .put(timeForSolving)
+                .beginLevel()
+                .put(timeForIndependentComputation)
+                .put(timeForModelReuse)
                 .put(timeForDefinitesComputation);
           }
 
@@ -468,7 +494,7 @@ public class ConstraintsSolver implements StatisticsProvider {
     void addUnsat(Collection<Constraint> pConstraints);
   }
 
-  private class MatchingConstraintsCache implements ConstraintsCache, StatisticsProvider {
+  private class MatchingConstraintsCache implements ConstraintsCache, Statistics {
 
     private Map<Integer, CacheResult> cacheMap = new HashMap<>();
 
@@ -514,24 +540,18 @@ public class ConstraintsSolver implements StatisticsProvider {
     }
 
     @Override
-    public void collectStatistics(Collection<Statistics> statsCollection) {
-      statsCollection.add(
-          new Statistics() {
-            @Override
-            public void printStatistics(
-                PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-              StatisticsWriter.writingStatisticsTo(pOut)
-                  .put(cacheLookups)
-                  .put(cacheHits)
-                  .put(lookupTime);
-            }
+    public void printStatistics(
+        PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+      StatisticsWriter.writingStatisticsTo(pOut)
+          .put(cacheLookups)
+          .put(cacheHits)
+          .put(lookupTime);
+    }
 
-            @Nullable
-            @Override
-            public String getName() {
-              return ConstraintsSolver.this.getClass().getSimpleName();
-            }
-          });
+    @Nullable
+    @Override
+    public String getName() {
+      return getClass().getSimpleName();
     }
   }
 
@@ -651,6 +671,8 @@ public class ConstraintsSolver implements StatisticsProvider {
               return ConstraintsSolver.this.getClass().getSimpleName();
             }
           });
+
+      statsCollection.add(delegate);
     }
   }
 

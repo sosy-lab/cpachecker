@@ -53,11 +53,11 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * The class {@link SMGExpressionEvaluator} is meant to evaluate
@@ -80,9 +80,8 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     options = pOptions;
   }
 
-  public SMGExplicitValueAndState forceExplicitValue(SMGState smgState,
-      CFAEdge pCfaEdge, CRightHandSide rVal)
-      throws UnrecognizedCCodeException {
+  public SMGExplicitValueAndState forceExplicitValue(
+      SMGState smgState, CFAEdge pCfaEdge, CRightHandSide rVal) throws UnrecognizedCodeException {
 
     ForceExplicitValueVisitor v =
         new ForceExplicitValueVisitor(
@@ -107,9 +106,9 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
   }
 
   @Override
-  public SMGValueAndState readValue(SMGState pSmgState, SMGObject pObject,
-      SMGExplicitValue pOffset, CType pType, CFAEdge pEdge)
-      throws SMGInconsistentException, UnrecognizedCCodeException {
+  public SMGValueAndState readValue(
+      SMGState pSmgState, SMGObject pObject, SMGExplicitValue pOffset, CType pType, CFAEdge pEdge)
+      throws SMGInconsistentException, UnrecognizedCodeException {
 
     if (pOffset.isUnknown() || pObject == null) {
       SMGState errState =
@@ -173,7 +172,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       CType pRValueType,
       SMGSymbolicValue pValue,
       CFAEdge pEdge)
-      throws SMGInconsistentException, UnrecognizedCCodeException {
+      throws SMGInconsistentException, UnrecognizedCodeException {
 
     // FIXME Does not work with variable array length.
     // TODO: write value with bit precise size
@@ -195,28 +194,9 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
                   pMemoryOfField));
       SMGState newState = pState.withInvalidWrite();
       if (!pMemoryOfField.equals(SMGNullObject.INSTANCE)) {
-        if (rValueTypeBitSize % 8 != 0 || pFieldOffset % 8 != 0 || memoryBitSize % 8 != 0) {
-          newState =
-              newState.withErrorDescription(
-                  "Field with size "
-                      + rValueTypeBitSize
-                      + " bit can't be written at offset "
-                      + pFieldOffset
-                      + " bit of object "
-                      + memoryBitSize
-                      + " bit size");
-        } else {
-          newState =
-              newState.withErrorDescription(
-                  "Field with size "
-                      + rValueTypeBitSize / 8
-                      + " byte can't "
-                      + "be written at offset "
-                      + pFieldOffset / 8
-                      + " byte of object "
-                      + memoryBitSize / 8
-                      + " byte size");
-        }
+        newState = newState.withErrorDescription(String.format(
+            "Field with size %d bit can't be written at offset %d bit of object %d bit size",
+            rValueTypeBitSize, pFieldOffset, memoryBitSize));
         newState.addInvalidObject(pMemoryOfField);
       } else {
         newState = newState.withErrorDescription("NULL pointer dereference on write");
@@ -230,13 +210,13 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
     if (pRValueType instanceof CPointerType
         && !(pValue instanceof SMGAddressValue)
-        && pValue instanceof SMGKnownSymValue) {
-      SMGKnownSymValue knownValue = (SMGKnownSymValue) pValue;
+        && pValue instanceof SMGKnownSymbolicValue) {
+      SMGKnownSymbolicValue knownValue = (SMGKnownSymbolicValue) pValue;
       if (pState.isExplicit(knownValue)) {
         SMGExplicitValue explicit = Preconditions.checkNotNull(pState.getExplicit(knownValue));
-          pValue =
-              SMGKnownAddressValue.valueOf(
-                  SMGNullObject.INSTANCE, (SMGKnownExpValue) explicit, knownValue);
+        pValue =
+            SMGKnownAddressValue.valueOf(
+                knownValue, SMGNullObject.INSTANCE, (SMGKnownExpValue) explicit);
       }
     }
     return pState.writeValue(pMemoryOfField, pFieldOffset, pRValueType, pValue).getState();
@@ -249,7 +229,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       long fieldOffset,
       SMGSymbolicValue value,
       CType rValueType)
-      throws UnrecognizedCCodeException, SMGInconsistentException {
+      throws UnrecognizedCodeException, SMGInconsistentException {
 
     int sizeOfField = getBitSizeof(cfaEdge, rValueType, newState);
 
@@ -281,13 +261,13 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       CType pRValueType,
       SMGSymbolicValue pValue,
       CFAEdge pCfaEdge)
-      throws SMGInconsistentException, UnrecognizedCCodeException {
+      throws SMGInconsistentException, UnrecognizedCodeException {
 
     if (pValue instanceof SMGKnownAddressValue) {
       SMGKnownAddressValue structAddress = (SMGKnownAddressValue) pValue;
 
       SMGObject source = structAddress.getObject();
-      long structOffset = structAddress.getOffset().getAsInt();
+      long structOffset = structAddress.getOffset().getAsLong();
 
       // FIXME Does not work with variable array length.
       long structSize = structOffset + getBitSizeof(pCfaEdge, pRValueType, pNewState);

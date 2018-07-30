@@ -24,25 +24,29 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 
 public final class TestHelpers {
-  static public Integer createList(CLangSMG pSmg, int pLength, int pSize, int pOffset, String pPrefix) {
-    Integer value = null;
+  public static SMGValue createList(
+      CLangSMG pSmg, int pLength, int pSize, int pOffset, String pPrefix) {
+    SMGValue value = null;
     for (int i = 0; i < pLength; i++) {
       SMGObject node = new SMGRegion(pSize, pPrefix + "list_node" + i);
       SMGEdgeHasValue hv;
       if (value == null) {
-        hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, pOffset, node, 0);
+        hv =
+            new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, pOffset, node, SMGZeroValue.INSTANCE);
       } else {
         hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, pOffset, node, value);
       }
-      value = SMGCPA.getNewValue();
+      value = SMGKnownSymValue.of();
       SMGEdgePointsTo pt = new SMGEdgePointsTo(value, node, 0);
       pSmg.addHeapObject(node);
       pSmg.addValue(value);
@@ -53,7 +57,7 @@ public final class TestHelpers {
   }
 
   static public SMGEdgeHasValue createGlobalList(CLangSMG pSmg, int pLength, int pSize, int pOffset, String pVariable) {
-    Integer value = TestHelpers.createList(pSmg, pLength, pSize, pOffset, pVariable);
+    SMGValue value = TestHelpers.createList(pSmg, pLength, pSize, pOffset, pVariable);
     SMGRegion globalVar = new SMGRegion(64, pVariable);
     SMGEdgeHasValue hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 0, globalVar, value);
     pSmg.addGlobalObject(globalVar);

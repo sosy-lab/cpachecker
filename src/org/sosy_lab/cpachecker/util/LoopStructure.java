@@ -24,14 +24,10 @@
 package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.FunctionReturnEdge;
-import static org.sosy_lab.cpachecker.util.CFAUtils.edgeHasType;
 import static org.sosy_lab.cpachecker.util.CFAUtils.hasBackWardsEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
@@ -39,10 +35,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
 import java.io.Serializable;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -424,75 +418,6 @@ public final class LoopStructure implements Serializable {
     }
     return null;
   }
-
-
-  /**
-   * Gets the loop structure of a control flow automaton with one single loop.
-   * Do not call this method outside of the frontend,
-   * use {@link org.sosy_lab.cpachecker.cfa.CFA#getLoopStructure()} instead.
-   * @param pSingleLoopHead the loop head of the single loop.
-   * @return the loop structure of the control flow automaton.
-   */
-  public static LoopStructure getLoopStructureForSingleLoop(CFANode pSingleLoopHead) {
-    Predicate<CFAEdge> noFunctionReturnEdge = not(edgeHasType(FunctionReturnEdge));
-
-    // First, find all nodes reachable via the loop head
-    Deque<CFANode> waitlist = new ArrayDeque<>();
-    Set<CFANode> reachableSuccessors = new HashSet<>();
-    Set<CFANode> visited = new HashSet<>();
-    waitlist.push(pSingleLoopHead);
-    boolean firstIteration = true;
-    while (!waitlist.isEmpty()) {
-      CFANode current = waitlist.pop();
-      for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(current).filter(noFunctionReturnEdge)) {
-        CFANode successor = leavingEdge.getSuccessor();
-        if (visited.add(successor)) {
-          waitlist.push(successor);
-        }
-      }
-      if (firstIteration) {
-        firstIteration = false;
-      } else {
-        reachableSuccessors.add(current);
-      }
-    }
-
-    // If the loop head cannot reach itself, there is no loop
-    if (!reachableSuccessors.contains(pSingleLoopHead)) {
-      return new LoopStructure(ImmutableMultimap.of());
-    }
-
-    /*
-     * Now, Find all loop nodes by checking which of the nodes reachable via
-     * the loop head, the loop head itself is reachable from.
-     */
-    visited.clear();
-    waitlist.offer(pSingleLoopHead);
-    Set<CFANode> loopNodes = new HashSet<>();
-    while (!waitlist.isEmpty()) {
-      CFANode current = waitlist.poll();
-      if (reachableSuccessors.contains(current)) {
-        loopNodes.add(current);
-        for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(current)) {
-          CFANode predecessor = enteringEdge.getPredecessor();
-          if (visited.add(predecessor)) {
-            waitlist.offer(predecessor);
-          }
-        }
-      }
-    }
-    String loopFunction = pSingleLoopHead.getFunctionName();
-    // A size of one means only the loop head is contained
-    if (loopNodes.isEmpty()
-        || (loopNodes.size() == 1 && !pSingleLoopHead.hasEdgeTo(pSingleLoopHead))) {
-      return new LoopStructure(ImmutableMultimap.of());
-    }
-
-    return new LoopStructure(ImmutableMultimap.of(loopFunction, new Loop(pSingleLoopHead, loopNodes)));
-  }
-
-
-  // -------- Code related to retrieving LoopStructure information in gneral case --------
 
   // wrapper class for Set<CFANode> because Java arrays don't like generics
   private static class Edge {

@@ -376,8 +376,16 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       return performInvariantsRefinement(allStatesTrace, abstractionStatesTrace, formulas);
 
     } else if (useNewtonRefinement) {
-      logger.log(Level.FINEST, "Starting Newton-based refinement");
-      return performNewtonRefinement(allStatesTrace, formulas);
+      assert newtonManager.isPresent();
+      if (repeatedCounterexample && newtonManager.get().fallbackToInterpolation()) {
+        logger.log(
+            Level.FINEST,
+            "Fallback from Newton-based refinement to interpolation-based refinement");
+        return performInterpolatingRefinement(abstractionStatesTrace, formulas);
+      } else {
+        logger.log(Level.FINEST, "Starting Newton-based refinement");
+        return performNewtonRefinement(allStatesTrace, formulas);
+      }
 
     } else if (useUCBRefinement) {
       logger.log(Level.FINEST, "Starting unsat-core-based refinement");
@@ -452,8 +460,6 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private CounterexampleTraceInfo
       performNewtonRefinement(final ARGPath pAllStatesTrace, final BlockFormulas pFormulas)
           throws CPAException, InterruptedException {
-
-    assert newtonManager.isPresent();
     // Delegate the refinement task to the NewtonManager
     return newtonManager.get().buildCounterexampleTrace(pAllStatesTrace, pFormulas);
   }

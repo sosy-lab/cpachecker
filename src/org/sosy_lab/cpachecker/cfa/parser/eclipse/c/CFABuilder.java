@@ -35,8 +35,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.NavigableMap;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
@@ -84,7 +84,7 @@ class CFABuilder extends ASTVisitor {
 
   // Data structures for handling function declarations
   private final List<Triple<List<IASTFunctionDefinition>, String, GlobalScope>> functionDeclarations = new ArrayList<>();
-  private final SortedMap<String, FunctionEntryNode> cfas = new TreeMap<>();
+  private final NavigableMap<String, FunctionEntryNode> cfas = new TreeMap<>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
   private final List<String> eliminateableDuplicates = new ArrayList<>();
 

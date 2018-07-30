@@ -25,12 +25,12 @@ package org.sosy_lab.cpachecker.cpa.lock;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -353,11 +353,11 @@ public class LockState extends AbstractLockState {
   }
 
   @Override
-  public List<LockEffect> getDifference(AbstractLockState pOther) {
+  public Multiset<LockEffect> getDifference(AbstractLockState pOther) {
     // Return the effect, which shows, what should we do to transform from this state to the other
     LockState other = (LockState) pOther;
 
-    List<LockEffect> result = new ArrayList<>();
+    Multiset<LockEffect> result = HashMultiset.create();
     Set<LockIdentifier> processedLocks = new TreeSet<>();
 
     for (Entry<LockIdentifier, Integer> entry : locks.entrySet()) {

@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 class AssignsParameterOfOtherFunction implements Predicate<AExpressionStatement> {
 
@@ -69,7 +70,7 @@ class AssignsParameterOfOtherFunction implements Predicate<AExpressionStatement>
     }
     CExpression cExp = (CExpression) exp;
     return cExp.accept(
-        new CExpressionVisitor<Boolean, RuntimeException>() {
+        new CExpressionVisitor<Boolean, NoException>() {
 
           @Override
           public Boolean visit(CArraySubscriptExpression pIastArraySubscriptExpression) {

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,7 +36,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -49,7 +48,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.GenericAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.optional.SMGOptionalObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public final class SMGPlotter {
   private static final class SMGObjectNode {
@@ -137,7 +137,11 @@ public final class SMGPlotter {
     }
   }
 
-  static public void debuggingPlot(UnmodifiableCLangSMG pSmg, String pId, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) throws IOException {
+  public static void debuggingPlot(
+      UnmodifiableCLangSMG pSmg,
+      String pId,
+      Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues)
+      throws IOException {
     PathTemplate exportSMGFilePattern = PathTemplate.ofFormatString("smg-debug-%s.dot");
     pId = pId.replace("\"", "");
     Path outputFile = exportSMGFilePattern.getPath(pId);
@@ -163,7 +167,7 @@ public final class SMGPlotter {
       UnmodifiableCLangSMG smg,
       String name,
       String location,
-      Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) {
+      Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
     StringBuilder sb = new StringBuilder();
 
     sb.append("digraph gr_").append(name.replace('-', '_')).append("{\n");
@@ -185,16 +189,16 @@ public final class SMGPlotter {
 
     addGlobalObjectSubgraph(smg, sb);
 
-    for (int value : smg.getValues()) {
-      if (value != SMG.NULL_ADDRESS) {
+    for (SMGValue value : smg.getValues()) {
+      if (!value.isZero()) {
         sb.append(newLineWithOffset(smgValueAsDot(value, explicitValues)));
       }
     }
 
-    Set<Integer> processed = new HashSet<>();
-    for (Integer value : smg.getValues()) {
-      if (value != SMG.NULL_ADDRESS) {
-        for (Integer neqValue : smg.getNeqsForValue(value)) {
+    Set<SMGValue> processed = new HashSet<>();
+    for (SMGValue value : smg.getValues()) {
+      if (!value.isZero()) {
+        for (SMGValue neqValue : smg.getNeqsForValue(value)) {
           if (! processed.contains(neqValue)) {
             sb.append(newLineWithOffset(neqRelationAsDot(value, neqValue)));
           }
@@ -208,7 +212,7 @@ public final class SMGPlotter {
     }
 
     for (SMGEdgePointsTo edge : smg.getPTEdges()) {
-      if (edge.getValue() != SMG.NULL_ADDRESS) {
+      if (!edge.getValue().isZero()) {
         sb.append(newLineWithOffset(smgPTEdgeAsDot(edge)));
       }
     }
@@ -292,41 +296,49 @@ public final class SMGPlotter {
   }
 
   private String smgHVEdgeAsDot(SMGEdgeHasValue pEdge, UnmodifiableCLangSMG pSMG) {
-    if (pEdge.getValue() == 0) {
+    String prefix = "";
+    String target;
+    if (pEdge.getValue().isZero()) {
       String newNull = newNullLabel();
-      return newNull + "[shape=plaintext, label=\"NULL\"];" + objectIndex.get(pEdge.getObject())
-          .getName() + " -> " + newNull + "[label=\"[" + pEdge.getOffset() + "b-" + (pEdge
-          .getOffset() + pEdge.getSizeInBits(pSMG.getMachineModel())) + "b]\"];";
+      prefix = newNull + "[shape=plaintext, label=\"NULL\"];";
+      target = newNull;
     } else {
-      return objectIndex.get(pEdge.getObject()).getName() + " -> value_" + pEdge.getValue() +
-          "[label=\"[" + pEdge.getOffset() + "b-" + (pEdge.getOffset() + pEdge.getSizeInBits
-          (pSMG.getMachineModel())) + "b]\"];";
+      target = "value_" + pEdge.getValue().asDotId();
     }
+    return prefix
+        + objectIndex.get(pEdge.getObject()).getName()
+        + " -> "
+        + target
+        + "[label=\"["
+        + pEdge.getOffset()
+        + "b-"
+        + (pEdge.getOffset() + pEdge.getSizeInBits(pSMG.getMachineModel()))
+        + "b]\"];";
   }
 
   private String smgPTEdgeAsDot(SMGEdgePointsTo pEdge) {
-    return "value_" + pEdge.getValue() + " -> " + objectIndex.get(pEdge.getObject()).getName() + "[label=\"+" + pEdge.getOffset() + "b, " + pEdge.getTargetSpecifier() + "\"];";
+    return "value_" + pEdge.getValue().asDotId() + " -> " + objectIndex.get(pEdge.getObject()).getName() + "[label=\"+" + pEdge.getOffset() + "b, " + pEdge.getTargetSpecifier() + "\"];";
   }
 
-  private static String smgValueAsDot(int value, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) {
+  private static String smgValueAsDot(
+      SMGValue value, Map<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues) {
     String explicitValue = "";
-    SMGKnownSymValue symValue =  SMGKnownSymValue.valueOf(value);
-    if (explicitValues.containsKey(symValue)) {
-      explicitValue = " : " + String.valueOf(explicitValues.get(symValue).getAsLong());
+    if (explicitValues.containsKey(value)) {
+      explicitValue = " : " + String.valueOf(explicitValues.get(value).getAsLong());
     }
-    return "value_" + value + "[label=\"#" + value + explicitValue +  "\"];";
+    return "value_" + value.asDotId() + "[label=\"#" + value.asDotId() + explicitValue + "\"];";
   }
 
-  private static String neqRelationAsDot(Integer v1, Integer v2) {
+  private static String neqRelationAsDot(SMGValue v1, SMGValue v2) {
     String targetNode;
     String returnString = "";
-    if (v2.equals(0)) {
+    if (v2.isZero()) {
       targetNode = newNullLabel();
       returnString = targetNode + "[shape=plaintext, label=\"NULL\", fontcolor=\"red\"];\n";
     } else {
-      targetNode = "value_" + v2;
+      targetNode = "value_" + v2.asDotId();
     }
-    return returnString + "value_" + v1 + " -> " + targetNode + "[color=\"red\", fontcolor=\"red\", label=\"neq\"]";
+    return returnString + "value_" + v1.asDotId() + " -> " + targetNode + "[color=\"red\", fontcolor=\"red\", label=\"neq\"]";
   }
 
   private String newLineWithOffset(String pLine) {

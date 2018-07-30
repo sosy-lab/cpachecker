@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import java.util.ArrayList;
-import java.util.List;
+import com.google.common.collect.Sets;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 final class SMGJoinMatchObjects {
   private boolean defined = false;
@@ -45,32 +45,28 @@ final class SMGJoinMatchObjects {
 
   private static boolean checkMatchingMapping(SMGObject pObj1, SMGObject pObj2,
                                                     SMGNodeMapping pMapping1, SMGNodeMapping pMapping2) {
-    if (pMapping1.containsKey(pObj1) && pMapping2.containsKey(pObj2) &&
-        pMapping1.get(pObj1) != pMapping2.get(pObj2)) {
-      return true;
-    }
-
-    return false;
+    return pMapping1.containsKey(pObj1)
+        && pMapping2.containsKey(pObj2)
+        && pMapping1.get(pObj1) != pMapping2.get(pObj2);
   }
 
   private static boolean checkConsistentMapping(SMGObject pObj1, SMGObject pObj2,
                                                       SMGNodeMapping pMapping1, SMGNodeMapping pMapping2) {
-    if ((pMapping1.containsKey(pObj1) && pMapping2.containsValue(pMapping1.get(pObj1))) ||
-        (pMapping2.containsKey(pObj2) && pMapping1.containsValue(pMapping2.get(pObj2)))) {
-      return true;
-    }
-
-    return false;
+    return (pMapping1.containsKey(pObj1) && pMapping2.containsValue(pMapping1.get(pObj1)))
+        || (pMapping2.containsKey(pObj2) && pMapping1.containsValue(pMapping2.get(pObj2)));
   }
 
   private static boolean checkConsistentObjects(
       SMGObject pObj1, SMGObject pObj2, UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2) {
-    if ((pObj1.getSize() != pObj2.getSize()) ||
-        (pSMG1.isObjectValid(pObj1) != pSMG2.isObjectValid(pObj2))) {
-      return true;
-    }
+    return pObj1.getSize() != pObj2.getSize()
+        || pSMG1.isObjectValid(pObj1) != pSMG2.isObjectValid(pObj2);
+  }
 
-    return false;
+  private static boolean checkConsistentShape(SMGObject pObj1, SMGObject pObj2) {
+    return pObj1.getKind() == pObj2.getKind()
+        && pObj1.isAbstract()
+        && pObj2.isAbstract()
+        && !((SMGAbstractObject) pObj1).matchSpecificShape((SMGAbstractObject) pObj2);
   }
 
   private static boolean checkConsistentFields(
@@ -81,18 +77,19 @@ final class SMGJoinMatchObjects {
       UnmodifiableSMG pSMG1,
       UnmodifiableSMG pSMG2) {
 
-    List<SMGEdgeHasValue> fields = new ArrayList<>();
-
-    fields.addAll(pSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj1)));
-    fields.addAll(pSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj2)));
+    Set<SMGEdgeHasValue> edges1 = pSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj1));
+    Set<SMGEdgeHasValue> edges2 = pSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj2));
 
     //TODO: We go through some fields twice, fix
-    for (SMGEdgeHasValue hv : fields) {
-      Set<SMGEdgeHasValue> hv1 = pSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj1).filterByType(hv.getType()).filterAtOffset(hv.getOffset()));
-      Set<SMGEdgeHasValue> hv2 = pSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj2).filterByType(hv.getType()).filterAtOffset(hv.getOffset()));
-      if (hv1.size() > 0 && hv2.size() > 0) {
-        Integer v1 = Iterators.getOnlyElement(hv1.iterator()).getValue();
-        Integer v2 = Iterators.getOnlyElement(hv2.iterator()).getValue();
+    for (SMGEdgeHasValue hv : Sets.union(edges1, edges2)) {
+      // edges are already filtered for given object, just filter again for type and offset.
+      SMGEdgeHasValueFilter filter =
+          new SMGEdgeHasValueFilter().filterByType(hv.getType()).filterAtOffset(hv.getOffset());
+      Iterable<SMGEdgeHasValue> hv1 = filter.filter(edges1);
+      Iterable<SMGEdgeHasValue> hv2 = filter.filter(edges2);
+      if (Iterables.size(hv1) > 0 && Iterables.size(hv2) > 0) {
+        SMGValue v1 = Iterators.getOnlyElement(hv1.iterator()).getValue();
+        SMGValue v2 = Iterators.getOnlyElement(hv2.iterator()).getValue();
         if (pMapping1.containsKey(v1) && pMapping2.containsKey(v2) && !(pMapping1.get(v1).equals(pMapping2.get(v2)))) {
           return true;
         }
@@ -107,37 +104,23 @@ final class SMGJoinMatchObjects {
       SMGAbstractObject pAbstract1 = (SMGAbstractObject)pObj1;
       SMGAbstractObject pAbstract2 = (SMGAbstractObject)pObj2;
 
-      //TODO: It should be possible to join some of the different generic shapes, i.e. a SLL
+      // TODO: It should be possible to join some of the different generic shapes, i.e. a SLL
       //      might be a more general segment than a DLL
-      if (! (pAbstract1.matchGenericShape(pAbstract2) && pAbstract1.matchSpecificShape(pAbstract2))) {
+      if (!pAbstract1.matchGenericShape(pAbstract2) || !pAbstract1.matchSpecificShape(pAbstract2)) {
 
         /*An optional object can be matched with dll or sll of the same size.*/
-        if(pObj1.getSize() != pObj2.getSize()) {
+        if (pObj1.getSize() != pObj2.getSize()) {
           return true;
         }
 
-        switch (pObj1.getKind()) {
-          case OPTIONAL:
-            switch (pObj2.getKind()) {
-              case SLL:
-              case DLL:
-              case OPTIONAL:
-                return false;
-              default:
-                return true;
-            }
-          case SLL:
-          case DLL:
-            return pObj2.getKind() != SMGObjectKind.OPTIONAL;
-          default:
-            return true;
-        }
+        return pObj1.getKind().isContainedIn(pObj2.getKind());
       }
     }
 
     return false;
   }
 
+  /** Algorithm 8 from FIT-TR-2012-04 */
   public SMGJoinMatchObjects(
       SMGJoinStatus pStatus,
       UnmodifiableSMG pSMG1,
@@ -146,45 +129,47 @@ final class SMGJoinMatchObjects {
       SMGNodeMapping pMapping2,
       SMGObject pObj1,
       SMGObject pObj2) {
-    if ((! pSMG1.getObjects().contains(pObj1)) || (! pSMG2.getObjects().contains(pObj2))) {
+
+    if (!pSMG1.getObjects().contains(pObj1) || !pSMG2.getObjects().contains(pObj2)) {
       throw new IllegalArgumentException();
     }
 
-    if (SMGJoinMatchObjects.checkNull(pObj1, pObj2)) {
+    // Algorithm 8 from FIT-TR-2012-04, line 1
+    if (checkNull(pObj1, pObj2)) {
       return;
     }
 
-    if (SMGJoinMatchObjects.checkMatchingMapping(pObj1, pObj2, pMapping1, pMapping2)) {
+    // Algorithm 8 from FIT-TR-2012-04, line 2
+    if (checkMatchingMapping(pObj1, pObj2, pMapping1, pMapping2)) {
       return;
     }
 
-    if (SMGJoinMatchObjects.checkConsistentMapping(pObj1, pObj2, pMapping1, pMapping2)) {
+    // Algorithm 8 from FIT-TR-2012-04, line 3+4
+    if (checkConsistentMapping(pObj1, pObj2, pMapping1, pMapping2)) {
       return;
     }
 
-    if (SMGJoinMatchObjects.checkConsistentObjects(pObj1, pObj2, pSMG1, pSMG2)) {
+    // Algorithm 8 from FIT-TR-2012-04, line 5
+    if (checkConsistentObjects(pObj1, pObj2, pSMG1, pSMG2)) {
       return;
     }
 
-    if (pObj1.getKind() == pObj2.getKind() && pObj1.isAbstract() && pObj2.isAbstract()) {
-
-      SMGAbstractObject l1 = (SMGAbstractObject) pObj1;
-      SMGAbstractObject l2 = (SMGAbstractObject) pObj2;
-
-      if (!l1.matchSpecificShape(l2)) {
-        return;
-      }
-    }
-
-    if (SMGJoinMatchObjects.checkMatchingAbstractions(pObj1, pObj2)) {
+    // Algorithm 8 from FIT-TR-2012-04, line 6
+    if (checkConsistentShape(pObj1, pObj2)) {
       return;
     }
 
-    if (SMGJoinMatchObjects.checkConsistentFields(pObj1, pObj2, pMapping1, pMapping2, pSMG1, pSMG2)) {
+    if (checkMatchingAbstractions(pObj1, pObj2)) {
       return;
     }
 
-    status = SMGJoinMatchObjects.updateStatusForAbstractions(pObj1, pObj2, pStatus);
+    // Algorithm 8 from FIT-TR-2012-04, line 7+8
+    if (checkConsistentFields(pObj1, pObj2, pMapping1, pMapping2, pSMG1, pSMG2)) {
+      return;
+    }
+
+    // Algorithm 8 from FIT-TR-2012-04, line 9+10
+    status = updateStatusForAbstractions(pObj1, pObj2, pStatus);
     defined = true;
   }
 
@@ -192,11 +177,11 @@ final class SMGJoinMatchObjects {
     SMGJoinStatus result = pStatus;
 
     if (pObj1.join(pObj2, pObj1.getLevel()).isMoreGeneral(pObj2)) {
-      result = SMGJoinStatus.updateStatus(result, SMGJoinStatus.LEFT_ENTAIL);
+      result = result.updateWith(SMGJoinStatus.LEFT_ENTAIL);
     }
 
     if (pObj2.join(pObj1, pObj2.getLevel()).isMoreGeneral(pObj1)) {
-      result = SMGJoinStatus.updateStatus(result, SMGJoinStatus.RIGHT_ENTAIL);
+      result = result.updateWith(SMGJoinStatus.RIGHT_ENTAIL);
     }
 
     return result;

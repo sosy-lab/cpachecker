@@ -90,6 +90,21 @@ python-unit-tests:jdk-10:
   image: ${CI_REGISTRY_IMAGE}/test:jdk-10
 
 
+javascript-unit-tests:
+  stage: checks
+  dependencies: []
+  image: node:8.9.4
+  before_script:
+    - cd src/org/sosy_lab/cpachecker/core/counterexample/
+    - npm install
+  script:
+    - cd node_modules/.bin/
+    - npm test --watch=false --single-run=true
+  cache:
+    paths:
+    - src/org/sosy_lab/cpachecker/core/counterexample/node_modules/
+
+
 # No coverage is computed for CPAchecker
 unit-tests:jdk-8:
   script: "ant $ANT_PROPS_CHECKS unit-tests"

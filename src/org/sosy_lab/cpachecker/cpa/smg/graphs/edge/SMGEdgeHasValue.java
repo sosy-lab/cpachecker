@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
@@ -38,26 +39,29 @@ public class SMGEdgeHasValue extends SMGEdge {
 
   final private CType type;
 
-  public SMGEdgeHasValue(CType pType, long pOffset, SMGObject pObject, int pValue) {
+  /**
+   * @param pType type of the object's memory starting at offset.
+   * @param pOffset the offset relative to the start of the source object, i.e. ZERO represents an
+   *     direct access, a positive number accessed within or after the object and is used for
+   *     array-element or struct-member access.
+   * @param pObject the target object pointed to.
+   * @param pValue the value that points to some object.
+   */
+  public SMGEdgeHasValue(CType pType, long pOffset, SMGObject pObject, SMGValue pValue) {
     super(pValue, pObject, pOffset);
     type = pType;
   }
 
-  public SMGEdgeHasValue(int pSizeInBits, long pOffset, SMGObject pObject, int pValue) {
+  public SMGEdgeHasValue(int pSizeInBits, long pOffset, SMGObject pObject, SMGValue pValue) {
     super(pValue, pObject, pOffset);
     type = TypeUtils.createTypeWithLength(pSizeInBits);
   }
 
   @Override
   public String toString() {
-    return "sizeof("
-        + type.toASTString("foo")
-        + ")b @ "
-        + object.getLabel()
-        + "+"
-        + getOffset()
-        + "b has value "
-        + value;
+    return String.format(
+        "sizeof(%s)b @ %s+%db has value %s",
+        type.toASTString(""), object.getLabel(), getOffset(), value);
   }
 
   public CType getType() {
@@ -77,7 +81,7 @@ public class SMGEdgeHasValue extends SMGEdge {
     if (object == other.object
         && getOffset() == other.getOffset()
         && type == ((SMGEdgeHasValue) other).type) {
-      return value == other.value;
+      return value.equals(other.value);
     }
 
     return true;
@@ -112,6 +116,7 @@ public class SMGEdgeHasValue extends SMGEdge {
     return true;
   }
 
+  @VisibleForTesting
   public boolean isCompatibleField(SMGEdgeHasValue other) {
     return type.equals(other.type) && (getOffset() == other.getOffset());
   }

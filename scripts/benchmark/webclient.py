@@ -403,7 +403,7 @@ class WebInterface:
     def tool_name(self):
         return self._tool_name
 
-    def _get_sha1_hash(self, path):
+    def _get_sha256_hash(self, path):
         path = os.path.abspath(path)
         mTime = str(os.path.getmtime(path))
         if ((path, mTime) in self._hash_code_cache):
@@ -411,7 +411,7 @@ class WebInterface:
 
         else:
             with open(path, 'rb') as file:
-                hashValue = hashlib.sha1(file.read()).hexdigest()
+                hashValue = hashlib.sha256(file.read()).hexdigest()
                 self._hash_code_cache[(path, mTime)] = hashValue
                 return hashValue
 
@@ -503,11 +503,11 @@ class WebInterface:
 
         for programPath in run.sourcefiles:
             norm_path = self._normalize_path_for_cloud(programPath)
-            params.append(('programTextHash', (norm_path, self._get_sha1_hash(programPath))))
+            params.append(('programTextHash', (norm_path, self._get_sha256_hash(programPath))))
 
         for required_file in required_files:
             norm_path = self._normalize_path_for_cloud(required_file)
-            params.append(('requiredFileHash', (norm_path, self._get_sha1_hash(required_file))))
+            params.append(('requiredFileHash', (norm_path, self._get_sha256_hash(required_file))))
 
         params.append(('svnBranch', svn_branch or self._svn_branch))
         params.append(('revision', svn_revision or self._svn_revision))

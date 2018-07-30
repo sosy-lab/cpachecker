@@ -37,14 +37,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
-class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException> {
+class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCodeException> {
 
   private final CtoFormulaConverter conv;
   private final CFAEdge       edge;
@@ -67,8 +67,8 @@ class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCode
   }
 
   @Override
-  protected BitvectorFormula visitDefault(CExpression exp) throws UnrecognizedCCodeException {
-    throw new UnrecognizedCCodeException("Unknown lvalue", edge, exp);
+  protected BitvectorFormula visitDefault(CExpression exp) throws UnrecognizedCodeException {
+    throw new UnrecognizedCodeException("Unknown lvalue", edge, exp);
   }
 
   @Override
@@ -81,28 +81,27 @@ class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCode
     return conv.makeVariableUnsafe(exp, function, ssa, true);
   }
 
-
   @Override
-  public Formula visit(CUnaryExpression pE) throws UnrecognizedCCodeException {
+  public Formula visit(CUnaryExpression pE) throws UnrecognizedCodeException {
     return giveUpAndJustMakeVariable(pE);
   }
 
   @Override
-  public Formula visit(CComplexCastExpression pE) throws UnrecognizedCCodeException {
+  public Formula visit(CComplexCastExpression pE) throws UnrecognizedCodeException {
     if (pE.isImaginaryCast()) {
-      throw new UnrecognizedCCodeException("Unknown lvalue", edge, pE);
+      throw new UnrecognizedCodeException("Unknown lvalue", edge, pE);
     }
     // TODO complex numbers are not supported for evaluation right now
     return giveUpAndJustMakeVariable(pE);
   }
 
   @Override
-  public Formula visit(CPointerExpression pE) throws UnrecognizedCCodeException {
+  public Formula visit(CPointerExpression pE) throws UnrecognizedCodeException {
     return giveUpAndJustMakeVariable(pE);
   }
 
   @Override
-  public Formula visit(CFieldReference fexp) throws UnrecognizedCCodeException {
+  public Formula visit(CFieldReference fexp) throws UnrecognizedCodeException {
     if (!conv.options.handleFieldAccess()) {
       CExpression fieldRef = fexp.getFieldOwner();
       if (fieldRef instanceof CIdExpression) {
@@ -138,7 +137,7 @@ class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCode
   }
 
   @Override
-  public Formula visit(CArraySubscriptExpression pE) throws UnrecognizedCCodeException {
+  public Formula visit(CArraySubscriptExpression pE) throws UnrecognizedCodeException {
     return giveUpAndJustMakeVariable(pE);
   }
 }
