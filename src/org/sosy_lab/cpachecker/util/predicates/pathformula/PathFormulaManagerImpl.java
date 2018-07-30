@@ -229,6 +229,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private PathFormula makeAnd(
       PathFormula pOldFormula, final CFAEdge pEdge, ErrorConditions errorConditions)
       throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
+    // TODO switch language dependent to avoid error prone try-catch
     PathFormula pf;
     try {
       pf = converter.makeAnd(pOldFormula, pEdge, errorConditions);
