@@ -34,6 +34,10 @@ public class TimeoutPrecisionAdjustment extends SimplePrecisionAdjustment {
 
   private WalltimeLimit limit;
 
+  public TimeoutPrecisionAdjustment() {
+
+  }
+
   public TimeoutPrecisionAdjustment(WalltimeLimit pLimit) {
     this.limit = pLimit;
   }

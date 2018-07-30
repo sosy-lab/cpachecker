@@ -230,7 +230,6 @@ public class TigerAlgorithmConfiguration {
   }
 
   public boolean shouldUseOmegaLabel() {
-    // TODO Auto-generated method stub
     return useOmegaLabel;
   }
 

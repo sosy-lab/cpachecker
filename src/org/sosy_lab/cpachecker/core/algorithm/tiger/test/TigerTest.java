@@ -206,6 +206,7 @@ public class TigerTest {
     prop.put("tiger.outputInterface", "tmp");
     prop.put("tiger.coverageCheck", "Single");
     prop.put("tiger.fqlQuery", "Goals: G1, G2, G3");
+    prop.put("cpa.predicate.ignoreIrrelevantVariables", String.valueOf(false));
 
     TestResults results = CPATestRunner.run(prop, EXAMPLE_C);
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();

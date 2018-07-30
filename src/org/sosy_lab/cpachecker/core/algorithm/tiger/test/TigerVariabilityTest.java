@@ -55,7 +55,9 @@ public class TigerVariabilityTest {
   private static final String configFolder = "config";
   private static final String configExtension = ".properties";
   private static final String configFile =
-      configFolder + "\\tiger-simulators-value" + configExtension;
+      configFolder + "\\tiger-simulators" + configExtension;
+  private static final String configFile_noOmega =
+      configFolder + "\\tiger-simulators-noOmega" + configExtension;
 
   public static String miniFaseFm = "__SELECTED_FEATURE_PLUS";
   public static String faseFm =
@@ -146,6 +148,12 @@ public class TigerVariabilityTest {
       }
     }
     for (String included : includedFeatures) {
+      if (!included.startsWith("!")) {
+        if (condition.contains("!" + included)) {
+          return false;
+        }
+      }
+
       if (!condition.contains(included)) {
         return false;
       }
@@ -203,6 +211,120 @@ public class TigerVariabilityTest {
     assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
+    assertTrue(testSuite.getTestCases().size() == 8);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(4);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    Goal goal1 = testSuite.getGoalByName("G1");
+    Goal goal2 = testSuite.getGoalByName("G2");
+    Goal goal3 = testSuite.getGoalByName("G3");
+    Goal goal4 = testSuite.getGoalByName("G4");
+
+    for (TestCase tc : testSuite.getTestCases()) {
+      assertTrue(testSuite.getTestGoalsForTestcase(tc).size() == 1);
+    }
+
+    assertTrue(testSuite.getCoveringTestCases(goal1).size() == 2);
+    assertTrue(testSuite.getCoveringTestCases(goal2).size() == 2);
+    assertTrue(testSuite.getCoveringTestCases(goal3).size() == 2);
+    assertTrue(testSuite.getCoveringTestCases(goal4).size() == 2);
+
+    assertTrue(
+        hasTestCaseCoveringGoalWithConditions(
+            testSuite,
+            goal1,
+            Arrays.asList("__SELECTED_FEATURE_X", "__SELECTED_FEATURE_PLUS"),
+            Arrays.asList("__SELECTED_FEATURE_SPL", "__SELECTED_FEATURE_Y")));
+
+    assertTrue(
+        hasTestCaseCoveringGoalWithConditions(
+            testSuite,
+            goal1,
+            Arrays.asList(
+                "__SELECTED_FEATURE_X",
+                "!__SELECTED_FEATURE_PLUS",
+                "__SELECTED_FEATURE_MINUS"),
+            Arrays.asList("__SELECTED_FEATURE_SPL", "__SELECTED_FEATURE_Y")));
+
+    assertTrue(
+        hasTestCaseCoveringGoalWithConditions(
+            testSuite,
+            goal2,
+            Arrays.asList(
+                "!__SELECTED_FEATURE_X",
+                "__SELECTED_FEATURE_Y",
+                "__SELECTED_FEATURE_PLUS"),
+            Arrays.asList("__SELECTED_FEATURE_SPL", "__SELECTED_FEATURE_MINUS")));
+
+    assertTrue(
+        hasTestCaseCoveringGoalWithConditions(
+            testSuite,
+            goal2,
+            Arrays.asList(
+                "!__SELECTED_FEATURE_X",
+                "__SELECTED_FEATURE_Y",
+                "!__SELECTED_FEATURE_PLUS",
+                "__SELECTED_FEATURE_MINUS"),
+            Arrays.asList("__SELECTED_FEATURE_SPL")));
+
+    assertTrue(
+        hasTestCaseCoveringGoalWithConditions(
+            testSuite,
+            goal3,
+            Arrays.asList("__SELECTED_FEATURE_X", "__SELECTED_FEATURE_PLUS"),
+            Arrays.asList("__SELECTED_FEATURE_SPL", "__SELECTED_FEATURE_MINUS")));
+
+    assertTrue(
+        hasTestCaseCoveringGoalWithConditions(
+            testSuite,
+            goal3,
+            Arrays.asList(
+                "!__SELECTED_FEATURE_X",
+                "__SELECTED_FEATURE_Y",
+                "__SELECTED_FEATURE_PLUS"),
+            Arrays.asList("__SELECTED_FEATURE_SPL", "__SELECTED_FEATURE_MINUS")));
+
+    assertTrue(
+        hasTestCaseCoveringGoalWithConditions(
+            testSuite,
+            goal4,
+            Arrays.asList(
+                "__SELECTED_FEATURE_X",
+                "!__SELECTED_FEATURE_PLUS",
+                "__SELECTED_FEATURE_MINUS"),
+            Arrays.asList("__SELECTED_FEATURE_SPL")));
+
+    assertTrue(
+        hasTestCaseCoveringGoalWithConditions(
+            testSuite,
+            goal4,
+            Arrays.asList(
+                "!__SELECTED_FEATURE_X",
+                "!__SELECTED_FEATURE_PLUS",
+                "__SELECTED_FEATURE_MINUS",
+                "__SELECTED_FEATURE_Y"),
+            Arrays.asList("__SELECTED_FEATURE_SPL")));
+
+  }
+
+  @Test
+  public void simulator_PresenceCondition_NoOmega() throws Exception {
+    Map<String, String> prop =
+        TigerTestUtil.getConfigurationFromPropertiesFile(new File(configFile_noOmega));
+    prop.put("tiger.tiger_with_presenceConditions", "true");
+    prop.put("tiger.coverageCheck", "None");
+    prop.put("cpa.predicate.merge", "SEP");
+    prop.put("tiger.limitsPerGoal.time.cpu", "-1");
+    prop.put("tiger.allCoveredGoalsPerTestCase", "false");
+    prop.put("tiger.fqlQuery", "Goals: G1, G2, G3, G4");
+
+    TestResults results = CPATestRunner.run(prop, PRESENCE_CONDITION_TEST_C);
+    AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
+
+    assertThat(result).isInstanceOf(TestSuite.class);
+    TestSuite testSuite = (TestSuite) result;
+
     assertTrue(testSuite.getTestCases().size() == 6);
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(4);
@@ -226,85 +348,63 @@ public class TigerVariabilityTest {
         hasTestCaseCoveringGoalWithConditions(
             testSuite,
             goal1,
-            Arrays.asList("X", "PLUS"),
-            Arrays.asList("SPL", "Y")));
+            Arrays.asList("__SELECTED_FEATURE_X"),
+            Arrays.asList(
+                "__SELECTED_FEATURE_SPL",
+                "__SELECTED_FEATURE_Y",
+                "__SELECTED_FEATURE_PLUS")));
+
 
     assertTrue(
         hasTestCaseCoveringGoalWithConditions(
             testSuite,
             goal2,
-            Arrays.asList("X", "Y", "PLUS"),
-            Arrays.asList("SPL")));
+            Arrays
+                .asList("!__SELECTED_FEATURE_X", "__SELECTED_FEATURE_Y"),
+            Arrays.asList(
+                "__SELECTED_FEATURE_SPL",
+                "__SELECTED_FEATURE_MINUS",
+                "__SELECTED_FEATURE_PLUS")));
+
+
 
     assertTrue(
         hasTestCaseCoveringGoalWithConditions(
             testSuite,
             goal3,
-            Arrays.asList("X", "PLUS"),
-            Arrays.asList("SPL", "MINUS")));
+            Arrays.asList("__SELECTED_FEATURE_X", "__SELECTED_FEATURE_PLUS"),
+            Arrays.asList("__SELECTED_FEATURE_SPL", "__SELECTED_FEATURE_MINUS")));
 
     assertTrue(
         hasTestCaseCoveringGoalWithConditions(
             testSuite,
             goal3,
-            Arrays.asList("X", "Y", "PLUS"),
-            Arrays.asList("SPL", "MINUS")));
+            Arrays
+                .asList("!__SELECTED_FEATURE_X", "__SELECTED_FEATURE_Y", "__SELECTED_FEATURE_PLUS"),
+            Arrays.asList("__SELECTED_FEATURE_SPL", "__SELECTED_FEATURE_MINUS")));
 
     assertTrue(
         hasTestCaseCoveringGoalWithConditions(
             testSuite,
             goal4,
-            Arrays.asList("X", "PLUS", "MINUS"),
-            Arrays.asList("SPL")));
+            Arrays.asList(
+                "__SELECTED_FEATURE_X",
+                "!__SELECTED_FEATURE_PLUS",
+                "__SELECTED_FEATURE_MINUS"),
+            Arrays.asList("__SELECTED_FEATURE_SPL")));
 
     assertTrue(
         hasTestCaseCoveringGoalWithConditions(
             testSuite,
             goal4,
-            Arrays.asList("X", "PLUS", "MINUS", "Y"),
-            Arrays.asList("SPL")));
+            Arrays.asList(
+                "!__SELECTED_FEATURE_X",
+                "!__SELECTED_FEATURE_PLUS",
+                "__SELECTED_FEATURE_MINUS",
+                "__SELECTED_FEATURE_Y"),
+            Arrays.asList("__SELECTED_FEATURE_SPL")));
 
-
-
-    // Goal1 needs only X nothing else
-    assertTrue(
-        hasGoalCoveringConditions(
-            testSuite,
-            Arrays.asList("X"),
-            Arrays.asList("SPL", "Y", "MINUS", "PLUS")));
-
-    // Goal2 needs only X and Y
-    assertTrue(
-        hasGoalCoveringConditions(
-            testSuite,
-            Arrays.asList("X", "Y"),
-            Arrays.asList("SPL", "MINUS", "PLUS")));
-
-    // Goal3 needs PLUS, but testsuite should contain a case with X and one with !X and Y
-    assertTrue(
-        hasGoalCoveringConditions(
-            testSuite,
-            Arrays.asList("PLUS", "X"),
-            Arrays.asList("SPL", "Y", "MINUS")));
-    assertTrue(
-        hasGoalCoveringConditions(
-            testSuite,
-            Arrays.asList("PLUS", "X", "Y"),
-            Arrays.asList("SPL", "MINUS")));
-
-    // Goal4 needs PLUS and MINUS, one time X and one time X and Y
-    assertTrue(
-        hasGoalCoveringConditions(
-            testSuite,
-            Arrays.asList("PLUS", "MINUS", "X"),
-            Arrays.asList("SPL", "Y")));
-    assertTrue(
-        hasGoalCoveringConditions(
-            testSuite,
-            Arrays.asList("PLUS", "MINUS", "X", "Y"),
-            Arrays.asList("SPL")));
   }
-
 
 
 }

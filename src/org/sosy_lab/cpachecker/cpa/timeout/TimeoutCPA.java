@@ -61,6 +61,7 @@ public class TimeoutCPA extends AbstractCPA {
   }
 
 
+
   public TimeoutCPA(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     super("sep", "sep", null /* lazy initialization */);
     config.inject(this);
@@ -68,6 +69,8 @@ public class TimeoutCPA extends AbstractCPA {
     if (walltime > 0) {
       limit = WalltimeLimit.fromNowOn(walltime, TimeUnit.SECONDS);
       precisionAdjustment = new TimeoutPrecisionAdjustment(limit);
+    } else {
+      precisionAdjustment = new TimeoutPrecisionAdjustment();
     }
   }
 
