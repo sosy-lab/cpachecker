@@ -48,7 +48,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -312,7 +311,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     if (dynamicBlockEncoding) {
       boolean changed = true;
       while (changed) {
-        changed = performDynamicBlockEncoding(pReached);
+        changed = SlicingAbstractionsUtils.performDynamicBlockEncoding(pReached);
         if (changed) {
           pReached.recalculateReachedSet(rootState);
           @SuppressWarnings("unchecked")
@@ -356,125 +355,6 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     }
 
 
-  }
-
-  private static boolean performDynamicBlockEncoding(ARGReachedSet pArgReachedSet) {
-    boolean changed = false;
-    for (AbstractState state : new ArrayList<>(pArgReachedSet.asReachedSet().asCollection())) {
-      ARGState currentState = (ARGState) state;
-      PredicateAbstractState predState =
-          PredicateAbstractState.getPredicateState(currentState);
-      assert predState != null;
-      if (predState.isAbstractionState() && !blk(currentState)) {
-        changed = true;
-        PredicateAbstractState replacement =
-            PredicateAbstractState.mkNonAbstractionState(
-                predState.getPathFormula(),
-                predState.getAbstractionFormula(),
-                predState.getAbstractionLocationsOnPath());
-        ARGState newState = currentState.forkWithReplacements(Collections.singleton(replacement));
-        currentState.replaceInARGWith(newState);
-        pArgReachedSet.addForkedState(newState, (ARGState) state);
-        if (newState instanceof SLARGState) {
-          // check for incoming edges that do not have a suitable outgoing edge for their successor
-          // location. E.g.: A-{1~>2}->B-{3~>4}->C
-          // transfer from 1~>2 will be removed
-          removeIncomingEdgesWithLocationMismatch(newState);
-
-          // now do the same the other way around (check for outgoing edges that do not have a
-          removeOutgoingEdgesWithLocationMismatch(newState);
-        }
-      } else if (predState.isAbstractionState() && !((ARGState) state).getParents().isEmpty()) {
-        // here it is only sound to check for outgoing edges that do not have a suitable incoming
-        // edge
-        if (state instanceof SLARGState) {
-          removeOutgoingEdgesWithLocationMismatch(state);
-        }
-      }
-    }
-    return changed;
-  }
-
-  private static void removeIncomingEdgesWithLocationMismatch(ARGState state) {
-    Set<CFANode> locations = ((SLARGState) state).getOutgoingLocations();
-    List<ARGState> toRemove = new ArrayList<>();
-    for (ARGState parent : state.getParents()) {
-      EdgeSet edgeSet = ((SLARGState) parent).getEdgeSetToChild(state);
-      if (edgeSet != null) {
-        for (CFAEdge edge : edgeSet.getEdges()) {
-          if (!locations.contains(edge.getSuccessor())) {
-            edgeSet.removeEdge(edge);
-          }
-        }
-      }
-      if (edgeSet.isEmpty()) {
-        toRemove.add(parent);
-      }
-    }
-    for (ARGState parent : toRemove) {
-      state.removeParent(parent);
-    }
-  }
-
-  private static void removeOutgoingEdgesWithLocationMismatch(AbstractState state) {
-    Set<CFANode> locations = ((SLARGState) state).getIncomingLocations();
-    List<ARGState> toRemove = new ArrayList<>();
-    for (ARGState child : ((ARGState) state).getChildren()) {
-      EdgeSet edgeSet = ((SLARGState) state).getEdgeSetToChild(child);
-
-      if (edgeSet != null) {
-        for (CFAEdge edge : edgeSet.getEdges()) {
-          if (!locations.contains(edge.getPredecessor())) {
-            edgeSet.removeEdge(edge);
-          }
-        }
-        if (edgeSet.isEmpty()) {
-          toRemove.add(child);
-        }
-      }
-    }
-    for (ARGState child : toRemove) {
-      child.removeParent((ARGState) state);
-    }
-  }
-
-  private static boolean blk(ARGState pState) {
-
-    // if it is the root state, return true:
-    if (pState.getParents().size() == 0) {
-      return true;
-    }
-    // if it is a target state, return true:
-    if (pState.isTarget()) {
-      return true;
-    }
-    // if it is part of multiple incoming blocks, return true:
-    if (SlicingAbstractionsUtils.calculateStartStates(pState).size() > 1) {
-      return true;
-    }
-    // it is a loop head, return true:
-    if (SlicingAbstractionsUtils.calculateOutgoingSegments(pState).containsKey(pState)) {
-      return true;
-    }
-    if (pState instanceof SLARGState) {
-      // if not all EdgeSets from parents to pState are singletons, return true:
-      if (!pState.getParents().stream().map(parent -> ((SLARGState)parent).getEdgeSetToChild(pState)).allMatch(EdgeSet::isSingleton)) {
-        return true;
-      }
-      // if not all EdgeSets from pState to children are singletons, return true:
-      if (!pState
-          .getChildren()
-          .stream()
-          .map(child -> ((SLARGState) pState).getEdgeSetToChild(child))
-          .allMatch(EdgeSet::isSingleton)) {
-        return true;
-      }
-    }
-    if (SlicingAbstractionsUtils.calculateIncomingSegments(pState).entrySet().size() > 1
-        || SlicingAbstractionsUtils.calculateOutgoingSegments(pState).entrySet().size() > 1) {
-      return true;
-    }
-    return false;
   }
 
   private void sliceEdges(final List<ARGState> pChangedElements,

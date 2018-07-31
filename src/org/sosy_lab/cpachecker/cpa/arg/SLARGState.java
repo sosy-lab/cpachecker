@@ -299,24 +299,4 @@ public class SLARGState extends ARGState
   public Iterable<CFAEdge> getIngoingEdges() {
     throw new UnsupportedOperationException();
   }
-
-  public Set<CFANode> getIncomingLocations() {
-    ImmutableSet.Builder<CFANode> locations = ImmutableSet.builder();
-    for (Entry<SLARGState, EdgeSet> entry : parentsToEdgeSets.entrySet()) {
-      for (CFAEdge edgeFromParent : entry.getValue().getEdges()) {
-        locations.add(edgeFromParent.getSuccessor());
-      }
-    }
-    return locations.build();
-  }
-
-  public Set<CFANode> getOutgoingLocations() {
-    ImmutableSet.Builder<CFANode> locations = ImmutableSet.builder();
-    for (Entry<SLARGState, EdgeSet> entry : childrenToEdgeSets.entrySet()) {
-      for (CFAEdge edgeToChild : entry.getValue().getEdges()) {
-        locations.add(edgeToChild.getPredecessor());
-      }
-    }
-    return locations.build();
-  }
 }

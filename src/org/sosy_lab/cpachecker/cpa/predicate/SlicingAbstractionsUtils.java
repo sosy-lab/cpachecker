@@ -27,9 +27,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
@@ -40,7 +42,9 @@ import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -536,6 +540,145 @@ public class SlicingAbstractionsUtils {
     }
 
     return statesOnErrorPath;
+  }
+
+  private static Set<CFANode> getIncomingLocations(SLARGState pState) {
+    ImmutableSet.Builder<CFANode> locations = ImmutableSet.builder();
+    for (ARGState parent : pState.getParents()) {
+      for (CFAEdge edgeFromParent : ((SLARGState) parent).getEdgeSetToChild(pState).getEdges()) {
+        locations.add(edgeFromParent.getSuccessor());
+      }
+    }
+    return locations.build();
+  }
+
+  private static Set<CFANode> getOutgoingLocations(SLARGState pState) {
+    ImmutableSet.Builder<CFANode> locations = ImmutableSet.builder();
+    for (ARGState child : pState.getChildren()) {
+      for (CFAEdge edgeToChild : pState.getEdgeSetToChild(child).getEdges()) {
+        locations.add(edgeToChild.getPredecessor());
+      }
+    }
+    return locations.build();
+  }
+
+  private static void removeIncomingEdgesWithLocationMismatch(ARGState state) {
+    Set<CFANode> locations = getOutgoingLocations(((SLARGState) state));
+    List<ARGState> toRemove = new ArrayList<>();
+    for (ARGState parent : state.getParents()) {
+      EdgeSet edgeSet = ((SLARGState) parent).getEdgeSetToChild(state);
+      if (edgeSet != null) {
+        for (CFAEdge edge : edgeSet.getEdges()) {
+          if (!locations.contains(edge.getSuccessor())) {
+            edgeSet.removeEdge(edge);
+          }
+        }
+      }
+      if (edgeSet.isEmpty()) {
+        toRemove.add(parent);
+      }
+    }
+    for (ARGState parent : toRemove) {
+      state.removeParent(parent);
+    }
+  }
+
+  private static void removeOutgoingEdgesWithLocationMismatch(AbstractState state) {
+    Set<CFANode> locations = getIncomingLocations(((SLARGState) state));
+    List<ARGState> toRemove = new ArrayList<>();
+    for (ARGState child : ((ARGState) state).getChildren()) {
+      EdgeSet edgeSet = ((SLARGState) state).getEdgeSetToChild(child);
+
+      if (edgeSet != null) {
+        for (CFAEdge edge : edgeSet.getEdges()) {
+          if (!locations.contains(edge.getPredecessor())) {
+            edgeSet.removeEdge(edge);
+          }
+        }
+        if (edgeSet.isEmpty()) {
+          toRemove.add(child);
+        }
+      }
+    }
+    for (ARGState child : toRemove) {
+      child.removeParent((ARGState) state);
+    }
+  }
+
+  private static boolean blk(ARGState pState) {
+
+    // if it is the root state, return true:
+    if (pState.getParents().size() == 0) {
+      return true;
+    }
+    // if it is a target state, return true:
+    if (pState.isTarget()) {
+      return true;
+    }
+    // if it is part of multiple incoming blocks, return true:
+    if (calculateStartStates(pState).size() > 1) {
+      return true;
+    }
+    // it is a loop head, return true:
+    if (calculateOutgoingSegments(pState).containsKey(pState)) {
+      return true;
+    }
+    if (pState instanceof SLARGState) {
+      // if not all EdgeSets from parents to pState are singletons, return true:
+      if (!pState.getParents().stream().map(parent -> ((SLARGState)parent).getEdgeSetToChild(pState)).allMatch(EdgeSet::isSingleton)) {
+        return true;
+      }
+      // if not all EdgeSets from pState to children are singletons, return true:
+      if (!pState
+          .getChildren()
+          .stream()
+          .map(child -> ((SLARGState) pState).getEdgeSetToChild(child))
+          .allMatch(EdgeSet::isSingleton)) {
+        return true;
+      }
+    }
+    if (calculateIncomingSegments(pState).entrySet().size() > 1
+        || calculateOutgoingSegments(pState).entrySet().size() > 1) {
+      return true;
+    }
+    return false;
+  }
+
+  static boolean performDynamicBlockEncoding(ARGReachedSet pArgReachedSet) {
+    boolean changed = false;
+    for (AbstractState state : new ArrayList<>(pArgReachedSet.asReachedSet().asCollection())) {
+      ARGState currentState = (ARGState) state;
+      PredicateAbstractState predState =
+          PredicateAbstractState.getPredicateState(currentState);
+      assert predState != null;
+      if (predState.isAbstractionState() && !blk(currentState)) {
+        changed = true;
+        PredicateAbstractState replacement =
+            PredicateAbstractState.mkNonAbstractionState(
+                predState.getPathFormula(),
+                predState.getAbstractionFormula(),
+                predState.getAbstractionLocationsOnPath());
+        ARGState newState = currentState.forkWithReplacements(Collections.singleton(replacement));
+        currentState.replaceInARGWith(newState);
+        pArgReachedSet.addForkedState(newState, (ARGState) state);
+        if (newState instanceof SLARGState) {
+          // check for incoming edges that do not have a suitable outgoing edge for their successor
+          // location. E.g.: A-{1~>2}->B-{3~>4}->C
+          // transfer from 1~>2 will be removed
+          removeIncomingEdgesWithLocationMismatch(newState);
+
+          // now do the same the other way around (check for outgoing edges that do not have a
+          removeOutgoingEdgesWithLocationMismatch(newState);
+        }
+      } else if (predState.isAbstractionState() && !((ARGState) state).getParents().isEmpty()) {
+        // here it is only sound to check for outgoing edges that do not have a suitable incoming
+        // edge
+        if (state instanceof SLARGState) {
+          removeOutgoingEdgesWithLocationMismatch(state);
+        }
+      }
+    }
+    return changed;
   }
 
 }
