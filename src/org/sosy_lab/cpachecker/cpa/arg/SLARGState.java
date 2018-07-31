@@ -88,7 +88,7 @@ public class SLARGState extends ARGState
   public void useAsReplacement(SLARGState pState1, SLARGState pState2) {
     // pState2 gets replaced by this:
     for (ARGState argParent : pState2.getParents()) {
-      EdgeSet edgeToCopy = pState2.getEdgeSetToParent((SLARGState) argParent);
+      EdgeSet edgeToCopy = pState2.parentsToEdgeSets.get(argParent);
       assert edgeToCopy != null;
       EdgeSet newEdge = new EdgeSet(edgeToCopy);
       if (argParent != pState2) {
@@ -135,10 +135,6 @@ public class SLARGState extends ARGState
 
   public EdgeSet getEdgeSetToChild(ARGState child) {
     return childrenToEdgeSets.get(child);
-  }
-
-  private EdgeSet getEdgeSetToParent(SLARGState parent) {
-    return parentsToEdgeSets.get(parent);
   }
 
   @Override
