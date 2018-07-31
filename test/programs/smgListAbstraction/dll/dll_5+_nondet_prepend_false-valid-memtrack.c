@@ -2,50 +2,45 @@
 extern int __VERIFIER_nondet_int();
 extern void __VERIFIER_error();
 
-struct DLL {
-  struct DLL* next;
-  struct DLL* prev;
+typedef struct node {
+  struct node* next;
+  struct node* prev;
   int data;
-};
+} *DLL;
 
-typedef struct DLL node;
-
-node* create_node(int data) {
-  node* temp = (node *) malloc(sizeof(node));
+DLL node_create(int data) {
+  DLL temp = (DLL) malloc(sizeof(struct node));
   temp->next = NULL;
   temp->prev = NULL;
   temp->data = data;
   return temp;
 }
 
-void ASSERT(int x) {
+void _assert(int x) {
   if(!x) {
     // invalid memory leak
-    create_node(-1);
+    node_create(-1);
   }
 }
 
 int main() {
 
-  const int FIVE = 5;
+  const int data = 5;
 
-  node* a = create_node(FIVE);
-  node* b = create_node(FIVE);
-
+  DLL a = node_create(data);
+  DLL b = node_create(data);
   a->next = b;
 
-  // remove external pointer
   b = NULL;
-
   while(__VERIFIER_nondet_int()) {
-    node* temp = create_node(FIVE);
+    DLL temp = node_create(data);
     temp->next = a;
     a = temp;
   }
 
   while(NULL != a) {
-    node* temp = a->next;
-    ASSERT(FIVE == a->data);
+    DLL temp = a->next;
+    _assert(data == a->data);
     free(a);
     a = temp;
   }

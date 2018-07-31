@@ -1,55 +1,52 @@
 #include <stdlib.h>
 
-struct inner_dll {
-  struct inner_dll *next;
-  struct inner_dll *prev;
+typedef struct inner_node {
+  struct inner_node *next;
+  struct inner_node *prev;
   int data;
-};
+} *DLL_inner;
 
-struct outer_dll {
-  struct outer_dll *next;
-  struct outer_dll *prev;
-  struct inner_dll *inner;
-};
+typedef struct outer_node {
+  struct outer_node *next;
+  struct outer_node *prev;
+  struct inner_node *inner;
+} *DLL_outer;
 
-typedef struct outer_dll *outer_node;
-typedef struct inner_dll *inner_node;
-
-outer_node create_outer_node() {
-  outer_node temp = (struct outer_dll *) malloc(sizeof(struct outer_dll));
+DLL_outer node_outer_create() {
+  DLL_outer temp = (DLL_outer) malloc(sizeof(struct outer_node));
   temp->next = NULL;
   temp->prev = NULL;
   temp->inner = NULL;
   return temp;
 }
 
-inner_node create_inner_node() {
-  inner_node temp = (struct inner_dll *) malloc(sizeof(struct inner_dll));
+DLL_inner node_inner_create(int data) {
+  DLL_inner temp = (DLL_inner) malloc(sizeof(struct inner_node));
   temp->next = NULL;
   temp->prev = NULL;
-  temp->data = 0;
+  temp->data = data;
   return temp;
 }
 
-void free_hierarchical_DLL(outer_node head) {
-  outer_node p = head->next;
+void dll_hierarchical_destroy(DLL_outer head) {
+  DLL_outer p = head->next;
   while(head != p) {
-    inner_node p_inner = p->inner;
-    inner_node p_inner_next = p_inner->next;
+    DLL_inner p_inner = p->inner;
+    DLL_inner p_inner_next = p_inner->next;
     while(p_inner != p_inner_next) {
-      inner_node q_inner_next = p_inner_next->next;
+      DLL_inner q_inner_next = p_inner_next->next;
       free(p_inner_next);
       p_inner_next = q_inner_next;
     }
     free(p_inner);
-    outer_node q = p->next;
+    DLL_outer q = p->next;
     free(p);
     p = q;
   }
-  inner_node p_inner = head->inner;
-  inner_node p_inner_next = p_inner->next;
+  DLL_inner p_inner = head->inner;
+  DLL_inner p_inner_next = p_inner->next;
   while(p_inner != p_inner_next) {
-    inner_node q_inner_next = p_inner_next->next;
+    DLL_inner q_inner_next = p_inner_next->next;
     free(p_inner_next);
     p_inner_next = q_inner_next;
   }
@@ -59,17 +56,15 @@ void free_hierarchical_DLL(outer_node head) {
 
 int main(void) {
 
-  outer_node a = create_outer_node();
-  outer_node b = create_outer_node();
+  const int data = 5;
   
-  inner_node a_0 = create_inner_node();
-  inner_node a_1 = create_inner_node();
-  inner_node b_0 = create_inner_node();
-  inner_node b_1 = create_inner_node();
-  a_0->data = 5;
-  a_1->data = 5;
-  b_0->data = 5;
-  b_1->data = 5;
+  DLL_outer a = node_outer_create();
+  DLL_outer b = node_outer_create();
+  
+  DLL_inner a_0 = node_inner_create(data);
+  DLL_inner a_1 = node_inner_create(data);
+  DLL_inner b_0 = node_inner_create(data);
+  DLL_inner b_1 = node_inner_create(data);
   
   // connect inner nodes
   a->inner = a_0;
@@ -95,8 +90,7 @@ int main(void) {
   b_0 = NULL;
   b_1 = NULL;
   b = NULL;
-
-  free_hierarchical_DLL(a);
+  dll_hierarchical_destroy(a);
   
   return 0;
 }

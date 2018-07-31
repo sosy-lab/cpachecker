@@ -1,26 +1,24 @@
 #include <stdlib.h>
 
-struct DLL {
-  struct DLL *next;
-  struct DLL *prev;
+typedef struct node {
+  struct node* next;
+  struct node* prev;
   int data;
-};
+} *DLL;
 
-typedef struct DLL node;
-
-node* create_node(int data) {
-  node* temp = (node *) malloc(sizeof(node));
+DLL node_create(int data) {
+  DLL temp = (DLL) malloc(sizeof(struct node));
   temp->next = NULL;
   temp->prev = NULL;
   temp->data = data;
   return temp;
 }
 
-void free_dll(node* head) {
-  if(NULL != head) {
-    node* p = head->next;
+void dll_destroy(DLL head) {
+  if(head) {
+    DLL p = head->next;
     while(p != head) {
-      node* q = p->next;
+      DLL q = p->next;
       free(p);
       p = q;
     }
@@ -28,61 +26,69 @@ void free_dll(node* head) {
   }
 }
 
-void ASSERT(int x) {
+int _assert(int x) {
   if(!x) {
     // create memory leak
-    create_node(-1);
+    node_create(-1);
+    return 1;
   }
+  return 0;
 }
 
-void check_data(node* head, int expected) {
-  if(NULL != head) {
+int dll_check_data(DLL head, int expected) {
+  if(head) {
     while(head != head->next) {
-      node* temp = head->next;
-      ASSERT(expected == head->data);
+      DLL temp = head->next;
+      int ret = _assert(expected == head->data);
+      if(ret) {
+	return ret;
+      }
       head = temp;
     }
   }
+  return 0;
 }
 
-void prepend_to_circular_dll(node** head, int data) {
-  node* old_head = *head;
-  if(NULL == old_head) {
-    old_head->next = old_head;
-    old_head->prev = old_head;
-    *head = old_head;
+void dll_circular_prepend(DLL* head, int data) {
+  DLL new_head = node_create(data);
+  if(NULL == *head) {
+    *head = new_head;
+    new_head->next = new_head;
+    new_head->prev = new_head;
   } else {
-    node* last = old_head->prev;
-    *head = create_node(data);
-    (*head)->next = old_head;
-    old_head->prev = *head;
-    last->next = *head;
-    (*head)->prev = last;
+    DLL last = (*head)->prev;
+    DLL old_head = *head;
+    *head = new_head;
+    new_head->next = old_head;
+    old_head->prev = new_head;
+    last->next = new_head;
+    new_head->prev = last;
   }
 }
 
 int main(void) {
 
-  const int STORED_VALUE = 5;
-
-  node* a = create_node(STORED_VALUE);
-  node* b = create_node(STORED_VALUE);
-
+  const int data_1 = 5;
+  const int data_2 = 7;
+  
+  DLL a = node_create(data_1);
+  DLL b = node_create(data_1);
   a->next = b;
   b->prev = a;
 
   a->prev = b;
   b->next = a;
   
-  // remove external pointer
   b = NULL;
-
-  prepend_to_circular_dll(a, STORED_VALUE);
+  dll_circular_prepend(&a, data_1);
 
   // expected to fail!
-  check_data(a, 7);
-
-  free_dll(a);
+  int ret = dll_check_data(a, data_2);
+  if(ret) {
+    return ret;
+  }
+  
+  dll_destroy(a);
   
   return 0;
 }

@@ -1,48 +1,43 @@
 #include <stdlib.h>
 
-struct DLL {
-  struct DLL *next;
-  struct DLL *prev;
+typedef struct node {
+  struct node* next;
+  struct node* prev;
   int data;
-};
+} *DLL;
 
-typedef struct DLL *node;
-
-node create_node() {
-  node temp = (struct DLL *) malloc(sizeof(struct DLL));
+DLL node_create(int data) {
+  DLL temp = (DLL) malloc(sizeof(struct node));
   temp->next = NULL;
   temp->prev = NULL;
-  temp->data = 0;
+  temp->data = data;
   return temp;
 }
 
-node remove_first_node_of_dll(node head) {
-  if(NULL == head) {
-    return NULL;
-  } else {
-    node second = head->next;
-    free(head);
-    if(NULL != second) {
+void dll_remove_first(DLL* head) {
+  if(*head) {
+    DLL second = (*head)->next;
+    free(*head);
+    if(second) {
       second->prev = NULL;
     }
-    return second;
+    *head = second;
   }
 }
 
 int main(void) {
 
-  node a = create_node();
-  node b = create_node();
-  a->data = 5;
-  b->data = 5;
+  const int data = 5;
+  
+  DLL a = node_create(data);
+  DLL b = node_create(data);
   a->next = b;
   b->prev = a;
 
   // remove external pointer
   b = NULL;
-
   while(NULL != a) {
-    a = remove_first_node_of_dll(a);
+    dll_remove_first(&a);
   }
   
   return 0;

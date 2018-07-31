@@ -1,26 +1,24 @@
 #include <stdlib.h>
 
-struct DLL {
-  struct DLL *next;
-  struct DLL *prev;
+typedef struct node {
+  struct node* next;
+  struct node* prev;
   int data;
-};
+} *DLL;
 
-typedef struct DLL *node;
-
-node create_node() {
-  node temp = (struct DLL *) malloc(sizeof(struct DLL));
+DLL node_create(int data) {
+  DLL temp = (DLL) malloc(sizeof(struct node));
   temp->next = NULL;
   temp->prev = NULL;
-  temp->data = 0;
+  temp->data = data;
   return temp;
 }
 
-void update_dll_node(node head, int idx, int data) {
+void dll_update(DLL head, int idx, int data) {
   if(NULL == head) {
     return;
   } else {
-    node p = head;
+    DLL p = head;
     while(head != p->next && idx > 0) {
       p = p->next;
       --idx;
@@ -33,10 +31,10 @@ void update_dll_node(node head, int idx, int data) {
 
 int main(void) {
 
-  node a = create_node();
-  node b = create_node();
-  a->data = 5;
-  b->data = 5;
+  const int data = 5;
+  
+  DLL a = node_create(data);
+  DLL b = node_create(data);
   a->next = b;
   b->prev = a;
 
@@ -44,12 +42,10 @@ int main(void) {
   a->prev = b;
   b->next = a;
 
-  // remove external pointer
   b = NULL;
-  
   int i = 1;
   while(i > -1) {
-    update_dll_node(a, i, 7);
+    dll_update(a, i, 7);
     --i;
   }
   

@@ -1,25 +1,24 @@
 #include <stdlib.h>
 
-struct DLL {
-  struct DLL *next;
-  struct DLL *prev;
+typedef struct node {
+  struct node *next;
+  struct node *prev;
   int data;
-};
+} *DLL;
 
-typedef struct DLL *node;
-
-node create_node() {
-  node temp = (struct DLL *) malloc(sizeof(struct DLL));
+DLL create_node(int data) {
+  DLL temp = (DLL) malloc(sizeof(struct node));
   temp->next = NULL;
   temp->prev = NULL;
-  temp->data = 0;
+  temp->data = data;
   return temp;
 }
 
 int main(void) {
 
-  node a = create_node();
-  a->data = 5;
+  const int data = 5;
+  
+  DLL a = create_node(data);
   a->next = a;
   a->prev = a;
 

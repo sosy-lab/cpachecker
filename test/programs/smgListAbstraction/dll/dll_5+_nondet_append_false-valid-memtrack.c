@@ -1,49 +1,47 @@
 #include <stdlib.h>
 
-struct DLL {
-  struct DLL *next;
-  struct DLL *prev;
+typedef struct node {
+  struct node* next;
+  struct node* prev;
   int data;
-};
+} *DLL;
 
-typedef struct DLL node;
-
-node create_node(int data) {
-  node* temp = (node *) malloc(sizeof(node));
+DLL node_create(int data) {
+  DLL temp = (DLL) malloc(sizeof(struct node));
   temp->next = NULL;
   temp->prev = NULL;
   temp->data = data;
   return temp;
 }
 
-void ASSERT(int x) {
+void _assert(int x) {
   if(!x) {
     // create memory leak
-    create_node(-1);
+    node_create(-1);
   }
 }
 
-void check_data(node* head, int expected) {
+void dll_check_data(DLL head, int expected) {
   while(head != NULL) {
-    ASSERT(expected == head->data);
+    _assert(expected == head->data);
     head = head->next;
   }
 }
 
-void free_dll(node* head) {
+void dll_destroy(DLL head) {
   while(head != NULL) {
-    node* temp = head->next;
+    DLL temp = head->next;
     free(head);
     head = temp;
   }
 }
 
-void append_to_dll(node** head, int data) {
-  node* new_last = create_node(data);
+void append_to_dll(DLL* head, int data) {
+  DLL new_last = node_create(data);
   if(NULL == *head) {
     *head = new_last;
   } else {
-    node* last = *head;
+    DLL last = *head;
     while(NULL != last->next) {
       last = last->next;
     }
@@ -54,23 +52,21 @@ void append_to_dll(node** head, int data) {
 
 int main(void) {
 
-  const int STORED_VALUE = 5;
+  const int data_1 = 5;
+  const int data_2 = 7;
 
-  node* a = create_node(STORED_VALUE);
-  node* b = create_node(STORED_VALUE);
-
+  DLL a = node_create(data_1);
+  DLL b = node_create(data_1);
   a->next = b;
   b->prev = a;
 
-  // remove external pointer
   b = NULL;
-
-  append_to_dll(&a, 7);
+  append_to_dll(&a, data_2);
 
   // next line should fail!
-  check_data(a, STORED_VALUE);
+  dll_check_data(a, data_1);
 
-  free_dll(a);
+  dll_destroy(a);
   
   return 0;
 }

@@ -1,27 +1,25 @@
 #include <stdlib.h>
 
-struct DLL {
-  struct DLL *next;
-  struct DLL *prev;
+typedef struct node {
+  struct node *next;
+  struct node *prev;
   int data;
-};
+} *DLL;
 
-typedef struct DLL *node;
-
-node create_node() {
-  node temp = (struct DLL *) malloc(sizeof(struct DLL));
+DLL node_create(int data) {
+  DLL temp = (DLL) malloc(sizeof(struct node));
   temp->next = NULL;
   temp->prev = NULL;
-  temp->data = 0;
+  temp->data = data;
   return temp;
 }
 
-node remove_last_node_from_circular_dll(node head) {
+DLL dll_circular_remove_last(DLL head) {
   if(NULL == head) {
     return NULL;
   } else {
-    node last = head->prev;
-    node second_to_last = last->prev;
+    DLL last = head->prev;
+    DLL second_to_last = last->prev;
     if(last == second_to_last) {
       head = NULL;
     } else {
@@ -35,21 +33,20 @@ node remove_last_node_from_circular_dll(node head) {
 
 int main(void) {
 
-  node a = create_node();
-  node b = create_node();
-  a->data = 5;
-  b->data = 5;
+  const int data = 5;
+  
+  DLL a = node_create(data);
+  DLL b = node_create(data);
   a->next = b;
   b->prev = a;
+
   // add circular links
   a->prev = b;
   b->next = a;
 
-  // remove external pointer
   b = NULL;
-
   while(NULL != a) {
-    a = remove_last_node_from_circular_dll(a);
+    a = dll_circular_remove_last(a);
   }
   
   return 0;
