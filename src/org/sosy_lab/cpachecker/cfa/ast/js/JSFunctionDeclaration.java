@@ -59,6 +59,11 @@ public class JSFunctionDeclaration extends AFunctionDeclaration implements JSDec
     qualifiedName = checkNotNull(pQualifiedName);
   }
 
+  @Override
+  public boolean isGlobal() {
+    return getScope().isGlobalScope();
+  }
+
   @Nonnull
   @Override
   public Scope getScope() {
