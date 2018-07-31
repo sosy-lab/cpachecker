@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.predicate;
+package org.sosy_lab.cpachecker.cpa.arg;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSortedSet;
@@ -37,9 +37,9 @@ import java.util.SortedSet;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
-import org.sosy_lab.cpachecker.cpa.arg.SLARGState;
+import org.sosy_lab.cpachecker.cpa.predicate.EdgeSet;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils;
 
 public class SLARGToDotWriter {
 

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.predicate;
+package org.sosy_lab.cpachecker.cpa.slab;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,6 +31,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.SLARGState;
+import org.sosy_lab.cpachecker.cpa.predicate.EdgeSet;
+import org.sosy_lab.cpachecker.cpa.predicate.SymbolicLocationsUtility;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.java_smt.api.SolverException;
 

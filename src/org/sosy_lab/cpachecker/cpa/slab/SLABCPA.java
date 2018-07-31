@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.predicate;
+package org.sosy_lab.cpachecker.cpa.slab;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -46,6 +46,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.cpa.arg.SLARGState;
+import org.sosy_lab.cpachecker.cpa.predicate.EdgeSet;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractDomain;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.SymbolicLocationsUtility;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 public class SLABCPA extends AbstractSingleWrapperCPA implements WrapperCPA {
