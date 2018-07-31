@@ -68,10 +68,10 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 /**
- * A transition in the automaton implements one of the pattern matching methods.
- * This determines if the transition matches on a certain {@link CFAEdge}.
+ * A transition in the automaton implements one of the pattern matching methods. This determines if
+ * the transition matches on a certain {@link CFAEdge}.
  */
-class AutomatonTransition {
+public class AutomatonTransition {
 
   // The order of triggers, assertions and (more importantly) actions is preserved by the parser.
 
@@ -114,6 +114,9 @@ class AutomatonTransition {
    */
   private final String followStateName;
   private AutomatonInternalState followState = null;
+
+  private boolean disable = false;
+  private boolean relevant = false;
 
   public AutomatonTransition(AutomatonBoolExpr pTrigger,
       List<AutomatonBoolExpr> pAssertions, List<AutomatonAction> pActions,
@@ -207,6 +210,7 @@ class AutomatonTransition {
     this.actions = ImmutableList.copyOf(pActions);
     this.followStateName = checkNotNull(pFollowStateName);
     this.followState = pFollowState;
+
     this.violatedPropertyDescription = pViolatedPropertyDescription;
 
     if (pAssertions.isEmpty()) {
@@ -244,7 +248,15 @@ class AutomatonTransition {
    * In this case more information (e.g. more AbstractStates of other CPAs) are needed.
    */
   public ResultValue<Boolean> match(AutomatonExpressionArguments pArgs) throws CPATransferException {
-    return trigger.eval(pArgs);
+    if (disable) {
+      return AutomatonBoolExpr.CONST_FALSE;
+    } else {
+      ResultValue<Boolean> result = trigger.eval(pArgs);
+      if (!relevant && !result.canNotEvaluate() && result.getValue()) {
+        relevant = true;
+      }
+      return result;
+    }
   }
 
   /**
@@ -302,6 +314,19 @@ class AutomatonTransition {
       return null;
     }
     return violatedPropertyDescription.eval(pArgs).getValue();
+  }
+
+  /*
+   * Return description of a target state without its evaluation.
+   */
+  public String getTransitionDescription() {
+    if (violatedPropertyDescription == null) {
+      if (getFollowState().isTarget()) {
+        return getFollowState().getName();
+      }
+      return null;
+    }
+    return violatedPropertyDescription.toString();
   }
 
   @Override
@@ -587,6 +612,17 @@ class AutomatonTransition {
         throws SubstitutionException {
       return substitution.substitute(pAddressOfLabelExpression);
     }
+  }
 
+  public void disableTransition() {
+    disable = true;
+  }
+
+  public void enableTransition() {
+    disable = false;
+  }
+
+  public boolean isRelevant() {
+    return relevant;
   }
 }
