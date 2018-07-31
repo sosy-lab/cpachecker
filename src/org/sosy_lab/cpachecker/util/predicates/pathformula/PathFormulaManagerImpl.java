@@ -99,11 +99,13 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(secure=true, description="Call 'simplify' on generated formulas.")
   private boolean simplifyGeneratedPathFormulas = false;
 
-  @Option(
-    secure = true,
-    description = "Which path formula builder to use. One of [\"DEFAULT\", \"SYMBOLICLOCATIONS\"]"
-  )
-  private String pathFormulaBuilder = "DEFAULT";
+  @Option(secure = true, description = "Which path-formula builder to use.")
+  private PathFormulaBuilderVariants pathFormulaBuilderVariant = PathFormulaBuilderVariants.DEFAULT;
+
+  private enum PathFormulaBuilderVariants {
+    DEFAULT,
+    SYMBOLICLOCATIONS
+  }
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
@@ -204,11 +206,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
     }
 
-    switch (pathFormulaBuilder) {
-      case "DEFAULT":
+    switch (pathFormulaBuilderVariant) {
+      case DEFAULT:
         pfbFactory = new PathFormulaBuilder.Factory();
         break;
-      case "SYMBOLICLOCATIONS":
+      case SYMBOLICLOCATIONS:
         pfbFactory =
             new SymbolicLocationPathFormulaBuilder.Factory(
                 new CBinaryExpressionBuilder(pMachineModel, pLogger));
