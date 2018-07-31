@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -203,7 +202,7 @@ public class SLARGState extends ARGState
 
   @Override
   public void removeFromARG() {
-    assert !destroyed : "Don't use destroyed ARGState " + this;
+    assert !this.isDestroyed() : "Don't use destroyed ARGState " + this;
     for (ARGState argParent : new ArrayList<>(getParents())) { // prevent concurrent modification
       if (argParent != this) {
         SLARGState parent = (SLARGState) argParent;
@@ -254,8 +253,8 @@ public class SLARGState extends ARGState
    */
   @Override
   public void replaceInARGWith(ARGState replacement) {
-    assert !destroyed : "Don't use destroyed ARGState " + this;
-    assert !replacement.destroyed : "Don't use destroyed ARGState " + replacement;
+    assert !this.isDestroyed() : "Don't use destroyed ARGState " + this;
+    assert !replacement.isDestroyed() : "Don't use destroyed ARGState " + replacement;
     assert !isCovered() : "Not implemented: Replacement of covered element " + this;
     assert !replacement.isCovered() : "Cannot replace with covered element " + replacement;
     assert !(this == replacement) : "Don't replace ARGState " + this + " with itself";
@@ -276,23 +275,7 @@ public class SLARGState extends ARGState
       this.removeParent(parent);
     }
 
-    if (mCoveredByThis != null) {
-      if (replacement.mCoveredByThis == null) {
-        // lazy initialization because rarely needed
-        replacement.mCoveredByThis = Sets.newHashSetWithExpectedSize(mCoveredByThis.size());
-      }
-
-      for (ARGState covered : mCoveredByThis) {
-        assert covered.mCoveredBy == this : "Inconsistent coverage relation at " + this;
-        covered.mCoveredBy = replacement;
-        replacement.mCoveredByThis.add(covered);
-      }
-
-      mCoveredByThis.clear();
-      mCoveredByThis = null;
-    }
-
-    destroyed = true;
+    super.replaceInARGWith(replacement);
   }
 
   @Override
