@@ -99,7 +99,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(secure=true, description="Call 'simplify' on generated formulas.")
   private boolean simplifyGeneratedPathFormulas = false;
 
-  @Option(secure = true, description = "Which path-formula builder to use.")
+  @Option(
+      secure = true,
+      description =
+          "Which path-formula builder to use."
+              + "Depending on this setting additional terms are added to the path formulas,"
+              + "e.g. SYMBOLICLOCATIONS will add track the program counter symbolically with a special variable %pc")
   private PathFormulaBuilderVariants pathFormulaBuilderVariant = PathFormulaBuilderVariants.DEFAULT;
 
   private enum PathFormulaBuilderVariants {
