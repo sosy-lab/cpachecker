@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SymbolicLocationPathFormulaBuilder extends PathFormulaBuilder {
 
@@ -147,7 +147,7 @@ public class SymbolicLocationPathFormulaBuilder extends PathFormulaBuilder {
     return new CIdExpression(FileLocation.DUMMY, pc);
   }
 
-  public CFAEdge makeProgramCounterAssumption(CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+  public CFAEdge makeProgramCounterAssumption(CFAEdge cfaEdge) throws UnrecognizedCodeException {
 
     CFANode predecessorNode = ((AbstractCFAEdge) cfaEdge).getPredecessor();
     CFANode successorNode = ((AbstractCFAEdge) cfaEdge).getSuccessor();
