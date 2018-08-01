@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Function;
 import java.io.PrintStream;
-import java.util.Collection;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -36,7 +35,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment;
@@ -55,23 +53,19 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  * org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment
  * ValueAnalysisPrecisionAdjustment}, but collects additional statistics for symbolic values.
  */
-public class SymbolicValueAnalysisPrecisionAdjustment
-    implements PrecisionAdjustment, StatisticsProvider {
+public class SymbolicValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
 
-  private PrecisionAdjustment delegate;
-
-  // Statistics
-  private StatInt symbolicValuesBefore =
-      new StatInt(StatKind.SUM, "Symbolic values before refinement");
-  private StatInt symbolicValuesAfter =
-      new StatInt(StatKind.SUM, "Symbolic values after refinement");
+  private final PrecisionAdjustment delegate;
+  private final SymbolicStatistics symbolicStats;
 
   public SymbolicValueAnalysisPrecisionAdjustment(
       final ValueAnalysisCPAStatistics pStats,
       final CFA pCfa,
       final PrecAdjustmentOptions pOptions,
-      final PrecAdjustmentStatistics pStatistics) {
+      final PrecAdjustmentStatistics pStatistics,
+      final SymbolicStatistics pSymbolicStats) {
     delegate = new ValueAnalysisPrecisionAdjustment(pStats, pCfa, pOptions, pStatistics);
+    symbolicStats = pSymbolicStats;
   }
 
   @Override
@@ -90,14 +84,14 @@ public class SymbolicValueAnalysisPrecisionAdjustment
 
     ValueAnalysisState valState = (ValueAnalysisState) pState;
 
-    symbolicValuesBefore.setNextValue(getSymbolicValueCount(valState));
+    symbolicStats.symbolicValuesBefore.setNextValue(getSymbolicValueCount(valState));
 
     Optional<PrecisionAdjustmentResult> maybeAdjusted =
         delegate.prec(pState, pPrecision, pStates, pStateProjection, pFullState);
 
     if (maybeAdjusted.isPresent()) {
       ValueAnalysisState newValState = (ValueAnalysisState) maybeAdjusted.get().abstractState();
-      symbolicValuesAfter.setNextValue(getSymbolicValueCount(newValState));
+      symbolicStats.symbolicValuesAfter.setNextValue(getSymbolicValueCount(newValState));
     }
     return maybeAdjusted;
   }
@@ -112,29 +106,20 @@ public class SymbolicValueAnalysisPrecisionAdjustment
             .count();
   }
 
-  @Override
-  public void collectStatistics(Collection<Statistics> statsCollection) {
-    if (delegate instanceof StatisticsProvider) {
-      ((StatisticsProvider) delegate).collectStatistics(statsCollection);
-    } else if (delegate instanceof Statistics) {
-      statsCollection.add(((Statistics) delegate));
+  public static class SymbolicStatistics implements Statistics {
+    private final StatInt symbolicValuesBefore =
+        new StatInt(StatKind.SUM, "Symbolic values before refinement");
+    private final StatInt symbolicValuesAfter =
+        new StatInt(StatKind.SUM, "Symbolic values after refinement");
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+      StatisticsWriter.writingStatisticsTo(pOut).put(symbolicValuesBefore).put(symbolicValuesAfter);
     }
 
-    statsCollection.add(
-        new Statistics() {
-
-          @Override
-          public void printStatistics(
-              PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-            StatisticsWriter.writingStatisticsTo(pOut)
-                .put(symbolicValuesBefore)
-                .put(symbolicValuesAfter);
-          }
-
-          @Override
-          public String getName() {
-            return SymbolicValueAnalysisPrecisionAdjustment.this.getClass().getSimpleName();
-          }
-        });
+    @Override
+    public String getName() {
+      return SymbolicValueAnalysisPrecisionAdjustment.class.getSimpleName();
+    }
   }
 }
