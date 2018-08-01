@@ -23,13 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.slab;
 
-import com.google.common.collect.ImmutableList;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
@@ -44,15 +42,13 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.cpa.arg.SLARGState;
-import org.sosy_lab.cpachecker.cpa.predicate.EdgeSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractDomain;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.SymbolicLocationsUtility;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-public class SLABCPA extends AbstractSingleWrapperCPA implements WrapperCPA {
+public class SLABCPA extends AbstractSingleWrapperCPA {
 
   private SLABDomain domain;
   private Configuration config;
@@ -66,7 +62,7 @@ public class SLABCPA extends AbstractSingleWrapperCPA implements WrapperCPA {
     return AutomaticCPAFactory.forType(SLABCPA.class);//.withOptions(BlockOperator.class);
   }
 
-  protected SLABCPA(
+  private SLABCPA(
       ConfigurableProgramAnalysis pWrappedCpa,
       Configuration pConfig,
       LogManager pLogger,
@@ -92,7 +88,7 @@ public class SLABCPA extends AbstractSingleWrapperCPA implements WrapperCPA {
   public TransferRelation getTransferRelation() {
     return new SLABTransferRelation(
         getWrappedCpa().getTransferRelation(),
-        makeTotalTransitionEdgeSet(),
+        cfa,
         new SymbolicLocationsUtility(getPredicateCpa(), specification));
   }
 
@@ -101,16 +97,6 @@ public class SLABCPA extends AbstractSingleWrapperCPA implements WrapperCPA {
       throws InterruptedException {
     return new SLARGState(
         null, null, true, false, getWrappedCpa().getInitialState(pNode, pPartition));
-  }
-
-  private EdgeSet makeTotalTransitionEdgeSet() {
-    ImmutableList.Builder<CFAEdge> edges = new ImmutableList.Builder<>();
-    for ( CFANode node : cfa.getAllNodes()) {
-      for (int i = 0; i<node.getNumLeavingEdges(); i++) {
-        edges.add(node.getLeavingEdge(i));
-      }
-    }
-    return new EdgeSet(edges.build());
   }
 
   public CFA getCfa() {
