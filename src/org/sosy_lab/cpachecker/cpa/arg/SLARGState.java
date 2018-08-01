@@ -276,6 +276,9 @@ public class SLARGState extends ARGState
 
   @Override
   public Iterable<CFANode> getLocationNodes() {
+    // We need to implement this method of the AbstractStateWithLocations interface, otherwise the
+    // counterexample check will not work correctly (the advance()-method in DefaultFullPathIterator
+    // expects there to be some location information for determining the right CFAEdge)
     ImmutableSet.Builder<CFANode> locations = ImmutableSet.builder();
     for (Entry<SLARGState, EdgeSet> entry : parentsToEdgeSets.entrySet()) {
       for (CFAEdge edgeFromParent : entry.getValue().getEdges()) {

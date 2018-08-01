@@ -1975,7 +1975,9 @@ cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-zA-Z0-9_]*"
 # ignoreIrrelevantVariables is set to true)
 cpa.predicate.overflowVariablesAreRelevant = false
 
-# Which path-formula builder to use.
+# Which path-formula builder to use.Depending on this setting additional
+# terms are added to the path formulas,e.g. SYMBOLICLOCATIONS will add track
+# the program counter symbolically with a special variable %pc
 cpa.predicate.pathFormulaBuilderVariant = DEFAULT
   enum:     [DEFAULT, SYMBOLICLOCATIONS]
 

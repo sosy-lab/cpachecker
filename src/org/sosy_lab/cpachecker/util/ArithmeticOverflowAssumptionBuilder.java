@@ -227,13 +227,10 @@ public final class ArithmeticOverflowAssumptionBuilder implements
   }
 
   /**
-   * Compute and conjunct the assumption for the given expression,
-   * stating that it does not overflow the allowed bound of its type.
+   * Compute assumptions whose conjunction states that the expression does not overflow the allowed
+   * bound of its type.
    */
-  private void addAssumptionOnBounds(
-      CExpression exp,
-      Set<CExpression> result,
-      CFANode node)
+  private void addAssumptionOnBounds(CExpression exp, Set<CExpression> result, CFANode node)
       throws UnrecognizedCodeException {
     CType typ = exp.getExpressionType();
 
