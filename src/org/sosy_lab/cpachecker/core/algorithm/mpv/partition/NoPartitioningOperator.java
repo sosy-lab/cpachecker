@@ -22,10 +22,12 @@ package org.sosy_lab.cpachecker.core.algorithm.mpv.partition;
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.property.MultipleProperties;
 
-public class NoPartitioningOperator extends AbstractPartitioningOperator {
+@Options
+public final class NoPartitioningOperator extends AbstractPartitioningOperator {
 
   public NoPartitioningOperator(
       Configuration pConfiguration, MultipleProperties pProperties, TimeSpan pTimeLimitPerProperty)
