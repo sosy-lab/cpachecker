@@ -243,7 +243,7 @@ public class AutomatonTest {
             "CompositeCPA.cpas",
             "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.value.ValueAnalysisCPA, cpa.predicate.PredicateCPA, cpa.automaton.ObserverAutomatonCPA",
             "cpa.automaton.inputFile",
-            "config/specification/set_variable.spc",
+            "test/config/automata/set_variable.spc",
             "cpa.automaton.dotExportFile",
             OUTPUT_FILE);
 
@@ -258,7 +258,7 @@ public class AutomatonTest {
             "CompositeCPA.cpas",
             "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.value.ValueAnalysisCPA, cpa.predicate.PredicateCPA, cpa.automaton.ObserverAutomatonCPA",
             "cpa.automaton.inputFile",
-            "config/specification/set_variable.spc",
+            "test/config/automata/set_variable.spc",
             "cpa.automaton.dotExportFile",
             OUTPUT_FILE);
 
