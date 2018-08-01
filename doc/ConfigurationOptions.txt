@@ -3049,6 +3049,18 @@ memorysafety.config = no default value
 merge = "JOIN"
   allowed values: [SEP, JOIN]
 
+# The ratio of CPU time limit in the first phase of Joint partitioning to CPU
+# time limit per each property.
+mpv.joint.firstPhaseRatio = 1.3
+
+# The ratio of CPU time limit in the first phase of Relevance partitioning to
+# CPU time limit per each property.
+mpv.relevance.firstPhaseRatio = 0.2
+
+# The ratio of CPU time limit in the second phase of Relevance partitioning
+# to CPU time limit per each property.
+mpv.relevance.secondPhaseRatio = 1.3
+
 # When checking for the overflow property, use this configuration file
 # instead of the current one.
 overflow.config = no default value
