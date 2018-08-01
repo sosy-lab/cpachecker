@@ -58,8 +58,9 @@ public class SlicingAbstractionsTest {
       new FileFilter() {
         @Override
         public boolean accept(File pPathname) {
-          return (pPathname.getName().contains("Kojak")
-              || pPathname.getName().contains("SlicingAbstractions"));
+          return ((pPathname.getName().contains("Kojak")
+                  || pPathname.getName().contains("SlicingAbstractions"))
+              && !pPathname.getName().contains("overflow"));
         }
       };
   private static final FileFilter SLAB_CONFIG_FILTER = new FileFilter() {
@@ -68,6 +69,15 @@ public class SlicingAbstractionsTest {
       return pPathname.getName().contains("Slab");
     }
   };
+  private static final FileFilter OVERFLOW_CONFIG_FILTER =
+      new FileFilter() {
+        @Override
+        public boolean accept(File pPathname) {
+          return ((pPathname.getName().contains("Kojak")
+                  || pPathname.getName().contains("SlicingAbstractions"))
+              && pPathname.getName().contains("overflow"));
+        }
+      };
   private static final ImmutableMap<String, String> EMPTY_OPTIONS = ImmutableMap.of();
   private static final ImmutableMap<String, String> LINEAR_OPTIONS =
       ImmutableMap.of(
@@ -88,7 +98,15 @@ public class SlicingAbstractionsTest {
   public static Collection<Object[]> data() {
     File taskfolder = new File(TEST_DIR_PATH);
     List<Object> files =
-        FluentIterable.from(taskfolder.listFiles()).<Object>transform(x -> x.getName()).toList();
+        FluentIterable.from(taskfolder.listFiles())
+            .<Object>transform(x -> x.getName())
+            .filter(x -> ((String) x).contains("unreach"))
+            .toList();
+    List<Object> overflowFiles =
+        FluentIterable.from(taskfolder.listFiles())
+            .<Object>transform(x -> x.getName())
+            .filter(x -> ((String) x).contains("overflow"))
+            .toList();
 
     File configfolder = new File(CONFIG_DIR_PATH);
     List<Object> configs =
@@ -98,6 +116,11 @@ public class SlicingAbstractionsTest {
 
     List<Object> slabConfigs =
         FluentIterable.from(configfolder.listFiles(SLAB_CONFIG_FILTER))
+            .<Object>transform(x -> x.getName())
+            .toList();
+
+    List<Object> overflowConfigs =
+        FluentIterable.from(configfolder.listFiles(OVERFLOW_CONFIG_FILTER))
             .<Object>transform(x -> x.getName())
             .toList();
 
@@ -127,7 +150,23 @@ public class SlicingAbstractionsTest {
                           .replace(".properties", "");
                   return result;
                 });
-    return firstIterable.append(secondIterable).toList();
+
+    FluentIterable<Object[]> thirdIterable =
+        FluentIterable.from(Lists.cartesianProduct(overflowFiles, overflowConfigs))
+            .transform(
+                x -> {
+                  Object[] result = new Object[4];
+                  result[0] = x.get(0);
+                  result[1] = x.get(1);
+                  result[2] = new HashMap<String, String>();
+                  result[3] =
+                      ((String) result[1])
+                          .replace("predicateAnalysis-", "")
+                          .replace(".properties", "");
+                  return result;
+                });
+
+    return firstIterable.append(secondIterable).append(thirdIterable).toList();
   }
 
   @SuppressWarnings("unchecked")
@@ -187,10 +226,18 @@ public class SlicingAbstractionsTest {
     String fullPath = Paths.get(TEST_DIR_PATH, filename).toString();
 
     TestResults results = CPATestRunner.run(config, fullPath);
+    if (!configname.contains("overflow")) {
     if (pFilename.contains("_true_assert") || pFilename.contains("_true-unreach")) {
-      results.assertIsSafe();
-    } else if (pFilename.contains("_false_assert") || pFilename.contains("_false-unreach")) {
-      results.assertIsUnsafe();
+        results.assertIsSafe();
+      } else if (pFilename.contains("_false_assert") || pFilename.contains("_false-unreach")) {
+        results.assertIsUnsafe();
+      }
+    } else {
+      if (pFilename.contains("_true_no_overflow")) {
+        results.assertIsSafe();
+      } else if (pFilename.contains("_false_no_overflow")) {
+        results.assertIsUnsafe();
+      }
     }
   }
 
