@@ -19,13 +19,17 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpv.partition;
 
+import javax.management.JMException;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.property.MultipleProperties;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 
 public final class Partition {
   private final MultipleProperties properties;
   private final TimeSpan partitionTimeLimit;
   private final boolean isAssignUnknown;
+  private long cpuTime = 0;
 
   public Partition(
       MultipleProperties pProperties, TimeSpan pPartitionTimeLimit, boolean pIsAssignUnknown) {
@@ -34,16 +38,65 @@ public final class Partition {
     isAssignUnknown = pIsAssignUnknown;
   }
 
+  public void startAnalysis() {
+    try {
+      cpuTime = ProcessCpuTime.read();
+    } catch (JMException | NoClassDefFoundError e) {
+      // user was already warned in MainCPAStatistics
+      cpuTime = -1;
+    }
+  }
+
+  private void stopAnalysisOnSuccess(ReachedSet reached) {
+    properties.stopAnalysisOnSuccess();
+    stopAnalysis(reached);
+  }
+
+  public void stopAnalysisOnFailure(ReachedSet reached, String reason) {
+    if (isAssignUnknown) {
+      properties.stopAnalysisOnFailure(reason);
+    }
+    stopAnalysis(reached);
+  }
+
+  private void stopAnalysis(ReachedSet reached) {
+    properties.divideSpentResources(getSpentCPUTime(), reached);
+  }
+
+  public boolean isChecked(ReachedSet reached) {
+    // Check for property violations
+    if (reached.hasViolatedProperties()) {
+      properties.processPropertyViolation(reached.getLastState());
+    }
+    if (!reached.hasWaitingState() || (properties.isChecked() && properties.isStopAfterError())) {
+      stopAnalysisOnSuccess(reached);
+      return true;
+    }
+    return false;
+  }
+
   public MultipleProperties getProperties() {
     return properties;
+  }
+
+  public int getNumberOfProperties() {
+    return properties.getNumberOfProperties();
   }
 
   public TimeSpan getTimeLimit() {
     return partitionTimeLimit;
   }
 
-  public boolean isAssignUnknown() {
-    return isAssignUnknown;
+  public TimeSpan getSpentCPUTime() {
+    try {
+      long stopCpuTime = ProcessCpuTime.read();
+      if (cpuTime >= 0) {
+        cpuTime = stopCpuTime - cpuTime;
+      }
+    } catch (JMException | NoClassDefFoundError e) {
+      // user was already warned in MainCPAStatistics
+    }
+    return TimeSpan.ofNanos(cpuTime);
   }
 
   @Override

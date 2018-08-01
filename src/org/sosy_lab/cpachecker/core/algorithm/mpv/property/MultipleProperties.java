@@ -30,10 +30,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
@@ -165,10 +167,10 @@ public final class MultipleProperties {
    * Determine, which property was violated based on target state, and stop checking it if
    * necessary. TODO: this method should be called from the MPV algorithm.
    */
-  public AbstractSingleProperty processFalse(AbstractState targetState) {
+  public AbstractSingleProperty processPropertyViolation(AbstractState targetState) {
     if (targetState instanceof AbstractWrapperState) {
       for (AbstractState state : ((AbstractWrapperState) targetState).getWrappedStates()) {
-        AbstractSingleProperty obtainedProperty = processFalse(state);
+        AbstractSingleProperty obtainedProperty = processPropertyViolation(state);
         if (obtainedProperty != null) {
           return obtainedProperty;
         }
@@ -229,6 +231,18 @@ public final class MultipleProperties {
       }
     }
     return true;
+  }
+
+  /*
+   * Divide resources, which were spent on verification of multiple properties, between each checked
+   * property.
+   */
+  public void divideSpentResources(
+      TimeSpan spentCPUTime, @SuppressWarnings("unused") ReachedSet reached) {
+    // TODO: add operator for dividing CPU time, which will take reached as input.
+    for (AbstractSingleProperty property : properties) {
+      property.addCpuTime(spentCPUTime.divide(getNumberOfProperties()));
+    }
   }
 
   /*
