@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPr
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,10 +42,12 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -52,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.SLARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -292,7 +296,7 @@ public class SlicingAbstractionsUtils {
           throws CPATransferException, InterruptedException {
 
     final PathFormula pathFormula;
-    final PathFormula startFormula;
+    PathFormula startFormula;
     final PathFormulaBuilder pfb;
 
     // start with either an empty PathFormula or the abstraction state of start
@@ -301,6 +305,16 @@ public class SlicingAbstractionsUtils {
       startFormula = invariantPathFormulaFromState(start, pSSAMap, pPts, pSolver);
     } else {
       startFormula = emptyPathFormulaWithSSAMap(pSolver.getFormulaManager().getBooleanFormulaManager().makeTrue(), pSSAMap, pPts);
+    }
+
+    // Add precondition assumptions if any:
+    AbstractStateWithAssumptions other =
+        AbstractStates.extractStateByType(stop, AbstractStateWithAssumptions.class);
+    if (other != null) {
+      for (CExpression preassumption :
+          Iterables.filter(other.getPreconditionAssumptions(), CExpression.class)) {
+        startFormula = pPfmgr.makeAnd(startFormula, preassumption);
+      }
     }
 
     // generate the PathFormula for the path between start and stop
