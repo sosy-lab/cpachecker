@@ -343,12 +343,17 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     stats.coverTime.start();
     try {
       for (ARGState w : changedElements) {
-          if (w.isDestroyed()) {
-            break; // all further elements are unreachable anyway
-          }
-          if (pReached.tryToCover(w)) {
-            break; // all further elements are covered anyway
-          }
+        if (w instanceof SLARGState) {
+          // calculating coverage is expensive without location states.
+          // SLAB does not use coverage information anyway
+          continue;
+        }
+        if (w.isDestroyed()) {
+          break; // all further elements are unreachable anyway
+        }
+        if (pReached.tryToCover(w)) {
+          break; // all further elements are covered anyway
+        }
       }
     } finally {
       stats.coverTime.stop();
