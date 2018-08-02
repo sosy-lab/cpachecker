@@ -395,7 +395,15 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     }
 
     for (ARGState currentState : allChangedStates) {
-      Map<ARGState, List<ARGState>> segmentMap = SlicingAbstractionsUtils.calculateOutgoingSegments(currentState);
+
+      // Optimization to reduce number of solver calls:
+      if (currentState instanceof SLARGState) {
+        SlicingAbstractionsUtils.removeIncomingEdgesWithLocationMismatch(currentState);
+        SlicingAbstractionsUtils.removeOutgoingEdgesWithLocationMismatch(currentState);
+      }
+
+      Map<ARGState, List<ARGState>> segmentMap =
+          SlicingAbstractionsUtils.calculateOutgoingSegments(currentState);
       Map<ARGState, Boolean> infeasibleMap = new HashMap<>();
       Set<ARGState> segmentStateSet = new HashSet<>();
       for (Map.Entry<ARGState,List<ARGState>> entry : segmentMap.entrySet()) {

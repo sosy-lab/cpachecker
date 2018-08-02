@@ -576,7 +576,10 @@ public class SlicingAbstractionsUtils {
     return locations.build();
   }
 
-  private static void removeIncomingEdgesWithLocationMismatch(ARGState state) {
+  public static void removeIncomingEdgesWithLocationMismatch(ARGState state) {
+    if (state.isTarget() || state.getParents().size() == 0) {
+      return;
+    }
     Set<CFANode> locations = getOutgoingLocations(((SLARGState) state));
     List<ARGState> toRemove = new ArrayList<>();
     for (ARGState parent : state.getParents()) {
@@ -597,10 +600,13 @@ public class SlicingAbstractionsUtils {
     }
   }
 
-  private static void removeOutgoingEdgesWithLocationMismatch(AbstractState state) {
+  public static void removeOutgoingEdgesWithLocationMismatch(ARGState state) {
+    if (state.isTarget() || state.getParents().size() == 0) {
+      return;
+    }
     Set<CFANode> locations = getIncomingLocations(((SLARGState) state));
     List<ARGState> toRemove = new ArrayList<>();
-    for (ARGState child : ((ARGState) state).getChildren()) {
+    for (ARGState child : state.getChildren()) {
       EdgeSet edgeSet = ((SLARGState) state).getEdgeSetToChild(child);
 
       if (edgeSet != null) {
@@ -615,7 +621,7 @@ public class SlicingAbstractionsUtils {
       }
     }
     for (ARGState child : toRemove) {
-      child.removeParent((ARGState) state);
+      child.removeParent(state);
     }
   }
 
@@ -688,7 +694,7 @@ public class SlicingAbstractionsUtils {
         // here it is only sound to check for outgoing edges that do not have a suitable incoming
         // edge
         if (state instanceof SLARGState) {
-          removeOutgoingEdgesWithLocationMismatch(state);
+          removeOutgoingEdgesWithLocationMismatch((SLARGState) state);
         }
       }
     }
