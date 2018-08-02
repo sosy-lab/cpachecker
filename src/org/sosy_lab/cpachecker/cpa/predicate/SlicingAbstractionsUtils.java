@@ -188,7 +188,8 @@ public class SlicingAbstractionsUtils {
 
       // All parents have already been explored, let's
       // build the state list for this state:
-      PersistentList<ARGState> currentStateList = null;//PersistentLinkedList.of();
+      PersistentList<ARGState> currentStateList = null;
+      Set<ARGState> currentStateSet = new HashSet<>();
       for (ARGState parent : currentState.getParents()) {
         if (!reachableNonAbstractionStates.contains(parent)) {
           continue;
@@ -196,10 +197,13 @@ public class SlicingAbstractionsUtils {
         PersistentList<ARGState> parentStateList = frontier.get(parent);
         if (currentStateList == null) {
           currentStateList = parentStateList;
+          currentStateSet.addAll(parentStateList);
         } else {
           for (ARGState s : parentStateList.reversed()) {
-            if (!currentStateList.contains(s)) {
+            // checking containment in O(1) is crucial here:
+            if (!currentStateSet.contains(s)) {
               currentStateList = currentStateList.with(s);
+              currentStateSet.add(s);
             }
           }
         }
