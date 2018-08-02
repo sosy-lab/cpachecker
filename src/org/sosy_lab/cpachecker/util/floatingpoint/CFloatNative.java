@@ -323,4 +323,10 @@ public class CFloatNative implements CFloat {
   public int getType() {
     return type;
   }
+
+  @Override
+  public boolean greaterThan(CFloat pFloat) {
+    // TODO ... implement some time; not too urgent
+    return false;
+  }
 }
