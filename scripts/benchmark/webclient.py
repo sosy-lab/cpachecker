@@ -336,7 +336,9 @@ class WebInterface:
 
         self._connection = requests.Session()
         self._connection.headers.update(default_headers)
-        self._connection.verify='/etc/ssl/certs'
+        import ssl
+        self._connection.verify = ssl.get_default_verify_paths().cafile or ssl.get_default_verify_paths().capath or True
+        print(self._connection.verify)
         if user_pwd:
             self._connection.auth = (user_pwd.split(":")[0], user_pwd.split(":")[1])
             self._base64_user_pwd = base64.b64encode(user_pwd.encode("utf-8")).decode("utf-8")
