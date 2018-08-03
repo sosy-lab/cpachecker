@@ -3065,9 +3065,6 @@ overflow.trackLeftShifts = true
 # Track overflows in multiplication operations.
 overflow.trackMultiplications = true
 
-# Track overflow for signed integers.
-overflow.trackSignedIntegers = true
-
 # Only check live variables for overflow, as compiler can remove dead
 # variables.
 overflow.useLiveness = true

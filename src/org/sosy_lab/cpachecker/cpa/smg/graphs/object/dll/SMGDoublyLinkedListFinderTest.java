@@ -51,7 +51,7 @@ public class SMGDoublyLinkedListFinderTest {
   private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
   private final CFunctionDeclaration functionDeclaration3 = new CFunctionDeclaration(FileLocation
       .DUMMY, functionType, "main", ImmutableList.of());
-  private CSimpleType intType = CNumericTypes.INT;
+  private CSimpleType intType = CNumericTypes.SIGNED_INT;
   private CType pointerType = new CPointerType(false, false, intType);
 
   private CLangSMG smg1;
