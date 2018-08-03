@@ -67,7 +67,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -363,7 +362,7 @@ class PointerTargetSetManager {
             highestAllocatedAddresses,
             allocationCount);
 
-    final List<Pair<CCompositeType, String>> sharedFields = new ArrayList<>();
+    final List<CompositeField> sharedFields = new ArrayList<>();
     final BooleanFormula mergeFormula2 =
         makeValueImportConstraints(basesOnlyPts1.getSnapshot(), sharedFields, ssa);
     final BooleanFormula mergeFormula1 =
@@ -372,8 +371,8 @@ class PointerTargetSetManager {
     if (!sharedFields.isEmpty()) {
       final PointerTargetSetBuilder resultPTSBuilder =
           new RealPointerTargetSetBuilder(resultPTS, formulaManager, typeHandler, this, options, regionMgr);
-      for (final Pair<CCompositeType, String> sharedField : sharedFields) {
-        resultPTSBuilder.addField(sharedField.getFirst(), sharedField.getSecond());
+      for (final CompositeField sharedField : sharedFields) {
+        resultPTSBuilder.addField(sharedField);
       }
       resultPTS = resultPTSBuilder.build();
     }
@@ -384,7 +383,7 @@ class PointerTargetSetManager {
   /**
    * A handler for merge conflicts that appear when merging bases.
    */
-  private static enum BaseUnitingConflictHandler implements MergeConflictHandler<String, CType> {
+  private enum BaseUnitingConflictHandler implements MergeConflictHandler<String, CType> {
     INSTANCE;
 
     /**
@@ -404,7 +403,7 @@ class PointerTargetSetManager {
       }
       int currentFieldIndex = 0;
       final ImmutableList.Builder<CCompositeTypeMemberDeclaration> membersBuilder =
-        ImmutableList.<CCompositeTypeMemberDeclaration>builder();
+          ImmutableList.builder();
       if (type1 instanceof CCompositeType) {
         final CCompositeType compositeType1 = (CCompositeType) type1;
         if (compositeType1.getKind() == ComplexTypeKind.UNION &&
@@ -505,7 +504,7 @@ class PointerTargetSetManager {
    */
   private BooleanFormula makeValueImportConstraints(
       final PersistentSortedMap<String, CType> newBases,
-      final List<Pair<CCompositeType, String>> sharedFields,
+      final List<CompositeField> sharedFields,
       final SSAMap ssa) {
     SSAMapBuilder ssaBuilder = ssa.builder();
     Constraints constraints = new Constraints(bfmgr);
@@ -570,10 +569,9 @@ class PointerTargetSetManager {
     } else if (cType instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) cType;
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-      final String type = CTypeUtils.typeToString(compositeType);
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        final long offset = typeHandler.getBitOffset(compositeType, memberDeclaration.getName());
-        if (fields.containsKey(CompositeField.of(type, memberDeclaration.getName()))) {
+        final long offset = typeHandler.getBitOffset(compositeType, memberDeclaration);
+        if (fields.containsKey(CompositeField.of(compositeType, memberDeclaration))) {
           MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
           targets = addToTargets(base, newRegion, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);
         }

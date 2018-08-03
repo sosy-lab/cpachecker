@@ -31,8 +31,8 @@ import com.google.common.collect.TreeMultimap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
 import java.util.Collections;
+import java.util.NavigableMap;
 import java.util.Optional;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import org.junit.Assert;
 import org.junit.Before;
@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -72,7 +71,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.SolverViewBasedTest0;
@@ -135,14 +134,14 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
             AnalysisDirection.BACKWARD);
   }
 
-  private Triple<CFAEdge, CFAEdge, MutableCFA> createCFA() throws UnrecognizedCCodeException {
+  private Triple<CFAEdge, CFAEdge, MutableCFA> createCFA() throws UnrecognizedCodeException {
 
     CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(
         MachineModel.LINUX32, LogManager.createTestLogManager()
     );
 
     String fName = "main";
-    SortedMap<String, FunctionEntryNode> functions = new TreeMap<>();
+    NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>();
 
     FunctionEntryNode entryNode = dummyFunction(fName);
 
@@ -252,15 +251,13 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
   private FunctionEntryNode dummyFunction(String name) {
     CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.BOOL);
 
-    FunctionEntryNode main = new CFunctionEntryNode(
-        FileLocation.DUMMY,
-        new CFunctionDeclaration(
-            FileLocation.DUMMY, functionType, name,
-            Collections.<CParameterDeclaration>emptyList()
-        ),
-        new FunctionExitNode(name),
-        com.google.common.base.Optional.absent()
-    );
+    FunctionEntryNode main =
+        new CFunctionEntryNode(
+            FileLocation.DUMMY,
+            new CFunctionDeclaration(
+                FileLocation.DUMMY, functionType, name, Collections.emptyList()),
+            new FunctionExitNode(name),
+            com.google.common.base.Optional.absent());
 
     return main;
   }

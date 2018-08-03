@@ -46,7 +46,7 @@ public interface InvariantStrengthening<S extends CandidateInvariant, T extends 
       NextCti pNextCti)
       throws SolverException, InterruptedException, CPATransferException;
 
-  public static interface NextCti {
+  interface NextCti {
 
     Optional<CounterexampleToInductivity> getNextCti() throws SolverException;
   }

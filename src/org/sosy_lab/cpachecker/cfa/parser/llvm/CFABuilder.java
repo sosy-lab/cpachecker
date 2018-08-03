@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.OptionalInt;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -101,8 +102,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.llvm_j.BasicBlock;
 import org.sosy_lab.llvm_j.Function;
@@ -146,7 +148,7 @@ public class CFABuilder {
 
   // unnamed basic blocks will be named as 1,2,3,...
   private int basicBlockId;
-  protected SortedMap<String, FunctionEntryNode> functions;
+  protected NavigableMap<String, FunctionEntryNode> functions;
 
   protected SortedSetMultimap<String, CFANode> cfaNodes;
   protected List<Pair<ADeclaration, String>> globalDeclarations;
@@ -189,8 +191,7 @@ public class CFABuilder {
     iterateOverFunctions(pItem, pFileName);
   }
 
-  private void addFunctionDeclarations(final Module pItem, final String pFileName)
-      throws LLVMException {
+  private void addFunctionDeclarations(final Module pItem, final String pFileName) {
     for (Value func : pItem) {
       String funcName = func.getValueName();
       assert !funcName.isEmpty();
@@ -302,7 +303,16 @@ public class CFABuilder {
   /** Remove the block and all CFA nodes in it */
   private void purgeBlock(String pFunctionName, BasicBlockInfo pBlock) {
     Collection<CFANode> blockNodes =
-        CFATraversal.dfs().collectNodesReachableFrom(pBlock.getEntryNode());
+        CFATraversal.dfs().collectNodesReachableFromTo(pBlock.getEntryNode(), pBlock.getExitNode());
+
+    for (CFANode toRemove : blockNodes) {
+      for (CFAEdge enteringEdge : CFAUtils.allEnteringEdges(toRemove)) {
+        enteringEdge.getPredecessor().removeLeavingEdge(enteringEdge);
+      }
+      for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(toRemove)) {
+        leavingEdge.getSuccessor().removeEnteringEdge(leavingEdge);
+      }
+    }
     cfaNodes.get(pFunctionName).removeAll(blockNodes);
   }
 
@@ -649,8 +659,7 @@ public class CFABuilder {
     }
   }
 
-  protected FunctionEntryNode visitFunction(final Value pItem, final String pFileName)
-      throws LLVMException {
+  protected FunctionEntryNode visitFunction(final Value pItem, final String pFileName) {
     assert pItem.isFunction();
 
     logger.log(Level.FINE, "Creating function: " + pItem.getValueName());
@@ -674,7 +683,7 @@ public class CFABuilder {
           new CIntegerLiteralExpression(
               getLocation(pItem, pFileName), CNumericTypes.BOOL, BigInteger.ONE),
           BinaryOperator.EQUALS);
-    } catch (UnrecognizedCCodeException e) {
+    } catch (UnrecognizedCodeException e) {
       throw new AssertionError(e.toString());
     }
   }
@@ -873,8 +882,7 @@ public class CFABuilder {
     return getAssignStatement(valueToStoreTo, expression, pFunctionName, pFileName);
   }
 
-  private List<CAstNode> handleAlloca(final Value pItem, String pFunctionName, String pFileName)
-      throws LLVMException {
+  private List<CAstNode> handleAlloca(final Value pItem, String pFunctionName, String pFileName) {
     // We ignore the specifics and handle alloca statements like C declarations of variables
     CSimpleDeclaration assignedVar =
         getAssignedVarDeclaration(pItem, pFunctionName, null, pFileName);
@@ -1261,7 +1269,7 @@ public class CFABuilder {
     return init;
   }
 
-  private int getLength(Value pAggregateValue) throws LLVMException {
+  private int getLength(Value pAggregateValue) {
     CType aggregateType = typeConverter.getCType(pAggregateValue.typeOf()).getCanonicalType();
     if (aggregateType instanceof CArrayType) {
       CArrayType arrayType = (CArrayType) typeConverter.getCType(pAggregateValue.typeOf());
@@ -1337,8 +1345,7 @@ public class CFABuilder {
       final Value pItem,
       final String pFunctionName,
       final CInitializer pInitializer,
-      final String pFileName)
-      throws LLVMException {
+      final String pFileName) {
     final long itemId = pItem.getAddress();
     if (!variableDeclarations.containsKey(itemId)) {
       String assignedVar = getName(pItem);
@@ -1479,7 +1486,7 @@ public class CFABuilder {
     return newName.toString();
   }
 
-  private void declareFunction(final Value pFuncDef, final String pFileName) throws LLVMException {
+  private void declareFunction(final Value pFuncDef, final String pFileName) {
     String functionName = pFuncDef.getValueName();
 
     // Function type
@@ -1509,8 +1516,7 @@ public class CFABuilder {
     functionDeclarations.put(functionName, functionDeclaration);
   }
 
-  private FunctionEntryNode handleFunctionDefinition(final Value pFuncDef, final String pFileName)
-      throws LLVMException {
+  private FunctionEntryNode handleFunctionDefinition(final Value pFuncDef, final String pFileName) {
     assert !pFuncDef.isDeclaration();
 
     String functionName = pFuncDef.getValueName();
@@ -1673,7 +1679,7 @@ public class CFABuilder {
 
       return getAssignStatement(pItem, cmp, pFunctionName, pFileName);
 
-    } catch (UnrecognizedCCodeException e) {
+    } catch (UnrecognizedCodeException e) {
       throw new UnsupportedOperationException(e.toString());
     }
   }

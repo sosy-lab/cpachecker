@@ -24,15 +24,14 @@
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -112,19 +111,19 @@ public class UsageContainer {
   public void initContainerIfNecessary(FunctionContainer storage) {
     if (unsafeUsages == -1) {
       copyTimer.start();
-      Set<Pair<FunctionContainer, List<LockEffect>>> processedContainers = new HashSet<>();
-      Deque<Pair<FunctionContainer, List<LockEffect>>> waitlist = new ArrayDeque<>();
-      Pair<FunctionContainer, List<LockEffect>> first = Pair.of(storage, Collections.emptyList());
+      Set<Pair<FunctionContainer, Multiset<LockEffect>>> processedContainers = new HashSet<>();
+      Deque<Pair<FunctionContainer, Multiset<LockEffect>>> waitlist = new ArrayDeque<>();
+      Pair<FunctionContainer, Multiset<LockEffect>> first = Pair.of(storage, HashMultiset.create());
       waitlist.add(first);
 
       while (!waitlist.isEmpty()) {
-        Pair<FunctionContainer, List<LockEffect>> currentPair = waitlist.pollFirst();
+        Pair<FunctionContainer, Multiset<LockEffect>> currentPair = waitlist.pollFirst();
 
         if (!processedContainers.contains(currentPair)) {
           FunctionContainer currentContainer = currentPair.getFirst();
-          List<LockEffect> currentEffects = currentPair.getSecond();
+          Multiset<LockEffect> currentEffects = currentPair.getSecond();
 
-          List<LockEffect> newEffects = new ArrayList<>();
+          Multiset<LockEffect> newEffects = HashMultiset.create();
           newEffects.addAll(currentEffects);
           newEffects.addAll(currentContainer.getLockEffects());
 
@@ -170,7 +169,7 @@ public class UsageContainer {
     emptyEffectsTimer.stop();
   }
 
-  private void copyUsages(FunctionContainer storage, List<LockEffect> currentEffects) {
+  private void copyUsages(FunctionContainer storage, Multiset<LockEffect> currentEffects) {
     if (currentEffects.isEmpty()) {
       copyUsages(storage);
     } else {

@@ -207,14 +207,14 @@ public class ARGToCTranslator {
     }
   }
 
-  public static enum TargetTreatment {
-    NONE, RUNTIMEVERIFICATION, ASSERTFALSE, FRAMACPRAGMA;
+  public enum TargetTreatment {
+    NONE, RUNTIMEVERIFICATION, ASSERTFALSE, FRAMACPRAGMA
   }
 
-  public static enum BlockTreatmentAtFunctionEnd {
+  public enum BlockTreatmentAtFunctionEnd {
     CLOSEFUNCTIONBLOCK,
     ADDNEWBLOCK,
-    KEEPBLOCK;
+    KEEPBLOCK
   }
 
   private final LogManager logger;
@@ -333,7 +333,14 @@ public class ARGToCTranslator {
     if (childrenOfElement.size() == 0) {
       // if there is no child of the element, maybe it was covered by other?
       if(currentElement.isCovered()) {
-        //it was indeed covered; jump to element it was covered by
+        // it was indeed covered; jump to element it was covered by
+        if (copyValuesForGoto.containsKey(currentElement.getCoveringState())) {
+          addTmpAssignments(
+              currentBlock,
+              copyValuesForGoto.get(currentElement.getCoveringState()),
+              currentElement.getCoveringState().getStateId(),
+              false);
+        }
         currentBlock.addStatement(new SimpleStatement("goto label_" + currentElement.getCoveringState().getStateId() + ";"));
       } else {
         // check whether we have a return statement for the main method before (only when main is non-void)
@@ -362,9 +369,14 @@ public class ARGToCTranslator {
         // create a new block starting with this condition
         boolean truthAssumption = getRealTruthAssumption(assumeEdge);
 
-        CompoundStatement newBlock =
-            addIfStatement(
-                currentBlock, "if (" + assumeEdge.getExpression().toQualifiedASTString() + ")");
+        String cond;
+        if (truthAssumption == assumeEdge.getTruthAssumption()) {
+          cond = "if (" + assumeEdge.getExpression().toQualifiedASTString() + ")";
+        } else {
+          cond = "if (!(" + assumeEdge.getExpression().toQualifiedASTString() + "))";
+        }
+
+        CompoundStatement newBlock = addIfStatement(currentBlock, cond);
 
         if (truthAssumption) {
           ARGEdge e = new ARGEdge(currentElement, child, edgeToChild, newBlock);
@@ -428,7 +440,11 @@ public class ARGToCTranslator {
         String cond = "";
 
         if (truthAssumption) {
-          cond = "if (" + assumeEdge.getExpression().toQualifiedASTString() + ")";
+          if (truthAssumption == assumeEdge.getTruthAssumption()) {
+            cond = "if (" + assumeEdge.getExpression().toQualifiedASTString() + ")";
+          } else {
+            cond = "if (!(" + assumeEdge.getExpression().toQualifiedASTString() + "))";
+          }
         } else {
           cond = "else ";
         }
@@ -789,14 +805,13 @@ public class ARGToCTranslator {
         }
 
       case CallToReturnEdge: {
-        //          this should not have been taken
-        assert false : "CallToReturnEdge in counterexample path: " + pCFAEdge;
-
-        break;
+          //          this should not have been taken
+          throw new AssertionError("CallToReturnEdge in counterexample path: " + pCFAEdge);
       }
 
       default: {
-        assert false : "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType();
+          throw new AssertionError(
+              "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType());
       }
     }
 
@@ -864,10 +879,8 @@ public class ARGToCTranslator {
 
       return pCurrentBlock;
     } else {
-      assert false : "unknown function exit expression";
+      throw new AssertionError("unknown function exit expression");
     }
-
-    return null;
   }
 
   private CompoundStatement getBlockAfterEndOfFunction(
@@ -945,25 +958,22 @@ public class ARGToCTranslator {
               decInfo = handleDecInfoForEdge(edgeM, parent, child, decInfo);
             }
           } else {
-            // checkEdge(edge, parent, child, listPerFunction.getLast());
             decInfo = handleDecInfoForEdge(edge, parent, child, current.getSecond());
           }
-
-          child = getCovering(child);
 
           // need to use the same exploration order as during code generation
           if (edge instanceof CAssumeEdge) {
             if (getRealTruthAssumption((CAssumeEdge) edge)) {
-              assumeInfo.add(0, Pair.of(child, decInfo));
-            } else {
               assumeInfo.add(Pair.of(child, decInfo));
+            } else {
+              assumeInfo.add(0, Pair.of(child, decInfo));
             }
           } else {
             waitlist.push(Pair.of(child, decInfo));
           }
 
-          if (child.getCoveredByThis() != null || child.getParents().size() > 0) {
-            decProblems.put(child, decInfo.currentFuncDecInfo);
+          if (child.isCovered() || child.getParents().size() > 0) {
+            decProblems.put(getCovering(child), decInfo.currentFuncDecInfo);
           }
         }
 
@@ -1012,7 +1022,8 @@ public class ARGToCTranslator {
   private DeclarationInfo handleDecInfoForEdge(
       final CFAEdge edge, final ARGState pred, final ARGState succ, final DeclarationInfo decInfo) {
     if (edge instanceof CFunctionCallEdge) {
-      return decInfo.fromFunctionCall();
+      return decInfo.fromFunctionCall(
+          (CFunctionCallEdge) edge, pred.getStateId() + ":" + +succ.getStateId());
     }
 
     if (edge instanceof CFunctionReturnEdge) {
@@ -1020,7 +1031,7 @@ public class ARGToCTranslator {
     }
     if (edge instanceof CDeclarationEdge
         && ((CDeclarationEdge) edge).getDeclaration() instanceof CVariableDeclaration
-        && !((CVariableDeclaration) ((CDeclarationEdge) edge).getDeclaration()).isGlobal()) {
+        && !((CDeclarationEdge) edge).getDeclaration().isGlobal()) {
       return decInfo.addNewDeclarationInfo(
           ((CDeclarationEdge) edge).getDeclaration(), pred.getStateId() + ":" + +succ.getStateId());
     }
@@ -1042,7 +1053,7 @@ public class ARGToCTranslator {
     public DeclarationInfo addNewDeclarationInfo(final CDeclaration dec, final String decId) {
       ImmutableMap<CDeclaration, String> newFunDecInfo;
       if (currentFuncDecInfo.containsKey(dec)) {
-        Builder<CDeclaration, String> builder = ImmutableMap.<CDeclaration, String>builder();
+        Builder<CDeclaration, String> builder = ImmutableMap.builder();
         builder.put(dec, decId);
         for (Entry<CDeclaration, String> entry : currentFuncDecInfo.entrySet()) {
           if (!entry.getKey().equals(dec)) {
@@ -1061,9 +1072,21 @@ public class ARGToCTranslator {
       return new DeclarationInfo(newFunDecInfo, calleeFunDecInfos);
     }
 
-    public DeclarationInfo fromFunctionCall() {
+    public DeclarationInfo fromFunctionCall(final CFunctionCallEdge callEdge, final String decId) {
+      Builder<CDeclaration, String> builder = ImmutableMap.builder();
+
+      for (CParameterDeclaration paramDecl :
+          callEdge
+              .getSummaryEdge()
+              .getExpression()
+              .getFunctionCallExpression()
+              .getDeclaration()
+              .getParameters()) {
+        builder.put(paramDecl.asVariableDeclaration(), decId);
+      }
+
       return new DeclarationInfo(
-          ImmutableMap.<CDeclaration, String>of(),
+          builder.build(),
           ImmutableList.<ImmutableMap<CDeclaration, String>>builder()
               .addAll(calleeFunDecInfos)
               .add(currentFuncDecInfo)

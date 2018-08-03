@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nonnull;
@@ -36,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.lock.AbstractLockState;
 import org.sosy_lab.cpachecker.cpa.lock.LockState;
+import org.sosy_lab.cpachecker.cpa.usage.storage.UsagePoint;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
@@ -110,18 +113,6 @@ public class UsageInfo implements Comparable<UsageInfo> {
       }
     }
     return IRRELEVANT_USAGE;
-  }
-
-  public CompatibleState getState(Class<? extends CompatibleState> pClass) {
-    return compatibleStates.get(pClass);
-  }
-
-  public List<CompatibleState> getAllCompatibleStates() {
-    return new ArrayList<>(compatibleStates.values());
-  }
-
-  public @Nonnull Access getAccess() {
-    return core.accessType;
   }
 
   public @Nonnull LineInfo getLine() {
@@ -230,13 +221,15 @@ public class UsageInfo implements Comparable<UsageInfo> {
     Preconditions.checkArgument(
         currentStateTypes.equals(otherStateTypes),
         "Different compatible states in usages are not supported");
-    for (Class<? extends CompatibleState> pClass : currentStateTypes) {
+    for (Entry<Class<? extends CompatibleState>, CompatibleState> entry :
+        compatibleStates.entrySet()) {
       // May be sorted not in the convenient order: Locks last
-      CompatibleState currentState = this.getState(pClass);
+      Class<? extends CompatibleState> currentClass = entry.getKey();
+      CompatibleState currentState = entry.getValue();
       if (currentState != null) {
         // Revert order to negate the result:
         // Usages without locks are more convenient to analyze
-        result = pO.getState(pClass).compareTo(currentState);
+        result = pO.compatibleStates.get(currentClass).compareTo(currentState);
         if (result != 0) {
           return result;
         }
@@ -285,5 +278,12 @@ public class UsageInfo implements Comparable<UsageInfo> {
       }
     }
     return null;
+  }
+
+  public UsagePoint createUsagePoint() {
+    List<CompatibleNode> nodes =
+        from(compatibleStates.values()).transform(CompatibleState::getTreeNode).toList();
+
+    return new UsagePoint(nodes, core.accessType);
   }
 }

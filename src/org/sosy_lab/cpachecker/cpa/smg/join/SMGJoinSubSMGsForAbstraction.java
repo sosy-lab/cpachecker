@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,10 +29,11 @@ import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -43,25 +44,30 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedListCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedListCandidate;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
-
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 
 final public class SMGJoinSubSMGsForAbstraction {
 
   private final SMGJoinStatus status;
-  private final CLangSMG resultSMG;
+  private final UnmodifiableCLangSMG resultSMG;
   private final SMGObject newAbstractObject;
-  private final Set<Integer> nonSharedValuesFromSMG1;
-  private final Set<Integer> nonSharedValuesFromSMG2;
+  private final Set<SMGValue> nonSharedValuesFromSMG1;
+  private final Set<SMGValue> nonSharedValuesFromSMG2;
   private final Set<SMGObject> nonSharedObjectsFromSMG1;
   private final Set<SMGObject> nonSharedObjectsFromSMG2;
   private final boolean defined;
 
-  public SMGJoinSubSMGsForAbstraction(CLangSMG pInputSMG, SMGObject obj1, SMGObject obj2, SMGListCandidate<?> pListCandidate, SMGState pStateOfSmg) throws SMGInconsistentException {
+  public SMGJoinSubSMGsForAbstraction(
+      CLangSMG smg,
+      SMGObject obj1,
+      SMGObject obj2,
+      SMGListCandidate<?> pListCandidate,
+      UnmodifiableSMGState pStateOfSmg)
+      throws SMGInconsistentException {
 
-    CLangSMG smg = pInputSMG;
     Set<SMGObject> origObjects = ImmutableSet.copyOf(smg.getObjects());
-    Set<Integer> origValues = ImmutableSet.copyOf(smg.getValues());
+    Set<SMGValue> origValues = ImmutableSet.copyOf(smg.getValues());
 
     long nfo;
     long pfo;
@@ -130,7 +136,7 @@ final public class SMGJoinSubSMGsForAbstraction {
       destLevel = destLevel + 1;
     }
 
-    CLangSMG inputSMG = new CLangSMG(smg);
+    CLangSMG inputSMG = smg.copyOf();
 
     /*Every value thats identical will be skipped, the join only iterates over non shared values, thats why we can introduce a
      * level map only for non shared objects*/
@@ -140,7 +146,7 @@ final public class SMGJoinSubSMGsForAbstraction {
     SMGJoinSubSMGs jss = new SMGJoinSubSMGs(SMGJoinStatus.EQUAL, inputSMG, inputSMG, smg, mapping1, mapping2, levelMap, obj1, obj2, newAbstractObject, lDiff, true, pStateOfSmg, pStateOfSmg);
 
     if(!jss.isDefined()) {
-      status = SMGJoinStatus.INCOMPLETE;
+      status = SMGJoinStatus.INCOMPARABLE;
       defined = false;
       resultSMG = null;
       nonSharedObjectsFromSMG1 = null;
@@ -151,8 +157,6 @@ final public class SMGJoinSubSMGsForAbstraction {
     }
 
     SMGJoinStatus s = jss.getStatus();
-    mapping1 = jss.getMapping1();
-    mapping2 = jss.getMapping2();
 
     //TODO Contains abstract 0Cycle?
 
@@ -195,13 +199,13 @@ final public class SMGJoinSubSMGsForAbstraction {
       }
     }
 
-    for (Entry<Integer, Integer> entry : mapping1.getValue_mapEntrySet()) {
+    for (Entry<SMGValue, SMGValue> entry : mapping1.getValue_mapEntrySet()) {
       if (origValues.contains(entry.getKey())) {
         nonSharedValuesFromSMG1.add(entry.getKey());
       }
     }
 
-    for (Entry<Integer, Integer> entry : mapping2.getValue_mapEntrySet()) {
+    for (Entry<SMGValue, SMGValue> entry : mapping2.getValue_mapEntrySet()) {
       if (origValues.contains(entry.getKey())) {
 
         /*Beware identical values, they are shared.*/
@@ -214,8 +218,8 @@ final public class SMGJoinSubSMGsForAbstraction {
     }
 
     // Zero is not a non shared value
-    nonSharedValuesFromSMG1.remove(0);
-    nonSharedValuesFromSMG2.remove(0);
+    nonSharedValuesFromSMG1.remove(SMGZeroValue.INSTANCE);
+    nonSharedValuesFromSMG2.remove(SMGZeroValue.INSTANCE);
   }
 
   private boolean shouldAbstractionIncreaseLevel(SMGObject pObj1, SMGObject pObj2) {
@@ -260,7 +264,7 @@ final public class SMGJoinSubSMGsForAbstraction {
     return status;
   }
 
-  public CLangSMG getResultSMG() {
+  public UnmodifiableCLangSMG getResultSMG() {
     return resultSMG;
   }
 
@@ -276,11 +280,11 @@ final public class SMGJoinSubSMGsForAbstraction {
     return nonSharedObjectsFromSMG1;
   }
 
-  public Set<Integer> getNonSharedValuesFromSMG1() {
+  public Set<SMGValue> getNonSharedValuesFromSMG1() {
     return nonSharedValuesFromSMG1;
   }
 
-  public Set<Integer> getNonSharedValuesFromSMG2() {
+  public Set<SMGValue> getNonSharedValuesFromSMG2() {
     return nonSharedValuesFromSMG2;
   }
 }

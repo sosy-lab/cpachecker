@@ -35,7 +35,7 @@ import javax.annotation.Nonnull;
  */
 public interface Targetable {
 
-  public boolean isTarget();
+  boolean isTarget();
 
   /**
    * Return a human-readable description of the violated property.
@@ -43,5 +43,5 @@ public interface Targetable {
    * @return A non-null String, may be empty if no description is available.
    * @throws IllegalStateException if {@link #isTarget()} returns false
    */
-  public @Nonnull Set<Property> getViolatedProperties() throws IllegalStateException;
+  @Nonnull Set<Property> getViolatedProperties() throws IllegalStateException;
 }

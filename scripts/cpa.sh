@@ -27,7 +27,7 @@ if [ $result -ne 0 ]; then
   exit 1
 fi
 java_version="`echo "$java_version" | grep -e "^\(java\|openjdk\) version" | cut -f2 -d\\\" | sed 's/\.//g' | cut -b1-2`"
-if [ -z "$java_version" ] || [ "$java_version" -lt 18 ] ; then
+if [ -z "$java_version" ] || [ "$java_version" -lt 18 -a "$java_version" -gt 13 ] ; then
   echo "Your Java version is too old, please install Java 1.8 or newer." 1>&2
   echo "For Ubuntu: sudo apt-get install openjdk-8-jre" 1>&2
   echo "If you have installed Java 8, but it is not in your PATH," 1>&2

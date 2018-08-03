@@ -35,8 +35,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.NavigableMap;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
@@ -65,8 +65,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -84,7 +84,7 @@ class CFABuilder extends ASTVisitor {
 
   // Data structures for handling function declarations
   private final List<Triple<List<IASTFunctionDefinition>, String, GlobalScope>> functionDeclarations = new ArrayList<>();
-  private final SortedMap<String, FunctionEntryNode> cfas = new TreeMap<>();
+  private final NavigableMap<String, FunctionEntryNode> cfas = new TreeMap<>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
   private final List<String> eliminateableDuplicates = new ArrayList<>();
 
@@ -155,7 +155,8 @@ class CFABuilder extends ASTVisitor {
             machine,
             staticVariablePrefix,
             sideAssignmentStack);
-    functionDeclarations.add(Triple.of((List<IASTFunctionDefinition>)new ArrayList<IASTFunctionDefinition>(), staticVariablePrefix, fileScope));
+    functionDeclarations.add(
+        Triple.of(new ArrayList<IASTFunctionDefinition>(), staticVariablePrefix, fileScope));
 
     ast.accept(this);
   }
@@ -183,11 +184,19 @@ class CFABuilder extends ASTVisitor {
 
       fileScope.registerFunctionDeclaration(functionDefinition);
       if (!eliminateableDuplicates.contains(functionDefinition.toASTString())) {
-        globalDeclarations.add(Triple.of((ADeclaration)functionDefinition,
-                                         fd.getDeclSpecifier().getRawSignature() + " " + fd.getDeclarator().getRawSignature(),
-                                         fileScope));
-        globalDecls.add(Pair.of((ADeclaration)functionDefinition,
-                                         fd.getDeclSpecifier().getRawSignature() + " " + fd.getDeclarator().getRawSignature()));
+        globalDeclarations.add(
+            Triple.of(
+                functionDefinition,
+                fd.getDeclSpecifier().getRawSignature()
+                    + " "
+                    + fd.getDeclarator().getRawSignature(),
+                fileScope));
+        globalDecls.add(
+            Pair.of(
+                functionDefinition,
+                fd.getDeclSpecifier().getRawSignature()
+                    + " "
+                    + fd.getDeclarator().getRawSignature()));
         eliminateableDuplicates.add(functionDefinition.toASTString());
       }
 
@@ -288,8 +297,8 @@ class CFABuilder extends ASTVisitor {
       }
 
       if (used && !eliminateableDuplicates.contains(newD.toASTString())) {
-        globalDeclarations.add(Triple.of((ADeclaration)newD, rawSignature, fileScope));
-        globalDecls.add(Pair.of((ADeclaration)newD, rawSignature));
+        globalDeclarations.add(Triple.of(newD, rawSignature, fileScope));
+        globalDecls.add(Pair.of(newD, rawSignature));
         eliminateableDuplicates.add(newD.toASTString());
       }
     }

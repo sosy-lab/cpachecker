@@ -428,21 +428,20 @@ public abstract class ConditionFolder {
             oldARGToFoldedState.put(child, foldedNode);
             newARGToFoldedStates.get(foldedNode).add(child);
             waitlist.push(Pair.of(child, foldIDChild));
+          }
 
-          } else {
-            newState = oldARGToFoldedState.get(oldState);
-            newChild = null;
-            for (ARGState newARGChild : newState.getChildren()) {
-              if (edge.equals(newState.getEdgeToChild(newARGChild))) {
-                newChild = newARGChild;
-                // there should be only one such child, thus break
-                break;
-              }
+          newState = oldARGToFoldedState.get(oldState);
+          newChild = null;
+          for (ARGState newARGChild : newState.getChildren()) {
+            if (edge.equals(newState.getEdgeToChild(newARGChild))) {
+              newChild = newARGChild;
+              // there should be only one such child, thus break
+              break;
             }
+          }
 
-            if (newChild != null && newChild != oldARGToFoldedState.get(child)) {
-              merge(newChild, oldARGToFoldedState.get(child), update);
-            }
+          if (newChild != null && newChild != oldARGToFoldedState.get(child)) {
+            merge(newChild, oldARGToFoldedState.get(child), update);
           }
 
           newChild = oldARGToFoldedState.get(child);

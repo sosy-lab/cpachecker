@@ -48,12 +48,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions.SMGExportLevel;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
  * This class contains smg utilities, for example filters.
@@ -62,17 +64,20 @@ public final class SMGUtils {
 
   private SMGUtils() {}
 
-  public static Set<SMGEdgeHasValue> getFieldsOfObject(SMGObject pSmgObject, SMG pInputSMG) {
+  public static Set<SMGEdgeHasValue> getFieldsOfObject(
+      SMGObject pSmgObject, UnmodifiableSMG pInputSMG) {
     SMGEdgeHasValueFilter edgeFilter = SMGEdgeHasValueFilter.objectFilter(pSmgObject);
     return pInputSMG.getHVEdges(edgeFilter);
   }
 
-  public static Set<SMGEdgePointsTo> getPointerToThisObject(SMGObject pSmgObject, SMG pInputSMG) {
+  public static Set<SMGEdgePointsTo> getPointerToThisObject(
+      SMGObject pSmgObject, UnmodifiableSMG pInputSMG) {
     SMGEdgePointsToFilter objectFilter = SMGEdgePointsToFilter.targetObjectFilter(pSmgObject);
     return pInputSMG.getPtEdges(objectFilter);
   }
 
-  public static Set<SMGEdgeHasValue> getFieldsofThisValue(int value, SMG pInputSMG) {
+  public static Set<SMGEdgeHasValue> getFieldsofThisValue(
+      SMGValue value, UnmodifiableSMG pInputSMG) {
     SMGEdgeHasValueFilter valueFilter = SMGEdgeHasValueFilter.valueFilter(value);
     return pInputSMG.getHVEdges(valueFilter);
   }
@@ -90,7 +95,7 @@ public final class SMGUtils {
     return pType.getCanonicalType().equals(typeAtOffset.getCanonicalType());
   }
 
-  private static class CFieldTypeVisitor implements CTypeVisitor<CType, RuntimeException> {
+  private static class CFieldTypeVisitor implements CTypeVisitor<CType, NoException> {
 
     private final long fieldOffset;
     private final MachineModel model;
@@ -176,38 +181,43 @@ public final class SMGUtils {
     }
 
     @Override
-    public CType visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+    public CType visit(CBitFieldType pCBitFieldType) {
       return pCBitFieldType.getType().accept(this);
     }
   }
 
-  public static void plotWhenConfigured(String pSMGName, SMGState pState, String pLocation,
-      LogManager pLogger, SMGExportLevel pLevel, SMGExportDotOption pExportOption) {
+  public static void plotWhenConfigured(
+      String pSMGName,
+      UnmodifiableSMGState pState,
+      String pLocation,
+      LogManager pLogger,
+      SMGExportLevel pLevel,
+      SMGExportDotOption pExportOption) {
 
     if (pExportOption.exportSMG(pLevel)) {
       dumpSMGPlot(pLogger, pSMGName, pState, pLocation, pExportOption);
     }
   }
 
-  private static void dumpSMGPlot(LogManager pLogger, String pSMGName, SMGState pCurrentState,
-      String pLocation, SMGExportDotOption pExportOption) {
+  private static void dumpSMGPlot(
+      LogManager pLogger,
+      String pSMGName,
+      UnmodifiableSMGState pCurrentState,
+      String pLocation,
+      SMGExportDotOption pExportOption) {
     if (pCurrentState != null && pExportOption.hasExportPath()) {
       Path outputFile = pExportOption.getOutputFilePath(pSMGName);
       dumpSMGPlot(pLogger, pCurrentState, pLocation, outputFile);
     }
   }
 
-  public static void dumpSMGPlot(LogManager pLogger, SMGState currentState,
-      String location, Path pOutputFile) {
+  public static void dumpSMGPlot(
+      LogManager pLogger, UnmodifiableSMGState currentState, String location, Path pOutputFile) {
     try {
-      String dot = getDot(currentState, location);
+      String dot = currentState.toDot("SMG" + currentState.getId(), location);
       IO.writeFile(pOutputFile, Charset.defaultCharset(), dot);
     } catch (IOException e) {
       pLogger.logUserException(Level.WARNING, e, "Could not write SMG " + currentState.getId() + " to file");
     }
-  }
-
-  private static String getDot(SMGState pCurrentState, String pLocation) {
-    return pCurrentState.toDot("SMG" + pCurrentState.getId(), pLocation);
   }
 }

@@ -24,7 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.invariants;
 
 import com.google.common.base.Preconditions;
-
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.NavigableSet;
+import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
@@ -35,12 +39,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaEvaluationVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
 
 
 public class NonRecursiveEnvironment implements Map<MemoryLocation, NumeralFormula<CompoundInterval>> {
@@ -210,7 +208,7 @@ public class NonRecursiveEnvironment implements Map<MemoryLocation, NumeralFormu
   }
 
   @Override
-  public SortedSet<MemoryLocation> keySet() {
+  public NavigableSet<MemoryLocation> keySet() {
     return this.inner.keySet();
   }
 
@@ -220,7 +218,7 @@ public class NonRecursiveEnvironment implements Map<MemoryLocation, NumeralFormu
   }
 
   @Override
-  public SortedSet<java.util.Map.Entry<MemoryLocation, NumeralFormula<CompoundInterval>>> entrySet() {
+  public NavigableSet<Map.Entry<MemoryLocation, NumeralFormula<CompoundInterval>>> entrySet() {
     return this.inner.entrySet();
   }
 

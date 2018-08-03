@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,26 +34,28 @@ import org.junit.Test;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 
 public class SMGTest {
   private LogManager logger = LogManager.createTestLogManager();
 
   private SMG smg;
-  CType mockType = AnonymousTypes.createTypeWithLength(32);
+  CType mockType = TypeUtils.createTypeWithLength(32);
 
   SMGObject obj1 = new SMGRegion(64, "object-1");
   SMGObject obj2 = new SMGRegion(64, "object-2");
 
-  Integer val1 = Integer.valueOf(1);
-  Integer val2 = Integer.valueOf(2);
+  SMGValue val1 = SMGKnownExpValue.valueOf(1);
+  SMGValue val2 = SMGKnownExpValue.valueOf(2);
 
   SMGEdgePointsTo pt1to1 = new SMGEdgePointsTo(val1, obj1, 0);
   SMGEdgeHasValue hv2has2at0 = new SMGEdgeHasValue(mockType, 0, obj2, val2);
@@ -90,7 +92,7 @@ public class SMGTest {
   public void getNullBytesForObjectTest() {
     SMG smg1 = getNewSMG64();
     smg1.addObject(obj1);
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 32, obj1, SMG.NULL_ADDRESS);
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 32, obj1, SMGZeroValue.INSTANCE);
     smg1.addHasValueEdge(hv);
 
     TreeMap<Long, Integer> nullEdges = smg1.getNullEdgesMapOffsetToSizeForObject(obj1);
@@ -98,33 +100,19 @@ public class SMGTest {
   }
 
   @Test
-  public void replaceHVSetTest() {
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 16, obj1, val1.intValue());
-    Set<SMGEdgeHasValue> hvSet = new HashSet<>();
-    hvSet.add(hv);
-
-    smg.replaceHVSet(hvSet);
-
-    Set<SMGEdgeHasValue> newHVSet = smg.getHVEdges();
-
-    assertThat(newHVSet).isEqualTo(hvSet);
-  }
-
-  @Test
   public void SMGConstructorTest() {
     SMG smg1 = getNewSMG64();
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
     SMGObject nullObject = SMGNullObject.INSTANCE;
-    int nullAddress = SMG.NULL_ADDRESS;
-
+    SMGValue nullAddress = SMGZeroValue.INSTANCE;
 
     Assert.assertNotNull(nullObject);
-    Assert.assertTrue(nullObject == SMGNullObject.INSTANCE);
+    Assert.assertSame(nullObject, SMGNullObject.INSTANCE);
     assertThat(smg1.getObjects()).hasSize(1);
     assertThat(smg1.getObjects()).contains(nullObject);
 
     assertThat(smg1.getValues()).hasSize(1);
-    assertThat(smg1.getValues()).contains(Integer.valueOf(nullAddress));
+    assertThat(smg1.getValues()).contains(nullAddress);
 
     assertThat(smg1.getPTEdges().size()).isEqualTo(1);
     SMGObject target_object = smg1.getObjectPointedBy(nullAddress);
@@ -138,7 +126,7 @@ public class SMGTest {
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg_copy));
 
     SMGObject third_object = new SMGRegion(128, "object-3");
-    Integer third_value = Integer.valueOf(3);
+    SMGValue third_value = SMGKnownExpValue.valueOf(3);
     smg_copy.addObject(third_object);
     smg_copy.addValue(third_value);
     smg_copy.addHasValueEdge(new SMGEdgeHasValue(mockType, 0, third_object,  third_value));
@@ -168,7 +156,7 @@ public class SMGTest {
     SMG smg1 = getNewSMG64();
     SMGObject object = new SMGRegion(32, "object");
 
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 0, object, SMG.NULL_ADDRESS);
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 0, object, SMGZeroValue.INSTANCE);
 
     smg1.addHasValueEdge(hv);
     assertThat(smg1.getHVEdges()).contains(hv);
@@ -180,11 +168,11 @@ public class SMGTest {
   @Test
   public void removeObjectTest() {
     SMG smg1 = getNewSMG64();
-    Integer newValue = SMGValueFactory.getNewValue();
+    SMGValue newValue = SMGKnownSymValue.of();
 
     SMGObject object = new SMGRegion(64, "object");
-    SMGEdgeHasValue hv0 = new SMGEdgeHasValue(mockType, 0, object, 0);
-    SMGEdgeHasValue hv4 = new SMGEdgeHasValue(mockType, 32, object, 0);
+    SMGEdgeHasValue hv0 = new SMGEdgeHasValue(mockType, 0, object, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue hv4 = new SMGEdgeHasValue(mockType, 32, object, SMGZeroValue.INSTANCE);
     SMGEdgePointsTo pt = new SMGEdgePointsTo(newValue, object, 0);
 
     smg1.addValue(newValue);
@@ -204,11 +192,11 @@ public class SMGTest {
   @Test
   public void removeObjectAndEdgesTest() {
     SMG smg1 = getNewSMG64();
-    Integer newValue = SMGValueFactory.getNewValue();
+    SMGValue newValue = SMGKnownSymValue.of();
 
     SMGObject object = new SMGRegion(64, "object");
-    SMGEdgeHasValue hv0 = new SMGEdgeHasValue(mockType, 0, object, 0);
-    SMGEdgeHasValue hv4 = new SMGEdgeHasValue(mockType, 32, object, 0);
+    SMGEdgeHasValue hv0 = new SMGEdgeHasValue(mockType, 0, object, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue hv4 = new SMGEdgeHasValue(mockType, 32, object, SMGZeroValue.INSTANCE);
     SMGEdgePointsTo pt = new SMGEdgePointsTo(newValue, object, 0);
 
     smg1.addValue(newValue);
@@ -231,7 +219,7 @@ public class SMGTest {
     Assert.assertTrue(smg.isObjectValid(obj1));
     Assert.assertTrue(smg.isObjectValid(obj2));
 
-    SMG smg_copy = new SMG(smg);
+    UnmodifiableSMG smg_copy = smg.copyOf();
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg_copy));
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
 
@@ -274,7 +262,7 @@ public class SMGTest {
 
     SMGObject object_2b = new SMGRegion(16, "object_2b");
     SMGObject object_4b = new SMGRegion(32, "object_4b");
-    Integer random_value = Integer.valueOf(6);
+    SMGValue random_value = SMGKnownExpValue.valueOf(6);
 
     smg1.addObject(object_2b);
     smg2.addObject(object_4b);
@@ -301,8 +289,8 @@ public class SMGTest {
     SMGObject object_8b = new SMGRegion(64, "object_8b");
     SMGObject object_16b = new SMGRegion(80, "object_10b");
 
-    Integer first_value = Integer.valueOf(6);
-    Integer second_value = Integer.valueOf(8);
+    SMGValue first_value = SMGKnownExpValue.valueOf(6);
+    SMGValue second_value = SMGKnownExpValue.valueOf(8);
 
     // 1, 3, 4 are consistent (different offsets or object)
     // 2 is inconsistent with 1 (same object and offset, different value)
@@ -313,16 +301,13 @@ public class SMGTest {
 
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
 
-    smg1.addHasValueEdge(hv_edge1);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
-    smg1.addObject(object_8b);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
     smg1.addValue(first_value);
+    smg1.addObject(object_8b);
+    smg1.addHasValueEdge(hv_edge1);
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
 
-    smg1.addHasValueEdge(hv_edge3);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
     smg1.addValue(second_value);
+    smg1.addHasValueEdge(hv_edge3);
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
 
     smg1.addHasValueEdge(hv_edge4);
@@ -341,9 +326,9 @@ public class SMGTest {
     SMGObject object_8b = new SMGRegion(64, "object_8b");
     SMGObject object_16b = new SMGRegion(80, "object_10b");
 
-    Integer first_value = Integer.valueOf(6);
-    Integer second_value = Integer.valueOf(8);
-    Integer third_value = Integer.valueOf(10);
+    SMGValue first_value = SMGKnownExpValue.valueOf(6);
+    SMGValue second_value = SMGKnownExpValue.valueOf(8);
+    SMGValue third_value = SMGKnownExpValue.valueOf(10);
 
     SMGEdgePointsTo edge1 = new SMGEdgePointsTo(first_value, object_8b, 0);
     SMGEdgePointsTo edge2 = new SMGEdgePointsTo(third_value, object_8b, 32);
@@ -352,28 +337,20 @@ public class SMGTest {
 
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
 
-    smg1.addPointsToEdge(edge1);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
-
     smg1.addValue(first_value);
+    smg1.addPointsToEdge(edge1);
     Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
 
     smg1.addObject(object_8b);
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
 
-    smg1.addPointsToEdge(edge2);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
-
     smg1.addValue(third_value);
+    smg1.addPointsToEdge(edge2);
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
 
-    smg1.addPointsToEdge(edge3);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
-
-    smg1.addObject(object_16b);
-    Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
-
     smg1.addValue(second_value);
+    smg1.addObject(object_16b);
+    smg1.addPointsToEdge(edge3);
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg1));
 
     smg1.addPointsToEdge(edge4);
@@ -409,10 +386,10 @@ public class SMGTest {
 
   @Test
   public void getValuesTest() {
-    Set<Integer> set = new HashSet<>();
+    Set<SMGValue> set = new HashSet<>();
     set.add(val1);
     set.add(val2);
-    set.add(SMG.NULL_ADDRESS);
+    set.add(SMGZeroValue.INSTANCE);
 
     assertThat(smg.getValues()).containsAllIn(set);
   }
@@ -443,9 +420,9 @@ public class SMGTest {
   @Test
   public void neqBasicTest() {
     NeqRelation nr = new NeqRelation();
-    Integer one = Integer.valueOf(1);
-    Integer two = Integer.valueOf(2);
-    Integer three = Integer.valueOf(3);
+    SMGValue one = SMGKnownExpValue.valueOf(1);
+    SMGValue two = SMGKnownExpValue.valueOf(2);
+    SMGValue three = SMGKnownExpValue.valueOf(3);
 
     Assert.assertFalse(nr.neq_exists(one, two));
     Assert.assertFalse(nr.neq_exists(one, three));
@@ -494,9 +471,9 @@ public class SMGTest {
   @Test
   public void neqRemoveValueTest() {
     NeqRelation nr = new NeqRelation();
-    Integer one = Integer.valueOf(1);
-    Integer two = Integer.valueOf(2);
-    Integer three = Integer.valueOf(3);
+    SMGValue one = SMGKnownExpValue.valueOf(1);
+    SMGValue two = SMGKnownExpValue.valueOf(2);
+    SMGValue three = SMGKnownExpValue.valueOf(3);
 
     nr = nr.addRelationAndCopy(one, two);
     nr = nr.addRelationAndCopy(one, three);
@@ -509,12 +486,12 @@ public class SMGTest {
   @Test
   public void neqMergeValuesTest() {
     NeqRelation nr = new NeqRelation();
-    Integer one = Integer.valueOf(1);
-    Integer two = Integer.valueOf(2);
-    Integer three = Integer.valueOf(3);
+    SMGValue one = SMGKnownExpValue.valueOf(1);
+    SMGValue two = SMGKnownExpValue.valueOf(2);
+    SMGValue three = SMGKnownExpValue.valueOf(3);
 
     nr = nr.addRelationAndCopy(one, three);
-    nr = nr.mergeValuesAndCopy(two, three);
+    nr = nr.replaceValueAndCopy(two, three);
 
     Assert.assertTrue(nr.neq_exists(one, two));
     Assert.assertFalse(nr.neq_exists(one, three));
@@ -524,14 +501,14 @@ public class SMGTest {
   @Test
   public void neqMergeValuesTest2() {
     NeqRelation nr = new NeqRelation();
-    Integer zero = Integer.valueOf(0);
-    Integer one = Integer.valueOf(1);
-    Integer two = Integer.valueOf(2);
-    Integer three = Integer.valueOf(3);
+    SMGValue zero = SMGZeroValue.INSTANCE;
+    SMGValue one = SMGKnownExpValue.valueOf(1);
+    SMGValue two = SMGKnownExpValue.valueOf(2);
+    SMGValue three = SMGKnownExpValue.valueOf(3);
 
     nr = nr.addRelationAndCopy(zero, three);
     nr = nr.addRelationAndCopy(one, three);
-    nr = nr.mergeValuesAndCopy(two, three);
+    nr = nr.replaceValueAndCopy(two, three);
 
     Assert.assertTrue(nr.neq_exists(zero, two));
     Assert.assertTrue(nr.neq_exists(one, two));

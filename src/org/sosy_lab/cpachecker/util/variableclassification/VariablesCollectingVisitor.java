@@ -46,13 +46,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
  * This Visitor evaluates an Expression. It collects all variables. a visit of IdExpression or
  * CFieldReference returns a collection containing the varName, other visits return the inner
  * visit-results. The Visitor also collects all numbers used in the expression.
  */
-class VariablesCollectingVisitor implements CExpressionVisitor<Set<String>, RuntimeException> {
+class VariablesCollectingVisitor implements CExpressionVisitor<Set<String>, NoException> {
 
   private CFANode predecessor;
   private Set<BigInteger> values = new TreeSet<>();

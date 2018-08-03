@@ -62,6 +62,13 @@ solver.mathsat5.furtherOptions = ""
 # Load less stable optimizing version of mathsat5 solver.
 solver.mathsat5.loadOptimathsat5 = false
 
+# Use non-linear arithmetic of the solver if supported and throw exception
+# otherwise, approximate non-linear arithmetic with UFs if unsupported, or
+# always approximate non-linear arithmetic. This affects only the theories of
+# integer and rational arithmetic.
+solver.nonLinearArithmetic = USE
+  enum:     [USE, APPROXIMATE_FALLBACK, APPROXIMATE_ALWAYS]
+
 # log all queries as Princess-specific Scala code
 solver.princess.logAllQueriesAsScala = false
 
@@ -180,6 +187,10 @@ analysis.algorithm.undefinedFunctionCollector = false
 
 # run the parallel BAM algortihm.
 analysis.algorithm.useParallelBAM = false
+
+# If not already done by the analysis, store a found counterexample in the
+# ARG for later re-use. Does nothing if no ARGCPA is used
+analysis.alwaysStoreCounterexamples = false
 
 # Construct a residual program from condition and verify residual program
 analysis.asConditionalVerifier = false
@@ -353,6 +364,9 @@ analysis.traversal.useLoopIterationCount = false
 # handle states with a deeper loopstack first.
 analysis.traversal.useLoopstack = false
 
+# handle abstract states with fewer heap objects first? (needs SMGCPA)
+analysis.traversal.useNumberOfHeapObjects = false
+
 # handle abstract states with fewer running threads first? (needs
 # ThreadingCPA)
 analysis.traversal.useNumberOfThreads = false
@@ -424,6 +438,11 @@ assumptions.compressAutomaton = false
 
 # write collected assumptions to file
 assumptions.export = true
+
+# export assumptions collected per location
+assumptions.export.location = true
+
+# write collected assumptions to file
 assumptions.file = "assumptions.txt"
 
 # If it is enabled, check if a state that should lead to false state indeed
@@ -667,28 +686,6 @@ cfa.threads.threadSelfCreate = "pthread_create_N"
 
 # A name of thread_join_N function
 cfa.threads.threadSelfJoin = "pthread_join_N"
-
-# This option causes the control flow automaton to be transformed into the
-# automaton of an equivalent program with one single loop and an artificial
-# program counter.
-cfa.transformIntoSingleLoop = false
-
-# Single loop transformation builds a decision tree based on the program
-# counter values. This option causes the last program counter value not to be
-# explicitly assumed in the decision tree, so that it is only indirectly
-# represented by the assumption of falsehood for all other assumptions in the
-# decision tree.
-cfa.transformIntoSingleLoop.omitExplicitLastProgramCounterAssumption = false
-
-# This option controls the size of the subgraphs referred to by program
-# counter values. The larger the subgraphs, the fewer program counter values
-# are required. Possible values are  MULTIPLE_PATHS, SINGLE_PATH and
-# SINGLE_EDGE, where MULTIPLE_PATHS has the largest subgraphs (and fewest
-# program counter values) and SINGLE_EDGE has the smallest subgraphs (and
-# most program counter values). The larger the subgraphs, the closer the
-# resulting graph will look like the original CFA.
-cfa.transformIntoSingleLoop.subgraphGrowthStrategy = MULTIPLE_PATHS
-  enum:     [MULTIPLE_PATHS, SINGLE_PATH, SINGLE_EDGE]
 
 # clone functions of the CFA, such that there are several identical CFAs for
 # each function, only with different names.
@@ -937,16 +934,23 @@ cpa.arg.automaton.branchRatio = 0.5
 # translate final ARG into an automaton
 cpa.arg.automaton.export = false
 
+# export as zip-files, depends on 'automaton.export=true'
+cpa.arg.automaton.exportCompressed = true
+
 # translate final ARG into an automaton, depends on 'automaton.export=true'
 cpa.arg.automaton.exportDotFile = "ARG_parts/ARG.%03d.spc.dot"
 cpa.arg.automaton.exportSpcFile = "ARG_parts/ARG.%03d.spc"
 
 # after determining branches, which one of them should be exported?
 cpa.arg.automaton.selectionStrategy = LEAFS
-  enum:     [NONE, ALL, LEAFS, WEIGHTED]
+  enum:     [NONE, ALL, LEAFS, WEIGHTED, FIRST_BFS]
 
-# minimum ratio of siblings suchthat one of them will be exported
+# minimum ratio of siblings such that one of them will be exported
 cpa.arg.automaton.siblingRatio = 0.4
+
+# when using FIRST_BFS, how many nodes should be skipped? ZERO will only
+# export the root itself, MAX_INT will export only LEAFS.
+cpa.arg.automaton.skipFirstNum = 10
 
 # which coarse strategy should be applied when analyzing the ARG?
 cpa.arg.automaton.strategy = GLOBAL_CONDITIONS
@@ -1497,6 +1501,10 @@ cpa.lock.lockinfo = Sets.newHashSet()
 # reduce unused locks
 cpa.lock.reduceUselessLocks = false
 
+# Consider or not special cases with empty lock sets
+cpa.lock.stopMode = DEFAULT
+  enum:     [DEFAULT, EMPTYLOCKSET]
+
 # Number of loop iterations before the loop counter is abstracted. Zero is
 # equivalent to no limit.
 cpa.loopbound.loopIterationsBeforeAbstraction = 0
@@ -1519,10 +1527,6 @@ cpa.loopbound.maxLoopIterationsUpperBound = 0
 
 # enable stack-based tracking of loops
 cpa.loopbound.trackStack = false
-
-# this option determines which merge operator to use
-cpa.loopinvariants.mergeType = "SEP"
-  allowed values: [SEP, MERGE]
 
 # Where to perform abstraction
 cpa.lpi.abstractionLocations = LOOPHEAD
@@ -2075,10 +2079,14 @@ cpa.predicate.refinement.maxPrefixLength = 1024
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
 
+# Activate fallback to interpolation. Typically in case of a repeated
+# counterexample.
+cpa.predicate.refinement.newtonrefinement.fallbackToInterpolation = false
+
 # sets the level of the pathformulas to use for abstraction. 
 #   EDGE : Based on Pathformulas of every edge in ARGPath
 #   BLOCK: Based on Pathformulas at Abstractionstates
-cpa.predicate.refinement.newtonrefinement.pathFormulAbstractionLevel = EDGE
+cpa.predicate.refinement.newtonrefinement.pathFormulaAbstractionLevel = BLOCK
   enum:     [BLOCK, EDGE]
 
 # use live variables in order to abstract the predicates produced while
@@ -2277,10 +2285,6 @@ cpa.predicate.useParameterVariablesForGlobals = false
 # Use quantifiers when encoding heap accesses. This requires an SMT solver
 # that is capable of quantifiers (e.g. Z3 or PRINCESS).
 cpa.predicate.useQuantifiersOnArrays = false
-
-# Enable fallback to UFs if a solver does not support non-linear arithmetics.
-# This option only effects MULT, MOD and DIV.
-cpa.predicate.useUFsForNonLinearArithmetic = true
 
 # Do not follow states which can not syntactically lead to a target location
 cpa.property_reachability.noFollowBackwardsUnreachable = true
@@ -2827,7 +2831,7 @@ cpa.value.symbolic.refinement.avoidConstraints = true
 
 # The refinement strategy to use
 cpa.value.symbolic.refinement.strategy = CONSTRAINTS_FIRST
-  enum:     [CONSTRAINTS_FIRST, VALUES_FIRST, VALUES_ONLY]
+  enum:     [CONSTRAINTS_FIRST, VALUES_FIRST, ALTERNATING, VALUES_ONLY]
 
 # Whether to simplify symbolic expressions, if possible.
 cpa.value.symbolic.simplifySymbolics = true
@@ -2890,6 +2894,9 @@ dependenceGraph.exportDot = "DependenceGraph.dot"
 # Run flow dependence analysis with constant propagation
 dependencegraph.flowdep.constantPropagation = false
 
+# Program to check against
+differential.program = no default value
+
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
 enabledanalysis.allowLazyRefinement = false
@@ -2947,7 +2954,8 @@ interleavedAlgorithm.initCondition = false
 
 # print the statistics of each component of the interleaved algorithm
 # directly after the component's computation is finished
-interleavedAlgorithm.printIntermediateStatistics = false
+interleavedAlgorithm.intermediateStatistics = NONE
+  enum:     [EXECUTE, NONE, PRINT]
 
 # let each analysis part of the interleaved algorithm write output files and
 # not only the last one that is executed
@@ -3060,9 +3068,6 @@ overflow.trackLeftShifts = true
 
 # Track overflows in multiplication operations.
 overflow.trackMultiplications = true
-
-# Track overflow for signed integers.
-overflow.trackSignedIntegers = true
 
 # Only check live variables for overflow, as compiler can remove dead
 # variables.
@@ -3359,6 +3364,9 @@ precision.trackIntAddVariables = true
 # If this option is used, variables that are only compared for equality are
 # tracked.
 precision.trackIntEqualVariables = true
+
+# If this option is used, variables that are irrelevantare also tracked.
+precision.trackIrrelevantVariables = true
 
 # If this option is used, all variables that are of a different
 # classification than IntAdd, IntEq and Boolean get tracked by the precision.

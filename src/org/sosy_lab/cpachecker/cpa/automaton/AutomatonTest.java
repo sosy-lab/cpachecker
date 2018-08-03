@@ -237,6 +237,36 @@ public class AutomatonTest {
   }
 
   @Test
+  public void set_variable_correct() throws Exception {
+    Map<String, String> prop =
+        ImmutableMap.of(
+            "CompositeCPA.cpas",
+            "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.value.ValueAnalysisCPA, cpa.predicate.PredicateCPA, cpa.automaton.ObserverAutomatonCPA",
+            "cpa.automaton.inputFile",
+            "test/config/automata/set_variable.spc",
+            "cpa.automaton.dotExportFile",
+            OUTPUT_FILE);
+
+    TestResults results = CPATestRunner.run(prop, "test/programs/simple/set_correct.c");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void set_variable_incorrect() throws Exception {
+    Map<String, String> prop =
+        ImmutableMap.of(
+            "CompositeCPA.cpas",
+            "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.value.ValueAnalysisCPA, cpa.predicate.PredicateCPA, cpa.automaton.ObserverAutomatonCPA",
+            "cpa.automaton.inputFile",
+            "test/config/automata/set_variable.spc",
+            "cpa.automaton.dotExportFile",
+            OUTPUT_FILE);
+
+    TestResults results = CPATestRunner.run(prop, "test/programs/simple/set_incorrect.c");
+    results.assertIsUnsafe();
+  }
+
+  @Test
   public void valueAnalysis_observing() throws Exception {
     Map<String, String> prop =
         ImmutableMap.of(

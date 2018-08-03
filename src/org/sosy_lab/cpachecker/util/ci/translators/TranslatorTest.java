@@ -36,7 +36,7 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
@@ -55,7 +55,7 @@ public class TranslatorTest {
 
   private final MachineModel machineModel = MachineModel.LINUX32;
   private String[] varNames = {"var1", "var2", "var3", "fun::var1", "fun::varB", "fun::varC"};
-  private CSimpleType integervariable = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
+  private CSimpleType integervariable = CNumericTypes.INT;
   private SSAMap ssaTest;
 
   @Before
@@ -99,7 +99,9 @@ public class TranslatorTest {
     List<String> listOfIndependentRequirements = vReqTransTest.getListOfIndependentRequirements(vStateTest, ssaTest, null);
     Truth.assertThat(listOfIndependentRequirements).containsExactly("(= var1@1 3)", "(= |fun::varC| -5)");
 
-    listOfIndependentRequirements = vReqTransTest.getListOfIndependentRequirements(vStateTest, ssaTest, Collections.<String>emptyList());
+    listOfIndependentRequirements =
+        vReqTransTest.getListOfIndependentRequirements(
+            vStateTest, ssaTest, Collections.emptyList());
     Truth.assertThat(listOfIndependentRequirements).isEmpty();
 
     Collection<String> requiredVars = new ArrayList<>();
@@ -127,7 +129,9 @@ public class TranslatorTest {
     Truth.assertThat(varsInReq).containsExactlyElementsIn(Arrays.asList(varNames));
 
     // Test method getListOfIndependentRequirements()
-    List<String> listOfIndepententReq = sReqTransTest.getListOfIndependentRequirements(sStateTest, ssaTest, Collections.<String>emptyList());
+    List<String> listOfIndepententReq =
+        sReqTransTest.getListOfIndependentRequirements(
+            sStateTest, ssaTest, Collections.emptyList());
     Truth.assertThat(listOfIndepententReq).isEmpty();
 
     listOfIndepententReq = sReqTransTest.getListOfIndependentRequirements(sStateTest, ssaTest, null);
@@ -184,7 +188,9 @@ public class TranslatorTest {
     content.add("(and (>= |fun::varC| -15) (<= |fun::varC| -3))");
     Truth.assertThat(listOfIndependentRequirements).containsExactlyElementsIn(content);
 
-    listOfIndependentRequirements = iReqTransTest.getListOfIndependentRequirements(iStateTest, ssaTest, Collections.<String>emptyList());
+    listOfIndependentRequirements =
+        iReqTransTest.getListOfIndependentRequirements(
+            iStateTest, ssaTest, Collections.emptyList());
     Truth.assertThat(listOfIndependentRequirements).isEmpty();
 
     Collection<String> requiredVars = new ArrayList<>();
@@ -201,7 +207,7 @@ public class TranslatorTest {
     // Test method writeVarDefinition()
     List<String> varDefinition =
         CartesianRequirementsTranslator.writeVarDefinition(
-            Arrays.asList(varNames), ssaTest, Collections.<String>emptyList());
+            Arrays.asList(varNames), ssaTest, Collections.emptyList());
     Truth.assertThat(varDefinition).isEmpty();
 
     varDefinition =
@@ -225,7 +231,8 @@ public class TranslatorTest {
     Truth.assertThat(varDefinition).containsExactlyElementsIn(content2);
 
     // Test method convertToFormula()
-    Pair<List<String>, String> convertedToFormula = iReqTransTest.convertToFormula(iStateTest, ssaTest, Collections.<String>emptyList());
+    Pair<List<String>, String> convertedToFormula =
+        iReqTransTest.convertToFormula(iStateTest, ssaTest, Collections.emptyList());
     Truth.assertThat(convertedToFormula.getFirst()).isEmpty();
     String s = "(define-fun req () Bool true)";
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);

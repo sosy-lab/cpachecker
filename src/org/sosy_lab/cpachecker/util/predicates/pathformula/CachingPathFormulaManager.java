@@ -37,8 +37,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -204,8 +204,8 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public Formula expressionToFormula(PathFormula pFormula, CIdExpression expr,
-      CFAEdge edge) throws UnrecognizedCCodeException {
+  public Formula expressionToFormula(PathFormula pFormula, CIdExpression expr, CFAEdge edge)
+      throws UnrecognizedCodeException {
     return delegate.expressionToFormula(pFormula, expr, edge);
   }
 
@@ -248,7 +248,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   @Override
   public BooleanFormula buildWeakestPrecondition(
       final CFAEdge pEdge, final BooleanFormula pPostcondition)
-      throws UnrecognizedCCodeException, UnrecognizedCFAEdgeException, InterruptedException {
+      throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
     return delegate.buildWeakestPrecondition(pEdge, pPostcondition);
   }
 }

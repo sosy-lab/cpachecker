@@ -87,7 +87,6 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
-import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
@@ -102,7 +101,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -227,12 +226,6 @@ public class CFACreator {
       description="When a function pointer array element is written with a variable as index, "
           + "create a series of if-else edges with explicit indizes instead.")
   private boolean expandFunctionPointerArrayAssignments = false;
-
-  @Option(secure=true, name="cfa.transformIntoSingleLoop",
-      description="This option causes the control flow automaton to be "
-        + "transformed into the automaton of an equivalent program with one "
-        + "single loop and an artificial program counter.")
-  private boolean transformIntoSingleLoop = false;
 
   @Option(secure=true, name="cfa.simplifyCfa",
         description="Remove all edges which don't have any effect on the program")
@@ -384,11 +377,10 @@ private boolean classifyNodes = false;
    * @param program  The program represented as String to parse.
    * @return A representation of the CFA.
    * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found.
-   * @throws IOException If an I/O error occurs.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
    */
   public CFA parseSourceAndCreateCFA(String program)
-      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+      throws InvalidConfigurationException, ParserException, InterruptedException {
 
     stats.totalTime.start();
     try {
@@ -507,11 +499,7 @@ private boolean classifyNodes = false;
     // Mutating post-processings should be checked carefully for their effect
     // on the information collected above (such as loops and post-order ids).
 
-    // optionally transform CFA so that there is only one single loop
-    if (transformIntoSingleLoop) {
-      cfa = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config, shutdownNotifier).apply(cfa);
-      mainFunction = cfa.getMainFunction();
-    }
+    // (currently no such post-processings exist)
 
     // SIXTH, get information about the CFA,
     // the cfa should not be modified after this line.
@@ -523,7 +511,7 @@ private boolean classifyNodes = false;
         VariableClassificationBuilder builder = new VariableClassificationBuilder(config, logger);
         varClassification = Optional.of(builder.build(cfa));
         builder.collectStatistics(stats.statisticsCollection);
-      } catch (UnrecognizedCCodeException e) {
+      } catch (UnrecognizedCodeException e) {
         throw new CParserException(e);
       }
     } else {
@@ -954,7 +942,7 @@ v.addInitializer(initializer);
                                          initializer);
 
             previouslyInitializedVariables.add(name);
-            iterator.set(Pair.<ADeclaration, String>of(v, p.getSecond())); // replace declaration
+            iterator.set(Pair.of(v, p.getSecond())); // replace declaration
           }
         }
       }

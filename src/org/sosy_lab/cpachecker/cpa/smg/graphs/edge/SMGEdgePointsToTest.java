@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,25 +27,26 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGEdgePointsToTest {
 
   @Test
   public void testSMGEdgePointsTo() {
-    Integer val = Integer.valueOf(6);
+    SMGValue val = SMGKnownExpValue.valueOf(6);
     SMGObject obj = new SMGRegion(64, "object");
     SMGEdgePointsTo edge = new SMGEdgePointsTo(val, obj, 0);
 
-    Assert.assertEquals(val.intValue(), edge.getValue());
+    Assert.assertEquals(val, edge.getValue());
     Assert.assertEquals(obj, edge.getObject());
     Assert.assertEquals(0, edge.getOffset());
   }
 
   @Test
   public void testIsConsistentWith() {
-    Integer val1 = Integer.valueOf(1);
-    Integer val2 = Integer.valueOf(2);
+    SMGValue val1 = SMGKnownExpValue.valueOf(1);
+    SMGValue val2 = SMGKnownExpValue.valueOf(2);
     SMGObject obj = new SMGRegion(64, "object");
     SMGObject obj2 = new SMGRegion(64, "object2");
 

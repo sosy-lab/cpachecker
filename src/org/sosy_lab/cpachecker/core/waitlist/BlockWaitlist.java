@@ -129,8 +129,7 @@ public class BlockWaitlist implements Waitlist {
         //decResources(res);
         return res;
       } else {
-        assert false : "invalid pop: current block is empty";
-        return null;
+        throw new AssertionError("invalid pop: current block is empty");
       }
     }
 

@@ -137,8 +137,8 @@ public class CPABuilder {
 
     // parse option (may be of syntax "classname alias"
     List<String> optionParts = Splitter.onPattern("\\s+").splitToList(optionValue.trim());
-    String cpaName = optionParts.get(0);
-    String cpaAlias = getCPAAlias(optionValue, optionName, optionParts, cpaName);
+    String cpaNameFromOption = optionParts.get(0);
+    String cpaAlias = getCPAAlias(optionValue, optionName, optionParts, cpaNameFromOption);
 
     if (!usedAliases.add(cpaAlias)) {
       throw new InvalidConfigurationException("Alias " + cpaAlias + " used twice for a CPA.");
@@ -146,11 +146,11 @@ public class CPABuilder {
 
     // first get instance of appropriate factory
 
-    Class<?> cpaClass = getCPAClass(optionName, cpaName);
+    Class<?> cpaClass = getCPAClass(optionName, cpaNameFromOption);
 
     logger.log(Level.FINER, "Instantiating CPA " + cpaClass.getName() + " with alias " + cpaAlias);
 
-    CPAFactory factory = getFactoryInstance(cpaName, cpaClass);
+    CPAFactory factory = getFactoryInstance(cpaNameFromOption, cpaClass);
 
     // now use factory to get an instance of the CPA
 
@@ -168,7 +168,7 @@ public class CPABuilder {
 
     boolean hasChildren =
         createAndSetChildrenCPAs(
-            cpaName,
+            cpaNameFromOption,
             cpaAlias,
             factory,
             usedAliases,

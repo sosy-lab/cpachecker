@@ -44,6 +44,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -95,6 +96,7 @@ public class PathExtractor implements Statistics {
     // extract target locations from and exclude those found to be feasible before,
     // e.g., when analysis.stopAfterError is set to false
     List<ARGState> targets = extractTargetStatesFromArg(pReached)
+        .transform(s -> (ARGState) s)
         .filter(Predicates.not(Predicates.in(feasibleTargets))).toList();
 
     // set of targets may only be empty, if all of them were found feasible previously
@@ -111,14 +113,12 @@ public class PathExtractor implements Statistics {
   /**
    * This method extracts the last state from the ARG, which has to be a target state.
    */
-  private FluentIterable<ARGState> extractTargetStatesFromArg(final ARGReachedSet pReached) {
+  private FluentIterable<AbstractState> extractTargetStatesFromArg(final ARGReachedSet pReached) {
     if (globalRefinement) {
-      return from(pReached.asReachedSet())
-          .transform(AbstractStates.toState(ARGState.class))
-          .filter(AbstractStates.IS_TARGET_STATE);
+      return AbstractStates.getTargetStates(pReached.asReachedSet());
     } else {
-      ARGState lastState = ((ARGState)pReached.asReachedSet().getLastState());
-      assert (lastState.isTarget()) : "Last state is not a target state";
+      AbstractState lastState = pReached.asReachedSet().getLastState();
+      assert AbstractStates.isTargetState(lastState) : "Last state is not a target state";
       return from(Collections.singleton(lastState));
     }
   }

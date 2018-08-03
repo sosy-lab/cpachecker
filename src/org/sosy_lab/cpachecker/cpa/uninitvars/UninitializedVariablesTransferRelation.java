@@ -71,8 +71,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.uninitvars.UninitializedVariablesState.ElementProperty;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * Needs typesCPA to properly deal with field references.
@@ -102,7 +102,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
   }
 
   private void handleEdge(final CFAEdge cfaEdge, final UninitializedVariablesState successor)
-      throws UnrecognizedCCodeException, UnrecognizedCFAEdgeException {
+      throws UnrecognizedCodeException, UnrecognizedCFAEdgeException {
     switch (cfaEdge.getEdgeType()) {
       case DeclarationEdge:
         handleDeclaration(successor, (CDeclarationEdge) cfaEdge);
@@ -224,7 +224,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
   }
 
   private void handleFunctionCall(UninitializedVariablesState element, CFunctionCallEdge callEdge)
-                                                                  throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     //find functions's parameters and arguments
     CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
@@ -271,9 +271,9 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
     }
   }
 
-  private void handleStatement(UninitializedVariablesState element,
-                               CStatement expression, CFAEdge cfaEdge)
-                               throws UnrecognizedCCodeException {
+  private void handleStatement(
+      UninitializedVariablesState element, CStatement expression, CFAEdge cfaEdge)
+      throws UnrecognizedCodeException {
 
     if (expression instanceof CFunctionCallStatement) {
       //in case of a return edge, remove the local context of the function from which we returned
@@ -304,13 +304,13 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       handleAssign(element, assignExpression, cfaEdge);
 
     } else {
-      throw new UnrecognizedCCodeException("unknown statement", cfaEdge, expression);
+      throw new UnrecognizedCodeException("unknown statement", cfaEdge, expression);
     }
   }
 
-  private void handleAssign(UninitializedVariablesState element,
-                            CAssignment expression, CFAEdge cfaEdge)
-                            throws UnrecognizedCCodeException {
+  private void handleAssign(
+      UninitializedVariablesState element, CAssignment expression, CFAEdge cfaEdge)
+      throws UnrecognizedCodeException {
 
     CExpression op1 = expression.getLeftHandSide();
     CRightHandSide op2 = expression.getRightHandSide();
@@ -354,7 +354,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       }
 
     } else {
-      throw new UnrecognizedCCodeException("unknown left hand side of an assignment", cfaEdge, op1);
+      throw new UnrecognizedCodeException("unknown left hand side of an assignment", cfaEdge, op1);
     }
 
     String leftName = op1.toASTString();
@@ -380,9 +380,9 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
   }
 
   @SuppressWarnings("ShortCircuitBoolean")
-  private boolean isExpressionUninitialized(UninitializedVariablesState element,
-                                            @Nullable CRightHandSide expression,
-                                            CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+  private boolean isExpressionUninitialized(
+      UninitializedVariablesState element, @Nullable CRightHandSide expression, CFAEdge cfaEdge)
+      throws UnrecognizedCodeException {
     if (expression == null) {
       // e.g. empty parameter list
       return false;
@@ -472,7 +472,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       return false;
 
     } else {
-      throw new UnrecognizedCCodeException("unknown expression", cfaEdge, expression);
+      throw new UnrecognizedCodeException("unknown expression", cfaEdge, expression);
     }
   }
 

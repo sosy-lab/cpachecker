@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
  * Provides methods for generating, comparing and printing the ASTs generated from String.
@@ -124,8 +125,8 @@ class AutomatonASTComparator {
   /** The visitor that generates a pre-compiled ASTMatcher from a pattern AST. */
   private static enum ASTMatcherGenerator
       implements
-          CRightHandSideVisitor<ASTMatcher, RuntimeException>,
-          CStatementVisitor<ASTMatcher, RuntimeException> {
+          CRightHandSideVisitor<ASTMatcher, NoException>,
+          CStatementVisitor<ASTMatcher, NoException> {
 
     INSTANCE;
 

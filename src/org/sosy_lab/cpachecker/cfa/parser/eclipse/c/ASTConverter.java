@@ -177,7 +177,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 
@@ -411,7 +412,7 @@ class ASTConverter {
         && ((IASTUnaryExpression) e.getParent()).getOperator() == IASTUnaryExpression.op_amper;
   }
 
-  static enum CONDITION { NORMAL, ALWAYS_FALSE, ALWAYS_TRUE }
+  enum CONDITION { NORMAL, ALWAYS_FALSE, ALWAYS_TRUE }
 
   CONDITION getConditionKind(final CExpression condition) {
 
@@ -721,7 +722,7 @@ class ASTConverter {
       CExpression operand1, CExpression operand2, BinaryOperator op) {
     try {
       return binExprBuilder.buildBinaryExpression(operand1, operand2, op);
-    } catch (UnrecognizedCCodeException e) {
+    } catch (UnrecognizedCodeException e) {
       throw new CFAGenerationRuntimeException(e);
     }
   }
@@ -785,7 +786,7 @@ class ASTConverter {
     }
   }
 
-  private static class ContainsProblemTypeVisitor extends DefaultCTypeVisitor<Boolean, RuntimeException> {
+  private static class ContainsProblemTypeVisitor extends DefaultCTypeVisitor<Boolean, NoException> {
 
     @Override
     public Boolean visitDefault(CType pT) {
@@ -833,7 +834,7 @@ class ASTConverter {
     }
 
     @Override
-    public Boolean visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+    public Boolean visit(CBitFieldType pCBitFieldType) {
       return pCBitFieldType.getType().accept(this);
     }
   }
@@ -1300,7 +1301,7 @@ class ASTConverter {
     case IASTUnaryExpression.op_not:
       try {
         return binExprBuilder.negateExpressionAndSimplify(operand);
-      } catch (UnrecognizedCCodeException ex) {
+        } catch (UnrecognizedCodeException ex) {
         throw new CFAGenerationRuntimeException(ex);
       }
 
@@ -1315,8 +1316,11 @@ class ASTConverter {
         // because CDT only makes the operand long if there is a 'L' at the end
         // => we cannot use e.getExpressionType() here!
         CSimpleType innerType = (CSimpleType) operand.getExpressionType();
-        // now do not forget: operand should get promoted to int if its type is smaller than int:
-        type = machinemodel.getPromotedCType(innerType);
+          // now do not forget: operand should get promoted to int if its type is smaller than int:
+          type =
+              CTypes.isIntegerType(innerType)
+                  ? machinemodel.applyIntegerPromotion(innerType)
+                  : innerType;
       } else {
         type = typeConverter.convert(e.getExpressionType());
       }
@@ -1465,8 +1469,7 @@ class ASTConverter {
         }
       }
       if (rhs != null) {
-        returnAssignment = Optional.<CAssignment>of(
-            new CExpressionAssignmentStatement(loc, lhs, rhs));
+        returnAssignment = Optional.of(new CExpressionAssignmentStatement(loc, lhs, rhs));
       } else {
         returnAssignment = Optional.absent();
       }

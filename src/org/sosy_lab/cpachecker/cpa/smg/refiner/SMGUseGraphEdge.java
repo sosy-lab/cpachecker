@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
 public interface SMGUseGraphEdge<V extends SMGUseVertice> {
 
-  public V getSource();
-  public V getTarget();
+  V getSource();
 
+  V getTarget();
 }

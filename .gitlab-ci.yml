@@ -14,6 +14,7 @@ variables:
   artifacts:
     paths:
       - "ConfigurationChecks.html"
+      - "hs_err_pid*.log"
     when: always
 
 configuration-checks:jdk-8:
@@ -28,6 +29,16 @@ configuration-checks:jdk-9:
     - build-dependencies
     - build:jdk-9
   image: ${CI_REGISTRY_IMAGE}/test:jdk-9
+
+configuration-checks:jdk-10:
+  <<: *configuration-checks
+  dependencies:
+    - build-dependencies
+    - build:jdk-10
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-10
+  # Temporarily disabled until the segmentation fault is fixe
+  # (probably related to https://github.com/sosy-lab/java-smt/issues/132)
+  only: []
 
 
 configuration-documentation:
@@ -51,7 +62,7 @@ configuration-plot:
   dependencies: []
   artifacts:
     paths:
-      - "ConfigurationPlot.svg"
+      - "ConfigurationPlot.dot.svg"
 
 
 .python-unit-tests: &python-unit-tests
@@ -71,12 +82,37 @@ python-unit-tests:jdk-9:
     - build:jdk-9
   image: ${CI_REGISTRY_IMAGE}/test:jdk-9
 
+python-unit-tests:jdk-10:
+  <<: *python-unit-tests
+  dependencies:
+    - build-dependencies
+    - build:jdk-10
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-10
+
+
+javascript-unit-tests:
+  stage: checks
+  dependencies: []
+  image: node:8.9.4
+  before_script:
+    - cd src/org/sosy_lab/cpachecker/core/counterexample/
+    - npm install
+  script:
+    - cd node_modules/.bin/
+    - npm test --watch=false --single-run=true
+  cache:
+    paths:
+    - src/org/sosy_lab/cpachecker/core/counterexample/node_modules/
+
 
 # No coverage is computed for CPAchecker
 unit-tests:jdk-8:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
 
 unit-tests:jdk-9:
+  script: "ant $ANT_PROPS_CHECKS unit-tests"
+
+unit-tests:jdk-10:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
 
 # Disable some checks because they are not used for CPAchecker

@@ -15,9 +15,13 @@ with considerably less effort -->
     crossorigin="anonymous">
   <script src="https://www.sosy-lab.org/lib/jquery/3.3.1/jquery.min.js" integrity="sha384-tsQFqpEReu7ZLhBV2VZlAu7zcOV+rXbYlF2cqB8txI/8aZajjp4Bqd+V6D5IgvKT"
     crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://www.sosy-lab.org/lib/jquery-ui/1.12.1/jquery-ui.min.css" integrity="sha384-VK/ia2DWrvtO05YDcbWI8WE3WciOH0RhfPNuRJGSa3dpAs5szXWQuCnPNv/yzpO4"
+    crossorigin="anonymous">
+  <script src="https://www.sosy-lab.org/lib/jquery-ui/1.12.1/jquery-ui.min.js" integrity="sha384-PtTRqvDhycIBU6x1wwIqnbDo8adeWIWP3AHmnrvccafo35E7oIvW7HPXn2YimvWu"
+    crossorigin="anonymous"></script>
   <script src="https://www.sosy-lab.org/lib/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
     crossorigin="anonymous"></script>
-  <script src="https://www.sosy-lab.org/lib/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T"
+  <script src="https://www.sosy-lab.org/lib/tooltip.js/1.2.0/tooltip.min.js" integrity="sha384-9MYfW4+cUynMIN6UiFuOu/5GAs2JEbbknCAyCvLPttuYxlLpocQpEkX210OoGn4p"
     crossorigin="anonymous"></script>
   <script src="https://www.sosy-lab.org/lib/angularjs/1.7.0/angular.min.js" integrity="sha384-OGKaWeggmIvCx/zchfRERRmxXYyFHhSRKBcld3xfy5N42zsVueW6rVyiL7E53ZGJ"
     crossorigin="anonymous"></script>
@@ -25,8 +29,16 @@ with considerably less effort -->
     crossorigin="anonymous"></script>
   <script src="https://www.sosy-lab.org/lib/dagre-d3/0.5.0/dagre-d3.min.js" integrity="sha384-0qz1K6Ihi4XT9AwqcOOC/ciBQ9ufdzKZUc8G1It6RZ+oLJSk41EhaZiLPVoBE0JT"
     crossorigin="anonymous"></script>
-  <script src="https://www.sosy-lab.org/lib/google-code-prettify/2018-04-29-453bd5f/run_prettify.js?lang=basic&amp;skin=default"
-    integrity="sha384-TQkC3xow7XsJdrLPDiLsOmXT6uIP5yZkJhHx8jr7QAsRimCDNmCfueSdlxPLLVMz" crossorigin="anonymous"></script>
+  <script src="https://www.sosy-lab.org/lib/google-code-prettify/2018-04-29-453bd5f/prettify.js" integrity="sha384-KlbExXRJYYILJYRAJR121vJXgBDx+puqf1yjznMcTt7C5njwQajOLFwk6pMafFnX"
+    crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://www.sosy-lab.org/lib/google-code-prettify/2018-04-29-453bd5f/prettify.css" integrity="sha384-tGeLopS7aWCwgeqg+ah7c+iI19JU3teQPshyaQVybvOMRravAVLscwoeT4HPsfoW"
+    crossorigin="anonymous">
+  <script src="https://www.sosy-lab.org/lib/bootstrap/4.1.1/js/bootstrap.min.js" integrity="sha384-smHYKdLADwkXOn1EmN1qk/HfnUcbVRZyYmZ4qpPea6sjB/pTJ0euyQp0Mk8ck+5T"
+    crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://www.sosy-lab.org/lib/datatables/1.10.18/datatables.min.css" integrity="sha384-t1jrh3H+gcVq93cU14/FvFkiDDLHAupR2uFWQFOIqqB0ZgNvd09e5yjT5Mc9mGPZ"
+    crossorigin="anonymous">
+  <script src="https://www.sosy-lab.org/lib/datatables/1.10.18/datatables.min.js" integrity="sha384-b6lz7vBoPNFWulOisoJlEziEWnbO6TbeulJvmrmuro+kXqlUgmn+sVfASUlqVcZo"
+    crossorigin="anonymous"></script>
   <script>
     <!-- REPORT_JS -->
   </script>
@@ -70,14 +82,16 @@ with considerably less effort -->
     <section id="errorpath_section" ng-controller="ErrorpathController">
       <header ng-controller="SearchController" class="text-center">
         <div class="btn-group" role="group" aria-label="Button group">
-          <button class="btn btn-success" ng-click="errPathPrevClicked($event)">Prev</button>
+          <button class="btn btn-success" ng-click="errPathPrevClicked($event)" data-toggle="tooltip" data-placement="top" title="Click here to move on Previous Line">Prev</button>
           <button class="btn btn-warning" ng-click="errPathStartClicked()">Start</button>
-          <button class="btn btn-success" ng-click="errPathNextClicked($event)">Next</button>
+          <button class="btn btn-success" ng-click="errPathNextClicked($event)" data-toggle="tooltip" data-placement="bottom" title="Click here to move on Next Line">Next</button>
         </div>
-        <a tabindex="0" role="button" data-container="body" data-toggle="popover" data-html="true" data-placement="right" data-trigger="focus"
-          data-content="{{help_errorpath}}" class="btn btn-outline-info btn-lg help_button">
-          <i class="fas fa-question-circle"></i>
-        </a>
+        <div class="help_button" data-toggle="tooltip" data-placement="top" title="Get help!">
+          <a tabindex="0" role="button" data-container="body" data-toggle="popover" data-html="true" data-placement="right" data-trigger="focus"
+            data-content="{{help_errorpath}}" class="btn btn-outline-info btn-lg help_button">
+            <i class="fas fa-question-circle"></i>
+          </a>
+        </div>
         <div class="input-group input-group-sm">
           <input type="text" ng-keydown="checkIfEnter($event)" class="form-control search-input" placeholder="Search for...">
           <span class="input-group-btn">
@@ -114,13 +128,22 @@ with considerably less effort -->
     <section id="externalFiles_section">
 
       <ul class="nav nav-pills nav-tabs">
-        <li class="nav-item" ng-class="{active: tabIsSet(1)}">
+        <li class="nav-item" id="toggle_button_error_path">
+          <label class="switch" style="margin-top:5px" data-toggle="tooltip" data-placement="bottom" title="Toggle slider to show/hide error path section">
+            <input type="checkbox" checked id="toggle_error_path" ng-click="toggleErrorPathSection($event)">
+            <span class="slider round"></span>
+          </label>
+          <li class="nav-item" style="padding:10px;" id="toggle_button_error_path_placeholder">
+            <span class="badge badge-warning" style="font-size: 1.1em" data-toggle="tooltip" data-placement="top" title="Toggle slider to show/hide error path section">Show Error Path Section</span>
+          </li>
+        </li>
+        <li class="nav-item" ng-class="{active: tabIsSet(1)}" data-toggle="tooltip" data-placement="top" title="Shows CFA (Control flow Automation) of the Program">
           <a class="nav-link active" data-toggle="pill" href ng-click="setTab(1)" id="set-tab-1">CFA</a>
         </li>
-        <li class="nav-item" ng-class="{active: tabIsSet(2)}">
+        <li class="nav-item" ng-class="{active: tabIsSet(2)}" data-toggle="tooltip" data-placement="top" title="Shows ARG (Abstract Reachability Graph) of the Program">
           <a class="nav-link" data-toggle="pill" href ng-click="setTab(2)" id="set-tab-2">ARG</a>
         </li>
-        <li class="nav-item" ng-class="{active: tabIsSet(3)}">
+        <li class="nav-item" ng-class="{active: tabIsSet(3)}" data-toggle="tooltip" data-placement="top" title="Click here for source code of the program">
           <a class="nav-link" data-toggle="pill" href ng-click="setTab(3)" id="set-tab-3">Source</a>
         </li>
         <li class="nav-item" ng-class="{active: tabIsSet(4)}">
@@ -132,12 +155,17 @@ with considerably less effort -->
         <li class="nav-item" ng-class="{active: tabIsSet(6)}">
           <a class="nav-link" data-toggle="pill" href ng-click="setTab(6)">Configurations</a>
         </li>
-        <a tabindex="0" role="button" data-container="body" data-toggle="popover" data-html="true" data-placement="bottom" data-trigger="focus"
-          data-content="{{help_content}}" class="btn btn-outline-info btn-lg help_button">
-          <i class="fas fa-question-circle"></i>
-        </a>
+        <div>
+          <button id="full_screen_mode" class="btn btn-outline-info btn-lg help_button" ng-click="makeFullScreen()">
+            <i class="fas fa-expand"></i> Full Screen Mode</button>
+        </div>
+        <div class="help_button" data-toggle="tooltip" data-placement="top" title="Get help!">
+          <a tabindex="0" role="button" data-container="body" data-toggle="popover" data-html="true" data-placement="bottom" data-trigger="focus"
+            data-content="{{help_content}}" class="btn btn-outline-info btn-lg help_button">
+            <i class="fas fa-question-circle"></i>
+          </a>
+        </div>
       </ul>
-
 
       <div id="cfa-toolbar" ng-controller="CFAToolbarController">
         <nav class="navbar navbar-light bg-light">
@@ -164,15 +192,12 @@ with considerably less effort -->
               <strong>Split Threshold</strong>
             </label>
             <input type="text" aria-label="Split Threshold" id="cfa-split-threshold">
-            <button class="btn btn-outline-secondary" type="button" ng-click="redraw()">
+            <button class="btn btn-outline-secondary" type="button" ng-click="redraw()" data-toggle="tooltip" data-placement="top" title="Refresh Split Threshold">
               <i class="fas fa-sync"></i>
             </button>
           </div>
           </ul>
         </nav>
-      </div>
-
-      <div id="cfa-container" ng-class="{active: tabIsSet(1)}">
       </div>
 
       <div id="arg-toolbar" ng-controller="ARGToolbarController">
@@ -199,11 +224,15 @@ with considerably less effort -->
               <strong>Split Threshold</strong>
             </label>
             <input type="text" aria-label="Split Threshold" id="arg-split-threshold">
-            <button class="btn btn-outline-secondary" type="button" ng-click="argRedraw()">
+            <button class="btn btn-outline-secondary" type="button" ng-click="argRedraw()" data-toggle="tooltip" data-placement="top"
+              title="Refresh Split Threshold">
               <i class="fas fa-sync"></i>
             </button>
           </div>
         </nav>
+      </div>
+
+      <div id="cfa-container" ng-class="{active: tabIsSet(1)}">
       </div>
 
       <div id="arg-container" ng-class="{active: tabIsSet(2)}">
@@ -239,7 +268,7 @@ with considerably less effort -->
       </div>
     </section>
   </div>
-  <div id="infoBox" style="z-index: 1; visibility: hidden;">
+  <div class="tool_tip" id="infoBox" style="z-index: 1; visibility: hidden;">
     <div id="insideBox">
       <span id="boxContent">&nbsp;</span>
     </div>

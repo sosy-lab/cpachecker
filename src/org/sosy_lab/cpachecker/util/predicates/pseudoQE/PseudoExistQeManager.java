@@ -26,14 +26,14 @@ package org.sosy_lab.cpachecker.util.predicates.pseudoQE;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -220,7 +220,7 @@ public class PseudoExistQeManager implements StatisticsProvider {
   PseudoExistFormula applyDER(PseudoExistFormula pExistFormula) throws InterruptedException {
     stats.derTimer.start();
     try {
-      Set<Formula> boundVars = new HashSet<>(pExistFormula.getQuantifiedVarFormulas());
+      Set<Formula> boundVars = ImmutableSet.copyOf(pExistFormula.getQuantifiedVarFormulas());
 
       FormulaVisitor<Map<Formula, Formula>> visitor =
           new DefaultFormulaVisitor<Map<Formula, Formula>>() {
@@ -304,7 +304,7 @@ public class PseudoExistQeManager implements StatisticsProvider {
     try {
       List<BooleanFormula> conjuncts_with_bound = pExistFormula.getConjunctsWithQuantifiedVars();
       List<BooleanFormula> conjuncts_to_eliminate = new ArrayList<>();
-      Map<String, Formula> boundVarsToElim = new HashMap<>(pExistFormula.getQuantifiedVars());
+      Map<String, Formula> boundVarsToElim = new LinkedHashMap<>(pExistFormula.getQuantifiedVars());
 
       for (BooleanFormula conjunct : conjuncts_with_bound) {
         Set<String> varNames = fmgr.extractVariableNames(conjunct);
@@ -406,7 +406,7 @@ public class PseudoExistQeManager implements StatisticsProvider {
 
         if (numberQuantifiers == 0) {
           // If no more quantifiers just return the result of QE
-          result = new PseudoExistFormula(new HashMap<>(), afterQE, fmgr);
+          result = new PseudoExistFormula(ImmutableMap.of(), afterQE, fmgr);
           logger.log(
               Level.FINER,
               "Successfully applied Solver-QE to eliminate "

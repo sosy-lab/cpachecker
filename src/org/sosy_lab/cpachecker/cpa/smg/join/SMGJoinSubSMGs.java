@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,22 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGGenericAbstractionCandidate;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
-
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 final class SMGJoinSubSMGs {
   static private boolean performChecks = false;
@@ -49,35 +50,45 @@ final class SMGJoinSubSMGs {
   private SMGJoinStatus status;
   private boolean defined = false;
 
-  private SMG inputSMG1;
-  private SMG inputSMG2;
+  private UnmodifiableSMG inputSMG1;
+  private UnmodifiableSMG inputSMG2;
   private SMG destSMG;
 
-  private SMGNodeMapping mapping1 = null;
-  private SMGNodeMapping mapping2 = null;
+  private final SMGNodeMapping mapping1;
+  private final SMGNodeMapping mapping2;
   private final List<SMGGenericAbstractionCandidate> subSmgAbstractionCandidates;
 
-  public SMGJoinSubSMGs(SMGJoinStatus initialStatus,
-      SMG pSMG1, SMG pSMG2, SMG pDestSMG,
-      SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
+  /** Algorithm 4 from FIT-TR-2012-04. */
+  public SMGJoinSubSMGs(
+      SMGJoinStatus initialStatus,
+      UnmodifiableSMG pSMG1,
+      UnmodifiableSMG pSMG2,
+      SMG pDestSMG,
+      SMGNodeMapping pMapping1,
+      SMGNodeMapping pMapping2,
       SMGLevelMapping pLevelMap,
-      SMGObject pObj1, SMGObject pObj2, SMGObject pNewObject,
-      int pLDiff, boolean identicalInputSmg, SMGState pSmgState1, SMGState pSmgState2) throws SMGInconsistentException {
+      SMGObject pObj1,
+      SMGObject pObj2,
+      SMGObject pNewObject,
+      int pLDiff,
+      boolean identicalInputSmg,
+      UnmodifiableSMGState pSmgState1,
+      UnmodifiableSMGState pSmgState2)
+      throws SMGInconsistentException {
 
+    // Algorithm 4 from FIT-TR-2012-04, line 1
     SMGJoinFields joinFields = new SMGJoinFields(pSMG1, pSMG2, pObj1, pObj2);
-
-    subSmgAbstractionCandidates = ImmutableList.of();
     inputSMG1 = joinFields.getSMG1();
     inputSMG2 = joinFields.getSMG2();
+    status = initialStatus.updateWith(joinFields.getStatus());
+    subSmgAbstractionCandidates = ImmutableList.of();
+    destSMG = pDestSMG;
+    mapping1 = pMapping1;
+    mapping2 = pMapping2;
 
     if (SMGJoinSubSMGs.performChecks) {
       SMGJoinFields.checkResultConsistency(inputSMG1, inputSMG2, pObj1, pObj2);
     }
-
-    destSMG = pDestSMG;
-    status = SMGJoinStatus.updateStatus(initialStatus, joinFields.getStatus());
-    mapping1 = pMapping1;
-    mapping2 = pMapping2;
 
     /*
      * After joinFields, the objects have identical set of fields. Therefore, to iterate
@@ -86,58 +97,53 @@ final class SMGJoinSubSMGs {
      * SMG.
      */
 
+    // Algorithm 4 from FIT-TR-2012-04, line 2 and 3 interleaved
+    // TODO seems to be buggy, does not fully match the algorithm from TR.
     SMGEdgeHasValueFilter filterOnSMG1 = SMGEdgeHasValueFilter.objectFilter(pObj1);
     SMGEdgeHasValueFilter filterOnSMG2 = SMGEdgeHasValueFilter.objectFilter(pObj2);
-
-    Map<Integer, List<SMGGenericAbstractionCandidate>> valueAbstractionCandidates = new HashMap<>();
+    Map<SMGValue, List<SMGGenericAbstractionCandidate>> valueAbstractionCandidates = new HashMap<>();
     boolean allValuesDefined = true;
 
     int prevLevel = pLevelMap.get(SMGJoinLevel.valueOf(pObj1.getLevel(), pObj2.getLevel()));
 
     for (SMGEdgeHasValue hvIn1 : inputSMG1.getHVEdges(filterOnSMG1)) {
       filterOnSMG2.filterAtOffset(hvIn1.getOffset());
-
-      int lDiff = pLDiff;
-
       SMGEdgeHasValue hvIn2 = Iterables.getOnlyElement(inputSMG2.getHVEdges(filterOnSMG2));
 
       int value1Level = getValueLevel(pObj1, hvIn1.getValue(), inputSMG1);
       int value2Level = getValueLevel(pObj2, hvIn2.getValue(), inputSMG2);
-
       int levelDiff1 = value1Level - pObj1.getLevel();
       int levelDiff2 = value2Level - pObj2.getLevel();
-
-      lDiff = lDiff + (levelDiff1 - levelDiff2);
+      int lDiff = pLDiff + (levelDiff1 - levelDiff2);
 
       SMGLevelMapping levelMap =
           updateLevelMap(value1Level, value2Level, pLevelMap, pObj1.getLevel(), pObj2.getLevel());
 
       if (levelMap == null) {
         defined = false;
+        status = SMGJoinStatus.INCOMPARABLE;
         return;
       }
 
       SMGJoinValues joinValues = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG,
           mapping1, mapping2, levelMap, hvIn1.getValue(), hvIn2.getValue(), lDiff, identicalInputSmg, value1Level, value2Level, prevLevel, pSmgState1, pSmgState2);
+      status = joinValues.getStatus();
 
       /* If the join of the values is not defined and can't be
        * recovered through abstraction, the join fails.*/
       if (!joinValues.isDefined() && !joinValues.isRecoverable()) {
-        //subSmgAbstractionCandidates = ImmutableList.of();
+        // subSmgAbstractionCandidates = ImmutableList.of();
+        status = SMGJoinStatus.INCOMPARABLE;
         return;
       }
 
-      status = joinValues.getStatus();
       inputSMG1 = joinValues.getInputSMG1();
       inputSMG2 = joinValues.getInputSMG2();
       destSMG = joinValues.getDestinationSMG();
-      mapping1 = joinValues.getMapping1();
-      mapping2 = joinValues.getMapping2();
 
       if (joinValues.isDefined()) {
 
         SMGEdgeHasValue newHV;
-
         if (hvIn1.getObject().equals(pNewObject)
             && joinValues.getValue().equals(hvIn1.getValue())) {
           newHV = hvIn1;
@@ -179,6 +185,7 @@ final class SMGJoinSubSMGs {
      * that a abstraction candidate is execued for the destination smg, execute the abstraction
      * so that the join of this sub SMG is complete.*/
     if(!allValuesDefined) {
+      status = SMGJoinStatus.INCOMPARABLE;
       defined = false;
       return;
     }
@@ -228,7 +235,7 @@ final class SMGJoinSubSMGs {
     return null;
   }
 
-  private int getValueLevel(SMGObject pObject, int pValue, SMG pInputSMG1) {
+  private int getValueLevel(SMGObject pObject, SMGValue pValue, UnmodifiableSMG pInputSMG1) {
 
     if (pInputSMG1.isPointer(pValue)) {
       SMGEdgePointsTo pointer = pInputSMG1.getPointer(pValue);
@@ -245,6 +252,11 @@ final class SMGJoinSubSMGs {
   }
 
   public boolean isDefined() {
+    if (!defined) {
+      Preconditions.checkState(
+          status == SMGJoinStatus.INCOMPARABLE,
+          "Join of SubSMGs not defined, but status is " + status);
+    }
     return defined;
   }
 
@@ -252,24 +264,16 @@ final class SMGJoinSubSMGs {
     return status;
   }
 
-  public SMG getSMG1() {
+  public UnmodifiableSMG getSMG1() {
     return inputSMG1;
   }
 
-  public SMG getSMG2() {
+  public UnmodifiableSMG getSMG2() {
     return inputSMG2;
   }
 
-  public SMG getDestSMG() {
+  public UnmodifiableSMG getDestSMG() {
     return destSMG;
-  }
-
-  public SMGNodeMapping getMapping1() {
-    return mapping1;
-  }
-
-  public SMGNodeMapping getMapping2() {
-    return mapping2;
   }
 
   public List<SMGGenericAbstractionCandidate> getSubSmgAbstractionCandidates() {

@@ -27,15 +27,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-
 import javax.annotation.Nullable;
-
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-
 
 public abstract class AbstractRequirementsTranslator<T extends AbstractState> {
 
@@ -69,7 +66,8 @@ public abstract class AbstractRequirementsTranslator<T extends AbstractState> {
     formulaPre = Pair.of(formulaPre.getFirst(), renameDefine(formulaPre.getSecond(), "pre"));
 
     if (post.isEmpty()) {
-      return Pair.of(formulaPre, Pair.of(Collections.<String>emptyList(), "(define-fun post () Bool false)"));
+      return Pair.of(
+          formulaPre, Pair.of(Collections.emptyList(), "(define-fun post () Bool false)"));
     }
 
     List<String> list = new ArrayList<>();

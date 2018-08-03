@@ -113,7 +113,8 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue.NegativeNaN;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 
@@ -133,10 +134,10 @@ import org.sosy_lab.cpachecker.util.BuiltinFunctions;
  * to get values stored in the memory of a program.
  */
 public abstract class AbstractExpressionValueVisitor
-    extends DefaultCExpressionVisitor<Value, UnrecognizedCCodeException>
-    implements CRightHandSideVisitor<Value, UnrecognizedCCodeException>,
-    JRightHandSideVisitor<Value, RuntimeException>,
-    JExpressionVisitor<Value, RuntimeException> {
+    extends DefaultCExpressionVisitor<Value, UnrecognizedCodeException>
+    implements CRightHandSideVisitor<Value, UnrecognizedCodeException>,
+        JRightHandSideVisitor<Value, NoException>,
+        JExpressionVisitor<Value, NoException> {
 
   /** length of type LONG in Java (in bit). */
   private final static int SIZE_OF_JAVA_LONG = 64;
@@ -185,7 +186,7 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Value visit(final CBinaryExpression pE) throws UnrecognizedCCodeException {
+  public Value visit(final CBinaryExpression pE) throws UnrecognizedCodeException {
     final Value lVal = pE.getOperand1().accept(this);
     if (lVal.isUnknown()) {
       return Value.UnknownValue.getInstance();
@@ -677,19 +678,20 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Value visit(CCastExpression pE) throws UnrecognizedCCodeException {
+  public Value visit(CCastExpression pE) throws UnrecognizedCodeException {
     return castCValue(pE.getOperand().accept(this), pE.getExpressionType(), machineModel,
         logger, pE.getFileLocation());
   }
 
   @Override
-  public Value visit(CComplexCastExpression pE) throws UnrecognizedCCodeException {
+  public Value visit(CComplexCastExpression pE) throws UnrecognizedCodeException {
     // evaluation of complex numbers is not supported by now
     return Value.UnknownValue.getInstance();
   }
 
   @Override
-  public Value visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
+  public Value visit(CFunctionCallExpression pIastFunctionCallExpression)
+      throws UnrecognizedCodeException {
     CExpression functionNameExp = pIastFunctionCallExpression.getFunctionNameExpression();
 
     // We only handle builtin functions
@@ -1340,27 +1342,27 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Value visit(CCharLiteralExpression pE) throws UnrecognizedCCodeException {
+  public Value visit(CCharLiteralExpression pE) throws UnrecognizedCodeException {
     return new NumericValue((long) pE.getCharacter());
   }
 
   @Override
-  public Value visit(CFloatLiteralExpression pE) throws UnrecognizedCCodeException {
+  public Value visit(CFloatLiteralExpression pE) throws UnrecognizedCodeException {
     return new NumericValue(pE.getValue());
   }
 
   @Override
-  public Value visit(CIntegerLiteralExpression pE) throws UnrecognizedCCodeException {
+  public Value visit(CIntegerLiteralExpression pE) throws UnrecognizedCodeException {
     return new NumericValue(pE.getValue());
   }
 
   @Override
-  public Value visit(CImaginaryLiteralExpression pE) throws UnrecognizedCCodeException {
+  public Value visit(CImaginaryLiteralExpression pE) throws UnrecognizedCodeException {
     return pE.getValue().accept(this);
   }
 
   @Override
-  public Value visit(CStringLiteralExpression pE) throws UnrecognizedCCodeException {
+  public Value visit(CStringLiteralExpression pE) throws UnrecognizedCodeException {
     return Value.UnknownValue.getInstance();
   }
 
@@ -1380,7 +1382,7 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Value visit(CIdExpression idExp) throws UnrecognizedCCodeException {
+  public Value visit(CIdExpression idExp) throws UnrecognizedCodeException {
     if (idExp.getDeclaration() instanceof CEnumerator) {
       CEnumerator enumerator = (CEnumerator) idExp.getDeclaration();
       if (enumerator.hasValue()) {
@@ -1395,7 +1397,7 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Value visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
+  public Value visit(CUnaryExpression unaryExpression) throws UnrecognizedCodeException {
     final UnaryOperator unaryOperator = unaryExpression.getOperator();
     final CExpression unaryOperand = unaryExpression.getOperand();
 
@@ -1455,18 +1457,17 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   @Override
-  public Value visit(CPointerExpression pointerExpression) throws UnrecognizedCCodeException {
+  public Value visit(CPointerExpression pointerExpression) throws UnrecognizedCodeException {
     return evaluateCPointerExpression(pointerExpression);
   }
 
   @Override
-  public Value visit(CFieldReference fieldReferenceExpression) throws UnrecognizedCCodeException {
+  public Value visit(CFieldReference fieldReferenceExpression) throws UnrecognizedCodeException {
     return evaluateCFieldReference(fieldReferenceExpression);
   }
 
   @Override
-  public Value visit(CArraySubscriptExpression pE)
-      throws UnrecognizedCCodeException {
+  public Value visit(CArraySubscriptExpression pE) throws UnrecognizedCodeException {
     return evaluateCArraySubscriptExpression(pE);
   }
 
@@ -2149,18 +2150,18 @@ public abstract class AbstractExpressionValueVisitor
   /* abstract methods */
 
   protected abstract Value evaluateCPointerExpression(CPointerExpression pCPointerExpression)
-      throws UnrecognizedCCodeException;
+      throws UnrecognizedCodeException;
 
   protected abstract Value evaluateCIdExpression(CIdExpression pCIdExpression)
-      throws UnrecognizedCCodeException;
+      throws UnrecognizedCodeException;
 
   protected abstract Value evaluateJIdExpression(JIdExpression varName);
 
   protected abstract Value evaluateCFieldReference(CFieldReference pLValue)
-      throws UnrecognizedCCodeException;
+      throws UnrecognizedCodeException;
 
   protected abstract Value evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
-      throws UnrecognizedCCodeException;
+      throws UnrecognizedCodeException;
 
   /* additional methods */
 
@@ -2186,7 +2187,7 @@ public abstract class AbstractExpressionValueVisitor
    * @return if evaluation successful, then value, else null
    */
   public Value evaluate(final CExpression pExp, final CType pTargetType)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     return castCValue(pExp.accept(this), pTargetType, machineModel, logger,
         pExp.getFileLocation());
   }
@@ -2201,7 +2202,7 @@ public abstract class AbstractExpressionValueVisitor
    * @return if evaluation successful, then value, else null
    */
   public Value evaluate(final CRightHandSide pExp, final CType pTargetType)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     return castCValue(pExp.accept(this), pTargetType, machineModel, logger,
         pExp.getFileLocation());
   }

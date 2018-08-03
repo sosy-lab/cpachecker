@@ -67,9 +67,7 @@ public final class JUnaryExpression extends AUnaryExpression implements JExpress
     return v.visit(this);
   }
 
-  public static enum UnaryOperator implements AUnaryExpression.AUnaryOperator {
-
-
+  public enum UnaryOperator implements AUnaryExpression.AUnaryOperator {
     NOT      ("!"),
     PLUS        ("+"),
     COMPLEMENT        ("~"),
@@ -78,7 +76,7 @@ public final class JUnaryExpression extends AUnaryExpression implements JExpress
 
     private final String op;
 
-    private UnaryOperator(String pOp) {
+    UnaryOperator(String pOp) {
       op = pOp;
     }
 

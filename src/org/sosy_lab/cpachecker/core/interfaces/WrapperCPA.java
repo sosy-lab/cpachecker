@@ -42,11 +42,11 @@ public interface WrapperCPA {
    * @param type The class object of the type of the wrapped element.
    * @return An instance of an element with type T or null if there is none.
    */
-  public @Nullable <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(Class<T> type);
+  @Nullable <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(Class<T> type);
 
   /**
    * Retrieve all wrapped CPAs contained directly in this object (not recursively).
    * @return A non-empty unmodifiable list of CPAs.
    */
-  public Iterable<ConfigurableProgramAnalysis> getWrappedCPAs();
+  Iterable<ConfigurableProgramAnalysis> getWrappedCPAs();
 }

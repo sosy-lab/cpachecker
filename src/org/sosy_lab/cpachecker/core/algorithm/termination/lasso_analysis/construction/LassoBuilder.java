@@ -59,6 +59,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankVar;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -115,6 +116,8 @@ public class LassoBuilder {
   private final NotEqualAndNotInequalityElimination notEqualAndNotInequalityElimination;
   private final DnfTransformation dnfTransformation;
 
+  private final TerminationStatistics stats;
+
   public LassoBuilder(
       Configuration pConfig,
       LogManager pLogger,
@@ -122,7 +125,8 @@ public class LassoBuilder {
       AbstractFormulaManager<Term, ?, ?, ?> pFormulaManager,
       FormulaManagerView pFormulaManagerView,
       Supplier<ProverEnvironment> pProverEnvironmentSupplier,
-      PathFormulaManager pPathFormulaManager)
+      PathFormulaManager pPathFormulaManager,
+      final TerminationStatistics pTermStats)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = checkNotNull(pLogger);
@@ -141,6 +145,8 @@ public class LassoBuilder {
     notEqualAndNotInequalityElimination = new NotEqualAndNotInequalityElimination(fmgrView);
     dnfTransformation =
         new DnfTransformation(logger, shutdownNotifier, fmgrView, proverEnvironmentSupplier);
+
+    stats = pTermStats;
   }
 
   protected static boolean isMetaVariable(String variableName) {
@@ -150,12 +156,20 @@ public class LassoBuilder {
   public Collection<Lasso> buildLasso(
       CounterexampleInfo pCounterexampleInfo, Set<CVariableDeclaration> pRelevantVariables)
       throws CPATransferException, InterruptedException, TermException, SolverException {
+
+    stats.stemAndLoopConstructionStarted();
     StemAndLoop stemAndLoop = createStemAndLoop(pCounterexampleInfo);
     shutdownNotifier.shutdownIfNecessary();
+    stats.stemAndLoopConstructionFinished();
 
     ImmutableMap<String, CVariableDeclaration> relevantVariables =
         Maps.uniqueIndex(pRelevantVariables, AVariableDeclaration::getQualifiedName);
+    try {
+      stats.lassosCreationStarted();
     return createLassos(stemAndLoop, relevantVariables);
+    } finally {
+      stats.lassosCreationFinished();
+    }
   }
 
   private StemAndLoop createStemAndLoop(CounterexampleInfo pCounterexampleInfo)

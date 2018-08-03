@@ -30,7 +30,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Ordering;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,6 +49,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -55,6 +59,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.predicate.BAMBlockFormulaStrategy;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -146,30 +151,26 @@ public class PathChecker {
       targetPath = allStatesTrace;
     }
 
-    return createCounterexample(targetPath, counterexample, branchingOccurred);
+    return createCounterexample(targetPath, counterexample);
   }
 
   /**
    * Create a {@link CounterexampleInfo} object for a given counterexample.
-   * If the path has branching it will be checked again with an SMT solver to extract a model
+   * The path will be checked again with an SMT solver to extract a model
    * that is as precise and simple as possible.
+   * We assume that one additional SMT query will not cause too much overhead.
    * If the double-check fails, an imprecise result is returned.
    *
    * @param precisePath The precise ARGPath that represents the counterexample.
    * @param pInfo More information about the counterexample
-   * @param pathHasBranching Whether there are branches in the ARG for this path
    * @return a {@link CounterexampleInfo} instance
    */
   public CounterexampleInfo createCounterexample(
-      final ARGPath precisePath,
-      final CounterexampleTraceInfo pInfo,
-      final boolean pathHasBranching)
-      throws InterruptedException {
+      final ARGPath precisePath, final CounterexampleTraceInfo pInfo) throws InterruptedException {
 
     CFAPathWithAssumptions pathWithAssignments;
     CounterexampleTraceInfo preciseInfo;
     try {
-      if (pathHasBranching) {
         Pair<CounterexampleTraceInfo, CFAPathWithAssumptions> replayedPathResult =
             checkPath(precisePath);
 
@@ -182,15 +183,6 @@ public class PathChecker {
           preciseInfo = replayedPathResult.getFirst();
           pathWithAssignments = replayedPathResult.getSecond();
         }
-
-      } else {
-        preciseInfo = pInfo;
-        List<SSAMap> ssamaps = createPrecisePathFormula(precisePath).getSecond();
-        pathWithAssignments =
-            assignmentToPathAllocator.allocateAssignmentsToPath(
-                precisePath, pInfo.getModel(), ssamaps);
-      }
-
     } catch (SolverException | CPATransferException e) {
       // path is now suddenly a problem
       logger.logUserException(Level.WARNING, e, "Could not replay error path to get a more precise model");
@@ -268,17 +260,17 @@ public class PathChecker {
             assignmentToPathAllocator.allocateAssignmentsToPath(pPath, model, ssaMaps);
 
         return Pair.of(
-            CounterexampleTraceInfo.feasible(
-                ImmutableList.of(f), model, ImmutableMap.<Integer, Boolean>of()),
+            CounterexampleTraceInfo.feasible(ImmutableList.of(f), model, ImmutableMap.of()),
             pathWithAssignments);
       }
     }
   }
 
   /**
-   * Calculate the precise PathFormula and SSAMaps for the given path.
-   * Multi-edges will be resolved. The resulting list of SSAMaps
-   * need not be the same size as the given path.
+   * Calculate the precise PathFormula and SSAMaps for the given path. Multi-edges will be resolved.
+   * The resulting list of SSAMaps need not be the same size as the given path.
+   *
+   * <p>If the path traverses recursive function calls, the path formula updates the SSAMaps.
    *
    * @param pPath calculate the precise list of SSAMaps for this path.
    * @return the PathFormula and the precise list of SSAMaps for the given path.
@@ -292,10 +284,26 @@ public class PathChecker {
 
     PathIterator pathIt = pPath.fullPathIterator();
 
+    // for recursion we need to update SSA-indices after returning from a function call,
+    // in non-recursive cases this should not change anything.
+    Deque<PathFormula> callstack = new ArrayDeque<>();
+
     while (pathIt.hasNext()) {
       pathFormula = handlePreconditionAssumptions(pathFormula, pathIt.getNextAbstractState());
       CFAEdge edge = pathIt.getOutgoingEdge();
       pathIt.advance();
+
+      // for recursion
+      if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+        callstack.push(pathFormula);
+      }
+
+      // for recursion
+      if (!callstack.isEmpty() && edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+        pathFormula =
+            BAMBlockFormulaStrategy.rebuildStateAfterFunctionCall(
+                pmgr, pathFormula, callstack.pop(), ((FunctionReturnEdge) edge).getPredecessor());
+      }
 
       pathFormula = pmgr.makeAnd(pathFormula, edge);
       ssaMaps.add(pathFormula.getSsa());

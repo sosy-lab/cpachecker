@@ -63,7 +63,7 @@ public class AppliedCustomInstructionParserTest {
   private List<CLabelNode> labelNodes;
 
   @Before
-  public void init() throws IOException, ParserException, InterruptedException {
+  public void init() throws ParserException, InterruptedException {
     cfa =
         TestDataTools.makeCFA(
             "extern int test3(int);",

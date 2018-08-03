@@ -4,7 +4,10 @@
 
     <!-- Targets for compilation. -->
 
-    <!-- Keep this file synchronized between SoSy-Lab Common, CPAchecker, JavaSMT, and VerifierCloud. -->
+    <!-- DO NOT EDIT LOCALLY!
+         Keep this file synchronized with
+         https://gitlab.com/sosy-lab/software/java-project-template
+    -->
 
     <!-- These properties can be overridden from including file. -->
     <property name="source.format" value="1.8"/>
@@ -12,10 +15,24 @@
     <property name="source.generated.dir" value=".apt-generated"/>
     <property name="class.format" value="1.8"/>
     <property name="class.dir" value="bin"/>
+    <property name="errorprone.options" value=""/>
 
     <path id="errorprone">
         <pathelement location="${ivy.lib.dir}/build/error_prone_ant.jar"/>
     </path>
+
+    <!-- Needs to include all annotation processors and error-prone -->
+    <path id="processorpath">
+        <fileset dir="${ivy.lib.dir}" includes="build/*.jar"/>
+    </path>
+
+    <property name="errorprone" value="com.google.errorprone.ErrorProneAntCompilerAdapter"/>
+    <condition property="java8">
+        <matches string="${ant.java.version}" pattern="8"/>
+    </condition>
+    <condition property="java.compiler" value="${errorprone}" else="modern">
+        <isset property="java8"/>
+    </condition>
 
     <!-- We use error-prone as the compiler, cf. http://errorprone.info/ -->
     <target name="build-project" unless="skipBuild" depends="build-dependencies">
@@ -38,17 +55,20 @@
                source="${source.format}"
                target="${class.format}"
                includeAntRuntime="false"
-               compiler="com.google.errorprone.ErrorProneAntCompilerAdapter"
+               compiler="${java.compiler}"
                encoding="UTF-8">
             <src path="${source.dir}"/>
             <classpath refid="classpath"/>
             <compilerarg value="-Xlint"/>
+            <compilerarg value="-Xlint:-fallthrough"/> <!-- checked by error-prone, too, and javac does not recognized $FALL-THROUGH$ -->
             <compilerarg value="-Xlint:-processing"/>
-            <compilerarg value="-Xlint:-fallthrough"/>
-            <compilerarg value="-Xep:ReferenceEquality:OFF"/>
-            <compilerarg value="-XepDisableWarningsInGeneratedCode"/>
+            <compilerarg value="-Xlint:-options"/> <!-- suppress warning about bootclasspath on newer JDK -->
             <compilerarg value="-Werror"/>
+            <compilerarg compiler="${errorprone}" line="-XepDisableWarningsInGeneratedCode ${errorprone.options}"/>
+            <compilerarg compiler="modern" value="-XDcompilePolicy=simple"/> <!-- necessary for error-prone -->
+            <compilerarg compiler="modern" value="-Xplugin:ErrorProne -XepDisableWarningsInGeneratedCode ${errorprone.options}"/>
             <compilerarg value="-s"/><compilerarg value="${source.generated.dir}"/>
+            <compilerarg value="-processorpath"/><compilerarg pathref="processorpath"/>
             <compilerclasspath refid="errorprone"/>
         </javac>
     </target>
@@ -83,6 +103,7 @@
             <compilerarg value="-properties"/>
             <compilerarg value="${ivy.lib.dir}/build/org.eclipse.jdt.core.prefs"/>
             <compilerarg value="-s"/><compilerarg value="${source.generated.dir}"/>
+            <compilerarg value="-processorpath"/><compilerarg pathref="processorpath"/>
             <compilerclasspath refid="ecj"/>
         </javac>
     </target>

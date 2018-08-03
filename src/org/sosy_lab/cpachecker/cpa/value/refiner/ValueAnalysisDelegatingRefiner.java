@@ -61,7 +61,7 @@ public abstract class ValueAnalysisDelegatingRefiner implements Refiner {
         new DelegatingARGBasedRefinerWithRefinementSelection(
             config,
             new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure()),
-            ValueAnalysisRefiner.create(cpa).asARGBasedRefiner(),
+            ValueAnalysisRefiner.create0(cpa),
             new ValueAnalysisPrefixProvider(logger, cfa, config, valueCpa.getShutdownNotifier()),
             PredicateRefiner.create0(cpa),
             new PredicateBasedPrefixProvider(

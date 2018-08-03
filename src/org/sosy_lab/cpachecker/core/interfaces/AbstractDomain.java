@@ -42,7 +42,7 @@ public interface AbstractDomain {
    * @throws UnsupportedOperationException If this domain does not provide a join method.
    * @throws InterruptedException If the operation could not complete due to a shutdown request.
    */
-  public AbstractState join(AbstractState state1, AbstractState state2) throws CPAException, InterruptedException;
+  AbstractState join(AbstractState state1, AbstractState state2) throws CPAException, InterruptedException;
 
   /**
    * Returns true if state1 is less or equal than state2 with respect to
@@ -58,6 +58,6 @@ public interface AbstractDomain {
    * @throws CPAException If any error occurred.
    * @throws InterruptedException If the operation could not complete due to a shutdown request.
    */
-  public boolean isLessOrEqual(AbstractState state1, AbstractState state2) throws CPAException, InterruptedException;
+  boolean isLessOrEqual(AbstractState state1, AbstractState state2) throws CPAException, InterruptedException;
 
 }

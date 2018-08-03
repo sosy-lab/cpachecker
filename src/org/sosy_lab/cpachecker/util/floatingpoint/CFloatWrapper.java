@@ -23,6 +23,17 @@
  */
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
+/**
+ * This class is used to wrap the bit representation of C like floating point numbers into two
+ * <code>long</code> objects.
+ * <p>
+ * It is on the one hand meant as an interface object between the {@link CFloatNativeAPI} and its
+ * underlying C-library, on the other as a means to easier differentiate between exponent and
+ * significant of a floating point number.
+ * <p>
+ * In its current implementation the biggest type that can be modeled is a 128-bit extended double
+ * precision floating point number (in C called <code>long double</code>).
+ */
 public class CFloatWrapper {
 
   private long exponent;
@@ -53,6 +64,12 @@ public class CFloatWrapper {
     this.mantissa = mantissa;
   }
 
+  /**
+   * Create and return a copy of <code>this</code>, containing the exact same bit-masks.
+   *
+   * @return a fresh {@link CFloatWrapper} instance, containing the same bit-masks as
+   *         <code>this</code>
+   */
   public CFloatWrapper copy() {
     return new CFloatWrapper(exponent, mantissa);
   }

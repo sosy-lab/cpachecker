@@ -107,7 +107,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
   private final List<ReachedSetUpdateListener> reachedSetUpdateListeners =
       new CopyOnWriteArrayList<>();
 
-  public static interface CEGARMXBean {
+  public interface CEGARMXBean {
     int getNumberOfRefinements();
     int getSizeOfReachedSetBeforeLastRefinement();
     boolean isRefinementActive();

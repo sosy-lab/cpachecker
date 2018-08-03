@@ -79,7 +79,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
@@ -105,10 +104,7 @@ public class AssignmentToPathAllocator {
     TypeHandlerWithPointerAliasing typeHandler =
         new TypeHandlerWithPointerAliasing(
             pLogger, pMachineModel, new FormulaEncodingWithPointerAliasingOptions(pConfig));
-    memoryName =
-        exp ->
-            CToFormulaConverterWithPointerAliasing.getPointerAccessNameForType(
-                typeHandler.getSimplifiedType(exp));
+    memoryName = exp -> typeHandler.getPointerAccessNameForType(typeHandler.getSimplifiedType(exp));
   }
 
   /**
@@ -621,13 +617,13 @@ public class AssignmentToPathAllocator {
         if (ssaIdx == -2) {
           functionsWithoutSSAIndex.add(term);
         } else {
-          int index = findFirstOccurrenceOfVariableFunction(term, pSsaMaps);
+          int index = findFirstOccurrenceOf(term, pSsaMaps);
           if (index >= 0) {
             assignedTermsPosition.put(index, term);
           }
         }
       } else if (ssaIdx != -2) { // Variable.
-        int index = findFirstOccurrenceOfVariable(term, pSsaMaps);
+        int index = findFirstOccurrenceOf(term, pSsaMaps);
         if (index >= 0) {
           assignedTermsPosition.put(index, term);
         }
@@ -648,10 +644,36 @@ public class AssignmentToPathAllocator {
   }
 
   /**
+   * Search through an (unordered) list of SSAMaps for the first index where a given variable
+   * appears. We do not expect that the SSAMaps are ordered in any way, e.g. SSA-indices might be
+   * incrementing and decrementing along the list. This happens for example in case of
+   * counterexample paths through a recursive program.
+   *
+   * @return -1 if the variable with the given SSA-index never occurs, or an index of first pSsaMaps
+   *     where the variable occurs.
+   */
+  int findFirstOccurrenceOf(ValueAssignment pVar, List<SSAMap> pSsaMaps) {
+    int result = -1;
+    String canonicalName = getName(pVar);
+    int varSSAIdx = getSSAIndex(pVar);
+
+    for (SSAMap map : pSsaMaps) {
+      result++;
+      int ssaIndex = map.getIndex(canonicalName);
+      if (ssaIndex == varSSAIdx) {
+        return result;
+      }
+    }
+
+    return result;
+  }
+
+  /**
    * Search through an (ordered) list of SSAMaps
    * for the first index where a given variable appears.
    * @return -1 if the variable with the given SSA-index never occurs, or an index of pSsaMaps
    */
+  @Deprecated // we cannot guarantee ordering
   int findFirstOccurrenceOfVariable(ValueAssignment pVar, List<SSAMap> pSsaMaps) {
 
     // both indices are inclusive bounds of the range where we still need to look
@@ -711,6 +733,7 @@ public class AssignmentToPathAllocator {
     }
   }
 
+  @Deprecated // we cannot guarantee ordering
   int findFirstOccurrenceOfVariableFunction(ValueAssignment pTerm, List<SSAMap> pSsaMaps) {
 
     int lower = 0;

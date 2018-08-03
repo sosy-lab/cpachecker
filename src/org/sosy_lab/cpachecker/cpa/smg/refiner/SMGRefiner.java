@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import static org.sosy_lab.cpachecker.util.Precisions.extractPrecisionByType;
+
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
@@ -61,7 +63,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
-import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -131,7 +133,8 @@ public class SMGRefiner implements Refiner {
     SMGStrongestPostOperator strongestPostOpForCEX =
         SMGStrongestPostOperator.getSMGStrongestPostOperatorForCEX(pLogger, pCfa, predicateManager, blockOperator, smgCpa.getOptions());
 
-    SMGState initialState = smgCpa.getInitialState(pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+    UnmodifiableSMGState initialState =
+        smgCpa.getInitialState(pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
 
     checker =
         new SMGFeasibilityChecker(strongestPostOpForCEX, logger, pCfa, initialState, automatonCpas, smgCpa.getBlockOperator());
@@ -286,11 +289,8 @@ public class SMGRefiner implements Refiner {
    *
    * @param errorPath the error path for which to create the model
    * @return the model for the given error path
-   * @throws InterruptedException may be thrown in subclass
-   * @throws CPAException may be thrown in subclass
    */
-  private CFAPathWithAssumptions createModel(ARGPath errorPath)
-      throws InterruptedException, CPAException {
+  private CFAPathWithAssumptions createModel(ARGPath errorPath) {
 
     //TODO Fix creating a model.
     return CFAPathWithAssumptions.empty();
@@ -380,7 +380,8 @@ public class SMGRefiner implements Refiner {
     // get all unique precisions from the subtree
     Set<SMGPrecision> uniquePrecisions = Sets.newIdentityHashSet();
     for (ARGState descendant : ARGUtils.getNonCoveredStatesInSubgraph(pRefinementRoot)) {
-      uniquePrecisions.add(SMGCEGARUtils.extractSMGPrecision(pReached, descendant));
+      uniquePrecisions.add(extractPrecisionByType(
+              pReached.asReachedSet().getPrecision(descendant), SMGPrecision.class));
     }
 
     // join all unique precisions into a single precision

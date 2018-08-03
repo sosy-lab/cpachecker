@@ -132,6 +132,7 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
       ARGPath targetPath = counterexample.getTargetPath();
 
       // new targetPath must contain root and error node
+      assert path != null : "Counterexample should come from a correct path.";
       assert targetPath.getFirstState() == path.getFirstState() : "Target path from refiner does not contain root node";
       assert targetPath.getLastState()  == path.getLastState() : "Target path from refiner does not contain target state";
 

@@ -44,7 +44,9 @@ class CTypeUtils {
 
   private CTypeUtils() { }
 
-  private static final CachingCanonizingCTypeVisitor typeVisitor = new CachingCanonizingCTypeVisitor(true, true);
+  private static final CachingCanonizingCTypeVisitor typeVisitor =
+      new CachingCanonizingCTypeVisitor(
+          /*ignoreConst=*/ true, /*ignoreVolatile=*/ true, /*ignoreSignedness=*/ false);
 
   /**
    * Return the length of an array, honoring the options for maximum and default array length.
@@ -195,15 +197,12 @@ class CTypeUtils {
   }
 
   /**
-   * The method is used in two cases:
-   * <ul>
-   * <li>
-   * by {@link CToFormulaConverterWithPointerAliasing#getPointerAccessNameForType(CType)} to get the UF name corresponding to the given type.
-   * </li>
-   * <li>
-   * to convert {@link CType}s to strings in order to use them as keys in a {@link PathCopyingPersistentTreeMap}.
-   * </li>
-   * </ul>
+   * The method is used to convert {@link CType}s to strings in order to use them as keys in a
+   * {@link PathCopyingPersistentTreeMap}.
+   *
+   * <p>Note that {@link TypeHandlerWithPointerAliasing#getPointerAccessNameForType(CType)} also
+   * converts types to string but in a different context.
+   *
    * @param type The type
    * @return The string representation of the type
    */

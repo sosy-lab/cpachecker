@@ -23,4 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.value;
 
-public interface SMGSymbolicValue extends SMGValue {}
+import java.math.BigInteger;
+
+public interface SMGSymbolicValue extends SMGValue {
+
+  /**
+   * Get a random unique identifier for this symbolic value. Do never use the identifier for any
+   * computation.
+   *
+   * <p>Special case: {@link SMGZeroValue#getId} has an id value of ZERO.
+   */
+  BigInteger getId();
+}

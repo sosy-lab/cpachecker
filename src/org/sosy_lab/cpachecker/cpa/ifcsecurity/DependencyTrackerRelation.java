@@ -63,7 +63,7 @@ import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.VariableDepend
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -158,7 +158,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
        */
 
     } else {
-      throw new UnrecognizedCCodeException("on function return", pCfaEdge, pSummaryExpr);
+      throw new UnrecognizedCodeException("on function return", pCfaEdge, pSummaryExpr);
     }
     result.getDependencies().put(function, new TreeSet<Variable>());
     return result;

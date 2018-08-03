@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class UCBRefinementManager {
@@ -86,9 +85,7 @@ public class UCBRefinementManager {
 
     if (preds == null) {
       return CounterexampleTraceInfo.feasible(
-          pFormulas.getFormulas(),
-          ImmutableList.<ValueAssignment>of(),
-          ImmutableMap.<Integer, Boolean>of());
+          pFormulas.getFormulas(), ImmutableList.of(), ImmutableMap.of());
     } else {
       preds = computeUCB(pAbstractionStatesTrace, preds);
       preds.addAll(

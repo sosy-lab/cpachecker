@@ -48,8 +48,7 @@ public interface AbstractionStrategy {
       FormulaManagerView pFMGR,
       Set<Formula> pVariables);
 
-  public static enum NoAbstraction implements AbstractionStrategy {
-
+  enum NoAbstraction implements AbstractionStrategy {
     INSTANCE {
 
       @Override
@@ -80,6 +79,6 @@ public interface AbstractionStrategy {
           Set<Formula> pVariables) {
         // Do nothing
       }
-    };
+    }
   }
 }

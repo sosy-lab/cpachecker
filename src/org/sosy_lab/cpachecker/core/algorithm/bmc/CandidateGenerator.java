@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 
-
 public interface CandidateGenerator extends Iterable<CandidateInvariant> {
 
   /**
@@ -73,7 +72,7 @@ public interface CandidateGenerator extends Iterable<CandidateInvariant> {
   @Override
   Iterator<CandidateInvariant> iterator();
 
-  public static CandidateGenerator EMPTY_GENERATOR =
+  CandidateGenerator EMPTY_GENERATOR =
       new CandidateGenerator() {
 
         @Override
@@ -101,5 +100,4 @@ public interface CandidateGenerator extends Iterable<CandidateInvariant> {
           return Collections.emptySet();
         }
       };
-
 }

@@ -164,8 +164,9 @@ public class ARGState extends AbstractSingleWrapperState
     // check for dummy location
     AbstractStateWithDummyLocation stateWithDummyLocation =
         AbstractStates.extractStateByType(pChild, AbstractStateWithDummyLocation.class);
-    if (stateWithDummyLocation != null && stateWithDummyLocation.isDummyLocation()) {
-
+    if (currentLocs != null
+        && stateWithDummyLocation != null
+        && stateWithDummyLocation.isDummyLocation()) {
       for (CFAEdge enteringEdge : stateWithDummyLocation.getEnteringEdges()) {
         for (CFANode currentLocation : currentLocs.getLocationNodes()) {
           if (enteringEdge.getPredecessor().equals(currentLocation)) {

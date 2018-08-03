@@ -24,6 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.constraints;
 
 import com.google.common.base.Optional;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.Map;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -34,7 +38,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionTransformer;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
@@ -45,11 +49,6 @@ import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.NumeralFormula;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Creator for {@link Formula}s using a given {@link CtoFormulaConverter} for creating
@@ -79,17 +78,15 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
 
   @Override
   public BooleanFormula createFormula(final Constraint pConstraint)
-      throws UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
 
     return createFormula(pConstraint, IdentifierAssignment.empty());
   }
 
-
   @Override
   public BooleanFormula createFormula(
-      final Constraint pConstraint,
-      final IdentifierAssignment pDefiniteAssignment
-  ) throws UnrecognizedCCodeException, InterruptedException {
+      final Constraint pConstraint, final IdentifierAssignment pDefiniteAssignment)
+      throws UnrecognizedCodeException, InterruptedException {
 
     final SymbolicExpressionTransformer toExpressionTransformer =
         new SymbolicExpressionTransformer(pDefiniteAssignment);

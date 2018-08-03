@@ -309,7 +309,7 @@ public class TemplatePrecision implements Precision {
     // {@code maxExpressionSize} as well.
     return product
         .stream()
-        .map(HashSet<CIdExpression>::new)
+        .map(HashSet::new)
         .distinct() // Eliminate duplicates, and ensure that all combinations are unique.
         .flatMap(
             variables -> {

@@ -24,21 +24,23 @@
 package org.sosy_lab.cpachecker.util.ltl;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.sosy_lab.cpachecker.util.ltl.formulas.BooleanConstant;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Conjunction;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Disjunction;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Finally;
-import org.sosy_lab.cpachecker.util.ltl.formulas.LtlFormula;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Globally;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Literal;
+import org.sosy_lab.cpachecker.util.ltl.formulas.LtlFormula;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Next;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Release;
 import org.sosy_lab.cpachecker.util.ltl.formulas.StrongRelease;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Until;
 import org.sosy_lab.cpachecker.util.ltl.formulas.WeakUntil;
-import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarBaseVisitor;
 import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParser.AndExpressionContext;
 import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParser.BinaryOpContext;
 import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParser.BinaryOperationContext;
@@ -54,13 +56,25 @@ import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParser.QuotedVariabl
 import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParser.UnaryOpContext;
 import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParser.UnaryOperationContext;
 import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParser.VariableContext;
+import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParserBaseVisitor;
 
-public class LtlFormulaTreeVisitor extends LtlGrammarBaseVisitor<LtlFormula> {
+public class LtlFormulaTreeVisitor extends LtlGrammarParserBaseVisitor<LtlFormula> {
+
+  private final List<Literal> apList; // atomic propositions
+
+  public LtlFormulaTreeVisitor() {
+    apList = new ArrayList<>();
+  }
+
+  public List<Literal> getAPs() {
+    return ImmutableList.copyOf(apList);
+  }
 
   @Override
   public LtlFormula visitProperty(PropertyContext ctx) {
-    // Contains: CHECK LPAREN initFunction COMMA ltlProperty RPAREN EOF
-    assert ctx.getChildCount() == 7 : ctx.getChildCount();
+    // For a valid syntax, the context-param has to provide the following expressions in the given
+    // order: CHECK LPAREN initFunction COMMA ltlProperty RPAREN EOF
+    throwException_When_InvalidChildCount(ctx.getChildCount(), 7);
 
     // For now, we only want to retrieve the 'ltlProperty', so we ditch everything else
     return visit(ctx.getChild(4));
@@ -68,35 +82,46 @@ public class LtlFormulaTreeVisitor extends LtlGrammarBaseVisitor<LtlFormula> {
 
   @Override
   public LtlFormula visitLtlProperty(LtlPropertyContext ctx) {
-    assert ctx.getChildCount() == 4 : ctx.getChildCount();
+    throwException_When_InvalidChildCount(ctx.getChildCount(), 4);
     return visit(ctx.getChild(2));
   }
 
   @Override
   public LtlFormula visitFormula(FormulaContext ctx) {
     // Contains formula + EOF
-    assert ctx.getChildCount() == 2 : ctx.getChildCount();
+    throwException_When_InvalidChildCount(ctx.getChildCount(), 2);
+
     return visit(ctx.getChild(0));
   }
 
   @Override
   public LtlFormula visitExpression(ExpressionContext ctx) {
     // Contains an orExpression only
-    assert ctx.getChildCount() == 1;
+    throwException_When_InvalidChildCount(ctx.getChildCount(), 1);
+
     return visit(ctx.getChild(0));
   }
 
   @Override
   public LtlFormula visitOrExpression(OrExpressionContext ctx) {
     // Contains a disjunction of conjunctions
-    assert ctx.getChildCount() > 0;
+    if (ctx.getChildCount() == 0) {
+      throw new RuntimeException(
+          String.format(
+              "Invalid input provided. Expected at least 1 child-node in param 'ctx', however, nothing could be found"));
+    }
 
     ImmutableList.Builder<LtlFormula> builder = ImmutableList.builder();
     for (int i = 0; i < ctx.getChildCount(); i++) {
       if (i % 2 == 0) {
         builder.add(visit(ctx.getChild(i)));
       } else {
-        assert ctx.getChild(i) instanceof TerminalNode;
+        if (!(ctx.getChild(i) instanceof TerminalNode)) {
+          throw new RuntimeException(
+              String.format(
+                  "Invalid input provided. Expected child at pos %d to be an instance of TerminalNode",
+                  i));
+        }
       }
     }
 
@@ -107,14 +132,23 @@ public class LtlFormulaTreeVisitor extends LtlGrammarBaseVisitor<LtlFormula> {
   @Override
   public LtlFormula visitAndExpression(AndExpressionContext ctx) {
     // Contains a conjunction of binaryExpressions
-    assert ctx.getChildCount() > 0;
+    if (ctx.getChildCount() == 0) {
+      throw new RuntimeException(
+          String.format(
+              "Invalid input provided. Expected at least 1 child-node in param 'ctx', however, nothing could be found"));
+    }
 
     ImmutableList.Builder<LtlFormula> builder = ImmutableList.builder();
     for (int i = 0; i < ctx.getChildCount(); i++) {
       if (i % 2 == 0) {
         builder.add(visit(ctx.getChild(i)));
       } else {
-        assert ctx.getChild(i) instanceof TerminalNode;
+        if (!(ctx.getChild(i) instanceof TerminalNode)) {
+          throw new RuntimeException(
+              String.format(
+                  "Invalid input provided. Expected child at pos %d to be an instance of TerminalNode",
+                  i));
+        }
       }
     }
 
@@ -124,8 +158,9 @@ public class LtlFormulaTreeVisitor extends LtlGrammarBaseVisitor<LtlFormula> {
 
   @Override
   public LtlFormula visitBinaryOperation(BinaryOperationContext ctx) {
-    assert ctx.getChildCount() == 3;
-    assert ctx.left != null && ctx.right != null;
+    throwException_When_InvalidChildCount(ctx.getChildCount(), 3);
+    Objects.requireNonNull(ctx.left);
+    Objects.requireNonNull(ctx.right);
 
     BinaryOpContext binaryOp = ctx.binaryOp();
     LtlFormula left = visit(ctx.left);
@@ -164,7 +199,7 @@ public class LtlFormulaTreeVisitor extends LtlGrammarBaseVisitor<LtlFormula> {
 
   @Override
   public LtlFormula visitUnaryOperation(UnaryOperationContext ctx) {
-    assert ctx.getChildCount() == 2;
+    throwException_When_InvalidChildCount(ctx.getChildCount(), 2);
 
     UnaryOpContext unaryOp = ctx.unaryOp();
     LtlFormula operand = visit(ctx.inner);
@@ -190,7 +225,8 @@ public class LtlFormulaTreeVisitor extends LtlGrammarBaseVisitor<LtlFormula> {
 
   @Override
   public LtlFormula visitBoolean(BooleanContext ctx) {
-    assert ctx.getChildCount() == 1;
+    throwException_When_InvalidChildCount(ctx.getChildCount(), 1);
+
     BoolContext constant = ctx.bool();
 
     if (constant.FALSE() != null) {
@@ -206,22 +242,48 @@ public class LtlFormulaTreeVisitor extends LtlGrammarBaseVisitor<LtlFormula> {
 
   @Override
   public LtlFormula visitQuotedVariable(QuotedVariableContext ctx) {
-    // Contains: QUOTATIONMARK var EQUALS val QUOTATIONMARK
-    assert ctx.getChildCount() == 5;
+    // Consists of: QUOTATIONMARK_START var comp val (MATHOP VALUE)* QUOTATIONMARK_END
+    if (ctx.getChildCount() < 5) {
+      throw new RuntimeException(
+          String.format(
+              "Invalid input provided. Expected %d child-nodes in param 'ctx', however, %d were found",
+              5, ctx.getChildCount()));
+    }
 
-    String name = ctx.var.getText() + ctx.val.getText();
-    return Literal.of(name, false);
+    // Don't actually parse the quoted string -- only retrieve it and use CParserUtils-class
+    // later to convert it into an AExpression
+    StringBuilder sb = new StringBuilder();
+    for (int i = 1; i < ctx.getChildCount() - 1; i++) {
+      sb.append(ctx.getChild(i).getText());
+    }
+    Literal ap = Literal.of(sb.toString(), false);
+    apList.add(ap);
+    return ap;
   }
 
   @Override
   public LtlFormula visitVariable(VariableContext ctx) {
-    assert ctx.getChildCount() == 1;
-    return Literal.of(ctx.getText(), false);
+    throwException_When_InvalidChildCount(ctx.getChildCount(), 1);
+
+    Literal ap = Literal.of(ctx.getText(), false);
+    apList.add(ap);
+    return ap;
   }
 
   @Override
   public LtlFormula visitNested(NestedContext ctx) {
-    assert ctx.getChildCount() == 3;
+    throwException_When_InvalidChildCount(ctx.getChildCount(), 3);
     return visit(ctx.nested);
+  }
+
+  private void throwException_When_InvalidChildCount(int pActual, int pExpected) {
+    if (pActual == pExpected) {
+      return;
+    }
+
+    throw new RuntimeException(
+        String.format(
+            "Invalid input provided. Expected %d child-nodes in param 'ctx', however, %d were found",
+            pExpected, pActual));
   }
 }

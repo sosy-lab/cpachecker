@@ -28,7 +28,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
@@ -110,13 +109,13 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -280,25 +279,14 @@ public class CFAUtils {
   }
 
   /**
-   * Returns a predicate for CFA edges with the given edge type.
-   * The predicate is not null safe.
-   *
-   * @param pType the edge type matched on.
-   */
-  public static Predicate<CFAEdge> edgeHasType(final CFAEdgeType pType) {
-    checkNotNull(pType);
-    return pInput -> pInput.getEdgeType() == pType;
-  }
-
-  /**
    * Returns the other AssumeEdge (with the negated condition)
    * of a given AssumeEdge.
    */
   public static AssumeEdge getComplimentaryAssumeEdge(AssumeEdge edge) {
     checkArgument(edge.getPredecessor().getNumLeavingEdges() == 2);
-    return (AssumeEdge)Iterables.getOnlyElement(
-        CFAUtils.leavingEdges(edge.getPredecessor())
-                .filter(not(Predicates.<CFAEdge>equalTo(edge))));
+    return (AssumeEdge)
+        Iterables.getOnlyElement(
+            CFAUtils.leavingEdges(edge.getPredecessor()).filter(not(Predicates.equalTo(edge))));
   }
 
   /**
@@ -628,7 +616,7 @@ public class CFAUtils {
   }
 
   private static class ChildExpressionVisitor
-      extends AAstNodeVisitor<Iterable<? extends AAstNode>, RuntimeException> {
+      extends AAstNodeVisitor<Iterable<? extends AAstNode>, NoException> {
 
     private static final ChildExpressionVisitor INSTANCE = new ChildExpressionVisitor();
 

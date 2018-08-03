@@ -36,12 +36,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableAndFieldRelevancyComputer.VarFieldDependencies;
 
 final class CollectingLHSVisitor
     extends DefaultCExpressionVisitor<
-        Pair<VariableOrField, VarFieldDependencies>, RuntimeException> {
+        Pair<VariableOrField, VarFieldDependencies>, NoException> {
 
   private final CFA cfa;
 
@@ -69,11 +70,7 @@ final class CollectingLHSVisitor
         VariableOrField.newField(
             VariableAndFieldRelevancyComputer.getCanonicalFieldOwnerType(e), e.getFieldName());
     // Do not remove explicit type inference, otherwise build fails with IntelliJ
-    return Pair.of(
-        result,
-        e.getFieldOwner()
-            .<VarFieldDependencies, RuntimeException>accept(
-                CollectingRHSVisitor.create(cfa, result)));
+    return Pair.of(result, e.getFieldOwner().accept(CollectingRHSVisitor.create(cfa, result)));
   }
 
   @Override
@@ -81,9 +78,7 @@ final class CollectingLHSVisitor
     // Do not remove explicit type inference, otherwise build fails with IntelliJ
     return Pair.of(
         VariableOrField.unknown(),
-        e.getOperand()
-            .<VarFieldDependencies, RuntimeException>accept(
-                CollectingRHSVisitor.create(cfa, VariableOrField.unknown())));
+        e.getOperand().accept(CollectingRHSVisitor.create(cfa, VariableOrField.unknown())));
   }
 
   @Override

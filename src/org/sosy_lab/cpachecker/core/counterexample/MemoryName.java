@@ -41,6 +41,5 @@ public interface MemoryName {
    * @return The name of the memory that holds the value for the given expression at the given
    *     address.
    */
-  public String getMemoryName(CRightHandSide exp);
-
+  String getMemoryName(CRightHandSide exp);
 }

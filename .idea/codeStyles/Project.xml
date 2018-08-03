@@ -9,7 +9,6 @@
     </option>
     <option name="LINE_SEPARATOR" value="&#10;" />
     <option name="RIGHT_MARGIN" value="100" />
-    <option name="WRAP_WHEN_TYPING_REACHES_RIGHT_MARGIN" value="true" />
     <JavaCodeStyleSettings>
       <option name="PARAMETER_NAME_PREFIX" value="p" />
       <option name="INSERT_INNER_CLASS_IMPORTS" value="true" />

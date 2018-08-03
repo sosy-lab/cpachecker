@@ -25,6 +25,14 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import org.sosy_lab.common.NativeLibraries;
 
+/**
+ * This class is an JNI interface to the FloatingPoints C library.
+ * <p>
+ * Its purpose is to transport information about bit-masks of floating point number types between
+ * Java and C via instances of the {@link CFloatWrapper} class and therefore to (in a way) more
+ * easily compare expectations towards how certain floating point operations on a given system and C
+ * compilation should work with the reality from inside a Java based framework.
+ */
 class CFloatNativeAPI {
   private CFloatNativeAPI() {}
 

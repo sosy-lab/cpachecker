@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.ltl.formulas;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
+import org.sosy_lab.cpachecker.util.ltl.LtlFormulaVisitor;
 
 public final class Conjunction extends PropositionalFormula {
 
@@ -94,7 +95,12 @@ public final class Conjunction extends PropositionalFormula {
   }
 
   @Override
-  protected String getSymbol() {
+  public String accept(LtlFormulaVisitor v) {
+    return v.visit(this);
+  }
+
+  @Override
+  public String getSymbol() {
     return "&&";
   }
 }

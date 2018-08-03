@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.expressions;
 
+import java.math.BigInteger;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
@@ -32,9 +34,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-
-import java.math.BigInteger;
-import java.util.Objects;
 
 public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
 
@@ -50,7 +49,7 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
         CBinaryExpression assumeExp =
             pBinaryExpressionBuilder.buildBinaryExpressionUnchecked(
                 assignment.getLeftHandSide(), expression, CBinaryExpression.BinaryOperator.EQUALS);
-        return of((AExpression) assumeExp);
+        return of(assumeExp);
       }
     }
     return ExpressionTrees.getTrue();
@@ -130,13 +129,9 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
     if (leafExpression instanceof AIntegerLiteralExpression) {
       AIntegerLiteralExpression expression = (AIntegerLiteralExpression) pLeafExpression;
       if (expression.getValue().equals(BigInteger.ZERO)) {
-        return assumeTruth
-            ? ExpressionTrees.<LeafType>getFalse()
-            : ExpressionTrees.<LeafType>getTrue();
+        return assumeTruth ? ExpressionTrees.getFalse() : ExpressionTrees.getTrue();
       }
-      return assumeTruth
-          ? ExpressionTrees.<LeafType>getTrue()
-          : ExpressionTrees.<LeafType>getFalse();
+      return assumeTruth ? ExpressionTrees.getTrue() : ExpressionTrees.getFalse();
     }
     return new LeafExpression<>(leafExpression, assumeTruth, assumeTruth ? leafExpression.hashCode() : -leafExpression.hashCode());
   }

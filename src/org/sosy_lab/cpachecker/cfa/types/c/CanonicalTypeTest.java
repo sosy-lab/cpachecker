@@ -51,8 +51,7 @@ public class CanonicalTypeTest {
     assertThat(CNumericTypes.UNSIGNED_INT.getCanonicalType()).isEqualTo(CNumericTypes.UNSIGNED_INT);
 
     CType longType = new CSimpleType(false, false, CBasicType.UNSPECIFIED, true, false, false, false, false, false, false);
-    CType signedLongIntType = new CSimpleType(false, false, CBasicType.INT, true, false, true, false, false, false, false);
-    assertThat(longType.getCanonicalType()).isEqualTo(signedLongIntType);
+    assertThat(longType.getCanonicalType()).isEqualTo(CNumericTypes.SIGNED_LONG_INT);
   }
 
   @Test
@@ -93,11 +92,11 @@ public class CanonicalTypeTest {
   @Test
   public void functionType() {
     CTypedefType typedef = new CTypedefType(false, false, "TYPEDEF", CNumericTypes.INT);
-    CFunctionType function = new CFunctionType(typedef, ImmutableList.<CType>of(typedef), false);
+    CFunctionType function = new CFunctionType(typedef, ImmutableList.of(typedef), false);
 
     CFunctionType expected =
         new CFunctionType(
-            CNumericTypes.SIGNED_INT, ImmutableList.<CType>of(CNumericTypes.SIGNED_INT), false);
+            CNumericTypes.SIGNED_INT, ImmutableList.of(CNumericTypes.SIGNED_INT), false);
     assertThat(function.getCanonicalType()).isEqualTo(expected);
   }
 }

@@ -125,6 +125,7 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
           prevCallState = callStacks.get(callState);
           parentFormula =
               rebuildStateAfterFunctionCall(
+                  pfmgr,
                   parentFormula,
                   finishedFormulas.get(callState),
                   (FunctionExitNode) extractLocation(parentElement));
@@ -215,13 +216,14 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
 
   /* rebuild indices from outer scope */
   @SuppressWarnings("deprecation") // TODO: seems buggy because it ignores PointerTargetSet
-  private PathFormula rebuildStateAfterFunctionCall(
+  public static PathFormula rebuildStateAfterFunctionCall(
+      final PathFormulaManager pPfmgr,
       final PathFormula parentFormula,
       final PathFormula rootFormula,
       final FunctionExitNode functionExitNode) {
     final SSAMap newSSA =
         BAMPredicateReducer.updateIndices(
             rootFormula.getSsa(), parentFormula.getSsa(), functionExitNode);
-    return pfmgr.makeNewPathFormula(parentFormula, newSSA);
+    return pPfmgr.makeNewPathFormula(parentFormula, newSSA);
   }
 }

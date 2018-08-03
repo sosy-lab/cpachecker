@@ -27,7 +27,7 @@ import com.google.common.base.Preconditions;
 
 public class Predicate {
 
-  public static enum Comparison {
+  public enum Comparison {
     GREATER_OR_EQUAL(">="),
     GREATER         (">"),
     EQUAL           ("=="),
@@ -38,7 +38,7 @@ public class Predicate {
 
     private final String symbol;
 
-    private Comparison(String pSymbol) {
+    Comparison(String pSymbol) {
       symbol = pSymbol;
     }
 
