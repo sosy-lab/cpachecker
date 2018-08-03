@@ -176,6 +176,8 @@ public class AutomatonGraphmlCommon {
     CFASUCCESSORNODE("successor", ElementType.EDGE, "successor", "string"),
     WITNESS_TYPE("witness-type", ElementType.GRAPH, "witness-type", "string"),
     INPUTWITNESSHASH("inputwitnesshash", ElementType.GRAPH, "inputWitnessHash", "string"),
+    WITNESS_IDENTIFIER("witness-identifier", ElementType.GRAPH, "witness-identifier", "boolean"),
+    WITNESS_STATUS("witness-status", ElementType.GRAPH, "witness-status", "string"),
     NOTE("note", ElementType.EDGE, "note", "string"),
     WARNING("warning", ElementType.EDGE, "warning", "string");
 
@@ -339,10 +341,33 @@ public class AutomatonGraphmlCommon {
     return BaseEncoding.base16().lowerCase().encode(hash.asBytes());
   }
 
+  public static class RaceGraphMlBuilder extends GraphMlBuilder {
+    public RaceGraphMlBuilder(
+        WitnessType pGraphType,
+        String pDefaultSourceFileName,
+        CFA pCfa,
+        VerificationTaskMetaData pVerificationTaskMetaData,
+        String pIdentifier,
+        String pStatus)
+        throws ParserConfigurationException, DOMException, IOException {
+      super(pGraphType, pDefaultSourceFileName, pCfa, pVerificationTaskMetaData);
+      Element result = createDataElement(KeyDef.WITNESS_IDENTIFIER, pIdentifier);
+      result.setAttribute("compare", "true");
+      result.setAttribute("associate", "false");
+      result.setAttribute("klever-attrs", "true");
+      graph.appendChild(result);
+      result = createDataElement(KeyDef.WITNESS_STATUS, pStatus);
+      result.setAttribute("compare", "true");
+      result.setAttribute("associate", "false");
+      result.setAttribute("klever-attrs", "true");
+      graph.appendChild(result);
+    }
+  }
+
   public static class GraphMlBuilder {
 
     private final Document doc;
-    private final Element graph;
+    protected final Element graph;
     private final Set<KeyDef> definedKeys = EnumSet.noneOf(KeyDef.class);
     private final Map<KeyDef, Node> keyDefsToAppend = Maps.newEnumMap(KeyDef.class);
 
@@ -429,7 +454,7 @@ public class AutomatonGraphmlCommon {
       return doc.createElement(tag.toString());
     }
 
-    private Element createDataElement(final KeyDef key, final String value) {
+    protected Element createDataElement(final KeyDef key, final String value) {
       defineKey(key);
       Element result = createElement(GraphMLTag.DATA);
       result.setAttribute("key", key.id);

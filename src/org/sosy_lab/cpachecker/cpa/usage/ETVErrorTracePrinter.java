@@ -103,7 +103,8 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
   }
 
   @Override
-  protected void printUnsafe(SingleIdentifier id, Pair<UsageInfo, UsageInfo> pPair) {
+  protected void printUnsafe(
+      SingleIdentifier id, Pair<UsageInfo, UsageInfo> pPair, boolean refined) {
     File name = new File("output/ErrorPath." + createUniqueName(id) + ".txt");
     Writer writer;
     try {

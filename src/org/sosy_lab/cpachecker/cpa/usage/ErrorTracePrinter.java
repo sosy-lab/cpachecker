@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.cpa.usage.storage.AbstractUsagePointSet;
+import org.sosy_lab.cpachecker.cpa.usage.storage.RefinedUsagePointSet;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UnsafeDetector;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -186,7 +187,7 @@ public abstract class ErrorTracePrinter {
       unsafeDetectionTimer.stop();
 
       writingUnsafeTimer.start();
-      printUnsafe(id, tmpPair);
+      printUnsafe(id, tmpPair, uinfo instanceof RefinedUsagePointSet);
       writingUnsafeTimer.stop();
     }
     if (printFalseUnsafes) {
@@ -233,7 +234,8 @@ public abstract class ErrorTracePrinter {
     return path;
   }
 
-  protected abstract void printUnsafe(SingleIdentifier id, Pair<UsageInfo, UsageInfo> pair);
+  protected abstract void printUnsafe(
+      SingleIdentifier id, Pair<UsageInfo, UsageInfo> pair, boolean refined);
 
   protected void init() {}
 

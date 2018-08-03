@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuil
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeType;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.RaceGraphMlBuilder;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
@@ -71,10 +72,12 @@ import org.w3c.dom.Element;
 @Options(prefix="cpa.usage.export")
 public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
-  @Option(secure=true, name="witnessTemplate",
-      description="export counterexample core as text file")
+  @Option(
+      secure = true,
+      name = "witnessTemplate",
+      description = "export counterexample core as text file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate errorPathFile = PathTemplate.ofFormatString("witness.%s.graphml");
+  private PathTemplate errorPathFile = PathTemplate.ofFormatString("witness.%d.graphml");
 
   private static final String WARNING_MESSAGE = "Access was not found";
 
@@ -133,11 +136,12 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   }
 
   private int idCounter = 0;
+  private int witnessNum = 0;
   private ThreadIterator threadIterator;
   private Element currentNode;
 
   @Override
-  protected void printUnsafe(SingleIdentifier pId, Pair<UsageInfo, UsageInfo> pTmpPair) {
+  protected void printUnsafe(SingleIdentifier pId, Pair<UsageInfo, UsageInfo> pTmpPair, boolean refined) {
     UsageInfo firstUsage = pTmpPair.getFirst();
     UsageInfo secondUsage = pTmpPair.getSecond();
     List<CFAEdge> firstPath, secondPath;
@@ -155,12 +159,24 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
               .getFileLocation()
               .getFileName();
 
+      String status;
+
+      if (firstUsage.isLooped() || secondUsage.isLooped()) {
+        status = "Failed";
+      } else if (refined) {
+        status = "Confirmed";
+      } else {
+        status = "Unconfirmed";
+      }
+
       GraphMlBuilder builder =
-          new GraphMlBuilder(
+          new RaceGraphMlBuilder(
               WitnessType.VIOLATION_WITNESS,
               defaultSourcefileName,
               cfa,
-              new VerificationTaskMetaData(config, Specification.alwaysSatisfied()));
+              new VerificationTaskMetaData(config, Specification.alwaysSatisfied()),
+              createUniqueName(pId),
+              status);
 
       idCounter = 0;
       threadIterator = new ThreadIterator();
@@ -215,7 +231,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
       builder.addDataElementChild(currentNode, NodeFlag.ISVIOLATION.key, "true");
 
-      Path currentPath = errorPathFile.getPath(createUniqueName(pId));
+      Path currentPath = errorPathFile.getPath(witnessNum);
       IO.writeFile(currentPath, Charset.defaultCharset(), (Appender) a -> builder.appendTo(a));
 
     } catch (IOException e) {
@@ -227,6 +243,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     } catch (InvalidConfigurationException e1) {
       logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e1.getMessage());
     }
+    witnessNum++;
   }
 
   private void printPath(UsageInfo usage, Iterator<CFAEdge> iterator, GraphMlBuilder builder) {
