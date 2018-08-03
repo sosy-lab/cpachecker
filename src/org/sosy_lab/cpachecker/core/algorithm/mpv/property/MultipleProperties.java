@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +33,6 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
@@ -52,7 +50,7 @@ public final class MultipleProperties {
     TRANSITION
   }
 
-  private final boolean stopAfterError;
+  private final boolean findAllViolations;
   private final ImmutableList<AbstractSingleProperty> properties;
 
   /*
@@ -64,8 +62,8 @@ public final class MultipleProperties {
   public MultipleProperties(
       ImmutableMap<Path, List<Automaton>> specification,
       PropertySeparator propertySeparator,
-      boolean stopAfterError) {
-    this.stopAfterError = stopAfterError;
+      boolean findAllViolations) {
+    this.findAllViolations = findAllViolations;
     ImmutableList.Builder<AbstractSingleProperty> propertyBuilder = ImmutableList.builder();
     for (Entry<Path, List<Automaton>> entry : specification.entrySet()) {
       switch (propertySeparator) {
@@ -118,9 +116,9 @@ public final class MultipleProperties {
   }
 
   public MultipleProperties(
-      ImmutableList<AbstractSingleProperty> properties, boolean stopAfterError) {
+      ImmutableList<AbstractSingleProperty> properties, boolean findAllViolations) {
     this.properties = properties;
-    this.stopAfterError = stopAfterError;
+    this.findAllViolations = findAllViolations;
   }
 
   /*
@@ -134,7 +132,7 @@ public final class MultipleProperties {
         propertyBuilder.add(property);
       }
     }
-    return new MultipleProperties(propertyBuilder.build(), stopAfterError);
+    return new MultipleProperties(propertyBuilder.build(), findAllViolations);
   }
 
   /*
@@ -142,9 +140,9 @@ public final class MultipleProperties {
    */
   public void stopAnalysisOnFailure(String reason) {
     for (AbstractSingleProperty property : properties) {
-      if (!property.isChecked()) {
+      if (property.isNotChecked()) {
         property.updateResult(Result.UNKNOWN);
-        property.addDescription(reason);
+        property.setReasonOfUnknown(reason);
       }
     }
     checkIfRelevant();
@@ -155,8 +153,10 @@ public final class MultipleProperties {
    */
   public void stopAnalysisOnSuccess() {
     for (AbstractSingleProperty property : properties) {
-      if (!property.isChecked()) {
+      if (property.isNotDetermined()) {
         property.updateResult(Result.TRUE);
+      }
+      if (property.getResult().equals(Result.FALSE)) {
         property.allViolationsFound();
       }
     }
@@ -165,7 +165,7 @@ public final class MultipleProperties {
 
   /*
    * Determine, which property was violated based on target state, and stop checking it if
-   * necessary. TODO: this method should be called from the MPV algorithm.
+   * necessary.
    */
   public AbstractSingleProperty processPropertyViolation(AbstractState targetState) {
     if (targetState instanceof AbstractWrapperState) {
@@ -180,15 +180,13 @@ public final class MultipleProperties {
       if (automatonState.isTarget()) {
         for (AbstractSingleProperty property : properties) {
           if (property.isTarget(automatonState)) {
-            if (stopAfterError) {
+            if (!findAllViolations) {
               property.disableProperty();
               property.allViolationsFound();
             }
             property.checkIfRelevant();
             property.updateResult(Result.FALSE);
-            for (Property desc : automatonState.getViolatedProperties()) {
-              property.addDescription(desc.toString());
-            }
+            property.addViolatedPropertyDescription(automatonState.getViolatedProperties());
             return property;
           }
         }
@@ -215,7 +213,7 @@ public final class MultipleProperties {
     for (AbstractSingleProperty property : properties) {
       if (!targetProperties.properties.contains(property)) {
         property.disableProperty();
-      } else if (!property.isChecked()) {
+      } else if (property.isNotChecked()) {
         property.enableProperty();
       }
     }
@@ -226,7 +224,7 @@ public final class MultipleProperties {
    */
   public boolean isChecked() {
     for (AbstractSingleProperty property : properties) {
-      if (!property.isChecked()) {
+      if (property.isNotDetermined()) {
         return false;
       }
     }
@@ -255,6 +253,8 @@ public final class MultipleProperties {
         return Result.FALSE;
       } else if (property.getResult().equals(Result.UNKNOWN)) {
         isUnknown = true;
+      } else if (property.getResult().equals(Result.NOT_YET_STARTED)) {
+        return Result.NOT_YET_STARTED;
       }
     }
     if (isUnknown) {
@@ -268,31 +268,16 @@ public final class MultipleProperties {
     return properties.size();
   }
 
-  public boolean isStopAfterError() {
-    return stopAfterError;
+  public boolean isFindAllViolations() {
+    return findAllViolations;
   }
 
   public ImmutableList<AbstractSingleProperty> getProperties() {
     return properties;
   }
 
-  public void printResults(PrintStream pOut) {
-    pOut.println("Results for each property:");
-    for (AbstractSingleProperty property : properties) {
-      pOut.println("\t" + property);
-    }
-  }
-
   @Override
   public String toString() {
-    StringBuilder builder = new StringBuilder();
-    for (AbstractSingleProperty property : properties) {
-      builder.append(property.getName() + ", ");
-    }
-    String result = builder.toString();
-    if (result.length() > 2) {
-      result = result.substring(0, result.length() - 2);
-    }
-    return "[" + result + "]";
+    return properties.toString();
   }
 }

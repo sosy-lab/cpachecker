@@ -49,9 +49,10 @@ abstract class AbstractPartitioningOperator implements PartitioningOperator {
   protected ImmutableList<Partition> createSeparatedPartition(MultipleProperties targetProperties) {
     ImmutableList.Builder<Partition> builder = ImmutableList.builder();
     for (AbstractSingleProperty property : targetProperties.getProperties()) {
-      if (!property.isChecked()) {
+      if (property.isNotChecked()) {
         MultipleProperties singleProperty =
-            new MultipleProperties(ImmutableList.of(property), targetProperties.isStopAfterError());
+            new MultipleProperties(
+                ImmutableList.of(property), targetProperties.isFindAllViolations());
         builder.add(new Partition(singleProperty, timeLimitPerProperty, true));
       }
     }
@@ -65,12 +66,12 @@ abstract class AbstractPartitioningOperator implements PartitioningOperator {
       MultipleProperties targetProperties, TimeSpan timeLimit, boolean isFinal) {
     ImmutableList.Builder<AbstractSingleProperty> propertyBuilder = ImmutableList.builder();
     for (AbstractSingleProperty property : targetProperties.getProperties()) {
-      if (!property.isChecked()) {
+      if (property.isNotChecked()) {
         propertyBuilder.add(property);
       }
     }
     MultipleProperties irrelevantProperties =
-        new MultipleProperties(propertyBuilder.build(), targetProperties.isStopAfterError());
+        new MultipleProperties(propertyBuilder.build(), targetProperties.isFindAllViolations());
     return ImmutableList.of(new Partition(irrelevantProperties, timeLimit, isFinal));
   }
 

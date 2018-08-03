@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.PrintStream;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm.MPVStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -45,7 +46,7 @@ public class CPAcheckerResult {
    */
   public enum Result { NOT_YET_STARTED, UNKNOWN, FALSE, TRUE }
 
-  private final Result result;
+  private Result result;
 
   private final String violatedPropertyDescription;
 
@@ -114,7 +115,21 @@ public class CPAcheckerResult {
       return;
     }
 
+    processSubResults(out);
     out.println("Verification result: " + getResultString());
+  }
+
+  private void processSubResults(PrintStream out) {
+    // Check sub statistics for additional results.
+    if (stats instanceof MainCPAStatistics) {
+      for (Statistics subStatistic : ((MainCPAStatistics) stats).getSubStatistics()) {
+        if (subStatistic instanceof MPVStatistics) {
+          // Get result per each checked property for MPV algorithm.
+          result = ((MPVStatistics) subStatistic).adjustOverallResult();
+          ((MPVStatistics) subStatistic).printResults(out);
+        }
+      }
+    }
   }
 
   public String getResultString() {

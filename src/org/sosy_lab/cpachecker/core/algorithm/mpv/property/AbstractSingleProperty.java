@@ -23,6 +23,7 @@ import com.google.common.collect.Sets;
 import java.util.Set;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 
 /*
@@ -37,7 +38,8 @@ public abstract class AbstractSingleProperty {
   private int violations; // number of found violations
   private boolean allViolationsFound;
   private Result result;
-  private final Set<String> description;
+  private final Set<Property> violatedPropertyDescription;
+  private String reasonOfUnknown;
 
   protected AbstractSingleProperty(String pName) {
     name = pName;
@@ -46,7 +48,8 @@ public abstract class AbstractSingleProperty {
     violations = 0;
     allViolationsFound = false;
     result = Result.NOT_YET_STARTED;
-    description = Sets.newHashSet();
+    violatedPropertyDescription = Sets.newHashSet();
+    reasonOfUnknown = null;
   }
 
   /*
@@ -70,11 +73,18 @@ public abstract class AbstractSingleProperty {
   public abstract void checkIfRelevant();
 
   /*
-   * Return true, if this property got final verdict (all violations have been found in case FALSE
-   * result).
+   * Return true, if this property did not get final result (TRUE, FALSE or UNKNOWN).
    */
-  public boolean isChecked() {
-    return !result.equals(Result.NOT_YET_STARTED);
+  public boolean isNotDetermined() {
+    return result.equals(Result.NOT_YET_STARTED);
+  }
+
+  /*
+   * Return true, if this property is still checking (it did not get final result or some property
+   * violations were not found).
+   */
+  public boolean isNotChecked() {
+    return isNotDetermined() || (result.equals(Result.FALSE) && !allViolationsFound);
   }
 
   /*
@@ -106,16 +116,21 @@ public abstract class AbstractSingleProperty {
     return allViolationsFound;
   }
 
-  public String getName() {
-    return name;
+  public void addViolatedPropertyDescription(Set<Property> pDescription) {
+    violatedPropertyDescription.addAll(pDescription);
   }
 
-  public void addDescription(String pDescription) {
-    description.add(pDescription);
+  public String getReasonOfUnknown() {
+    return reasonOfUnknown;
   }
 
-  public String getDescription() {
-    return description.toString();
+  public void setReasonOfUnknown(String pReasonOfUnknown) {
+    assert !result.equals(Result.TRUE);
+    reasonOfUnknown = pReasonOfUnknown;
+  }
+
+  public Set<Property> getViolatedPropertyDescription() {
+    return violatedPropertyDescription;
   }
 
   public TimeSpan getCpuTime() {
@@ -132,18 +147,6 @@ public abstract class AbstractSingleProperty {
 
   @Override
   public String toString() {
-    String res = "Property '" + name + "': " + result;
-    if (!relevant) {
-      res += ", irrelevant";
-    } else {
-      res += ", relevant";
-    }
-    if (!allViolationsFound && result.equals(Result.FALSE)) {
-      res += ", incomplete";
-    }
-    if (description.size() > 0) {
-      res += " " + getDescription();
-    }
-    return res;
+    return name;
   }
 }

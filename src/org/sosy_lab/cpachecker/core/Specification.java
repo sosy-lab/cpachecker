@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core;
 import static java.util.stream.Collectors.joining;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -58,10 +59,8 @@ import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 public final class Specification {
 
   private final Set<SpecificationProperty> properties;
-
-  private final Set<Path> specFiles;
-
   private final ImmutableList<Automaton> specificationAutomata;
+  private final ImmutableMap<Path, List<Automaton>> specification;
 
   public static Specification alwaysSatisfied() {
     return new Specification(ImmutableList.of());
@@ -98,6 +97,7 @@ public final class Specification {
     }
 
     List<Automaton> allAutomata = new ArrayList<>();
+    ImmutableMap.Builder<Path, List<Automaton>> multiplePropertiesBuilder = ImmutableMap.builder();
 
     for (Path specFile : specFiles) {
       List<Automaton> automata = ImmutableList.of();
@@ -134,21 +134,22 @@ public final class Specification {
             automaton.getName(),
             automaton.getNumberOfStates());
       }
+      multiplePropertiesBuilder.put(specFile, automata);
       allAutomata.addAll(automata);
     }
-    return new Specification(pProperties, specFiles, allAutomata);
+    return new Specification(pProperties, multiplePropertiesBuilder.build(), allAutomata);
   }
 
   private Specification(Iterable<Automaton> pSpecificationAutomata) {
-    this(ImmutableSet.of(), ImmutableSet.of(), pSpecificationAutomata);
+    this(ImmutableSet.of(), ImmutableMap.of(), pSpecificationAutomata);
   }
 
   private Specification(
       Set<SpecificationProperty> pProperties,
-      Iterable<Path> pSpecFiles,
+      ImmutableMap<Path, List<Automaton>> pSpecification,
       Iterable<Automaton> pSpecificationAutomata) {
     properties = ImmutableSet.copyOf(pProperties);
-    specFiles = ImmutableSet.copyOf(pSpecFiles);
+    specification = pSpecification;
     specificationAutomata = ImmutableList.copyOf(pSpecificationAutomata);
   }
 
@@ -200,6 +201,10 @@ public final class Specification {
    *     automata.
    */
   public Set<Path> getSpecFiles() {
-    return specFiles;
+    return specification.keySet();
+  }
+
+  public ImmutableMap<Path, List<Automaton>> getSpecification() {
+    return specification;
   }
 }

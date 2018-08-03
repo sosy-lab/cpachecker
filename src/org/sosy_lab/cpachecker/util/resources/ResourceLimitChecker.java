@@ -154,6 +154,33 @@ public final class ResourceLimitChecker {
     return new ResourceLimitChecker(shutdownManager, limitsList);
   }
 
+  /**
+   * Create an instance of this class with specific CPU time limit. The returned instance is not
+   * started yet.
+   */
+  public static ResourceLimitChecker setInnerLimit(
+      LogManager logger, ShutdownManager shutdownManager, TimeSpan cpuTime) {
+
+    ImmutableList.Builder<ResourceLimit> limits = ImmutableList.builder();
+
+    try {
+      limits.add(ProcessCpuTimeLimit.fromNowOn(cpuTime));
+    } catch (JMException e) {
+      logger.log(
+          Level.WARNING,
+          "Your Java VM does not support measuring the cpu time, cpu time threshold disabled.");
+    }
+
+    ImmutableList<ResourceLimit> limitsList = limits.build();
+    if (!limitsList.isEmpty()) {
+      logger.log(
+          Level.INFO,
+          "Using the following inner resource limit:",
+          Joiner.on(", ").join(Lists.transform(limitsList, ResourceLimit::getName)));
+    }
+    return new ResourceLimitChecker(shutdownManager, limitsList);
+  }
+
   @Options(prefix="limits")
   private static class ResourceLimitOptions {
 

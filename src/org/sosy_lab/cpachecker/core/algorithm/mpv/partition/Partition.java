@@ -30,6 +30,7 @@ public final class Partition {
   private final TimeSpan partitionTimeLimit;
   private final boolean isAssignUnknown;
   private long cpuTime = 0;
+  private TimeSpan spentCpuTime = TimeSpan.ofNanos(-1);
 
   public Partition(
       MultipleProperties pProperties, TimeSpan pPartitionTimeLimit, boolean pIsAssignUnknown) {
@@ -60,7 +61,8 @@ public final class Partition {
   }
 
   private void stopAnalysis(ReachedSet reached) {
-    properties.divideSpentResources(getSpentCPUTime(), reached);
+    spentCpuTime = getSpentCPUTime();
+    properties.divideSpentResources(spentCpuTime, reached);
   }
 
   public boolean isChecked(ReachedSet reached) {
@@ -68,7 +70,8 @@ public final class Partition {
     if (reached.hasViolatedProperties()) {
       properties.processPropertyViolation(reached.getLastState());
     }
-    if (!reached.hasWaitingState() || (properties.isChecked() && properties.isStopAfterError())) {
+    if (!reached.hasWaitingState()
+        || (properties.isChecked() && !properties.isFindAllViolations())) {
       stopAnalysisOnSuccess(reached);
       return true;
     }
@@ -88,6 +91,9 @@ public final class Partition {
   }
 
   public TimeSpan getSpentCPUTime() {
+    if (spentCpuTime.asMillis() > 0) {
+      return spentCpuTime;
+    }
     try {
       long stopCpuTime = ProcessCpuTime.read();
       if (cpuTime >= 0) {

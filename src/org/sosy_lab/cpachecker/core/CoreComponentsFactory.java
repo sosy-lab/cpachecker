@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorithm;
@@ -241,10 +242,15 @@ public class CoreComponentsFactory {
   private boolean unknownIfUnrestrictedProgram = false;
 
   @Option(
-    secure = true,
-    name = "algorithm.CBMC",
-    description = "use CBMC as an external tool from CPAchecker"
-  )
+      secure = true,
+      name = "algorithm.MPV",
+      description = "use MPV algorithm for checking multiple properties")
+  private boolean useMPV = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.CBMC",
+      description = "use CBMC as an external tool from CPAchecker")
   boolean runCBMCasExternalTool = false;
 
   private final Configuration config;
@@ -376,6 +382,8 @@ public class CoreComponentsFactory {
               cfa,
               aggregatedReachedSets);
 
+    } else if (useMPV) {
+      algorithm = new MPVAlgorithm(cpa, config, logger, shutdownNotifier, specification, cfa);
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 

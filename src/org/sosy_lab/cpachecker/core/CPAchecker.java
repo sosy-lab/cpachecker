@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -343,6 +344,14 @@ public class CPAchecker {
           GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
           algorithm = factory.createAlgorithm(cpa, cfa, specification);
+
+          if (algorithm instanceof MPVAlgorithm && !stopAfterError) {
+            // sanity check
+            throw new InvalidConfigurationException(
+                "Cannot use option 'analysis.stopAfterError' along with "
+                    + "multi-property verification algorithm. "
+                    + "Please use option 'mpv.findAllViolations' instead");
+          }
 
           if (algorithm instanceof StatisticsProvider) {
             ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());

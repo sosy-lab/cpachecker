@@ -143,6 +143,9 @@ analysis.algorithm.CBMC = false
 # Currently all refiner require the use of the ARGCPA.
 analysis.algorithm.CEGAR = false
 
+# use MPV algorithm for checking multiple properties
+analysis.algorithm.MPV = false
+
 # use a analysis which proves if the program satisfies a specified property
 # with the help of an enabler CPA to separate differnt program paths
 analysis.algorithm.analysisWithEnabler = false
@@ -3049,9 +3052,26 @@ memorysafety.config = no default value
 merge = "JOIN"
   allowed values: [SEP, JOIN]
 
+# Collect statistics for all inner algorithm and for each iteration.
+mpv.collectAllStatistics = false
+
+# Find all violations of each checked property.
+mpv.findAllViolations = false
+
 # The ratio of CPU time limit in the first phase of Joint partitioning to CPU
 # time limit per each property.
 mpv.joint.firstPhaseRatio = 1.3
+
+# Limit for cpu time per each property in MPV (use seconds or specify a unit;
+# -1 for infinite)
+mpv.limits.cpuPerProperty = -1ns
+
+# Partitioning operator for MPV.
+mpv.partitionOperator = SeparatePartitioningOperator.class
+
+# ...
+mpv.propertySeparator = FILE
+  enum:     [FILE, AUTOMATON, TRANSITION]
 
 # The ratio of CPU time limit in the first phase of Relevance partitioning to
 # CPU time limit per each property.
