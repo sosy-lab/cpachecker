@@ -356,4 +356,9 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     }
     return false;
   }
+
+  @Override
+  protected String createUniqueName(SingleIdentifier id) {
+    return id.getType().toASTString(id.toString());
+  }
 }
