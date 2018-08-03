@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.util;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -81,6 +81,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions.GenericAssumptionBuilder;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -96,9 +97,6 @@ public final class ArithmeticOverflowAssumptionBuilder implements
   @Option(description = "Only check live variables for overflow,"
       + " as compiler can remove dead variables.", secure=true)
   private boolean useLiveness = true;
-
-  @Option(description = "Track overflow for signed integers.")
-  private boolean trackSignedIntegers = true;
 
   @Option(description = "Track overflows in left-shift operations.")
   private boolean trackLeftShifts = true;
@@ -131,37 +129,20 @@ public final class ArithmeticOverflowAssumptionBuilder implements
           "Liveness information is required for overflow analysis.");
     }
 
-    ImmutableMap.Builder<CType, CLiteralExpression> upperBoundsBuilder =
-        ImmutableMap.builder();
-    ImmutableMap.Builder<CType, CLiteralExpression> lowerBoundsBuilder =
-        ImmutableMap.builder();
-    ImmutableMap.Builder<CType, CLiteralExpression> widthBuilder =
-        ImmutableMap.builder();
+    upperBounds = new HashMap<>();
+    lowerBounds = new HashMap<>();
+    width = new HashMap<>();
 
-    if (trackSignedIntegers) {
-      CIntegerLiteralExpression INT_MIN = new CIntegerLiteralExpression(
-          FileLocation.DUMMY,
-          CNumericTypes.INT,
-          cfa.getMachineModel().getMinimalIntegerValue(CNumericTypes.INT));
-      CIntegerLiteralExpression INT_MAX = new CIntegerLiteralExpression(
-          FileLocation.DUMMY,
-          CNumericTypes.INT,
-          cfa.getMachineModel().getMaximalIntegerValue(CNumericTypes.INT));
-      CIntegerLiteralExpression INT_WIDTH = new CIntegerLiteralExpression(
-          FileLocation.DUMMY,
-          CNumericTypes.INT,
-          getWidthForMaxOf(cfa.getMachineModel().getMaximalIntegerValue(CNumericTypes.INT)));
+    // TODO: find out if the bare types even occur, or if they are always converted to the SIGNED
+    // variants. In that case we could remove the lines with types without the SIGNED_ prefix
+    // (though this should really make no difference in performance).
+    trackType(CNumericTypes.INT);
+    trackType(CNumericTypes.SIGNED_INT);
+    trackType(CNumericTypes.LONG_INT);
+    trackType(CNumericTypes.SIGNED_LONG_INT);
+    trackType(CNumericTypes.LONG_LONG_INT);
+    trackType(CNumericTypes.SIGNED_LONG_LONG_INT);
 
-      upperBoundsBuilder.put(CNumericTypes.INT, INT_MAX);
-      upperBoundsBuilder.put(CNumericTypes.SIGNED_INT, INT_MAX);
-      lowerBoundsBuilder.put(CNumericTypes.INT, INT_MIN);
-      lowerBoundsBuilder.put(CNumericTypes.SIGNED_INT, INT_MIN);
-      widthBuilder.put(CNumericTypes.INT, INT_WIDTH);
-      widthBuilder.put(CNumericTypes.SIGNED_INT, INT_WIDTH);
-    }
-    upperBounds = upperBoundsBuilder.build();
-    lowerBounds = lowerBoundsBuilder.build();
-    width = widthBuilder.build();
     cBinaryExpressionBuilder = new CBinaryExpressionBuilder(
         cfa.getMachineModel(),
         logger);
@@ -226,14 +207,29 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     return ImmutableList.copyOf(result);
   }
 
+  private void trackType(CSimpleType type) {
+    CIntegerLiteralExpression typeMinValue =
+        new CIntegerLiteralExpression(
+            FileLocation.DUMMY, type, cfa.getMachineModel().getMinimalIntegerValue(type));
+    CIntegerLiteralExpression typeMaxValue =
+        new CIntegerLiteralExpression(
+            FileLocation.DUMMY, type, cfa.getMachineModel().getMaximalIntegerValue(type));
+    CIntegerLiteralExpression typeWidth =
+        new CIntegerLiteralExpression(
+            FileLocation.DUMMY,
+            type,
+            getWidthForMaxOf(cfa.getMachineModel().getMaximalIntegerValue(type)));
+
+    upperBounds.put(type, typeMaxValue);
+    lowerBounds.put(type, typeMinValue);
+    width.put(type, typeWidth);
+  }
+
   /**
    * Compute and conjunct the assumption for the given expression,
    * stating that it does not overflow the allowed bound of its type.
    */
-  private void addAssumptionOnBounds(
-      CExpression exp,
-      Set<CExpression> result,
-      CFANode node)
+  private void addAssumptionOnBounds(CExpression exp, Set<CExpression> result, CFANode node)
       throws UnrecognizedCodeException {
     CType typ = exp.getExpressionType();
 
