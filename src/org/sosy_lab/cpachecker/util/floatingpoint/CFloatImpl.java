@@ -1007,9 +1007,9 @@ public class CFloatImpl implements CFloat {
 
     if (tDividend.isZero()) {
       CFloatWrapper rWrapper = tDividend.copyWrapper();
+      final long signBit = negativeResult ? CFloatUtil.getSignBitMask(tDividend.getType()) : 0L;
       rWrapper.setExponent(
-          rWrapper.getExponent() & CFloatUtil.getExponentMask(tDividend.getType())
-              ^ (negativeResult ? CFloatUtil.getSignBitMask(tDividend.getType()) : 0L));
+          (rWrapper.getExponent() & CFloatUtil.getExponentMask(tDividend.getType())) ^ signBit);
       return new CFloatImpl(rWrapper, tDividend.getType());
     }
 
@@ -1494,8 +1494,10 @@ public class CFloatImpl implements CFloat {
           if (type == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE) {
             if (((tMan & CFloatUtil.getNormalizationMask(type)) == 0) && ((oMan & CFloatUtil.getNormalizationMask(type)) != 0)) {
               greater = true;
-            } else if ((((tMan & CFloatUtil.getNormalizationMask(type)) != 0) && ((oMan & CFloatUtil.getNormalizationMask(type)) != 0))
-                || ((tMan & CFloatUtil.getNormalizationMask(type)) == 0) && ((oMan & CFloatUtil.getNormalizationMask(type)) == 0)) {
+            } else if ((((tMan & CFloatUtil.getNormalizationMask(type)) != 0)
+                    && ((oMan & CFloatUtil.getNormalizationMask(type)) != 0))
+                || (((tMan & CFloatUtil.getNormalizationMask(type)) == 0)
+                    && ((oMan & CFloatUtil.getNormalizationMask(type)) == 0))) {
               if ((tMan & CFloatUtil.getMantissaMask(type)) < (oMan & CFloatUtil.getMantissaMask(type))) {
                 greater = true;
               }
@@ -1515,8 +1517,10 @@ public class CFloatImpl implements CFloat {
           if (type == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE) {
             if (((tMan & CFloatUtil.getNormalizationMask(type)) != 0) && ((oMan & CFloatUtil.getNormalizationMask(type)) == 0)) {
               greater = true;
-            } else if ((((tMan & CFloatUtil.getNormalizationMask(type)) != 0) && ((oMan & CFloatUtil.getNormalizationMask(type)) != 0))
-                || ((tMan & CFloatUtil.getNormalizationMask(type)) == 0) && ((oMan & CFloatUtil.getNormalizationMask(type)) == 0)) {
+            } else if ((((tMan & CFloatUtil.getNormalizationMask(type)) != 0)
+                    && ((oMan & CFloatUtil.getNormalizationMask(type)) != 0))
+                || (((tMan & CFloatUtil.getNormalizationMask(type)) == 0)
+                    && ((oMan & CFloatUtil.getNormalizationMask(type)) == 0))) {
               if ((tMan & CFloatUtil.getMantissaMask(type)) > (oMan & CFloatUtil.getMantissaMask(type))) {
                 greater = true;
               }
