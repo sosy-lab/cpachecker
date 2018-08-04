@@ -14,12 +14,12 @@ describe('Error path section in Report.js', function () {
     browser.get(dirname);
     browser.driver.sleep(100);
 
-    it('Start button click test in CFA tab', function () {
+    describe('Start button click test in CFA tab', function () {
 
-        element(by.css('#errorpath_section > header > div.btn-group > button.btn.btn-warning')).click();
-        browser.wait(EC.presenceOf(element(by.css('.clickedErrPathElement'))));
 
         it('Clicked Error path element in error path code', function () {
+            element(by.css('#errorpath_section > header > div.btn-group > button.btn.btn-warning')).click();
+            browser.wait(EC.presenceOf(element(by.css('.clickedErrPathElement'))));
             expect(hasClass(element(by.id('errpath-0')), 'clickedErrPathElement')).toBe(true);
         });
 
@@ -29,11 +29,11 @@ describe('Error path section in Report.js', function () {
         })
     });
 
-    it('Next button click test in CFA tab', function () {
-        element(by.css('#errorpath_section > header > div.btn-group > button:nth-child(3)')).click();
-        browser.wait(EC.presenceOf(element(by.css('.clickedErrPathElement'))));
+    describe('Next button click test in CFA tab', function () {
 
         it('Clicked Error path element in error path code', function () {
+            element(by.css('#errorpath_section > header > div.btn-group > button:nth-child(3)')).click();
+            browser.wait(EC.presenceOf(element(by.css('.clickedErrPathElement'))));
             expect(hasClass(element(by.id('errpath-1')), 'clickedErrPathElement')).toBe(true);
         });
 
@@ -44,15 +44,16 @@ describe('Error path section in Report.js', function () {
 
         it('Mark Error path element node label in CFA graph', function () {
             browser.wait(EC.presenceOf(element(by.css('.marked-cfa-node-label'))));
-            expect(hasClass(element(by.xpath('//*[@id="cfa-node27"]/g/g/text/tspan[1]')), 'marked-cfa-node-label')).toBe(true);
+            expect(hasClass(element(by.css('#cfa-node27 > g > g > text > tspan.marked-cfa-node-label')), 'marked-cfa-node-label')).toBe(true);
         })
     });
 
-    it('Previous button click test in CFA tab', function () {
-        element(by.css('#errorpath_section > header > div.btn-group > button:nth-child(1)')).click();
-        browser.wait(EC.presenceOf(element(by.css('.clickedErrPathElement'))));
+    describe('Previous button click test in CFA tab', function () {
+
 
         it('Clicked Error path element in error path code', function () {
+            element(by.css('#errorpath_section > header > div.btn-group > button:nth-child(1)')).click();
+            browser.wait(EC.presenceOf(element(by.css('.clickedErrPathElement'))));
             expect(hasClass(element(by.id('errpath-0')), 'clickedErrPathElement')).toBe(true);
         });
 
@@ -62,26 +63,29 @@ describe('Error path section in Report.js', function () {
         })
     });
 
-    it('Error Code line click test in CFA tab', function () {
-        element(by.css('#errpath-6')).click();
-        browser.wait(EC.presenceOf(element(by.css('.clickedErrPathElement'))));
+    describe('Error Code line click test in CFA tab', function () {
+
 
         it('Clicked Error path element in error path code', function () {
+            element(by.css('#errpath-6')).click();
+            browser.wait(EC.presenceOf(element(by.css('.clickedErrPathElement'))));
             expect(hasClass(element(by.id('errpath-6')), 'clickedErrPathElement')).toBe(true);
         });
 
         it('Mark Error path element in CFA graph', function () {
+            element(by.css('#errpath-6')).click();
             browser.wait(EC.presenceOf(element(by.css('.marked-cfa-node'))));
             expect(hasClass(element(by.xpath('//*[@id="cfa-node1"]')), 'marked-cfa-node')).toBe(true);
         })
     });
 
-    it('Start button click test in ARG tab', function () {
-        element(by.id('set-tab-2')).click();
-        element(by.css('#errorpath_section > header > div.btn-group > button.btn.btn-warning')).click();
-        browser.wait(EC.presenceOf(element(by.css('.clickedErrPathElement'))));
+    describe('Start button click test in ARG tab', function () {
+
 
         it('Clicked Error path element in error path code', function () {
+            element(by.id('set-tab-2')).click();
+            element(by.css('#errorpath_section > header > div.btn-group > button.btn.btn-warning')).click();
+            browser.wait(EC.presenceOf(element(by.css('.clickedErrPathElement'))));
             expect(hasClass(element(by.id('errpath-0')), 'clickedErrPathElement')).toBe(true);
         });
 
@@ -92,11 +96,12 @@ describe('Error path section in Report.js', function () {
     });
 
 
-    it('Next button click test in ARG tab', function () {
-        element(by.css('#errorpath_section > header > div.btn-group > button:nth-child(3)')).click();
-        browser.wait(EC.presenceOf(element(by.css('.clickedErrPathElement'))));
+    describe('Next button click test in ARG tab', function () {
+
 
         it('Clicked Error path element in error path code', function () {
+            element(by.css('#errorpath_section > header > div.btn-group > button:nth-child(3)')).click();
+            browser.wait(EC.presenceOf(element(by.css('.clickedErrPathElement'))));
             expect(hasClass(element(by.id('errpath-1')), 'clickedErrPathElement')).toBe(true);
         });
 
@@ -107,11 +112,12 @@ describe('Error path section in Report.js', function () {
 
     });
 
-    it('Previous button click test in ARG tab', function () {
-        element(by.css('#errorpath_section > header > div.btn-group > button:nth-child(1)')).click();
-        browser.wait(EC.presenceOf(element(by.css('.clickedErrPathElement'))));
+    describe('Previous button click test in ARG tab', function () {
+
 
         it('Clicked Error path element in error path code', function () {
+            element(by.css('#errorpath_section > header > div.btn-group > button:nth-child(1)')).click();
+            browser.wait(EC.presenceOf(element(by.css('.clickedErrPathElement'))));
             expect(hasClass(element(by.id('errpath-0')), 'clickedErrPathElement')).toBe(true);
         });
 
@@ -121,20 +127,72 @@ describe('Error path section in Report.js', function () {
         })
     });
 
-    it('Error Code line click test in ARG tab', function () {
-        element(by.css('#errpath-8')).click();
-        browser.wait(EC.presenceOf(element(by.css('.clickedErrPathElement'))));
+    describe('Error Code line click test in ARG tab', function () {
+
 
         it('Clicked Error path element in error path code', function () {
+            element(by.css('#errpath-8')).click();
+            browser.wait(EC.presenceOf(element(by.css('.clickedErrPathElement'))));
             expect(hasClass(element(by.id('errpath-8')), 'clickedErrPathElement')).toBe(true);
         });
 
         it('Mark Error path element in ARG graph', function () {
+            element(by.css('#errpath-8')).click();
             browser.wait(EC.presenceOf(element(by.css('.marked-arg-node'))));
-            expect(hasClass(element(by.xpath('//*[@id="cfa-node1"]')), 'marked-arg-node')).toBe(true);
+            expect(hasClass(element(by.xpath('//*[@id="arg-node4"]')), 'marked-arg-node')).toBe(true);
         })
     });
 
+    describe('Start button click test in Source tab', function () {
+
+
+        it('Clicked Error path element in error path code', function () {
+            element(by.id('set-tab-3')).click();
+            element(by.css('#errorpath_section > header > div.btn-group > button.btn.btn-warning')).click();
+            browser.wait(EC.presenceOf(element(by.css('.clickedErrPathElement'))));
+            expect(hasClass(element(by.id('errpath-0')), 'clickedErrPathElement')).toBe(true);
+        });
+
+        it('Highlight selected code in source tab', function () {
+            browser.wait(EC.presenceOf(element(by.css('.marked-source-line'))));
+            expect(hasClass(element(by.xpath('//*[@id="source-1"]/td[2]/pre')), 'marked-source-line')).toBe(true);
+        })
+    });
+
+    describe('Next button click test in Source tab', function () {
+
+
+        it('Clicked Error path element in error path code', function () {
+            element(by.css('#errorpath_section > header > div.btn-group > button:nth-child(3)')).click();
+            browser.wait(EC.presenceOf(element(by.css('.clickedErrPathElement'))));
+            element(by.css('#errorpath_section > header > div.btn-group > button:nth-child(3)')).click();
+            browser.wait(EC.presenceOf(element(by.css('.clickedErrPathElement'))));
+            expect(hasClass(element(by.id('errpath-2')), 'clickedErrPathElement')).toBe(true);
+        });
+
+        it('Highlight selected code in source tab', function () {
+            browser.wait(EC.presenceOf(element(by.css('.marked-source-line'))));
+            expect(hasClass(element(by.xpath('//*[@id="source-2"]/td[2]/pre')), 'marked-source-line')).toBe(true);
+        })
+
+    });
+
+    describe('Previous button click test in Source tab', function () {
+
+
+        it('Clicked Error path element in error path code', function () {
+            element(by.css('#errorpath_section > header > div.btn-group > button:nth-child(1)')).click();
+            browser.wait(EC.presenceOf(element(by.css('.clickedErrPathElement'))));
+            element(by.css('#errorpath_section > header > div.btn-group > button:nth-child(1)')).click();
+            browser.wait(EC.presenceOf(element(by.css('.clickedErrPathElement'))));
+            expect(hasClass(element(by.id('errpath-0')), 'clickedErrPathElement')).toBe(true);
+        });
+
+        it('Highlight selected code in source tab', function () {
+            browser.wait(EC.presenceOf(element(by.css('.marked-source-line'))));
+            expect(hasClass(element(by.xpath('//*[@id="source-1"]/td[2]/pre')), 'marked-source-line')).toBe(true);
+        })
+    });
 
 
     // it('Show values of Error Code line', function () {
