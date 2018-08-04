@@ -104,14 +104,24 @@ javascript-unit-tests:
     paths:
     - src/org/sosy_lab/cpachecker/core/counterexample/node_modules/
 
-javascript-e2e-tests:
-  stage: checks
+generate-sample-report:
+  stage: build
   dependencies:
     - build-dependencies
     - build:jdk-10
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-10
+  script:
+    - scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug_false-unreach-label.c
+  artifacts:
+    paths:
+     - "output/Counterexample.1.html"
+
+
+javascript-e2e-tests:
+  stage: checks
+  dependencies: []
   image: node:8.9.4
   before_script:
-    - scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug_false-unreach-label.c
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - npm install
   script:
@@ -119,6 +129,9 @@ javascript-e2e-tests:
   cache:
     paths:
     - src/org/sosy_lab/cpachecker/core/counterexample/node_modules/
+  artifact:
+    paths:
+      - src/org/sosy_lab/cpachecker/core/counterexample/e2e-tests-report
 
 
 # No coverage is computed for CPAchecker
