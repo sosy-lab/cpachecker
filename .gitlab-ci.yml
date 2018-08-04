@@ -105,6 +105,7 @@ javascript-unit-tests:
     - src/org/sosy_lab/cpachecker/core/counterexample/node_modules/
 
 generate-sample-report:
+  <<: *build
   stage: build
   dependencies:
     - build-dependencies
