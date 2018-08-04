@@ -121,11 +121,9 @@ javascript-e2e-tests:
   stage: checks
   dependencies: 
     - generate-sample-report
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-10
+  image: node:8.9.4
   before_script:
-    - apt-get install -y nodejs 
-    - npm install n -g
-    - n latest
+    - apt-get install -y openjdk-8-jre-headless
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - npm install
     - ./node_modules/protractor/node_modules/webdriver-manager/bin/webdriver-manager update
