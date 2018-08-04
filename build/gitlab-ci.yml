@@ -51,16 +51,6 @@ build:jdk-10:
   <<: *build
   image: ${CI_REGISTRY_IMAGE}/test:jdk-10
 
-build:java-node:
-  <<: *build
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-10
-  script: 
-    - apt-get install -y curl \
-    - curl -sL https://deb.nodesource.com/setup_9.x | bash -
-    - apt-get install -y nodejs
-    - url -L https://www.npmjs.com/install.sh | sh  
-
-
 # For checks that need the binaries
 .binary_check: &binary_check
   stage: checks
