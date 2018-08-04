@@ -127,7 +127,6 @@ javascript-e2e-tests:
     - npm install
     - ./node_modules/protractor/node_modules/webdriver-manager/bin/webdriver-manager update
   script:
-    - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - npm run e2e-test
   cache:
     paths:
