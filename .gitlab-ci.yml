@@ -104,18 +104,6 @@ javascript-unit-tests:
     paths:
     - src/org/sosy_lab/cpachecker/core/counterexample/node_modules/
 
-generate-sample-report:
-  <<: *build
-  stage: build
-  dependencies:
-    - build-dependencies
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-10
-  script:
-    - scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug_false-unreach-label.c
-  artifacts:
-    paths:
-     - "output/Counterexample.1.html"
-
 
 javascript-e2e-tests:
   stage: checks
