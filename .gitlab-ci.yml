@@ -90,7 +90,6 @@ python-unit-tests:jdk-10:
   image: ${CI_REGISTRY_IMAGE}/test:jdk-10
 
 generate-sample-report:
-  <<: *build
   stage: checks
   dependencies:
     - build-dependencies
