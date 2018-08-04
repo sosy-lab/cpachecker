@@ -129,7 +129,7 @@ javascript-e2e-tests:
   cache:
     paths:
     - src/org/sosy_lab/cpachecker/core/counterexample/node_modules/
-  artifact:
+  artifacts:
     paths:
       - src/org/sosy_lab/cpachecker/core/counterexample/e2e-tests-report
 
