@@ -722,6 +722,7 @@ public class JSToFormulaConverter {
     result.add(fmgr.makeEqual(currentScopeVariable, createScope()));
     // TODO refactor
     final ArrayFormula<IntegerFormula, IntegerFormula> ss;
+    final int nestingLevel = functionCallExpression.getDeclaration().getScope().getNestingLevel();
     if (functionCallExpression.getDeclaration().isGlobal()) {
       ss = globalScopeStack;
     } else if (functionObject.isPresent()) {
@@ -734,20 +735,12 @@ public class JSToFormulaConverter {
                       ssa)));
     } else {
       ss =
-          scopeStack(
-              afmgr.select(
-                  scopeStack(callerScopeVariable),
-                  ifmgr.makeNumber(
-                      functionCallExpression.getDeclaration().getScope().getNestingLevel())));
+          scopeStack(afmgr.select(scopeStack(callerScopeVariable), ifmgr.makeNumber(nestingLevel)));
     }
     result.add(
         fmgr.makeEqual(
             scopeStack(currentScopeVariable),
-            afmgr.store(
-                ss,
-                ifmgr.makeNumber(
-                    functionCallExpression.getDeclaration().getScope().getNestingLevel() + 1),
-                currentScopeVariable)));
+            afmgr.store(ss, ifmgr.makeNumber(nestingLevel + 1), currentScopeVariable)));
 
     final Iterator<JSExpression> actualParams = edge.getArguments().iterator();
 
