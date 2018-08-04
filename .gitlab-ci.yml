@@ -123,7 +123,7 @@ javascript-e2e-tests:
     - generate-sample-report
   image: ${CI_REGISTRY_IMAGE}/test:jdk-10
   before_script:
-    - sudo apt-get install nodejs 
+    - apt-get install nodejs 
     - npm install n -g
     - n latest
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
