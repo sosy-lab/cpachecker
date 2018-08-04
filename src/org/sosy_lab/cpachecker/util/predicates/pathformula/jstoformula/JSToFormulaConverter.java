@@ -669,8 +669,7 @@ public class JSToFormulaConverter {
       final JSSimpleDeclaration pDeclaration,
       final SSAMapBuilder pSsa) {
     final Scope scope = pDeclaration.getScope();
-    final boolean isGlobal = scope.isGlobalScope() || scope.getNestingLevel() == 0;
-    if (isGlobal) {
+    if (scope.isGlobalScope()) {
       return mainScope;
     }
     assert !pCurrentFunction.equals("main")
