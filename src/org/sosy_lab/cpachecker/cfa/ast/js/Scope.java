@@ -37,7 +37,7 @@ public class Scope {
   }
 
   public boolean isGlobalScope() {
-    return declarationStack.isEmpty();
+    return getNestingLevel() == 0; // global members are declared in file function called "main"
   }
 
   public Scope createChildScope(final JSFunctionDeclaration pChild) {
@@ -49,7 +49,7 @@ public class Scope {
   }
 
   public int getNestingLevel() {
-    return declarationStack.size() - 1;
+    return Math.max(0, declarationStack.size() - 1);
   }
 
   public JSFunctionDeclaration getFunctionDeclaration() {
