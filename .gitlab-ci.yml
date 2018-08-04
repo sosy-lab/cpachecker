@@ -108,7 +108,6 @@ generate-sample-report:
   stage: build
   dependencies:
     - build-dependencies
-    - build:jdk-10
   image: ${CI_REGISTRY_IMAGE}/test:jdk-10
   script:
     - scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug_false-unreach-label.c
