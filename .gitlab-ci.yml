@@ -121,8 +121,9 @@ javascript-e2e-tests:
   stage: checks
   dependencies: 
     - generate-sample-report
-  image: java-node
+  image: node:8.9.4
   before_script:
+    - apt-get install default-jre
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - npm install
     - ./node_modules/protractor/node_modules/webdriver-manager/bin/webdriver-manager update
