@@ -60,13 +60,13 @@ module.exports = function (config) {
     reporters: ['progress', 'html'],
 
     htmlReporter: {
-      outputDir: 'Unit_testing_report', // where to put the reports 
+      outputDir: 'unit_testing_report', // where to put the reports 
       templatePath: null, // set if you moved jasmine_template.html
       focusOnFailures: true, // reports show failures on start
       namedFiles: false, // name files instead of creating sub-directories
       pageTitle: null, // page title for reports; browser info by default
       urlFriendlyName: false, // simply replaces spaces with _ for files/dirs
-      reportName: 'ChromeHeadless', // report summary filename; browser info by default
+      reportName: 'PhantomJS', // report summary filename; browser info by default
 
 
       // experimental
@@ -78,7 +78,6 @@ module.exports = function (config) {
     plugins: [
       // other plugins
       'karma-html-reporter',
-      'karma-chrome-launcher',
       'karma-phantomjs-launcher',
       'karma-jasmine'
     ],
@@ -98,7 +97,7 @@ module.exports = function (config) {
 
     // start these browsers
     // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
-    browsers: ['ChromeHeadless'],
+    browsers: ['PhantomJS'],
 
     // Continuous Integration mode
     // if true, Karma captures browsers, runs the tests and exits
