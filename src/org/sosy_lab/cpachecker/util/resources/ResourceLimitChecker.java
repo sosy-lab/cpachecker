@@ -161,6 +161,10 @@ public final class ResourceLimitChecker {
   public static ResourceLimitChecker setInnerLimit(
       LogManager logger, ShutdownManager shutdownManager, TimeSpan cpuTime) {
 
+    if (cpuTime.isEmpty()) {
+      return new ResourceLimitChecker(shutdownManager, ImmutableList.of());
+    }
+
     ImmutableList.Builder<ResourceLimit> limits = ImmutableList.builder();
 
     try {
