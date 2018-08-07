@@ -657,7 +657,9 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation
                 currentFormula, oldAbstraction, abstractionLocations);
         return Collections.singleton(Pair.of(newState, EmptyInferenceObject.getInstance()));
       } else {
-        return Collections.emptySet();
+        // We may first consider the state with inference object, and only then - with tau
+        // If we here return empty set, together with stop we cut the branch
+        return Collections.singleton(Pair.of(pState, EmptyInferenceObject.getInstance()));
       }
     }
   }

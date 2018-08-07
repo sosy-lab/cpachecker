@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.threadmodular;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.defaults.EpsilonState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 
 public class ThreadModularState extends AbstractSingleWrapperState {
-
   private static final long serialVersionUID = -178500066693874215L;
   private final InferenceObject inferenceObject;
 
@@ -65,5 +65,23 @@ public class ThreadModularState extends AbstractSingleWrapperState {
 
   public InferenceObject getInferenceObject() {
     return inferenceObject;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(inferenceObject, getWrappedState());
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
+    ThreadModularState other = (ThreadModularState) obj;
+    return Objects.equals(inferenceObject, other.inferenceObject)
+        && getWrappedState().equals(other.getWrappedState());
   }
 }

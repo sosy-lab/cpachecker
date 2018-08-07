@@ -51,10 +51,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithDummyLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class ARGState extends AbstractSingleWrapperState
-    implements Comparable<ARGState>, Graphable, Splitable {
+    implements Comparable<ARGState>, Graphable, Splitable, InferenceObject {
 
   private static final long serialVersionUID = 2608287648397165040L;
 
@@ -74,6 +75,7 @@ public class ARGState extends AbstractSingleWrapperState
   private boolean destroyed = false;
   private ARGState replacedWith = null;
   private boolean hasCoveredParent = false;
+  private boolean isAdjusted = false;
 
   private ARGState mergedWith = null;
 
@@ -84,7 +86,7 @@ public class ARGState extends AbstractSingleWrapperState
 
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
-  private ARGInferenceObject appliedEffect = null;
+  private InferenceObject appliedEffect = null;
 
   public ARGState(@Nullable AbstractState pWrappedState, @Nullable ARGState pParentElement) {
     super(pWrappedState);
@@ -210,7 +212,7 @@ public class ARGState extends AbstractSingleWrapperState
           allEdges.add(leavingEdge);
           currentLoc = leavingEdge.getSuccessor();
         }
-        ARGInferenceObject object = pChild.getAppliedEffect();
+        InferenceObject object = pChild.getAppliedEffect();
         if (allEdges.isEmpty() && object != null) {
           // environment
           /*PredicateInferenceObject pO = AbstractStates.extractStateByType(object, PredicateInferenceObject.class);
@@ -260,8 +262,16 @@ public class ARGState extends AbstractSingleWrapperState
   }
 
   public boolean isCovered() {
-    assert !destroyed : "Don't use destroyed ARGState " + this;
+    // assert !destroyed : "Don't use destroyed ARGState " + this;
     return mCoveredBy != null;
+  }
+
+  public void setAsAdjusted() {
+    isAdjusted = true;
+  }
+
+  public boolean isAdjusted() {
+    return isAdjusted;
   }
 
   public ARGState getCoveringState() {
@@ -292,17 +302,17 @@ public class ARGState extends AbstractSingleWrapperState
     hasCoveredParent = pHasCoveredParent;
   }
 
-  public void setAppliedEffect(ARGInferenceObject pObject) {
+  public void setAppliedEffect(InferenceObject pObject) {
     assert appliedEffect == null;
     appliedEffect = pObject;
   }
 
-  public ARGInferenceObject getAppliedEffect() {
+  public InferenceObject getAppliedEffect() {
     return appliedEffect;
   }
   // merged-with marker so that stop can return true for merged elements
 
-  void setMergedWith(ARGState pMergedWith) {
+  public void setMergedWith(ARGState pMergedWith) {
     assert !destroyed : "Don't use destroyed ARGState " + this;
     assert mergedWith == null : "Second merging of element " + this;
 
@@ -562,6 +572,7 @@ public class ARGState extends AbstractSingleWrapperState
 
     replacedWith = replacement;
     destroyed = true;
+    replacement.appliedEffect = appliedEffect;
   }
 
   /* (non-Javadoc)
@@ -615,5 +626,15 @@ public class ARGState extends AbstractSingleWrapperState
     } else {
       assert !pOtherParent.children.contains(this) : "Problem detected!";
     }
+  }
+
+  @Override
+  public boolean hasEmptyAction() {
+    return ((InferenceObject) getWrappedState()).hasEmptyAction();
+  }
+
+  @Override
+  public boolean hasSatisfiableGuard() {
+    return ((InferenceObject) getWrappedState()).hasSatisfiableGuard();
   }
 }

@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class ThreadModularPrecisionAdjustment implements PrecisionAdjustment {
@@ -59,15 +60,22 @@ public class ThreadModularPrecisionAdjustment implements PrecisionAdjustment {
       return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE));
     }
 
+    ARGState aState = (ARGState) state.getWrappedState();
+
+    if (aState.isAdjusted()) {
+      return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE));
+    }
+
     Optional<PrecisionAdjustmentResult> optionalUnwrappedResult =
         wrappedPrec.prec(
-            state.getWrappedState(),
+            aState.getWrappedState(),
             pPrecision,
             pStates,
             Functions.compose(AbstractSingleWrapperState.getUnwrapFunction(), pStateProjection),
             pFullState);
 
     if (!optionalUnwrappedResult.isPresent()) {
+      aState.removeFromARG();
       return Optional.empty();
     }
 
@@ -79,12 +87,23 @@ public class ThreadModularPrecisionAdjustment implements PrecisionAdjustment {
 
     if ((state.getWrappedState() == newElement)) {
       // nothing has changed
+      aState.setAsAdjusted();
       return Optional.of(PrecisionAdjustmentResult.create(pState, newPrecision, action));
     }
 
-    ThreadModularState resultElement =
-        new ThreadModularState(newElement, state.getInferenceObject());
+    ARGState resultArgState;
+    if (aState.getReplacedWith() != null) {
+      resultArgState = aState.getReplacedWith();
+      // assert resultArgState.getWrappedState().equals(newElement);
+    } else {
+      resultArgState = new ARGState(newElement, null);
+      aState.replaceInARGWith(resultArgState); // this completely eliminates element
+    }
 
+    ThreadModularState resultElement =
+        new ThreadModularState(resultArgState, state.getInferenceObject());
+
+    resultArgState.setAsAdjusted();
     return Optional.of(PrecisionAdjustmentResult.create(resultElement, newPrecision, action));
   }
 }

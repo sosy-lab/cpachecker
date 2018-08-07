@@ -26,15 +26,11 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-import com.google.common.collect.SetMultimap;
-import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,12 +43,13 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Function;
-import java.util.logging.Level;
+import org.sosy_lab.cpachecker.core.defaults.TauInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
+import org.sosy_lab.cpachecker.cpa.threadmodular.ThreadModularState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -65,7 +62,7 @@ import org.sosy_lab.cpachecker.util.Precisions;
 public class ARGReachedSet {
 
   private final int refinementNumber;
-  private final ARGCPA cpa;
+  // private final ARGCPA cpa;
 
   private final ReachedSet mReached;
   private final UnmodifiableReachedSet mUnmodifiableReached;
@@ -78,22 +75,26 @@ public class ARGReachedSet {
    * to reduce memory usage.
    */
   public ARGReachedSet(ReachedSet pReached) {
-    this(pReached, null);
+    this(pReached, -1);
   }
 
-  public ARGReachedSet(ReachedSet pReached, ARGCPA pCpa) {
-    this(pReached, pCpa, -1);
+  public ARGReachedSet(ReachedSet pReached, ARGCPA argCpa) {
+    this(pReached, -1);
+  }
+
+  public ARGReachedSet(ReachedSet pReached, ARGCPA argCpa, int num) {
+    this(pReached, num);
   }
 
   /**
    * This constructor may be used only during an refinement
    * which should be added to the refinement graph .dot file.
    */
-  public ARGReachedSet(ReachedSet pReached, ARGCPA pCpa, int pRefinementNumber) {
+  public ARGReachedSet(ReachedSet pReached, int pRefinementNumber) {
     mReached = checkNotNull(pReached);
     mUnmodifiableReached = new UnmodifiableReachedSetWrapper(mReached);
 
-    cpa = pCpa;
+    // cpa = pCpa;
     refinementNumber = pRefinementNumber;
   }
 
@@ -209,7 +210,9 @@ public class ARGReachedSet {
     Set<ARGState> toWaitlist = removeSubtree0(pState);
 
     for (ARGState waitingState : toWaitlist) {
-      Precision waitingStatePrec = mReached.getPrecision(waitingState);
+      ThreadModularState tmState =
+          new ThreadModularState(waitingState, TauInferenceObject.getInstance());
+      Precision waitingStatePrec = mReached.getPrecision(tmState);
       Preconditions.checkState(waitingStatePrec != null);
 
       for (int i = 0; i < pPrecisions.size(); i++) {
@@ -222,8 +225,8 @@ public class ARGReachedSet {
         Preconditions.checkState(waitingStatePrec != null);
       }
 
-      mReached.updatePrecision(waitingState, waitingStatePrec);
-      mReached.reAddToWaitlist(waitingState);
+      mReached.updatePrecision(tmState, waitingStatePrec);
+      mReached.reAddToWaitlist(tmState);
     }
   }
 
@@ -234,7 +237,7 @@ public class ARGReachedSet {
    * @param rootOfInfeasiblePart The root of the subtree to remove.
    */
   public void removeInfeasiblePartofARG(ARGState rootOfInfeasiblePart) {
-    dumpSubgraph(rootOfInfeasiblePart);
+    // dumpSubgraph(rootOfInfeasiblePart);
 
     Set<ARGState> infeasibleSubtree = rootOfInfeasiblePart.getSubgraph();
 
@@ -322,7 +325,7 @@ public class ARGReachedSet {
     Preconditions.checkNotNull(e);
     Preconditions.checkArgument(!e.getParents().isEmpty(), "May not remove the initial element from the ARG/reached set");
 
-    dumpSubgraph(e);
+    // dumpSubgraph(e);
 
     Set<ARGState> toUnreach = e.getSubgraph();
 
@@ -344,43 +347,34 @@ public class ARGReachedSet {
     return toWaitlist;
   }
 
-  private void dumpSubgraph(ARGState e) {
-    if (cpa == null) {
-      return;
-    }
-
-    ARGToDotWriter refinementGraph = cpa.getARGExporter().getRefinementGraphWriter();
-    if (refinementGraph == null) {
-      return;
-    }
-
-    SetMultimap<ARGState, ARGState> successors =
-        ARGUtils.projectARG(e, ARGState::getChildren, ARGUtils.RELEVANT_STATE);
-
-    SetMultimap<ARGState, ARGState> predecessors =
-        ARGUtils.projectARG(e, ARGState::getParents, ARGUtils.RELEVANT_STATE);
-
-    try {
-      refinementGraph.enterSubgraph("cluster_" + refinementNumber,
-                                    "Refinement " + refinementNumber);
-
-      refinementGraph.writeSubgraph(e,
-          Functions.forMap(successors.asMap(), ImmutableSet.<ARGState>of()),
-          Predicates.alwaysTrue(),
-          Predicates.alwaysFalse());
-
-      refinementGraph.leaveSubgraph();
-
-      for (ARGState predecessor : predecessors.get(e)) {
-        // insert edge from predecessor to e in global graph
-        refinementGraph.writeEdge(predecessor, e);
-      }
-
-    } catch (IOException ex) {
-      cpa.getLogger().logUserException(Level.WARNING, ex, "Could not write refinement graph to file");
-    }
-
-  }
+  /*
+   * private void dumpSubgraph(ARGState e) { if (cpa == null) { return; }
+   *
+   * ARGToDotWriter refinementGraph = cpa.getARGExporter().getRefinementGraphWriter(); if
+   * (refinementGraph == null) { return; }
+   *
+   * SetMultimap<ARGState, ARGState> successors = ARGUtils.projectARG(e, ARGState::getChildren,
+   * ARGUtils.RELEVANT_STATE);
+   *
+   * SetMultimap<ARGState, ARGState> predecessors = ARGUtils.projectARG(e, ARGState::getParents,
+   * ARGUtils.RELEVANT_STATE);
+   *
+   * try { refinementGraph.enterSubgraph("cluster_" + refinementNumber, "Refinement " +
+   * refinementNumber);
+   *
+   * refinementGraph.writeSubgraph(e, Functions.forMap(successors.asMap(),
+   * ImmutableSet.<ARGState>of()), Predicates.alwaysTrue(), Predicates.alwaysFalse());
+   *
+   * refinementGraph.leaveSubgraph();
+   *
+   * for (ARGState predecessor : predecessors.get(e)) { // insert edge from predecessor to e in
+   * global graph refinementGraph.writeEdge(predecessor, e); }
+   *
+   * } catch (IOException ex) { cpa.getLogger().logUserException(Level.WARNING, ex,
+   * "Could not write refinement graph to file"); }
+   *
+   * }
+   */
 
   /**
    * Remove a set of elements from the ARG and reached set. There are no sanity checks.
@@ -454,48 +448,9 @@ public class ARGReachedSet {
    * @param v The state which should be covered if possible.
    * @return whether the covering was successful
    */
+
   public boolean tryToCover(ARGState v) throws CPAException, InterruptedException {
     assert v.mayCover();
-
-    // sideeffect: coverage and cleanup of ARG is done in ARGStopSep#stop
-    boolean stop = cpa.getStopOperator().stop(v, mReached.getReached(v), mReached.getPrecision(v));
-    Preconditions.checkState(!stop);
-    // ignore return value of stop, because it will always be false
-
-    if (v.isCovered()) {
-      Set<ARGState> subtree = v.getSubgraph();
-      subtree.remove(v);
-
-      removeCoverageOf(v);
-      for (ARGState childOfV : subtree) {
-        // all states in the subtree (including v) may not cover anymore
-        removeCoverageOf(childOfV);
-      }
-
-      for (ARGState childOfV : subtree) {
-        // all states in the subtree (excluding v)
-        // are removed from the waitlist,
-        // are not covered anymore directly
-
-        if (childOfV.isCovered()) {
-          childOfV.uncover();
-        }
-      }
-
-      for (ARGState childOfV : subtree) {
-        mReached.removeOnlyFromWaitlist(childOfV);
-
-        childOfV.setHasCoveredParent(true);
-
-        // each child of v now doesn't cover anything anymore
-        assert childOfV.getCoveredByThis().isEmpty();
-        assert !childOfV.mayCover();
-      }
-
-      mReached.removeOnlyFromWaitlist(v);
-
-      return true;
-    }
     return false;
   }
 
@@ -509,15 +464,16 @@ public class ARGReachedSet {
    * @param beUnsound whether or not the be unsound
    * @return whether the covering was successful
    */
-  public boolean tryToCover(ARGState v, boolean beUnsound) throws CPAException, InterruptedException {
-    assert v.mayCover();
 
-    if (beUnsound) {
-      // sideeffect: coverage and cleanup of ARG is done in ARGStopSep#stop
-      cpa.getStopOperator().stop(v, mReached.getReached(v), mReached.getPrecision(v));
-      return v.isCovered();
-    }
-
+  public boolean tryToCover(ARGState v, boolean beUnsound)
+      throws CPAException, InterruptedException {
+    /*
+     * assert v.mayCover();
+     *
+     * if (beUnsound) { // sideeffect: coverage and cleanup of ARG is done in ARGStopSep#stop
+     * cpa.getStopOperator().stop(v, mReached.getReached(v), mReached.getPrecision(v)); return
+     * v.isCovered(); }
+     */
     return tryToCover(v);
   }
 

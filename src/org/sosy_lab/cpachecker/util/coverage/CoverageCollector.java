@@ -137,7 +137,7 @@ class ReachedSetCoverageCollector {
 
     for (AbstractState state : reached) {
       ARGState argState = AbstractStates.extractStateByType(state, ARGState.class);
-      if (argState != null ) {
+      if (argState != null && !argState.isDestroyed()) {
         for (ARGState child : argState.getChildren()) {
           // Do not specially check child.isCovered, as the edge to covered state also should be marked as covered edge
           List<CFAEdge> edges = argState.getEdgesToChild(child);

@@ -268,9 +268,9 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
           if (w.isDestroyed()) {
             break; // all further elements are unreachable anyway
           }
-          if (pReached.tryToCover(w)) {
+        if (pReached.tryToCover(w)) {
             break; // all further elements are covered anyway
-          }
+        }
       }
     } finally {
       stats.coverTime.stop();

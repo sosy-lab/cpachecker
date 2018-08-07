@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 public class ThreadModularCPA
     implements ConfigurableProgramAnalysis, WrapperCPA, StatisticsProvider {
@@ -51,10 +52,12 @@ public class ThreadModularCPA
     return AutomaticCPAFactory.forType(ThreadModularCPA.class);
   }
 
-  private ConfigurableProgramAnalysisTM wrappedCpa;
+  private final ConfigurableProgramAnalysisTM wrappedCpa;
+  private final ThreadModularStatistics tStats;
 
   public ThreadModularCPA(ConfigurableProgramAnalysis pCpa) {
     wrappedCpa = (ConfigurableProgramAnalysisTM) pCpa;
+    tStats = new ThreadModularStatistics();
   }
 
   @Override
@@ -65,19 +68,25 @@ public class ThreadModularCPA
   @Override
   public TransferRelation getTransferRelation() {
     return new ThreadModularTransferRelation(
-        wrappedCpa.getTransferRelation(), wrappedCpa.getCompatibilityCheck());
+        wrappedCpa.getTransferRelation(),
+        wrappedCpa.getCompatibilityCheck(),
+        tStats);
   }
 
   @Override
   public MergeOperator getMergeOperator() {
     return new ThreadModularMergeOperator(
-        wrappedCpa.getMergeOperator(), wrappedCpa.getMergeForInferenceObject());
+        wrappedCpa.getMergeOperator(),
+        wrappedCpa.getMergeForInferenceObject(),
+        tStats);
   }
 
   @Override
   public StopOperator getStopOperator() {
     return new ThreadModularStopOperator(
-        wrappedCpa.getStopOperator(), wrappedCpa.getStopForInferenceObject());
+        wrappedCpa.getStopOperator(),
+        wrappedCpa.getStopForInferenceObject(),
+        tStats);
   }
 
   @Override
@@ -89,7 +98,8 @@ public class ThreadModularCPA
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     return new ThreadModularState(
-        wrappedCpa.getInitialState(node, partition), TauInferenceObject.getInstance());
+        new ARGState(wrappedCpa.getInitialState(node, partition), null),
+        TauInferenceObject.getInstance());
   }
 
   @Override
@@ -100,6 +110,7 @@ public class ThreadModularCPA
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(tStats);
     if (wrappedCpa instanceof StatisticsProvider) {
       ((StatisticsProvider) wrappedCpa).collectStatistics(pStatsCollection);
     }

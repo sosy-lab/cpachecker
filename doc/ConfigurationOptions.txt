@@ -1648,6 +1648,9 @@ cpa.predicate.abstractions.file = "abstractions.txt"
 # (signature, not name!).
 cpa.predicate.addRangeConstraintsForNondet = false
 
+# Apply only relevant effects.
+cpa.predicate.applyRelevantEffects = true
+
 # which strategy/heuristic should be used to compute relevant predicates for
 # a block-reduction?
 # AUXILIARY: dependencies between variables.
@@ -1799,6 +1802,15 @@ cpa.predicate.ignoreIrrelevantVariables = true
 # do not include assumptions of states into path formula during strengthening
 cpa.predicate.ignoreStateAssumptions = false
 
+# merge inference objects only with equal abstraction
+cpa.predicate.inferenceObjects.abstractionLattice = false
+
+# do not consider abstraction from inference objects
+cpa.predicate.inferenceObjects.emptyAbstraction = false
+
+# Use undefined assignments (havoc abstraction)
+cpa.predicate.inferenceObjects.useUndefFunctions = true
+
 # Add computed invariants to the precision. Invariants do not need to be
 # generated with the PredicateCPA they can also be given from outside.
 cpa.predicate.invariants.addToPrecision = false
@@ -1899,6 +1911,10 @@ cpa.predicate.memoryFreeFunctionName = "free"
 # which merge operator to use for predicate cpa (usually ABE should be used)
 cpa.predicate.merge = "ABE"
   allowed values: [SEP, ABE]
+
+# which merge operator to use for inference objects
+cpa.predicate.mergeTypeForInferenceObjects = "JOIN"
+  allowed values: [SEP, JOIN]
 
 # Set of functions that should be considered as giving a non-deterministic
 # return value. If you specify this option, the default values are not added

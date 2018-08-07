@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-public interface InferenceObject {
+public interface InferenceObject extends AbstractState {
 
   public default boolean hasEmptyAction() {
     return false;
