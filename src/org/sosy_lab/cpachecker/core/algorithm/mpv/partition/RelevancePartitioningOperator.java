@@ -58,11 +58,11 @@ public final class RelevancePartitioningOperator extends AbstractPartitioningOpe
 
   @Override
   public ImmutableList<Partition> createPartition() {
-    if (phase == 1) {
-      phase = 2;
-      return createJointPartition(properties, scaleTimeLimit(firstPhaseRatio), false);
+    if (currentPhase() == 1) {
+      nextPhase();
+      return createJointPartition(getProperties(), scaleTimeLimit(firstPhaseRatio), false);
     } else {
-      MultipleProperties irrelevant = properties.createIrrelevantProperties();
+      MultipleProperties irrelevant = getProperties().createIrrelevantProperties();
       int curNumberOfIrrelevantProperties = irrelevant.getNumberOfProperties();
       if (lastNumberOfIrrelevantProperties != curNumberOfIrrelevantProperties) {
         lastNumberOfIrrelevantProperties = curNumberOfIrrelevantProperties;
@@ -71,7 +71,7 @@ public final class RelevancePartitioningOperator extends AbstractPartitioningOpe
         if (curNumberOfIrrelevantProperties > 0) {
           irrelevant.stopAnalysisOnFailure("Relavance algorithm, second phase");
         }
-        return createSeparatedPartition(properties);
+        return createSeparatedPartition(getProperties());
       }
     }
   }

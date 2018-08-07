@@ -34,7 +34,7 @@ public abstract class AbstractSingleProperty {
   private final String name;
 
   private TimeSpan cpuTime; // CPU time, which was spent on checking this property
-  protected boolean relevant; // whether this property was used during the analysis or not
+  private boolean relevant; // whether this property was used during the analysis or not
   private int violations; // number of found violations
   private boolean allViolationsFound;
   private Result result;
@@ -49,7 +49,7 @@ public abstract class AbstractSingleProperty {
     allViolationsFound = false;
     result = Result.NOT_YET_STARTED;
     violatedPropertyDescription = Sets.newHashSet();
-    reasonOfUnknown = null;
+    reasonOfUnknown = "";
   }
 
   /*
@@ -102,6 +102,10 @@ public abstract class AbstractSingleProperty {
 
   public boolean isRelevant() {
     return relevant;
+  }
+
+  protected void setRelevant() {
+    relevant = true;
   }
 
   public Result getResult() {

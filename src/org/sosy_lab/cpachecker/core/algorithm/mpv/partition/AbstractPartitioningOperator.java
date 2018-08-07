@@ -30,9 +30,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpv.property.MultipleProperties;
 @Options
 abstract class AbstractPartitioningOperator implements PartitioningOperator {
 
-  protected final MultipleProperties properties; // initial properties
-  protected final TimeSpan timeLimitPerProperty; // resource limitations per each property
-  protected int phase;
+  private final MultipleProperties properties; // initial properties
+  private final TimeSpan timeLimitPerProperty; // resource limitations per each property
+  private int phase;
 
   public AbstractPartitioningOperator(
       Configuration pConfiguration, MultipleProperties pProperties, TimeSpan pTimeLimitPerProperty)
@@ -77,5 +77,17 @@ abstract class AbstractPartitioningOperator implements PartitioningOperator {
 
   protected TimeSpan scaleTimeLimit(double ratio) {
     return TimeSpan.ofMillis(Math.round(ratio * timeLimitPerProperty.asMillis()));
+  }
+
+  protected MultipleProperties getProperties() {
+    return properties;
+  }
+
+  protected int currentPhase() {
+    return phase;
+  }
+
+  protected void nextPhase() {
+    phase++;
   }
 }

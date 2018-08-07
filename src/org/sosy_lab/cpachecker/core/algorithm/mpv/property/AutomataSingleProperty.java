@@ -66,7 +66,7 @@ public final class AutomataSingleProperty extends AbstractSingleProperty {
       for (AutomatonInternalState state : automaton.getStates()) {
         for (AutomatonTransition transition : state.getTransitions()) {
           if (transition.isRelevant()) {
-            relevant = true;
+            setRelevant();
             return;
           }
         }

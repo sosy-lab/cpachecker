@@ -38,6 +38,6 @@ public final class NoPartitioningOperator extends AbstractPartitioningOperator {
   @Override
   public ImmutableList<Partition> createPartition() {
     return createJointPartition(
-        properties, scaleTimeLimit(properties.getNumberOfProperties()), true);
+        getProperties(), scaleTimeLimit(getProperties().getNumberOfProperties()), true);
   }
 }

@@ -47,11 +47,11 @@ public final class JointPartitioningOperator extends AbstractPartitioningOperato
 
   @Override
   public ImmutableList<Partition> createPartition() {
-    if (phase == 1) {
-      phase = 2;
-      return createJointPartition(properties, scaleTimeLimit(firstPhaseRatio), false);
+    if (currentPhase() == 1) {
+      nextPhase();
+      return createJointPartition(getProperties(), scaleTimeLimit(firstPhaseRatio), false);
     } else {
-      return createSeparatedPartition(properties);
+      return createSeparatedPartition(getProperties());
     }
   }
 }

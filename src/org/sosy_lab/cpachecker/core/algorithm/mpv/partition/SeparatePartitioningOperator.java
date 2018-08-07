@@ -37,6 +37,6 @@ public final class SeparatePartitioningOperator extends AbstractPartitioningOper
 
   @Override
   public ImmutableList<Partition> createPartition() {
-    return createSeparatedPartition(properties);
+    return createSeparatedPartition(getProperties());
   }
 }

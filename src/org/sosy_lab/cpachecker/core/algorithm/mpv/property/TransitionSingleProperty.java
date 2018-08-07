@@ -66,7 +66,7 @@ public final class TransitionSingleProperty extends AbstractSingleProperty {
   public void checkIfRelevant() {
     for (AutomatonTransition automatonTransition : targetTransition) {
       if (automatonTransition.isRelevant()) {
-        relevant = true;
+        setRelevant();
         return;
       }
     }

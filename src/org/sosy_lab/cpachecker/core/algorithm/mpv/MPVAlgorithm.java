@@ -78,11 +78,18 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
     private final Timer totalTimer = new Timer();
     private final Timer createPartitionsTimer = new Timer();
 
-    private int iterationNumber = 0;
-    private final List<Partition> partitions = Lists.newArrayList();
-    private MultipleProperties multipleProperties;
+    private int iterationNumber;
+    private final List<Partition> partitions;
+    private final MultipleProperties multipleProperties;
 
     private Collection<Statistics> statistics;
+
+    private MPVStatistics(final MultipleProperties pMultipleProperties) {
+      multipleProperties = pMultipleProperties;
+      iterationNumber = 0;
+      partitions = Lists.newArrayList();
+      statistics = Lists.newArrayList();
+    }
 
     public Result adjustOverallResult() {
       return multipleProperties.getOverallResult();
@@ -174,7 +181,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
       description = "Collect statistics for all inner algorithm and for each iteration.")
   private boolean collectAllStatistics = false;
 
-  private final MPVStatistics stats = new MPVStatistics();
+  private final MPVStatistics stats;
   private final ConfigurableProgramAnalysis cpa;
   private final LogManager logger;
   private final Configuration config;
@@ -197,6 +204,10 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
     specification = pSpecification;
     cfa = pCfa;
     config.inject(this);
+    MultipleProperties multipleProperties =
+        new MultipleProperties(
+            specification.getSpecification(), propertySeparator, findAllViolations);
+    stats = new MPVStatistics(multipleProperties);
   }
 
   @Override
@@ -207,9 +218,6 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
 
     Iterable<CFANode> initialNodes = AbstractStates.extractLocations(reached.getFirstState());
     CFANode mainFunction = Iterables.getOnlyElement(initialNodes);
-    stats.multipleProperties =
-        new MultipleProperties(
-            specification.getSpecification(), propertySeparator, findAllViolations);
     PartitioningOperator partitioningOperator = createPartitioningOperator();
 
     try {
@@ -223,7 +231,8 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
           stats.partitions.add(partition);
           ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
           ResourceLimitChecker limits =
-              ResourceLimitChecker.setInnerLimit(logger, shutdownManager, partition.getTimeLimit());
+              ResourceLimitChecker.createCpuTimeLimitChecker(
+                  logger, shutdownManager, partition.getTimeLimit());
           limits.start();
 
           stats.multipleProperties.setTargetProperties(partition.getProperties());

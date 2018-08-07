@@ -167,13 +167,10 @@ public final class MultipleProperties {
    * Determine, which property was violated based on target state, and stop checking it if
    * necessary.
    */
-  public AbstractSingleProperty processPropertyViolation(AbstractState targetState) {
+  public void processPropertyViolation(AbstractState targetState) {
     if (targetState instanceof AbstractWrapperState) {
       for (AbstractState state : ((AbstractWrapperState) targetState).getWrappedStates()) {
-        AbstractSingleProperty obtainedProperty = processPropertyViolation(state);
-        if (obtainedProperty != null) {
-          return obtainedProperty;
-        }
+        processPropertyViolation(state);
       }
     } else if (targetState instanceof AutomatonState) {
       AutomatonState automatonState = (AutomatonState) targetState;
@@ -187,12 +184,11 @@ public final class MultipleProperties {
             property.checkIfRelevant();
             property.updateResult(Result.FALSE);
             property.addViolatedPropertyDescription(automatonState.getViolatedProperties());
-            return property;
+            return; // shortcut
           }
         }
       }
     }
-    return null;
   }
 
   /*
