@@ -126,10 +126,6 @@ javascript-e2e-tests:
     - generate-sample-report
   image: ${CI_REGISTRY_IMAGE}/test:java-node
   before_script:
-    - curl -sS -o - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add
-    - echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list
-    - apt-get -y update
-    - apt-get -y install chromium
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - npm install
     - ./node_modules/protractor/node_modules/webdriver-manager/bin/webdriver-manager update
