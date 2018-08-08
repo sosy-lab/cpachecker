@@ -1,3 +1,5 @@
+// Refer doc/JavascriptTesting for quikstart guide
+
 // Karma configuration
 // Generated on Fri Jun 29 2018 17:07:20 GMT+0530 (India Standard Time)
 var fs = require('fs');
