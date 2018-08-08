@@ -87,6 +87,7 @@ import org.eclipse.cdt.core.dom.ast.IBasicType;
 import org.eclipse.cdt.core.dom.ast.IBasicType.Kind;
 import org.eclipse.cdt.core.dom.ast.IPointerType;
 import org.eclipse.cdt.core.dom.ast.IProblemType;
+import org.eclipse.cdt.core.dom.ast.IType;
 import org.eclipse.cdt.core.dom.ast.c.ICASTArrayDesignator;
 import org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier;
 import org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer;
@@ -1461,11 +1462,20 @@ class ASTConverter {
 
   public CReturnStatement convert(final IASTReturnStatement s) {
     final FileLocation loc = getLocation(s);
-    final Optional<CExpression> returnExp =
-        Optional.fromNullable(convertExpressionWithoutSideEffects(s.getReturnValue()));
+    final Optional<CExpression> returnExp;
     final Optional<CVariableDeclaration> returnVariableDeclaration = ((FunctionScope)scope).getReturnVariable();
-
     final Optional<CAssignment> returnAssignment;
+    final IASTExpression rV = s.getReturnValue();                               
+    final IType rVexpT = rV.getExpressionType();  
+    
+    if (rV instanceof CASTFunctionCallExpression
+        && rVexpT instanceof org.eclipse.cdt.internal.core.dom.parser.c.CBasicType
+        && ((org.eclipse.cdt.internal.core.dom.parser.c.CBasicType)rVexpT).getKind() == Kind.eVoid) {
+      returnExp = Optional.absent();
+    } else {
+      returnExp = Optional.fromNullable(convertExpressionWithoutSideEffects(rV));
+    }
+
     if (returnVariableDeclaration.isPresent()) {
       CIdExpression lhs = new CIdExpression(loc, returnVariableDeclaration.get());
       CExpression rhs = null;
