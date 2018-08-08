@@ -82,7 +82,7 @@ Protractor e2e-tests are located in the `src/org/sosy_lab/cpachecker/core/counte
 The above directory is a root for End-to-end testing JavaScript for AngularJS report application.
 
 Look for the example `src/org/sosy_lab/cpachecker/core/counterexample/e2e-tests/test_spec.js`.
-Add more `_spec.js` files as you wish in the above folder; we have configured karma to find them.
+Add more `_spec.js` files as you wish in the above folder; we have configured Protractor to find them.
 
 ### Installation
 
@@ -102,7 +102,7 @@ First we have to generate our AngularJS report application for a program and the
 
 We are using Chromium browser and Selenium web driver for End-to-end testing application.
 
-For more information regarding congiguration you can browse `e2e-conf.js`.
+For more information regarding configuration you can browse `e2e-conf.js`.
 
 
 ### Running tests
