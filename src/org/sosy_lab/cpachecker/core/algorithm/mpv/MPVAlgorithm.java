@@ -23,21 +23,32 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpv;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import edu.umd.cs.findbugs.annotations.Nullable;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -107,12 +118,17 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
       return "MPV algorithm";
     }
 
-    @Override
-    public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
+    private TimeSpan getCurrentCpuTime() {
       TimeSpan totalCpuTime = TimeSpan.ofNanos(0);
       for (AbstractSingleProperty property : multipleProperties.getProperties()) {
         totalCpuTime = TimeSpan.sum(totalCpuTime, property.getCpuTime());
       }
+      return totalCpuTime;
+    }
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
+      TimeSpan totalCpuTime = getCurrentCpuTime();
       out.println("Number of iterations:                         " + iterationNumber);
       out.println(
           "Total wall time for creating partitions:  "
@@ -152,6 +168,12 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
+  private enum LimitAdjustmentStrategy {
+    NONE,
+    DISTRIBUTE_REMAINING,
+    DISTRIBUTE_BY_PROPERTY
+  }
+
   @Option(
       secure = true,
       name = "limits.cpuPerProperty",
@@ -159,6 +181,39 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
           "Limit for cpu time per each property in MPV (use seconds or specify a unit; -1 for infinite)")
   @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
   private TimeSpan cpuPerProperty = TimeSpan.ofNanos(-1);
+
+  @Option(
+      secure = true,
+      name = "limits.adjustmentStrategy",
+      description =
+          "Adjust resource limitations during the analysis.\n"
+              + "- NONE: do not adjust resource limitations (default).\n"
+              + "- DISTRIBUTE_REMAINING: distribute resources, which were allocated for some already checked "
+              + "property, but were not fully spent, between other properties, which are still checking.\n"
+              + "- DISTRIBUTE_BY_PROPERTY: scale resources for each property in accordance with the given "
+              + "ratio in the property distribution file.")
+  private LimitAdjustmentStrategy limitsAdjustmentStrategy = LimitAdjustmentStrategy.NONE;
+
+  @Option(
+      secure = true,
+      name = "limits.firstPartitionRatio",
+      description =
+          "Change resource limitations for the first partition by the given ratio. "
+              + "This option will be ignored if NONE limits adjustment strategy is used.")
+  private double firstPartitionFactor = 1.0;
+
+  @Option(
+      secure = true,
+      name = "limits.propertyDistributionFile",
+      description =
+          "Get a resource limitation distribution per property from file. "
+              + "This option should be used only together with DISTRIBUTE_BY_PROPERTY limits adjustment strategy. "
+              + "The following format should be used in the file:\n'<property name>':<ratio>")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  @Nullable
+  private Path propertyDistributionFile = null;
+
+  private final Map<AbstractSingleProperty, Double> propertyDistribution;
 
   @Option(secure = true, name = "propertySeparator", description = "...")
   private PropertySeparator propertySeparator = PropertySeparator.FILE;
@@ -208,6 +263,70 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
         new MultipleProperties(
             specification.getSpecification(), propertySeparator, findAllViolations);
     stats = new MPVStatistics(multipleProperties);
+    propertyDistribution = initializePropertyDistribution();
+  }
+
+  private Map<AbstractSingleProperty, Double> initializePropertyDistribution() {
+    if (propertyDistributionFile == null) {
+      return ImmutableMap.of();
+    }
+    try {
+      final Pattern propertyDistributionPattern = Pattern.compile("'(.+)'\\s*:\\s*(\\S+)");
+      List<String> lines = Files.readAllLines(propertyDistributionFile, Charset.defaultCharset());
+      ImmutableMap.Builder<AbstractSingleProperty, Double> propertyDistributionBuilder =
+          ImmutableMap.builder();
+      for (String line : lines) {
+        line = line.trim();
+        if (line.isEmpty()) {
+          // ignore empty lines
+          continue;
+        }
+        Matcher matcher = propertyDistributionPattern.matcher(line);
+        if (matcher.matches()) {
+          String propertyName = matcher.group(1);
+          String ratioStr = matcher.group(2);
+          AbstractSingleProperty targetProperty = null;
+          // attempt to find property with this name
+          for (AbstractSingleProperty property : stats.multipleProperties.getProperties()) {
+            if (property.getName().equals(propertyName)) {
+              targetProperty = property;
+              break;
+            }
+          }
+          if (targetProperty == null) {
+            logger.log(
+                Level.WARNING,
+                "Property with name '"
+                    + propertyName
+                    + "', specified in property distribution file, does not exist");
+            continue;
+          }
+          // attempt to parse ratio
+          try {
+            Double ratio = Double.parseDouble(ratioStr);
+            propertyDistributionBuilder.put(targetProperty, ratio);
+          } catch (NumberFormatException e) {
+            logger.log(
+                Level.WARNING,
+                "Could not parse ratio '" + ratioStr + "' for property " + propertyName);
+          }
+        } else {
+          logger.log(
+              Level.WARNING,
+              "Could not parse line '"
+                  + line
+                  + "' in property distribution file. "
+                  + "Correct format is '<property name>':<ratio>");
+        }
+      }
+      return propertyDistributionBuilder.build();
+    } catch (IOException e) {
+      logger.log(
+          Level.WARNING,
+          e,
+          "Could not read properties distribution from file " + propertyDistributionFile);
+    }
+    return ImmutableMap.of();
   }
 
   @Override
@@ -221,14 +340,18 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
     PartitioningOperator partitioningOperator = createPartitioningOperator();
 
     try {
-      do { // for each new list of partitions
-        for (Partition partition : partitioningOperator.createPartition()) {
+      do {
+        ImmutableList<Partition> partitions = partitioningOperator.createPartition();
+        int partitionNumber = 0;
+        for (Partition partition : partitions) {
           int numberOfProperties = partition.getNumberOfProperties();
           if (numberOfProperties <= 0) {
             // shortcut
             continue;
           }
           stats.partitions.add(partition);
+          adjustTimeLimit(partition, partitions.size(), partitionNumber);
+          partitionNumber++;
           ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
           ResourceLimitChecker limits =
               ResourceLimitChecker.createCpuTimeLimitChecker(
@@ -280,6 +403,52 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
       stats.totalTimer.stop();
     }
     return status;
+  }
+
+  private void adjustTimeLimit(
+      Partition partition, int overallPartitions, int currentPartitionNumber) {
+    if (limitsAdjustmentStrategy.equals(LimitAdjustmentStrategy.NONE)) {
+      // do not change the specified time limit
+      return;
+    }
+    if (!partition.isIntermediateStep()) {
+      // ignore intermediate steps
+      return;
+    }
+    TimeSpan overallSpentCpuTime = stats.getCurrentCpuTime();
+    TimeSpan overallCpuTimeLimit =
+        cpuPerProperty.multiply(stats.multipleProperties.getNumberOfProperties());
+    if (overallCpuTimeLimit.compareTo(overallSpentCpuTime) <= 0
+        || overallPartitions <= currentPartitionNumber) {
+      // do nothing in case of bad args - should be unreachable
+      return;
+    }
+    TimeSpan adjustedTimeLimit = cpuPerProperty;
+    switch (limitsAdjustmentStrategy) {
+      case DISTRIBUTE_REMAINING:
+        adjustedTimeLimit =
+            TimeSpan.difference(overallCpuTimeLimit, overallSpentCpuTime)
+                .divide(overallPartitions - currentPartitionNumber);
+        break;
+      case DISTRIBUTE_BY_PROPERTY:
+        if (partition.getNumberOfProperties() == 1) {
+          AbstractSingleProperty currentProperty = partition.getProperties().getProperties().get(0);
+          if (propertyDistribution.containsKey(currentProperty)) {
+            adjustedTimeLimit =
+                TimeSpan.ofMillis(
+                    Math.round(
+                        propertyDistribution.get(currentProperty) * adjustedTimeLimit.asMillis()));
+          }
+        }
+        break;
+      default:
+        break;
+    }
+    if (currentPartitionNumber == 0) {
+      adjustedTimeLimit =
+          TimeSpan.ofMillis(Math.round(firstPartitionFactor * adjustedTimeLimit.asMillis()));
+    }
+    partition.updateTimeLimit(adjustedTimeLimit);
   }
 
   private void collectStatistics(Algorithm pAlgorithm) {

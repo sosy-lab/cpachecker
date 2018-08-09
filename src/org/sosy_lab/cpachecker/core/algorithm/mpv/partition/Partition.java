@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 
 public final class Partition {
   private final MultipleProperties properties;
-  private final TimeSpan partitionTimeLimit;
+  private TimeSpan partitionTimeLimit;
   private final boolean isAssignUnknown;
   private long cpuTime = 0;
   private TimeSpan spentCpuTime = TimeSpan.ofNanos(-1);
@@ -37,6 +37,10 @@ public final class Partition {
     properties = pProperties;
     partitionTimeLimit = pPartitionTimeLimit;
     isAssignUnknown = pIsAssignUnknown;
+  }
+
+  public boolean isIntermediateStep() {
+    return isAssignUnknown;
   }
 
   public void startAnalysis() {
@@ -88,6 +92,10 @@ public final class Partition {
 
   public TimeSpan getTimeLimit() {
     return partitionTimeLimit;
+  }
+
+  public void updateTimeLimit(TimeSpan timeLimit) {
+    partitionTimeLimit = timeLimit;
   }
 
   public TimeSpan getSpentCPUTime() {
