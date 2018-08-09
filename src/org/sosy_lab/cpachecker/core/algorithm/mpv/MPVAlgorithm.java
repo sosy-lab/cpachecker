@@ -176,11 +176,12 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(
       secure = true,
-      name = "limits.cpuPerProperty",
+      name = "limits.cpuTimePerProperty",
       description =
-          "Limit for cpu time per each property in MPV (use seconds or specify a unit; -1 for infinite)")
+          "Set CPU time limit per each property in multi-property verification "
+              + "(use seconds or specify a unit; -1 to disable)")
   @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = -1)
-  private TimeSpan cpuPerProperty = TimeSpan.ofNanos(-1);
+  private TimeSpan cpuTimePerProperty = TimeSpan.ofNanos(-1);
 
   @Option(
       secure = true,
@@ -215,10 +216,20 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
 
   private final Map<AbstractSingleProperty, Double> propertyDistribution;
 
-  @Option(secure = true, name = "propertySeparator", description = "...")
+  @Option(
+      secure = true,
+      name = "propertySeparator",
+      description =
+          "Specifies how to separate a single property.\n"
+              + "- FILE: each .spc file represent a single property (i.e., property is represented by several automata).\n"
+              + "- AUTOMATON: each automaton represent a single property.\n"
+              + "- TRANSITION: each transition to the target state represent a single property.")
   private PropertySeparator propertySeparator = PropertySeparator.FILE;
 
-  @Option(secure = true, name = "partitionOperator", description = "Partitioning operator for MPV.")
+  @Option(
+      secure = true,
+      name = "partitionOperator",
+      description = "Partitioning operator for multi-property verification.")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.mpv.partition")
   @Nonnull
   private Class<? extends PartitioningOperator> partitioningOperatorClass =
@@ -233,7 +244,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
   @Option(
       secure = true,
       name = "collectAllStatistics",
-      description = "Collect statistics for all inner algorithm and for each iteration.")
+      description = "Collect statistics for all inner algorithms on each iteration.")
   private boolean collectAllStatistics = false;
 
   private final MPVStatistics stats;
@@ -417,13 +428,13 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
     }
     TimeSpan overallSpentCpuTime = stats.getCurrentCpuTime();
     TimeSpan overallCpuTimeLimit =
-        cpuPerProperty.multiply(stats.multipleProperties.getNumberOfProperties());
+        cpuTimePerProperty.multiply(stats.multipleProperties.getNumberOfProperties());
     if (overallCpuTimeLimit.compareTo(overallSpentCpuTime) <= 0
         || overallPartitions <= currentPartitionNumber) {
       // do nothing in case of bad args - should be unreachable
       return;
     }
-    TimeSpan adjustedTimeLimit = cpuPerProperty;
+    TimeSpan adjustedTimeLimit = cpuTimePerProperty;
     switch (limitsAdjustmentStrategy) {
       case DISTRIBUTE_REMAINING:
         adjustedTimeLimit =
@@ -466,7 +477,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
               Configuration.class, MultipleProperties.class, TimeSpan.class);
       return (PartitioningOperator)
           partitioningOperatorConstructor.newInstance(
-              config, stats.multipleProperties, cpuPerProperty);
+              config, stats.multipleProperties, cpuTimePerProperty);
     } catch (NoSuchMethodException
         | SecurityException
         | InstantiationException

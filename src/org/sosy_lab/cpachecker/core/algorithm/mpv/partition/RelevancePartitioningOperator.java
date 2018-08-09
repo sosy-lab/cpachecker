@@ -27,22 +27,22 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.property.MultipleProperties;
 
-@Options(prefix = "mpv.relevance")
+@Options(prefix = "mpv")
 public final class RelevancePartitioningOperator extends AbstractPartitioningOperator {
 
   @Option(
       secure = true,
-      name = "firstPhaseRatio",
+      name = "limits.relevance.firstPhaseRatio",
       description =
-          "The ratio of CPU time limit in the first phase of Relevance partitioning "
+          "The ratio of CPU time limit in the first phase of Relevance partitioning operator "
               + "to CPU time limit per each property.")
   private double firstPhaseRatio = 0.2;
 
   @Option(
       secure = true,
-      name = "secondPhaseRatio",
+      name = "limits.relevance.secondPhaseRatio",
       description =
-          "The ratio of CPU time limit in the second phase of Relevance partitioning "
+          "The ratio of CPU time limit in the second phase of Relevance partitioning operator "
               + "to CPU time limit per each property.")
   private double secondPhaseRatio = 1.3;
 

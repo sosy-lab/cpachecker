@@ -3052,15 +3052,11 @@ memorysafety.config = no default value
 merge = "JOIN"
   allowed values: [SEP, JOIN]
 
-# Collect statistics for all inner algorithm and for each iteration.
+# Collect statistics for all inner algorithms on each iteration.
 mpv.collectAllStatistics = false
 
 # Find all violations of each checked property.
 mpv.findAllViolations = false
-
-# The ratio of CPU time limit in the first phase of Joint partitioning to CPU
-# time limit per each property.
-mpv.joint.firstPhaseRatio = 1.3
 
 # Adjust resource limitations during the analysis.
 # - NONE: do not adjust resource limitations (default).
@@ -3072,13 +3068,17 @@ mpv.joint.firstPhaseRatio = 1.3
 mpv.limits.adjustmentStrategy = NONE
   enum:     [NONE, DISTRIBUTE_REMAINING, DISTRIBUTE_BY_PROPERTY]
 
-# Limit for cpu time per each property in MPV (use seconds or specify a unit;
-# -1 for infinite)
-mpv.limits.cpuPerProperty = -1ns
+# Set CPU time limit per each property in multi-property verification (use
+# seconds or specify a unit; -1 to disable)
+mpv.limits.cpuTimePerProperty = -1ns
 
 # Change resource limitations for the first partition by the given ratio.
 # This option will be ignored if NONE limits adjustment strategy is used.
 mpv.limits.firstPartitionRatio = 1.0
+
+# The ratio of CPU time limit in the first phase of Joint partitioning
+# operator to CPU time limit per each property.
+mpv.limits.joint.firstPhaseRatio = 1.3
 
 # Get a resource limitation distribution per property from file. This option
 # should be used only together with DISTRIBUTE_BY_PROPERTY limits adjustment
@@ -3086,20 +3086,25 @@ mpv.limits.firstPartitionRatio = 1.0
 # '<property name>':<ratio>
 mpv.limits.propertyDistributionFile = no default value
 
-# Partitioning operator for MPV.
-mpv.partitionOperator = SeparatePartitioningOperator.class
-
-# ...
-mpv.propertySeparator = FILE
-  enum:     [FILE, AUTOMATON, TRANSITION]
-
-# The ratio of CPU time limit in the first phase of Relevance partitioning to
-# CPU time limit per each property.
-mpv.relevance.firstPhaseRatio = 0.2
+# The ratio of CPU time limit in the first phase of Relevance partitioning
+# operator to CPU time limit per each property.
+mpv.limits.relevance.firstPhaseRatio = 0.2
 
 # The ratio of CPU time limit in the second phase of Relevance partitioning
-# to CPU time limit per each property.
-mpv.relevance.secondPhaseRatio = 1.3
+# operator to CPU time limit per each property.
+mpv.limits.relevance.secondPhaseRatio = 1.3
+
+# Partitioning operator for multi-property verification.
+mpv.partitionOperator = SeparatePartitioningOperator.class
+
+# Specifies how to separate a single property.
+# - FILE: each .spc file represent a single property (i.e., property is
+# represented by several automata).
+# - AUTOMATON: each automaton represent a single property.
+# - TRANSITION: each transition to the target state represent a single
+# property.
+mpv.propertySeparator = FILE
+  enum:     [FILE, AUTOMATON, TRANSITION]
 
 # When checking for the overflow property, use this configuration file
 # instead of the current one.

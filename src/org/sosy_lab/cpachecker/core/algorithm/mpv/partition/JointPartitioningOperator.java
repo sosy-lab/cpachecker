@@ -27,14 +27,14 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.property.MultipleProperties;
 
-@Options(prefix = "mpv.joint")
+@Options(prefix = "mpv")
 public final class JointPartitioningOperator extends AbstractPartitioningOperator {
 
   @Option(
       secure = true,
-      name = "firstPhaseRatio",
+      name = "limits.joint.firstPhaseRatio",
       description =
-          "The ratio of CPU time limit in the first phase of Joint partitioning "
+          "The ratio of CPU time limit in the first phase of Joint partitioning operator "
               + "to CPU time limit per each property.")
   private double firstPhaseRatio = 1.3;
 
