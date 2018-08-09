@@ -1,6 +1,6 @@
 # JavaScript Testing
 
-The QuickStart documentation doesn't discuss much about testing. You can check [Protractor](https://www.protractortest.org/) and [Jasmine](https://jasmine.github.io/) documentation for more details.
+This documentation doesn't discuss much about testing. You can check [Protractor](https://www.protractortest.org/) and [Jasmine](https://jasmine.github.io/) documentation for more details.
 This documentation adds both karma/jasmine unit test and protractor end-to-end testing support for AngularJS-JavaScript report.
 
 These tools are configured for specific conventions described below.
