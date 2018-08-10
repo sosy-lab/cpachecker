@@ -1,3 +1,5 @@
+// Refer doc/JavascriptTesting for quikstart guide
+
 var fs = require('fs');
 
 fs.createReadStream('../../../../../../output/Counterexample.1.html').pipe(fs.createWriteStream('e2e-tests/Counterexample.1.html'));
