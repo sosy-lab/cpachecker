@@ -178,7 +178,7 @@ input:checked+.slider:before {
 }
 
 #errorpath_section .fileContent {
-	height: calc(100%-200px);
+	height: calc(100% - 185px);
 	margin: 5px;
 	overflow: auto;
 }
@@ -314,7 +314,7 @@ input:checked+.slider:before {
 }
 
 #externalFiles_section .fileContent {
-	height: calc(100%-160px);
+	height: calc(100% - 160px);
 	width: 100%;
 	margin: 5px;
 	position: relative;
