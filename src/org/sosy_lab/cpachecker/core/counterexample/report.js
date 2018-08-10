@@ -951,6 +951,8 @@ function init() {
 			}
 		}
 
+		init.extractVariables() = extractVariables();
+
 		// Prepare Error Path array to be used in edge class decider
 		function prepareCfaErrorPath() {
 			var returnedEdges = {};
