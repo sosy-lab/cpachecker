@@ -123,7 +123,7 @@ javascript-e2e-tests:
     - generate-sample-report
   image: node:8.9.4
   before_script:
-    - apt-get install default-jre
+    - apt-get install openjdk-10-jdk openjdk-10-jre-headless
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - npm install
     - ./node_modules/protractor/node_modules/webdriver-manager/bin/webdriver-manager update
