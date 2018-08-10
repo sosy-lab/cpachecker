@@ -104,7 +104,7 @@ javascript-unit-tests:
     paths:
     - src/org/sosy_lab/cpachecker/core/counterexample/node_modules/
 
-  javascript-e2e-tests:
+javascript-e2e-tests:
   stage: checks
   dependencies:
     - build:jdk-10
