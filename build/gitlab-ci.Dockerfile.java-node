@@ -1,20 +1,6 @@
-# This is a Docker image for running the tests.
-# It should be pushed to registry.gitlab.com/sosy-lab/software/cpachecker/test
-# and will be used by CI as declared in .gitlab-ci.yml.
-#
-# Commands for updating the image:
-# docker build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker/test:java-node - < build/gitlab-ci.Dockerfile.java-node
-# docker push registry.gitlab.com/sosy-lab/software/cpachecker/test
-
-FROM registry.gitlab.com/sosy-lab/software/java-project-template/test:jdk-10
-RUN apt-get update && apt-get install -y \
-  graphviz \
-  libgmp10 \
-  libgomp1 \
-  libmpfr4 \
-  python3  \
+FROM openjdk:latest
 
 RUN apt-get install -y curl \
   && curl -sL https://deb.nodesource.com/setup_9.x | bash - \
   && apt-get install -y nodejs \
-  && curl -L https://www.npmjs.com/install.sh | sh
+  && curl -L https://www.npmjs.com/install.sh | sh \
