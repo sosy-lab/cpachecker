@@ -15,7 +15,7 @@ exports.config = {
     capabilities: {
         'browserName': 'chrome',
         chromeOptions: {
-            args: ["allow-file-access-from-files", "disable-web-security", "allow-file-access", "--disable-gpu", "--window-size=800x600", ]
+            args: ["--headless", "--disable-gpu", "--window-size=1920,1080", "--no-sandbox" ]
         }
     },
 
