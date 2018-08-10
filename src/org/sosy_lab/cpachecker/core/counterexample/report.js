@@ -20,20 +20,27 @@ with considerably less effort */
 		});
 
 		//Statistics table initialization
-		statisticsTable = $('#statistics_table').DataTable({
-			"order": [],
-			aLengthMenu: [
-				[25, 50, 100, 200, -1],
-				[25, 50, 100, 200, "All"]
-			],
-			iDisplayLength: -1, //Default display all entries
-			"columnDefs": [{
-				"orderable": false, //No ordering 
-				"targets": 0
-			}, {
-				"orderable": false, //No Ordering
-				"targets": 1,
-			}]
+		$(document).ready(function () {
+			$('#statistics_table').DataTable({
+				"order": [],
+				aLengthMenu: [
+					[25, 50, 100, 200, -1],
+					[25, 50, 100, 200, "All"]
+				],
+				iDisplayLength: -1, //Default display all entries
+				"columnDefs": [{
+						"orderable": false, //No ordering 
+						"targets": 0,
+					}, {
+						"orderable": false, //No Ordering
+						"targets": 1,
+					},
+					{
+						"orderable": false, //No ordering 
+						"targets": 2,
+					},
+				]
+			});
 		});
 
 		// Initialize Google pretiffy code 
@@ -951,7 +958,6 @@ function init() {
 			}
 		}
 
-		init.extractVariables() = extractVariables();
 
 		// Prepare Error Path array to be used in edge class decider
 		function prepareCfaErrorPath() {
