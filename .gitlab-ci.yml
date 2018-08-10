@@ -121,7 +121,7 @@ javascript-e2e-tests:
   stage: checks
   dependencies: 
     - generate-sample-report
-  image: node:8.9.4
+  image: java-node
   before_script:
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - npm install
