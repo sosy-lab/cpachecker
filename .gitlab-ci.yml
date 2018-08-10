@@ -107,10 +107,10 @@ javascript-unit-tests:
 javascript-e2e-tests:
   stage: checks
   dependencies:
+    - build-dependencies
     - build:jdk-10
   image: node:8.9.4
   before_script:
-    - ant
     - scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug_false-unreach-label.c
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - npm install
