@@ -19,8 +19,6 @@ exports.config = {
         }
     },
 
-    directConnect: true,
-
     baseUrl: 'file:///',
     // Framework to use. Jasmine is recommended.
     framework: 'jasmine',
