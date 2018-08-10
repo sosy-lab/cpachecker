@@ -114,7 +114,7 @@ javascript-unit-tests:
     - npm test --watch=false --single-run=true
   cache:
     paths:
-    - src/org/sosy_lab/cpachecker/core/counterexample/node_modules/
+    - "src/org/sosy_lab/cpachecker/core/counterexample/node_modules/"
 
 
 javascript-e2e-tests:
