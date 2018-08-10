@@ -17,6 +17,7 @@
     "karma-phantomjs-launcher": "^1.0.4"
   },
   "dependencies": {
-    "jasmine-jquery": "^2.1.1"
+    "jasmine-jquery": "^2.1.1",
+    "protractor": "^5.4.0"
   }
 }
