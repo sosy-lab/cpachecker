@@ -40,8 +40,9 @@ describe('External files section in Report.js', function () {
     browser.driver.sleep(100);
 
     it('CFA tab click test', function () {
+        element(by.id('set-tab-1')).click();
         browser.wait(EC.presenceOf(element(by.id('set-tab-1'))))
-        browser.actions().mouseMove(element(by.id('set-tab-1'))).click();
+        // browser.actions().mouseMove(element(by.id('set-tab-1'))).click();
         expect(element(by.css('.cfa-content.active')).isDisplayed()).toBeTruthy();
     });
     browser.driver.sleep(100);
