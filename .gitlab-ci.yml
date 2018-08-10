@@ -115,6 +115,9 @@ javascript-unit-tests:
   cache:
     paths:
     - "src/org/sosy_lab/cpachecker/core/counterexample/node_modules/"
+  artifacts:
+    paths:
+      - src/org/sosy_lab/cpachecker/core/counterexample/Unit_testing_report
 
 
 javascript-e2e-tests:
