@@ -5,6 +5,7 @@
 stages:
   - dependencies
   - build
+  - generate
   - checks
   - deploy
 
