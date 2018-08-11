@@ -322,7 +322,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
         List<BooleanFormula> requiredPart = new ArrayList<>();
         if (pUnsatCore.isPresent()) {
           Set<BooleanFormula> pathFormulaElements =
-              bfmgr.toConjunctionArgs(pathFormula.getFormula(), false);
+              bfmgr.toConjunctionArgs(pathFormula.getFormula(), true);
           for (BooleanFormula pathFormulaElement : pathFormulaElements) {
             if (pUnsatCore.get().contains(pathFormulaElement)) {
               requiredPart.add(pathFormulaElement);
@@ -337,7 +337,9 @@ public class NewtonRefinementManager implements StatisticsProvider {
         switch (edge.getEdgeType()) {
           case AssumeEdge:
             if (!requiredPart.isEmpty()) {
-              postCondition = bfmgr.and(preCondition, bfmgr.and(requiredPart));
+              postCondition =
+                  eliminateIntermediateVariables(
+                      pathFormula, bfmgr.and(preCondition, bfmgr.and(requiredPart)));
             }
             // Else no additional assertions
             else {
