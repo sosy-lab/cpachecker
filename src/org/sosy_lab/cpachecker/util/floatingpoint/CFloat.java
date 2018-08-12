@@ -321,4 +321,46 @@ public interface CFloat {
 
     return length;
   }
+
+  default long getLowerOrderOverflowBitsMask() {
+    long bits = 0L;
+    switch (getType()) {
+      case CFloatNativeAPI.FP_TYPE_SINGLE:
+        bits = 0b01111111_11111111_11111110_00000000_00000000_00000000_00000000_00000000L;
+        break;
+      case CFloatNativeAPI.FP_TYPE_DOUBLE:
+        bits = 0b01111111_11111111_11111111_11111111_11111111_11111111_11110000_00000000L;
+        break;
+      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
+        bits = 0b01111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111L;
+        break;
+      default:
+        throw new RuntimeException("Unimplemented floating point type: " + getType());
+    }
+
+    return bits;
+  }
+
+  default long getHighestOrderOverflowBitMask() {
+    return 0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000L;
+  }
+
+  default long getOverflowHighBitsMask() {
+    long bits = 0L;
+    switch (getType()) {
+      case CFloatNativeAPI.FP_TYPE_SINGLE:
+        bits = 0b11111111_11111111_11111110_00000000_00000000_00000000_00000000_00000000L;
+        break;
+      case CFloatNativeAPI.FP_TYPE_DOUBLE:
+        bits = 0b11111111_11111111_11111111_11111111_11111111_11111111_11110000_00000000L;
+        break;
+      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
+        bits = 0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111L;
+        break;
+      default:
+        throw new RuntimeException("Unimplemented floating point type: " + getType());
+    }
+
+    return bits;
+  }
 }

@@ -461,81 +461,43 @@ public class CFloatUtil {
     return res;
   }
 
-  public static CFloatWrapper round(CFloatWrapper pWrapper, long pOverflow, int pType) {
+  public static CFloat round(CFloat pFloat, long pOverflow) {
     // TODO: currently only rounding mode NEAREST_TIE_TO_EVEN; implement others
+    CFloatWrapper wrapper = pFloat.copyWrapper();
+
     if (pOverflow != 0) {
-      long man = pWrapper.getMantissa();
-      long exp = pWrapper.getExponent();
+      long man = wrapper.getMantissa();
+      long exp = wrapper.getExponent();
 
       boolean isNormalized =
-          (pType == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE
-              && (man & getNormalizationMask(pType)) != 0);
+          (pFloat.getType() == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE
+              && (man & getNormalizationMask(pFloat.getType())) != 0);
 
-      if ((getHighestOrderOverflowBitMask() & pOverflow) != 0) {
-        if (((getLowerOrderOverflowBitsMask(pType) & pOverflow) != 0) || ((1 & man) != 0)) {
-          long nMan = (man + 1) & getNormalizedMantissaMask(pType);
+      if ((pFloat.getHighestOrderOverflowBitMask() & pOverflow) != 0) {
+        if (((pFloat.getLowerOrderOverflowBitsMask() & pOverflow) != 0) || ((1 & man) != 0)) {
+          long nMan = (man + 1) & getNormalizedMantissaMask(pFloat.getType());
 
-          if ((pType != CFloatNativeAPI.FP_TYPE_LONG_DOUBLE
-              && (nMan & getNormalizationMask(pType)) != 0)
-              || (pType == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE
-                  && (nMan & getNormalizationMask(pType)) == 0
+          if ((pFloat.getType() != CFloatNativeAPI.FP_TYPE_LONG_DOUBLE
+                  && (nMan & getNormalizationMask(pFloat.getType())) != 0)
+              || (pFloat.getType() == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE
+                  && (nMan & getNormalizationMask(pFloat.getType())) == 0
                   && isNormalized)) {
             nMan >>>= 1;
-            nMan ^= getNormalizationMask(pType);
-            nMan &= getNormalizedMantissaMask(pType);
+            nMan ^= getNormalizationMask(pFloat.getType());
+            nMan &= getNormalizedMantissaMask(pFloat.getType());
             exp--;
           }
 
-          pWrapper.setExponent(exp);
-          pWrapper.setMantissa(nMan);
+          wrapper.setExponent(exp);
+          wrapper.setMantissa(nMan & CFloatUtil.getNormalizedMantissaMask(pFloat.getType()));
         }
       }
     }
 
-    return pWrapper;
+    return new CFloatImpl(wrapper, pFloat.getType());
   }
 
-  public static long getLowerOrderOverflowBitsMask(int pType) {
-    long bits = 0L;
-    switch (pType) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-        bits = 0b01111111_11111111_11111110_00000000_00000000_00000000_00000000_00000000L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        bits = 0b01111111_11111111_11111111_11111111_11111111_11111111_11110000_00000000L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        bits = 0b01111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111L;
-        break;
-      default:
-        throw new RuntimeException("Unimplemented floating point type: " + pType);
-    }
 
-    return bits;
-  }
-
-  public static long getHighestOrderOverflowBitMask() {
-    return 0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000L;
-  }
-
-  public static long getOverflowHighBitsMask(int pType) {
-    long bits = 0L;
-    switch (pType) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-        bits = 0b11111111_11111111_11111110_00000000_00000000_00000000_00000000_00000000L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        bits = 0b11111111_11111111_11111111_11111111_11111111_11111111_11110000_00000000L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        bits = 0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111L;
-        break;
-      default:
-        throw new RuntimeException("Unimplemented floating point type: " + pType);
-    }
-
-    return bits;
-  }
 
 
 
