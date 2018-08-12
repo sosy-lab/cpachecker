@@ -575,6 +575,12 @@ public class CFloatUtil {
       case CFloatNativeAPI.FP_TYPE_DOUBLE:
         pSignificand = pSignificand << 11;
         break;
+      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
+        // nothing to do
+        break;
+      default:
+        // TODO: introduce Exception, assertion, or some other way of telling the developer wrong
+        // usage
     }
     byte[] res = BIT_TO_DEC_MAP.get(pSignificand);
     return Arrays.copyOf(res, res.length);

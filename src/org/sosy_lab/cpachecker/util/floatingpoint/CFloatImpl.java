@@ -28,23 +28,55 @@ import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * This class implements {@link CFloat} to propose a bit-precise representation of different
+ * floating point number formats, which are used in C, and operations on them.
+ *
+ * <p>The implementation is oriented at the descriptions of the IEEE-754 Standard as well as various
+ * observations and experiments performed using the GNU gcc compiler in version 5.4.0.
+ */
 public class CFloatImpl implements CFloat {
 
+  /**
+   * Those default values are used to handle some cases with a good performance and can be used to
+   * easily compose other values, e.g., <code>-35 = (3 * 10 + 5) * -1</code>
+   */
   private static final ImmutableList<String> DEFAULT_VALUES =
-      ImmutableList
-          .copyOf(
-              new String[] {"-0.0", "-0", "-1", "0", "0.0", "1", "2", "3", "4", "5", "6", "7", "8",
-                  "9", "10",
-                  "nan",
-                  "-nan", "inf", "-inf"});
+      ImmutableList.copyOf(
+          new String[] {
+            "-0.0", "-0", "-1", "0", "0.0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
+            "nan", "-nan", "inf", "-inf"
+          });
+
+  /** The wrapper contains the exponent and significant (mantissa) of the {@link CFloat} instance */
   private CFloatWrapper wrapper;
+
+  /** The type of the represented floating point number, e.g., <code>double</code> */
   private int type;
 
+  /**
+   * A simple constructor to create an instance of {@link CFloat} given a bit representation and a
+   * type.
+   *
+   * @param pWrapper the {@link CFloatWrapper} instance containing the bit representation
+   * @param pType the type of the {@link CFloat} instance - be careful to choose a type that
+   *     actually corresponds to the given {@link CFloatWrapper}
+   */
   public CFloatImpl(CFloatWrapper pWrapper, int pType) {
     this.wrapper = pWrapper;
     this.type = pType;
   }
 
+  /**
+   * A more complex constructor to create a {@link CFloat} instance from a {@link String}
+   * representation and a given type.
+   *
+   * <p>Note that there are literals that may not necessarily have a precise representation in a
+   * finite binary floating point format.
+   *
+   * @param pRep the {@link String} literal representing the floating point number
+   * @param pType the type of the {@link CFloat} instance
+   */
   public CFloatImpl(String pRep, int pType) {
     this.type = pType;
     this.wrapper = new CFloatWrapper();
@@ -466,6 +498,7 @@ public class CFloatImpl implements CFloat {
     CFloat tSummand = this;
     CFloat oSummand = pSummand;
 
+    // cast to equal types to simplify operations
     if (tSummand.getType() != oSummand.getType()) {
       if (tSummand.getType() > oSummand.getType()) {
         oSummand = oSummand.castTo(tSummand.getType());
@@ -474,10 +507,16 @@ public class CFloatImpl implements CFloat {
       }
     }
 
+    // if at least one operand is nan, the result is too
     if (tSummand.isNan() || oSummand.isNan()) {
       return new CFloatNaN(tSummand.isNegative(), tSummand.getType());
     }
 
+    // handle infinities separately:
+    // > x + inf = inf
+    // > x - inf = -inf
+    // > inf + inf = inf
+    // > inf - inf = -nan
     if (tSummand.isInfinity()) {
       if (oSummand.isInfinity() && (tSummand.isNegative() != oSummand.isNegative())) {
         return new CFloatNaN(true, tSummand.getType());
@@ -487,6 +526,7 @@ public class CFloatImpl implements CFloat {
       return new CFloatInf(oSummand.isNegative(), tSummand.getType());
     }
 
+    // if one of the operands is zero, the result has the value of the other one
     if (tSummand.isZero()) {
       return new CFloatImpl(oSummand.copyWrapper(), oSummand.getType());
     }
@@ -497,9 +537,9 @@ public class CFloatImpl implements CFloat {
     long rExp = 0;
     long rMan = 0;
 
+    // extract bit representations for operation
     long tExp =
-        tSummand.copyWrapper().getExponent()
-            & CFloatUtil.getExponentMask(tSummand.getType());
+        tSummand.copyWrapper().getExponent() & CFloatUtil.getExponentMask(tSummand.getType());
     long tMan = tSummand.copyWrapper().getMantissa();
 
     long oExp =
@@ -511,12 +551,16 @@ public class CFloatImpl implements CFloat {
     boolean differentSign = tSummand.isNegative() ^ oSummand.isNegative();
     boolean tGTO = tSummand.greaterThan(oSummand);
 
+    // if the signs differ, instead of addition subtract the absolute value of the smaller operand
+    // from the greater operand
     if (differentSign) {
       return tGTO
           ? tSummand.subtract(new CFloatImpl(new CFloatWrapper(oExp, oMan), tSummand.getType()))
           : oSummand.subtract(new CFloatImpl(new CFloatWrapper(tExp, tMan), tSummand.getType()));
     }
 
+    // if this is reached, the signs of the operands are the same. if one is negative, both are and
+    // so is the result
     if (tSummand.isNegative()) {
       negResult = true;
     }
@@ -797,7 +841,17 @@ public class CFloatImpl implements CFloat {
     return result;
   }
 
-  private void multiplyBits(long manyOnesMantissa, long lesserOnesMantissa, int mantissaLength, int[] bitfield) {
+  /**
+   * Implement bit multiplication to keep track of the overflowing (underflowing respectively) bits
+   * for correct rounding.
+   *
+   * @param manyOnesMantissa the mantissa containing more bits set to one
+   * @param lesserOnesMantissa the mantissa containing less bits set to one
+   * @param mantissaLength the length of the mantissas
+   * @param bitfield the bitfield to store the multiplication result
+   */
+  private void multiplyBits(
+      long manyOnesMantissa, long lesserOnesMantissa, int mantissaLength, int[] bitfield) {
     for (int i = 0; i < mantissaLength; i++) {
       if ((lesserOnesMantissa & (1L << i)) != 0) {
         for (int j = 0; j < mantissaLength; j++) {
@@ -1078,12 +1132,19 @@ public class CFloatImpl implements CFloat {
     return new CFloatImpl(rWrapper, tDividend.getType());
   }
 
+  /**
+   * Implement bitwise division to keep track of overflowing (underflowing respectively) bits for
+   * rounding.
+   *
+   * @param pTMan the mantissa of the {@link CFloat} that is divided
+   * @param pOMan the mantissa of the {@link CFloat} with which is divided
+   * @param pQuotientLength the length of the results mantissa
+   * @param pBitArray the bitarray in which the division result is stored
+   * @param pType the type of the result and the operands
+   * @return if an offset is necessary to perform the next step of the division
+   */
   private boolean divideBits(
-      long pTMan,
-      long pOMan,
-      int pQuotientLength,
-      int[] pBitArray,
-      int pType) {
+      long pTMan, long pOMan, int pQuotientLength, int[] pBitArray, int pType) {
     boolean initialOffsetNeeded = false;
 
     int[] dividArray = new int[pQuotientLength];
