@@ -49,10 +49,10 @@ public class CFloatImpl implements CFloat {
           });
 
   /** The wrapper contains the exponent and significant (mantissa) of the {@link CFloat} instance */
-  private CFloatWrapper wrapper;
+  private final CFloatWrapper wrapper;
 
   /** The type of the represented floating point number, e.g., <code>double</code> */
-  private int type;
+  private final int type;
 
   /**
    * A simple constructor to create an instance of {@link CFloat} given a bit representation and a
@@ -79,9 +79,9 @@ public class CFloatImpl implements CFloat {
    */
   public CFloatImpl(String pRep, int pType) {
     this.type = pType;
-    this.wrapper = new CFloatWrapper();
 
     if (DEFAULT_VALUES.contains(pRep.toLowerCase())) {
+      this.wrapper = new CFloatWrapper();
       long exp = 0;
       long man = 0;
 
