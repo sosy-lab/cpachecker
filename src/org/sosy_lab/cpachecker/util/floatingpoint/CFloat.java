@@ -301,4 +301,24 @@ public interface CFloat {
    * @return whether <code>this</code> is greater than <code>other</code>
    */
   boolean greaterThan(CFloat other);
+
+  default int getNormalizedMantissaLength() {
+    int length = 0;
+
+    switch (getType()) {
+      case CFloatNativeAPI.FP_TYPE_SINGLE:
+        length = 24;
+        break;
+      case CFloatNativeAPI.FP_TYPE_DOUBLE:
+        length = 53;
+        break;
+      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
+        length = 64;
+        break;
+      default:
+        throw new RuntimeException("Unimplemented floating point type: " + getType());
+    }
+
+    return length;
+  }
 }
