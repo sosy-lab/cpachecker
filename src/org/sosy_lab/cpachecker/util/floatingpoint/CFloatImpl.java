@@ -1657,17 +1657,13 @@ public class CFloatImpl implements CFloat {
     } else {
       for (int i = 0; i < -exp; i++) {
         if (integralArray.length > 1 || integralArray[integralArray.length - 1] > 0) {
-          if (integralArray[integralArray.length - 1] % 2 == 1) {
-            fracArray[0] += 10;
-          }
-          decimalHalf(integralArray);
-          if (integralArray[0] == 0 && integralArray.length > 1) {
+          if (integralArray[integralArray.length - 1] % 2 != 0) {
             integralArray = copyAllButFirstCell(integralArray);
           }
         }
         int last = fracArray[fracArray.length - 1];
         decimalHalf(fracArray);
-        if (last % 2 == 1) {
+        if (last % 2 != 0) {
           fracArray = Arrays.copyOf(fracArray, fracArray.length + 1);
           fracArray[fracArray.length - 1] = 5;
         }
