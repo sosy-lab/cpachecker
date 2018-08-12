@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
+import java.util.Arrays;
 import java.util.HashMap;
 
 public class CFloatUtil {
@@ -575,6 +576,7 @@ public class CFloatUtil {
         pSignificand = pSignificand << 11;
         break;
     }
-    return BIT_TO_DEC_MAP.get(pSignificand);
+    byte[] res = BIT_TO_DEC_MAP.get(pSignificand);
+    return Arrays.copyOf(res, res.length);
   }
 }
