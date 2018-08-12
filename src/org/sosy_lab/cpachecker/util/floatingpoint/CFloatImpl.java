@@ -314,9 +314,11 @@ public class CFloatImpl implements CFloat {
 
     CFloatWrapper rWrapper =
         new CFloatWrapper(effectiveExponent + CFloatUtil.getBias(pType), mantissa);
-    CFloat result = new CFloatImpl(rWrapper, pType);
 
-    return CFloatUtil.round(result, overflow);
+    CFloatUtil.round(rWrapper, overflow, pType);
+    rWrapper.setMantissa(rWrapper.getMantissa() & CFloatUtil.getNormalizedMantissaMask(pType));
+
+    return new CFloatImpl(rWrapper, pType);
   }
 
   private void binaryHalf(int[] pArray) {
@@ -603,7 +605,7 @@ public class CFloatImpl implements CFloat {
             overflow >>>= (diff - CFloatUtil.getMantissaLength(tSummand.getType()));
 
           }
-          overflow &= getOverflowHighBitsMask();
+          overflow &= CFloatUtil.getOverflowHighBitsMask(tSummand.getType());
 
           oMan = 0;
         }
@@ -635,7 +637,7 @@ public class CFloatImpl implements CFloat {
             overflow = tMan << (64 - CFloatUtil.getMantissaLength(tSummand.getType()));
             overflow >>>= (diff - CFloatUtil.getMantissaLength(tSummand.getType()));
           }
-          overflow &= getOverflowHighBitsMask();
+          overflow &= CFloatUtil.getOverflowHighBitsMask(tSummand.getType());
 
           tMan = 0;
         }
@@ -668,10 +670,8 @@ public class CFloatImpl implements CFloat {
     }
 
     rMan &= CFloatUtil.getNormalizedMantissaMask(tSummand.getType());
-    CFloat intermediateResult =
-        CFloatUtil.round(
-            new CFloatImpl(new CFloatWrapper(rExp, rMan), tSummand.getType()), overflow);
-    CFloatWrapper rWrapper = intermediateResult.copyWrapper();
+    CFloatWrapper rWrapper =
+        CFloatUtil.round(new CFloatWrapper(rExp, rMan), overflow, tSummand.getType());
 
     if (((rExp
         & CFloatUtil.getExponentMask(tSummand.getType())) == CFloatUtil
@@ -817,11 +817,11 @@ public class CFloatImpl implements CFloat {
 
     rMan &= CFloatUtil.getNormalizedMantissaMask(tFactor.getType());
 
+
     // round according to overflown bits
-    CFloat intermediateResult =
-        CFloatUtil.round(
-            new CFloatImpl(new CFloatWrapper(rExp, rMan), tFactor.getType()), rOverflow);
-    CFloatWrapper rWrapper = intermediateResult.copyWrapper();
+    CFloatWrapper rWrapper =
+        CFloatUtil.round(new CFloatWrapper(rExp, rMan), rOverflow, tFactor.getType());
+
 
     // set sign
     if (negResult) {
@@ -947,17 +947,17 @@ public class CFloatImpl implements CFloat {
       return summandA.add(summandB);
     }
 
-    CFloat result = null;
+    CFloatWrapper resultWrapper = null;
     if (tSubtrahend.isNegative()) {
-      result = bitwiseSubtraction(negResult, oExp, oMan, tExp, tMan, tSubtrahend.getType());
+      resultWrapper = bitwiseSubtraction(negResult, oExp, oMan, tExp, tMan, tSubtrahend.getType());
     } else {
-      result = bitwiseSubtraction(negResult, tExp, tMan, oExp, oMan, tSubtrahend.getType());
+      resultWrapper = bitwiseSubtraction(negResult, tExp, tMan, oExp, oMan, tSubtrahend.getType());
     }
 
-    return result;
+    return new CFloatImpl(resultWrapper, tSubtrahend.getType());
   }
 
-  private CFloat bitwiseSubtraction(
+  private CFloatWrapper bitwiseSubtraction(
       boolean pNegResult,
       long pExpMinuend,
       long pManMinuend,
@@ -1029,8 +1029,8 @@ public class CFloatImpl implements CFloat {
       rExp ^= CFloatUtil.getSignBitMask(pType);
     }
 
-    CFloat result = new CFloatImpl(new CFloatWrapper(rExp, rMan), pType);
-    return CFloatUtil.round(result, overflow);
+    CFloatWrapper result = new CFloatWrapper(rExp, rMan);
+    return CFloatUtil.round(result, overflow, pType);
   }
 
   @Override
@@ -1127,8 +1127,10 @@ public class CFloatImpl implements CFloat {
       rExp--;
     }
 
-    CFloat result = new CFloatImpl(new CFloatWrapper(rExp, rMan), tDividend.getType());
-    return CFloatUtil.round(result, overflow);
+    CFloatWrapper rWrapper = new CFloatWrapper(rExp, rMan);
+    rWrapper = CFloatUtil.round(rWrapper, overflow, tDividend.getType());
+
+    return new CFloatImpl(rWrapper, tDividend.getType());
   }
 
   /**
@@ -1496,8 +1498,10 @@ public class CFloatImpl implements CFloat {
       rMan <<= manDiff;
     }
 
-    CFloat result = new CFloatImpl(new CFloatWrapper(rExp, rMan), pToType);
-    return CFloatUtil.round(result, overflow);
+    CFloatWrapper rWrapper = new CFloatWrapper(rExp, rMan);
+    rWrapper = CFloatUtil.round(rWrapper, overflow, pToType);
+
+    return new CFloatImpl(rWrapper, pToType);
   }
 
   @Override
@@ -1681,6 +1685,10 @@ public class CFloatImpl implements CFloat {
   }
 
   private int[] copyAllButFirstCell(int[] pArray) {
-    return Arrays.copyOfRange(pArray, 1, pArray.length - 1);
+    for (int i = 0; i < pArray.length - 1; i++) {
+      pArray[i] = pArray[i + 1];
+    }
+    pArray = Arrays.copyOf(pArray, pArray.length - 1);
+    return pArray;
   }
 }
