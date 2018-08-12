@@ -203,14 +203,14 @@ public class CFloatImpl implements CFloat {
   }
 
   private CFloat fromString(int pType, List<String> pDigits) {
-    int[] decArray = new int[pDigits.size()];
+    byte[] decArray = new byte[pDigits.size()];
     for (int i = 0; i < decArray.length; i++) {
-      decArray[i] = Integer.parseInt(pDigits.get(i));
+      decArray[i] = Byte.parseByte(pDigits.get(i));
     }
 
-    int[] auxArray = new int[decArray.length];
-    int[] bitArray =
-        new int[CFloatUtil.getMantissaLength(pType) * 2
+    byte[] auxArray = new byte[decArray.length];
+    byte[] bitArray =
+        new byte[CFloatUtil.getMantissaLength(pType) * 2
             + (pType == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE ? 0 : 2)];
 
     int effectiveExponent = 0;
@@ -226,9 +226,9 @@ public class CFloatImpl implements CFloat {
     boolean incrementExponent = true;
     boolean stillConverging = true;
     while (decimalAGreaterThanB(decArray, auxArray) && stillConverging) {
-      int[] loopArray = new int[auxArray.length];
+      byte[] loopArray = new byte[auxArray.length];
       loopArray[loopArray.length - 1] = 1;
-      int[] bitAuxArray = new int[bitArray.length];
+      byte[] bitAuxArray = new byte[bitArray.length];
       if (effectiveExponent < bitAuxArray.length - 1) {
         bitAuxArray[effectiveExponent] = 1;
       }
@@ -288,15 +288,15 @@ public class CFloatImpl implements CFloat {
     return new CFloatImpl(rWrapper, pType);
   }
 
-  private void binaryHalf(int[] pArray) {
+  private void binaryHalf(byte[] pArray) {
     digitwiseHalf(pArray, 2);
   }
 
-  private void decimalHalf(int[] pArray) {
+  private void decimalHalf(byte[] pArray) {
     digitwiseHalf(pArray, 10);
   }
 
-  private void digitwiseHalf(int[] pArray, int pRadix) {
+  private void digitwiseHalf(byte[] pArray, int pRadix) {
     for (int i = pArray.length - 1; i > 0; i--) {
       if ((pArray[i - 1] % 2) != 0) {
         pArray[i] += pRadix;
@@ -309,17 +309,17 @@ public class CFloatImpl implements CFloat {
     }
   }
 
-  private int[] binaryAdd(int[] pArrayA, int[] pArrayB) {
+  private byte[] binaryAdd(byte[] pArrayA, byte[] pArrayB) {
     return digitwiseAdd(pArrayA, pArrayB, 2);
   }
 
-  private int[] decimalAdd(int[] pArrayA, int[] pArrayB) {
+  private byte[] decimalAdd(byte[] pArrayA, byte[] pArrayB) {
     return digitwiseAdd(pArrayA, pArrayB, 10);
   }
 
-  private int[] digitwiseAdd(int[] pArrayA, int[] pArrayB, int pRadix) {
-    int[] rArray =
-        new int[((pArrayB.length > pArrayA.length) ? pArrayB.length : pArrayA.length) + 1];
+  private byte[] digitwiseAdd(byte[] pArrayA, byte[] pArrayB, int pRadix) {
+    byte[] rArray =
+        new byte[((pArrayB.length > pArrayA.length) ? pArrayB.length : pArrayA.length) + 1];
 
     for (int i = rArray.length - 1; i >= 0; i--) {
       rArray[i] +=
@@ -341,7 +341,7 @@ public class CFloatImpl implements CFloat {
     return rArray;
   }
 
-  private boolean decimalEqual(int[] pA, int[] pB) {
+  private boolean decimalEqual(byte[] pA, byte[] pB) {
     int diff = pB.length - pA.length;
 
     if (diff < 0) {
@@ -374,7 +374,7 @@ public class CFloatImpl implements CFloat {
     return true;
   }
 
-  private boolean decimalAGreaterThanB(int[] pA, int[] pB) {
+  private boolean decimalAGreaterThanB(byte[] pA, byte[] pB) {
     int diff = pB.length - pA.length;
 
     if (diff < 0) {
@@ -413,21 +413,21 @@ public class CFloatImpl implements CFloat {
     return false;
   }
 
-  private int[] binaryDouble(int[] pArray) {
+  private byte[] binaryDouble(byte[] pArray) {
     return digitwiseDouble(pArray, 2);
   }
 
-  private int[] decimalDouble(int[] pDecimalArray) {
+  private byte[] decimalDouble(byte[] pDecimalArray) {
     return digitwiseDouble(pDecimalArray, 10);
   }
 
-  private int[] digitwiseDouble(int[] pArray, int pRadix) {
-    int[] rArray = new int[pArray.length + 1];
+  private byte[] digitwiseDouble(byte[] pArray, int pRadix) {
+    byte[] rArray = new byte[pArray.length + 1];
 
     for (int i = 1; i < rArray.length; i++) {
       // Overflow case can be ignored, just caught to avoid array out of bounds for meaningless
       // input
-      rArray[i] = pArray[i - 1] * 2;
+      rArray[i] = (byte) (pArray[i - 1] * 2);
       if (rArray[i] > (pRadix - 1)) {
         rArray[i - 1] += rArray[i] / pRadix;
         rArray[i] %= pRadix;
@@ -1545,9 +1545,9 @@ public class CFloatImpl implements CFloat {
       builder.append("-");
     }
 
-    int[] decArray = getDecimalArray((exp & CFloatUtil.getExponentMask(type)), man);
+    byte[] decArray = getDecimalArray((exp & CFloatUtil.getExponentMask(type)), man);
     boolean started = false;
-    for (int i : decArray) {
+    for (byte i : decArray) {
       if (i < 0) {
         if (!started) {
           builder.append("0");
@@ -1563,14 +1563,14 @@ public class CFloatImpl implements CFloat {
     return builder.toString().replaceAll("(\\.[0-9]+?)0*$", "$1");
   }
 
-  private int[] getDecimalArray(long pExp, long pMan) {
-    int[] result = null;
-    int[] fracArray = CFloatUtil.getDecimalArray(type, pMan & 1);
+  private byte[] getDecimalArray(long pExp, long pMan) {
+    byte[] result = null;
+    byte[] fracArray = CFloatUtil.getDecimalArray(type, pMan & 1);
     for (int i = 1; i < CFloatUtil.getMantissaLength(type); i++) {
       fracArray = decimalAdd(fracArray, CFloatUtil.getDecimalArray(type, pMan & (1L << i)));
     }
 
-    int[] integralArray = new int[1];
+    byte[] integralArray = new byte[1];
     if ((type != CFloatNativeAPI.FP_TYPE_LONG_DOUBLE && pExp != 0)
         || (type == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE
             && ((pMan & CFloatUtil.getNormalizationMask(type)) != 0))) {
@@ -1588,8 +1588,8 @@ public class CFloatImpl implements CFloat {
           integralArray[iAL - 1] += fracArray[0];
           fracArray = copyAllButFirstCell(fracArray);
           if (integralArray[iAL - 1] > 9) {
-            integralArray[iAL - 2] = integralArray[iAL - 1] / 10;
-            integralArray[iAL - 1] = integralArray[iAL - 1] % 10;
+            integralArray[iAL - 2] = (byte) (integralArray[iAL - 1] / 10);
+            integralArray[iAL - 1] = (byte) (integralArray[iAL - 1] % 10);
           }
         }
       }
@@ -1612,7 +1612,7 @@ public class CFloatImpl implements CFloat {
         }
       }
     }
-    result = new int[integralArray.length + fracArray.length + 1];
+    result = new byte[integralArray.length + fracArray.length + 1];
     for (int i = 0; i < result.length; i++) {
       if (i < integralArray.length) {
         result[i] = integralArray[i];
@@ -1626,7 +1626,7 @@ public class CFloatImpl implements CFloat {
     return result;
   }
 
-  private int[] copyAllButFirstCell(int[] pArray) {
+  private byte[] copyAllButFirstCell(byte[] pArray) {
     for (int i = 0; i < pArray.length - 1; i++) {
       pArray[i] = pArray[i + 1];
     }
