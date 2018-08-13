@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -75,6 +76,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTran
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecisionAdjustment;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecisionAdjustment.SymbolicStatistics;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -124,10 +126,10 @@ public class ValueAnalysisCPA
 
   private MemoryLocationValueHandler unknownValueHandler;
   private final ConstraintsStrengthenOperator constraintsStrengthenOperator;
-  private final PrecisionAdjustment precisionAdjustmentOperator;
   private final ValueTransferOptions transferOptions;
   private final PrecAdjustmentOptions precisionAdjustmentOptions;
   private final PrecAdjustmentStatistics precisionAdjustmentStatistics;
+  private final SymbolicStatistics symbolicStats;
 
   private ValueAnalysisCPA(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
@@ -145,8 +147,10 @@ public class ValueAnalysisCPA
 
     if (useSymbolicValues) {
       unknownValueHandler = new SymbolicValueAssigner(config);
+      symbolicStats = new SymbolicStatistics();
     } else {
       unknownValueHandler = new UnknownValueAssigner();
+      symbolicStats = null;
     }
 
     constraintsStrengthenOperator =
@@ -154,15 +158,6 @@ public class ValueAnalysisCPA
     transferOptions = new ValueTransferOptions(config);
     precisionAdjustmentOptions = new PrecAdjustmentOptions(config, cfa);
     precisionAdjustmentStatistics = new PrecAdjustmentStatistics();
-
-    if (useSymbolicValues) {
-      precisionAdjustmentOperator = new SymbolicValueAnalysisPrecisionAdjustment(
-          statistics, cfa, precisionAdjustmentOptions, precisionAdjustmentStatistics);
-
-    } else {
-      precisionAdjustmentOperator = new ValueAnalysisPrecisionAdjustment(
-          statistics, cfa, precisionAdjustmentOptions, precisionAdjustmentStatistics);
-    }
   }
 
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa) throws InvalidConfigurationException {
@@ -300,7 +295,17 @@ public class ValueAnalysisCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustmentOperator;
+    if (useSymbolicValues) {
+      return new SymbolicValueAnalysisPrecisionAdjustment(
+          statistics,
+          cfa,
+          precisionAdjustmentOptions,
+          precisionAdjustmentStatistics,
+          Preconditions.checkNotNull(symbolicStats));
+    } else {
+      return new ValueAnalysisPrecisionAdjustment(
+          statistics, cfa, precisionAdjustmentOptions, precisionAdjustmentStatistics);
+    }
   }
 
   public Configuration getConfiguration() {
@@ -328,8 +333,8 @@ public class ValueAnalysisCPA
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
     pStatsCollection.add(precisionAdjustmentStatistics);
-    if (precisionAdjustmentOperator instanceof StatisticsProvider) {
-      ((StatisticsProvider) precisionAdjustmentOperator).collectStatistics(pStatsCollection);
+    if (symbolicStats != null) {
+      pStatsCollection.add(symbolicStats);
     }
     writer.collectStatistics(pStatsCollection);
   }

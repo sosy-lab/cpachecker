@@ -31,7 +31,6 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -52,7 +51,7 @@ public class SMGDoublyLinkedListFinderTest {
   private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
   private final CFunctionDeclaration functionDeclaration3 = new CFunctionDeclaration(FileLocation
       .DUMMY, functionType, "main", ImmutableList.of());
-  private CSimpleType intType = new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
+  private CSimpleType intType = CNumericTypes.SIGNED_INT;
   private CType pointerType = new CPointerType(false, false, intType);
 
   private CLangSMG smg1;

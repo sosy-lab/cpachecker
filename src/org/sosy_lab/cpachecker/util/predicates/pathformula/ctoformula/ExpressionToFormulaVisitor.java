@@ -170,7 +170,12 @@ public class ExpressionToFormulaVisitor
 
     final boolean signed;
     if (calculationType instanceof CSimpleType) {
+      // this only gives the right value for "signed" because calculationType was determined using
+      // getCanonicalType, which e.g. converts a CNumericType.INT into a CNumericType.SIGNED_INT:
       signed = conv.machineModel.isSigned((CSimpleType)calculationType);
+    } else if (calculationType instanceof CPointerType) {
+      // pointers can also be signed if the machine model represents them using a signed type:
+      signed = conv.machineModel.getPointerEquivalentSimpleType().getCanonicalType().isSigned();
     } else {
       signed = false;
     }

@@ -39,6 +39,7 @@ import random
 import re
 import tempfile
 import threading
+import ssl
 import zipfile
 import zlib
 
@@ -336,7 +337,12 @@ class WebInterface:
 
         self._connection = requests.Session()
         self._connection.headers.update(default_headers)
-        self._connection.verify='/etc/ssl/certs'
+        try:
+            cert_paths = ssl.get_default_verify_paths()
+            cert_path = cert_paths.cafile or cert_paths.capath # both might be None
+        except AttributeError: # not available on old Python
+            cert_path = None
+        self._connection.verify = cert_path or True # make sure that verification is enabled
         if user_pwd:
             self._connection.auth = (user_pwd.split(":")[0], user_pwd.split(":")[1])
             self._base64_user_pwd = base64.b64encode(user_pwd.encode("utf-8")).decode("utf-8")

@@ -5,6 +5,7 @@
 stages:
   - dependencies
   - build
+  - generate
   - checks
   - deploy
 
@@ -49,7 +50,6 @@ build:jdk-9:
 build:jdk-10:
   <<: *build
   image: ${CI_REGISTRY_IMAGE}/test:jdk-10
-
 
 # For checks that need the binaries
 .binary_check: &binary_check
@@ -165,3 +165,4 @@ deploy-gh-pages:
   except:
     variables:
       - $GH_TOKEN == null # required for job
+

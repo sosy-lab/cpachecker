@@ -3122,8 +3122,8 @@ overflow.trackLeftShifts = true
 # Track overflows in multiplication operations.
 overflow.trackMultiplications = true
 
-# Track overflow for signed integers.
-overflow.trackSignedIntegers = true
+# Track overflows in binary expressions involving pointers.
+overflow.trackPointers = false
 
 # Only check live variables for overflow, as compiler can remove dead
 # variables.

@@ -1698,7 +1698,7 @@ class WitnessWriter implements EdgeAppender {
   }
 
   private Collection<NodeFlag> extractNodeFlags(ARGState pState) {
-    if (pState.isTarget()) {
+    if (pState.isTarget() && graphType != WitnessType.CORRECTNESS_WITNESS) {
       return Collections.singleton(NodeFlag.ISVIOLATION);
     }
     return Collections.emptySet();

@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.util.ltl;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -39,7 +41,6 @@ import org.sosy_lab.cpachecker.util.ltl.formulas.Release;
 import org.sosy_lab.cpachecker.util.ltl.formulas.StrongRelease;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Until;
 import org.sosy_lab.cpachecker.util.ltl.formulas.WeakUntil;
-import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarBaseVisitor;
 import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParser.AndExpressionContext;
 import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParser.BinaryOpContext;
 import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParser.BinaryOperationContext;
@@ -55,8 +56,19 @@ import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParser.QuotedVariabl
 import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParser.UnaryOpContext;
 import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParser.UnaryOperationContext;
 import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParser.VariableContext;
+import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParserBaseVisitor;
 
-public class LtlFormulaTreeVisitor extends LtlGrammarBaseVisitor<LtlFormula> {
+public class LtlFormulaTreeVisitor extends LtlGrammarParserBaseVisitor<LtlFormula> {
+
+  private final List<Literal> apList; // atomic propositions
+
+  public LtlFormulaTreeVisitor() {
+    apList = new ArrayList<>();
+  }
+
+  public List<Literal> getAPs() {
+    return ImmutableList.copyOf(apList);
+  }
 
   @Override
   public LtlFormula visitProperty(PropertyContext ctx) {
@@ -230,17 +242,32 @@ public class LtlFormulaTreeVisitor extends LtlGrammarBaseVisitor<LtlFormula> {
 
   @Override
   public LtlFormula visitQuotedVariable(QuotedVariableContext ctx) {
-    // Contains: QUOTATIONMARK var EQUALS val QUOTATIONMARK
-    throwException_When_InvalidChildCount(ctx.getChildCount(), 5);
+    // Consists of: QUOTATIONMARK_START var comp val (MATHOP VALUE)* QUOTATIONMARK_END
+    if (ctx.getChildCount() < 5) {
+      throw new RuntimeException(
+          String.format(
+              "Invalid input provided. Expected %d child-nodes in param 'ctx', however, %d were found",
+              5, ctx.getChildCount()));
+    }
 
-    String name = ctx.var.getText() + ctx.val.getText();
-    return Literal.of(name, false);
+    // Don't actually parse the quoted string -- only retrieve it and use CParserUtils-class
+    // later to convert it into an AExpression
+    StringBuilder sb = new StringBuilder();
+    for (int i = 1; i < ctx.getChildCount() - 1; i++) {
+      sb.append(ctx.getChild(i).getText());
+    }
+    Literal ap = Literal.of(sb.toString(), false);
+    apList.add(ap);
+    return ap;
   }
 
   @Override
   public LtlFormula visitVariable(VariableContext ctx) {
     throwException_When_InvalidChildCount(ctx.getChildCount(), 1);
-    return Literal.of(ctx.getText(), false);
+
+    Literal ap = Literal.of(ctx.getText(), false);
+    apList.add(ap);
+    return ap;
   }
 
   @Override

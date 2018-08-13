@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -43,18 +44,20 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
 
 public class LtlParserUtils {
 
-  private static final CParser parser =
-      CParser.Factory.getParser(
-          LogManager.createNullLogManager(),
-          CParser.Factory.getDefaultOptions(),
-          MachineModel.LINUX64);
+  private static final LogManager LOG_MANAGER = LogManager.createNullLogManager();
+  private static final MachineModel LINUX64 = MachineModel.LINUX64;
+
+  private static final CParser PARSER =
+      CParser.Factory.getParser(LOG_MANAGER, CParser.Factory.getDefaultOptions(), LINUX64);
 
   /**
    * Takes a {@link jhoafparser.storage.StoredAutomaton} as argument and transforms that into an
@@ -62,10 +65,11 @@ public class LtlParserUtils {
    *
    * @param pStoredAutomaton the storedAutomaton created by parsing an input in HOA-format.
    * @return an automaton from the automaton-framework in CPAchecker
-   * @throws LtlParseException if the transformation failed due to some false values in {@code
+   * @throws LtlParseException if the transformation fails due to some false values in {@code
    *     pStoredAutomaton}. This is most likely caused by a bug.
    */
-  public static Automaton transform(StoredAutomaton pStoredAutomaton) throws LtlParseException {
+  public static Automaton transform(StoredAutomaton pStoredAutomaton)
+      throws LtlParseException, UnrecognizedCodeException {
     Objects.requireNonNull(pStoredAutomaton);
 
     StoredHeader storedHeader = pStoredAutomaton.getStoredHeader();
@@ -110,11 +114,10 @@ public class LtlParserUtils {
         List<AutomatonTransition> transitionList = new ArrayList<>();
 
         for (StoredEdgeWithLabel edge : pStoredAutomaton.getEdgesWithLabel(i)) {
-          String expression = getExpression(storedHeader, edge.getLabelExpr());
-
           int successorStateId = Iterables.getOnlyElement(edge.getConjSuccessors()).intValue();
           String successorName = pStoredAutomaton.getStoredState(successorStateId).getInfo();
-          transitionList.add(createTransition(assume(expression), successorName));
+
+          transitionList.addAll(getTransitions(storedHeader, edge.getLabelExpr(), successorName));
         }
 
         stateList.add(
@@ -134,93 +137,65 @@ public class LtlParserUtils {
     return result;
   }
 
-  private static String getExpression(
-      StoredHeader pStoredHeader, BooleanExpression<AtomLabel> pLabelExpr) {
-    StringBuilder result = new StringBuilder();
+  private static List<AutomatonTransition> getTransitions(
+      StoredHeader pStoredHeader, BooleanExpression<AtomLabel> pLabelExpr, String pSuccessorName)
+      throws InvalidAutomatonException, UnrecognizedCodeException {
+    Builder<AutomatonTransition> transitions = ImmutableList.builder();
 
-    BooleanExpression<AtomLabel> left;
-    BooleanExpression<AtomLabel> right;
-    boolean paren;
+    switch (pLabelExpr.getType()) {
+      case EXP_OR:
+        transitions.addAll(getTransitions(pStoredHeader, pLabelExpr.getLeft(), pSuccessorName));
+        transitions.addAll(getTransitions(pStoredHeader, pLabelExpr.getRight(), pSuccessorName));
+        break;
+      default:
+        Builder<AExpression> expressions = ImmutableList.builder();
+        expressions.addAll(getExpressions(pStoredHeader, pLabelExpr));
+        transitions.add(createTransition(expressions.build(), pSuccessorName));
+        break;
+    }
+
+    return transitions.build();
+  }
+
+  private static List<CExpression> getExpressions(
+      StoredHeader pStoredHeader, BooleanExpression<AtomLabel> pLabelExpr)
+      throws InvalidAutomatonException, UnrecognizedCodeException {
+    Builder<CExpression> expBuilder = ImmutableList.builder();
 
     Type type = pLabelExpr.getType();
     switch (type) {
       case EXP_TRUE:
-        return "true";
+        return ImmutableList.of(assume("true"));
       case EXP_FALSE:
-        return "false";
+        return ImmutableList.of(assume("false"));
       case EXP_ATOM:
         int apIndex = pLabelExpr.getAtom().getAPIndex();
-        return pStoredHeader.getAPs().get(apIndex);
+        return ImmutableList.of(assume(pStoredHeader.getAPs().get(apIndex)));
       case EXP_OR:
-        left = pLabelExpr.getLeft();
-        paren = left.needsParentheses(Type.EXP_OR);
-        if (paren) {
-          result.append("(");
-        }
-        result.append(getExpression(pStoredHeader, left));
-        if (paren) {
-          result.append(")");
-        }
-        result.append(" | "); // eventually replace this with " || "
-
-        right = pLabelExpr.getRight();
-        paren = right.needsParentheses(Type.EXP_OR);
-        if (paren) {
-          result.append("(");
-        }
-        result.append(getExpression(pStoredHeader, right));
-        if (paren) {
-          result.append(")");
-        }
-        return result.toString();
+        expBuilder.addAll(getExpressions(pStoredHeader, pLabelExpr.getLeft()));
+        expBuilder.addAll(getExpressions(pStoredHeader, pLabelExpr.getRight()));
+        break;
       case EXP_AND:
-        left = pLabelExpr.getLeft();
-        paren = left.needsParentheses(Type.EXP_AND);
-        if (paren) {
-          result.append("(");
-        }
-        result.append(getExpression(pStoredHeader, left));
-        if (paren) {
-          result.append(")");
-        }
-        result.append(" & "); // eventually replace this with " && "
-
-        right = pLabelExpr.getRight();
-        paren = right.needsParentheses(Type.EXP_AND);
-        if (paren) {
-          result.append("(");
-        }
-        result.append(getExpression(pStoredHeader, right));
-        if (paren) {
-          result.append(")");
-        }
-        return result.toString();
+        expBuilder.addAll(getExpressions(pStoredHeader, pLabelExpr.getLeft()));
+        expBuilder.addAll(getExpressions(pStoredHeader, pLabelExpr.getRight()));
+        break;
       case EXP_NOT:
-        left = pLabelExpr.getLeft();
-        paren = left.needsParentheses(Type.EXP_NOT);
-        result.append("!");
-        if (paren) {
-          result.append("(");
-        }
-        result.append(getExpression(pStoredHeader, left));
-        if (paren) {
-          result.append(")");
-        }
-        return result.toString();
+        CBinaryExpressionBuilder b = new CBinaryExpressionBuilder(LINUX64, LOG_MANAGER);
+        CExpression exp =
+            Iterables.getOnlyElement(getExpressions(pStoredHeader, pLabelExpr.getLeft()));
+        expBuilder.add(b.negateExpressionAndSimplify(exp));
+        break;
       default:
         throw new RuntimeException("Unhandled expression type: " + type);
     }
+
+    return expBuilder.build();
   }
 
   private static CExpression assume(String pExpression) throws InvalidAutomatonException {
     CAstNode sourceAST =
-        CParserUtils.parseSingleStatement(pExpression, parser, CProgramScope.empty());
+        CParserUtils.parseSingleStatement(pExpression, PARSER, CProgramScope.empty());
     return ((CExpressionStatement) sourceAST).getExpression();
-  }
-
-  private static AutomatonTransition createTransition(
-      CExpression pAssumption, String pFollowStateName) {
-    return createTransition(ImmutableList.of(pAssumption), pFollowStateName);
   }
 
   private static AutomatonTransition createTransition(
@@ -232,4 +207,5 @@ public class LtlParserUtils {
         ImmutableList.of(),
         pFollowStateName);
   }
+
 }

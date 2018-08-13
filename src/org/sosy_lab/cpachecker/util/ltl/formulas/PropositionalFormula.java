@@ -68,7 +68,7 @@ public abstract class PropositionalFormula implements LtlFormula {
     return true;
   }
 
-  protected abstract String getSymbol();
+  public abstract String getSymbol();
 
   @Override
   public String toString() {

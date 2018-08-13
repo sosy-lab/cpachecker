@@ -655,14 +655,24 @@ class ASTConverter {
 
   private CAstNode convert(IASTBinaryExpression e) {
 
-    switch (e.getOperator()) {
-    case IASTBinaryExpression.op_logicalAnd:
-    case IASTBinaryExpression.op_logicalOr:
-      CIdExpression tmp = createTemporaryVariable(e);
-      sideAssignmentStack.addConditionalExpression(e, tmp);
-      return tmp;
-    default:
-      // nothing to do here
+    int eop = e.getOperator();
+    if (eop == IASTBinaryExpression.op_logicalOr
+        || eop == IASTBinaryExpression.op_logicalAnd) {
+      CONDITION o1 = getConditionKind(e.getOperand1());
+      CONDITION o2 = getConditionKind(e.getOperand2());
+
+      if (o1 == CONDITION.NORMAL || o2 == CONDITION.NORMAL) {
+        CIdExpression tmp = createTemporaryVariable(e);
+        sideAssignmentStack.addConditionalExpression(e, tmp);
+        return tmp;
+      }
+
+      if ((eop == IASTBinaryExpression.op_logicalAnd
+          && (o1 == CONDITION.ALWAYS_FALSE || o2 == CONDITION.ALWAYS_FALSE))
+          || (o1 == CONDITION.ALWAYS_FALSE && o2 == CONDITION.ALWAYS_FALSE)) {
+        return CIntegerLiteralExpression.ZERO;
+      }
+      return CIntegerLiteralExpression.ONE;
     }
 
     Pair<BinaryOperator, Boolean> opPair = operatorConverter.convertBinaryOperator(e);
@@ -1453,7 +1463,8 @@ class ASTConverter {
     final FileLocation loc = getLocation(s);
     final Optional<CExpression> returnExp =
         Optional.fromNullable(convertExpressionWithoutSideEffects(s.getReturnValue()));
-    final Optional<CVariableDeclaration> returnVariableDeclaration = ((FunctionScope)scope).getReturnVariable();
+    final Optional<CVariableDeclaration> returnVariableDeclaration =
+((FunctionScope)scope).getReturnVariable();
 
     final Optional<CAssignment> returnAssignment;
     if (returnVariableDeclaration.isPresent()) {

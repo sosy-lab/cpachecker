@@ -56,8 +56,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -243,8 +242,8 @@ public class CustomInstructionApplications {
         throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException,
             UnrecognizedCodeException {
       // build simple custom instruction, is of the form r= x pOp y;
-     // create variable expressions
-      CType type = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
+      // create variable expressions
+      CType type = CNumericTypes.INT;
       CIdExpression r, x, y;
       r = new CIdExpression(FileLocation.DUMMY, new CVariableDeclaration(FileLocation.DUMMY, true, CStorageClass.AUTO,
               type, "r", "r", "r", null));

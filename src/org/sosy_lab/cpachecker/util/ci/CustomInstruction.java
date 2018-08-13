@@ -78,7 +78,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -355,7 +355,7 @@ public class CustomInstruction{
 
     SSAMapBuilder ssaMapBuilder = SSAMap.emptySSAMap().builder();
     for (String var : outVariables) {
-      ssaMapBuilder.setIndex(var,new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false), 1);
+      ssaMapBuilder.setIndex(var, CNumericTypes.INT, 1);
     }
 
     List<String> inVars = getVariablesOrdered(mapping, inputVariables);

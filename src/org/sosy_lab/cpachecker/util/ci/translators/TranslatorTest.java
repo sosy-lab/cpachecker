@@ -36,7 +36,7 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
@@ -55,7 +55,7 @@ public class TranslatorTest {
 
   private final MachineModel machineModel = MachineModel.LINUX32;
   private String[] varNames = {"var1", "var2", "var3", "fun::var1", "fun::varB", "fun::varC"};
-  private CSimpleType integervariable = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
+  private CSimpleType integervariable = CNumericTypes.INT;
   private SSAMap ssaTest;
 
   @Before

@@ -172,7 +172,6 @@ public class PseudoExistQeManager implements StatisticsProvider {
       while ((quantifierCountLastIteration > existFormula.getNumberOfQuantifiers())
           && existFormula.hasQuantifiers()) {
         quantifierCountLastIteration = existFormula.getNumberOfQuantifiers();
-
         if (useDER && existFormula.hasQuantifiers()) {
           existFormula = applyDER(existFormula);
         }
@@ -188,7 +187,7 @@ public class PseudoExistQeManager implements StatisticsProvider {
 
       stats.qeSuccessCounter += (pQuantifiedVars.size() - existFormula.getNumberOfQuantifiers());
       // How to handle remaining Quantifiers based on Options and result of previous operations
-      if (existFormula.hasQuantifiers()) {
+      if (pQuantifiedVars.size() - existFormula.getNumberOfQuantifiers() < 1) {
         if (overapprox) {
           logger.log(
               Level.FINE,
