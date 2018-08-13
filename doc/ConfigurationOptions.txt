@@ -1734,6 +1734,10 @@ cpa.predicate.bam.useAbstractionReduction = true
 # Enable/disable precision reduction at the BAM block entry
 cpa.predicate.bam.usePrecisionReduction = true
 
+# force abstractions at each branch node after assume edges, regardless of
+# threshold
+cpa.predicate.blk.alwaysAfterAssume = false
+
 # force abstractions immediately after threshold is reached (no effect if
 # threshold = 0)
 cpa.predicate.blk.alwaysAfterThreshold = true
@@ -2597,6 +2601,9 @@ cpa.usage.abortfunctions = {}
 # to list variable)
 cpa.usage.binderFunctions = {}
 
+# add identifier name to the witness file name
+cpa.usage.export.encodeIdentifier = false
+
 # export counterexample core as text file
 cpa.usage.export.witnessTemplate = "witness.%s.graphml"
 
@@ -2605,6 +2612,9 @@ cpa.usage.falseUnsafesOutput = "FalseUnsafes"
 
 # if a file do not exist, do not include the corresponding edge
 cpa.usage.filterMissedFiles = true
+
+# filtered unsafes, which can not be removed using precision, may be hidden
+cpa.usage.hideFilteredUnsafes = false
 
 # The functions, which cannot be executed in parallel with themselves
 cpa.usage.notSelfParallelFunctions = new HashSet<>()

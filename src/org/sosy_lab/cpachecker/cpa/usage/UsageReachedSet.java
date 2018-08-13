@@ -162,26 +162,28 @@ public class UsageReachedSet extends PartitionedReachedSet {
     if (!usagesExtracted && container != null) {
       logger.log(Level.INFO, "Analysis is finished, start usage extraction");
       usagesExtracted = true;
-      Deque<Pair<ReachedSet, Multiset<LockEffect>>> waitlist = new ArrayDeque<>();
+      Deque<Pair<AbstractState, Multiset<LockEffect>>> waitlist = new ArrayDeque<>();
       Set<Pair<AbstractState, Multiset<LockEffect>>> processedSets = new HashSet<>();
 
-      waitlist.add(Pair.of(this, HashMultiset.create()));
-      processedSets.add(Pair.of(getFirstState(), HashMultiset.create()));
+      Pair<AbstractState, Multiset<LockEffect>> currentPair =
+          Pair.of(getFirstState(), HashMultiset.create());
+      waitlist.add(currentPair);
+      processedSets.add(currentPair);
 
       while (!waitlist.isEmpty()) {
-        Pair<ReachedSet, Multiset<LockEffect>> currentPair = waitlist.pop();
-        ReachedSet currentReached = currentPair.getFirst();
+        currentPair = waitlist.pop();
+        AbstractState state = currentPair.getFirst();
         Multiset<LockEffect> currentEffects = currentPair.getSecond();
         LockState locks, expandedLocks;
         Map<LockState, LockState> reduceToExpand = new HashMap<>();
         Map<AbstractState, List<UsageInfo>> stateToUsage = new HashMap<>();
         Set<AbstractState> processedStates = new HashSet<>();
         Deque<AbstractState> stateWaitlist = new ArrayDeque<>();
-        stateWaitlist.add(currentReached.getFirstState());
-        processedStates.add(currentReached.getFirstState());
+        stateWaitlist.add(state);
+        processedStates.add(state);
 
         while (!stateWaitlist.isEmpty()) {
-          AbstractState state = stateWaitlist.poll();
+          state = stateWaitlist.poll();
           List<UsageInfo> expandedUsages = new ArrayList<>();
           ARGState argState = (ARGState) state;
           for (ARGState covered : argState.getCoveredByThis()) {
@@ -272,7 +274,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
               Pair<AbstractState, Multiset<LockEffect>> newPair =
                   Pair.of(innerReached.getFirstState(), difference);
               if (!processedSets.contains(newPair)) {
-                waitlist.add(Pair.of(innerReached, difference));
+                waitlist.add(newPair);
                 processedSets.add(newPair);
               }
             }

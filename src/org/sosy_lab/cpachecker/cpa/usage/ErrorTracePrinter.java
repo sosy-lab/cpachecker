@@ -44,9 +44,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -124,37 +121,12 @@ public abstract class ErrorTracePrinter {
     cfa = pCfa;
   }
 
-  private List<CFAEdge> createPath(UsageInfo usage) {
-    assert usage.getKeyState() != null;
-
-    ARGState target = (ARGState) usage.getKeyState();
-    ARGPath path;
-    if (subgraphComputer != null) {
-      // BAM: we need to update target state considering BAM caches
-      path = subgraphComputer.computePath(target);
-    } else {
-      path = ARGUtils.getOnePathTo(target);
-    }
-    if (path == null) {
-      logger.log(Level.SEVERE, "Cannot compute path for: " + usage);
-      return Collections.emptyList();
-    }
-    return path.getInnerEdges();
-  }
-
   protected String createUniqueName(SingleIdentifier id) {
     return id.getType().toASTString("_" + id.toString()).replace(" ", "_");
   }
 
-  public void printErrorTraces(UnmodifiableReachedSet reached) {
+  public void printErrorTraces(UsageReachedSet uReached) {
     preparationTimer.start();
-    ReachedSet reachedSet;
-    if (reached instanceof ForwardingReachedSet) {
-      reachedSet = ((ForwardingReachedSet) reached).getDelegate();
-    } else {
-      reachedSet = (ReachedSet) reached;
-    }
-    UsageReachedSet uReached = (UsageReachedSet) reachedSet;
     container = uReached.getUsageContainer();
     UnsafeDetector detector = container.getUnsafeDetector();
 
@@ -227,11 +199,25 @@ public abstract class ErrorTracePrinter {
   protected List<CFAEdge> getPath(UsageInfo usage) {
     List<CFAEdge> path = usage.getPath();
 
-    if (path == null) {
-      path = createPath(usage);
-    }
+    if (path != null) {
+      return path;
+    } else {
+      assert usage.getKeyState() != null;
 
-    return path;
+      ARGState target = (ARGState) usage.getKeyState();
+      ARGPath aPath;
+      if (subgraphComputer != null) {
+        // BAM: we need to update target state considering BAM caches
+        aPath = subgraphComputer.computePath(target);
+      } else {
+        aPath = ARGUtils.getOnePathTo(target);
+      }
+      if (aPath == null) {
+        logger.log(Level.SEVERE, "Cannot compute path for: " + usage);
+        return Collections.emptyList();
+      }
+      return aPath.getInnerEdges();
+    }
   }
 
   protected abstract void printUnsafe(

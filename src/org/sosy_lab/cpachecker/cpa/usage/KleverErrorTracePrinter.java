@@ -77,7 +77,12 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       name = "witnessTemplate",
       description = "export counterexample core as text file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate errorPathFile = PathTemplate.ofFormatString("witness.%d.graphml");
+  private PathTemplate errorPathFile = PathTemplate.ofFormatString("witness.%s.graphml");
+
+  @Option(
+    secure = true,
+    description = "add identifier name to the witness file name")
+  private boolean encodeIdentifier = false;
 
   private static final String WARNING_MESSAGE = "Access was not found";
 
@@ -231,7 +236,13 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
       builder.addDataElementChild(currentNode, NodeFlag.ISVIOLATION.key, "true");
 
-      Path currentPath = errorPathFile.getPath(witnessNum);
+      Path currentPath;
+      if (encodeIdentifier) {
+        currentPath = errorPathFile.getPath(createUniqueName(pId));
+      } else {
+        currentPath = errorPathFile.getPath(witnessNum);
+      }
+
       IO.writeFile(currentPath, Charset.defaultCharset(), (Appender) a -> builder.appendTo(a));
 
     } catch (IOException e) {
