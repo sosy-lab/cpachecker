@@ -314,231 +314,6 @@ public class CFloatUtil {
     // do not instantiate
   }
 
-  public static long getSignBitMask(int pType) {
-    long signBit = 0L;
-    switch (pType) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-        signBit = 0b00000000_00000000_00000000_00000000_00000000_00000000_00000001_00000000L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        signBit = 0b00000000_00000000_00000000_00000000_00000000_00000000_00001000_00000000L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        signBit = 0b00000000_00000000_00000000_00000000_00000000_00000000_10000000_00000000L;
-        break;
-      default:
-        throw new RuntimeException("Unimplemented floating point type: " + pType);
-    }
-
-    return signBit;
-  }
-
-  public static long getExponentMask(int pType) {
-    long exp = 0L;
-    switch (pType) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-        exp = 0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_11111111L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        exp = 0b00000000_00000000_00000000_00000000_00000000_00000000_00000111_11111111L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        exp = 0b00000000_00000000_00000000_00000000_00000000_00000000_01111111_11111111L;
-        break;
-      default:
-        throw new RuntimeException("Unimplemented floating point type: " + pType);
-    }
-
-    return exp;
-  }
-
-  public static long getMantissaMask(int pType) {
-    long man = 0L;
-    switch (pType) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-        man = 0b00000000_00000000_00000000_00000000_00000000_01111111_11111111_11111111L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        man = 0b00000000_00001111_11111111_11111111_11111111_11111111_11111111_11111111L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        man = 0b01111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111L;
-        break;
-      default:
-        throw new RuntimeException("Unimplemented floating point type: " + pType);
-    }
-
-    return man;
-  }
-
-  public static long getNormalizationMask(int pType) {
-    long oneBit = 0L;
-    switch (pType) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-        oneBit = 0b00000000_00000000_00000000_00000000_00000000_10000000_00000000_00000000L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        oneBit = 0b00000000_00010000_00000000_00000000_00000000_00000000_00000000_00000000L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        oneBit = 0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000L;
-        break;
-      default:
-        throw new RuntimeException("Unimplemented floating point type: " + pType);
-    }
-
-    return oneBit;
-  }
-
-  public static long getNormalizedMantissaMask(int pType) {
-    long man = 0L;
-    switch (pType) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        return getMantissaMask(pType);
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        man = 0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111L;
-        break;
-      default:
-        throw new RuntimeException("Unimplemented floating point type: " + pType);
-    }
-
-    return man;
-  }
-
-  public static long getBias(int pType) {
-    long bias = 0L;
-    switch (pType) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        bias = getExponentMask(pType) / 2;
-        break;
-      default:
-        throw new RuntimeException("Unimplemented floating point type: " + pType);
-    }
-
-    return bias;
-  }
-
-  public static int getMantissaLength(int pType) {
-    int res = -1;
-
-    switch (pType) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-        res = 23;
-        break;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        res = 52;
-        break;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        res = 64;
-        break;
-      default:
-        throw new IllegalArgumentException("Unimplemented floating point type: " + pType);
-    }
-
-    return res;
-  }
-
-  public static int getExponentLength(int pType) {
-    int res = -1;
-
-    switch (pType) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-        res = 8;
-        break;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        res = 11;
-        break;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        res = 15;
-        break;
-      default:
-        throw new IllegalArgumentException("Unimplemented floating point type: " + pType);
-    }
-
-    return res;
-  }
-
-  public static CFloatWrapper round(CFloatWrapper pWrapper, long pOverflow, int pType) {
-    // TODO: currently only rounding mode NEAREST_TIE_TO_EVEN; implement others
-    if (pOverflow != 0) {
-      long man = pWrapper.getMantissa();
-      long exp = pWrapper.getExponent();
-
-      boolean isNormalized =
-          (pType == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE
-              && (man & getNormalizationMask(pType)) != 0);
-
-      if ((getHighestOrderOverflowBitMask() & pOverflow) != 0) {
-        if (((getLowerOrderOverflowBitsMask(pType) & pOverflow) != 0) || ((1 & man) != 0)) {
-          long nMan = (man + 1) & getNormalizedMantissaMask(pType);
-
-          if ((pType != CFloatNativeAPI.FP_TYPE_LONG_DOUBLE
-              && (nMan & getNormalizationMask(pType)) != 0)
-              || (pType == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE
-                  && (nMan & getNormalizationMask(pType)) == 0
-                  && isNormalized)) {
-            nMan >>>= 1;
-            nMan ^= getNormalizationMask(pType);
-            nMan &= getNormalizedMantissaMask(pType);
-            exp--;
-          }
-
-          pWrapper.setExponent(exp);
-          pWrapper.setMantissa(nMan);
-        }
-      }
-    }
-
-    return pWrapper;
-  }
-
-  public static long getLowerOrderOverflowBitsMask(int pType) {
-    long bits = 0L;
-    switch (pType) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-        bits = 0b01111111_11111111_11111110_00000000_00000000_00000000_00000000_00000000L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        bits = 0b01111111_11111111_11111111_11111111_11111111_11111111_11110000_00000000L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        bits = 0b01111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111L;
-        break;
-      default:
-        throw new RuntimeException("Unimplemented floating point type: " + pType);
-    }
-
-    return bits;
-  }
-
-  public static long getHighestOrderOverflowBitMask() {
-    return 0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000L;
-  }
-
-  public static long getOverflowHighBitsMask(int pType) {
-    long bits = 0L;
-    switch (pType) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-        bits = 0b11111111_11111111_11111110_00000000_00000000_00000000_00000000_00000000L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        bits = 0b11111111_11111111_11111111_11111111_11111111_11111111_11110000_00000000L;
-        break;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        bits = 0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111L;
-        break;
-      default:
-        throw new RuntimeException("Unimplemented floating point type: " + pType);
-    }
-
-    return bits;
-  }
-
-
-
   /**
    * Split a {@link CFloat} object into its fields and put their bit representation as well as their
    * human readable base-10 format into a {@link String}.
@@ -554,18 +329,17 @@ public class CFloatUtil {
   public static String getFieldsAsComprehensiveStringRepresentation(CFloat pFloat) {
     StringBuilder builder = new StringBuilder();
     CFloatWrapper wrapper = pFloat.copyWrapper();
-    int type = pFloat.getType();
 
     builder.append("\n\tSign:                 ");
     builder.append(pFloat.isNegative() ? "-" : "+");
 
     builder.append("\n\tExponent:             ");
     long exp = wrapper.getExponent();
-    traverseSingleField(builder, type, exp, false);
+    traverseSingleField(builder, pFloat, exp, false);
 
     builder.append("\n\tMantissa/Significant: ");
     long man = wrapper.getMantissa();
-    traverseSingleField(builder, type, man, true);
+    traverseSingleField(builder, pFloat, man, true);
 
     builder.append("\n");
     builder.append("\n\tExponent (readable):  ").append(exp);
@@ -576,9 +350,9 @@ public class CFloatUtil {
     return builder.toString();
   }
 
-  private static void
-      traverseSingleField(StringBuilder pBuilder, int pType, long pMask, boolean mantissa) {
-    int length = (mantissa ? getMantissaLength(pType) : getExponentLength(pType)) - 1;
+  private static void traverseSingleField(
+      StringBuilder pBuilder, CFloat pNumber, long pMask, boolean mantissa) {
+    int length = (mantissa ? pNumber.getMantissaLength() : pNumber.getExponentLength()) - 1;
     for (int i = length; i >= 0; i--) {
       pBuilder.append(((pMask & 1L << i) == 0) ? "0" : "1");
       if (i > 0 && i % 8 == 0) {

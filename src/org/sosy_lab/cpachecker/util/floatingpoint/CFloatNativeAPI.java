@@ -40,17 +40,17 @@ class CFloatNativeAPI {
     NativeLibraries.loadLibrary("FloatingPoints");
   }
 
-  public static final CFloatWrapper ZERO_SINGLE;
-  public static final CFloatWrapper ONE_SINGLE;
-  public static final CFloatWrapper TEN_SINGLE;
+  public static final CFloat ZERO_SINGLE;
+  public static final CFloat ONE_SINGLE;
+  public static final CFloat TEN_SINGLE;
 
-  public static final CFloatWrapper ZERO_DOUBLE;
-  public static final CFloatWrapper ONE_DOUBLE;
-  public static final CFloatWrapper TEN_DOUBLE;
+  public static final CFloat ZERO_DOUBLE;
+  public static final CFloat ONE_DOUBLE;
+  public static final CFloat TEN_DOUBLE;
 
-  public static final CFloatWrapper ZERO_LONG_DOUBLE;
-  public static final CFloatWrapper ONE_LONG_DOUBLE;
-  public static final CFloatWrapper TEN_LONG_DOUBLE;
+  public static final CFloat ZERO_LONG_DOUBLE;
+  public static final CFloat ONE_LONG_DOUBLE;
+  public static final CFloat TEN_LONG_DOUBLE;
 
   public static final int FP_TYPE_SINGLE = 0;
   public static final int FP_TYPE_DOUBLE = 1;
@@ -68,17 +68,17 @@ class CFloatNativeAPI {
   public static final int TYPE_ULONG_LONG = 12;
 
   static {
-    ZERO_SINGLE = createFp("0.0", FP_TYPE_SINGLE);
-    ONE_SINGLE = createFp("1.0", FP_TYPE_SINGLE);
-    TEN_SINGLE = createFp("10.0", FP_TYPE_SINGLE);
+    ZERO_SINGLE = new CFloatImpl(createFp("0.0", FP_TYPE_SINGLE), FP_TYPE_SINGLE);
+    ONE_SINGLE = new CFloatImpl(createFp("1.0", FP_TYPE_SINGLE), FP_TYPE_SINGLE);
+    TEN_SINGLE = new CFloatImpl(createFp("10.0", FP_TYPE_SINGLE), FP_TYPE_SINGLE);
 
-    ZERO_DOUBLE = createFp("0.0", FP_TYPE_DOUBLE);
-    ONE_DOUBLE = createFp("1.0", FP_TYPE_DOUBLE);
-    TEN_DOUBLE = createFp("10.0", FP_TYPE_DOUBLE);
+    ZERO_DOUBLE = new CFloatImpl(createFp("0.0", FP_TYPE_DOUBLE), FP_TYPE_DOUBLE);
+    ONE_DOUBLE = new CFloatImpl(createFp("1.0", FP_TYPE_DOUBLE), FP_TYPE_DOUBLE);
+    TEN_DOUBLE = new CFloatImpl(createFp("10.0", FP_TYPE_DOUBLE), FP_TYPE_DOUBLE);
 
-    ZERO_LONG_DOUBLE = createFp("0.0", FP_TYPE_LONG_DOUBLE);
-    ONE_LONG_DOUBLE = createFp("1.0", FP_TYPE_LONG_DOUBLE);
-    TEN_LONG_DOUBLE = createFp("10.0", FP_TYPE_LONG_DOUBLE);
+    ZERO_LONG_DOUBLE = new CFloatImpl(createFp("0.0", FP_TYPE_LONG_DOUBLE), FP_TYPE_LONG_DOUBLE);
+    ONE_LONG_DOUBLE = new CFloatImpl(createFp("1.0", FP_TYPE_LONG_DOUBLE), FP_TYPE_LONG_DOUBLE);
+    TEN_LONG_DOUBLE = new CFloatImpl(createFp("10.0", FP_TYPE_LONG_DOUBLE), FP_TYPE_LONG_DOUBLE);
   }
 
   public static native CFloatWrapper createFp(String stringRepresentation, int fp_type);
