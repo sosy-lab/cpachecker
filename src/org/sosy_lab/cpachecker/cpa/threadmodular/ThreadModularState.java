@@ -40,12 +40,12 @@ public class ThreadModularState extends AbstractSingleWrapperState {
 
   @Override
   public Object getPartitionKey() {
-    if (getWrappedState() == EpsilonState.getInstance()) {
-      //EpsilonState
-      return EpsilonState.getInstance();
-    } else {
-      return super.getPartitionKey();
-    }
+    /*
+     * if (getWrappedState() == EpsilonState.getInstance()) { //EpsilonState return
+     * EpsilonState.getInstance(); } else { return super.getPartitionKey(); }
+     */
+    // Disable partitioning for experiments
+    return EpsilonState.getInstance();
   }
 
   @Override
