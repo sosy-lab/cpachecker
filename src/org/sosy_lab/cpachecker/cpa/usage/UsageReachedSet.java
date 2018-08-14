@@ -278,6 +278,28 @@ public class UsageReachedSet extends PartitionedReachedSet {
                 processedSets.add(newPair);
               }
             }
+          } else if (manager.hasInitialStateWithoutExit(state)) {
+            ReachedSet innerReached = manager.getReachedSetForInitialState(state);
+
+            LockState rootLockState =
+                AbstractStates.extractStateByType(innerReached.getFirstState(), LockState.class);
+            LockState reducedLockState = AbstractStates.extractStateByType(state, LockState.class);
+            Multiset<LockEffect> difference;
+            if (rootLockState == null || reducedLockState == null) {
+              // No LockCPA
+              difference = HashMultiset.create();
+            } else {
+              difference = reducedLockState.getDifference(rootLockState);
+            }
+
+            difference.addAll(currentEffects);
+
+            Pair<AbstractState, Multiset<LockEffect>> newPair =
+                Pair.of(innerReached.getFirstState(), difference);
+            if (!processedSets.contains(newPair)) {
+              waitlist.add(newPair);
+              processedSets.add(newPair);
+            }
           }
         }
       }

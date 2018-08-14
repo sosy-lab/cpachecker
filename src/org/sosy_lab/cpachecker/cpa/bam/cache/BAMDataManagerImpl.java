@@ -75,6 +75,10 @@ public class BAMDataManagerImpl implements BAMDataManager {
   private final Table<AbstractState, AbstractState, ReachedSet> initialStateToReachedSet =
       HashBasedTable.create();
 
+  /** Mapping of non-reduced initial states to {@link ReachedSet}. */
+  private final Map<AbstractState, ReachedSet> initialStateWithoutExitToReachedSet =
+      new HashMap<>();
+
   /** Mapping of reduced initial states to non-reduced initial states. */
   private final Multimap<AbstractState, AbstractState> reducedToNonReduced = HashMultimap.create();
 
@@ -238,6 +242,24 @@ public class BAMDataManagerImpl implements BAMDataManager {
   }
 
   @Override
+  public void registerInitialState(AbstractState initialState, ReachedSet reachedSet) {
+    ReachedSet oldReachedSet = initialStateWithoutExitToReachedSet.get(initialState);
+    if (oldReachedSet != null && oldReachedSet != reachedSet) {
+      // TODO This might be a hint for a memory leak, i.e., the old reachedset
+      // is no longer accessible through BAMDataManager, but registered in BAM-cache.
+      // This happens, when the reducer changes, e.g., BAMPredicateRefiner.refineRelevantPredicates.
+      logger.logf(
+          Level.ALL,
+          "New root state %s without exit state overrides old reachedset %s with new reachedset %s.",
+          initialState,
+          oldReachedSet.getFirstState(),
+          reachedSet.getFirstState());
+    }
+    initialStateWithoutExitToReachedSet.put(initialState, reachedSet);
+    reducedToNonReduced.put(reachedSet.getFirstState(), initialState);
+  }
+
+  @Override
   public ReachedSet getReachedSetForInitialState(
       AbstractState initialState, AbstractState exitState) {
     assert initialStateToReachedSet.contains(initialState, exitState)
@@ -251,6 +273,20 @@ public class BAMDataManagerImpl implements BAMDataManager {
   @Override
   public boolean hasInitialState(AbstractState state) {
     return initialStateToReachedSet.containsRow(state);
+  }
+
+  @Override
+  public ReachedSet getReachedSetForInitialState(AbstractState initialState) {
+    assert initialStateWithoutExitToReachedSet
+        .containsKey(initialState) : "no block matching states: "
+        + initialState;
+    ReachedSet reached = checkNotNull(initialStateWithoutExitToReachedSet.get(initialState));
+    return reached;
+  }
+
+  @Override
+  public boolean hasInitialStateWithoutExit(AbstractState state) {
+    return initialStateWithoutExitToReachedSet.containsKey(state);
   }
 
   @Override

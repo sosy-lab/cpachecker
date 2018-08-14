@@ -260,6 +260,9 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
     for (AbstractState exitState : exitStates) {
       data.registerInitialState(initialState, exitState, reached);
     }
+    if (exitStates.isEmpty()) {
+      data.registerInitialState(initialState, reached);
+    }
   }
 
   protected boolean isCacheHit(

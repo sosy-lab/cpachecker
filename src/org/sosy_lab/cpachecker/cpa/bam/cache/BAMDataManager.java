@@ -139,4 +139,10 @@ public interface BAMDataManager {
    * @return true if the block entry was added as 'uncached'
    */
   boolean isUncachedBlockEntry(CFANode node);
+
+  void registerInitialState(AbstractState pInitialState, ReachedSet pReachedSet);
+
+  public ReachedSet getReachedSetForInitialState(AbstractState initialState);
+
+  public boolean hasInitialStateWithoutExit(AbstractState state);
 }
