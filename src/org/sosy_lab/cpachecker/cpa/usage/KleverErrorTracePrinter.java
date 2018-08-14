@@ -238,7 +238,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
       Path currentPath;
       if (encodeIdentifier) {
-        currentPath = errorPathFile.getPath(createUniqueName(pId));
+        currentPath = errorPathFile.getPath(createUniqueName(pId).replace(" ", "_"));
       } else {
         currentPath = errorPathFile.getPath(witnessNum);
       }
