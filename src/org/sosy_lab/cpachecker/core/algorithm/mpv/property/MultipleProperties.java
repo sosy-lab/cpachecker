@@ -125,7 +125,6 @@ public final class MultipleProperties {
    * Create a joint partition with currently irrelevant properties.
    */
   public MultipleProperties createIrrelevantProperties() {
-    checkIfRelevant();
     ImmutableList.Builder<AbstractSingleProperty> propertyBuilder = ImmutableList.builder();
     for (AbstractSingleProperty property : properties) {
       if (!property.isRelevant()) {
@@ -145,7 +144,6 @@ public final class MultipleProperties {
         property.setReasonOfUnknown(reason);
       }
     }
-    checkIfRelevant();
   }
 
   /*
@@ -160,7 +158,6 @@ public final class MultipleProperties {
         property.allViolationsFound();
       }
     }
-    checkIfRelevant();
   }
 
   /*
@@ -181,10 +178,10 @@ public final class MultipleProperties {
               property.disableProperty();
               property.allViolationsFound();
             }
-            property.checkIfRelevant();
+            property.setRelevant();
             property.updateResult(Result.FALSE);
             property.addViolatedPropertyDescription(automatonState.getViolatedProperties());
-            return; // shortcut
+            // do not break, since several properties may be violated in the same state
           }
         }
       }
@@ -194,7 +191,7 @@ public final class MultipleProperties {
   /*
    * Check all properties, if they are relevant.
    */
-  private void checkIfRelevant() {
+  public void checkIfRelevant() {
     for (AbstractSingleProperty property : properties) {
       if (!property.isRelevant()) {
         property.checkIfRelevant();

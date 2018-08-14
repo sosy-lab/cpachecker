@@ -67,6 +67,7 @@ public final class Partition {
   private void stopAnalysis(ReachedSet reached) {
     spentCpuTime = getSpentCPUTime();
     properties.divideSpentResources(spentCpuTime, reached);
+    properties.checkIfRelevant();
   }
 
   public boolean isChecked(ReachedSet reached) {
