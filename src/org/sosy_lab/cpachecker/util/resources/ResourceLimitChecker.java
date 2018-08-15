@@ -161,7 +161,7 @@ public final class ResourceLimitChecker {
   public static ResourceLimitChecker createCpuTimeLimitChecker(
       LogManager logger, ShutdownManager shutdownManager, TimeSpan cpuTime) {
 
-    if (cpuTime.isEmpty()) {
+    if (cpuTime.compareTo(TimeSpan.empty()) <= 0) {
       return new ResourceLimitChecker(shutdownManager, ImmutableList.of());
     }
 
