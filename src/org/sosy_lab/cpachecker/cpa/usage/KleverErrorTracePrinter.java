@@ -332,10 +332,6 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
         result, KeyDef.THREADID, Integer.toString(threadIterator.getCurrentThread()));
   }
 
-  private Iterator<CFAEdge> getIterator(List<CFAEdge> path) {
-    return from(path).filter(FILTER_EMPTY_FILE_LOCATIONS).iterator();
-  }
-
   private boolean isThreadCreateFunction(CFAEdge pEdge) {
     return getThreadCreateStatementIfExists(pEdge) != null;
   }

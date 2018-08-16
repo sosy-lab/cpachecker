@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import java.io.IOException;
@@ -71,7 +73,7 @@ public abstract class ErrorTracePrinter {
     description = "if a file do not exist, do not include the corresponding edge",
     secure = true
   )
-  private boolean filterMissedFiles = true;
+  private boolean filterMissedFiles = false;
 
   @Option(description = "print all unsafe cases in report", secure = true)
   private boolean printFalseUnsafes = false;
@@ -218,6 +220,10 @@ public abstract class ErrorTracePrinter {
       }
       return aPath.getInnerEdges();
     }
+  }
+
+  protected Iterator<CFAEdge> getIterator(List<CFAEdge> path) {
+    return from(path).filter(FILTER_EMPTY_FILE_LOCATIONS).iterator();
   }
 
   protected abstract void printUnsafe(

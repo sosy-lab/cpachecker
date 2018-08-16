@@ -125,9 +125,9 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
       }
       writer.append(id.getDereference() + "\n");
       writer.append(id.getType().toASTString(id.getName()) + "\n");
-      // if (isTrueUnsafe) {
-      //  writer.append("Line 0:     N0 -{/*Is true unsafe:*/}-> N0" + "\n");
-      // }
+      if (refined) {
+        writer.append("Line 0:     N0 -{/*Is true unsafe:*/}-> N0" + "\n");
+      }
       // writer.append("Line 0:     N0 -{/*Number of usage points:" +
       // uinfo.getNumberOfTopUsagePoints() + "*/}-> N0" + "\n");
       // writer.append("Line 0:     N0 -{/*Number of usages      :" + uinfo.size() + "*/}-> N0" +
@@ -164,7 +164,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
      * We must use iterator to be sure, when is the end of the list.
      * I tried to check the edge, it is the last, but it can be repeated during the sequence
      */
-    Iterator<CFAEdge> iterator = path.iterator();
+    Iterator<CFAEdge> iterator = getIterator(path);
     while (iterator.hasNext()) {
       CFAEdge edge = iterator.next();
       if (edge == null || edge instanceof CDeclarationEdge) {
