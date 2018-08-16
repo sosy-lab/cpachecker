@@ -524,6 +524,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     for (int i = 0; i < s.length(); i++) {
       char c = s.charAt(i);
       switch (c) {
+        case '\r':
+          appendTo.append("\\r");
+          break;
       case '\n':
         appendTo.append("\\n");
         break;
