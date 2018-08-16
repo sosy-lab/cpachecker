@@ -28,7 +28,6 @@ import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -78,10 +77,11 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
+import org.sosy_lab.cpachecker.util.Property;
 import org.sosy_lab.cpachecker.util.PropertyFileParser;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
-import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
+import org.sosy_lab.cpachecker.util.SpecificationProperty.CommonPropertyType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -138,7 +138,8 @@ public class CPAMain {
     try {
       cpaConfig.inject(options);
       if (options.programs.isEmpty()) {
-        throw new InvalidConfigurationException("Please specify a program to analyze on the command line.");
+        throw new InvalidConfigurationException(
+            "Please specify a program to analyze on the command line.");
       }
       dumpConfiguration(options, cpaConfig, logManager);
 
@@ -196,72 +197,83 @@ public class CPAMain {
 
   // Default values for options from external libraries
   // that we want to override in CPAchecker.
-  private static final ImmutableMap<String, String> EXTERN_OPTION_DEFAULTS = ImmutableMap.of(
-      "log.level", Level.INFO.toString());
+  private static final ImmutableMap<String, String> EXTERN_OPTION_DEFAULTS =
+      ImmutableMap.of("log.level", Level.INFO.toString());
 
   private static final String SPECIFICATION_OPTION = "specification";
   private static final String ENTRYFUNCTION_OPTION = "analysis.entryFunction";
 
   @Options
   private static class BootstrapOptions {
-    @Option(secure=true, name="memorysafety.config",
-        description="When checking for memory safety properties, "
-            + "use this configuration file instead of the current one.")
+    @Option(
+        secure = true,
+        name = "memorysafety.config",
+        description =
+            "When checking for memory safety properties, "
+                + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path memsafetyConfig = null;
 
-    @Option(secure=true, name="overflow.config",
-        description="When checking for the overflow property, "
-            + "use this configuration file instead of the current one.")
+    @Option(
+        secure = true,
+        name = "overflow.config",
+        description =
+            "When checking for the overflow property, "
+                + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path overflowConfig = null;
 
-    @Option(secure=true, name="termination.config",
-        description="When checking for the termination property, "
-            + "use this configuration file instead of the current one.")
+    @Option(
+        secure = true,
+        name = "termination.config",
+        description =
+            "When checking for the termination property, "
+                + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path terminationConfig = null;
 
     @Option(
-      secure = true,
-      name = CmdLineArguments.PRINT_USED_OPTIONS_OPTION,
-      description = "all used options are printed"
-    )
+        secure = true,
+        name = CmdLineArguments.PRINT_USED_OPTIONS_OPTION,
+        description = "all used options are printed")
     private boolean printUsedOptions = false;
   }
 
   @Options
   private static class MainOptions {
     @Option(
-      secure = true,
-      name = "analysis.programNames",
-      //required=true, NOT required because we want to give a nicer user message ourselves
-      description = "A String, denoting the programs to be analyzed"
-    )
+        secure = true,
+        name = "analysis.programNames",
+        // required=true, NOT required because we want to give a nicer user message ourselves
+        description = "A String, denoting the programs to be analyzed")
     private ImmutableList<String> programs = ImmutableList.of();
 
-    @Option(secure=true, name="configuration.dumpFile",
-        description="Dump the complete configuration to a file.")
+    @Option(
+        secure = true,
+        name = "configuration.dumpFile",
+        description = "Dump the complete configuration to a file.")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path configurationOutputFile = Paths.get("UsedConfiguration.properties");
 
-    @Option(secure=true, name="statistics.export", description="write some statistics to disk")
+    @Option(
+        secure = true,
+        name = "statistics.export",
+        description = "write some statistics to disk")
     private boolean exportStatistics = true;
 
-    @Option(secure=true, name="statistics.file",
-        description="write some statistics to disk")
+    @Option(secure = true, name = "statistics.file", description = "write some statistics to disk")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path exportStatisticsFile = Paths.get("Statistics.txt");
 
-    @Option(secure=true, name="statistics.print", description="print statistics to console")
+    @Option(secure = true, name = "statistics.print", description = "print statistics to console")
     private boolean printStatistics = false;
 
-    @Option(secure=true, name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
+    @Option(secure = true, name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
     private boolean doPCC = false;
   }
 
-  private static void dumpConfiguration(MainOptions options, Configuration config,
-      LogManager logManager) {
+  private static void dumpConfiguration(
+      MainOptions options, Configuration config, LogManager logManager) {
     if (options.configurationOutputFile != null) {
       try {
         IO.writeFile(
@@ -272,9 +284,11 @@ public class CPAMain {
     }
   }
 
-  private static final ImmutableSet<PropertyType> MEMSAFETY_PROPERTY_TYPES =
+  private static final ImmutableSet<? extends Property> MEMSAFETY_PROPERTY_TYPES =
       Sets.immutableEnumSet(
-          PropertyType.VALID_DEREF, PropertyType.VALID_FREE, PropertyType.VALID_MEMTRACK);
+          CommonPropertyType.VALID_DEREF,
+          CommonPropertyType.VALID_FREE,
+          CommonPropertyType.VALID_MEMTRACK);
 
   /**
    * Parse the command line, read the configuration file, and setup the program-wide base paths.
@@ -346,42 +360,43 @@ public class CPAMain {
       Configuration config,
       BootstrapOptions options,
       Map<String, String> cmdLineOptions,
-      Set<SpecificationProperty> properties)
+      Set<SpecificationProperty> pProperties)
       throws InvalidConfigurationException, IOException {
-    Set<PropertyType> propertyTypes =
-        Sets.immutableEnumSet(
-            Collections2.transform(properties, SpecificationProperty::getPropertyType));
+    Set<Property> properties =
+        pProperties.stream().map(p -> p.getProperty()).collect(ImmutableSet.toImmutableSet());
 
     Path alternateConfigFile = null;
 
-    if (!Collections.disjoint(propertyTypes, MEMSAFETY_PROPERTY_TYPES)) {
-      if (!MEMSAFETY_PROPERTY_TYPES.containsAll(propertyTypes)) {
+    if (!Collections.disjoint(properties, MEMSAFETY_PROPERTY_TYPES)) {
+      if (!MEMSAFETY_PROPERTY_TYPES.containsAll(properties)) {
         // Memsafety property cannot be checked with others in combination
         throw new InvalidConfigurationException(
-            "Unsupported combination of properties: " + propertyTypes);
+            "Unsupported combination of properties: " + properties);
       }
       if (options.memsafetyConfig == null) {
-        throw new InvalidConfigurationException("Verifying memory safety is not supported if option memorysafety.config is not specified.");
+        throw new InvalidConfigurationException(
+            "Verifying memory safety is not supported if option memorysafety.config is not specified.");
       }
       alternateConfigFile = options.memsafetyConfig;
     }
-    if (propertyTypes.contains(PropertyType.OVERFLOW)) {
-      if (propertyTypes.size() != 1) {
+    if (properties.contains(CommonPropertyType.OVERFLOW)) {
+      if (properties.size() != 1) {
         // Overflow property cannot be checked with others in combination
         throw new InvalidConfigurationException(
-            "Unsupported combination of properties: " + propertyTypes);
+            "Unsupported combination of properties: " + properties);
       }
       if (options.overflowConfig == null) {
 
-        throw new InvalidConfigurationException("Verifying overflows is not supported if option overflow.config is not specified.");
+        throw new InvalidConfigurationException(
+            "Verifying overflows is not supported if option overflow.config is not specified.");
       }
       alternateConfigFile = options.overflowConfig;
     }
-    if (propertyTypes.contains(PropertyType.TERMINATION)) {
+    if (properties.contains(CommonPropertyType.TERMINATION)) {
       // Termination property cannot be checked with others in combination
-      if (propertyTypes.size() != 1) {
+      if (properties.size() != 1) {
         throw new InvalidConfigurationException(
-            "Unsupported combination of properties: " + propertyTypes);
+            "Unsupported combination of properties: " + properties);
       }
       if (options.terminationConfig == null) {
         throw new InvalidConfigurationException(
@@ -406,16 +421,16 @@ public class CPAMain {
     return config;
   }
 
-  private static final ImmutableMap<PropertyType, String> SPECIFICATION_FILES =
-      ImmutableMap.<PropertyType, String>builder()
-          .put(PropertyType.REACHABILITY_LABEL, "sv-comp-errorlabel")
-          .put(PropertyType.REACHABILITY, "sv-comp-reachability")
-          .put(PropertyType.VALID_FREE, "sv-comp-memorysafety")
-          .put(PropertyType.VALID_DEREF, "sv-comp-memorysafety")
-          .put(PropertyType.VALID_MEMTRACK, "sv-comp-memorysafety")
-          .put(PropertyType.OVERFLOW, "sv-comp-overflow")
-          .put(PropertyType.DEADLOCK, "deadlock")
-          //.put(PropertyType.TERMINATION, "none needed")
+  private static final ImmutableMap<Property, String> SPECIFICATION_FILES =
+      ImmutableMap.<Property, String>builder()
+          .put(CommonPropertyType.REACHABILITY_LABEL, "sv-comp-errorlabel")
+          .put(CommonPropertyType.REACHABILITY, "sv-comp-reachability")
+          .put(CommonPropertyType.VALID_FREE, "sv-comp-memorysafety")
+          .put(CommonPropertyType.VALID_DEREF, "sv-comp-memorysafety")
+          .put(CommonPropertyType.VALID_MEMTRACK, "sv-comp-memorysafety")
+          .put(CommonPropertyType.OVERFLOW, "sv-comp-overflow")
+          .put(CommonPropertyType.DEADLOCK, "deadlock")
+          // .put(PropertyType.TERMINATION, "none needed")
           .build();
 
   private static Set<SpecificationProperty> handlePropertyFile(Map<String, String> cmdLineOptions)
@@ -483,30 +498,27 @@ public class CPAMain {
   @Options
   private static class WitnessOptions {
     @Option(
-      secure = true,
-      name = "witness.validation.file",
-      description = "The witness to validate."
-    )
+        secure = true,
+        name = "witness.validation.file",
+        description = "The witness to validate.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path witness = null;
 
     @Option(
-      secure = true,
-      name = "witness.validation.violation.config",
-      description =
-          "When validating a violation witness, "
-              + "use this configuration file instead of the current one."
-    )
+        secure = true,
+        name = "witness.validation.violation.config",
+        description =
+            "When validating a violation witness, "
+                + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path violationWitnessValidationConfig = null;
 
     @Option(
-      secure = true,
-      name = "witness.validation.correctness.config",
-      description =
-          "When validating a correctness witness, "
-              + "use this configuration file instead of the current one."
-    )
+        secure = true,
+        name = "witness.validation.correctness.config",
+        description =
+            "When validating a correctness witness, "
+                + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path correctnessWitnessValidationConfig = null;
   }
@@ -590,12 +602,17 @@ public class CPAMain {
 
       // print result
       if (!options.printStatistics) {
-        stream = makePrintStream(mergeStreams(System.out, file)); // ensure that result is printed to System.out
+        stream =
+            makePrintStream(
+                mergeStreams(System.out, file)); // ensure that result is printed to System.out
       }
       mResult.printResult(stream);
 
       if (outputDirectory != null) {
-        stream.println("More details about the verification run can be found in the directory \"" + outputDirectory + "\".");
+        stream.println(
+            "More details about the verification run can be found in the directory \""
+                + outputDirectory
+                + "\".");
       }
 
       stream.flush();
@@ -612,11 +629,12 @@ public class CPAMain {
     }
   }
 
-  @SuppressFBWarnings(value="DM_DEFAULT_ENCODING",
-      justification="Default encoding is the correct one for stdout.")
+  @SuppressFBWarnings(
+      value = "DM_DEFAULT_ENCODING",
+      justification = "Default encoding is the correct one for stdout.")
   private static PrintStream makePrintStream(OutputStream stream) {
     if (stream instanceof PrintStream) {
-      return (PrintStream)stream;
+      return (PrintStream) stream;
     } else {
       // Default encoding is actually desired here because we output to the terminal,
       // so the default PrintStream constructor is ok.
@@ -624,7 +642,7 @@ public class CPAMain {
     }
   }
 
-  private CPAMain() { } // prevent instantiation
+  private CPAMain() {} // prevent instantiation
 
   private static class Config {
 

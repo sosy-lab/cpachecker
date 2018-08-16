@@ -37,7 +37,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
+import org.sosy_lab.cpachecker.util.SpecificationProperty.CommonPropertyType;
 
 /**
  * A simple class that reads a property, i.e. basically an entry function and a proposition, from a given property,
@@ -61,13 +61,13 @@ public class PropertyFileParser {
   private final Path propertyFile;
 
   private String entryFunction;
-  private final Set<PropertyType> properties = Sets.newHashSetWithExpectedSize(1);
+  private final Set<Property> properties = Sets.newHashSetWithExpectedSize(1);
 
   private static final Pattern PROPERTY_PATTERN =
       Pattern.compile("CHECK\\( init\\((" + CFACreator.VALID_C_FUNCTION_NAME_PATTERN + ")\\(\\)\\), LTL\\((.+)\\) \\)");
 
-  private static Map<String, PropertyType> AVAILABLE_PROPERTIES =
-      Maps.uniqueIndex(EnumSet.allOf(PropertyType.class), PropertyType::toString);
+  private static Map<String, ? extends Property> AVAILABLE_PROPERTIES =
+      Maps.uniqueIndex(EnumSet.allOf(CommonPropertyType.class), Property::toString);
 
   public PropertyFileParser(final Path pPropertyFile) {
     propertyFile = pPropertyFile;
@@ -87,7 +87,7 @@ public class PropertyFileParser {
     }
   }
 
-  private PropertyType parsePropertyLine(String rawProperty) throws InvalidPropertyFileException {
+  private Property parsePropertyLine(String rawProperty) throws InvalidPropertyFileException {
     Matcher matcher = PROPERTY_PATTERN.matcher(rawProperty);
 
     if (rawProperty == null || !matcher.matches() || matcher.groupCount() != 2) {
@@ -102,19 +102,19 @@ public class PropertyFileParser {
           "Specifying two different entry functions %s and %s is not supported.", entryFunction, matcher.group(1)));
     }
 
-    PropertyType propertyType = AVAILABLE_PROPERTIES.get(matcher.group(2));
-    if (propertyType == null) {
+    Property property = AVAILABLE_PROPERTIES.get(matcher.group(2));
+    if (property == null) {
       throw new InvalidPropertyFileException(String.format(
           "The property '%s' is not supported.", matcher.group(2)));
     }
-    return propertyType;
+    return property;
   }
 
   public String getEntryFunction() {
     return entryFunction;
   }
 
-  public Set<PropertyType> getProperties() {
+  public Set<Property> getProperties() {
     return Collections.unmodifiableSet(properties);
   }
 }

@@ -116,7 +116,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
-import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
+import org.sosy_lab.cpachecker.util.SpecificationProperty.CommonPropertyType;
 
 /**
  * Algorithm that uses a safety-analysis to prove (non-)termination.
@@ -226,7 +226,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         ImmutableSet.of(
             new SpecificationProperty(
                 pCfa.getMainFunction().getFunctionName(),
-                PropertyType.TERMINATION,
+                CommonPropertyType.TERMINATION,
                 Optional.of(SPEC_FILE.toString())));
     Specification termSpec =
         Specification.fromFiles(property, Collections.singleton(SPEC_FILE), pCfa, pConfig, pLogger);

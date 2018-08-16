@@ -28,14 +28,15 @@ import static java.util.stream.Collectors.joining;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -46,8 +47,8 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
+import org.sosy_lab.cpachecker.util.Property;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
-import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 import org.sosy_lab.cpachecker.util.ltl.Ltl2BuechiConverter;
 import org.sosy_lab.cpachecker.util.ltl.LtlParser;
 import org.sosy_lab.cpachecker.util.ltl.LtlSpecificationParser;
@@ -95,10 +96,11 @@ public final class Specification {
         break;
     }
 
-    Set<PropertyType> propertyTypes = Sets.newHashSetWithExpectedSize(pProperties.size());
-    for (SpecificationProperty property : pProperties) {
-      propertyTypes.add(property.getPropertyType());
-    }
+    Set<Property> properties =
+        pProperties
+            .stream()
+            .map(p -> p.getProperty())
+            .collect(Collectors.toCollection(HashSet::new));
 
     List<Automaton> allAutomata = new ArrayList<>();
 
@@ -117,7 +119,7 @@ public final class Specification {
       if (AutomatonGraphmlParser.isGraphmlAutomatonFromConfiguration(specFile)) {
         AutomatonGraphmlParser graphmlParser =
             new AutomatonGraphmlParser(config, logger, cfa, scope);
-        automata = graphmlParser.parseAutomatonFile(specFile, propertyTypes);
+        automata = graphmlParser.parseAutomatonFile(specFile, properties);
       } else if (LtlSpecificationParser.hasValidSyntax(specFile, logger)) {
         try {
           LabelledFormula ltlFormula = LtlParser.parseSpecificationFromFile(specFile, logger);
@@ -127,8 +129,8 @@ public final class Specification {
                       ltlFormula, config, logger, cfa.getMachineModel(), scope));
         } catch (InterruptedException e) {
           throw new InvalidConfigurationException(
-              "Error when executing the external tool"
-                  + "to convert ltl properties to automatons: "
+              "Error when executing external tool"
+                  + "to convert ltl properties into automatons: "
                   + e.getMessage(),
               e);
         }

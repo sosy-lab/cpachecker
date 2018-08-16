@@ -28,7 +28,7 @@ import java.util.Optional;
 
 public class SpecificationProperty {
 
-  public enum PropertyType {
+  public enum CommonPropertyType implements Property {
     REACHABILITY_LABEL("G ! label(ERROR)"),
 
     REACHABILITY("G ! call(__VERIFIER_error())"),
@@ -48,7 +48,7 @@ public class SpecificationProperty {
 
     private final String representation;
 
-    PropertyType(String pRepresentation) {
+    CommonPropertyType(String pRepresentation) {
       representation = pRepresentation;
     }
 
@@ -60,16 +60,14 @@ public class SpecificationProperty {
 
   private final String entryFunction;
 
-  private final PropertyType propertyType;
+  private final Property property;
 
   private final Optional<String> internalSpecificationPath;
 
   public SpecificationProperty(
-      String pEntryFunction,
-      PropertyType pPropertyType,
-      Optional<String> pInternalSpecificationPath) {
+      String pEntryFunction, Property pProperty, Optional<String> pInternalSpecificationPath) {
     entryFunction = Objects.requireNonNull(pEntryFunction);
-    propertyType = Objects.requireNonNull(pPropertyType);
+    property = Objects.requireNonNull(pProperty);
     internalSpecificationPath = Objects.requireNonNull(pInternalSpecificationPath);
   }
 
@@ -92,17 +90,17 @@ public class SpecificationProperty {
   }
 
   /**
-   * Gets the type of the property.
+   * Gets the property.
    *
-   * @return the type of the property.
+   * @return the property.
    */
-  public PropertyType getPropertyType() {
-    return propertyType;
+  public Property getProperty() {
+    return property;
   }
 
   @Override
   public String toString() {
     return String.format(
-        "CHECK( init(%s()), LTL(%s) )", getEntryFunction(), getPropertyType().toString());
+        "CHECK( init(%s()), LTL(%s) )", getEntryFunction(), getProperty().toString());
   }
 }
