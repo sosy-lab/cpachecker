@@ -32,6 +32,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -48,6 +49,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.EnumSet;
@@ -82,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
@@ -90,6 +93,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.GraphMLTransition.GraphMLThread;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OffsetMatcher;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.NumericIdProvider;
 import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
@@ -98,8 +102,10 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMLTag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
+import org.sosy_lab.cpachecker.util.expressions.DefaultExpressionTreeVisitor;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
@@ -126,6 +132,9 @@ public class AutomatonGraphmlParser {
 
   private static final String INVALID_AUTOMATON_ERROR_MESSAGE =
       "The witness automaton provided is invalid!";
+
+  private static final String UNKNOWN_VARIABLE_WARNING_MESSAGE =
+      "Expression <%s> contains unknown variables: %s";
 
   /** The name of the variable that stores the distance of each automaton state to the nearest violation state. */
   private static final String DISTANCE_TO_VIOLATION = "__DISTANCE_TO_VIOLATION";
@@ -630,12 +639,15 @@ public class AutomatonGraphmlParser {
               pGraphMLParserState, thread, pTransition.getExplicitAssumptionResultFunction());
       Optional<String> resultFunction =
           determineResultFunction(explicitAssumptionResultFunction, scope);
-      return CParserUtils.parseStatementsAsExpressionTree(
-          pTransition.getTarget().getInvariants(),
-          resultFunction,
-          pCParser,
-          candidateScope,
-          parserTools);
+      ExpressionTree<AExpression> invariant =
+          CParserUtils.parseStatementsAsExpressionTree(
+              pTransition.getTarget().getInvariants(),
+              resultFunction,
+              pCParser,
+              candidateScope,
+              parserTools);
+      invariant = logAndRemoveUnknown(invariant);
+      return invariant;
     }
     return ExpressionTrees.getTrue();
   }
@@ -669,15 +681,17 @@ public class AutomatonGraphmlParser {
       Optional<String> assumptionResultFunction =
           determineResultFunction(explicitAssumptionResultFunction, assumptionScope);
       try {
-        return CParserUtils.convertStatementsToAssumptions(
-            CParserUtils.parseStatements(
-                pTransition.getAssumptions(),
-                assumptionResultFunction,
-                pCParser,
-                assumptionScope,
-                parserTools),
-            cfa.getMachineModel(),
-            logger);
+        List<AExpression> assumptions =
+            CParserUtils.convertStatementsToAssumptions(
+                CParserUtils.parseStatements(
+                    pTransition.getAssumptions(),
+                    assumptionResultFunction,
+                    pCParser,
+                    assumptionScope,
+                    parserTools),
+                cfa.getMachineModel(),
+                logger);
+        return logAndRemoveUnknown(assumptions);
       } catch (InvalidAutomatonException e) {
         String reason = e.getMessage();
         if (e.getCause() instanceof ParserException) {
@@ -688,6 +702,85 @@ public class AutomatonGraphmlParser {
       }
     }
     return Collections.emptyList();
+  }
+
+  private List<AExpression> logAndRemoveUnknown(List<AExpression> pAssumptions) {
+    Multimap<AExpression, AIdExpression> invalid = null;
+    for (AExpression assumption : pAssumptions) {
+      Set<AIdExpression> unknown = getUnknownVariables(assumption);
+      if (!unknown.isEmpty()) {
+        if (invalid == null) {
+          invalid = LinkedHashMultimap.create();
+        }
+        invalid.putAll(assumption, unknown);
+      }
+    }
+    if (invalid != null && !invalid.isEmpty()) {
+      for (Map.Entry<AExpression, Collection<AIdExpression>> invalidExpression :
+          invalid.asMap().entrySet()) {
+        logger.log(
+            Level.WARNING,
+            String.format(
+                UNKNOWN_VARIABLE_WARNING_MESSAGE,
+                invalidExpression.getKey(), invalidExpression.getValue()));
+      }
+      return FluentIterable.from(pAssumptions)
+          .filter(Predicates.not(Predicates.in(invalid.keySet())))
+          .toList();
+    }
+    return pAssumptions;
+  }
+
+  private ExpressionTree<AExpression> logAndRemoveUnknown(ExpressionTree<AExpression> invariant) {
+    FluentIterable<AExpression> expressions =
+        FluentIterable.from(ExpressionTrees.traverseRecursively(invariant))
+            .filter(ExpressionTrees::isLeaf)
+            .transform(leaf -> ((LeafExpression<AExpression>) leaf).getExpression());
+    Multimap<AExpression, AIdExpression> invalid = LinkedHashMultimap.create();
+    for (AExpression assumption : expressions) {
+      Set<AIdExpression> unknown = getUnknownVariables(assumption);
+      if (!unknown.isEmpty()) {
+        invalid.putAll(assumption, unknown);
+      }
+    }
+    if (!invalid.isEmpty()) {
+      for (Map.Entry<AExpression, Collection<AIdExpression>> invalidExpression :
+          invalid.asMap().entrySet()) {
+        logger.log(
+            Level.WARNING,
+            String.format(
+                UNKNOWN_VARIABLE_WARNING_MESSAGE,
+                invalidExpression.getKey(),
+                invalidExpression.getValue()));
+      }
+      invariant =
+          invariant.accept(
+              new DefaultExpressionTreeVisitor<
+                  AExpression, ExpressionTree<AExpression>, RuntimeException>() {
+
+                @Override
+                public ExpressionTree<AExpression> visit(
+                    LeafExpression<AExpression> pLeafExpression) throws RuntimeException {
+                  return invalid.containsKey(pLeafExpression.getExpression())
+                      ? ExpressionTrees.getTrue()
+                      : pLeafExpression;
+                }
+
+                @Override
+                protected ExpressionTree<AExpression> visitDefault(
+                    ExpressionTree<AExpression> pExpressionTree) throws RuntimeException {
+                  return pExpressionTree;
+                }
+              });
+    }
+    return invariant;
+  }
+
+  private Set<AIdExpression> getUnknownVariables(AExpression pExpression) {
+    return CFAUtils.traverseRecursively(pExpression)
+        .filter(AIdExpression.class)
+        .filter(id -> id.getDeclaration() == null)
+        .toSet();
   }
 
   private Optional<String> getFunction(
