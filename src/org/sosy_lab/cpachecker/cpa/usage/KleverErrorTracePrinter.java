@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.usage;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -227,11 +228,17 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
       Path currentPath;
       if (encodeIdentifier) {
-        currentPath = errorPathFile.getPath(createUniqueName(pId).replace(" ", "_"));
+        String fileName = createUniqueName(pId).replace(" ", "_");
+        currentPath = errorPathFile.getPath(fileName);
+        int i = 0;
+
+        while (Files.exists(currentPath)) {
+          String tmpFileName = fileName.concat("__" + i++);
+          currentPath = errorPathFile.getPath(tmpFileName);
+        }
       } else {
         currentPath = errorPathFile.getPath(witnessNum);
       }
-
       IO.writeFile(currentPath, Charset.defaultCharset(), (Appender) a -> builder.appendTo(a));
       printedUnsafes.inc();
 
