@@ -27,6 +27,8 @@ import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -51,6 +53,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 
 @Options(prefix = "differential")
 public class ModificationsCPA implements ConfigurableProgramAnalysis {
@@ -63,10 +66,19 @@ public class ModificationsCPA implements ConfigurableProgramAnalysis {
   @FileOption(Type.REQUIRED_INPUT_FILE)
   private Path originalProgram = null;
 
+  @Option(
+    secure = true,
+    description =
+        "ignore declarations when detecting modifications, "
+            + "be careful when variables are renamed (could be unsound)"
+  )
+  private boolean ignoreDeclarations = false;
+
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfaForComparison;
+  private final TransferRelation transfer;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ModificationsCPA.class);
@@ -75,7 +87,7 @@ public class ModificationsCPA implements ConfigurableProgramAnalysis {
   // originalProgram != null checked through REQUIRED_INPUT_FILE annotation
   @SuppressFBWarnings("NP")
   public ModificationsCPA(
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
+      CFA pCfa, Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
@@ -88,6 +100,21 @@ public class ModificationsCPA implements ConfigurableProgramAnalysis {
     try {
       cfaForComparison =
           cfaCreator.parseFileAndCreateCFA(ImmutableList.of(originalProgram.toString()));
+
+      if (ignoreDeclarations) {
+        CFATraversal.DeclarationCollectingCFAVisitor varDeclCollect =
+            new CFATraversal.DeclarationCollectingCFAVisitor();
+        CFATraversal.dfs().traverse(cfaForComparison.getMainFunction(), varDeclCollect);
+        Map<String, Set<String>> origFunToDeclNames = varDeclCollect.getVisitedDeclarations();
+
+        varDeclCollect = new CFATraversal.DeclarationCollectingCFAVisitor();
+        CFATraversal.dfs().traverse(pCfa.getMainFunction(), varDeclCollect);
+        transfer =
+            new ModificationsTransferRelation(
+                true, origFunToDeclNames, varDeclCollect.getVisitedDeclarations());
+      } else {
+        transfer = new ModificationsTransferRelation();
+      }
 
     } catch (ParserException pE) {
       throw new InvalidConfigurationException("Parser error for originalProgram", pE);
@@ -103,7 +130,7 @@ public class ModificationsCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new ModificationsTransferRelation();
+    return transfer;
   }
 
   @Override

@@ -2890,6 +2890,10 @@ dependenceGraph.exportDot = "DependenceGraph.dot"
 # Run flow dependence analysis with constant propagation
 dependencegraph.flowdep.constantPropagation = false
 
+# ignore declarations when detecting modifications, be careful when variables
+# are renamed (could be unsound)
+differential.ignoreDeclarations = false
+
 # Program to check against
 differential.program = no default value
 
