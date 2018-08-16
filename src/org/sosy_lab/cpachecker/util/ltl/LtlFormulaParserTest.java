@@ -28,7 +28,6 @@ import static org.junit.Assert.assertEquals;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.ltl.formulas.BooleanConstant;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Conjunction;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Disjunction;
@@ -43,8 +42,6 @@ import org.sosy_lab.cpachecker.util.ltl.formulas.Until;
 import org.sosy_lab.cpachecker.util.ltl.formulas.WeakUntil;
 
 public class LtlFormulaParserTest {
-
-  private final LogManager logger = LogManager.createTestLogManager();
 
   @Test
   public void test_parse_appliesRandomSyntaxCorrectly() throws LtlParseException {
@@ -75,7 +72,7 @@ public class LtlFormulaParserTest {
                 new Until(new Literal("b"), new Release(new Literal("c"), new Literal("a")))));
 
     for (int i = 0; i < in.size(); i++) {
-      assertEquals(in.get(i), out.get(i), LtlParser.parseProperty(in.get(i), logger).getFormula());
+      assertEquals(in.get(i), out.get(i), LtlParser.parseProperty(in.get(i)).getFormula());
     }
   }
 
@@ -104,7 +101,7 @@ public class LtlFormulaParserTest {
             BooleanConstant.TRUE);
 
     for (int i = 0; i < in.size(); i++) {
-      assertEquals(in.get(i), out.get(i), LtlParser.parseProperty(in.get(i), logger).getFormula());
+      assertEquals(in.get(i), out.get(i), LtlParser.parseProperty(in.get(i)).getFormula());
     }
   }
 
@@ -157,7 +154,7 @@ public class LtlFormulaParserTest {
             BooleanConstant.TRUE);
 
     for (int i = 0; i < in.size(); i++) {
-      assertEquals(in.get(i), out.get(i), LtlParser.parseProperty(in.get(i), logger).getFormula());
+      assertEquals(in.get(i), out.get(i), LtlParser.parseProperty(in.get(i)).getFormula());
     }
   }
 
@@ -218,7 +215,7 @@ public class LtlFormulaParserTest {
             new Literal("a"));
 
     for (int i = 0; i < in.size(); i++) {
-      assertEquals(in.get(i), out.get(i), LtlParser.parseProperty(in.get(i), logger).getFormula());
+      assertEquals(in.get(i), out.get(i), LtlParser.parseProperty(in.get(i)).getFormula());
     }
   }
 }

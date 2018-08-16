@@ -29,14 +29,12 @@ import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.logging.Level;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.ConsoleErrorListener;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.ltl.formulas.LabelledFormula;
 import org.sosy_lab.cpachecker.util.ltl.formulas.LtlFormula;
 import org.sosy_lab.cpachecker.util.ltl.generated.LtlGrammarParser;
@@ -56,11 +54,9 @@ import org.sosy_lab.cpachecker.util.ltl.generated.LtlLexer;
 public abstract class LtlParser extends LtlGrammarParserBaseVisitor<LtlFormula> {
 
   private final CharStream input;
-  private final LogManager logger;
 
-  private LtlParser(CharStream pInput, LogManager pLogger) {
+  private LtlParser(CharStream pInput) {
     input = checkNotNull(pInput);
-    logger = pLogger;
   }
 
   /**
@@ -70,27 +66,26 @@ public abstract class LtlParser extends LtlGrammarParserBaseVisitor<LtlFormula> 
    * @return a {@link LabelledFormula} containing the {@link LtlFormula} and its atomic propositions
    * @throws LtlParseException if the syntax of the ltl-property is invalid.
    */
-  public static LabelledFormula parseProperty(String pRaw, LogManager pLogger)
-      throws LtlParseException {
+  public static LabelledFormula parseProperty(String pRaw) throws LtlParseException {
     checkNotNull(pRaw);
-    return new LtlFormulaParser(CharStreams.fromString(pRaw), pLogger).doParse();
+    return new LtlFormulaParser(CharStreams.fromString(pRaw)).doParse();
   }
 
   /**
-   * Parses a ltl property from a file into a {@link LtlFormula}. The property is
-   * required to be in SVComp-format (i.e. <code>CHECK( init( FUNCTION ), LTL( FORMULA )) )</code>,
-   * where FORMULA is a valid ltl property and FUNCTION a valid function name for code written in C.
+   * Parses a ltl property from a file into a {@link LtlFormula}. The property is required to be in
+   * SVComp-format (i.e. <code>CHECK( init( FUNCTION ), LTL( FORMULA )) )</code>, where FORMULA is a
+   * valid ltl property and FUNCTION a valid function name for code written in C.
    *
    * @param pPath path to a file containing a ltl property in valid SVComp syntax.
-   * @return a {@link LabelledFormula} which contains the {@link LtlFormula} and its atomic propositions
+   * @return a {@link LabelledFormula} which contains the {@link LtlFormula} and its atomic
+   *     propositions
    * @throws LtlParseException if the syntax of the ltl-property is invalid.
    */
-  public static LabelledFormula parseSpecificationFromFile(Path pPath, LogManager pLogger)
-      throws LtlParseException {
+  public static LabelledFormula parseSpecificationFromFile(Path pPath) throws LtlParseException {
     checkNotNull(pPath);
 
     try {
-      return new LtlPropertyFileParser(CharStreams.fromStream(Files.newInputStream(pPath)), pLogger)
+      return new LtlPropertyFileParser(CharStreams.fromStream(Files.newInputStream(pPath)))
           .doParse();
     } catch (IOException e) {
       throw new LtlParseException(e.getMessage(), e);
@@ -106,12 +101,10 @@ public abstract class LtlParser extends LtlGrammarParserBaseVisitor<LtlFormula> 
    * @throws LtlParseException thrown when a syntactically wrong ltl-formula is submitted
    */
   @VisibleForTesting
-  static LabelledFormula parseSpecification(String pRaw, LogManager pLogger)
-      throws LtlParseException {
+  static LabelledFormula parseSpecification(String pRaw) throws LtlParseException {
     checkNotNull(pRaw);
-    pLogger.log(Level.FINEST, String.format("Ltl property retrieved from path: %s", pRaw));
 
-    return new LtlPropertyFileParser(CharStreams.fromString(pRaw), pLogger).doParse();
+    return new LtlPropertyFileParser(CharStreams.fromString(pRaw)).doParse();
   }
 
   abstract ParseTree getParseTree(LtlGrammarParser pParser);
@@ -136,10 +129,7 @@ public abstract class LtlParser extends LtlGrammarParserBaseVisitor<LtlFormula> 
       LtlFormulaTreeVisitor visitor = new LtlFormulaTreeVisitor();
       ParseTree tree = getParseTree(parser);
 
-      LtlFormula formula = visitor.visit(tree);
-      logger.log(Level.FINEST, String.format("Retrieved ltl-property: %s", formula));
-
-      return LabelledFormula.of(formula, visitor.getAPs());
+      return LabelledFormula.of(visitor.visit(tree), visitor.getAPs());
     } catch (ParseCancellationException e) {
       throw new LtlParseException(e.getMessage(), e);
     }
@@ -147,8 +137,8 @@ public abstract class LtlParser extends LtlGrammarParserBaseVisitor<LtlFormula> 
 
   private static class LtlFormulaParser extends LtlParser {
 
-    LtlFormulaParser(CharStream input, LogManager pLogger) {
-      super(input, pLogger);
+    LtlFormulaParser(CharStream input) {
+      super(input);
     }
 
     @Override
@@ -159,8 +149,8 @@ public abstract class LtlParser extends LtlGrammarParserBaseVisitor<LtlFormula> 
 
   private static class LtlPropertyFileParser extends LtlParser {
 
-    LtlPropertyFileParser(CharStream input, LogManager pLogger) {
-      super(input, pLogger);
+    LtlPropertyFileParser(CharStream input) {
+      super(input);
     }
 
     @Override

@@ -122,7 +122,7 @@ public final class Specification {
         automata = graphmlParser.parseAutomatonFile(specFile, properties);
       } else if (LtlSpecificationParser.hasValidSyntax(specFile, logger)) {
         try {
-          LabelledFormula ltlFormula = LtlParser.parseSpecificationFromFile(specFile, logger);
+          LabelledFormula ltlFormula = LtlParser.parseSpecificationFromFile(specFile);
           automata =
               ImmutableList.of(
                   Ltl2BuechiConverter.convertFormula(
