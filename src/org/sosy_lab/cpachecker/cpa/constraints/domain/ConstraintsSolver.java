@@ -188,98 +188,98 @@ public class ConstraintsSolver implements StatisticsProvider {
   public boolean isUnsat(ConstraintsState pConstraints, String pFunctionName)
       throws SolverException, InterruptedException, UnrecognizedCodeException {
 
-    if (!pConstraints.isEmpty()) {
-      try {
-        timeForSolving.start();
+    if (pConstraints.isEmpty()) {
+      return false;
+    }
 
-        Boolean unsat = null; // assign null to fail fast if assignment is missed
-        CacheResult res = cache.getCachedResult(pConstraints);
+    try {
+      timeForSolving.start();
 
-        if (res.isUnsat()) {
-          unsat = true;
+      Boolean unsat = null; // assign null to fail fast if assignment is missed
+      CacheResult res = cache.getCachedResult(pConstraints);
 
-        } else if (res.isSat()) {
-          unsat = false;
-          pConstraints.setModel(res.getModelAssignment());
+      if (res.isUnsat()) {
+        unsat = true;
 
-        } else {
-          Set<Constraint> relevantConstraints = getRelevantConstraints(pConstraints);
+      } else if (res.isSat()) {
+        unsat = false;
+        pConstraints.setModel(res.getModelAssignment());
 
-          BooleanFormula constraintsAsFormula =
-              getFullFormula(
-                  relevantConstraints, pConstraints.getDefiniteAssignment(), pFunctionName);
-          prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
+      } else {
+        Set<Constraint> relevantConstraints = getRelevantConstraints(pConstraints);
 
-          prover.push(constraintsAsFormula);
+        BooleanFormula constraintsAsFormula =
+            getFullFormula(
+                relevantConstraints, pConstraints.getDefiniteAssignment(), pFunctionName);
+        prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
 
-          ImmutableList<ValueAssignment> newModelAsAssignment = ImmutableList.of();
+        prover.push(constraintsAsFormula);
 
-          ImmutableList<ValueAssignment> modelAsAssignment = pConstraints.getModel();
-          boolean modelExists = !modelAsAssignment.isEmpty();
-          if (useLastModel && modelExists) {
-            try {
-              timeForModelReuse.start();
-              BooleanFormula lastModel =
-                  modelAsAssignment
-                      .stream()
-                      .map(ValueAssignment::getAssignmentAsFormula)
-                      .collect(booleanFormulaManager.toConjunction());
-              prover.push(lastModel);
-              unsat = prover.isUnsat();
-              if (!unsat) {
-                modelReuseSuccesses.inc();
+        ImmutableList<ValueAssignment> newModelAsAssignment = ImmutableList.of();
 
-                // get this before popping the model assignment ; the operation will be invalid
-                // otherwise
-                newModelAsAssignment = prover.getModelAssignments();
-              }
-              // We have to remove the model assignment before resolving definite assignments,
-              // below.
-              prover.pop(); // Remove model assignment from prover
-
-            } finally {
-              timeForModelReuse.stop();
-            }
-          }
-
-          if (unsat == null || unsat) {
-            try {
-              timeForSatCheck.start();
-              unsat = prover.isUnsat();
-            } finally {
-              timeForSatCheck.stop();
-            }
-
+        ImmutableList<ValueAssignment> modelAsAssignment = pConstraints.getModel();
+        boolean modelExists = !modelAsAssignment.isEmpty();
+        if (useLastModel && modelExists) {
+          try {
+            timeForModelReuse.start();
+            BooleanFormula lastModel =
+                modelAsAssignment
+                    .stream()
+                    .map(ValueAssignment::getAssignmentAsFormula)
+                    .collect(booleanFormulaManager.toConjunction());
+            prover.push(lastModel);
+            unsat = prover.isUnsat();
             if (!unsat) {
+              modelReuseSuccesses.inc();
+
+              // get this before popping the model assignment ; the operation will be invalid
+              // otherwise
               newModelAsAssignment = prover.getModelAssignments();
             }
-          }
+            // We have to remove the model assignment before resolving definite assignments,
+            // below.
+            prover.pop(); // Remove model assignment from prover
 
-          if (!unsat) {
-            pConstraints.setModel(newModelAsAssignment);
-            cache.addSat(pConstraints, newModelAsAssignment);
-            // doing this while the complete formula is still on the prover environment stack is
-            // cheaper than performing another complete SAT check when the assignment is really
-            // requested
-            if (resolveDefinites) {
-              resolveDefiniteAssignments(pConstraints, newModelAsAssignment, pFunctionName);
-            }
-
-          } else {
-            cache.addUnsat(pConstraints);
+          } finally {
+            timeForModelReuse.stop();
           }
         }
 
-        return unsat;
+        if (unsat == null || unsat) {
+          try {
+            timeForSatCheck.start();
+            unsat = prover.isUnsat();
+          } finally {
+            timeForSatCheck.stop();
+          }
 
-      } finally {
-        closeProver();
-        timeForSolving.stop();
+          if (!unsat) {
+            newModelAsAssignment = prover.getModelAssignments();
+          }
+        }
+
+        if (!unsat) {
+          pConstraints.setModel(newModelAsAssignment);
+          cache.addSat(pConstraints, newModelAsAssignment);
+          // doing this while the complete formula is still on the prover environment stack is
+          // cheaper than performing another complete SAT check when the assignment is really
+          // requested
+          if (resolveDefinites) {
+            resolveDefiniteAssignments(pConstraints, newModelAsAssignment, pFunctionName);
+          }
+
+        } else {
+          cache.addUnsat(pConstraints);
+        }
       }
 
-    } else {
-      return false;
+      return unsat;
+
+    } finally {
+      closeProver();
+      timeForSolving.stop();
     }
+
   }
 
   private Set<Constraint> getRelevantConstraints(ConstraintsState pConstraints) {
