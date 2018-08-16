@@ -49,10 +49,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.util.Property;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
-import org.sosy_lab.cpachecker.util.ltl.Ltl2BuechiConverter;
-import org.sosy_lab.cpachecker.util.ltl.LtlParser;
-import org.sosy_lab.cpachecker.util.ltl.LtlSpecificationParser;
-import org.sosy_lab.cpachecker.util.ltl.formulas.LabelledFormula;
 
 /**
  * Class that encapsulates the specification that should be used for an analysis. Most code of
@@ -120,20 +116,6 @@ public final class Specification {
         AutomatonGraphmlParser graphmlParser =
             new AutomatonGraphmlParser(config, logger, cfa, scope);
         automata = graphmlParser.parseAutomatonFile(specFile, properties);
-      } else if (LtlSpecificationParser.hasValidSyntax(specFile, logger)) {
-        try {
-          LabelledFormula ltlFormula = LtlParser.parseSpecificationFromFile(specFile);
-          automata =
-              ImmutableList.of(
-                  Ltl2BuechiConverter.convertFormula(
-                      ltlFormula, config, logger, cfa.getMachineModel(), scope));
-        } catch (InterruptedException e) {
-          throw new InvalidConfigurationException(
-              "Error when executing external tool"
-                  + "to convert ltl properties into automatons: "
-                  + e.getMessage(),
-              e);
-        }
       } else {
         automata =
             AutomatonParser.parseAutomatonFile(

@@ -38,6 +38,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.util.SpecificationProperty.CommonPropertyType;
+import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
+import org.sosy_lab.cpachecker.util.ltl.LtlParser;
 
 /**
  * A simple class that reads a property, i.e. basically an entry function and a proposition, from a given property,
@@ -102,10 +104,14 @@ public class PropertyFileParser {
           "Specifying two different entry functions %s and %s is not supported.", entryFunction, matcher.group(1)));
     }
 
-    Property property = AVAILABLE_PROPERTIES.get(matcher.group(2));
+    String rawLtlProperty = matcher.group(2);
+    Property property = AVAILABLE_PROPERTIES.get(rawLtlProperty);
     if (property == null) {
-      throw new InvalidPropertyFileException(String.format(
-          "The property '%s' is not supported.", matcher.group(2)));
+      try {
+        property = LtlParser.parseProperty(rawLtlProperty);
+      } catch (LtlParseException e) {
+        throw new InvalidPropertyFileException(e.getMessage(), e);
+      }
     }
     return property;
   }
