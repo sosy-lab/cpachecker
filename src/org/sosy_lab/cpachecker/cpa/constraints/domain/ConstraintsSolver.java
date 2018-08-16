@@ -192,65 +192,57 @@ public class ConstraintsSolver implements StatisticsProvider {
       try {
         timeForSolving.start();
 
-        Set<Constraint> relevantConstraints = getRelevantConstraints(pConstraints);
-
-        BooleanFormula constraintsAsFormula =
-            getFullFormula(
-                relevantConstraints, pConstraints.getDefiniteAssignment(), pFunctionName);
-        prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
-        prover.push(constraintsAsFormula);
-
         Boolean unsat = null; // assign null to fail fast if assignment is missed
-        ImmutableList<ValueAssignment> modelAsAssignment = pConstraints.getModel();
-        ImmutableList<ValueAssignment> newModelAsAssignment = ImmutableList.of();
+        CacheResult res = cache.getCachedResult(pConstraints);
 
-        if (useLastModel) {
-          try {
-            timeForModelReuse.start();
-            BooleanFormula lastModel =
-                modelAsAssignment
-                    .stream()
-                    .map(ValueAssignment::getAssignmentAsFormula)
-                    .collect(booleanFormulaManager.toConjunction());
-            prover.push(lastModel);
-            unsat = prover.isUnsat();
-            if (!unsat) {
+        if (res.isUnsat()) {
+          unsat = true;
 
-              if (!modelAsAssignment.isEmpty()) {
+        } else if (res.isSat()) {
+          unsat = false;
+          pConstraints.setModel(res.getModelAssignment());
+
+        } else {
+          Set<Constraint> relevantConstraints = getRelevantConstraints(pConstraints);
+
+          BooleanFormula constraintsAsFormula =
+              getFullFormula(
+                  relevantConstraints, pConstraints.getDefiniteAssignment(), pFunctionName);
+          prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
+
+          prover.push(constraintsAsFormula);
+
+          ImmutableList<ValueAssignment> newModelAsAssignment = ImmutableList.of();
+
+          ImmutableList<ValueAssignment> modelAsAssignment = pConstraints.getModel();
+          boolean modelExists = !modelAsAssignment.isEmpty();
+          if (useLastModel && modelExists) {
+            try {
+              timeForModelReuse.start();
+              BooleanFormula lastModel =
+                  modelAsAssignment
+                      .stream()
+                      .map(ValueAssignment::getAssignmentAsFormula)
+                      .collect(booleanFormulaManager.toConjunction());
+              prover.push(lastModel);
+              unsat = prover.isUnsat();
+              if (!unsat) {
                 modelReuseSuccesses.inc();
+
+                // get this before popping the model assignment ; the operation will be invalid
+                // otherwise
+                newModelAsAssignment = prover.getModelAssignments();
               }
+              // We have to remove the model assignment before resolving definite assignments,
+              // below.
+              prover.pop(); // Remove model assignment from prover
 
-              // get this before popping the model assignment ; the operation will be invalid
-              // otherwise
-              newModelAsAssignment = prover.getModelAssignments();
+            } finally {
+              timeForModelReuse.stop();
             }
-            // We have to remove the model assignment before resolving definite assignments, below.
-            prover.pop(); // Remove model assignment from prover
-
-          } finally {
-            timeForModelReuse.stop();
           }
-        }
 
-        boolean gotResultFromCache = false;
-
-        if (!useLastModel || (unsat && !modelAsAssignment.isEmpty())) {
-          // if the last model does not fulfill the formula, and the last model actually
-          // is some variable assignment (i.e., model != true), then we check the formula
-          // for satisfiability without any assignments, again.
-          CacheResult res = cache.getCachedResult(pConstraints);
-
-          if (res.isUnsat()) {
-            unsat = true;
-            gotResultFromCache = true;
-          } else if (res.isSat()) {
-            unsat = false;
-            gotResultFromCache = true;
-            pConstraints.setModel(res.getModelAssignment());
-          } else {
-            prover.close();
-            prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
-            prover.push(constraintsAsFormula);
+          if (unsat == null || unsat) {
             try {
               timeForSatCheck.start();
               unsat = prover.isUnsat();
@@ -262,9 +254,7 @@ public class ConstraintsSolver implements StatisticsProvider {
               newModelAsAssignment = prover.getModelAssignments();
             }
           }
-        }
 
-        if (!gotResultFromCache) {
           if (!unsat) {
             pConstraints.setModel(newModelAsAssignment);
             cache.addSat(pConstraints, newModelAsAssignment);
