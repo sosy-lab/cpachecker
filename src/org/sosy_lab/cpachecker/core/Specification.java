@@ -32,11 +32,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -96,7 +94,7 @@ public final class Specification {
         pProperties
             .stream()
             .map(p -> p.getProperty())
-            .collect(Collectors.toCollection(HashSet::new));
+            .collect(ImmutableSet.toImmutableSet());
 
     List<Automaton> allAutomata = new ArrayList<>();
 
