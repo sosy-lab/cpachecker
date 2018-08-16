@@ -31,7 +31,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Iterator;
-import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -139,6 +138,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
       if (!singleFileOutput) {
         writer.close();
       }
+      printedUnsafes.inc();
     } catch (IOException e) {
       logger.log(Level.SEVERE, "Exception while printing unsafe " + id + ": " + e.getMessage());
     }
@@ -155,16 +155,12 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
     if (usage.isLooped()) {
       writer.append("Line 0:     N0 -{/*Failure in refinement*/}-> N0\n");
     }
-    List<CFAEdge> path = getPath(usage);
-    if (path.isEmpty()) {
-      return;
-    }
     int callstackDepth = 1;
     /*
      * We must use iterator to be sure, when is the end of the list.
      * I tried to check the edge, it is the last, but it can be repeated during the sequence
      */
-    Iterator<CFAEdge> iterator = getIterator(path);
+    Iterator<CFAEdge> iterator = getPathIterator(usage);
     while (iterator.hasNext()) {
       CFAEdge edge = iterator.next();
       if (edge == null || edge instanceof CDeclarationEdge) {

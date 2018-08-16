@@ -138,7 +138,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
     SingleIdentifier pId = usage.getId();
     List<CFAEdge> path = usage.getPath();
 
-    Iterator<CFAEdge> iterator = from(path).filter(FILTER_EMPTY_FILE_LOCATIONS).iterator();
+    Iterator<CFAEdge> iterator = getIterator(path);
 
     Optional<CFAEdge> warningEdge =
         from(path)

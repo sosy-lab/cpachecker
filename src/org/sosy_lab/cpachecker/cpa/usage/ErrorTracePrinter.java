@@ -86,6 +86,8 @@ public abstract class ErrorTracePrinter {
   private final StatTimer writingUnsafeTimer = new StatTimer("Time for dumping the unsafes");
   private final StatCounter emptyLockSetUnsafes =
       new StatCounter("Number of unsafes with empty lock sets");
+  protected final StatCounter printedUnsafes =
+      new StatCounter("Number of successfully printed unsafes");
 
   protected final Configuration config;
   protected final LogManager logger;
@@ -189,6 +191,7 @@ public abstract class ErrorTracePrinter {
         .put(preparationTimer)
         .put(unsafeDetectionTimer)
         .put(writingUnsafeTimer)
+        .put(printedUnsafes)
         .put(emptyLockSetUnsafes);
 
     container.printUsagesStatistics(out);
@@ -224,6 +227,10 @@ public abstract class ErrorTracePrinter {
 
   protected Iterator<CFAEdge> getIterator(List<CFAEdge> path) {
     return from(path).filter(FILTER_EMPTY_FILE_LOCATIONS).iterator();
+  }
+
+  protected Iterator<CFAEdge> getPathIterator(UsageInfo usage) {
+    return getIterator(getPath(usage));
   }
 
   protected abstract void printUnsafe(

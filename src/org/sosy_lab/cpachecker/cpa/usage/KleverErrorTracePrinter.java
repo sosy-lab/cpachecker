@@ -23,14 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
-import static com.google.common.collect.FluentIterable.from;
-
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import javax.xml.parsers.ParserConfigurationException;
@@ -149,30 +146,43 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   protected void printUnsafe(SingleIdentifier pId, Pair<UsageInfo, UsageInfo> pTmpPair, boolean refined) {
     UsageInfo firstUsage = pTmpPair.getFirst();
     UsageInfo secondUsage = pTmpPair.getSecond();
-    List<CFAEdge> firstPath, secondPath;
 
-    firstPath = getPath(firstUsage);
-    secondPath = getPath(secondUsage);
-    if (firstPath.isEmpty() || secondPath.isEmpty()) {
+    Iterator<CFAEdge> firstIterator = getPathIterator(firstUsage);
+    Iterator<CFAEdge> secondIterator = getPathIterator(secondUsage);
+
+    if (!firstIterator.hasNext()) {
+      // Empty path is strange
+      logger.log(Level.WARNING, "Path to " + firstUsage + "is empty");
       return;
     }
+
+    if (!secondIterator.hasNext()) {
+      // Empty path is strange
+      logger.log(Level.WARNING, "Path to " + secondUsage + "is empty");
+      return;
+    }
+
+    CFAEdge firstEdge = firstIterator.next();
+    CFAEdge secondEdge = secondIterator.next();
+    int forkThread = 0;
+
+    String defaultSourcefileName =
+        firstEdge.getFileLocation().getFileName();
+
+    String status;
+
+    idCounter = 0;
+    threadIterator = new ThreadIterator();
+
+    if (firstUsage.isLooped() || secondUsage.isLooped()) {
+      status = "Failed";
+    } else if (refined) {
+      status = "Confirmed";
+    } else {
+      status = "Unconfirmed";
+    }
+
     try {
-      String defaultSourcefileName =
-          from(firstPath)
-              .filter(FILTER_EMPTY_FILE_LOCATIONS)
-              .get(0)
-              .getFileLocation()
-              .getFileName();
-
-      String status;
-
-      if (firstUsage.isLooped() || secondUsage.isLooped()) {
-        status = "Failed";
-      } else if (refined) {
-        status = "Confirmed";
-      } else {
-        status = "Unconfirmed";
-      }
 
       GraphMlBuilder builder =
           new RaceGraphMlBuilder(
@@ -182,30 +192,9 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
               new VerificationTaskMetaData(config, Specification.alwaysSatisfied()),
               createUniqueName(pId),
               status);
-
-      idCounter = 0;
-      threadIterator = new ThreadIterator();
       Element result = builder.createNodeElement(getCurrentId(), NodeType.ONPATH);
       builder.addDataElementChild(result, NodeFlag.ISENTRY.key, "true");
 
-      Iterator<CFAEdge> firstIterator = getIterator(firstPath);
-      Iterator<CFAEdge> secondIterator = getIterator(secondPath);
-
-      if (!firstIterator.hasNext()) {
-        // Empty path is strange
-        logger.log(Level.WARNING, "Path to " + firstUsage + "is empty");
-        return;
-      }
-
-      if (!secondIterator.hasNext()) {
-        // Empty path is strange
-        logger.log(Level.WARNING, "Path to " + secondUsage + "is empty");
-        return;
-      }
-
-      CFAEdge firstEdge = firstIterator.next();
-      CFAEdge secondEdge = secondIterator.next();
-      int forkThread = 0;
 
       while (firstEdge.equals(secondEdge)) {
         if (isThreadCreateNFunction(firstEdge)) {
@@ -244,6 +233,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       }
 
       IO.writeFile(currentPath, Charset.defaultCharset(), (Appender) a -> builder.appendTo(a));
+      printedUnsafes.inc();
 
     } catch (IOException e) {
       logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e.getMessage());
