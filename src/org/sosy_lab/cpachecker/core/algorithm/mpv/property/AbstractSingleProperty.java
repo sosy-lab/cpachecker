@@ -23,6 +23,7 @@ import com.google.common.collect.Sets;
 import java.util.Set;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 
@@ -55,12 +56,12 @@ public abstract class AbstractSingleProperty {
   /*
    * Ignore this property during the analysis.
    */
-  public abstract void disableProperty();
+  public abstract void disable(Precision pPrecision);
 
   /*
-   * Check this property during the analysis.
+   * Resume checking of this property during the analysis.
    */
-  public abstract void enableProperty();
+  public abstract void enable(Precision pPrecision);
 
   /*
    * Check if the property is violated in the automaton state.

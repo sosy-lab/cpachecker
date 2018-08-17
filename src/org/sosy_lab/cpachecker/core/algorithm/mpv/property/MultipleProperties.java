@@ -21,14 +21,17 @@ package org.sosy_lab.cpachecker.core.algorithm.mpv.property;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
@@ -130,31 +133,52 @@ public final class MultipleProperties {
   }
 
   /*
-   * Determine, which property was violated based on target state, and stop checking it if
-   * necessary.
+   * Process reached set with violated properties.
    */
-  public void processPropertyViolation(AbstractState targetState) {
+  public void processPropertyViolation(ReachedSet reached) {
+    Set<AbstractSingleProperty> violatedProperties =
+        determineViolatedProperties(reached.getLastState());
+    for (AbstractSingleProperty property : violatedProperties) {
+      if (!findAllViolations) {
+        disablePropertyDuringAnalysis(reached, property);
+        property.allViolationsFound();
+      }
+    }
+  }
+
+  /*
+   * Update automaton precision to disable corresponding property.
+   */
+  private void disablePropertyDuringAnalysis(ReachedSet reached, AbstractSingleProperty property) {
+    for (AbstractState state : reached.getWaitlist()) {
+      Precision precision = reached.getPrecision(state);
+      property.disable(precision);
+    }
+  }
+
+  /*
+   * Determine, which properties were violated in the given target state.
+   */
+  private Set<AbstractSingleProperty> determineViolatedProperties(AbstractState targetState) {
+    ImmutableSet.Builder<AbstractSingleProperty> builder = ImmutableSet.builder();
     if (targetState instanceof AbstractWrapperState) {
       for (AbstractState state : ((AbstractWrapperState) targetState).getWrappedStates()) {
-        processPropertyViolation(state);
+        builder.addAll(determineViolatedProperties(state));
       }
     } else if (targetState instanceof AutomatonState) {
       AutomatonState automatonState = (AutomatonState) targetState;
       if (automatonState.isTarget()) {
         for (AbstractSingleProperty property : properties) {
           if (property.isTarget(automatonState)) {
-            if (!findAllViolations) {
-              property.disableProperty();
-              property.allViolationsFound();
-            }
-            property.setRelevant();
             property.updateResult(Result.FALSE);
+            property.setRelevant();
             property.addViolatedPropertyDescription(automatonState.getViolatedProperties());
-            // do not break, since several properties may be violated in the same state
+            builder.add(property);
           }
         }
       }
     }
+    return builder.build();
   }
 
   /*
@@ -169,14 +193,16 @@ public final class MultipleProperties {
   }
 
   /*
-   * Check only specified properties and ignore everything else.
+   * Check only specified properties and ignore everything else. Here we assume, that reached set
+   * contains only one initial state, so it is sufficient to change precision there.
    */
-  public void setTargetProperties(MultipleProperties targetProperties) {
+  public void setTargetProperties(MultipleProperties targetProperties, ReachedSet reached) {
+    Precision precision = reached.getPrecision(reached.getFirstState());
     for (AbstractSingleProperty property : properties) {
       if (!targetProperties.properties.contains(property)) {
-        property.disableProperty();
+        property.disable(precision);
       } else if (property.isNotChecked()) {
-        property.enableProperty();
+        property.enable(precision);
       }
     }
   }

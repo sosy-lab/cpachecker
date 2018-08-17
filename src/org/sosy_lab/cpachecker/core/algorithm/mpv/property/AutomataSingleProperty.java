@@ -19,8 +19,13 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpv.property;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
+import java.util.Set;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 
 /*
@@ -36,13 +41,36 @@ public final class AutomataSingleProperty extends AbstractSingleProperty {
   }
 
   @Override
-  public void disableProperty() {
-    // TODO: update precision
+  public void disable(Precision precision) {
+    for (AutomatonPrecision automatonPrecision : getAutomatonPrecision(precision)) {
+      automatonPrecision.disable();
+    }
   }
 
   @Override
-  public void enableProperty() {
-    // TODO: update precision
+  public void enable(Precision precision) {
+    for (AutomatonPrecision automatonPrecision : getAutomatonPrecision(precision)) {
+      automatonPrecision.enable();
+    }
+  }
+
+  /*
+   * Get all AutomatonPrecision, which correspond to the given property. Note, that
+   * AutomatonPrecision must present in a given precision.
+   */
+  private Set<AutomatonPrecision> getAutomatonPrecision(Precision precision) {
+    ImmutableSet.Builder<AutomatonPrecision> builder = ImmutableSet.builder();
+    if (precision instanceof WrapperPrecision) {
+      for (Precision wrappedPrecision : ((WrapperPrecision) precision).getWrappedPrecisions()) {
+        builder.addAll(getAutomatonPrecision(wrappedPrecision));
+      }
+    } else if (precision instanceof AutomatonPrecision) {
+      AutomatonPrecision automatonPrecision = (AutomatonPrecision) precision;
+      if (automata.contains(automatonPrecision.getAutomaton())) {
+        builder.add(automatonPrecision);
+      }
+    }
+    return builder.build();
   }
 
   @Override

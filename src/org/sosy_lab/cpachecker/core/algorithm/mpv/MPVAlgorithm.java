@@ -368,10 +368,9 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
                   logger, shutdownManager, partition.getTimeLimit());
           limits.start();
 
-          stats.multipleProperties.setTargetProperties(partition.getProperties());
-
           // inner algorithm
           Algorithm algorithm = createInnerAlgorithm(reached, mainFunction, shutdownManager);
+          stats.multipleProperties.setTargetProperties(partition.getProperties(), reached);
           collectStatistics(algorithm);
           try {
             partition.startAnalysis();

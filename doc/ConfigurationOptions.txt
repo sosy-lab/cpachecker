@@ -1076,6 +1076,13 @@ cpa.automaton.dotExportFile = "%s.dot"
 # yet reached
 cpa.automaton.extraIterationsLimit = -1
 
+# Initial precision for automaton CPA.
+# - DEFAULT: empty precision.
+# - SWITCH: automaton precision, which allows to turn on and off the
+# automata.
+cpa.automaton.initPrecision = DEFAULT
+  enum:     [DEFAULT, SWITCH]
+
 # file with automaton specification for ObserverAutomatonCPA and
 # ControlAutomatonCPA
 cpa.automaton.inputFile = no default value

@@ -73,7 +73,7 @@ public final class Partition {
   public boolean isChecked(ReachedSet reached) {
     // Check for property violations
     if (reached.hasViolatedProperties()) {
-      properties.processPropertyViolation(reached.getLastState());
+      properties.processPropertyViolation(reached);
     }
     if (!reached.hasWaitingState()
         || (properties.isChecked() && !properties.isFindAllViolations())) {
