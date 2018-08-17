@@ -222,8 +222,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
       description =
           "Specifies how to separate a single property.\n"
               + "- FILE: each .spc file represent a single property (i.e., property is represented by several automata).\n"
-              + "- AUTOMATON: each automaton represent a single property.\n"
-              + "- TRANSITION: each transition to the target state represent a single property.")
+              + "- AUTOMATON: each automaton represent a single property.")
   private PropertySeparator propertySeparator = PropertySeparator.FILE;
 
   @Option(

@@ -3101,10 +3101,8 @@ mpv.partitionOperator = SeparatePartitioningOperator.class
 # - FILE: each .spc file represent a single property (i.e., property is
 # represented by several automata).
 # - AUTOMATON: each automaton represent a single property.
-# - TRANSITION: each transition to the target state represent a single
-# property.
 mpv.propertySeparator = FILE
-  enum:     [FILE, AUTOMATON, TRANSITION]
+  enum:     [FILE, AUTOMATON]
 
 # When checking for the overflow property, use this configuration file
 # instead of the current one.

@@ -22,22 +22,16 @@ package org.sosy_lab.cpachecker.core.algorithm.mpv.property;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition;
 
 /*
  * Representation of multiple properties for multi-property verification.
@@ -46,8 +40,7 @@ public final class MultipleProperties {
 
   public enum PropertySeparator {
     FILE,
-    AUTOMATON,
-    TRANSITION
+    AUTOMATON
   }
 
   private final boolean findAllViolations;
@@ -56,8 +49,7 @@ public final class MultipleProperties {
   /*
    * Create a list of properties based on specified separator:
    * FILE - each "*.spc" file represent a single property;
-   * AUTOMATON - each automaton represent a single property;
-   * TRANSITION - each transition to the target state represent a single property.
+   * AUTOMATON - each automaton represent a single property.
    */
   public MultipleProperties(
       ImmutableMap<Path, List<Automaton>> specification,
@@ -83,29 +75,6 @@ public final class MultipleProperties {
             propertyName = automaton.getName();
             propertyBuilder.add(
                 new AutomataSingleProperty(propertyName, Lists.newArrayList(automaton)));
-          }
-          break;
-        case TRANSITION:
-          Map<String, Set<AutomatonTransition>> targetTransitions = Maps.newHashMap();
-          for (Automaton automaton : entry.getValue()) {
-            for (AutomatonInternalState state : automaton.getStates()) {
-              for (AutomatonTransition transition : state.getTransitions()) {
-                if (transition.getFollowState().isTarget()) {
-                  propertyName = transition.getTransitionDescription();
-                  if (targetTransitions.containsKey(propertyName)) {
-                    targetTransitions.get(propertyName).add(transition);
-                  } else {
-                    targetTransitions.put(propertyName, Sets.newHashSet(transition));
-                  }
-                }
-              }
-            }
-          }
-          for (Entry<String, Set<AutomatonTransition>> entryTransitions :
-              targetTransitions.entrySet()) {
-            propertyBuilder.add(
-                new TransitionSingleProperty(
-                    entryTransitions.getKey(), entryTransitions.getValue()));
           }
           break;
         default:
