@@ -144,6 +144,8 @@ public class ConstraintsSolver implements StatisticsProvider {
   /** Table of id constraints set, id identifier assignment, formula * */
   private Table<Integer, Integer, BooleanFormula> constraintFormulas = HashBasedTable.create();
 
+  private BooleanFormula modelLiteral;
+
   public ConstraintsSolver(
       final Configuration pConfig,
       final LogManager pLogger,
@@ -157,6 +159,7 @@ public class ConstraintsSolver implements StatisticsProvider {
     solver = pSolver;
     formulaManager = pFormulaManager;
     booleanFormulaManager = formulaManager.getBooleanFormulaManager();
+    modelLiteral = booleanFormulaManager.makeVariable("__M");
     converter = pConverter;
     locator = SymbolicIdentifierLocator.getInstance();
 
@@ -222,24 +225,17 @@ public class ConstraintsSolver implements StatisticsProvider {
         if (useLastModel && modelExists) {
           try {
             timeForModelReuse.start();
-            BooleanFormula lastModel =
+            BooleanFormula modelFormula =
                 modelAsAssignment
                     .stream()
                     .map(ValueAssignment::getAssignmentAsFormula)
                     .collect(booleanFormulaManager.toConjunction());
-            prover.push(lastModel);
-            unsat = prover.isUnsat();
+            modelFormula = booleanFormulaManager.implication(modelLiteral, modelFormula);
+            prover.push(modelFormula);
+            unsat = prover.isUnsatWithAssumptions(Collections.singleton(modelLiteral));
             if (!unsat) {
               modelReuseSuccesses.inc();
-
-              // get this before popping the model assignment ; the operation will be invalid
-              // otherwise
-              newModelAsAssignment = prover.getModelAssignments();
             }
-            // We have to remove the model assignment before resolving definite assignments,
-            // below.
-            prover.pop(); // Remove model assignment from prover
-
           } finally {
             timeForModelReuse.stop();
           }
@@ -252,13 +248,10 @@ public class ConstraintsSolver implements StatisticsProvider {
           } finally {
             timeForSatCheck.stop();
           }
-
-          if (!unsat) {
-            newModelAsAssignment = prover.getModelAssignments();
-          }
         }
 
         if (!unsat) {
+          newModelAsAssignment = prover.getModelAssignments();
           pConstraints.setModel(newModelAsAssignment);
           cache.addSat(pConstraints, newModelAsAssignment);
           // doing this while the complete formula is still on the prover environment stack is
