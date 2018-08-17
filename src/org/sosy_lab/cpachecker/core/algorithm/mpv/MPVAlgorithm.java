@@ -102,17 +102,6 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
       statistics = Lists.newArrayList();
     }
 
-    public Result adjustOverallResult() {
-      return multipleProperties.getOverallResult();
-    }
-
-    public void printResults(PrintStream out) {
-      out.println("Result per each property:");
-      for (AbstractSingleProperty property : multipleProperties.getProperties()) {
-        out.println("  Property '" + property + "': " + property.getResult());
-      }
-    }
-
     @Override
     public String getName() {
       return "MPV algorithm";
@@ -341,6 +330,10 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
+
+    assert reached instanceof MPVReachedSet;
+    ((MPVReachedSet) reached).setMultipleProperties(stats.multipleProperties);
+
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     stats.totalTimer.start();

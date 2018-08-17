@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorithm;
@@ -533,6 +534,9 @@ public class CoreComponentsFactory {
       } else {
         reached = new ForwardingReachedSet(reached);
       }
+    }
+    if (useMPV) {
+      reached = new MPVReachedSet(reached);
     }
 
     return reached;

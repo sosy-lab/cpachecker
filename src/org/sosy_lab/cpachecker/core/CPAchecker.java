@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ResultProviderReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -543,6 +544,9 @@ public class CPAchecker {
   }
 
   private Result analyzeResult(final ReachedSet reached, boolean isSound) {
+    if (reached instanceof ResultProviderReachedSet) {
+      return ((ResultProviderReachedSet) reached).getOverallResult();
+    }
     if (reached.hasWaitingState()) {
       logger.log(Level.WARNING, "Analysis not completed: there are still states to be processed.");
       return Result.UNKNOWN;
