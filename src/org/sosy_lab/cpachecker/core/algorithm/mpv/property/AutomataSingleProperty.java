@@ -21,9 +21,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpv.property;
 
 import java.util.List;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition;
 
 /*
  * This property is represented by one or several automata.
@@ -39,16 +37,12 @@ public final class AutomataSingleProperty extends AbstractSingleProperty {
 
   @Override
   public void disableProperty() {
-    for (Automaton automaton : automata) {
-      automaton.disableAutomaton();
-    }
+    // TODO: update precision
   }
 
   @Override
   public void enableProperty() {
-    for (Automaton automaton : automata) {
-      automaton.enableAutomaton();
-    }
+    // TODO: update precision
   }
 
   @Override
@@ -62,15 +56,6 @@ public final class AutomataSingleProperty extends AbstractSingleProperty {
 
   @Override
   public void checkIfRelevant() {
-    for (Automaton automaton : automata) {
-      for (AutomatonInternalState state : automaton.getStates()) {
-        for (AutomatonTransition transition : state.getTransitions()) {
-          if (transition.isRelevant()) {
-            setRelevant();
-            return;
-          }
-        }
-      }
-    }
+    // TODO: use number of transfers with branching
   }
 }

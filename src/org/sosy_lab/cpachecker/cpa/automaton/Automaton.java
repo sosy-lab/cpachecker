@@ -202,16 +202,4 @@ public class Automaton {
 
     return str.toString();
   }
-
-  public void disableAutomaton() {
-    for (AutomatonInternalState automatonInternalState : states) {
-      automatonInternalState.disableState();
-    }
-  }
-
-  public void enableAutomaton() {
-    for (AutomatonInternalState automatonInternalState : states) {
-      automatonInternalState.enableState();
-    }
-  }
 }

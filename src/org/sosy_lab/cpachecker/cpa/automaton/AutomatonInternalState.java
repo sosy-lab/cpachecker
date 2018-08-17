@@ -180,16 +180,4 @@ public class AutomatonInternalState {
   public String toString() {
     return this.name;
   }
-
-  void disableState() {
-    for (AutomatonTransition automatonTransition : transitions) {
-      automatonTransition.disableTransition();
-    }
-  }
-
-  public void enableState() {
-    for (AutomatonTransition automatonTransition : transitions) {
-      automatonTransition.enableTransition();
-    }
-  }
 }
