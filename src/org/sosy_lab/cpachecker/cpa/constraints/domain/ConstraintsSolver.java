@@ -145,6 +145,7 @@ public class ConstraintsSolver implements StatisticsProvider {
   private Table<Integer, Integer, BooleanFormula> constraintFormulas = HashBasedTable.create();
 
   private BooleanFormula modelLiteral;
+  private BooleanFormula assignmentLiteral;
 
   public ConstraintsSolver(
       final Configuration pConfig,
@@ -160,6 +161,7 @@ public class ConstraintsSolver implements StatisticsProvider {
     formulaManager = pFormulaManager;
     booleanFormulaManager = formulaManager.getBooleanFormulaManager();
     modelLiteral = booleanFormulaManager.makeVariable("__M");
+    assignmentLiteral = booleanFormulaManager.makeVariable("__A");
     converter = pConverter;
     locator = SymbolicIdentifierLocator.getInstance();
 
@@ -230,7 +232,7 @@ public class ConstraintsSolver implements StatisticsProvider {
                     .stream()
                     .map(ValueAssignment::getAssignmentAsFormula)
                     .collect(booleanFormulaManager.toConjunction());
-            modelFormula = booleanFormulaManager.implication(modelLiteral, modelFormula);
+            modelFormula = createLiteralLabel(modelLiteral, modelFormula);
             prover.push(modelFormula);
             unsat = prover.isUnsatWithAssumptions(Collections.singleton(modelLiteral));
             if (!unsat) {
@@ -273,6 +275,12 @@ public class ConstraintsSolver implements StatisticsProvider {
       timeForSolving.stop();
     }
 
+  }
+
+  private BooleanFormula createLiteralLabel(
+      BooleanFormula pLiteral,
+      BooleanFormula pFormula) {
+    return booleanFormulaManager.implication(pLiteral, pFormula);
   }
 
   private Set<Constraint> getRelevantConstraints(ConstraintsState pConstraints) {
@@ -371,11 +379,9 @@ public class ConstraintsSolver implements StatisticsProvider {
     BooleanFormula prohibitAssignment =
         formulaManager.makeNot(pTerm.getAssignmentAsFormula());
 
+    prohibitAssignment = createLiteralLabel(assignmentLiteral, prohibitAssignment);
     prover.push(prohibitAssignment);
-    boolean isUnsat = prover.isUnsat();
-
-    // remove the just added formula again so we return to the original constraint formula
-    // - other assignments will probably be tested before closing prover.
+    boolean isUnsat = prover.isUnsatWithAssumptions(Collections.singleton(assignmentLiteral));
     prover.pop();
 
     return isUnsat;
