@@ -112,28 +112,39 @@ public class ModificationsTransferRelation extends SingleEdgeTransferRelation {
 
   private Optional<ModificationsState> findMatchingSuccessor(
       final CFAEdge pEdgeInGiven, final CFAEdge pEdgeInOriginal) {
-    CFANode origSucc = pEdgeInOriginal.getSuccessor();
-    if (edgesMatch(pEdgeInGiven, pEdgeInOriginal)) {
-      return Optional.of(new ModificationsState(pEdgeInGiven.getSuccessor(), origSucc));
-    }
+    CFAEdge originalEdge = pEdgeInOriginal;
 
-    // assume that variables are not renamed
-    // only new declarations are added and existing declarations are deleted
-    if (ignoreDeclarations) {
-      if (pEdgeInGiven instanceof CDeclarationEdge) {
-        if (!declarationNameAlreadyExistsInOtherCFA(true, (CDeclarationEdge) pEdgeInGiven)) {
-          return Optional.of(
-              new ModificationsState(
-                  pEdgeInGiven.getSuccessor(), pEdgeInOriginal.getPredecessor()));
-        }
+    boolean stuttered;
+    do {
+
+      stuttered = false;
+
+      if (edgesMatch(pEdgeInGiven, originalEdge)) {
+        return Optional.of(
+            new ModificationsState(pEdgeInGiven.getSuccessor(), originalEdge.getSuccessor()));
       }
 
-      if (pEdgeInOriginal instanceof CDeclarationEdge) {
-        if (!declarationNameAlreadyExistsInOtherCFA(false, (CDeclarationEdge) pEdgeInOriginal)) {
-          return Optional.of(new ModificationsState(pEdgeInGiven.getPredecessor(), origSucc));
+      // assume that variables are not renamed
+      // only new declarations are added and existing declarations are deleted
+      if (ignoreDeclarations) {
+
+        if (pEdgeInGiven instanceof CDeclarationEdge) {
+          if (!declarationNameAlreadyExistsInOtherCFA(true, (CDeclarationEdge) pEdgeInGiven)) {
+            return Optional.of(
+                new ModificationsState(pEdgeInGiven.getSuccessor(), originalEdge.getPredecessor()));
+          }
+        }
+
+        if (originalEdge instanceof CDeclarationEdge) {
+          if (!declarationNameAlreadyExistsInOtherCFA(false, (CDeclarationEdge) originalEdge)) {
+            if (originalEdge.getSuccessor().getNumLeavingEdges() == 1) {
+              originalEdge = originalEdge.getSuccessor().getLeavingEdge(0);
+              stuttered = true;
+            }
+          }
         }
       }
-    }
+    } while (stuttered);
 
     return Optional.empty();
   }
