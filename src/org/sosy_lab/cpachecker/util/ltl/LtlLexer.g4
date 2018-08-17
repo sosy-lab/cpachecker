@@ -28,7 +28,6 @@
 lexer grammar LtlLexer;
 
 
-
 /*
  * Rules for ltl syntax (= DEFAULT_MODE)
  */
@@ -79,7 +78,6 @@ VARIABLE            : LOWERCASE (LETTER | NUMBER)* ;
 WS                  : [ \t\r\n\f] -> skip ;   // skip spaces, tabs, newlines
 
 
-
 /*
  * Lexer rules for content within quotationmarks ( == CExpressions )
  */
@@ -110,9 +108,8 @@ POW                 : '^' ;
 SPACES              : [ ] -> skip ;   // skip spaces
 
 
-
 /*
- * inline functions for more readable grammar and better maintainability. Valid in all modes.
+ * Inline functions for a more readable grammar and a better maintainability. Valid in all modes.
  */
 fragment LETTER     : (LOWERCASE | UPPERCASE) ;
 fragment LOWERCASE  : [a-z] ;

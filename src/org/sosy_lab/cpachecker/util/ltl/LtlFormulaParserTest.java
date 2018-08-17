@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.util.ltl.formulas.WeakUntil;
 public class LtlFormulaParserTest {
 
   @Test
-  public void test_parse_appliesRandomSyntaxCorrectly() {
+  public void test_parse_appliesRandomSyntaxCorrectly() throws LtlParseException {
     List<String> in =
         ImmutableList.of(
             "!a",
@@ -72,12 +72,12 @@ public class LtlFormulaParserTest {
                 new Until(new Literal("b"), new Release(new Literal("c"), new Literal("a")))));
 
     for (int i = 0; i < in.size(); i++) {
-      assertEquals(in.get(i), out.get(i), LtlParser.parseString(in.get(i)).getFormula());
+      assertEquals(in.get(i), out.get(i), LtlParser.parseProperty(in.get(i)).getFormula());
     }
   }
 
   @Test
-  public void test_parse_APs_appliesTrivialIdentities() {
+  public void test_parse_APs_appliesTrivialIdentities() throws LtlParseException {
     List<String> in =
         ImmutableList.of(
             "!false",
@@ -101,12 +101,12 @@ public class LtlFormulaParserTest {
             BooleanConstant.TRUE);
 
     for (int i = 0; i < in.size(); i++) {
-      assertEquals(in.get(i), out.get(i), LtlParser.parseString(in.get(i)).getFormula());
+      assertEquals(in.get(i), out.get(i), LtlParser.parseProperty(in.get(i)).getFormula());
     }
   }
 
   @Test
-  public void test_parse_APs_appliesCommutativeIdentities() {
+  public void test_parse_APs_appliesCommutativeIdentities() throws LtlParseException {
     List<String> in =
         ImmutableList.of(
             "false && a",
@@ -154,12 +154,12 @@ public class LtlFormulaParserTest {
             BooleanConstant.TRUE);
 
     for (int i = 0; i < in.size(); i++) {
-      assertEquals(in.get(i), out.get(i), LtlParser.parseString(in.get(i)).getFormula());
+      assertEquals(in.get(i), out.get(i), LtlParser.parseProperty(in.get(i)).getFormula());
     }
   }
 
   @Test
-  public void test_parse_temporalOperators_appliesTrivialIdentities() {
+  public void test_parse_temporalOperators_appliesTrivialIdentities() throws LtlParseException {
     List<String> in =
         ImmutableList.of(
             "X false",
@@ -215,7 +215,7 @@ public class LtlFormulaParserTest {
             new Literal("a"));
 
     for (int i = 0; i < in.size(); i++) {
-      assertEquals(in.get(i), out.get(i), LtlParser.parseString(in.get(i)).getFormula());
+      assertEquals(in.get(i), out.get(i), LtlParser.parseProperty(in.get(i)).getFormula());
     }
   }
 }
