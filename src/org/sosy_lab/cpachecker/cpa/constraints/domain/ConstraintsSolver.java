@@ -218,7 +218,7 @@ public class ConstraintsSolver implements StatisticsProvider {
 
         prover.push(constraintsAsFormula);
 
-        ImmutableList<ValueAssignment> newModelAsAssignment = ImmutableList.of();
+        ImmutableList<ValueAssignment> newModelAsAssignment;
 
         ImmutableList<ValueAssignment> modelAsAssignment = pConstraints.getModel();
         boolean modelExists = !modelAsAssignment.isEmpty();
@@ -258,7 +258,7 @@ public class ConstraintsSolver implements StatisticsProvider {
           // cheaper than performing another complete SAT check when the assignment is really
           // requested
           if (resolveDefinites) {
-            resolveDefiniteAssignments(pConstraints, newModelAsAssignment, pFunctionName);
+            resolveDefiniteAssignments(pConstraints, newModelAsAssignment);
           }
 
         } else {
@@ -317,13 +317,13 @@ public class ConstraintsSolver implements StatisticsProvider {
   }
 
   private void resolveDefiniteAssignments(
-      ConstraintsState pConstraints, List<ValueAssignment> pModel, String pFunctionName)
+      ConstraintsState pConstraints, List<ValueAssignment> pModel)
       throws InterruptedException, SolverException {
     try {
       timeForDefinitesComputation.start();
 
       IdentifierAssignment newDefinites =
-          computeDefiniteAssignment(pConstraints, pModel, pFunctionName);
+          computeDefiniteAssignment(pConstraints, pModel);
       pConstraints.setDefiniteAssignment(newDefinites);
 
     } finally {
@@ -332,7 +332,7 @@ public class ConstraintsSolver implements StatisticsProvider {
   }
 
   private IdentifierAssignment computeDefiniteAssignment(
-      ConstraintsState pState, List<ValueAssignment> pModel, String pFunctionName)
+      ConstraintsState pState, List<ValueAssignment> pModel)
       throws SolverException, InterruptedException {
 
     IdentifierAssignment newDefinites = new IdentifierAssignment(pState.getDefiniteAssignment());
@@ -345,7 +345,7 @@ public class ConstraintsSolver implements StatisticsProvider {
         Value concreteValue = SymbolicValues.convertToValue(val);
 
         if (!newDefinites.containsKey(identifier)
-            && isOnlySatisfyingAssignment(val, pFunctionName)) {
+            && isOnlySatisfyingAssignment(val)) {
 
           assert !newDefinites.containsKey(identifier)
                   || newDefinites.get(identifier).equals(concreteValue)
@@ -365,13 +365,11 @@ public class ConstraintsSolver implements StatisticsProvider {
     return newDefinites;
   }
 
-  private boolean isOnlySatisfyingAssignment(ValueAssignment pTerm, String pFunctionName)
+  private boolean isOnlySatisfyingAssignment(ValueAssignment pTerm)
       throws SolverException, InterruptedException {
 
-    FormulaCreator formulaCreator = getFormulaCreator(pFunctionName);
     BooleanFormula prohibitAssignment =
-        formulaManager.makeNot(
-            formulaCreator.transformAssignment(pTerm.getKey(), pTerm.getValue()));
+        formulaManager.makeNot(pTerm.getAssignmentAsFormula());
 
     prover.push(prohibitAssignment);
     boolean isUnsat = prover.isUnsat();
@@ -384,7 +382,7 @@ public class ConstraintsSolver implements StatisticsProvider {
   }
 
   private FormulaCreator getFormulaCreator(String pFunctionName) {
-    return new FormulaCreatorUsingCConverter(formulaManager, converter, pFunctionName);
+    return new FormulaCreatorUsingCConverter(converter, pFunctionName);
   }
 
   /**
