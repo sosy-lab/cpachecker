@@ -49,8 +49,9 @@ import org.sosy_lab.cpachecker.util.Property;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
 
 /**
- * Class that encapsulates the specification that should be used for an analysis. Most code of
- * CPAchecker should not need to access this file, because a separate CPA handles the specification,
+ * Class that encapsulates the specification that should be used for an analysis.
+ * Most code of CPAchecker should not need to access this file,
+ * because a separate CPA handles the specification,
  * though it can be necessary to pass around Specification objects for sub-analyses.
  */
 public final class Specification {
@@ -150,7 +151,9 @@ public final class Specification {
     specificationAutomata = ImmutableList.copyOf(pSpecificationAutomata);
   }
 
-  /** This is not public by intention! Only CPABuilder should need to access this method. */
+  /**
+   * This is not public by intention! Only CPABuilder should need to access this method.
+   */
   ImmutableList<Automaton> getSpecificationAutomata() {
     return specificationAutomata;
   }

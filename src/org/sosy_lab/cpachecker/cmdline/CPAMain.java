@@ -138,8 +138,7 @@ public class CPAMain {
     try {
       cpaConfig.inject(options);
       if (options.programs.isEmpty()) {
-        throw new InvalidConfigurationException(
-            "Please specify a program to analyze on the command line.");
+        throw new InvalidConfigurationException("Please specify a program to analyze on the command line.");
       }
       dumpConfiguration(options, cpaConfig, logManager);
 
@@ -197,83 +196,72 @@ public class CPAMain {
 
   // Default values for options from external libraries
   // that we want to override in CPAchecker.
-  private static final ImmutableMap<String, String> EXTERN_OPTION_DEFAULTS =
-      ImmutableMap.of("log.level", Level.INFO.toString());
+  private static final ImmutableMap<String, String> EXTERN_OPTION_DEFAULTS = ImmutableMap.of(
+      "log.level", Level.INFO.toString());
 
   private static final String SPECIFICATION_OPTION = "specification";
   private static final String ENTRYFUNCTION_OPTION = "analysis.entryFunction";
 
   @Options
   private static class BootstrapOptions {
-    @Option(
-        secure = true,
-        name = "memorysafety.config",
-        description =
-            "When checking for memory safety properties, "
-                + "use this configuration file instead of the current one.")
+    @Option(secure=true, name="memorysafety.config",
+        description="When checking for memory safety properties, "
+            + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path memsafetyConfig = null;
 
-    @Option(
-        secure = true,
-        name = "overflow.config",
-        description =
-            "When checking for the overflow property, "
-                + "use this configuration file instead of the current one.")
+    @Option(secure=true, name="overflow.config",
+        description="When checking for the overflow property, "
+            + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path overflowConfig = null;
 
-    @Option(
-        secure = true,
-        name = "termination.config",
-        description =
-            "When checking for the termination property, "
-                + "use this configuration file instead of the current one.")
+    @Option(secure=true, name="termination.config",
+        description="When checking for the termination property, "
+            + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path terminationConfig = null;
 
     @Option(
-        secure = true,
-        name = CmdLineArguments.PRINT_USED_OPTIONS_OPTION,
-        description = "all used options are printed")
+      secure = true,
+      name = CmdLineArguments.PRINT_USED_OPTIONS_OPTION,
+      description = "all used options are printed"
+    )
     private boolean printUsedOptions = false;
   }
 
   @Options
   private static class MainOptions {
     @Option(
-        secure = true,
-        name = "analysis.programNames",
-        // required=true, NOT required because we want to give a nicer user message ourselves
-        description = "A String, denoting the programs to be analyzed")
+      secure = true,
+      name = "analysis.programNames",
+      //required=true, NOT required because we want to give a nicer user message ourselves
+      description = "A String, denoting the programs to be analyzed"
+    )
     private ImmutableList<String> programs = ImmutableList.of();
 
-    @Option(
-        secure = true,
-        name = "configuration.dumpFile",
-        description = "Dump the complete configuration to a file.")
+    @Option(secure=true, name="configuration.dumpFile",
+        description="Dump the complete configuration to a file.")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path configurationOutputFile = Paths.get("UsedConfiguration.properties");
 
-    @Option(
-        secure = true,
-        name = "statistics.export",
-        description = "write some statistics to disk")
+    @Option(secure=true, name="statistics.export", description="write some statistics to disk")
     private boolean exportStatistics = true;
 
-    @Option(secure = true, name = "statistics.file", description = "write some statistics to disk")
+    @Option(secure=true, name="statistics.file",
+        description="write some statistics to disk")
     @FileOption(FileOption.Type.OUTPUT_FILE)
     private Path exportStatisticsFile = Paths.get("Statistics.txt");
 
-    @Option(secure = true, name = "statistics.print", description = "print statistics to console")
+    @Option(secure=true, name="statistics.print", description="print statistics to console")
     private boolean printStatistics = false;
 
-    @Option(secure = true, name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
+    @Option(secure=true, name = "pcc.proofgen.doPCC", description = "Generate and dump a proof")
     private boolean doPCC = false;
   }
 
-  private static void dumpConfiguration(
-      MainOptions options, Configuration config, LogManager logManager) {
+  private static void dumpConfiguration(MainOptions options, Configuration config,
+      LogManager logManager) {
     if (options.configurationOutputFile != null) {
       try {
         IO.writeFile(
@@ -498,27 +486,30 @@ public class CPAMain {
   @Options
   private static class WitnessOptions {
     @Option(
-        secure = true,
-        name = "witness.validation.file",
-        description = "The witness to validate.")
+      secure = true,
+      name = "witness.validation.file",
+      description = "The witness to validate."
+    )
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path witness = null;
 
     @Option(
-        secure = true,
-        name = "witness.validation.violation.config",
-        description =
-            "When validating a violation witness, "
-                + "use this configuration file instead of the current one.")
+      secure = true,
+      name = "witness.validation.violation.config",
+      description =
+          "When validating a violation witness, "
+              + "use this configuration file instead of the current one."
+    )
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path violationWitnessValidationConfig = null;
 
     @Option(
-        secure = true,
-        name = "witness.validation.correctness.config",
-        description =
-            "When validating a correctness witness, "
-                + "use this configuration file instead of the current one.")
+      secure = true,
+      name = "witness.validation.correctness.config",
+      description =
+          "When validating a correctness witness, "
+              + "use this configuration file instead of the current one."
+    )
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path correctnessWitnessValidationConfig = null;
   }
@@ -602,17 +593,12 @@ public class CPAMain {
 
       // print result
       if (!options.printStatistics) {
-        stream =
-            makePrintStream(
-                mergeStreams(System.out, file)); // ensure that result is printed to System.out
+        stream = makePrintStream(mergeStreams(System.out, file)); // ensure that result is printed to System.out
       }
       mResult.printResult(stream);
 
       if (outputDirectory != null) {
-        stream.println(
-            "More details about the verification run can be found in the directory \""
-                + outputDirectory
-                + "\".");
+        stream.println("More details about the verification run can be found in the directory \"" + outputDirectory + "\".");
       }
 
       stream.flush();
@@ -629,12 +615,11 @@ public class CPAMain {
     }
   }
 
-  @SuppressFBWarnings(
-      value = "DM_DEFAULT_ENCODING",
-      justification = "Default encoding is the correct one for stdout.")
+  @SuppressFBWarnings(value="DM_DEFAULT_ENCODING",
+      justification="Default encoding is the correct one for stdout.")
   private static PrintStream makePrintStream(OutputStream stream) {
     if (stream instanceof PrintStream) {
-      return (PrintStream) stream;
+      return (PrintStream)stream;
     } else {
       // Default encoding is actually desired here because we output to the terminal,
       // so the default PrintStream constructor is ok.
@@ -642,7 +627,7 @@ public class CPAMain {
     }
   }
 
-  private CPAMain() {} // prevent instantiation
+  private CPAMain() { } // prevent instantiation
 
   private static class Config {
 
