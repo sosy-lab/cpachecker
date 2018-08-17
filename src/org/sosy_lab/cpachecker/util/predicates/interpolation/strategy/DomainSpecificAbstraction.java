@@ -59,6 +59,7 @@ public class DomainSpecificAbstraction<T> {
   protected final FormulaManagerView fmgr;
   protected FormulaManagerView oldFmgr;
   private String[] arrayVariablesThatAreUsedInBothParts;
+  private String[] arrayVariablesThatAreNotUsedInBothParts;
   //private String[] arrayVariablesForFormulas;
   private List<BooleanFormula> formulas;
   //private Interpolator<T> myInterpolator;
@@ -144,6 +145,8 @@ public class DomainSpecificAbstraction<T> {
       }
       Set<String> variablesThatAreUsedInBothParts = Sets.intersection(variables1, variables2)
           .immutableCopy();
+      Set<String> variablesThatAreNotUsedInBothParts = Sets.difference(variables1, variables2)
+          .immutableCopy();
       HashMap<String, FormulaType> variablesUsedInBothPartsClasses = new HashMap<>();
       int m = 0;
    /*   for (Map<String, Formula> s : variableTypes) {
@@ -185,6 +188,9 @@ public class DomainSpecificAbstraction<T> {
       String[] arrayVariables2 = variables2.toArray(new String[variables2.size()]);
       arrayVariablesThatAreUsedInBothParts = variablesThatAreUsedInBothParts.toArray(new
           String[variablesThatAreUsedInBothParts.size
+          ()]);
+      arrayVariablesThatAreNotUsedInBothParts = variablesThatAreNotUsedInBothParts.toArray(new
+          String[variablesThatAreNotUsedInBothParts.size
           ()]);
 
 
@@ -1280,8 +1286,10 @@ public class DomainSpecificAbstraction<T> {
         }
       }
       //arrayVariablesForFormulas = arrayVariablesThatAreUsedInBothParts;
-      FirstPartRenamingFct renamer1 = new FirstPartRenamingFct(arrayVariablesThatAreUsedInBothParts);
-      ScndPartRenamingFct renamer2 = new ScndPartRenamingFct(arrayVariablesThatAreUsedInBothParts);
+      FirstPartRenamingFct renamer1 = new FirstPartRenamingFct
+          (arrayVariablesThatAreUsedInBothParts, arrayVariablesThatAreNotUsedInBothParts);
+      ScndPartRenamingFct renamer2 = new ScndPartRenamingFct
+          (arrayVariablesThatAreUsedInBothParts, arrayVariablesThatAreNotUsedInBothParts);
       BooleanFormula firstPart;
       BooleanFormula scndPart;
       if (it == 0) {

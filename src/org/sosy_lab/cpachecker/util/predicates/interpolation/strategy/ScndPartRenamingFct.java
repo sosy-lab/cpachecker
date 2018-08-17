@@ -26,16 +26,29 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 public class ScndPartRenamingFct implements java.util.function.Function<String,
     String> {
   String[] arrayVariablesForFormulasHere;
-  ScndPartRenamingFct(String[] arrayVariablesThatAreUsedInBothParts){
+  String[] otherArrayVariables;
+
+  ScndPartRenamingFct(String[] arrayVariablesThatAreUsedInBothParts, String[]
+      arrayVariablesThatAreNotUsedInBothParts){
     arrayVariablesForFormulasHere = arrayVariablesThatAreUsedInBothParts;
   }
   @Override public String apply (String name){
     StringBuilder myBuilder = new StringBuilder();
     myBuilder.append(name);
+    Boolean equalsOtherArrayVariable = true;
     for (int i = 0; i < arrayVariablesForFormulasHere.length;
          i++){
       if (name.equals(arrayVariablesForFormulasHere[i])){
         myBuilder.append("''");
+        while (equalsOtherArrayVariable == true) {
+          for (int j = 0; i < otherArrayVariables.length; j++) {
+            equalsOtherArrayVariable = false;
+            if (myBuilder.toString().equals(otherArrayVariables[j])) {
+              myBuilder.append("'");
+              equalsOtherArrayVariable = true;
+            }
+          }
+        }
         //name = name + ("''");
       }
     }
