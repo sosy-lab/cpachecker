@@ -110,7 +110,9 @@ public class PropertyFileParser {
       try {
         property = LtlParser.parseProperty(rawLtlProperty);
       } catch (LtlParseException e) {
-        throw new InvalidPropertyFileException(e.getMessage(), e);
+        throw new InvalidPropertyFileException(
+            String.format(
+                "Could not parse property '%s' (%s)", matcher.group(2), e.getMessage(), e));
       }
     }
     return property;
