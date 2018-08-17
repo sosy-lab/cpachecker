@@ -4,7 +4,7 @@
 
   <option name="-noout"/>
   <option name="-heap">2000M</option>
-	<option name="-setprop">domainSpecificAbstractions=true</option>
+	<option name="-setprop">cpa.predicate.refinement.domainSpecificAbstractions=true</option>
 
   <rundefinition>
     <option name="-predicateAnalysis"/>
