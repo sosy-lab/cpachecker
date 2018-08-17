@@ -2693,10 +2693,8 @@ cpa.value.abstraction.iterationThreshold = -1
 # leaving edge
 cpa.value.abstraction.onlyAtNonLinearCFA = false
 
-# Whether to replace symbolic values with a concrete value when only one
-# value is possible for an assumption to be true (e.g. for (x == 1) set x to
-# 1, even if x is a symbolic expression).
-cpa.value.assignSymbolicAssumptionVars = false
+# Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
+cpa.value.assignEqualityAssumptions = true
 
 # Track or not function pointer values
 cpa.value.ignoreFunctionValue = true

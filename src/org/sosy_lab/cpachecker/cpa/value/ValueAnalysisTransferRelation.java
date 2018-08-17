@@ -157,15 +157,6 @@ public class ValueAnalysisTransferRelation
 
     @Option(
       secure = true,
-      description =
-          "Whether to replace symbolic values with a concrete value"
-              + " when only one value is possible for an assumption to be true"
-              + " (e.g. for (x == 1) set x to 1, even if x is a symbolic expression)."
-    )
-    private boolean assignSymbolicAssumptionVars = false;
-
-    @Option(
-      secure = true,
       description = "Assume that variables used only in a boolean context are either zero or one."
     )
     private boolean optimizeBooleanVariables = true;
@@ -182,6 +173,9 @@ public class ValueAnalysisTransferRelation
     @Option(secure=true, description="Track or not function pointer values")
     private boolean ignoreFunctionValue = true;
 
+    @Option(secure = true, description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
+    private boolean assignEqualityAssumptions = true;
+
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
@@ -190,8 +184,8 @@ public class ValueAnalysisTransferRelation
       return initAssumptionVars;
     }
 
-    boolean isAssignSymbolicAssumptionVars() {
-      return assignSymbolicAssumptionVars;
+    boolean isAssignEqualityAssumptions() {
+      return assignEqualityAssumptions;
     }
 
     boolean isOptimizeBooleanVariables() {
