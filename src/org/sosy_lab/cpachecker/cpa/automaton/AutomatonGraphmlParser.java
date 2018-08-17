@@ -95,7 +95,8 @@ import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OffsetMatcher
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.NumericIdProvider;
-import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
+import org.sosy_lab.cpachecker.util.Property;
+import org.sosy_lab.cpachecker.util.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMLTag;
@@ -199,30 +200,29 @@ public class AutomatonGraphmlParser {
    * Parses a witness specification from a file and returns the Automata found in the file.
    *
    * @param pInputFile the path to the input file to parse the witness from.
-   * @param pPropertyTypes which are assumed to be witnessed.
+   * @param pProperties which are assumed to be witnessed.
    * @throws InvalidConfigurationException if the configuration is invalid.
    * @return the automata representing the witnesses found in the file.
    */
-  public List<Automaton> parseAutomatonFile(Path pInputFile, Set<PropertyType> pPropertyTypes)
+  public List<Automaton> parseAutomatonFile(Path pInputFile, Set<Property> pProperties)
       throws InvalidConfigurationException {
-    return parseAutomatonFile(MoreFiles.asByteSource(pInputFile), pPropertyTypes);
+    return parseAutomatonFile(MoreFiles.asByteSource(pInputFile), pProperties);
   }
 
   /**
    * Parses a witness specification from a ByteSource and returns the Automata found in the source.
    *
    * @param pInputSource the ByteSource to parse the witness from.
-   * @param pPropertyTypes which are assumed to be witnessed.
+   * @param pProperties which are assumed to be witnessed.
    * @throws InvalidConfigurationException if the configuration is invalid.
    * @return the automata representing the witnesses found in the source.
    */
-  private List<Automaton> parseAutomatonFile(
-      ByteSource pInputSource, Set<PropertyType> pPropertyTypes)
+  private List<Automaton> parseAutomatonFile(ByteSource pInputSource, Set<Property> pProperties)
       throws InvalidConfigurationException {
     return AutomatonGraphmlParser
         .<List<Automaton>, InvalidConfigurationException>handlePotentiallyGZippedInput(
             pInputSource,
-            inputStream -> parseAutomatonFile(inputStream, pPropertyTypes),
+            inputStream -> parseAutomatonFile(inputStream, pProperties),
             e -> new WitnessParseException(e));
   }
 
@@ -230,13 +230,12 @@ public class AutomatonGraphmlParser {
    * Parses a specification from an InputStream and returns the Automata found in the file.
    *
    * @param pInputStream the input stream to parse the witness from.
-   * @param pPropertyTypes which are assumed to be witnessed.
+   * @param pProperties which are assumed to be witnessed.
    * @throws InvalidConfigurationException if the configuration is invalid.
    * @throws IOException if there occurs an IOException while reading from the stream.
    * @return the automata representing the witnesses found in the stream.
    */
-  private List<Automaton> parseAutomatonFile(
-      InputStream pInputStream, Set<PropertyType> pPropertyTypes)
+  private List<Automaton> parseAutomatonFile(InputStream pInputStream, Set<Property> pProperties)
       throws InvalidConfigurationException, IOException {
     final CParser cparser =
         CParser.Factory.getParser(
@@ -250,8 +249,7 @@ public class AutomatonGraphmlParser {
             CParser.Factory.getOptions(config),
             cfa.getMachineModel());
 
-    AutomatonGraphmlParserState graphMLParserState =
-        setupGraphMLParser(pInputStream, pPropertyTypes);
+    AutomatonGraphmlParserState graphMLParserState = setupGraphMLParser(pInputStream, pProperties);
 
     // Parse the transitions
     parseTransitions(cparser, graphMLParserState);
@@ -439,7 +437,7 @@ public class AutomatonGraphmlParser {
     // Check that there are no invariants in a violation witness
     if (!ExpressionTrees.getTrue().equals(candidateInvariants)
         && pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS
-        && !pGraphMLParserState.getSpecificationTypes().contains(PropertyType.TERMINATION)) {
+        && !pGraphMLParserState.getSpecificationTypes().contains(CommonPropertyType.TERMINATION)) {
       throw new WitnessParseException(
           "Invariants are not allowed for violation witnesses.");
     }
@@ -925,14 +923,14 @@ public class AutomatonGraphmlParser {
    * into an intermediate representation.
    *
    * @param pInputStream the input stream to read from.
-   * @param pPropertyTypes which are assumed to be witnessed.
+   * @param pProperties which are assumed to be witnessed.
    * @return the initialized parser state.
    * @throws IOException if reading from the input stream fails.
    * @throws WitnessParseException if the initial validity checks for conformity with the witness
    *     format fail.
    */
   private AutomatonGraphmlParserState setupGraphMLParser(
-      InputStream pInputStream, Set<PropertyType> pPropertyTypes)
+      InputStream pInputStream, Set<Property> pProperties)
       throws IOException, WitnessParseException {
 
     GraphMLDocumentData docDat = parseXML(pInputStream);
@@ -975,7 +973,7 @@ public class AutomatonGraphmlParser {
         AutomatonGraphmlParserState.initialize(
             automatonName,
             graphType,
-            pPropertyTypes,
+            pProperties,
             states.values(),
             enteringTransitions,
             leavingTransitions,

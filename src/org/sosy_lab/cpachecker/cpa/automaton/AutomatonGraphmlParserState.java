@@ -47,7 +47,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.GraphMLTransition.GraphMLThread;
-import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
+import org.sosy_lab.cpachecker.util.Property;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 
 public class AutomatonGraphmlParserState {
@@ -64,7 +64,7 @@ public class AutomatonGraphmlParserState {
   private final WitnessType witnessType;
 
   /** The specification types. */
-  private final ImmutableSet<PropertyType> specificationTypes;
+  private final ImmutableSet<Property> specificationTypes;
 
   /** The entry state. */
   private final GraphMLState entryState;
@@ -127,7 +127,7 @@ public class AutomatonGraphmlParserState {
   private AutomatonGraphmlParserState(
       String pAutomatonName,
       WitnessType pWitnessType,
-      ImmutableSet<PropertyType> pSpecificationTypes,
+      ImmutableSet<Property> pSpecificationTypes,
       ImmutableSet<GraphMLState> pStates,
       ImmutableMultimap<GraphMLState, GraphMLTransition> pEnteringTransitions,
       ImmutableMultimap<GraphMLState, GraphMLTransition> pLeavingTransitions,
@@ -218,7 +218,7 @@ public class AutomatonGraphmlParserState {
   public static AutomatonGraphmlParserState initialize(
       String pAutomatonName,
       WitnessType pWitnessType,
-      Set<PropertyType> pSpecificationTypes,
+      Set<Property> pSpecificationTypes,
       Iterable<GraphMLState> pStates,
       Multimap<GraphMLState, GraphMLTransition> pEnteringTransitions,
       Multimap<GraphMLState, GraphMLTransition> pLeavingTransitions,
@@ -257,7 +257,7 @@ public class AutomatonGraphmlParserState {
    *
    * @return the specification types.
    */
-  public ImmutableSet<PropertyType> getSpecificationTypes() {
+  public ImmutableSet<Property> getSpecificationTypes() {
     return specificationTypes;
   }
 
