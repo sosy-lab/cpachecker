@@ -186,7 +186,16 @@ public class SymbolicValues {
     return SymbolicIdentifier.Converter.getInstance().isSymbolicEncoding(pTerm);
   }
 
-  public static SymbolicIdentifier convertTermToSymbolicIdentifier(String pTerm) {
+  /**
+   * Converts the given String encoding of a {@link SymbolicIdentifier} to the corresponding
+   * <code>SymbolicIdentifier</code>.
+   *
+   * @param pTerm a <code>String</code> encoding of a <code>SymbolicIdentifier</code>
+   * @return the <code>SymbolicIdentifier</code> representing the given encoding
+   * @throws IllegalArgumentException if given String does not match the expected String encoding
+   */
+  public static SymbolicIdentifier convertTermToSymbolicIdentifier(String pTerm)
+      throws IllegalArgumentException {
     return SymbolicIdentifier.Converter.getInstance().convertToIdentifier(pTerm);
   }
 
