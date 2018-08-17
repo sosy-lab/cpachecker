@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pseudoQE;
 
 import static org.junit.Assert.assertFalse;
+import static org.sosy_lab.java_smt.api.FormulaType.IntegerType;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -38,6 +39,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.predicates.pseudoQE.PseudoExistQeManager.SolverQeTactic;
 import org.sosy_lab.cpachecker.util.predicates.smt.SolverViewBasedTest0;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
+import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -48,11 +50,9 @@ public class PseudoExistQeManagerTest extends SolverViewBasedTest0 {
 
   // Princess does not store the formulas in a consistent way
   // So it is difficult to write test
-  // TODO: The tests are pretty much depending on internal implementation of SMTSolver,
-  // figure out a way to avoid this
   @Parameters(name = "{0}")
   public static Object[] getTestSolvers() {
-    return new Object[] {Solvers.Z3};
+    return new Object[] {Solvers.MATHSAT5, Solvers.Z3, Solvers.SMTINTERPOL};
   }
 
   @Parameter(0)
@@ -142,9 +142,39 @@ public class PseudoExistQeManagerTest extends SolverViewBasedTest0 {
     assertFalse(result.hasQuantifiers()); // no longer quantified
     assertThatFormula(result.getInnerFormula()).isEquivalentTo(expectedResult);
   }
+  @Test
+  public void testArrayDER() throws Exception {
+    requireArrays();
+    initQeManager(true, false, SolverQeTactic.NONE, false);
+    ArrayFormula<IntegerFormula, IntegerFormula> array =
+        amgr.makeArray("array", IntegerType, IntegerType);
+    ArrayFormula<IntegerFormula, IntegerFormula> arraystore =
+        amgr.store(array, imgr.makeNumber(0), imgr.makeNumber(5));
+    ArrayFormula<IntegerFormula, IntegerFormula> test =
+        amgr.makeArray("test", FormulaType.getArrayType(IntegerType, IntegerType));
+    Formula arrayselect = amgr.select(test, imgr.makeNumber(0));
+    IntegerFormula xFormula = mgrv.makeVariable(IntegerType, "x");
+    BooleanFormula t1 = mgrv.makeEqual(test, arraystore);
+    BooleanFormula t2 = mgrv.makeEqual(arrayselect, xFormula);
+    BooleanFormula toExist = mgrv.makeAnd(t1, t2);
+    Map<String, Formula> boundVars = new HashMap<>();
+    boundVars.put("test", test);
+
+    // Prepare expectedResult formula
+    BooleanFormula expectedResult = mgrv.makeEqual(xFormula, imgr.makeNumber(5));
+
+    // Prepare Input
+    PseudoExistFormula input = new PseudoExistFormula(boundVars, toExist, mgrv);
+
+    PseudoExistFormula result = pQEmgr.applyDER(input);
+
+    assertFalse(result.hasQuantifiers()); // no longer quantified
+    assertThatFormula(result.getInnerFormula()).isEquivalentTo(expectedResult);
+  }
 
   @Test
   public void testRealQESimpleInteger() throws Exception {
+    requireQuantifiers();
     initQeManager(false, false, SolverQeTactic.LIGHT, false);
 
     // Create the Formula: x=5 and y>x

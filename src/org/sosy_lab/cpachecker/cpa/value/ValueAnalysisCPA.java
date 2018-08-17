@@ -336,6 +336,7 @@ public class ValueAnalysisCPA
     if (symbolicStats != null) {
       pStatsCollection.add(symbolicStats);
     }
+    pStatsCollection.add(constraintsStrengthenOperator);
     writer.collectStatistics(pStatsCollection);
   }
 

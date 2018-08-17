@@ -161,8 +161,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
   }
 
   private boolean isEligibleForAssignment(final Value pValue) {
-    return pValue.isUnknown()
-        || (!pValue.isExplicitlyKnown() && options.isAssignSymbolicAssumptionVars());
+    return pValue.isUnknown() && options.isAssignEqualityAssumptions();
   }
 
   private void assignConcreteValue(

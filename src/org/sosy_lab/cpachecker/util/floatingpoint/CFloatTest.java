@@ -40,9 +40,13 @@ public class CFloatTest {
     CFloat f_n1 = new CFloatNative("-1", CFloatNativeAPI.FP_TYPE_SINGLE);
     CFloat d_n0 = new CFloatNative("-0.0", CFloatNativeAPI.FP_TYPE_DOUBLE);
 
-    CFloat f_1 = new CFloatNative(CFloatNativeAPI.ONE_SINGLE, CFloatNativeAPI.FP_TYPE_SINGLE);
-    CFloat d_1 = new CFloatNative(CFloatNativeAPI.ONE_DOUBLE, CFloatNativeAPI.FP_TYPE_DOUBLE);
-    CFloat ld_1 = new CFloatNative(CFloatNativeAPI.ONE_LONG_DOUBLE, CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+    CFloat f_1 =
+        new CFloatNative(CFloatNativeAPI.ONE_SINGLE.copyWrapper(), CFloatNativeAPI.FP_TYPE_SINGLE);
+    CFloat d_1 =
+        new CFloatNative(CFloatNativeAPI.ONE_DOUBLE.copyWrapper(), CFloatNativeAPI.FP_TYPE_DOUBLE);
+    CFloat ld_1 =
+        new CFloatNative(
+            CFloatNativeAPI.ONE_LONG_DOUBLE.copyWrapper(), CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
 
     CFloat cf_f = new CFloatNative("0.0", CFloatNativeAPI.FP_TYPE_SINGLE);
     CFloat cf_d = new CFloatNative("0.0", CFloatNativeAPI.FP_TYPE_DOUBLE);
@@ -97,7 +101,8 @@ public class CFloatTest {
     assertThat(cf_ld.divideBy(cf_d).toString()).isEqualTo("-nan");
     assertThat(cf_ld.divideBy(cf_ld).toString()).isEqualTo("-nan");
 
-    CFloat f_1 = new CFloatNative(CFloatNativeAPI.ONE_SINGLE, CFloatNativeAPI.FP_TYPE_SINGLE);
+    CFloat f_1 =
+        new CFloatNative(CFloatNativeAPI.ONE_SINGLE.copyWrapper(), CFloatNativeAPI.FP_TYPE_SINGLE);
     CFloat f_n1 = new CFloatNative("-1", CFloatNativeAPI.FP_TYPE_SINGLE);
     CFloat inf_f = f_1.divideBy(cf_f);
     CFloat inf_nf = f_n1.divideBy(cf_f);
@@ -241,7 +246,7 @@ public class CFloatTest {
     assertThat(res.toString()).isEqualTo("1.0000002384185791015625");
 
     wrapper = bI.copyWrapper();
-    wrapper.setExponent(wrapper.getExponent() ^ CFloatUtil.getSignBitMask(bI.getType()));
+    wrapper.setExponent(wrapper.getExponent() ^ bI.getSignBitMask());
     bI = new CFloatImpl(wrapper, bI.getType());
     wrapper = bI.copyWrapper();
     wrapper.setExponent(wrapper.getExponent() - 1);
@@ -611,10 +616,10 @@ public class CFloatTest {
     b = b.round();
 
     assertThat(b.toString()).isEqualTo("2135.0");
-    assertThat(a.copyWrapper().getExponent()).isEqualTo(
-        b.copyWrapper().getExponent()
-            & (CFloatUtil.getExponentMask(b.getType()) ^ CFloatUtil.getSignBitMask(b.getType())));
-    assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa() & CFloatUtil.getNormalizedMantissaMask(b.getType()));
+    assertThat(a.copyWrapper().getExponent())
+        .isEqualTo(b.copyWrapper().getExponent() & (b.getExponentMask() ^ b.getSignBitMask()));
+    assertThat(a.copyWrapper().getMantissa())
+        .isEqualTo(b.copyWrapper().getMantissa() & b.getNormalizedMantissaMask());
 
     a = new CFloatImpl("-2134.5625", CFloatNativeAPI.FP_TYPE_DOUBLE);
     b = new CFloatNative(a.copyWrapper(), a.getType());
@@ -625,11 +630,10 @@ public class CFloatTest {
     b = b.round();
 
     assertThat(b.toString()).isEqualTo("-2135.0");
-    assertThat(a.copyWrapper().getExponent()).isEqualTo(
-        b.copyWrapper().getExponent()
-            & (CFloatUtil.getExponentMask(b.getType()) ^ CFloatUtil.getSignBitMask(b.getType())));
-    assertThat(a.copyWrapper().getMantissa()).isEqualTo(
-        b.copyWrapper().getMantissa() & CFloatUtil.getNormalizedMantissaMask(b.getType()));
+    assertThat(a.copyWrapper().getExponent())
+        .isEqualTo(b.copyWrapper().getExponent() & (b.getExponentMask() ^ b.getSignBitMask()));
+    assertThat(a.copyWrapper().getMantissa())
+        .isEqualTo(b.copyWrapper().getMantissa() & b.getNormalizedMantissaMask());
 
     a = new CFloatImpl("-2134.3125", CFloatNativeAPI.FP_TYPE_DOUBLE);
     b = new CFloatNative(a.copyWrapper(), a.getType());
@@ -640,11 +644,10 @@ public class CFloatTest {
     b = b.round();
 
     assertThat(b.toString()).isEqualTo("-2134.0");
-    assertThat(a.copyWrapper().getExponent()).isEqualTo(
-        b.copyWrapper().getExponent()
-            & (CFloatUtil.getExponentMask(b.getType()) ^ CFloatUtil.getSignBitMask(b.getType())));
-    assertThat(a.copyWrapper().getMantissa()).isEqualTo(
-        b.copyWrapper().getMantissa() & CFloatUtil.getNormalizedMantissaMask(b.getType()));
+    assertThat(a.copyWrapper().getExponent())
+        .isEqualTo(b.copyWrapper().getExponent() & (b.getExponentMask() ^ b.getSignBitMask()));
+    assertThat(a.copyWrapper().getMantissa())
+        .isEqualTo(b.copyWrapper().getMantissa() & b.getNormalizedMantissaMask());
 
     a = new CFloatImpl("63.96875", CFloatNativeAPI.FP_TYPE_DOUBLE);
     b = new CFloatNative(a.copyWrapper(), a.getType());
@@ -656,11 +659,10 @@ public class CFloatTest {
 
     assertThat(b.toString()).isEqualTo("64.0");
 
-    assertThat(a.copyWrapper().getExponent()).isEqualTo(
-        b.copyWrapper().getExponent()
-            & (CFloatUtil.getExponentMask(b.getType()) ^ CFloatUtil.getSignBitMask(b.getType())));
-    assertThat(a.copyWrapper().getMantissa()).isEqualTo(
-        b.copyWrapper().getMantissa() & CFloatUtil.getNormalizedMantissaMask(b.getType()));
+    assertThat(a.copyWrapper().getExponent())
+        .isEqualTo(b.copyWrapper().getExponent() & (b.getExponentMask() ^ b.getSignBitMask()));
+    assertThat(a.copyWrapper().getMantissa())
+        .isEqualTo(b.copyWrapper().getMantissa() & b.getNormalizedMantissaMask());
   }
 
   @SuppressWarnings({"deprecation"})
@@ -679,11 +681,10 @@ public class CFloatTest {
     CFloat f = c.divideBy(d);
 
     assertThat(f.toString()).isEqualTo("0.625");
-    assertThat(e.copyWrapper().getExponent()).isEqualTo(
-        f.copyWrapper().getExponent()
-            & (CFloatUtil.getExponentMask(b.getType()) ^ CFloatUtil.getSignBitMask(b.getType())));
-    assertThat(e.copyWrapper().getMantissa()).isEqualTo(
-        f.copyWrapper().getMantissa() & CFloatUtil.getNormalizedMantissaMask(b.getType()));
+    assertThat(e.copyWrapper().getExponent())
+        .isEqualTo(f.copyWrapper().getExponent() & (b.getExponentMask() ^ b.getSignBitMask()));
+    assertThat(e.copyWrapper().getMantissa())
+        .isEqualTo(f.copyWrapper().getMantissa() & b.getNormalizedMantissaMask());
 
     a = new CFloatImpl("96875", CFloatNativeAPI.FP_TYPE_DOUBLE);
     b = new CFloatImpl("100000", CFloatNativeAPI.FP_TYPE_DOUBLE);
@@ -700,11 +701,10 @@ public class CFloatTest {
     f = one.divideBy(d.divideBy(c));
 
     assertThat(f.toString()).isEqualTo("0.96875");
-    assertThat(e.copyWrapper().getExponent()).isEqualTo(
-        f.copyWrapper().getExponent()
-            & (CFloatUtil.getExponentMask(b.getType()) ^ CFloatUtil.getSignBitMask(b.getType())));
-    assertThat(e.copyWrapper().getMantissa()).isEqualTo(
-        f.copyWrapper().getMantissa() & CFloatUtil.getNormalizedMantissaMask(b.getType()));
+    assertThat(e.copyWrapper().getExponent())
+        .isEqualTo(f.copyWrapper().getExponent() & (b.getExponentMask() ^ b.getSignBitMask()));
+    assertThat(e.copyWrapper().getMantissa())
+        .isEqualTo(f.copyWrapper().getMantissa() & b.getNormalizedMantissaMask());
 
     a = new CFloatImpl("87500", CFloatNativeAPI.FP_TYPE_DOUBLE);
     b = new CFloatImpl("100000", CFloatNativeAPI.FP_TYPE_DOUBLE);
@@ -719,17 +719,16 @@ public class CFloatTest {
     f = c.divideBy(d);
 
     assertThat(f.toString()).isEqualTo("0.875");
-    assertThat(e.copyWrapper().getExponent()).isEqualTo(
-        f.copyWrapper().getExponent()
-            & (CFloatUtil.getExponentMask(b.getType()) ^ CFloatUtil.getSignBitMask(b.getType())));
-    assertThat(e.copyWrapper().getMantissa()).isEqualTo(
-        f.copyWrapper().getMantissa() & CFloatUtil.getNormalizedMantissaMask(b.getType()));
+    assertThat(e.copyWrapper().getExponent())
+        .isEqualTo(f.copyWrapper().getExponent() & (b.getExponentMask() ^ b.getSignBitMask()));
+    assertThat(e.copyWrapper().getMantissa())
+        .isEqualTo(f.copyWrapper().getMantissa() & b.getNormalizedMantissaMask());
   }
 
   @SuppressWarnings({"deprecation"})
   @Test
   public void divisionTest_3() {
-    CFloat one = new CFloatImpl(CFloatNativeAPI.ONE_DOUBLE.copy(), CFloatNativeAPI.FP_TYPE_DOUBLE);
+    CFloat one = CFloatNativeAPI.ONE_DOUBLE;
     CFloat nOne = new CFloatNative(one.copyWrapper(), one.getType());
 
     CFloat a = new CFloatImpl("123348857384573888", CFloatNativeAPI.FP_TYPE_DOUBLE);

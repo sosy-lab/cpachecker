@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -291,7 +292,7 @@ public class SymbolicValueAnalysisRefiner
         fullPath.advance();
 
         if (!maybeNext.isPresent()) {
-          throw new IllegalStateException("Counterexample said to be feasible but spurious");
+          throw new CPAException("Counterexample said to be feasible but spurious");
         } else {
           currentState = maybeNext.get();
           if (!pIdentifierAssignment.isEmpty()) {
@@ -399,9 +400,16 @@ public class SymbolicValueAnalysisRefiner
     List<ValueAssignment> assignments = finalConstraints.getModel();
     Map<SymbolicIdentifier, Value> assignment = new HashMap<>();
     for (ValueAssignment va : assignments) {
-      SymbolicIdentifier identifier = SymbolicValues.convertTermToSymbolicIdentifier(va.getName());
-      Value value = SymbolicValues.convertToValue(va);
-      assignment.put(identifier, value);
+      if (SymbolicValues.isSymbolicTerm(va.getName())) {
+        SymbolicIdentifier identifier =
+            SymbolicValues.convertTermToSymbolicIdentifier(va.getName());
+        Value value = SymbolicValues.convertToValue(va);
+        assignment.put(identifier, value);
+      } else {
+        logger.log(Level.FINE,
+            "Skipping variable %s for assignment because it doesn't fit symbolic identifier encoding",
+            va.getName());
+      }
     }
     assignment.putAll(finalConstraints.getDefiniteAssignment());
 

@@ -30,7 +30,8 @@
   </rundefinition>
 
   <rundefinition name="bam-auxiliaryPredicates">
-    <option name="-predicateAnalysis-bam-auxiliaryPredicates"/>
+    <option name="-predicateAnalysis-bam"/>
+    <option name="-setprop">cpa.predicate.bam.predicateComputer=AUXILIARY</option>
   </rundefinition>
 
   <columns>

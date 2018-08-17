@@ -25,4 +25,17 @@
     <includesfile>../programs/benchmarks/NoOverflows-Other.set</includesfile>
     <propertyfile>../programs/benchmarks/NoOverflows.prp</propertyfile>
   </tasks>
+  <tasks name="Overflow-Simple">
+    <includesfile>../programs/simple/overflow/overflow.set</includesfile>
+    <propertyfile>../programs/benchmarks/NoOverflows.prp</propertyfile>
+    <!-- Some tasks in this set use malloc-->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+  </tasks>
+  <tasks name="OverflowWithPointers-Simple">
+    <includesfile>../programs/simple/overflow/overflowWithPointers.set</includesfile>
+    <propertyfile>../programs/benchmarks/NoOverflows.prp</propertyfile>
+    <!-- Some tasks in this set use malloc-->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <option name="-setprop">overflow.trackPointers=true</option>
+  </tasks>
 </benchmark>
