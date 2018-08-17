@@ -22,6 +22,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpv.property;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Set;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
@@ -83,7 +85,17 @@ public final class AutomataSingleProperty extends AbstractSingleProperty {
   }
 
   @Override
-  public void checkIfRelevant() {
-    // TODO: use number of transfers with branching
+  public void checkIfRelevant(AbstractState targetState) {
+    if (targetState instanceof AbstractWrapperState) {
+      for (AbstractState state : ((AbstractWrapperState) targetState).getWrappedStates()) {
+        checkIfRelevant(state);
+      }
+    } else if (targetState instanceof AutomatonState) {
+      AutomatonState automatonState = (AutomatonState) targetState;
+      if (automata.contains(automatonState.getOwningAutomaton())
+          && automatonState.getTransfersWithBranching() > 0) {
+        setRelevant();
+      }
+    }
   }
 }

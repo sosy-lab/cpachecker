@@ -182,12 +182,12 @@ public final class MultipleProperties {
   }
 
   /*
-   * Check all properties, if they are relevant.
+   * Based on the given reached set determine relevant properties.
    */
-  public void checkIfRelevant() {
+  public void determineRelevance(ReachedSet reached) {
     for (AbstractSingleProperty property : properties) {
       if (!property.isRelevant()) {
-        property.checkIfRelevant();
+        property.checkIfRelevant(reached.getLastState());
       }
     }
   }

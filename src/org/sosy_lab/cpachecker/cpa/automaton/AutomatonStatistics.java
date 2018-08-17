@@ -52,6 +52,12 @@ class AutomatonStatistics implements Statistics {
     return "AutomatonAnalysis (" + mCpa.getAutomaton().getName() + ")";
   }
 
+  long getStateBranching() {
+    return automatonSuccessors.getValueCount()
+        - automatonSuccessors.getTimesWithValue(0)
+        - automatonSuccessors.getTimesWithValue(1);
+  }
+
   @Override
   public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
     put(out, 0, "Number of states", mCpa.getAutomaton().getNumberOfStates());
@@ -69,10 +75,7 @@ class AutomatonStatistics implements Statistics {
       put(out, 0, totalStrengthenTime);
     }
 
-    long stateBranchings = automatonSuccessors.getValueCount()
-        - automatonSuccessors.getTimesWithValue(0)
-        - automatonSuccessors.getTimesWithValue(1);
-    put(out, 0, "Automaton transfers with branching", stateBranchings);
+    put(out, 0, "Automaton transfers with branching", getStateBranching());
     put(out, 0, automatonSuccessors);
   }
 }
