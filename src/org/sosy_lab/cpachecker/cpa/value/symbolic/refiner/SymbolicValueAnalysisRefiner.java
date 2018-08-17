@@ -291,7 +291,7 @@ public class SymbolicValueAnalysisRefiner
         fullPath.advance();
 
         if (!maybeNext.isPresent()) {
-          throw new IllegalStateException("Counterexample said to be feasible but spurious");
+          throw new CPAException("Counterexample said to be feasible but spurious");
         } else {
           currentState = maybeNext.get();
           if (!pIdentifierAssignment.isEmpty()) {
