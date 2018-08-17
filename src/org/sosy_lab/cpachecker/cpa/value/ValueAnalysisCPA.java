@@ -154,7 +154,7 @@ public class ValueAnalysisCPA
     }
 
     constraintsStrengthenOperator =
-        new ConstraintsStrengthenOperator(config, logger, cfa.getMachineModel());
+        new ConstraintsStrengthenOperator(config, logger);
     transferOptions = new ValueTransferOptions(config);
     precisionAdjustmentOptions = new PrecAdjustmentOptions(config, cfa);
     precisionAdjustmentStatistics = new PrecAdjustmentStatistics();

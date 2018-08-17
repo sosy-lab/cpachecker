@@ -28,30 +28,24 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Map.Entry;
+import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
-import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
-import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
@@ -60,7 +54,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -72,23 +65,17 @@ public class ConstraintsStrengthenOperator implements Statistics {
   @Option(description = "Whether to simplify symbolic expressions, if possible.")
   private boolean simplifySymbolics = true;
 
-  @Option(description = "Whether to adopt definite assignments computed by the ConstraintsCPA")
-  private boolean adoptDefinites = true;
-
   // statistics
   private final Timer totalTime = new Timer();
   private int replacedSymbolicExpressions = 0;
 
   private final LogManager logger;
-  private final MachineModel machineModel;
 
-  public ConstraintsStrengthenOperator(
-      final Configuration pConfig, final LogManager pLogger, final MachineModel pMachineModel)
+  public ConstraintsStrengthenOperator(final Configuration pConfig, final LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
     logger = pLogger;
-    machineModel = pMachineModel;
   }
 
   /**
@@ -112,16 +99,7 @@ public class ConstraintsStrengthenOperator implements Statistics {
   ) {
     totalTime.start();
     try {
-      ValueAnalysisState newState;
-
-      if (adoptDefinites) {
-        String functionName = pEdge.getSuccessor().getFunctionName();
-        newState =
-            evaluateAssignment(
-                pStrengtheningState.getDefiniteAssignment(), pStateToStrengthen, functionName);
-      } else {
-        newState = pStateToStrengthen;
-      }
+      ValueAnalysisState newState = pStateToStrengthen;
 
       if (simplifySymbolics) {
         newState = simplifySymbolicValues(newState, pStrengtheningState, pEdge);
@@ -137,26 +115,6 @@ public class ConstraintsStrengthenOperator implements Statistics {
       totalTime.stop();
     }
 
-  }
-
-  private ValueAnalysisState evaluateAssignment(
-      final IdentifierAssignment pAssignment,
-      final ValueAnalysisState pValueState,
-      final String pFunctionName) {
-
-    ValueAnalysisState newElement = ValueAnalysisState.copyOf(pValueState);
-    AbstractExpressionValueVisitor valueVisitor =
-        new ExpressionValueVisitor(
-            newElement, pFunctionName, machineModel, new LogManagerWithoutDuplicates(logger));
-
-    for (Map.Entry<? extends SymbolicIdentifier, Value> onlyValidAssignment : pAssignment.entrySet()) {
-      final SymbolicIdentifier identifierToReplace = onlyValidAssignment.getKey();
-      final Value newIdentifierValue = onlyValidAssignment.getValue();
-
-      newElement.assignConstant(identifierToReplace, newIdentifierValue, valueVisitor);
-    }
-
-    return newElement;
   }
 
   // replaces symbolic expressions that are not used anywhere yet with a new symbolic identifier.
@@ -196,27 +154,12 @@ public class ConstraintsStrengthenOperator implements Statistics {
         SymbolicValue newIdentifier =
             factory.asConstant(factory.newIdentifier(e.getKey()), valueType);
         pValueState.assignConstant(currLoc, newIdentifier, valueType);
+        logger.log(Level.FINE, "Replaced %s with %s", currV, newIdentifier);
         replacedSymbolicExpressions++;
       }
     }
 
     return pValueState;
-  }
-
-  private boolean couldNextEdgeUseValues(CFAEdge pEdge) {
-    final CFANode nextNode = pEdge.getSuccessor();
-
-    for (CFAEdge currEdge : CFAUtils.leavingEdges(nextNode)) {
-      if (usesValues(currEdge)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  private boolean usesValues(CFAEdge pCurrEdge) {
-    return !pCurrEdge.getEdgeType().equals(CFAEdgeType.BlankEdge);
   }
 
   private boolean doesNotAppearInConstraints(

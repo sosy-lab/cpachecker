@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import java.math.BigInteger;
 import java.util.Collection;
@@ -47,8 +48,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -170,24 +169,8 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
       final Value pNewValue,
       final CType pValueType)
       throws UnrecognizedCodeException {
-    if (pOldValue instanceof SymbolicValue) {
-      SymbolicIdentifier id = null;
-
-      if (pOldValue instanceof SymbolicIdentifier) {
-        id = (SymbolicIdentifier) pOldValue;
-      } else if (pOldValue instanceof ConstantSymbolicExpression) {
-        Value innerVal = ((ConstantSymbolicExpression) pOldValue).getValue();
-
-        if (innerVal instanceof SymbolicValue) {
-          assert innerVal instanceof SymbolicIdentifier;
-          id = (SymbolicIdentifier) innerVal;
-        }
-      }
-
-      if (id != null) {
-        assignableState.assignConstant(id, pNewValue, this);
-      }
-    }
+    checkState(!(pOldValue instanceof SymbolicValue),
+        "Symbolic values should never be replaced by a concrete value");
 
     assignableState.assignConstant(getMemoryLocation(pVarInBinaryExp), pNewValue, pValueType);
   }

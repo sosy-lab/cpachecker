@@ -77,7 +77,7 @@ public class ValueTransferBasedStrongestPostOperator
             pCfa,
             new ValueAnalysisTransferRelation.ValueTransferOptions(pConfig),
             new SymbolicValueAssigner(pConfig),
-            new ConstraintsStrengthenOperator(pConfig, pLogger, pCfa.getMachineModel()),
+            new ConstraintsStrengthenOperator(pConfig, pLogger),
             null);
 
     valueStrongestPost = new ValueAnalysisStrongestPostOperator(pLogger, pConfig, pCfa);
