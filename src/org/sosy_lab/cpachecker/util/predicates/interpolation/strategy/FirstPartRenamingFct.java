@@ -44,7 +44,7 @@ public class FirstPartRenamingFct implements java.util
       if (name.equals(arrayVariablesForFormulasHere[i])){
         myBuilder.append("'");
         while (equalsOtherArrayVariable == true) {
-          for (int j = 0; i < otherArrayVariables.length; j++) {
+          for (int j = 0; j < otherArrayVariables.length; j++) {
             equalsOtherArrayVariable = false;
             if (myBuilder.toString().equals(otherArrayVariables[j])) {
               myBuilder.append("'");
