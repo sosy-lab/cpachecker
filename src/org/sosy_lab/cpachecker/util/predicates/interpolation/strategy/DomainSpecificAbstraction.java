@@ -1478,7 +1478,7 @@ public class DomainSpecificAbstraction<T> {
     }
 
         if (!myItpProver.isUnsat()) {
-            throw new UnknownError("Interpolant kann nicht berechnet werden!");
+            throw new SolverException("Interpolant kann nicht berechnet werden!");
 
         } else {
 

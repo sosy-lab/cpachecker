@@ -31,6 +31,7 @@ public class ScndPartRenamingFct implements java.util.function.Function<String,
   ScndPartRenamingFct(String[] arrayVariablesThatAreUsedInBothParts, String[]
       arrayVariablesThatAreNotUsedInBothParts){
     arrayVariablesForFormulasHere = arrayVariablesThatAreUsedInBothParts;
+    otherArrayVariables = arrayVariablesThatAreNotUsedInBothParts;
   }
   @Override public String apply (String name){
     StringBuilder myBuilder = new StringBuilder();
