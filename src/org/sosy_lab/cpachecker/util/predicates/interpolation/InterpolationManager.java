@@ -649,7 +649,7 @@ public final class InterpolationManager {
 
         //final List<BooleanFormula> interpolants = dsa.domainSpecificAbstractionsCheck
         //    (my_solver, tocheck);
-        if (my_interpolants != null) {
+        if (my_interpolants != null && !(my_interpolants.isEmpty())) {
           logger.log(Level.WARNING, "My Interpolants:", my_interpolants.toString());
           List<BooleanFormula> interpolantList =
               new ArrayList<>(my_interpolants.size());
@@ -660,7 +660,7 @@ public final class InterpolationManager {
 
           my_solver.close();
           //return my_interpolants;
-          if (interpolantList != null) {
+          if (interpolantList != null && !(interpolantList.isEmpty())) {
             logger.log(Level.WARNING, "InterpolantList in InterpolationManager:", interpolantList
                 .toString
                 ());
