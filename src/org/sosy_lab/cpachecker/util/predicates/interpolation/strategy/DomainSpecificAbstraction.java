@@ -1262,6 +1262,9 @@ public class DomainSpecificAbstraction<T> {
         }
       }
 
+      for (int i = 0; i < fullLatticeNames.length; i++){
+        logger.log(Level.ALL, fullLatticeNames[i]);
+      }
 
       // generating the relationships between the lattice nodes
       for (int x = 0; x < fullLatticeNames.length; x++) {
@@ -1509,6 +1512,7 @@ public class DomainSpecificAbstraction<T> {
 
    //return Collections.emptyList();
   mySolver.close();
+    logger.log(Level.ALL, "Interpolant:", interpolants.toString());
     return interpolants;
 
   }
