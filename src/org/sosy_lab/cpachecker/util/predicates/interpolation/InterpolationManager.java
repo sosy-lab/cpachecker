@@ -649,18 +649,22 @@ public final class InterpolationManager {
 
         //final List<BooleanFormula> interpolants = dsa.domainSpecificAbstractionsCheck
         //    (my_solver, tocheck);
-        List<BooleanFormula> interpolantList =
-            new ArrayList<>(my_interpolants.size());
-        for (BooleanFormula f : my_interpolants) {
-          BooleanFormula interpolant = fmgr.translateFrom(f, new_fmgr);
-          interpolantList.add(interpolant);
-        }
-        my_solver.close();
-        //return my_interpolants;
-        if (interpolantList != null) {
-          return interpolantList;
-        }
-        else {
+        if (my_interpolants != null) {
+          List<BooleanFormula> interpolantList =
+              new ArrayList<>(my_interpolants.size());
+          for (BooleanFormula f : my_interpolants) {
+            BooleanFormula interpolant = fmgr.translateFrom(f, new_fmgr);
+            interpolantList.add(interpolant);
+          }
+
+          my_solver.close();
+          //return my_interpolants;
+          if (interpolantList != null) {
+            return interpolantList;
+          } else {
+            return Collections.emptyList();
+          }
+        } else {
           return Collections.emptyList();
         }
       } else {
