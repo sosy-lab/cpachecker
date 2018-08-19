@@ -657,7 +657,12 @@ public final class InterpolationManager {
         }
         my_solver.close();
         //return my_interpolants;
-        return interpolantList;
+        if (interpolantList != null) {
+          return interpolantList;
+        }
+        else {
+          return Collections.emptyList();
+        }
       } else {
         return Collections.emptyList();
       }
