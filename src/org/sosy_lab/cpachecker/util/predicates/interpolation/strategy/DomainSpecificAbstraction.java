@@ -1461,13 +1461,16 @@ public class DomainSpecificAbstraction<T> {
      } */
     if (it != 0){
       for (BooleanFormula f : changed_formulas_rest1){
+        logger.log(Level.WARNING, "Changed Formulas Rest 1:", changed_formulas_rest1.toString());
         myItpGroupIds.add(myItpProver.push(f));
       }
     }
 
      myItpGroupIds.add(myItpProver.push(helperFormula1));
+        logger.log(Level.WARNING, "helper Formula 1:", helperFormula1.toString());
       //  myItpGroupIds.add(myItpProver.push(helperFormula2));
      myItpProver.push(helperFormula2);
+        logger.log(Level.WARNING, "helper Formula 2:", helperFormula2.toString());
     /*  for (int i = 0; i < it; i++) {
         myItpProver.push(oldFormulas.get(i));
       }
@@ -1476,6 +1479,7 @@ public class DomainSpecificAbstraction<T> {
       } */
     if (! changed_formulas_rest2.isEmpty()) {
       for (BooleanFormula f : changed_formulas_rest2) {
+        logger.log(Level.WARNING, "Changed Formulas Rest 2:", changed_formulas_rest2.toString());
         myItpProver.push(f);
       }
     }
@@ -1487,9 +1491,11 @@ public class DomainSpecificAbstraction<T> {
 
           BooleanFormula myInterpolant = myItpProver.getInterpolant
               (myItpGroupIds);
+          logger.log(Level.WARNING, "Interpolant:", myInterpolant.toString());
 
 
           interpolants.add(myInterpolant);
+          logger.log(Level.WARNING, "Interpolants:", interpolants.toString());
           fmgr.translateFrom(myInterpolant, mySolver.getFormulaManager());
         }
       }
@@ -1512,7 +1518,7 @@ public class DomainSpecificAbstraction<T> {
 
    //return Collections.emptyList();
   mySolver.close();
-    logger.log(Level.WARNING, "Interpolant:", interpolants.toString());
+    logger.log(Level.WARNING, "Interpolants:", interpolants.toString());
     return interpolants;
 
   }
