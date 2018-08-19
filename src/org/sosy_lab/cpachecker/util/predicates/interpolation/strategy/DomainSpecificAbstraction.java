@@ -86,7 +86,7 @@ public class DomainSpecificAbstraction<T> {
     InterpolatingProverEnvironment<BooleanFormula> myEnvironment =
         (InterpolatingProverEnvironment<BooleanFormula>) myInterpolator
             .newEnvironment(); */
-
+  logger.log(Level.WARNING, "Entering domainSpecificAbstractionsCheck: ");
         List<BooleanFormula> interpolants = Lists.newArrayListWithExpectedSize(oldFormulas.size()
             - 1);
         // running the algorithm for every formula with its successor
@@ -125,6 +125,10 @@ public class DomainSpecificAbstraction<T> {
           ());
       Set<String> variables1 = Sets.newHashSet();
       Set<String> variables2 = Sets.newHashSet();
+      logger.log(Level.WARNING, "Formulas:");
+      for (int i = 0; i < formulas.size(); i++){
+        logger.log(Level.WARNING, formulas.get(i).toString());
+      }
      // for (int i = 0; i < it + 1; i++) {
       if (it == 0) {
         variables1 = variablesInFormulas.get(0);
@@ -222,6 +226,7 @@ public class DomainSpecificAbstraction<T> {
       }
 
       // building the lattice structure
+      logger.log(Level.WARNING, "Allocating lattice: ");
       boolean[][] lattice = new boolean[(int) Math.pow(2, (arrayVariablesThatAreUsedInBothParts
           .length))][(int) Math.pow(2,
           (arrayVariablesThatAreUsedInBothParts.length))];
@@ -230,6 +235,7 @@ public class DomainSpecificAbstraction<T> {
       double d = arrayVariablesThatAreUsedInBothParts
           .length;
       double e = 2;
+      logger.log(Level.WARNING, "Allocating full Lattice Names: ");
       String[] fullLatticeNames = new String[(int) Math.pow(e, d)
           ];
      //
@@ -1495,7 +1501,7 @@ public class DomainSpecificAbstraction<T> {
 
 
           interpolants.add(myInterpolant);
-          logger.log(Level.WARNING, "Interpolants:", interpolants.toString());
+          logger.log(Level.WARNING, "Current Interpolants:", interpolants.toString());
           fmgr.translateFrom(myInterpolant, mySolver.getFormulaManager());
         }
       }
