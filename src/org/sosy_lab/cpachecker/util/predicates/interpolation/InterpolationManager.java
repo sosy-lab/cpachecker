@@ -644,9 +644,12 @@ public final class InterpolationManager {
             /*bfmgr, */ fmgr, /* pInterpolator, */ logger);
         List<BooleanFormula> tocheck =
             Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst);
-        my_interpolants = dsa.domainSpecificAbstractionsCheck
-            (my_solver, tocheck);
-
+        if (tocheck != null) {
+          my_interpolants = dsa.domainSpecificAbstractionsCheck
+              (my_solver, tocheck);
+        } else {
+          my_interpolants = null;
+        }
         //final List<BooleanFormula> interpolants = dsa.domainSpecificAbstractionsCheck
         //    (my_solver, tocheck);
         if (my_interpolants != null && !(my_interpolants.isEmpty())) {
@@ -666,6 +669,8 @@ public final class InterpolationManager {
                 ());
             return interpolantList;
           } else {
+            my_solver.close();
+            logger.log(Level.WARNING, "Returning empty list");
             return Collections.emptyList();
           }
         } else {
