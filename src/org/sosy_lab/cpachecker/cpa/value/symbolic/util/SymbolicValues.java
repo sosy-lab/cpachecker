@@ -175,7 +175,7 @@ public class SymbolicValues {
     Collection<SymbolicIdentifier> ret = new HashSet<>();
 
     for (SymbolicValue v : pValues) {
-      ret.addAll(v.accept(identifierLocator));
+      ret.addAll(getContainedSymbolicIdentifiers(v));
     }
 
     return ret;
