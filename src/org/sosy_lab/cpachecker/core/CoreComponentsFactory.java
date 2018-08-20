@@ -383,8 +383,6 @@ public class CoreComponentsFactory {
               cfa,
               aggregatedReachedSets);
 
-    } else if (useMPV) {
-      algorithm = new MPVAlgorithm(cpa, config, logger, shutdownNotifier, specification, cfa);
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
@@ -513,6 +511,10 @@ public class CoreComponentsFactory {
 
       if (cpa instanceof ARGCPA && forceCexStore) {
         algorithm = new CounterexampleStoreAlgorithm(algorithm, cpa, config, logger, cfa.getMachineModel());
+      }
+
+      if (useMPV) {
+        algorithm = new MPVAlgorithm(cpa, config, logger, shutdownNotifier, specification, cfa);
       }
     }
 
