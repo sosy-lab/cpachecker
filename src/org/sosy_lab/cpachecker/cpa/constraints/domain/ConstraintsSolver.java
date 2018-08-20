@@ -289,6 +289,11 @@ public class ConstraintsSolver implements StatisticsProvider {
       try {
         timeForIndependentComputation.start();
         Constraint lastConstraint = pConstraints.getLastAddedConstraint().get();
+        // Always add the last added constraint to the set of relevant constraints.
+        // It may not contain any symbolic identifiers (e.g., 0 == 5) and will thus
+        // not be automatically included in the iteration over dependent sets below.
+        relevantConstraints.add(lastConstraint);
+
         Set<Constraint> leftOverConstraints = new HashSet<>(pConstraints);
         Set<SymbolicIdentifier> newRelevantIdentifiers = lastConstraint.accept(locator);
         Set<SymbolicIdentifier> relevantIdentifiers;

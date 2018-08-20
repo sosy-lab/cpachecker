@@ -65,8 +65,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintFactory;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityChecker;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.util.StateSimplifier;
@@ -191,43 +189,37 @@ public class ConstraintsTransferRelation
   }
 
   private ConstraintsState getNewState(ConstraintsState pOldState,
-      AExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption, String pFunctionName)
-      throws SolverException, InterruptedException, UnrecognizedCodeException {
+                                       AExpression pExpression,
+                                       ConstraintFactory pFactory,
+                                       boolean pTruthAssumption)
+      throws UnrecognizedCodeException {
 
     return computeNewStateByCreatingConstraint(
-        pOldState, pExpression, pFactory, pTruthAssumption, pFunctionName);
+        pOldState, pExpression, pFactory, pTruthAssumption);
   }
 
   private ConstraintsState computeNewStateByCreatingConstraint(
       final ConstraintsState pOldState,
       final AExpression pExpression,
       final ConstraintFactory pFactory,
-      final boolean pTruthAssumption,
-      final String pFunctionName
-  ) throws UnrecognizedCodeException, SolverException, InterruptedException {
+      final boolean pTruthAssumption
+  ) throws UnrecognizedCodeException {
 
     Optional<Constraint> oNewConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
-    ConstraintsState newState = pOldState.copyOf();
-
-    final IdentifierAssignment definiteAssignment = pOldState.getDefiniteAssignment();
 
     if (oNewConstraint.isPresent()) {
+      ConstraintsState newState = pOldState.copyOf();
       final Constraint newConstraint = oNewConstraint.get();
 
       // If a constraint is trivial, its satisfiability is not influenced by other constraints.
       // So to evade more expensive SAT checks, we just check the constraint on its own.
-      if (isTrivial(newConstraint, definiteAssignment)) {
-        if (solver.isUnsat(newConstraint, definiteAssignment, pFunctionName)) {
-          return null;
-        }
+      newState.add(newConstraint);
+      return newState;
 
-      } else {
-        newState.add(newConstraint);
-        return newState;
-      }
+    } else {
+      return pOldState;
     }
 
-    return pOldState;
   }
 
   private Optional<Constraint> createConstraint(AExpression pExpression, ConstraintFactory pFactory,
@@ -304,15 +296,6 @@ public class ConstraintsTransferRelation
     }
 
     return Optional.ofNullable(constraint);
-  }
-
-  private boolean isTrivial(
-      final Constraint pConstraint,
-      final IdentifierAssignment pDefiniteAssignment
-  ) {
-    final ConstraintTrivialityChecker checker = new ConstraintTrivialityChecker(pDefiniteAssignment);
-
-    return pConstraint.accept(checker);
   }
 
   private ConstraintsState simplify(
@@ -417,11 +400,7 @@ public class ConstraintsTransferRelation
       ConstraintsState newState;
       try {
 
-        newState = getNewState(pStateToStrengthen,
-            edgeExpression,
-            factory,
-            truthAssumption,
-            pFunctionName);
+        newState = getNewState(pStateToStrengthen, edgeExpression, factory, truthAssumption);
 
         // newState == null represents the bottom element, so we return an empty collection
         // (which represents the bottom element for strengthen methods)
