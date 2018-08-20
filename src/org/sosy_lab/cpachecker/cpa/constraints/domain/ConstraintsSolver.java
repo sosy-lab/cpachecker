@@ -141,7 +141,8 @@ public class ConstraintsSolver implements StatisticsProvider {
   private SymbolicIdentifierLocator locator;
 
   /** Table of id constraints set, id identifier assignment, formula * */
-  private Table<Integer, Integer, BooleanFormula> constraintFormulas = HashBasedTable.create();
+  private Table<Constraint, IdentifierAssignment, BooleanFormula> constraintFormulas =
+      HashBasedTable.create();
 
   private BooleanFormula modelLiteral;
   private BooleanFormula assignmentLiteral;
@@ -297,7 +298,7 @@ public class ConstraintsSolver implements StatisticsProvider {
         Set<SymbolicIdentifier> newRelevantIdentifiers = lastConstraint.accept(locator);
         Set<SymbolicIdentifier> relevantIdentifiers;
         do {
-          relevantIdentifiers = ImmutableSet.copyOf(newRelevantIdentifiers);
+          relevantIdentifiers = newRelevantIdentifiers;
           Iterator<Constraint> it = leftOverConstraints.iterator();
           while (it.hasNext()) {
             Constraint currentC = it.next();
@@ -406,23 +407,15 @@ public class ConstraintsSolver implements StatisticsProvider {
   private Collection<BooleanFormula> getFullFormula(
       Collection<Constraint> pConstraints, IdentifierAssignment pAssignment, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException {
+
     List<BooleanFormula> formulas = new ArrayList<>(pConstraints.size());
     for (Constraint c : pConstraints) {
-      int constraintsId = getConstraintId(c);
-      int identifierId = getAssignmentId(pAssignment);
-      if (!constraintFormulas.contains(constraintsId, identifierId)) {
+      if (!constraintFormulas.contains(c, pAssignment)) {
         constraintFormulas.put(
-            constraintsId, identifierId, createConstraintFormulas(c, pAssignment, pFunctionName));
+            c, pAssignment, createConstraintFormulas(c, pAssignment, pFunctionName));
       }
-      formulas.add(constraintFormulas.get(constraintsId, identifierId));
+      formulas.add(constraintFormulas.get(c, pAssignment));
     }
-
-    return booleanFormulaManager.and(formulas);
-  }
-
-  private int getAssignmentId(IdentifierAssignment pAssignment) {
-    return pAssignment.hashCode();
-  }
 
     return formulas;
   }
@@ -430,7 +423,7 @@ public class ConstraintsSolver implements StatisticsProvider {
   private BooleanFormula createConstraintFormulas(
       Constraint pConstraint, IdentifierAssignment pAssignment, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException {
-    assert !constraintFormulas.contains(getConstraintId(pConstraint), getAssignmentId(pAssignment))
+    assert !constraintFormulas.contains(pConstraint, pAssignment)
         : "Trying to add a formula that already exists!";
 
     return getFormulaCreator(pFunctionName).createFormula(pConstraint, pAssignment);
