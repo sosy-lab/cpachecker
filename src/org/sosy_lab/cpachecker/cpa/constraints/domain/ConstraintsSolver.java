@@ -455,7 +455,9 @@ public class ConstraintsSolver implements StatisticsProvider {
                 .beginLevel()
                 .put(timeForIndependentComputation)
                 .put(timeForModelReuse)
-                .put(timeForDefinitesComputation);
+                .put(timeForDefinitesComputation)
+                .endLevel()
+                .put(modelReuseSuccesses);
           }
 
           @Override
