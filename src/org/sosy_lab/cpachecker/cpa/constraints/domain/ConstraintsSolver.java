@@ -179,9 +179,8 @@ public class ConstraintsSolver implements StatisticsProvider {
   public boolean isUnsat(
       Constraint pConstraint, IdentifierAssignment pAssignment, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException, SolverException {
-    BooleanFormula constraintAsFormula =
-        getFullFormula(Collections.singleton(pConstraint), pAssignment, pFunctionName);
-    return solver.isUnsat(constraintAsFormula);
+    ConstraintsState s = new ConstraintsState(Collections.singleton(pConstraint), pAssignment);
+    return isUnsat(s, pFunctionName);
   }
 
   /**
