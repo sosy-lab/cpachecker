@@ -196,34 +196,38 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       Element result = builder.createNodeElement(getCurrentId(), NodeType.ONPATH);
       builder.addDataElementChild(result, NodeFlag.ISENTRY.key, "true");
 
+      if (firstUsage.equals(secondUsage)) {
+        printPath(firstUsage, firstIterator, builder);
+      } else {
 
-      while (firstEdge.equals(secondEdge)) {
-        if (isThreadCreateNFunction(firstEdge)) {
-          break;
+        while (firstEdge.equals(secondEdge)) {
+          if (isThreadCreateNFunction(firstEdge)) {
+            break;
+          }
+
+          printEdge(builder, firstEdge);
+
+          // The case may be
+          if (!firstIterator.hasNext()) {
+            logger.log(Level.WARNING, "Path to " + firstUsage + "is ended before deviding");
+            return;
+          } else if (!secondIterator.hasNext()) {
+            logger.log(Level.WARNING, "Path to " + secondUsage + "is ended before deviding");
+            return;
+          }
+
+          firstEdge = firstIterator.next();
+          secondEdge = secondIterator.next();
         }
 
+        forkThread = threadIterator.getCurrentThread();
         printEdge(builder, firstEdge);
+        printPath(firstUsage, firstIterator, builder);
 
-        if (!firstIterator.hasNext()) {
-          logger.log(Level.WARNING, "Path to " + firstUsage + "is ended before deviding");
-          return;
-        } else if (!secondIterator.hasNext()) {
-          logger.log(Level.WARNING, "Path to " + secondUsage + "is ended before deviding");
-          return;
-        }
-
-        firstEdge = firstIterator.next();
-        secondEdge = secondIterator.next();
+        threadIterator.setCurrentThread(forkThread);
+        printEdge(builder, secondEdge);
+        printPath(secondUsage, secondIterator, builder);
       }
-
-      forkThread = threadIterator.getCurrentThread();
-      printEdge(builder, firstEdge);
-      printPath(firstUsage, firstIterator, builder);
-
-      threadIterator.setCurrentThread(forkThread);
-      printEdge(builder, secondEdge);
-      printPath(secondUsage, secondIterator, builder);
-
       builder.addDataElementChild(currentNode, NodeFlag.ISVIOLATION.key, "true");
 
       Path currentPath;
@@ -233,8 +237,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
         int i = 0;
 
         while (Files.exists(currentPath)) {
-          String tmpFileName = fileName.concat("__" + i++);
-          currentPath = errorPathFile.getPath(tmpFileName);
+          currentPath = errorPathFile.getPath(fileName.concat("__" + i++));
         }
       } else {
         currentPath = errorPathFile.getPath(witnessNum);

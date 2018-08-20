@@ -147,7 +147,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
     Set<SingleIdentifier> processedUnsafes = new HashSet<>();
 
     logger.log(Level.INFO, ("Perform US refinement: " + i++));
-    int originUnsafeSize = container.getUnsafeSize();
+    int originUnsafeSize = container.getTotalUnsafeSize();
     if (lastFalseUnsafeSize == -1) {
       lastFalseUnsafeSize = originUnsafeSize;
     }
@@ -155,7 +155,6 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
     boolean newPrecisionFound = false;
 
     sendUpdateSignal(PredicateRefinerAdapter.class, pReached);
-    sendUpdateSignal(UsagePairIterator.class, container);
     sendUpdateSignal(PointIterator.class, container);
 
     Iterator<SingleIdentifier> iterator = container.getUnrefinedUnsafeIterator();

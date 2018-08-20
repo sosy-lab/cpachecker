@@ -78,6 +78,9 @@ public abstract class ErrorTracePrinter {
   @Option(description = "print all unsafe cases in report", secure = true)
   private boolean printFalseUnsafes = false;
 
+  @Option(description = "output only true unsafes", secure = true)
+  private boolean printOnlyTrueUnsafes = false;
+
   // private final BAMTransferRelation transfer;
   protected final LockTransferRelation lockTransfer;
 
@@ -147,6 +150,12 @@ public abstract class ErrorTracePrinter {
         continue;
       }
 
+      boolean refined = uinfo instanceof RefinedUsagePointSet;
+
+      if (printOnlyTrueUnsafes && !refined) {
+        continue;
+      }
+
       unsafeDetectionTimer.start();
       if (!detector.isUnsafe(uinfo)) {
         // In case of interruption during refinement,
@@ -163,7 +172,7 @@ public abstract class ErrorTracePrinter {
       unsafeDetectionTimer.stop();
 
       writingUnsafeTimer.start();
-      printUnsafe(id, tmpPair, uinfo instanceof RefinedUsagePointSet);
+      printUnsafe(id, tmpPair, refined);
       writingUnsafeTimer.stop();
     }
     if (printFalseUnsafes) {

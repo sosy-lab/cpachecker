@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -65,7 +64,6 @@ import org.sosy_lab.cpachecker.util.identifiers.LocalVariableIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.StructureIdentifier;
 
-@Options(prefix = "cpa.usage")
 public class UsageProcessor {
 
   private final Map<String, BinderFunctionInfo> binderFunctionInfo;
@@ -83,7 +81,6 @@ public class UsageProcessor {
       Map<CFANode, Map<GeneralIdentifier, DataType>> pPrecision,
       Map<String, BinderFunctionInfo> pBinderFunctionInfo)
       throws InvalidConfigurationException {
-    config.inject(this);
     logger = pLogger;
     binderFunctionInfo = pBinderFunctionInfo;
 

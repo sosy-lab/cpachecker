@@ -83,7 +83,6 @@ public class UsageReachedSet extends PartitionedReachedSet {
 
   private static final RaceProperty propertyInstance = new RaceProperty();
 
-  private final Configuration config;
   private final LogManager logger;
 
   private UsageContainer container = null;
@@ -91,10 +90,9 @@ public class UsageReachedSet extends PartitionedReachedSet {
   public UsageReachedSet(
       WaitlistFactory waitlistFactory, Configuration pConfig, LogManager pLogger) {
     super(waitlistFactory);
-    config = pConfig;
     logger = pLogger;
     try {
-      container = new UsageContainer(config, logger);
+      container = new UsageContainer(pConfig, logger);
     } catch (InvalidConfigurationException e) {
       logger.log(Level.WARNING, "Can not create container due to wrong config");
       container = null;

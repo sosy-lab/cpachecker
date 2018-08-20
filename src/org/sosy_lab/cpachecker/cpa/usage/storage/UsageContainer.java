@@ -34,8 +34,6 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageState;
@@ -49,16 +47,14 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-@Options(prefix="cpa.usage")
 public class UsageContainer {
   private final SortedMap<SingleIdentifier, UnrefinedUsagePointSet> unrefinedIds;
   private final SortedMap<SingleIdentifier, RefinedUsagePointSet> refinedIds;
-  private final SortedMap<SingleIdentifier, RefinedUsagePointSet> failedIds;
 
   private final UnsafeDetector detector;
 
-  private final Set<SingleIdentifier> falseUnsafes;
-  private final Set<SingleIdentifier> initialUnsafes;
+  private Set<SingleIdentifier> falseUnsafes;
+  private Set<SingleIdentifier> initialUnsafes;
 
   // Only for statistics
   private int initialUsages = 0;
@@ -71,17 +67,10 @@ public class UsageContainer {
   private boolean usagesCalculated = false;
   private boolean oneTotalIteration = false;
 
-  @Option(description="output only true unsafes",
-      secure = true)
-  private boolean printOnlyTrueUnsafes = false;
-
   public UsageContainer(Configuration config, LogManager l) throws InvalidConfigurationException {
-    config.inject(this);
     unrefinedIds = new TreeMap<>();
     refinedIds = new TreeMap<>();
-    failedIds = new TreeMap<>();
     falseUnsafes = new TreeSet<>();
-    initialUnsafes = new TreeSet<>();
     logger = l;
     detector = new UnsafeDetector(config);
   }
@@ -127,14 +116,11 @@ public class UsageContainer {
       toDelete.forEach(unrefinedIds::remove);
 
       if (!oneTotalIteration) {
-        initialUnsafes.addAll(unrefinedIds.keySet());
+        initialUnsafes = new TreeSet<>(unrefinedIds.keySet());
       } else {
-        Set<SingleIdentifier> newFalseIds = new TreeSet<>(initialUnsafes);
-        newFalseIds.removeAll(falseUnsafes);
-        newFalseIds.removeAll(unrefinedIds.keySet());
-        newFalseIds.removeAll(refinedIds.keySet());
-        newFalseIds.removeAll(failedIds.keySet());
-        falseUnsafes.addAll(newFalseIds);
+        falseUnsafes = new TreeSet<>(initialUnsafes);
+        falseUnsafes.removeAll(unrefinedIds.keySet());
+        falseUnsafes.removeAll(refinedIds.keySet());
       }
 
       unsafeDetectionTimer.stop();
@@ -146,12 +132,9 @@ public class UsageContainer {
   }
 
   public Iterator<SingleIdentifier> getUnsafeIterator() {
+    calculateUnsafesIfNecessary();
     Set<SingleIdentifier> result = new TreeSet<>(refinedIds.keySet());
-    result.addAll(failedIds.keySet());
-    if (!printOnlyTrueUnsafes) {
-      calculateUnsafesIfNecessary();
-      result.addAll(unrefinedIds.keySet());
-    }
+    result.addAll(unrefinedIds.keySet());
     return result.iterator();
   }
 
@@ -161,22 +144,13 @@ public class UsageContainer {
     return result.iterator();
   }
 
-  public int getUnsafeSize() {
-    calculateUnsafesIfNecessary();
-    if (printOnlyTrueUnsafes) {
-      return getProcessedUnsafeSize();
-    } else {
-      return getTotalUnsafeSize();
-    }
-  }
-
   public int getTotalUnsafeSize() {
     calculateUnsafesIfNecessary();
-    return unrefinedIds.size() + refinedIds.size() + failedIds.size();
+    return unrefinedIds.size() + refinedIds.size();
   }
 
   public int getProcessedUnsafeSize() {
-    return refinedIds.size() + failedIds.size();
+    return refinedIds.size();
   }
 
   public UnsafeDetector getUnsafeDetector() {
@@ -200,10 +174,8 @@ public class UsageContainer {
   public AbstractUsagePointSet getUsages(SingleIdentifier id) {
     if (unrefinedIds.containsKey(id)) {
       return unrefinedIds.get(id);
-    } else if (refinedIds.containsKey(id)){
-      return refinedIds.get(id);
     } else {
-      return failedIds.get(id);
+      return refinedIds.get(id);
     }
   }
 
@@ -214,17 +186,12 @@ public class UsageContainer {
 
   public void setAsRefined(SingleIdentifier id, RefinementResult result) {
     Preconditions.checkArgument(result.isTrue(), "Result is not true, can not set the set as refined");
-    Preconditions.checkArgument(detector.isUnsafe(getUsages(id)), "Refinement is successful, but the unsafe is absent for identifier " + id);
 
     UsageInfo firstUsage = result.getTrueRace().getFirst();
     UsageInfo secondUsage = result.getTrueRace().getSecond();
 
     RefinedUsagePointSet rSet = RefinedUsagePointSet.create(firstUsage, secondUsage);
-    if (firstUsage.isLooped() || secondUsage.isLooped()) {
-      failedIds.put(id, rSet);
-    } else {
-      refinedIds.put(id, rSet);
-    }
+    refinedIds.put(id, rSet);
     unrefinedIds.remove(id);
   }
 
@@ -241,18 +208,24 @@ public class UsageContainer {
       topUsagePoints.setNextValue(uset.getNumberOfTopUsagePoints());
     }
 
-    final int generalRefinedSize = refinedIds.keySet().size();
-    refinedIds.forEach(
-        (id, rset) -> refinedUsages.setNextValue(rset.size()));
+    int generalRefinedSize = 0;
+    int generalFailedSize = 0;
 
-    final int generalFailedSize = failedIds.keySet().size();
-    for (RefinedUsagePointSet uset : failedIds.values()) {
+    for (RefinedUsagePointSet uset : refinedIds.values()) {
       Pair<UsageInfo, UsageInfo> pair = uset.getUnsafePair();
-      if (pair.getFirst().isLooped()) {
+      UsageInfo firstUsage = pair.getFirst();
+      UsageInfo secondUsage = pair.getSecond();
+
+      if (firstUsage.isLooped()) {
+        failedUsages.inc();
+        generalFailedSize++;
+      }
+      if (secondUsage.isLooped() && !firstUsage.equals(secondUsage)) {
         failedUsages.inc();
       }
-      if (pair.getSecond().isLooped() && !pair.getFirst().equals(pair.getSecond())) {
-        failedUsages.inc();
+      if (!firstUsage.isLooped() && !secondUsage.isLooped()) {
+        generalRefinedSize++;
+        refinedUsages.setNextValue(uset.size());
       }
     }
 

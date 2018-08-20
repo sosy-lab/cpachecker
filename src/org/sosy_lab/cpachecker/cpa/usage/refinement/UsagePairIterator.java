@@ -23,14 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
-import com.google.common.collect.Sets;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
-import org.sosy_lab.cpachecker.cpa.usage.storage.UnsafeDetector;
-import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageInfoSet;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -43,8 +40,6 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
   private Iterator<UsageInfo> secondUsageIterator;
   private UsageInfo firstUsage = null;
   private UsageInfoSet secondUsageInfoSet;
-
-  private UnsafeDetector detector;
 
   public UsagePairIterator(ConfigurableRefinementBlock<Pair<UsageInfo, UsageInfo>> pWrapper, LogManager l) {
     super(pWrapper);
@@ -80,25 +75,21 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
       firstUsage = firstUsageIterator.next();
       secondUsageIterator = pInput.getSecond().iterator();
       result = checkSecondIterator();
-    }
-    if (result == null) {
-      return null;
-    } else {
-      UsageInfo firstUsage = result.getFirst();
-      UsageInfo secondUsage = result.getSecond();
-      if (firstUsage == secondUsage) {
-        secondUsage = secondUsage.copy();
+      if (result == null) {
+        return null;
       }
-      return Pair.of(firstUsage, secondUsage);
     }
+    UsageInfo firstUsage = result.getFirst();
+    UsageInfo secondUsage = result.getSecond();
+    if (firstUsage == secondUsage) {
+      secondUsage = secondUsage.copy();
+    }
+    return Pair.of(firstUsage, secondUsage);
   }
 
   private Pair<UsageInfo, UsageInfo> checkSecondIterator() {
-    while (secondUsageIterator.hasNext()) {
-      UsageInfo secondUsage = secondUsageIterator.next();
-      if (detector.isUnsafe(Sets.newHashSet(firstUsage, secondUsage))) {
-        return Pair.of(firstUsage, secondUsage);
-      }
+    if (secondUsageIterator.hasNext()) {
+      return Pair.of(firstUsage, secondUsageIterator.next());
     }
     return null;
   }
@@ -124,16 +115,6 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
     if ((first.isLooped() || second.isLooped()) && first.equals(second)) {
       first.setAsLooped();
       second.setAsLooped();
-    }
-  }
-
-  @Override
-  protected void
-      handleUpdateSignal(Class<? extends RefinementInterface> pCallerClass, Object pData) {
-    if (pCallerClass.equals(IdentifierIterator.class)) {
-      assert pData instanceof UsageContainer;
-      UsageContainer container = (UsageContainer) pData;
-      detector = container.getUnsafeDetector();
     }
   }
 

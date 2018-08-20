@@ -70,9 +70,12 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
     secondPoint = secondPointIterator.next();
     assert firstPoint != null;
     assert secondPoint == firstPoint;
-    Pair<UsageInfoSet, UsageInfoSet> resultingPair = prepareIterationPair(firstPoint, secondPoint);
-    //because the points are equal
-    postpone(resultingPair);
+    if (detector.isUnsafePair(firstPoint, secondPoint)) {
+      Pair<UsageInfoSet, UsageInfoSet> resultingPair =
+          prepareIterationPair(firstPoint, secondPoint);
+      // because the points are equal
+      postpone(resultingPair);
+    }
   }
 
   @Override

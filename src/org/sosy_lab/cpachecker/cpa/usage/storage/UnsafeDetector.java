@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
 import com.google.common.base.Preconditions;
-import java.util.Set;
 import java.util.SortedSet;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -65,16 +64,6 @@ public class UnsafeDetector {
       return true;
     }
     return isUnsafe((UnrefinedUsagePointSet)set);
-  }
-
-  public boolean isUnsafe(Set<UsageInfo> set) {
-    return isUnsafe(preparePointSet(set));
-  }
-
-  private UnrefinedUsagePointSet preparePointSet(Set<UsageInfo> set) {
-    UnrefinedUsagePointSet tmpSet = new UnrefinedUsagePointSet();
-    set.forEach(tmpSet::add);
-    return tmpSet;
   }
 
   private boolean isUnsafe(UnrefinedUsagePointSet set) {
