@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierLocator
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -200,7 +199,12 @@ public class ConstraintsSolver implements StatisticsProvider {
       timeForSolving.start();
 
       Boolean unsat = null; // assign null to fail fast if assignment is missed
-      CacheResult res = cache.getCachedResult(pConstraints);
+      Set<Constraint> relevantConstraints = getRelevantConstraints(pConstraints);
+
+      Collection<BooleanFormula> constraintsAsFormulas =
+          getFullFormula(
+              relevantConstraints, pConstraints.getDefiniteAssignment(), pFunctionName);
+      CacheResult res = cache.getCachedResult(constraintsAsFormulas);
 
       if (res.isUnsat()) {
         unsat = true;
@@ -210,14 +214,10 @@ public class ConstraintsSolver implements StatisticsProvider {
         pConstraints.setModel(res.getModelAssignment());
 
       } else {
-        Set<Constraint> relevantConstraints = getRelevantConstraints(pConstraints);
-
-        BooleanFormula constraintsAsFormula =
-            getFullFormula(
-                relevantConstraints, pConstraints.getDefiniteAssignment(), pFunctionName);
         prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
+        BooleanFormula singleConstraintFormula = booleanFormulaManager.and(constraintsAsFormulas);
 
-        prover.push(constraintsAsFormula);
+        prover.push(singleConstraintFormula);
 
         ImmutableList<ValueAssignment> newModelAsAssignment;
 
@@ -254,7 +254,7 @@ public class ConstraintsSolver implements StatisticsProvider {
         if (!unsat) {
           newModelAsAssignment = prover.getModelAssignments();
           pConstraints.setModel(newModelAsAssignment);
-          cache.addSat(pConstraints, newModelAsAssignment);
+          cache.addSat(constraintsAsFormulas, newModelAsAssignment);
           // doing this while the complete formula is still on the prover environment stack is
           // cheaper than performing another complete SAT check when the assignment is really
           // requested
@@ -263,7 +263,7 @@ public class ConstraintsSolver implements StatisticsProvider {
           }
 
         } else {
-          cache.addUnsat(pConstraints);
+          cache.addUnsat(constraintsAsFormulas);
         }
       }
 
@@ -396,14 +396,14 @@ public class ConstraintsSolver implements StatisticsProvider {
   }
 
   /**
-   * Returns the formula representing the conjunction of all constraints of this state. If no
-   * constraints exist, this method will return <code>null</code>.
+   * Returns the set of formulas representing all constraints of this state. If no
+   * constraints exist, this method will return an empty set.
    *
-   * @return the formula representing the conjunction of all constraints of this state
+   * @return the set of formulas representing all constraints of this state
    * @throws UnrecognizedCodeException see {@link FormulaCreator#createFormula(Constraint)}
    * @throws InterruptedException see {@link FormulaCreator#createFormula(Constraint)}
    */
-  private BooleanFormula getFullFormula(
+  private Collection<BooleanFormula> getFullFormula(
       Collection<Constraint> pConstraints, IdentifierAssignment pAssignment, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException {
     List<BooleanFormula> formulas = new ArrayList<>(pConstraints.size());
@@ -424,18 +424,7 @@ public class ConstraintsSolver implements StatisticsProvider {
     return pAssignment.hashCode();
   }
 
-  private int getConstraintId(final Constraint pConstraint) {
-    return pConstraint.hashCode();
-  }
-
-  private int getConstraintId(Collection<Constraint> pConstraints) {
-    int id = 0;
-    // do this manually to make sure that we get the same id independent of the data structure
-    // used
-    for (Constraint c : pConstraints) {
-      id += getConstraintId(c);
-    }
-    return id;
+    return formulas;
   }
 
   private BooleanFormula createConstraintFormulas(
@@ -479,35 +468,32 @@ public class ConstraintsSolver implements StatisticsProvider {
   }
 
   private interface ConstraintsCache {
-    CacheResult getCachedResult(Collection<Constraint> pConstraints);
+    CacheResult getCachedResult(Collection<BooleanFormula> pConstraints);
 
     void addSat(
-        Collection<Constraint> pConstraints, ImmutableList<ValueAssignment> pModelAssignment);
+        Collection<BooleanFormula> pConstraints,
+        ImmutableList<ValueAssignment> pModelAssignment);
 
-    void addUnsat(Collection<Constraint> pConstraints);
+    void addUnsat(Collection<BooleanFormula> pConstraints);
   }
 
-  private class MatchingConstraintsCache implements ConstraintsCache, Statistics {
+  private static class MatchingConstraintsCache implements ConstraintsCache, Statistics {
 
-    private Map<Integer, CacheResult> cacheMap = new HashMap<>();
+    private Map<Collection<BooleanFormula>, CacheResult> cacheMap = new HashMap<>();
 
     private StatCounter cacheLookups = new StatCounter("Matching cache lookups");
     private StatCounter cacheHits = new StatCounter("Matching cache hits");
     private StatTimer lookupTime = new StatTimer("Matching cache lookup time");
 
     @Override
-    public CacheResult getCachedResult(Collection<Constraint> pConstraints) {
-      int id = getConstraintId(pConstraints);
-      return getCachedResult(id);
-    }
-
-    CacheResult getCachedResult(int pId) {
+    public CacheResult getCachedResult(Collection<BooleanFormula> pConstraints) {
       try {
         cacheLookups.inc();
         lookupTime.start();
-        if (cacheMap.containsKey(pId)) {
+        if (cacheMap.containsKey(pConstraints)) {
           cacheHits.inc();
-          return cacheMap.get(pId);
+          return cacheMap.get(pConstraints);
+
         } else {
           return CacheResult.getUnknown();
         }
@@ -518,18 +504,18 @@ public class ConstraintsSolver implements StatisticsProvider {
 
     @Override
     public void addSat(
-        Collection<Constraint> pConstraints, ImmutableList<ValueAssignment> pModelAssignment) {
+        Collection<BooleanFormula> pConstraints,
+        ImmutableList<ValueAssignment> pModelAssignment) {
       add(pConstraints, CacheResult.getSat(pModelAssignment));
     }
 
     @Override
-    public void addUnsat(Collection<Constraint> pConstraints) {
+    public void addUnsat(Collection<BooleanFormula> pConstraints) {
       add(pConstraints, CacheResult.getUnsat());
     }
 
-    private void add(Collection<Constraint> pConstraints, CacheResult pResult) {
-      int id = getConstraintId(pConstraints);
-      cacheMap.put(id, pResult);
+    private void add(Collection<BooleanFormula> pConstraints, CacheResult pResult) {
+      cacheMap.put(pConstraints, pResult);
     }
 
     @Override
@@ -548,15 +534,14 @@ public class ConstraintsSolver implements StatisticsProvider {
     }
   }
 
-  private class SubsetConstraintsCache implements ConstraintsCache, StatisticsProvider {
+  private static class SubsetConstraintsCache implements ConstraintsCache, StatisticsProvider {
 
     private MatchingConstraintsCache delegate;
 
     /**
-     * Multimap that maps each constraint to all collections of constraints that it occurred in,
-     * where each collection of constraints is represented by a pair &lt;id, size&gt;
+     * Multimap that maps each constraint to all sets of constraints that it occurred in
      */
-    private Multimap<Constraint, Pair<Integer, Integer>> constraintContainedIn =
+    private Multimap<BooleanFormula, Set<BooleanFormula>> constraintContainedIn =
         HashMultimap.create();
 
     private StatCounter cacheLookups = new StatCounter("Cache lookups");
@@ -569,7 +554,7 @@ public class ConstraintsSolver implements StatisticsProvider {
     }
 
     @Override
-    public CacheResult getCachedResult(Collection<Constraint> pConstraints) {
+    public CacheResult getCachedResult(Collection<BooleanFormula> pConstraints) {
       try {
         cacheLookups.inc();
         lookupTime.start();
@@ -590,31 +575,29 @@ public class ConstraintsSolver implements StatisticsProvider {
 
     @Override
     public void addSat(
-        Collection<Constraint> pConstraints, ImmutableList<ValueAssignment> pModelAssignment) {
+        Collection<BooleanFormula> pConstraints, ImmutableList<ValueAssignment> pModelAssignment) {
       add(pConstraints);
       delegate.addSat(pConstraints, pModelAssignment);
     }
 
     @Override
-    public void addUnsat(Collection<Constraint> pConstraints) {
+    public void addUnsat(Collection<BooleanFormula> pConstraints) {
       add(pConstraints);
       delegate.addUnsat(pConstraints);
     }
 
-    private void add(Collection<Constraint> pConstraints) {
-      int id = getConstraintId(pConstraints);
-      Pair<Integer, Integer> idAndSize = Pair.of(id, pConstraints.size());
-      for (Constraint c : pConstraints) {
-        constraintContainedIn.put(c, idAndSize);
+    private void add(Collection<BooleanFormula> pConstraints) {
+      for (BooleanFormula c : pConstraints) {
+        constraintContainedIn.put(c, ImmutableSet.copyOf(pConstraints));
       }
     }
 
-    CacheResult getCachedResultOfSubset(Collection<Constraint> pConstraints) {
+    CacheResult getCachedResultOfSubset(Collection<BooleanFormula> pConstraints) {
       checkState(!pConstraints.isEmpty());
 
-      Set<Pair<Integer, Integer>> containAllConstraints = null;
-      for (Constraint c : pConstraints) {
-        Set<Pair<Integer, Integer>> containC = ImmutableSet.copyOf(constraintContainedIn.get(c));
+      Set<Set<BooleanFormula>> containAllConstraints = null;
+      for (BooleanFormula c : pConstraints) {
+        Set<Set<BooleanFormula>> containC = ImmutableSet.copyOf(constraintContainedIn.get(c));
         if (containAllConstraints == null) {
           containAllConstraints = containC;
         } else {
@@ -628,15 +611,13 @@ public class ConstraintsSolver implements StatisticsProvider {
 
       checkNotNull(containAllConstraints);
       int sizeOfQuery = pConstraints.size();
-      for (Pair<Integer, Integer> col : containAllConstraints) {
-        int idOfCollection = col.getFirst();
-        int sizeOfCollection = col.getSecond();
-        CacheResult cachedResult = delegate.getCachedResult(idOfCollection);
-        if (sizeOfQuery <= sizeOfCollection && cachedResult.isSat()) {
+      for (Set<BooleanFormula> col : containAllConstraints) {
+        CacheResult cachedResult = delegate.getCachedResult(col);
+        if (sizeOfQuery <= col.size() && cachedResult.isSat()) {
           // currently considered collection is a superset of the queried collection
           return cachedResult;
 
-        } else if (sizeOfQuery >= sizeOfCollection && cachedResult.isUnsat()) {
+        } else if (sizeOfQuery >= col.size() && cachedResult.isUnsat()) {
           // currently considered collection is a subset of the queried collection
           return cachedResult;
         }
@@ -661,7 +642,7 @@ public class ConstraintsSolver implements StatisticsProvider {
             @Nullable
             @Override
             public String getName() {
-              return ConstraintsSolver.this.getClass().getSimpleName();
+              return ConstraintsSolver.class.getSimpleName();
             }
           });
 
@@ -672,18 +653,19 @@ public class ConstraintsSolver implements StatisticsProvider {
   private static class DummyCache implements ConstraintsCache {
 
     @Override
-    public CacheResult getCachedResult(Collection<Constraint> pConstraints) {
+    public CacheResult getCachedResult(Collection<BooleanFormula> pConstraints) {
       return CacheResult.getUnknown();
     }
 
     @Override
     public void addSat(
-        Collection<Constraint> pConstraints, ImmutableList<ValueAssignment> pModelAssignment) {
+        Collection<BooleanFormula> pConstraints,
+        ImmutableList<ValueAssignment> pModelAssignment) {
       // do nothing
     }
 
     @Override
-    public void addUnsat(Collection<Constraint> pConstraints) {
+    public void addUnsat(Collection<BooleanFormula> pConstraints) {
       // do nothing
     }
   }
