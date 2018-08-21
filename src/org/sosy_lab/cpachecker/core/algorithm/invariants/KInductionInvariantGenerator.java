@@ -26,24 +26,34 @@ package org.sosy_lab.cpachecker.core.algorithm.invariants;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.base.Equivalence;
+import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -69,11 +79,17 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -104,6 +120,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.ExpressionSubstitution;
+import org.sosy_lab.cpachecker.util.ExpressionSubstitution.SubstitutionException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.expressions.And;
@@ -112,6 +130,8 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
+import org.sosy_lab.cpachecker.util.variableclassification.Partition;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /** Generate invariants using k-induction. */
@@ -129,8 +149,11 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     )
     private Path invariantsAutomatonFile = null;
 
-    @Option(secure = true, description = "Guess some candidates for the k-induction invariant generator from the CFA.")
-    private boolean guessCandidatesFromCFA = true;
+    @Option(
+        secure = true,
+        description = "Guess some candidates for the k-induction invariant generator from the CFA.")
+    private CfaCandidateInvariantExtractorFactories guessCandidatesFromCFA =
+        CfaCandidateInvariantExtractorFactories.ASSUME_EDGES_PLAIN;
 
     @Option(secure = true, description = "For correctness-witness validation: Shut down if a candidate invariant is found to be incorrect.")
     private boolean terminateOnCounterexample = false;
@@ -483,15 +506,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
 
     final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
 
-    if (pOptions.guessCandidatesFromCFA) {
-      for (AssumeEdge assumeEdge :
-          getRelevantAssumeEdges(
-              pTargetLocationProvider.tryGetAutomatonTargetLocations(
-                  pCFA.getMainFunction(), pSpecification))) {
-        for (CFANode loopHead : pCFA.getLoopStructure().get().getAllLoopHeads()) {
-          candidates.add(new EdgeFormulaNegation(loopHead, assumeEdge));
-        }
-      }
+    for (CandidateInvariant candidate : pOptions.guessCandidatesFromCFA.create(pCFA, pSpecification, pTargetLocationProvider, pLogger)) {
+      candidates.add(candidate);
     }
 
     final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
@@ -722,5 +738,220 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
   @Override
   public void adjustmentRefused(ConfigurableProgramAnalysis pCpa) {
     algorithm.adjustmentRefused(pCpa);
+  }
+
+  private static interface CfaCandidateInvariantExtractorFactory {
+
+    Iterable<CandidateInvariant> create(
+        CFA pCfa,
+        Specification pSpecification,
+        TargetLocationProvider pTargetLocationProvider,
+        LogManager pLogger)
+        throws InvalidConfigurationException;
+  }
+
+  private static enum CfaCandidateInvariantExtractorFactories
+      implements CfaCandidateInvariantExtractorFactory {
+
+    NONE {
+
+      @Override
+      public Iterable<CandidateInvariant> create(
+          CFA pCfa,
+          Specification pSpecification,
+          TargetLocationProvider pTargetLocationProvider,
+          LogManager pLogger) {
+        return Collections.emptySet();
+      }
+    },
+
+    ASSUME_EDGES_PLAIN {
+
+      @Override
+      public Iterable<CandidateInvariant> create(
+          CFA pCfa,
+          Specification pSpecification,
+          TargetLocationProvider pTargetLocationProvider,
+          LogManager pLogger)
+          throws InvalidConfigurationException {
+        Optional<ImmutableSet<CFANode>> loopHeads = pCfa.getAllLoopHeads();
+        if (!loopHeads.isPresent()) {
+          throw new InvalidConfigurationException(
+              "Loop structure not available but required to generate candidate invariants.");
+        }
+        Set<AssumeEdge> assumeEdges =
+            getRelevantAssumeEdges(
+                pTargetLocationProvider.tryGetAutomatonTargetLocations(
+                    pCfa.getMainFunction(), pSpecification));
+        return FluentIterable.from(assumeEdges)
+            .transformAndConcat(
+                e -> {
+                  return FluentIterable.from(loopHeads.get())
+                      .transform(n -> new EdgeFormulaNegation(n, e));
+                });
+      }
+    },
+
+    ASSUME_EDGE_TEMPLATES {
+
+      @Override
+      public Iterable<CandidateInvariant> create(
+          CFA pCfa,
+          Specification pSpecification,
+          TargetLocationProvider pTargetLocationProvider,
+          LogManager pLogger)
+          throws InvalidConfigurationException {
+        if (!pCfa.getVarClassification().isPresent()) {
+          throw new InvalidConfigurationException(
+              "Variable classification not available but required to generate candidate invariants.");
+        }
+        Optional<ImmutableSet<CFANode>> loopHeads = pCfa.getAllLoopHeads();
+        if (!loopHeads.isPresent()) {
+          throw new InvalidConfigurationException(
+              "Loop structure not available but required to generate candidate invariants.");
+        }
+        Set<AssumeEdge> baseAssumeEdges =
+            getRelevantAssumeEdges(
+                pTargetLocationProvider.tryGetAutomatonTargetLocations(
+                    pCfa.getMainFunction(), pSpecification));
+        Multimap<CFAEdge, String> idsOnEdges = LinkedHashMultimap.create();
+        Map<String, AIdExpression> idExpressions = new LinkedHashMap<>();
+        for (AssumeEdge baseAssumeEdge : baseAssumeEdges) {
+          for (AIdExpression idExpression :
+              CFAUtils.traverseRecursively(baseAssumeEdge.getExpression())
+                  .filter(AIdExpression.class)) {
+            ASimpleDeclaration decl = idExpression.getDeclaration();
+            if (decl != null) {
+              if (!(idExpression instanceof CExpression)) {
+                throw new InvalidConfigurationException(
+                    "Assume-edge templates are only supported for C code.");
+              }
+              idExpressions.put(decl.getQualifiedName(), idExpression);
+              idsOnEdges.put(baseAssumeEdge, decl.getQualifiedName());
+            }
+          }
+        }
+
+        VariableClassification varClassification = pCfa.getVarClassification().get();
+        Equivalence<AssumeEdge> equivalence =
+            new Equivalence<AssumeEdge>() {
+
+              @Override
+              protected boolean doEquivalent(AssumeEdge pA, AssumeEdge pB) {
+                return pA.getTruthAssumption() == pB.getTruthAssumption()
+                    && pA.getExpression().equals(pB.getExpression());
+              }
+
+              @Override
+              protected int doHash(AssumeEdge pEdge) {
+                return Objects.hash(pEdge.getExpression(), pEdge.getTruthAssumption());
+              }
+            };
+
+        Set<Wrapper<AssumeEdge>> assumeEdges = new LinkedHashSet<>();
+        for (AssumeEdge baseAssumeEdge : baseAssumeEdges) {
+          assumeEdges.add(equivalence.wrap(baseAssumeEdge));
+        }
+        Queue<AssumeEdge> waitlist = new ArrayDeque<>(baseAssumeEdges);
+        Set<Partition> partitions = varClassification.getPartitions();
+        CBinaryExpressionBuilder binExpBuilder =
+            new CBinaryExpressionBuilder(pCfa.getMachineModel(), pLogger);
+        while (!waitlist.isEmpty()) {
+          AssumeEdge edge = waitlist.poll();
+          List<AssumeEdge> successors = new ArrayList<>();
+          AExpression expression = edge.getExpression();
+          for (String idOnEdge : idsOnEdges.get(edge)) {
+            AIdExpression variable = idExpressions.get(idOnEdge);
+            if (variable != null) {
+              for (Partition partition : partitions) {
+                if (partition.getVars().contains(idOnEdge)) {
+                  for (String s : partition.getVars()) {
+                    if (!s.equals(idOnEdge)) {
+                      AIdExpression substitute = idExpressions.get(s);
+                      if (substitute == null) {
+                        for (CFAEdge e : partition.getEdges().keySet()) {
+                          for (AIdExpression idExpression :
+                              FluentIterable.from(CFAUtils.getAstNodesFromCfaEdge(e))
+                                  .transformAndConcat(CFAUtils::traverseRecursively)
+                                  .filter(AIdExpression.class)) {
+                            ASimpleDeclaration decl = idExpression.getDeclaration();
+                            if (decl != null) {
+                              idsOnEdges.put(e, decl.getQualifiedName());
+                              if (substitute == null && decl.getQualifiedName().equals(s)) {
+                                substitute = idExpression;
+                              }
+                            }
+                          }
+                        }
+                      }
+                      if (substitute != null && allowSubstitution(variable, substitute)) {
+                        try {
+                          CExpression newExpression =
+                              ExpressionSubstitution.applySubstitution(
+                                  (CExpression) expression,
+                                  (CExpression) variable,
+                                  (CExpression) substitute,
+                                  binExpBuilder);
+                          String raw = newExpression.toASTString();
+                          if (!edge.getTruthAssumption()) {
+                            raw = "!(" + raw + ")";
+                          }
+                          AssumeEdge newEdge =
+                              new CAssumeEdge(
+                                  raw,
+                                  edge.getFileLocation(),
+                                  edge.getPredecessor(),
+                                  edge.getSuccessor(),
+                                  newExpression,
+                                  edge.getTruthAssumption());
+                          successors.add(newEdge);
+                        } catch (SubstitutionException e) {
+                          throw new AssertionError(
+                              String.format(
+                                  "Invalid substitution of %s by %s", variable, substitute));
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          for (AssumeEdge newEdge : successors) {
+            if (assumeEdges.add(equivalence.wrap(newEdge))) {
+              for (AIdExpression idExpression :
+                  CFAUtils.traverseRecursively(newEdge.getExpression())
+                      .filter(AIdExpression.class)) {
+                ASimpleDeclaration decl = idExpression.getDeclaration();
+                if (decl != null) {
+                  idsOnEdges.put(newEdge, decl.getQualifiedName());
+                }
+              }
+              waitlist.add(newEdge);
+            }
+          }
+        }
+        return FluentIterable.from(assumeEdges)
+            .transform(Wrapper::get)
+            .transformAndConcat(
+                e -> {
+                  return FluentIterable.from(loopHeads.get())
+                      .transform(n -> new EdgeFormulaNegation(n, e));
+                });
+      }
+
+      private boolean allowSubstitution(AIdExpression pVariable, AIdExpression pSubstitute) {
+        if (pVariable.getExpressionType().equals(pSubstitute.getExpressionType())) {
+          return true;
+        }
+        if (!(pVariable.getExpressionType() instanceof CType)
+            || !(pSubstitute.getExpressionType() instanceof CType)) {
+          return false;
+        }
+        CType typeA = ((CType) pVariable.getExpressionType()).getCanonicalType();
+        CType typeB = ((CType) pSubstitute.getExpressionType()).getCanonicalType();
+        return typeA.canBeAssignedFrom(typeB);
+      }
+    };
   }
 }
