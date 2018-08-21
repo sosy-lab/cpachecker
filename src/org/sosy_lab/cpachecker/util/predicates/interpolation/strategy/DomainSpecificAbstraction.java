@@ -1618,10 +1618,11 @@ public class DomainSpecificAbstraction<T> {
               (myItpGroupIds);
           logger.log(Level.WARNING, "Interpolant:", myInterpolant.toString());
 
-
-          interpolants.add(myInterpolant);
-          logger.log(Level.WARNING, "Current Interpolants:", interpolants.toString());
-          fmgr.translateFrom(myInterpolant, mySolver.getFormulaManager());
+          if (myInterpolant != null) {
+            interpolants.add(myInterpolant);
+            logger.log(Level.WARNING, "Current Interpolants:", interpolants.toString());
+            fmgr.translateFrom(myInterpolant, mySolver.getFormulaManager());
+          }
         }
       }
 
