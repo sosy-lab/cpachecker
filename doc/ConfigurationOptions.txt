@@ -2968,7 +2968,7 @@ invariantGeneration.kInduction.async = true
 
 # Guess some candidates for the k-induction invariant generator from the CFA.
 invariantGeneration.kInduction.guessCandidatesFromCFA = ASSUME_EDGES_PLAIN
-  enum:     [NONE, ASSUME_EDGES_PLAIN, ASSUME_EDGE_TEMPLATES]
+  enum:     [NONE, ASSUME_EDGES_PLAIN, ASSUME_EDGE_TEMPLATES, LINEAR_TEMPLATES]
 
 # Provides additional candidate invariants to the k-induction invariant
 # generator.

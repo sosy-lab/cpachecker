@@ -40,12 +40,14 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
+import java.math.BigInteger;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -56,6 +58,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -81,14 +84,22 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -117,6 +128,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -783,12 +795,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
             getRelevantAssumeEdges(
                 pTargetLocationProvider.tryGetAutomatonTargetLocations(
                     pCfa.getMainFunction(), pSpecification));
-        return FluentIterable.from(assumeEdges)
-            .transformAndConcat(
-                e -> {
-                  return FluentIterable.from(loopHeads.get())
-                      .transform(n -> new EdgeFormulaNegation(n, e));
-                });
+        return asNegatedCandidateInvariants(assumeEdges, loopHeads.get());
       }
     },
 
@@ -815,7 +822,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                 pTargetLocationProvider.tryGetAutomatonTargetLocations(
                     pCfa.getMainFunction(), pSpecification));
         Multimap<CFAEdge, String> idsOnEdges = LinkedHashMultimap.create();
-        Map<String, AIdExpression> idExpressions = new LinkedHashMap<>();
+        Map<String, AIdExpression> idExpressions = new HashMap<>();
         for (AssumeEdge baseAssumeEdge : baseAssumeEdges) {
           for (AIdExpression idExpression :
               CFAUtils.traverseRecursively(baseAssumeEdge.getExpression())
@@ -914,6 +921,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                     }
                   }
                 }
+                break;
               }
             }
           }
@@ -931,13 +939,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
             }
           }
         }
-        return FluentIterable.from(assumeEdges)
-            .transform(Wrapper::get)
-            .transformAndConcat(
-                e -> {
-                  return FluentIterable.from(loopHeads.get())
-                      .transform(n -> new EdgeFormulaNegation(n, e));
-                });
+        return asNegatedCandidateInvariants(
+            FluentIterable.from(assumeEdges).transform(Wrapper::get), loopHeads.get());
       }
 
       private boolean allowSubstitution(AIdExpression pVariable, AIdExpression pSubstitute) {
@@ -952,6 +955,155 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         CType typeB = ((CType) pSubstitute.getExpressionType()).getCanonicalType();
         return typeA.canBeAssignedFrom(typeB);
       }
+    },
+
+    LINEAR_TEMPLATES {
+
+      @Override
+      public Iterable<CandidateInvariant> create(
+          CFA pCfa,
+          Specification pSpecification,
+          TargetLocationProvider pTargetLocationProvider,
+          LogManager pLogger)
+          throws InvalidConfigurationException {
+        if (!pCfa.getVarClassification().isPresent()) {
+          throw new InvalidConfigurationException(
+              "Variable classification not available but required to generate candidate invariants.");
+        }
+        VariableClassification varClassification = pCfa.getVarClassification().get();
+        Optional<ImmutableSet<CFANode>> loopHeads = pCfa.getAllLoopHeads();
+        if (!loopHeads.isPresent()) {
+          throw new InvalidConfigurationException(
+              "Loop structure not available but required to generate candidate invariants.");
+        }
+        MachineModel machineModel = pCfa.getMachineModel();
+
+        Collection<String> vars =
+            new ArrayList<>(
+                Sets.intersection(
+                    varClassification.getAssumedVariables().elementSet(),
+                    varClassification.getIntAddVars()));
+        Map<String, CIdExpression> idExpressions = new LinkedHashMap<>();
+        TreeSet<BigInteger> constants = new TreeSet<>();
+        Multimap<CType, String> typePartitions = LinkedHashMultimap.create();
+        Map<CIdExpression, String> functions = new HashMap<>();
+        for (String var : vars) {
+          if (!idExpressions.containsKey(var)) {
+            for (Partition partition : varClassification.getIntAddPartitions()) {
+              if (partition.getVars().contains(var)) {
+                constants.addAll(partition.getValues());
+                for (CFAEdge e : partition.getEdges().keySet()) {
+                  for (AIdExpression idExpression :
+                      FluentIterable.from(CFAUtils.getAstNodesFromCfaEdge(e))
+                          .transformAndConcat(CFAUtils::traverseRecursively)
+                          .filter(AIdExpression.class)) {
+                    if (!(idExpression instanceof CIdExpression)) {
+                      throw new InvalidConfigurationException(
+                          "Linear templates are only supported for C code.");
+                    }
+                    ASimpleDeclaration decl = idExpression.getDeclaration();
+                    if (decl != null) {
+                      CIdExpression id = (CIdExpression) idExpression;
+                      idExpressions.put(decl.getQualifiedName(), id);
+                      CType type = id.getExpressionType().getCanonicalType();
+                      typePartitions.put(type, decl.getQualifiedName());
+                      functions.put(id, e.getPredecessor().getFunctionName());
+                      if (type instanceof CSimpleType) {
+                        constants.add(
+                            machineModel.getMaximalIntegerValue((CSimpleType) type));
+                      }
+                    }
+                  }
+                }
+                break;
+              }
+            }
+          }
+        }
+
+        CBinaryExpressionBuilder binExpBuilder =
+            new CBinaryExpressionBuilder(pCfa.getMachineModel(), pLogger);
+        Multimap<String, CExpression> instantiatedTemplates = LinkedHashMultimap.create();
+        for (Map.Entry<CType, Collection<String>> typePartition :
+            typePartitions.asMap().entrySet()) {
+          CType type = typePartition.getKey();
+          if (type instanceof CSimpleType) {
+            Collection<String> variables = typePartition.getValue();
+            BigInteger max = machineModel.getMaximalIntegerValue((CSimpleType) type);
+            for (String x : variables) {
+              CIdExpression xId = idExpressions.get(x);
+              CSimpleDeclaration xDecl = xId.getDeclaration();
+              if (!(xDecl instanceof CVariableDeclaration)) {
+                continue;
+              }
+              CVariableDeclaration xVarDecl = (CVariableDeclaration) xDecl;
+              String function = functions.get(xId);
+              for (String y : variables) {
+                if (x.equals(y)) {
+                  continue;
+                }
+                CIdExpression yId = idExpressions.get(y);
+                String yFunction = functions.get(yId);
+                if (xVarDecl.isGlobal()) {
+                  function = yFunction;
+                } else {
+                  CSimpleDeclaration yDecl = yId.getDeclaration();
+                  if (!(yDecl instanceof CVariableDeclaration)) {
+                    continue;
+                  }
+                  CVariableDeclaration yVarDecl = (CVariableDeclaration) yDecl;
+                  if (yVarDecl.isGlobal()) {
+                    function = yFunction;
+                  } else if (!function.equals(yFunction)) {
+                    continue;
+                  }
+                }
+                for (BigInteger c : constants.tailSet(BigInteger.ONE).headSet(max)) {
+                  try {
+                    CIntegerLiteralExpression cLit =
+                        new CIntegerLiteralExpression(FileLocation.DUMMY, type, c);
+                    CExpression cX =
+                        binExpBuilder.buildBinaryExpression(xId, cLit, BinaryOperator.MULTIPLY);
+                    CExpression cXLeqY =
+                        binExpBuilder.buildBinaryExpression(cX, yId, BinaryOperator.LESS_EQUAL);
+                    CExpression cXGeqY =
+                        binExpBuilder.buildBinaryExpression(cX, yId, BinaryOperator.GREATER_EQUAL);
+                    instantiatedTemplates.put(function, cXLeqY);
+                    instantiatedTemplates.put(function, cXGeqY);
+                  } catch (UnrecognizedCodeException e) {
+                    throw new AssertionError(
+                        String.format("Invalid template instantiation %s * %s <= %s", c, x, y));
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        List<AssumeEdge> assumeEdges = new ArrayList<>();
+        for (Map.Entry<String, Collection<CExpression>> entry :
+            instantiatedTemplates.asMap().entrySet()) {
+          String function = entry.getKey();
+          Collection<CExpression> expressions = entry.getValue();
+          CFANode dummyPred = new CFANode(function);
+          CFANode dummySucc = new CFANode(function);
+          for (CExpression instantiatedTemplate : expressions) {
+            String raw = "!(" + instantiatedTemplate.toASTString() + ")";
+            CAssumeEdge dummyEdge = new CAssumeEdge(raw, FileLocation.DUMMY, dummyPred, dummySucc, instantiatedTemplate, false);
+            assumeEdges.add(dummyEdge);
+          }
+        }
+        return asNegatedCandidateInvariants(assumeEdges, loopHeads.get());
+      }
     };
+  }
+
+  private static Iterable<CandidateInvariant> asNegatedCandidateInvariants(
+      Iterable<AssumeEdge> pAssumeEdges, Set<CFANode> pLoopHeads) {
+    return FluentIterable.from(pAssumeEdges)
+        .transformAndConcat(
+            e -> {
+              return FluentIterable.from(pLoopHeads).transform(n -> new EdgeFormulaNegation(n, e));
+            });
   }
 }
