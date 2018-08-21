@@ -48,8 +48,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -112,8 +110,6 @@ public class ConstraintsSolver implements StatisticsProvider {
       name = "useLastModel")
   private boolean useLastModel = true;
 
-  private final LogManagerWithoutDuplicates logger;
-
   private final StatTimer
       timeForSolving = new StatTimer(StatKind.SUM, "Time for solving constraints");
   private final StatTimer timeForIndependentComputation =
@@ -145,14 +141,12 @@ public class ConstraintsSolver implements StatisticsProvider {
 
   public ConstraintsSolver(
       final Configuration pConfig,
-      final LogManager pLogger,
       final Solver pSolver,
       final FormulaManagerView pFormulaManager,
       final CtoFormulaConverter pConverter)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
-    logger = new LogManagerWithoutDuplicates(pLogger);
     solver = pSolver;
     formulaManager = pFormulaManager;
     booleanFormulaManager = formulaManager.getBooleanFormulaManager();
