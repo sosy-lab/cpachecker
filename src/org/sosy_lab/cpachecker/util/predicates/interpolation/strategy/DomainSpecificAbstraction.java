@@ -1564,11 +1564,7 @@ public class DomainSpecificAbstraction<T> {
       //interpolationFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
       List<BooleanFormula> interpolationFormulaList =
           Lists.newArrayListWithExpectedSize(formulas.size() - 1);
-      // there should be an interpolant computed in this place, but I realised that it won't work
-      // because
-      // it's
-      // relying on group ids, which I don't have.
-      //interpolationFormulaList.add(interpolationFormula);
+
       interpolationFormulaList.add(helperFormula1);
       interpolationFormulaList.add(helperFormula2);
       try (@SuppressWarnings("unchecked")
@@ -1648,8 +1644,11 @@ public class DomainSpecificAbstraction<T> {
    //return Collections.emptyList();
   mySolver.close();
     logger.log(Level.WARNING, "Interpolants:", interpolants.toString());
-    return interpolants;
-
+    if (interpolants != null && !(interpolants.isEmpty())){
+      return interpolants;
+    } else {
+      return Collections.emptyList();
+    }
   }
 
 @SuppressWarnings("rawtypes")
