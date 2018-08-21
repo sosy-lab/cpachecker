@@ -109,7 +109,7 @@ SPACES              : [ ] -> skip ;   // skip spaces
 
 
 /*
- * Inline functions for more readable grammar and better maintainability. Valid in all modes.
+ * Inline functions for a more readable grammar and a better maintainability. Valid in all modes.
  */
 fragment LETTER     : (LOWERCASE | UPPERCASE) ;
 fragment LOWERCASE  : [a-z] ;

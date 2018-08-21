@@ -92,10 +92,7 @@ public final class Specification {
     }
 
     Set<Property> properties =
-        pProperties
-            .stream()
-            .map(p -> p.getProperty())
-            .collect(ImmutableSet.toImmutableSet());
+        pProperties.stream().map(p -> p.getProperty()).collect(ImmutableSet.toImmutableSet());
 
     List<Automaton> allAutomata = new ArrayList<>();
 
@@ -115,6 +112,7 @@ public final class Specification {
         AutomatonGraphmlParser graphmlParser =
             new AutomatonGraphmlParser(config, logger, cfa, scope);
         automata = graphmlParser.parseAutomatonFile(specFile, properties);
+
       } else {
         automata =
             AutomatonParser.parseAutomatonFile(

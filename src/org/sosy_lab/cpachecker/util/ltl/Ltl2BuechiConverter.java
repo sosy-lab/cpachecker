@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -163,7 +164,7 @@ public class Ltl2BuechiConverter {
 
       ByteArrayOutputStream os = new ByteArrayOutputStream();
       storedAutomaton.feedToConsumer(new HOAConsumerPrint(os));
-      logger.log(Level.FINEST, os.toString());
+      logger.log(Level.FINEST, os.toString(StandardCharsets.UTF_8.name()));
 
       return storedAutomaton;
     } catch (ParseException e) {

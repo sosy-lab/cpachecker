@@ -78,10 +78,10 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.util.Property;
+import org.sosy_lab.cpachecker.util.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.util.PropertyFileParser;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
-import org.sosy_lab.cpachecker.util.SpecificationProperty.CommonPropertyType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -362,8 +362,7 @@ public class CPAMain {
             "Unsupported combination of properties: " + properties);
       }
       if (options.memsafetyConfig == null) {
-        throw new InvalidConfigurationException(
-            "Verifying memory safety is not supported if option memorysafety.config is not specified.");
+        throw new InvalidConfigurationException("Verifying memory safety is not supported if option memorysafety.config is not specified.");
       }
       alternateConfigFile = options.memsafetyConfig;
     }
@@ -375,8 +374,7 @@ public class CPAMain {
       }
       if (options.overflowConfig == null) {
 
-        throw new InvalidConfigurationException(
-            "Verifying overflows is not supported if option overflow.config is not specified.");
+        throw new InvalidConfigurationException("Verifying overflows is not supported if option overflow.config is not specified.");
       }
       alternateConfigFile = options.overflowConfig;
     }
@@ -418,7 +416,7 @@ public class CPAMain {
           .put(CommonPropertyType.VALID_MEMTRACK, "sv-comp-memorysafety")
           .put(CommonPropertyType.OVERFLOW, "sv-comp-overflow")
           .put(CommonPropertyType.DEADLOCK, "deadlock")
-          // .put(PropertyType.TERMINATION, "none needed")
+          // .put(CommonPropertyType.TERMINATION, "none needed")
           .build();
 
   private static Set<SpecificationProperty> handlePropertyFile(Map<String, String> cmdLineOptions)

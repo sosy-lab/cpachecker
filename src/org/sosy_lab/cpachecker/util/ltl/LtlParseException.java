@@ -23,23 +23,21 @@
  */
 package org.sosy_lab.cpachecker.util.ltl;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * Super-class for all exceptions thrown by parsing ltl-formulas and generating the respective
+ * Super class for all exceptions thrown from parsing ltl-formulas and generating the respective
  * automatons.
  */
-public class LtlParseException extends InvalidConfigurationException {
+public class LtlParseException extends CPAException {
 
   private static final long serialVersionUID = -8907490649042996735L;
 
   public LtlParseException(String pMsg) {
-    super(checkNotNull(pMsg));
+    super(pMsg);
   }
 
   public LtlParseException(String pMsg, Throwable pCause) {
-    super(checkNotNull(pMsg), checkNotNull(pCause));
+    super(pMsg, pCause);
   }
 }

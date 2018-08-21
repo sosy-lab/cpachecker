@@ -184,12 +184,23 @@ public class NewtonRefinementManager implements StatisticsProvider {
                 "The selected PathFormulaAbstractionLevel is not implemented.");
         }
 
+        // Test if the predicate of the error state is unsatisfiable
+        try {
+          if (!solver.isUnsat(predicates.get(predicates.size() - 1))) {
+            logger.log(
+                Level.SEVERE,
+                "Created last predicate is not unsatisfiable. The refinement failed to find a sequence of assertions ruling out counterexample.");
+          }
+        } catch (SolverException e) {
+          throw new RefinementFailedException(Reason.NewtonRefinementFailed, pAllStatesTrace, e);
+        }
+
         // Apply Live Variable filtering if configured
         if (useLiveVariables) {
           predicates = filterFutureLiveVariables(pathLocations, predicates);
         }
-
-        return CounterexampleTraceInfo.infeasible(predicates);
+        // Drop last predicate as it should always be false.
+        return CounterexampleTraceInfo.infeasible(predicates.subList(0, predicates.size() - 1));
       }
     } finally {
       stats.totalTimer.stop();
@@ -213,14 +224,13 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * @param pFormulas The BlockFormulas
    * @param pathLocations Aggregates information to each path location
    * @return A list of Formulas, each Formula represents an assertion at the corresponding
-   *     abstraction state
+   *     abstraction state, the last formula should be unsatisfiable(representing Error state)
    * @throws InterruptedException if interrupted
    * @throws RefinementFailedException if the refinement failed
    */
   private List<BooleanFormula> createPredicatesEdgeLevel(
       ARGPath pPath, BlockFormulas pFormulas, List<PathLocation> pathLocations)
       throws RefinementFailedException, InterruptedException {
-    List<BooleanFormula> predicates;
 
     // Create the list of path
     List<BooleanFormula> pathFormulas =
@@ -240,8 +250,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     }
 
     // Calculate Strongest Post Condition of all pathLocations
-    predicates = this.calculateStrongestPostCondition(pathLocations, unsatCore, pPath);
-    return predicates;
+    return calculateStrongestPostCondition(pathLocations, unsatCore, pPath);
   }
 
   /**
@@ -252,7 +261,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * @param pFormulas The BlockFormulas
    * @param pPathLocations List of location on error trace
    * @return A list of Formulas, each Formula represents an assertion at the corresponding
-   *     abstraction state
+   *     abstraction state, the last formula should be unsatisfiable(representing Error state)
    * @throws InterruptedException if interrupted
    * @throws RefinementFailedException if the refinement failed
    */
@@ -284,7 +293,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
       predicates.add(pred);
     }
 
-    return predicates.subList(0, predicates.size() - 1);
+    return ImmutableList.copyOf(predicates);
   }
 
   /**
@@ -294,7 +303,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * @param pUnsatCore An optional holding the unsatisfiable core in the form of a list of Formulas.
    *     If no list of formulas is applied it computes the regular postCondition
    * @param pPath The path to the Error(Needed for RefinementFailedException)
-   * @return A list of BooleanFormulas holding the strongest postcondition at each abstraction state
+   * @return A list of Formulas, each Formula represents an assertion at the corresponding
+   *     abstraction state, the last formula should be unsatisfiable(representing Error state)
    * @throws InterruptedException In case of interruption
    * @throws RefinementFailedException In case an exception in the solver.
    */
@@ -380,19 +390,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
         preCondition = postCondition;
       }
 
-      // Log an error message if the last predicate is satisfiable
-      try {
-        if (!solver.isUnsat(predicates.get(predicates.size() - 1))) {
-          logger.log(
-              Level.SEVERE,
-              "Created last predicate is not unsatisfiable. The refinement failed to find a sequence of assertions ruling out counterexample.");
-        }
-      } catch (SolverException e) {
-        throw new RefinementFailedException(Reason.NewtonRefinementFailed, pPath, e);
-      }
-
       // Remove the last predicate as it is should be false
-      return ImmutableList.copyOf(predicates.subList(0, predicates.size() - 1));
+      return ImmutableList.copyOf(predicates);
     } finally {
       stats.postConditionTimer.stop();
     }

@@ -37,7 +37,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.util.SpecificationProperty.CommonPropertyType;
+import org.sosy_lab.cpachecker.util.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
 import org.sosy_lab.cpachecker.util.ltl.LtlParser;
 
@@ -111,8 +111,8 @@ public class PropertyFileParser {
         property = LtlParser.parseProperty(rawLtlProperty);
       } catch (LtlParseException e) {
         throw new InvalidPropertyFileException(
-            String.format(
-                "Could not parse property '%s' (%s)", matcher.group(2), e.getMessage(), e));
+            String.format("Could not parse property '%s' (%s)", matcher.group(2), e.getMessage()),
+            e);
       }
     }
     return property;

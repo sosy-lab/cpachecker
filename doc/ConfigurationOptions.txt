@@ -2801,9 +2801,6 @@ cpa.value.refinement.useTopDownInterpolationStrategy = true
 cpa.value.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
 
-# Whether to adopt definite assignments computed by the ConstraintsCPA
-cpa.value.symbolic.adoptDefinites = true
-
 # Default size of arrays whose length can't be determined.
 cpa.value.symbolic.defaultArraySize = 20
 

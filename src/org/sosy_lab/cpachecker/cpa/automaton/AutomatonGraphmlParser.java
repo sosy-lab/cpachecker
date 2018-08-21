@@ -96,7 +96,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.NumericIdProvider;
 import org.sosy_lab.cpachecker.util.Property;
-import org.sosy_lab.cpachecker.util.SpecificationProperty.CommonPropertyType;
+import org.sosy_lab.cpachecker.util.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMLTag;
@@ -249,8 +249,7 @@ public class AutomatonGraphmlParser {
             CParser.Factory.getOptions(config),
             cfa.getMachineModel());
 
-    AutomatonGraphmlParserState graphMLParserState =
-        setupGraphMLParser(pInputStream, pProperties);
+    AutomatonGraphmlParserState graphMLParserState = setupGraphMLParser(pInputStream, pProperties);
 
     // Parse the transitions
     parseTransitions(cparser, graphMLParserState);

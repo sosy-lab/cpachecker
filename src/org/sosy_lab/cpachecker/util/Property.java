@@ -19,4 +19,35 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-public interface Property {}
+public interface Property {
+
+  public enum CommonPropertyType implements Property {
+    REACHABILITY_LABEL("G ! label(ERROR)"),
+
+    REACHABILITY("G ! call(__VERIFIER_error())"),
+
+    VALID_FREE("G valid-free"),
+
+    VALID_DEREF("G valid-deref"),
+
+    VALID_MEMTRACK("G valid-memtrack"),
+
+    OVERFLOW("G ! overflow"),
+
+    DEADLOCK("G ! deadlock"),
+
+    TERMINATION("F end"),
+    ;
+
+    private final String representation;
+
+    CommonPropertyType(String pRepresentation) {
+      representation = pRepresentation;
+    }
+
+    @Override
+    public String toString() {
+      return representation;
+    }
+  }
+}

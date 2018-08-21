@@ -115,8 +115,8 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
-import org.sosy_lab.cpachecker.util.SpecificationProperty.CommonPropertyType;
 
 /**
  * Algorithm that uses a safety-analysis to prove (non-)termination.

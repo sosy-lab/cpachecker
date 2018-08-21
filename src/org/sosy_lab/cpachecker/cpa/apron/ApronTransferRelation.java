@@ -781,6 +781,9 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
         Set<Texpr0Node> coeffsList = right.accept(new CApronExpressionVisitor());
 
         if (coeffsList.isEmpty()) {
+          if (right instanceof CFunctionCallExpression) {
+            return Collections.singleton(state.forget(variableName));
+          }
           return Collections.singleton(state);
         }
 
