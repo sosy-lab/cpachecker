@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -58,12 +57,12 @@ public class ConstraintsMergeOperatorTest {
   public void testMerge_mergePossible() throws Exception {
     Set<Constraint> constraints = getConstraints();
 
-    ConstraintsState state1 = new ConstraintsState(constraints, IdentifierAssignment.empty());
+    ConstraintsState state1 = new ConstraintsState(constraints);
     state1.add(posConst);
 
     constraints = getConstraints();
 
-    ConstraintsState state2 = new ConstraintsState(constraints, IdentifierAssignment.empty());
+    ConstraintsState state2 = new ConstraintsState(constraints);
     state2.add(negConst);
 
     ConstraintsState mergeResult = (ConstraintsState) op.merge(state1, state2, SingletonPrecision.getInstance());

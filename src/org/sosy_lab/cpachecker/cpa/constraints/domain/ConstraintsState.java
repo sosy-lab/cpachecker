@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.constraints.domain;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,7 +40,6 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
@@ -61,22 +61,19 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
 
   private Map<Constraint, BooleanFormula> constraintFormulas;
 
-  private IdentifierAssignment definiteAssignment;
+  private ImmutableCollection<ValueAssignment> definiteAssignment;
   private ImmutableList<ValueAssignment> lastModelAsAssignment = ImmutableList.of();
 
   /**
    * Creates a new, initial <code>ConstraintsState</code> object.
    */
   public ConstraintsState() {
-    this(Collections.emptySet(), IdentifierAssignment.empty());
+    this(Collections.emptySet());
   }
 
-  public ConstraintsState(
-      final Set<Constraint> pConstraints,
-      final IdentifierAssignment pDefiniteAssignment
-  ) {
+  public ConstraintsState(final Set<Constraint> pConstraints) {
     constraints = new ArrayList<>(pConstraints);
-    definiteAssignment = new IdentifierAssignment(pDefiniteAssignment);
+    definiteAssignment = ImmutableList.of();
     constraintFormulas = new HashMap<>();
   }
 
@@ -92,7 +89,7 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
     constraintFormulas = new HashMap<>(pState.constraintFormulas);
 
     lastAddedConstraint = pState.lastAddedConstraint;
-    definiteAssignment = new IdentifierAssignment(pState.definiteAssignment);
+    definiteAssignment = ImmutableList.copyOf(pState.definiteAssignment);
     lastModelAsAssignment = pState.lastModelAsAssignment;
   }
 
@@ -126,6 +123,7 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
     if (changed) {
       constraintFormulas.remove(pObject);
       assert constraints.size() >= constraintFormulas.size();
+      definiteAssignment = ImmutableList.of();
     }
 
     return changed;
@@ -161,6 +159,10 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
       }
     }
 
+    if (changed) {
+      definiteAssignment = ImmutableList.of();
+    }
+
     assert constraints.size() >= constraintFormulas.size();
     return changed;
   }
@@ -173,6 +175,10 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
       changed |= remove(o);
     }
 
+    if (changed) {
+      definiteAssignment = ImmutableList.of();
+    }
+
     assert constraints.size() >= constraintFormulas.size();
     return changed;
   }
@@ -181,6 +187,7 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
   public void clear() {
     constraints.clear();
     constraintFormulas.clear();
+    definiteAssignment = ImmutableList.of();
   }
 
   @Override
@@ -201,15 +208,15 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
   /**
    * Returns the known unambiguous assignment of variables so this state's {@link Constraint}s are
    * fulfilled. Variables that can have more than one valid assignment are not included in the
-   * returned {@link IdentifierAssignment}.
+   * returned assignments.
    *
    * @return the known assignment of variables that have no other fulfilling assignment
    */
-  public IdentifierAssignment getDefiniteAssignment() {
+  public ImmutableCollection<ValueAssignment> getDefiniteAssignment() {
     return definiteAssignment;
   }
 
-  void setDefiniteAssignment(IdentifierAssignment pAssignment) {
+  void setDefiniteAssignment(ImmutableCollection<ValueAssignment> pAssignment) {
     definiteAssignment = pAssignment;
   }
 

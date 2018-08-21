@@ -411,7 +411,6 @@ public class SymbolicValueAnalysisRefiner
             va.getName());
       }
     }
-    assignment.putAll(finalConstraints.getDefiniteAssignment());
 
     stateSequence = evaluate(tp, assignment);
     List<Pair<ValueAnalysisState, List<CFAEdge>>> concreteAssignmentsOnPath =

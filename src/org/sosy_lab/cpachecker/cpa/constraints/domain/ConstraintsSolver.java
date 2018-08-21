@@ -26,13 +26,12 @@ package org.sosy_lab.cpachecker.cpa.constraints.domain;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Table;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,7 +43,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -59,11 +57,9 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreatorUsingCConverter;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierLocator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -141,11 +137,11 @@ public class ConstraintsSolver implements StatisticsProvider {
   private SymbolicIdentifierLocator locator;
 
   /** Table of id constraints set, id identifier assignment, formula * */
-  private Table<Constraint, IdentifierAssignment, BooleanFormula> constraintFormulas =
-      HashBasedTable.create();
+  private Map<Constraint, BooleanFormula> constraintFormulas = new HashMap<>();
 
-  private BooleanFormula modelLiteral;
-  private BooleanFormula assignmentLiteral;
+  private BooleanFormula literalForModel;
+  private BooleanFormula literalForSingleAssignment;
+  private BooleanFormula literalForDefiniteAssignment;
 
   public ConstraintsSolver(
       final Configuration pConfig,
@@ -160,8 +156,9 @@ public class ConstraintsSolver implements StatisticsProvider {
     solver = pSolver;
     formulaManager = pFormulaManager;
     booleanFormulaManager = formulaManager.getBooleanFormulaManager();
-    modelLiteral = booleanFormulaManager.makeVariable("__M");
-    assignmentLiteral = booleanFormulaManager.makeVariable("__A");
+    literalForModel = booleanFormulaManager.makeVariable("__M");
+    literalForSingleAssignment = booleanFormulaManager.makeVariable("__A");
+    literalForDefiniteAssignment = booleanFormulaManager.makeVariable("__D");
     converter = pConverter;
     locator = SymbolicIdentifierLocator.getInstance();
 
@@ -177,9 +174,10 @@ public class ConstraintsSolver implements StatisticsProvider {
   }
 
   public boolean isUnsat(
-      Constraint pConstraint, IdentifierAssignment pAssignment, String pFunctionName)
+      Constraint pConstraint, ImmutableList<ValueAssignment> pAssignment, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException, SolverException {
-    ConstraintsState s = new ConstraintsState(Collections.singleton(pConstraint), pAssignment);
+    ConstraintsState s = new ConstraintsState(Collections.singleton(pConstraint));
+    s.setDefiniteAssignment(pAssignment);
     return isUnsat(s, pFunctionName);
   }
 
@@ -203,8 +201,7 @@ public class ConstraintsSolver implements StatisticsProvider {
       Set<Constraint> relevantConstraints = getRelevantConstraints(pConstraints);
 
       Collection<BooleanFormula> constraintsAsFormulas =
-          getFullFormula(
-              relevantConstraints, pConstraints.getDefiniteAssignment(), pFunctionName);
+          getFullFormula(relevantConstraints, pFunctionName);
       CacheResult res = cache.getCachedResult(constraintsAsFormulas);
 
       if (res.isUnsat()) {
@@ -217,12 +214,18 @@ public class ConstraintsSolver implements StatisticsProvider {
       } else {
         prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
         BooleanFormula singleConstraintFormula = booleanFormulaManager.and(constraintsAsFormulas);
-
         prover.push(singleConstraintFormula);
 
-        ImmutableList<ValueAssignment> newModelAsAssignment;
+        BooleanFormula definiteAssignments = pConstraints.getDefiniteAssignment()
+            .stream()
+            .map(ValueAssignment::getAssignmentAsFormula)
+            .collect(booleanFormulaManager.toConjunction());
+        definiteAssignments = createLiteralLabel(literalForDefiniteAssignment, definiteAssignments);
+        prover.push(definiteAssignments);
 
+        ImmutableList<ValueAssignment> newModelAsAssignment;
         ImmutableList<ValueAssignment> modelAsAssignment = pConstraints.getModel();
+
         boolean modelExists = !modelAsAssignment.isEmpty();
         if (useLastModel && modelExists) {
           try {
@@ -232,9 +235,10 @@ public class ConstraintsSolver implements StatisticsProvider {
                     .stream()
                     .map(ValueAssignment::getAssignmentAsFormula)
                     .collect(booleanFormulaManager.toConjunction());
-            modelFormula = createLiteralLabel(modelLiteral, modelFormula);
+            modelFormula = createLiteralLabel(literalForModel, modelFormula);
             prover.push(modelFormula);
-            unsat = prover.isUnsatWithAssumptions(Collections.singleton(modelLiteral));
+            unsat = prover.isUnsatWithAssumptions(
+                ImmutableList.of(literalForDefiniteAssignment, literalForModel));
             if (!unsat) {
               modelReuseSuccesses.inc();
             }
@@ -246,7 +250,7 @@ public class ConstraintsSolver implements StatisticsProvider {
         if (unsat == null || unsat) {
           try {
             timeForSatCheck.start();
-            unsat = prover.isUnsat();
+            unsat = prover.isUnsatWithAssumptions(ImmutableList.of(literalForDefiniteAssignment));
           } finally {
             timeForSatCheck.stop();
           }
@@ -260,10 +264,19 @@ public class ConstraintsSolver implements StatisticsProvider {
           // cheaper than performing another complete SAT check when the assignment is really
           // requested
           if (resolveDefinites) {
-            resolveDefiniteAssignments(pConstraints, newModelAsAssignment);
+            pConstraints.setDefiniteAssignment(
+                resolveDefiniteAssignments(pConstraints, newModelAsAssignment));
           }
 
+          assert pConstraints.getModel().containsAll(pConstraints.getDefiniteAssignment())
+              : "Model does not imply definites: " + pConstraints.getModel() + " !=> "
+              + pConstraints.getDefiniteAssignment();
+
         } else {
+          assert prover.isUnsat()
+              : "Unsat with definite assignment, but not without. Definite assignment: "
+              + pConstraints.getDefiniteAssignment();
+
           cache.addUnsat(constraintsAsFormulas);
         }
       }
@@ -329,53 +342,34 @@ public class ConstraintsSolver implements StatisticsProvider {
     }
   }
 
-  private void resolveDefiniteAssignments(
+  private ImmutableCollection<ValueAssignment> resolveDefiniteAssignments(
       ConstraintsState pConstraints, List<ValueAssignment> pModel)
       throws InterruptedException, SolverException {
     try {
       timeForDefinitesComputation.start();
 
-      IdentifierAssignment newDefinites =
-          computeDefiniteAssignment(pConstraints, pModel);
-      pConstraints.setDefiniteAssignment(newDefinites);
+      return computeDefiniteAssignment(pConstraints, pModel);
 
     } finally {
       timeForDefinitesComputation.stop();
     }
   }
 
-  private IdentifierAssignment computeDefiniteAssignment(
+  private ImmutableCollection<ValueAssignment> computeDefiniteAssignment(
       ConstraintsState pState, List<ValueAssignment> pModel)
       throws SolverException, InterruptedException {
 
-    IdentifierAssignment newDefinites = new IdentifierAssignment(pState.getDefiniteAssignment());
+    ImmutableCollection<ValueAssignment> existingDefinites = pState.getDefiniteAssignment();
+    ImmutableSet.Builder<ValueAssignment> newDefinites = ImmutableSet.builder();
 
     for (ValueAssignment val : pModel) {
-      if (SymbolicValues.isSymbolicTerm(val.getName())) {
-
-        SymbolicIdentifier identifier =
-            SymbolicValues.convertTermToSymbolicIdentifier(val.getName());
-        Value concreteValue = SymbolicValues.convertToValue(val);
-
-        if (!newDefinites.containsKey(identifier)
-            && isOnlySatisfyingAssignment(val)) {
-
-          assert !newDefinites.containsKey(identifier)
-                  || newDefinites.get(identifier).equals(concreteValue)
-              : "Definite assignment can't be changed from "
-                  + newDefinites.get(identifier)
-                  + " to "
-                  + concreteValue;
-
-          newDefinites.put(identifier, concreteValue);
-        }
-      } else {
-        logger.logOnce(
-            Level.FINE, "Constraints solver could not assign value to variable in " + "model");
+      if (SymbolicValues.isSymbolicTerm(val.getName())
+          && (existingDefinites.contains(val)
+          || isOnlySatisfyingAssignment(val))) {
+        newDefinites.add(val);
       }
     }
-    assert newDefinites.entrySet().containsAll(pState.getDefiniteAssignment().entrySet());
-    return newDefinites;
+    return newDefinites.build();
   }
 
   private boolean isOnlySatisfyingAssignment(ValueAssignment pTerm)
@@ -384,9 +378,10 @@ public class ConstraintsSolver implements StatisticsProvider {
     BooleanFormula prohibitAssignment =
         formulaManager.makeNot(pTerm.getAssignmentAsFormula());
 
-    prohibitAssignment = createLiteralLabel(assignmentLiteral, prohibitAssignment);
+    prohibitAssignment = createLiteralLabel(literalForSingleAssignment, prohibitAssignment);
     prover.push(prohibitAssignment);
-    boolean isUnsat = prover.isUnsatWithAssumptions(Collections.singleton(assignmentLiteral));
+    boolean isUnsat =
+        prover.isUnsatWithAssumptions(Collections.singleton(literalForSingleAssignment));
     prover.pop();
 
     return isUnsat;
@@ -405,28 +400,27 @@ public class ConstraintsSolver implements StatisticsProvider {
    * @throws InterruptedException see {@link FormulaCreator#createFormula(Constraint)}
    */
   private Collection<BooleanFormula> getFullFormula(
-      Collection<Constraint> pConstraints, IdentifierAssignment pAssignment, String pFunctionName)
+      Collection<Constraint> pConstraints, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException {
 
     List<BooleanFormula> formulas = new ArrayList<>(pConstraints.size());
     for (Constraint c : pConstraints) {
-      if (!constraintFormulas.contains(c, pAssignment)) {
-        constraintFormulas.put(
-            c, pAssignment, createConstraintFormulas(c, pAssignment, pFunctionName));
+      if (!constraintFormulas.containsKey(c)) {
+        constraintFormulas.put(c, createConstraintFormulas(c, pFunctionName));
       }
-      formulas.add(constraintFormulas.get(c, pAssignment));
+      formulas.add(constraintFormulas.get(c));
     }
 
     return formulas;
   }
 
   private BooleanFormula createConstraintFormulas(
-      Constraint pConstraint, IdentifierAssignment pAssignment, String pFunctionName)
+      Constraint pConstraint, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException {
-    assert !constraintFormulas.contains(pConstraint, pAssignment)
+    assert !constraintFormulas.containsKey(pConstraint)
         : "Trying to add a formula that already exists!";
 
-    return getFormulaCreator(pFunctionName).createFormula(pConstraint, pAssignment);
+    return getFormulaCreator(pFunctionName).createFormula(pConstraint);
   }
 
   @Override

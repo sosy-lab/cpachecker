@@ -1336,10 +1336,6 @@ cpa.constraints.refinement.precisionType = CONSTRAINTS
 # toanalysis during simplification
 cpa.constraints.removeOutdated = true
 
-# Whether to remove trivial constraints from constraints states during
-# simplification
-cpa.constraints.removeTrivial = false
-
 # Resolve definite assignments
 cpa.constraints.resolveDefinites = true
 

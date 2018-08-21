@@ -84,12 +84,6 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
 
   private static final FileLocation DUMMY_LOCATION = FileLocation.DUMMY;
 
-  private final IdentifierAssignment definiteAssignment;
-
-  public SymbolicExpressionTransformer(IdentifierAssignment pDefiniteAssignment) {
-    definiteAssignment = pDefiniteAssignment;
-  }
-
   @Override
   public CExpression visit(SymbolicIdentifier pValue) {
     throw new UnsupportedOperationException(
@@ -227,20 +221,11 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
   }
 
   private CExpression getIdentifierCExpression(SymbolicIdentifier pIdentifier, CType pType) {
+    String name = SymbolicIdentifier.Converter.getInstance().convertToStringEncoding(
+        pIdentifier);
+    CSimpleDeclaration declaration = getIdentifierDeclaration(name, pType);
 
-    if (definiteAssignment.containsKey(pIdentifier)) {
-      Value concreteValue = definiteAssignment.get(pIdentifier);
-      assert !(concreteValue instanceof SymbolicIdentifier);
-
-      return transformValue(concreteValue, pType);
-
-    } else {
-      String name = SymbolicIdentifier.Converter.getInstance().convertToStringEncoding(
-          pIdentifier);
-      CSimpleDeclaration declaration = getIdentifierDeclaration(name, pType);
-
-      return new CIdExpression(DUMMY_LOCATION, pType, name, declaration);
-    }
+    return new CIdExpression(DUMMY_LOCATION, pType, name, declaration);
   }
 
   private CVariableDeclaration getIdentifierDeclaration(String pIdentifierName, CType pType) {

@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityChecker;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
@@ -104,7 +103,7 @@ public class StateSimplifier implements Statistics {
     if (removeTrivial) {
       try {
         trivialRemovalTime.start();
-        removeTrivialConstraints(pState, pState.getDefiniteAssignment());
+        removeTrivialConstraints(pState);
       } finally {
         trivialRemovalTime.stop();
       }
@@ -123,8 +122,7 @@ public class StateSimplifier implements Statistics {
   }
 
   /** Removes all trivial constraints from the given state. */
-  public void removeTrivialConstraints(
-      final ConstraintsState pState, final IdentifierAssignment pAssignment) {
+  public void removeTrivialConstraints(final ConstraintsState pState) {
     int sizeBefore = pState.size();
 
     Iterator<Constraint> it = pState.iterator();
@@ -132,7 +130,7 @@ public class StateSimplifier implements Statistics {
     while (it.hasNext()) {
       Constraint currConstraint = it.next();
 
-      if (isTrivial(currConstraint, pAssignment)) {
+      if (isTrivial(currConstraint)) {
         it.remove();
       }
     }
@@ -140,8 +138,8 @@ public class StateSimplifier implements Statistics {
     removedTrivial.setNextValue(sizeBefore - pState.size());
   }
 
-  private boolean isTrivial(Constraint pConstraint, IdentifierAssignment pAssignment) {
-    final ConstraintTrivialityChecker trivialityChecker = new ConstraintTrivialityChecker(pAssignment);
+  private boolean isTrivial(Constraint pConstraint) {
+    final ConstraintTrivialityChecker trivialityChecker = new ConstraintTrivialityChecker();
 
     return pConstraint.accept(trivialityChecker);
   }
@@ -161,7 +159,6 @@ public class StateSimplifier implements Statistics {
     int sizeBefore = pState.size();
     final Map<ActivityInfo, Set<ActivityInfo>> symIdActivity = getInitialActivityMap(pState);
     final Set<SymbolicIdentifier> symbolicValues = getExistingSymbolicIds(pValueState);
-    final IdentifierAssignment definiteAssignments = pState.getDefiniteAssignment();
 
     for (Entry<ActivityInfo, Set<ActivityInfo>> e : symIdActivity.entrySet()) {
       final ActivityInfo s = e.getKey();
@@ -176,7 +173,7 @@ public class StateSimplifier implements Statistics {
 
           if (!symbolicValues.contains(currId)) {
             boolean canBeRemoved;
-            if (s.getUsingConstraints().size() < 2 && !definiteAssignments.containsKey(currId)) {
+            if (s.getUsingConstraints().size() < 2) {
               // the symbolic identifier only occurs in one constraint and is not active,
               // so it does not constrain any currently existing symbolic identifier
               canBeRemoved = true;
