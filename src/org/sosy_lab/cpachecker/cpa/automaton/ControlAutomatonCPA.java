@@ -58,12 +58,14 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
 
@@ -79,6 +81,10 @@ public class ControlAutomatonCPA
   @Option(secure=true, name="dotExport",
       description="export automaton to file")
   private boolean export = false;
+
+  @Option(secure = true, name = "ignoreInStop",
+      description = "ignore Control Automaton state in termination check (stop operator)")
+  private boolean alwaysStop = false;
 
   @Option(
       secure = true,
@@ -240,7 +246,19 @@ public class ControlAutomatonCPA
 
   @Override
   public StopOperator getStopOperator() {
-    return new StopSepOperator(getAbstractDomain());
+    if (alwaysStop) {
+      return new StopOperator() {
+        @Override
+        public boolean stop(
+            AbstractState state, Collection<AbstractState> reached, Precision precision)
+            throws CPAException, InterruptedException {
+          return true;
+        }
+      };
+
+    } else {
+      return new StopSepOperator(getAbstractDomain());
+    }
   }
 
   @Override
