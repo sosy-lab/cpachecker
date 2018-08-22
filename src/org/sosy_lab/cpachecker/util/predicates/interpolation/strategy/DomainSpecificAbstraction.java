@@ -1643,7 +1643,6 @@ public class DomainSpecificAbstraction<T> {
      // myInterpolator.itpProver.getInterpolant((List<T>) interpolationFormulaList);
 
    //return Collections.emptyList();
-  mySolver.close();
     logger.log(Level.WARNING, "Interpolants:", interpolants.toString());
     if (interpolants != null && !(interpolants.isEmpty())){
       return interpolants;
