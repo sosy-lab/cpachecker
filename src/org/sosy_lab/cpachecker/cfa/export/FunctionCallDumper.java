@@ -23,24 +23,25 @@
  */
 package org.sosy_lab.cpachecker.cfa.export;
 
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
-
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Multimap;
-
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /** This class allows to dump functioncalls in a tree-like structure.
  * For most cases the structure is a tree, but for special cases the graph contains
@@ -95,8 +96,12 @@ public class FunctionCallDumper {
         // the normal case of functioncall, both functions have their complete CFA
         final FunctionSummaryEdge function = (FunctionSummaryEdge) pEdge;
         final String functionName = function.getPredecessor().getFunctionName();
-        final String calledFunction = function.getPredecessor().getLeavingEdge(0).getSuccessor().getFunctionName();
-        functionCalls.put(functionName, calledFunction);
+            final Optional<FunctionCallEdge> calledFunction =
+                CFAUtils.leavingEdges(function.getPredecessor())
+                    .filter(FunctionCallEdge.class)
+                    .first();
+            Preconditions.checkState(calledFunction.isPresent(), "internal function without body");
+            functionCalls.put(functionName, calledFunction.get().getSuccessor().getFunctionName());
         break;
       }
 
