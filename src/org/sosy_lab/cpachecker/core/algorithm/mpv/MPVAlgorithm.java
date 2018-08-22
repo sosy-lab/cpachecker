@@ -128,7 +128,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
       out.println(
           "Total CPU time for MPV algorithm:         " + totalCpuTime.formatAs(TimeUnit.SECONDS));
       out.println();
-      out.println("Partitions statisctics:");
+      out.println("Partitions statistics:");
       int counter = 1;
       for (Partition partition : partitions) {
         out.println("Partition " + counter++ + ":");
