@@ -37,7 +37,9 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.CompatibilityCheck;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -48,7 +50,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 
 @Options(prefix = "cpa.bam")
-public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofChecker {
+public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofChecker, ConfigurableProgramAnalysisTM {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(BAMCPA.class);
@@ -148,7 +150,7 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
   }
 
   @Override
-  BAMDataManager getData() {
+  public BAMDataManager getData() {
     Preconditions.checkNotNull(data);
     return data;
   }
@@ -168,5 +170,20 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
   public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
     Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
     return wrappedProofChecker.isCoveredBy(pState, pOtherState);
+  }
+
+  @Override
+  public CompatibilityCheck getCompatibilityCheck() {
+    return ((ConfigurableProgramAnalysisTM) getWrappedCpa()).getCompatibilityCheck();
+  }
+
+  @Override
+  public MergeOperator getMergeForInferenceObject() {
+    return ((ConfigurableProgramAnalysisTM) getWrappedCpa()).getMergeForInferenceObject();
+  }
+
+  @Override
+  public StopOperator getStopForInferenceObject() {
+    return ((ConfigurableProgramAnalysisTM) getWrappedCpa()).getStopForInferenceObject();
   }
 }

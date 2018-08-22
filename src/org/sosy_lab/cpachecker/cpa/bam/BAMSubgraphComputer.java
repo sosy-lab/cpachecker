@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGInferenceObject;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -306,6 +307,11 @@ public class BAMSubgraphComputer {
 
     public BackwardARGState(ARGState originalState) {
       super(originalState, null);
+      ARGInferenceObject o = originalState.getAppliedEffect();
+      if (o != null) {
+        this.setAppliedEffect(o);
+      }
+
     }
 
     public ARGState getARGState() {

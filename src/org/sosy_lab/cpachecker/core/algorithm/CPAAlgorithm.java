@@ -122,7 +122,7 @@ public class CPAAlgorithm extends AbstractCPAAlgorithm {
 
   @Override
   protected Collection<Pair<? extends AbstractState, ? extends Precision>> getAbstractSuccessors(
-      WaitlistElement pElement)
+      WaitlistElement pElement, ReachedSet rset)
       throws CPATransferException, InterruptedException {
 
     //TODO Array?

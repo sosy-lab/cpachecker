@@ -43,10 +43,15 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
+import org.sosy_lab.cpachecker.core.algorithm.CPAThreadModularAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CPAThreadModularAlgorithm.ThreadModularAlgorithmFactory;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ThreadModularReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
@@ -63,6 +68,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
   protected final Deque<Triple<AbstractState, Precision, Block>> stack = new ArrayDeque<>();
 
   private final CPAAlgorithmFactory algorithmFactory;
+  private final ThreadModularAlgorithmFactory tmAlgorithmFactory;
   protected final BAMPCCManager bamPccManager;
 
   // Callstack-CPA is used for additional recursion handling
@@ -79,6 +85,8 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
       throws InvalidConfigurationException {
     super(bamCpa, pShutdownNotifier);
     algorithmFactory = new CPAAlgorithmFactory(bamCpa, logger, pConfig, pShutdownNotifier);
+    tmAlgorithmFactory = new ThreadModularAlgorithmFactory(bamCpa, logger, pConfig, pShutdownNotifier);
+
     callstackTransfer = (CallstackTransferRelation) (CPAs.retrieveCPA(bamCpa, CallstackCPA.class)).getTransferRelation();
     bamPccManager = new BAMPCCManager(
         wrappedChecker, pConfig, partitioning, wrappedReducer, bamCpa, data);
@@ -304,6 +312,9 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
         reached =
             data.createAndRegisterNewReachedSet(
                 reducedInitialState, reducedInitialPrecision, innerSubtree);
+        for (InferenceObject o : ((ThreadModularReachedSet) super.reached).getInferenceObjects()) {
+          reached.add(o, SingletonPrecision.getInstance());
+        }
         logger.log(Level.FINEST, "Cache miss: starting recursive CPAAlgorithm with new initial reached-set.");
       } else {
         reached = cachedReached;
@@ -368,7 +379,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
       throws InterruptedException, CPAException {
 
     // CPAAlgorithm is not re-entrant due to statistics
-    final CPAAlgorithm algorithm = algorithmFactory.newInstance();
+    final CPAThreadModularAlgorithm algorithm = tmAlgorithmFactory.newInstance();
     algorithm.run(reached);
 
     // if the element is an error element

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.collect.Iterables;
@@ -39,19 +40,23 @@ import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelationTM;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public abstract class AbstractBAMTransferRelation<EX extends CPAException>
-    implements TransferRelation {
+    implements TransferRelationTM {
 
   final BAMDataManager data;
   protected final BlockPartitioning partitioning;
@@ -59,6 +64,7 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
   protected final TransferRelation wrappedTransfer;
   protected final Reducer wrappedReducer;
   protected final ShutdownNotifier shutdownNotifier;
+  protected ReachedSet reached = null;
 
   protected final boolean useDynamicAdjustment;
 
@@ -71,6 +77,27 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
     partitioning = pBamCPA.getBlockPartitioning();
     shutdownNotifier = pShutdownNotifier;
     useDynamicAdjustment = pBamCPA.useDynamicAdjustment();
+  }
+
+  @Override
+  public Collection<Pair<AbstractState, InferenceObject>> getAbstractSuccessors(
+      final AbstractState pState, InferenceObject object, ReachedSet rset, final Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+    try {
+      if (reached == null) {
+        reached = rset;
+      }
+      final Collection<Pair<AbstractState, InferenceObject>> successors =
+          getAbstractSuccessorsWithoutWrapping(pState, object, pPrecision);
+
+      //assert !Iterables.any(successors, IS_TARGET_STATE) || successors.size() == 1
+      //    : "target-state should be returned as single-element-collection";
+
+      return successors;
+
+    } catch (CPAException e) {
+      throw new RecursiveAnalysisFailedException(e);
+    }
   }
 
   @Override
@@ -121,6 +148,37 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
     return getWrappedTransferSuccessor(argState, pPrecision, node);
   }
 
+  protected Collection<Pair<AbstractState, InferenceObject>> getAbstractSuccessorsWithoutWrapping(
+      final AbstractState pState, InferenceObject pObject, final Precision pPrecision)
+      throws EX, InterruptedException, CPATransferException {
+    shutdownNotifier.shutdownIfNecessary();
+
+    final CFANode node = extractLocation(pState);
+    final ARGState argState = (ARGState) pState;
+
+    // we are at some location inside the program,
+    // this part is always and only reached as recursive call with 'doRecursiveAnalysis'
+    // (except we have a full cache-hit).
+    if (exitBlockAnalysis(argState, node)) {
+
+      // We are leaving the block, do not perform analysis beyond the current block.
+      return Collections.emptySet();
+    }
+
+    if (startNewBlockAnalysis(argState, node)) {
+      // we are at the entryNode of a new block and we are in a new context,
+      // so we have to start a recursive analysis
+      Collection<? extends AbstractState> result = doRecursiveAnalysis(argState, pPrecision, node);
+      Collection<Pair<AbstractState, InferenceObject>> resultPairs = new ArrayList<>();
+      from(result).forEach(s -> resultPairs.add(Pair.of(s, EmptyInferenceObject.getInstance())));
+      return resultPairs;
+    }
+
+    // the easy case: we are in the middle of a block, so just forward to wrapped CPAs.
+    // if there are several leaving edges, the wrapped CPA should handle all of them.
+    return getWrappedTransferSuccessor(argState, pObject, pPrecision, node);
+  }
+
   protected abstract Collection<? extends AbstractState> doRecursiveAnalysis(
       AbstractState pState, Precision pPrecision, CFANode pNode) throws EX, InterruptedException;
 
@@ -136,6 +194,12 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
       final ARGState pState, final Precision pPrecision, final CFANode pNode)
       throws EX, InterruptedException, CPATransferException {
     return wrappedTransfer.getAbstractSuccessors(pState, pPrecision);
+  }
+
+  protected Collection<Pair<AbstractState, InferenceObject>> getWrappedTransferSuccessor(
+      final ARGState pState, InferenceObject pObject, final Precision pPrecision, final CFANode pNode)
+      throws InterruptedException, CPATransferException {
+    return ((TransferRelationTM) wrappedTransfer).getAbstractSuccessors(pState, pObject, pPrecision);
   }
 
   /**
@@ -300,5 +364,17 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
     throw new UnsupportedOperationException(
         "BAMCPA needs to be used as the outermost CPA,"
             + " thus it does not support returning successors for a single edge.");
+  }
+
+  @Override
+  public Collection<Pair<AbstractState, InferenceObject>> getAbstractSuccessors(AbstractState pState, InferenceObject pInferenceObject, Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+    throw new CPATransferException("Not supported");
+  }
+
+  @Override
+  public Collection<Pair<AbstractState, InferenceObject>> getAbstractSuccessorForEdge(AbstractState pState, InferenceObject pInferenceObject, Precision pPrecision, CFAEdge pCfaEdge)
+      throws CPATransferException, InterruptedException {
+    throw new CPATransferException("Not supported");
   }
 }

@@ -282,7 +282,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
     stats.transferTimer.start();
     Collection<Pair<? extends AbstractState, ? extends Precision>> successors;
     try {
-      successors = getAbstractSuccessors(element);
+      successors = getAbstractSuccessors(element, reachedSet);
     } finally {
       stats.transferTimer.stop();
     }
@@ -418,7 +418,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
         logger.log(Level.FINER, "No need to stop, adding successor to waitlist");
 
         stats.addTimer.start();
-        frontier(reachedSet, successor, precision);
+        frontier(reachedSet, successor, successorPrecision);
         stats.addTimer.stop();
       }
     }
@@ -439,7 +439,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
       List<Pair<AbstractState, Precision>> pToAdd);
 
   protected abstract Collection<Pair<? extends AbstractState, ? extends Precision>> getAbstractSuccessors(
-      WaitlistElement element)
+      WaitlistElement element, ReachedSet rset)
       throws CPATransferException, InterruptedException;
 
   protected abstract boolean mergeIsNotSep(AbstractState pState);

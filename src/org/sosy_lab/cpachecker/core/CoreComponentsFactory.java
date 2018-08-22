@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.BAMIterationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -76,6 +77,7 @@ import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
+import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
@@ -359,6 +361,9 @@ public class CoreComponentsFactory {
       if (useThreadModularAlgorithm) {
         assert (cpa instanceof ConfigurableProgramAnalysisTM);
         algorithm = CPAThreadModularAlgorithm.create((ConfigurableProgramAnalysisTM)cpa, logger, shutdownNotifier);
+        if (cpa instanceof AbstractBAMCPA) {
+          algorithm = new BAMIterationAlgorithm(algorithm, cpa, config, logger);
+        }
       } else {
         algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
       }

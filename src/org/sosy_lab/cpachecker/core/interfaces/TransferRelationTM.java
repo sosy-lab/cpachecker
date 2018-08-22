@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -32,6 +33,11 @@ public interface TransferRelationTM extends TransferRelation {
 
   Collection<Pair<AbstractState, InferenceObject>> getAbstractSuccessors(AbstractState pState,
       InferenceObject pInferenceObject, Precision pPrecision) throws CPATransferException, InterruptedException;
+
+  default Collection<Pair<AbstractState, InferenceObject>> getAbstractSuccessors(AbstractState pState,
+      InferenceObject pInferenceObject, ReachedSet rset, Precision pPrecision) throws CPATransferException, InterruptedException {
+    return getAbstractSuccessors(pState, pInferenceObject, pPrecision);
+  }
 
   Collection<Pair<AbstractState, InferenceObject>> getAbstractSuccessorForEdge(AbstractState pState,
       InferenceObject pInferenceObject, Precision pPrecision, CFAEdge cfaEdge) throws CPATransferException, InterruptedException;

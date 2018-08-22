@@ -29,6 +29,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -37,6 +40,7 @@ import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.TauInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CompatibilityCheck;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisTM;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCovering;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
@@ -91,6 +95,28 @@ public class CPAThreadModularAlgorithm extends AbstractCPAAlgorithm {
       out.println();
       out.println("  Time for inference objects update:          " + inferenceObjectsAdd);
       out.println("  Time for states update: " + statesAdd);
+    }
+  }
+
+  @Options(prefix = "cpa")
+  public static class ThreadModularAlgorithmFactory {
+
+    private final ConfigurableProgramAnalysis cpa;
+    private final LogManager logger;
+    private final ShutdownNotifier shutdownNotifier;
+
+    public ThreadModularAlgorithmFactory(ConfigurableProgramAnalysis cpa, LogManager logger,
+        Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+
+      config.inject(this);
+      this.cpa = cpa;
+      this.logger = logger;
+      this.shutdownNotifier = pShutdownNotifier;
+
+    }
+
+    public CPAThreadModularAlgorithm newInstance() {
+      return CPAThreadModularAlgorithm.create((ConfigurableProgramAnalysisTM) cpa, logger, shutdownNotifier);
     }
   }
 
@@ -167,7 +193,7 @@ public class CPAThreadModularAlgorithm extends AbstractCPAAlgorithm {
 
   @Override
   protected Collection<Pair<? extends AbstractState, ? extends Precision>> getAbstractSuccessors(
-      WaitlistElement pElement) throws CPATransferException, InterruptedException {
+      WaitlistElement pElement, ReachedSet rset) throws CPATransferException, InterruptedException {
 
     Preconditions.checkArgument(pElement instanceof ThreadModularWaitlistElement);
 
@@ -176,7 +202,7 @@ public class CPAThreadModularAlgorithm extends AbstractCPAAlgorithm {
     InferenceObject object = ((ThreadModularWaitlistElement) pElement).getInferenceObject();
 
     Collection<Pair<AbstractState, InferenceObject>> successors;
-    successors = ((TransferRelationTM) transferRelation).getAbstractSuccessors(state, object, precision);
+    successors = ((TransferRelationTM) transferRelation).getAbstractSuccessors(state, object, rset, precision);
 
     Collection<Pair<? extends AbstractState, ? extends Precision>> result = new ArrayList<>();
     for (Pair<AbstractState, InferenceObject> tmpPair : successors) {

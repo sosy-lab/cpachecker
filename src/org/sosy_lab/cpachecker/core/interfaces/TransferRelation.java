@@ -23,14 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-
 import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
  * Interface for transfer relations.
@@ -57,6 +56,14 @@ public interface TransferRelation {
       AbstractState state,
       Precision precision)
           throws CPATransferException, InterruptedException;
+
+  default Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState state,
+      ReachedSet rset,
+      Precision precision)
+      throws CPATransferException, InterruptedException {
+    return getAbstractSuccessors(state, precision);
+  }
 
   /**
    * Get all successors of the current abstract state for a given single CFA edge.
