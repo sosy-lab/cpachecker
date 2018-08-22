@@ -92,6 +92,7 @@ public class DomainSpecificAbstraction<T> {
         // running the algorithm for every formula with its successor
     for (int it = 0; it < oldFormulas.size() - 1; it = it + 1) {
       BooleanFormula oldInterpolant;
+      logger.log(Level.WARNING, "old Formulas: " + oldFormulas.get(it) + oldFormulas.get(it + 1));
       formulas = Lists.newArrayListWithExpectedSize(oldFormulas.size
           ());
       final List<Set<String>> variablesInFormulas =
@@ -126,8 +127,10 @@ public class DomainSpecificAbstraction<T> {
       Set<String> variables1 = Sets.newHashSet();
       Set<String> variables2 = Sets.newHashSet();
       logger.log(Level.WARNING, "Formulas:");
-      for (int i = 0; i < formulas.size(); i++){
-        logger.log(Level.WARNING, formulas.get(i).toString());
+      if (formulas != null) {
+        for (int i = 0; i < formulas.size(); i++) {
+          logger.log(Level.WARNING, formulas.get(i).toString());
+        }
       }
      // for (int i = 0; i < it + 1; i++) {
       if (it == 0) {
