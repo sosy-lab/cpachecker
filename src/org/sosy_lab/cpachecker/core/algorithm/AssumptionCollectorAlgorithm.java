@@ -52,8 +52,13 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.DummyScope;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -66,6 +71,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -130,6 +137,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   private final FormulaManagerView formulaManager;
   private final AssumptionWithLocation exceptionAssumptions;
   private final BooleanFormulaManager bfmgr;
+  private final CFA cfa;
+  private final Configuration config;
 
   // store only the ids, not the states in order to prevent memory leaks
   private final Set<Integer> exceptionStates = new HashSet<>();
@@ -142,7 +151,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   public AssumptionCollectorAlgorithm(Algorithm algo,
                                       ConfigurableProgramAnalysis pCpa,
                                       Configuration config,
-                                      LogManager logger) throws InvalidConfigurationException {
+                                      LogManager logger,
+                                      CFA cfa) throws InvalidConfigurationException {
     config.inject(this);
 
     this.logger = logger;
@@ -157,6 +167,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     this.bfmgr = formulaManager.getBooleanFormulaManager();
     this.exceptionAssumptions = new AssumptionWithLocation(formulaManager);
     this.cpa=pCpa;
+    this.cfa=cfa;
+    this.config=config;
   }
 
   @Override
@@ -270,7 +282,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     addAssumption(invariant, bfmgr.makeFalse(), state);
   }
 
-  private void produceAssumptionAutomaton(Appendable output, UnmodifiableReachedSet reached) throws IOException {
+  private void produceAssumptionAutomaton(Appendable output, UnmodifiableReachedSet reached)
+      throws IOException {
     final AbstractState firstState = reached.getFirstState();
     if (!(firstState instanceof ARGState)) {
       output.append("Cannot dump assumption as automaton if ARGCPA is not used.");
@@ -316,17 +329,30 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     automatonStates += writeAutomaton(output, (ARGState) firstState, relevantStates, falseAssumptionStates,
             automatonBranchingThreshold, automatonIgnoreAssumptions);
 
-    // TODO write into DOT file
-    try (Writer w = IO.openOutputFile(assumptionAutomatonDotFile, Charset.defaultCharset())) {
-      writeAutomatonToDot(
-          w,
-          (ARGState) firstState,
-          relevantStates,
-          falseAssumptionStates,
-          automatonBranchingThreshold,
-          automatonIgnoreAssumptions);
+  }
+
+  private Automaton constructAutomataFromFile() throws InvalidConfigurationException{
+
+    Scope scope = cfa.getLanguage() == Language.C ? new CProgramScope(cfa, logger) : DummyScope.getInstance();
+
+    List<Automaton> lst = AutomatonParser.parseAutomatonFile(assumptionAutomatonFile, config, logger, cfa.getMachineModel(), scope, cfa.getLanguage());
+
+    if (lst.isEmpty()) {
+      throw new InvalidConfigurationException("Could not find automata in the file " + assumptionAutomatonFile.toAbsolutePath());
+    } else if (lst.size() > 1) {
+      throw new InvalidConfigurationException("Found " + lst.size()
+          + " automata in the File " + assumptionAutomatonFile.toAbsolutePath()
+          + " The CPA can only handle ONE Automaton!");
+    }
+
+    return lst.get(0);
+  }
+
+  private void writeAutomatonToDot(Automaton automaton) {
+    try (Writer w = IO.openOutputFile(assumptionAutomatonDotFile, Charset.defaultCharset())){
+      automaton.writeDotFile(w);
     } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not write assumptions to dot file");
+      logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
     }
   }
 
@@ -355,168 +381,6 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       falseAssumptionStates = Sets.newHashSet(pReached.getWaitlist());
     }
     return falseAssumptionStates;
-  }
-
-  /**
-   * Writes automaton to dot format
-   *
-   * @param sb Where to write the String into.
-   * @param pInitialState The initial state of the automaton.
-   * @param relevantStates A set with all states with non-trivial assumptions (all others will have
-   *     assumption TRUE).
-   * @param falseAssumptionStates A set with all states with the assumption FALSE
-   * @param branchingThreshold After branchingThreshold many branches on a path the automaton will
-   *     be ignored (0 to disable)")
-   * @param ignoreAssumptions if set to true, the automaton does not add assumption which is
-   *     considered to continue path with corresponding this edge.
-   * @return the number of states contained in the written automaton
-   */
-  public static void writeAutomatonToDot(
-      Appendable sb,
-      ARGState pInitialState,
-      Set<ARGState> relevantStates,
-      Set<AbstractState> falseAssumptionStates,
-      int branchingThreshold,
-      boolean ignoreAssumptions)
-      throws IOException {
-    sb.append("digraph AssumptionAutomaton {\n");
-
-    // TODO branchingThreshold
-    String actionOnFinalEdges = "";
-
-    final StringBuilder statesInDot = new StringBuilder();
-    final StringBuilder edgesInDot = new StringBuilder();
-
-    boolean initialStateAdded = false;
-    if (!relevantStates.isEmpty()) {
-      statesInDot.append(stateToStringDotFormat(pInitialState));
-      initialStateAdded = true;
-    }
-
-    statesInDot.append(stateToStringDotFormat("__TRUE"));
-
-    if (!falseAssumptionStates.isEmpty()) {
-      statesInDot.append(stateToStringDotFormat("__FALSE"));
-    }
-
-    edgesInDot.append(edgeToDotFormat("__TRUE", "__TRUE", "true"));
-
-    if (!falseAssumptionStates.isEmpty()) {
-      if (ignoreAssumptions) {
-        edgesInDot.append(edgeToDotFormat("__FALSE", "__FALSE", "true"));
-      } else {
-        edgesInDot.append(edgeToDotFormat("__FALSE", "__FALSE", "true\\nAssume {false}"));
-      }
-    }
-
-    for (final ARGState s : relevantStates) {
-      assert !s.isCovered();
-      if (falseAssumptionStates.contains(s)) {
-        continue;
-      }
-
-      if (s.getStateId() != pInitialState.getStateId() || !initialStateAdded) {
-        statesInDot.append(stateToStringDotFormat(s));
-      }
-
-      boolean branching = false;
-      // TODO branching threshold
-
-      int multiEdgeID = 0;
-
-      for (final ARGState child : getUncoveredChildrenView(s)) {
-        assert !child.isCovered();
-
-        List<CFAEdge> edges = s.getEdgesToChild(child);
-        if (edges.size() > 1) {
-          edgesInDot.append(
-              edgeToDotFormat(
-                  String.valueOf(s.getStateId()),
-                  "0" + String.valueOf(s.getStateId()),
-                  escape(edges.get(0).getRawStatement())));
-
-          boolean first = true;
-          String sourceState = "";
-          String edgeDescription = "";
-          for (CFAEdge innerEdge : from(edges).skip(1)) {
-
-            if (!first) {
-              multiEdgeID++;
-              edgesInDot.append(
-                  edgeToDotFormat(
-                      sourceState, s.getStateId() + "0" + multiEdgeID, edgeDescription));
-              edgesInDot.append(
-                  edgeToDotFormat(sourceState, "__TRUE", "true")); // TODO branching Threshold
-
-            } else {
-              first = false;
-            }
-
-            statesInDot.append(stateToStringDotFormat(s.getStateId() + "0" + multiEdgeID));
-            sourceState = s.getStateId() + "0" + multiEdgeID;
-            edgeDescription = escape(innerEdge.getRawStatement());
-          }
-
-          AssumptionStorageState assumptionChild =
-              AbstractStates.extractStateByType(child, AssumptionStorageState.class);
-          String assumption = getAssumption(assumptionChild, ignoreAssumptions);
-          String targetState =
-              getStateTargetToFinishTransition(
-                  child, relevantStates, falseAssumptionStates, actionOnFinalEdges, branching);
-
-          if (edgeDescription.equals("") || assumption.equals("")) {
-            edgesInDot.append(
-                edgeToDotFormat(sourceState, targetState, edgeDescription + assumption));
-          } else {
-            edgesInDot.append(
-                edgeToDotFormat(sourceState, targetState, edgeDescription + "\\n" + assumption));
-          }
-
-          edgesInDot.append(edgeToDotFormat(sourceState, "__TRUE", "true"));
-
-        } else {
-          String edgeDescription = escape(Iterables.getOnlyElement(edges).getRawStatement());
-          AssumptionStorageState assumptionChild =
-              AbstractStates.extractStateByType(child, AssumptionStorageState.class);
-          String assumption = getAssumption(assumptionChild, ignoreAssumptions);
-          String targetState =
-              getStateTargetToFinishTransition(
-                  child, relevantStates, falseAssumptionStates, actionOnFinalEdges, branching);
-
-          if (edgeDescription.equals("") || assumption.equals("")) {
-            edgesInDot.append(
-                edgeToDotFormat(
-                    String.valueOf(s.getStateId()), targetState, edgeDescription + assumption));
-          } else {
-            edgesInDot.append(
-                edgeToDotFormat(
-                    String.valueOf(s.getStateId()),
-                    targetState,
-                    edgeDescription + "\\n" + assumption));
-          }
-        }
-      }
-      edgesInDot.append(edgeToDotFormat(String.valueOf(s.getStateId()), "__TRUE", "true"));
-    }
-
-    sb.append(statesInDot);
-    sb.append(edgesInDot);
-    sb.append("}\n");
-  }
-
-  public static String stateToStringDotFormat(ARGState state) {
-    return String.format(
-        state.getStateId() + " " + "[shape=\"circle\" label=\"ARG%d\"]\n", state.getStateId());
-  }
-
-  public static String stateToStringDotFormat(String state) {
-    return String.format(
-        state + " " + "[shape=\"circle\" label=\"ARG%s\"]\n", state);
-  }
-
-  public static String edgeToDotFormat(String state1, String state2, String description) {
-    return String.format(
-        "%s -> %s [label=\"%s\"]\n", state1, state2, description);
   }
 
   /**
@@ -661,8 +525,11 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       sb.append(descriptionForInnerMultiEdges);
     }
     sb.append("END AUTOMATON\n");
+
+
     return numProducedStates;
   }
+
 
   private static void addAssumption(
       final Appendable writer,
@@ -682,21 +549,6 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-  private static String getAssumption(
-      final AssumptionStorageState assumptionState, boolean ignoreAssumptions) {
-    if (!ignoreAssumptions) {
-      final BooleanFormulaManagerView bmgr =
-          assumptionState.getFormulaManager().getBooleanFormulaManager();
-      BooleanFormula assumption =
-          bmgr.and(assumptionState.getAssumption(), assumptionState.getStopFormula());
-      if (!bmgr.isTrue(assumption)) {
-        return "ASSUME {" + escape(assumption.toString()) + "} ";
-      } else {
-        return "";
-      }
-    }
-    return "";
-  }
 
   private static void finishTransition(final Appendable writer, final ARGState child, final Set<ARGState> relevantStates,
       final Set<AbstractState> falseAssumptionStates, final String actionOnFinalEdges, final boolean branching)
@@ -715,25 +567,6 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-  private static String getStateTargetToFinishTransition(
-      final ARGState child,
-      final Set<ARGState> relevantStates,
-      final Set<AbstractState> falseAssumptionStates,
-      final String actionOnFinalEdges,
-      final boolean branching)
-      throws IOException {
-    // TOOO actionOnFinalEdges
-    if (falseAssumptionStates.contains(child)) {
-      return "__FALSE";
-    } else if (relevantStates.contains(child)) {
-      if (branching) {
-        // TODO branching
-      }
-      return String.valueOf(child.getStateId());
-    } else {
-      return "__TRUE";
-    }
-  }
 
   /**
    * This method transitively finds all parents of a given state and adds
@@ -785,33 +618,6 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         break;
       }
     }
-  }
-
-  private static String escape(String s) {
-    final StringBuilder result = new StringBuilder();
-    for (int i = 0; i < s.length(); i++) {
-      char c = s.charAt(i);
-      switch (c) {
-        case '\r':
-          result.append("\\r");
-          break;
-        case '\n':
-          result.append("\\n");
-          break;
-        case '\"':
-          result.append("\\\"");
-          break;
-        case '\\':
-          result.append("\\\\");
-          break;
-        case '`':
-          break;
-        default:
-          result.append(c);
-          break;
-      }
-    }
-    return result.toString();
   }
 
   @Override
@@ -869,6 +675,14 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           }
 
           put(out, "Number of states in automaton", automatonStates);
+
+          // After calling writeAutomaton the assumptionAutomatonTxt now contains the automaton
+          // description and the correspond dot file can be created by creating the Automaton object
+          try {
+            writeAutomatonToDot(constructAutomataFromFile());
+          } catch (InvalidConfigurationException e) {
+            logger.logfUserException(Level.WARNING, e, "Could not write to DOT File");
+          }
         }
       }
     }

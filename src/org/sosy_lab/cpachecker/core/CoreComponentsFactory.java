@@ -451,7 +451,7 @@ public class CoreComponentsFactory {
       }
 
       if (collectAssumptions) {
-        algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger);
+        algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger, cfa);
       }
 
       if (useAdjustableConditions) {
