@@ -230,17 +230,18 @@ public class DomainSpecificAbstraction<T> {
 
       // building the lattice structure
       logger.log(Level.WARNING, "Allocating lattice: ");
-      boolean[][] lattice = new boolean[(int) Math.pow(2, (arrayVariablesThatAreUsedInBothParts
+     /* boolean[][] lattice = new boolean[(int) Math.pow(2, (arrayVariablesThatAreUsedInBothParts
           .length))][(int) Math.pow(2,
-          (arrayVariablesThatAreUsedInBothParts.length))];
-      String[] latticeNames = new String[(arrayVariablesThatAreUsedInBothParts.length) + 1];
-      String[] powersetBase = new String[arrayVariablesThatAreUsedInBothParts.length];
+          (arrayVariablesThatAreUsedInBothParts.length))]; */
+     // String[] latticeNames = new String[(arrayVariablesThatAreUsedInBothParts.length) + 1];
+      String[] latticeNames = new String[(arrayVariablesThatAreNotUsedInBothParts.length) + 2];
+  /*    String[] powersetBase = new String[arrayVariablesThatAreUsedInBothParts.length];
       double d = arrayVariablesThatAreUsedInBothParts
           .length;
       double e = 2;
       logger.log(Level.WARNING, "Allocating full Lattice Names: ");
       String[] fullLatticeNames = new String[(int) Math.pow(e, d)
-          ];
+          ]; */
      //
       //
       // HashMap<String, FormulaType> latticeNamesTypes = new HashMap<String, FormulaType>();
@@ -1360,7 +1361,7 @@ public class DomainSpecificAbstraction<T> {
       //generating the nodes of the lattice
      /* FormulaType[] powersetBaseTypes = new FormulaType[arrayVariablesThatAreUsedInBothParts
           .length]; */
-      HashMap<String, FormulaType> powersetBaseTypes = new HashMap<>();
+   /*   HashMap<String, FormulaType> powersetBaseTypes = new HashMap<>();
       for (int k = 1; k < latticeNames.length; k++){
         powersetBase[k - 1] = latticeNames[k];
         powersetBaseTypes.put(latticeNames[k], latticeNamesTypes.get(latticeNames[k]));
@@ -1419,7 +1420,12 @@ public class DomainSpecificAbstraction<T> {
             }
           }
         }
+      } */
+      String finalnode = new String();
+      for (int i = 1; i < latticeNames.length - 1; i++){
+        finalnode = finalnode + " ," + latticeNames[i];
       }
+      latticeNames[latticeNames.length - 1] = finalnode;
       //arrayVariablesForFormulas = arrayVariablesThatAreUsedInBothParts;
       FirstPartRenamingFct renamer1 = new FirstPartRenamingFct
           (arrayVariablesThatAreUsedInBothParts, arrayVariablesThatAreNotUsedInBothParts);
@@ -1479,17 +1485,26 @@ public class DomainSpecificAbstraction<T> {
 
       boolean abstractionFeasible = false;
       boolean isIncomparable = false;
+      helperFormula1 = firstPartChanged;
+      helperFormula2 = scndPartChanged;
+      String latticenames_h = new String();
 
-      for (int h = 0; h < fullLatticeNames.length; h++) {
-        helperFormula1 = firstPartChanged;
-        helperFormula2 = scndPartChanged;
-        Iterable<String> splitOperator = Splitter.on(" ,").split(fullLatticeNames[h]);
+      for (int h = 0; h < /*fullLatticeNames.length */ latticeNames.length; h++) {
+       /* helperFormula1 = firstPartChanged;
+        helperFormula2 = scndPartChanged; */
+        Iterable<String> splitOperator = Splitter.on(" ,").split(/*fullLatticeNames[h]*/
+            latticeNames[h]);
         for (String s : splitOperator) {
           for (int k = 0; k < relationAbstraction1.length; k++) {
             if (relationAbstraction1[k] != null) {
               if ((relationAbstraction1[k]).contains(s + " = ")) {
                 helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
                     (k));
+                if (latticenames_h == null){
+                  latticenames_h = latticeNames[h];
+                } else {
+                  latticenames_h = latticenames_h + " ," + latticeNames[h];
+                }
 
               }
             }
@@ -1524,14 +1539,17 @@ public class DomainSpecificAbstraction<T> {
             frontierListCopy.add(s);
           }
 
-            isIncomparable = checkComparability(frontierListCopy, fullLatticeNames[h]);
+            isIncomparable = checkComparability(frontierListCopy, /*fullLatticeNames[h] */
+                latticenames_h, latticeNames);
 
           if (isIncomparable) {
             /*List<IntegerFormula> */ List<Formula> new_frontier_elem = maximise(firstPartChanged,
                 scndPartChanged,
                 relationAbstraction1,
                 relationAbstraction2, relationAbstraction1Formula,
-                relationAbstraction2Formula, lattice, fullLatticeNames, h, mySolver);
+                relationAbstraction2Formula /*lattice, fullLatticeNames, */, latticeNames, /*h,*/
+                latticenames_h,
+                mySolver);
             frontierList.add(new_frontier_elem);
           }
         }
@@ -1685,11 +1703,13 @@ public class DomainSpecificAbstraction<T> {
                                   List<BooleanFormula> relationAbstraction1Formula,
                                   List<BooleanFormula>
                                       relationAbstraction2Formula,
-                                  boolean[][] lattice,
+                                  /*boolean[][] lattice, */
                                   String[]
-      fullLatticeNames, int placeinlattice, Solver mySolver){
+      /*fullLatticeNames, */ latticeNames, /*int placeinlattice, */ String latticenames_h, Solver
+                                                               mySolver){
 
-    String[] middleElement = new String[fullLatticeNames.length];
+    //String[] middleElement = new String[fullLatticeNames.length];
+    String[] middleElement = new String[latticeNames.length];
     int middleElemIndex = 0;
     Boolean isFeasible = true;
     BooleanFormula helperFormula1;
@@ -1701,67 +1721,92 @@ public class DomainSpecificAbstraction<T> {
         (formulas
         .size() - 1);
 
-    for (int i = placeinlattice + 1; i < fullLatticeNames.length; i++){
+   // for (int i = placeinlattice + 1; i < fullLatticeNames.length; i++){
+      for (int i = 1; i < latticeNames.length; i++) {
+        /*if (lattice[placeinlattice][i] == true) */ if (!latticenames_h.contains
+            (latticeNames[i])){
+          //call prover function with fullLatticeNames[i] applied to firstPartChanged and
+          // scndPartChanged
+          latticenames_h = latticenames_h + " ," + latticeNames[i];
+          helperFormula1 = firstPartChanged;
+          helperFormula2 = scndPartChanged;
+          //Iterable<String> splitOperator = Splitter.on(" ,").split(fullLatticeNames[i]);
+          Iterable<String> splitOperator = Splitter.on(" ,").split(latticenames_h);
+          for (String s : splitOperator) {
 
-          if (lattice[placeinlattice][i] == true){
-            //call prover function with fullLatticeNames[i] applied to firstPartChanged and
-            // scndPartChanged
-            helperFormula1 = firstPartChanged;
-            helperFormula2 = scndPartChanged;
-            Iterable<String> splitOperator = Splitter.on(" ,").split(fullLatticeNames[i]);
-            for (String s : splitOperator){
-
-              for (int k = 0; k < relationAbstraction1.length; k++){
-                if ((relationAbstraction1[k]).contains(s + " = ")){
-                  //BooleanFormula helperFormula_1;
-                  helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
-                      (k));
-
-
-                }
-                if ((relationAbstraction2[k]).contains(s + " = ")){
-                  //BooleanFormula helperFormula;
-                  helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
-                      (k));
+            for (int k = 0; k < relationAbstraction1.length; k++) {
+              if ((relationAbstraction1[k]).contains(s + " = ")) {
+                //BooleanFormula helperFormula_1;
+                helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
+                    (k));
 
 
-                }
               }
-            }
-            BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
-            List<BooleanFormula> toCheckFormulaList = Lists.newArrayListWithExpectedSize(formulas.size() - 1);
-            toCheckFormulaList.add(toCheckFormula);
-            BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
-            isFeasible = prove(toCheckFormulaBlocked, mySolver);
-            //if abstraction is feasible:
-            if (isFeasible) {
-              hasFeasibleSuccessor = true;
-              feasibleSuccessorPosition = i;
-              for (int k = 0; k < fullLatticeNames.length; k++) {
-                if (lattice[i][k] == true) {
-                  middleElement[middleElemIndex] = (fullLatticeNames[k]);
-                  middleElemIndex++;
-                  i = k;
-                }
+              if ((relationAbstraction2[k]).contains(s + " = ")) {
+                //BooleanFormula helperFormula;
+                helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
+                    (k));
+
+
               }
-              break;
             }
           }
+          BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
+          List<BooleanFormula> toCheckFormulaList =
+              Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+          toCheckFormulaList.add(toCheckFormula);
+          BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
+          isFeasible = prove(toCheckFormulaBlocked, mySolver);
+          //if abstraction is feasible:
+         /* if (isFeasible) {
+            hasFeasibleSuccessor = true;
+            feasibleSuccessorPosition = i;
+            for (int k = 0; k < fullLatticeNames.length; k++) {
+              if (lattice[i][k] == true) {
+                middleElement[middleElemIndex] = (fullLatticeNames[k]);
+                middleElemIndex++;
+                i = k;
+              }
+            }
+            break;
+          } */
+         if (isFeasible){
+           hasFeasibleSuccessor = true;
+           for (int m = 1; m < latticeNames.length; m++){
+             if (!latticenames_h.contains(latticeNames[m])){
+               middleElement[middleElemIndex] = latticenames_h + " ," + latticeNames[m];
+               latticenames_h = middleElement[middleElemIndex];
+               middleElemIndex++;
+             }
+           }
+           break;
+         }
+        }
+      }
 
-    }
+ //   }
     if (middleElement[0] == null){
+      List<FormulaType> formulaTypes = Lists.newArrayListWithExpectedSize(latticeNamesTypes.size()
+          - 1);
+      Iterable<String> splitOperator = Splitter.on(" ,").split(latticenames_h);
+      for (String s : splitOperator) {
+        for (int i = 1; i < latticeNames.length; i++) {
+          if (s.equals(latticeNames[i])){
+            formulaTypes.add(latticeNamesTypes.get(latticeNames[i]));
+          }
+        }
+      }
       if (hasFeasibleSuccessor) {
-
         maximumFeasibleAbstraction = StringtoIntegerFormulaList
-            (fullLatticeNames[feasibleSuccessorPosition], fullLatticeNamesTypes.get
-                (fullLatticeNames[feasibleSuccessorPosition]) /*,
+            ( /*fullLatticeNames[feasibleSuccessorPosition], fullLatticeNamesTypes.get
+                (fullLatticeNames[feasibleSuccessorPosition]) */ latticenames_h, formulaTypes /*,
             formulas */);
 
       }
       else {
         maximumFeasibleAbstraction = StringtoIntegerFormulaList
-            (fullLatticeNames[placeinlattice], fullLatticeNamesTypes.get
-                    (fullLatticeNames[placeinlattice])
+            (/*fullLatticeNames[placeinlattice], fullLatticeNamesTypes.get
+                    (fullLatticeNames[placeinlattice]) */ latticenames_h, formulaTypes
                 /*, formulas */);
       }
 
@@ -1800,15 +1845,37 @@ public class DomainSpecificAbstraction<T> {
         BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
         middleElemFeasible = prove(toCheckFormulaBlocked, mySolver);
         if (middleElemFeasible) {
-
+          List<FormulaType> formulaTypes2 = Lists.newArrayListWithExpectedSize(latticeNamesTypes
+              .size()
+              - 1);
+          Iterable<String> splitOperator2 = Splitter.on(" ,").split(middleElement[counter/2]);
+          for (String s : splitOperator2) {
+            for (int i = 1; i < latticeNames.length; i++) {
+              if (s.equals(latticeNames[i])){
+                formulaTypes2.add(latticeNamesTypes.get(latticeNames[i]));
+              }
+            }
+          }
           //maximumFeasibleAbstraction = middleElement[counter/2] transformed into a Boolean Formula.
           maximumFeasibleAbstraction = StringtoIntegerFormulaList
-              (middleElement[counter/2], fullLatticeNamesTypes.get(middleElement[counter/2]));
+              (middleElement[counter/2], /*fullLatticeNamesTypes.get(middleElement[counter/2])*/
+                  formulaTypes2);
 
         } else {
+          List<FormulaType> formulaTypes = Lists.newArrayListWithExpectedSize(latticeNamesTypes.size()
+              - 1);
+          Iterable<String> splitOperator3 = Splitter.on(" ,").split(latticenames_h);
+          for (String s : splitOperator3) {
+            for (int i = 1; i < latticeNames.length; i++) {
+              if (s.equals(latticeNames[i])){
+                formulaTypes.add(latticeNamesTypes.get(latticeNames[i]));
+              }
+            }
+          }
 
           maximumFeasibleAbstraction = StringtoIntegerFormulaList
-              (fullLatticeNames[placeinlattice], fullLatticeNamesTypes.get(fullLatticeNames[placeinlattice]) /*,
+              (/*fullLatticeNames[placeinlattice], fullLatticeNamesTypes.get
+              (fullLatticeNames[placeinlattice]) */ latticenames_h, formulaTypes /*,
                formulas */);
 
         }
@@ -1855,9 +1922,19 @@ public class DomainSpecificAbstraction<T> {
   private Boolean checkComparability(/*List<List<IntegerFormula>> */ List<List<Formula>>
       frontierListCopy,
                                      String
-      fullLatticeNames_h){
-    List<Formula> toCompareWith = StringtoIntegerFormulaList(fullLatticeNames_h,
-        fullLatticeNamesTypes.get(fullLatticeNames_h));
+      /*fullLatticeNames_h*/ latticeNames_h, String[] latticeNames){
+    List<FormulaType> formulaTypes = Lists.newArrayListWithExpectedSize(latticeNamesTypes.size()
+        - 1);
+    Iterable<String> splitOperator = Splitter.on(" ,").split(latticeNames_h);
+    for (String s : splitOperator) {
+      for (int i = 1; i < latticeNames.length; i++) {
+        if (s.equals(latticeNames[i])){
+          formulaTypes.add(latticeNamesTypes.get(latticeNames[i]));
+        }
+      }
+    }
+    List<Formula> toCompareWith = StringtoIntegerFormulaList(latticeNames_h,
+        /*fullLatticeNamesTypes.get(fullLatticeNames_h) */ formulaTypes);
     /*List<List<IntegerFormula>> compareList = Lists.newArrayListWithExpectedSize(formulas.size() -
         1); */
     List<List<Formula>> compareList = Lists.newArrayListWithExpectedSize(formulas.size() -
