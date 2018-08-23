@@ -1489,7 +1489,7 @@ public class DomainSpecificAbstraction<T> {
       helperFormula2 = scndPartChanged;
       String latticenames_h = new String();
 
-      logger.log(Level.WARNING, "LatticeNames: ");
+      logger.log(Level.WARNING, "Showing LatticeNames: ");
       for (int h = 0; h < latticeNames.length; h++) {
         logger.log(Level.WARNING, latticeNames[h]);
       }
