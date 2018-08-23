@@ -1538,7 +1538,7 @@ public class DomainSpecificAbstraction<T> {
           for (/*List<IntegerFormula> */ List<Formula> s : frontierList){
             frontierListCopy.add(s);
           }
-
+          logger.log(Level.WARNING, "Comparability Check: Latticenames_h: " + latticenames_h);
             isIncomparable = checkComparability(frontierListCopy, /*fullLatticeNames[h] */
                 latticenames_h, latticeNames);
 
@@ -1891,8 +1891,12 @@ public class DomainSpecificAbstraction<T> {
   if (input.equals("root")){
     return Collections.emptyList();
   }
+  if (input == null || input.isEmpty()){
+    return Collections.emptyList();
+  }
     String[] helperArray = new String[2];
-
+  logger.log(Level.WARNING, "StringtoIntegerFormulaList: input: " + input + " formulaTypes: " +
+      formulaTypes.toString());
     int j = 0;
     Iterable<String> splitOperator = Splitter.on(" ,").split(input);
     for (String s : splitOperator) {
@@ -1933,6 +1937,8 @@ public class DomainSpecificAbstraction<T> {
         }
       }
     }
+    logger.log(Level.WARNING, "CheckComparability: latticeNames_h: " + latticeNames_h + " "
+        + "formulaTypes: " + formulaTypes.toString());
     List<Formula> toCompareWith = StringtoIntegerFormulaList(latticeNames_h,
         /*fullLatticeNamesTypes.get(fullLatticeNames_h) */ formulaTypes);
     /*List<List<IntegerFormula>> compareList = Lists.newArrayListWithExpectedSize(formulas.size() -
