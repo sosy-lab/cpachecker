@@ -163,6 +163,13 @@ public class LtlParserUtils {
         throw new LtlParseException("Univeral initial states are not supported");
       }
 
+      int numAccSets = storedHeader.getNumberOfAcceptanceSets();
+      if (numAccSets != 1) {
+        throw new LtlParseException(
+            String.format(
+                "Only one acceptance set was expected, but instead %d were found", numAccSets));
+      }
+
       try {
 
         List<AutomatonInternalState> stateList = new ArrayList<>();
@@ -177,8 +184,21 @@ public class LtlParserUtils {
             transitionList.addAll(getTransitions(edge.getLabelExpr(), successorName));
           }
 
+          boolean isAcceptingState = false;
+          if (storedState.getAccSignature() != null) {
+            int accSig = Iterables.getOnlyElement(storedState.getAccSignature());
+            isAcceptingState = accSig == 0;
+            if (!isAcceptingState) {
+              throw new LtlParseException(
+                  String.format(
+                      "Automaton state has an acceptance signature, but the value is different to what was expected (expected: 0, actual: %d",
+                      accSig));
+            }
+          }
+
           stateList.add(
-              new AutomatonInternalState(storedState.getInfo(), transitionList, false, true));
+              new AutomatonInternalState(
+                  storedState.getInfo(), transitionList, false, true, false, isAcceptingState));
         }
 
         StoredState initState =
