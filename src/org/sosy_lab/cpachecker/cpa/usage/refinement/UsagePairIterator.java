@@ -75,9 +75,9 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
       firstUsage = firstUsageIterator.next();
       secondUsageIterator = pInput.getSecond().iterator();
       result = checkSecondIterator();
-      if (result == null) {
-        return null;
-      }
+    }
+    if (result == null) {
+      return null;
     }
     UsageInfo firstUsage = result.getFirst();
     UsageInfo secondUsage = result.getSecond();
@@ -102,11 +102,11 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
     @SuppressWarnings("unchecked")
     List<UsageInfo> unreachableUsages = (List<UsageInfo>) r.getInfo(PathPairIterator.class);
 
-    if (unreachableUsages.contains(second)) {
+    if (unreachableUsages != null && unreachableUsages.contains(second)) {
       logger.log(Level.FINE, "Usage " + secondUsageIterator + " is not reachable, remove it from container");
       secondUsageIterator.remove();
     }
-    if (unreachableUsages.contains(first)) {
+    if (unreachableUsages != null && unreachableUsages.contains(first)) {
       logger.log(Level.FINE, "Usage " + firstUsageIterator + " is not reachable, remove it from container");
       firstUsageIterator.remove();
       firstUsage = null;

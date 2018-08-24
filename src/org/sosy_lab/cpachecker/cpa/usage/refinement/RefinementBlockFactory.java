@@ -51,6 +51,7 @@ public class RefinementBlockFactory {
     PointIterator(currentInnerBlockType.UsageInfoSet),
     UsageIterator(currentInnerBlockType.UsageInfo),
     PathIterator(currentInnerBlockType.ExtendedARGPath),
+    PathProvider(currentInnerBlockType.ExtendedARGPath),
     PredicateRefiner(currentInnerBlockType.ExtendedARGPath),
     CallstackFilter(currentInnerBlockType.ExtendedARGPath),
     ProbeFilter(currentInnerBlockType.ExtendedARGPath),
@@ -134,6 +135,15 @@ public class RefinementBlockFactory {
                 new PathPairIterator(
                     (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>)
                         currentBlock,
+                    bamCpa,
+                    pathEquation);
+            currentBlockType = currentInnerBlockType.UsageInfo;
+            break;
+
+          case PathProvider:
+            currentBlock =
+                new SinglePathProvider(
+                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
                     bamCpa,
                     pathEquation);
             currentBlockType = currentInnerBlockType.UsageInfo;
