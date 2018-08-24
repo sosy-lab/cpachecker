@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
+import com.google.common.base.Function;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,10 +36,12 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
+import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
 import org.sosy_lab.cpachecker.cpa.local.LocalTransferRelation;
 import org.sosy_lab.cpachecker.cpa.usage.UsageCPA;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageInfoSet;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
@@ -104,6 +107,24 @@ public class RefinementBlockFactory {
     RefinementInterface currentBlock = new RefinementPairStub();
     currentInnerBlockType currentBlockType = currentInnerBlockType.ExtendedARGPath;
 
+    Function<ARGState, Integer> idExtractor;
+
+    switch (pathEquation) {
+      case ARGStateId:
+        idExtractor = ARGState::getStateId;
+        break;
+
+      case CFANodeId:
+        idExtractor = s -> AbstractStates.extractLocation(s).getNodeNumber();
+        break;
+
+      default:
+        throw new InvalidConfigurationException("Unexpexted type " + pathEquation);
+
+    }
+
+    BAMMultipleCEXSubgraphComputer computer = bamCpa.createBAMMultipleSubgraphComputer(idExtractor);
+
     for (int i = RefinementChain.size() - 1; i >= 0; i--) {
 
       RefinementBlockTypes currentType = RefinementChain.get(i);
@@ -134,9 +155,9 @@ public class RefinementBlockFactory {
             currentBlock =
                 new PathPairIterator(
                     (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>)
-                        currentBlock,
-                    bamCpa,
-                    pathEquation);
+                    currentBlock,
+                    computer,
+                    idExtractor);
             currentBlockType = currentInnerBlockType.UsageInfo;
             break;
 
@@ -144,8 +165,7 @@ public class RefinementBlockFactory {
             currentBlock =
                 new SinglePathProvider(
                     (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
-                    bamCpa,
-                    pathEquation);
+                    computer);
             currentBlockType = currentInnerBlockType.UsageInfo;
             break;
 

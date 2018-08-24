@@ -35,15 +35,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphIterator;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
-import org.sosy_lab.cpachecker.cpa.usage.refinement.RefinementBlockFactory.PathEquation;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -53,7 +49,7 @@ public class PathPairIterator extends
     GenericIterator<Pair<UsageInfo, UsageInfo>, Pair<ExtendedARGPath, ExtendedARGPath>> {
 
   private final Set<List<Integer>> refinedStates = new HashSet<>();
-  private final BAMCPA bamCpa;
+  //private final BAMCPA bamCpa;
   private BAMMultipleCEXSubgraphComputer subgraphComputer;
   private final Map<UsageInfo, BAMSubgraphIterator> targetToPathIterator;
   private final Set<UsageInfo> skippedUsages;
@@ -76,35 +72,18 @@ public class PathPairIterator extends
 
   public PathPairIterator(
       ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,
-      BAMCPA pBamCpa,
-      PathEquation type)
-      throws InvalidConfigurationException {
+      BAMMultipleCEXSubgraphComputer pComputer,
+      Function<ARGState, Integer> pExtractor) {
     super(pWrapper);
-    bamCpa = pBamCpa;
-
-    switch (type) {
-      case ARGStateId:
-        idExtractor = ARGState::getStateId;
-        break;
-
-      case CFANodeId:
-        idExtractor = s -> AbstractStates.extractLocation(s).getNodeNumber();
-        break;
-
-      default:
-        throw new InvalidConfigurationException("Unexpexted type " + type);
-
-    }
+    subgraphComputer = pComputer;
     targetToPathIterator = new IdentityHashMap<>();
     skippedUsages = new HashSet<>();
+    idExtractor = pExtractor;
   }
 
   @Override
   protected void init(Pair<UsageInfo, UsageInfo> pInput) {
     firstPath = null;
-    // subgraph computer need partitioning, which is not built at creation.
-    // Thus, we move the creation of subgraphcomputer here
-    subgraphComputer = bamCpa.createBAMMultipleSubgraphComputer(idExtractor);
   }
 
   @Override
@@ -290,15 +269,7 @@ public class PathPairIterator extends
   }
 
   private void handleAffectedStates(List<ARGState> affectedStates) {
-    // ARGState nextStart;
-    // if (affectedStates != null) {
     List<Integer> changedStateNumbers = from(affectedStates).transform(idExtractor).toList();
-      refinedStates.add(changedStateNumbers);
-
-    /*  nextStart = affectedStates.get(affectedStates.size() - 1);
-    } else {
-      nextStart = path.getFirstState().getChildren().iterator().next();
-    }
-    previousForkForUsage.put(path.getUsageInfo(), (BackwardARGState)nextStart);*/
+    refinedStates.add(changedStateNumbers);
   }
 }
