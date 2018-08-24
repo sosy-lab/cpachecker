@@ -219,7 +219,11 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
   }
 
   public ARGPath computePath(ARGState pLastElement) {
-    return restorePathFrom(new BackwardARGState(pLastElement), Collections.emptySet());
+    return computePath(pLastElement, Collections.emptySet());
+  }
+
+  public ARGPath computePath(ARGState pLastElement, Set<List<Integer>> pRefinedStates) {
+    return restorePathFrom(new BackwardARGState(pLastElement), pRefinedStates);
   }
 
   boolean checkThePathHasRepeatedStates(ARGPath path, Set<List<Integer>> pRefinedStates) {

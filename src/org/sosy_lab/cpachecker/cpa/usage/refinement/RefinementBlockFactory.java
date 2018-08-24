@@ -165,7 +165,8 @@ public class RefinementBlockFactory {
             currentBlock =
                 new SinglePathProvider(
                     (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
-                    computer);
+                    computer,
+                    idExtractor);
             currentBlockType = currentInnerBlockType.UsageInfo;
             break;
 

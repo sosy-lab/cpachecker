@@ -19,7 +19,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.base.Function;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -34,20 +40,28 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 public class SinglePathProvider extends
     WrappedConfigurableRefinementBlock<Pair<UsageInfo, UsageInfo>, Pair<ExtendedARGPath, ExtendedARGPath>> {
 
+  private final Set<List<Integer>> refinedStates = new HashSet<>();
+  private final Map<UsageInfo, ExtendedARGPath> cachedPaths = new HashMap<>();
   private final Set<UsageInfo> skippedUsages;
   private final BAMMultipleCEXSubgraphComputer subgraphComputer;
 
+  private final Function<ARGState, Integer> idExtractor;
+
   // Statistics
   private StatTimer computingPath = new StatTimer("Time for path computing");
+  private StatCounter numberOfSkippedPath = new StatCounter("Number of skipped paths");
+  private StatCounter numberOfCachedPath = new StatCounter("Number of cache hits");
   private StatCounter numberOfPathCalculated = new StatCounter("Number of path calculated");
 
   public SinglePathProvider(
       ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,
-      BAMMultipleCEXSubgraphComputer pComputer) {
+      BAMMultipleCEXSubgraphComputer pComputer,
+      Function<ARGState, Integer> pExtractor) {
 
     super(pWrapper);
     subgraphComputer = pComputer;
     skippedUsages = new HashSet<>();
+    idExtractor = pExtractor;
   }
 
   @Override
@@ -63,43 +77,72 @@ public class SinglePathProvider extends
     if (secondPath == null) {
       return result;
     }
-    return wrappedRefiner.performBlockRefinement(Pair.of(firstPath, secondPath));
+    result = wrappedRefiner.performBlockRefinement(Pair.of(firstPath, secondPath));
+    Object predicateInfo = result.getInfo(PredicateRefinerAdapter.class);
+    if (predicateInfo != null && predicateInfo instanceof List) {
+      @SuppressWarnings("unchecked")
+      List<ARGState> affectedStates = (List<ARGState>) predicateInfo;
+      // affectedStates may be null, if the path was refined somewhen before
+      List<Integer> changedStateNumbers = from(affectedStates).transform(idExtractor).toList();
+      refinedStates.add(changedStateNumbers);
+    }
+    addIfReachable(firstPath);
+    addIfReachable(secondPath);
+    return result;
+  }
+
+  private void addIfReachable(ExtendedARGPath path) {
+    if (path.isUnreachable()) {
+      skippedUsages.add(path.getUsageInfo());
+    } else {
+      cachedPaths.put(path.getUsageInfo(), path);
+    }
   }
 
   private ExtendedARGPath createPathFor(UsageInfo usage) {
     ARGPath currentPath;
     // Start from already computed set (it is partially refined)
     if (skippedUsages.contains(usage)) {
+      numberOfSkippedPath.inc();
       return null;
+    } else if (cachedPaths.containsKey(usage)) {
+      numberOfCachedPath.inc();
+      return cachedPaths.get(usage);
     }
 
     numberOfPathCalculated.inc();
 
     computingPath.start();
-    //try to compute more paths
-    currentPath = subgraphComputer.computePath((ARGState) usage.getKeyState());
+    ARGState target = (ARGState) usage.getKeyState();
+    currentPath = subgraphComputer.computePath(target, refinedStates);
     computingPath.stop();
 
     if (currentPath == null) {
       // no path to iterate, finishing
       skippedUsages.add(usage);
       return null;
+    } else {
+      return new ExtendedARGPath(currentPath, usage);
     }
-    //Not add result now, only after refinement
-    return new ExtendedARGPath(currentPath, usage);
   }
 
   @Override
   public void printStatistics(StatisticsWriter pOut) {
     pOut.spacer()
         .put(computingPath)
+        .put(numberOfSkippedPath)
+        .put(numberOfCachedPath)
         .put(numberOfPathCalculated);
   }
 
   @Override
   protected void handleFinishSignal(Class<? extends RefinementInterface> callerClass) {
-    if (callerClass.equals(PointIterator.class)) {
+    if (callerClass.equals(IdentifierIterator.class)) {
+      // Refinement iteration finishes
+      refinedStates.clear();
+    } else if (callerClass.equals(PointIterator.class)) {
       skippedUsages.clear();
+      cachedPaths.clear();
     }
   }
 
