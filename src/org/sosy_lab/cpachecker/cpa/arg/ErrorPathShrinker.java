@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
@@ -64,6 +65,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -71,6 +74,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
 
 /** The Class ErrorPathShrinker gets an targetPath and creates a new Path,
  * with only the important edges of the Path. The idea behind this Class is,
@@ -80,13 +84,19 @@ import java.util.Set;
 public final class ErrorPathShrinker {
 
   /** The short Path stores the result of PathHandler.handlePath(). */
-  private Deque<CFAEdge> shortPath;
+  private Deque<CFAEdgeWithAssumptions> shortPath;
 
   /** This Set stores the important variables of the Path. */
   private Set<String> importantVars;
 
   /** This is the currently handled CFAEdge. */
   private CFAEdge currentCFAEdge;
+
+  /** THis is the Edge constituted from current handled CFA Edge, plus accumulated assumptions*/
+  private CFAEdgeWithAssumptions currentCFAEdgeWithAssumptions;
+
+  /** This List contains the accumulated assumptions for the current CFAEdge*/
+  private Set<AExpressionStatement> assumptions;
 
   /** This is only an UtilityClass. */
   public ErrorPathShrinker() {
@@ -97,17 +107,33 @@ public final class ErrorPathShrinker {
    *
    * @param pTargetPath the "long" targetPath
    * @return errorPath the "short" errorPath */
-  public List<CFAEdge> shrinkErrorPath(ARGPath pTargetPath) {
+
+  //TODO: step 1: CFAEDgewithAssumptions auch durchiterieren wenn nicht null in der gleichen schleife;
+  public List<CFAEdgeWithAssumptions> shrinkErrorPath(ARGPath pTargetPath, CFAPathWithAssumptions pAssumePath) {
     List<CFAEdge> targetPath = getEdgesUntilTarget(pTargetPath);
+
+    List<CFAEdgeWithAssumptions> assumePath = null;
+    if (pAssumePath != null) {
+      assumePath = pAssumePath.subList(0,targetPath.size());
+    }
 
     // create reverse iterator, from lastNode to firstNode
     final Iterator<CFAEdge> revIterator = Lists.reverse(targetPath).iterator();
 
+    // create reverse iterator of path containing assumptions
+    Iterator<CFAEdgeWithAssumptions> revAssumIterator = null;
+    if (assumePath != null) {
+      revAssumIterator = Lists.reverse(assumePath).iterator();
+    }
+
     // Set for storing the important variables
     importantVars = new HashSet<>();
 
+    // Set for storing recent Assumptions
+    assumptions = new HashSet<>();
+
     // the short Path, the result
-    final Deque<CFAEdge> shortErrorPath = new ArrayDeque<>();
+    final Deque<CFAEdgeWithAssumptions> shortErrorPath = new ArrayDeque<>();
 
     /* if the ErrorNode is inside of a function, the long path (pTargetPath) is not handled
      * until the StartNode, but only until the functionCall.
@@ -115,6 +141,11 @@ public final class ErrorPathShrinker {
      * the longPath is completely handled.*/
     while (revIterator.hasNext()) {
       handleEdge(revIterator.next(), shortErrorPath);
+      if (revAssumIterator != null){
+        // adds assumptions from current edge to the accumulated assumptions of the recent edges
+        assumptions.addAll(revAssumIterator.next().getExpStmts());
+
+      }
     }
 
     // TODO assertion disabled, until we can track all pointers completely
@@ -122,6 +153,7 @@ public final class ErrorPathShrinker {
 
     return ImmutableList.copyOf(shortErrorPath);
   }
+
 
   /** This method iterates a path and copies all the edges until
    * the target state into the result.
@@ -136,7 +168,7 @@ public final class ErrorPathShrinker {
     }
   }
 
-  private void handleEdge(final CFAEdge cfaEdge, final Deque<CFAEdge> shortErrorPath) {
+  private void handleEdge(final CFAEdge cfaEdge, final Deque<CFAEdgeWithAssumptions> shortErrorPath) {
     currentCFAEdge = cfaEdge;
     shortPath = shortErrorPath;
 
@@ -323,7 +355,9 @@ public final class ErrorPathShrinker {
 
     // Path can be empty at the end of a functionCall ("if (a) return b;")
     if (!shortPath.isEmpty()) {
-      final CFAEdge lastEdge = shortPath.getFirst();
+
+      //TODO: Fragen ob das so funktioniert?
+      final CFAEdge lastEdge = shortPath.getFirst().getCFAEdge();
 
       //check, if the last edge was an assumption
       if (assumeExp instanceof ABinaryExpression
@@ -430,9 +464,7 @@ public final class ErrorPathShrinker {
     track(str(exp));
   }
 
-  private void track(String var) {
-    importantVars.add(var);
-  }
+  private void track(String var) { importantVars.add(var); }
 
   private void remove(AExpression exp) {
     remove(str(exp));
@@ -456,6 +488,16 @@ public final class ErrorPathShrinker {
 
   /** This method adds the current CFAEdge in front of the shortPath. */
   private void addCurrentCFAEdgeToShortPath() {
-    shortPath.addFirst(currentCFAEdge);
+    //Save recent assumptions in own Set
+    HashSet<AExpressionStatement> currentAssumptions = new HashSet<>(assumptions);
+
+    // create an edge with assumptions from current edge, accumulated assumptions
+    currentCFAEdgeWithAssumptions = new CFAEdgeWithAssumptions(currentCFAEdge, currentAssumptions, "" );
+    shortPath.addFirst(currentCFAEdgeWithAssumptions);
+
+    // empty assumptions for fresh accumulation for next edge in short path
+    assumptions.clear();
+
   }
+
 }

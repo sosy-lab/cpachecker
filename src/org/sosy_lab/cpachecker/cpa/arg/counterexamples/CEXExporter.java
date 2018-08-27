@@ -42,6 +42,7 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
+import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -52,6 +53,8 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -166,6 +169,7 @@ public class CEXExporter {
     }
 
     final ARGPath targetPath = counterexample.getTargetPath();
+    final CFAPathWithAssumptions targetPAssum = counterexample.getCFAPathWithAssignments();
     final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge = Predicates.in(
         new HashSet<>(targetPath.getStatePairs()));
     final ARGState rootState = targetPath.getFirstState();
@@ -188,7 +192,7 @@ public class CEXExporter {
       // that are important for the error, it is not a complete path,
       // only some nodes of the targetPath are part of it
       ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
-      List<CFAEdge> shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
+      List<CFAEdgeWithAssumptions> shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath, targetPAssum);
       writeErrorPathFile(
           options.getCoreFile(),
           uniqueId,

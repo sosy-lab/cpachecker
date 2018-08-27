@@ -165,7 +165,11 @@ public class CFAEdgeWithAssumptions {
 
   @Override
   public String toString() {
-    return edge + " " + expressionStmts;
+      StringBuilder assumption = new StringBuilder();
+      for (AExpressionStatement assum : expressionStmts) {
+          assumption.append('\n' + "\t\t" + assum);
+      }
+      return edge + " " + assumption;
   }
 
   @Nullable
