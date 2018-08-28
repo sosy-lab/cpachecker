@@ -1507,7 +1507,7 @@ public class DomainSpecificAbstraction<T> {
       for (int h = 0; h < relationAbstraction2.length; h++) {
         logger.log(Level.WARNING, relationAbstraction2[h]);
       }
-      for (int h = 0; h < /*fullLatticeNames.length */ latticeNames.length; h++) {
+      for (int h = 1; h < /*fullLatticeNames.length */ latticeNames.length; h++) {
        /* helperFormula1 = firstPartChanged;
         helperFormula2 = scndPartChanged; */
      //   Iterable<String> splitOperator = Splitter.on(" ,").split(/*fullLatticeNames[h]*/
