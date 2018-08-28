@@ -60,6 +60,12 @@ public class UsageCPAStatistics implements Statistics {
   )
   private OutputFileType outputFileType = OutputFileType.KLEVER;
 
+  @Option(
+    name = "printUnsafesIfUnknown",
+    description = "print found unsafes in case of unknown verdict",
+    secure = true)
+  private boolean printUnsafesInCaseOfUnknown = true;
+
   /* Previous container is used when internal time limit occurs
    * and we need to store statistics. In current one the information can be not
    * relevant (for example not all ARG was built).
@@ -112,27 +118,30 @@ public class UsageCPAStatistics implements Statistics {
     }
     UsageReachedSet uReached = (UsageReachedSet) reachedSet;
 
-    printUnsafesTimer.start();
-    try {
-      switch (outputFileType) {
-        case KLEVER:
-          errPrinter = new KleverErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
-          break;
-        case KLEVER_OLD:
-          errPrinter = new KleverErrorTracePrinterOld(config, computer, cfa, logger, lockTransfer);
-          break;
-        case ETV:
-          errPrinter = new ETVErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
-          break;
-        default:
-          throw new UnsupportedOperationException("Unknown type " + outputFileType);
+    if (printUnsafesInCaseOfUnknown || result != Result.UNKNOWN) {
+      printUnsafesTimer.start();
+      try {
+        switch (outputFileType) {
+          case KLEVER:
+            errPrinter = new KleverErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
+            break;
+          case KLEVER_OLD:
+            errPrinter =
+                new KleverErrorTracePrinterOld(config, computer, cfa, logger, lockTransfer);
+            break;
+          case ETV:
+            errPrinter = new ETVErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
+            break;
+          default:
+            throw new UnsupportedOperationException("Unknown type " + outputFileType);
+        }
+        errPrinter.printErrorTraces(uReached);
+        errPrinter.printStatistics(writer);
+      } catch (InvalidConfigurationException e) {
+        logger.log(Level.SEVERE, "Cannot create error trace printer: " + e.getMessage());
       }
-      errPrinter.printErrorTraces(uReached);
-      errPrinter.printStatistics(writer);
-    } catch (InvalidConfigurationException e) {
-      logger.log(Level.SEVERE, "Cannot create error trace printer: " + e.getMessage());
+      printUnsafesTimer.stop();
     }
-    printUnsafesTimer.stop();
 
     printStatisticsTimer.start();
     UsageState.get(reached.getFirstState()).getStatistics().printStatistics(writer);
