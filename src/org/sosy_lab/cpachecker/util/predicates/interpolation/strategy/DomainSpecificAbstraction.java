@@ -1493,7 +1493,7 @@ public class DomainSpecificAbstraction<T> {
       for (int h = 0; h < latticeNames.length; h++) {
         logger.log(Level.WARNING, latticeNames[h]);
       }
-      logger.log(Level.WARNING, "relationAbstraction1: ");
+      logger.log(Level.WARNING, "RelationAbstraction1: ");
       for (int h = 0; h < relationAbstraction1.length; h++) {
         logger.log(Level.WARNING, relationAbstraction1[h]);
       }
