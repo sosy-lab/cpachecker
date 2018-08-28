@@ -52,6 +52,7 @@ import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 from concurrent.futures import Future
+from benchexec.util import get_files
 
 try:
     import sseclient  # @UnresolvedImport
@@ -511,7 +512,7 @@ class WebInterface:
             norm_path = self._normalize_path_for_cloud(programPath)
             params.append(('programTextHash', (norm_path, self._get_sha256_hash(programPath))))
 
-        for required_file in required_files:
+        for required_file in get_files(required_files):
             norm_path = self._normalize_path_for_cloud(required_file)
             params.append(('requiredFileHash', (norm_path, self._get_sha256_hash(required_file))))
 
