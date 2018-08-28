@@ -234,7 +234,7 @@ public class DomainSpecificAbstraction<T> {
           .length))][(int) Math.pow(2,
           (arrayVariablesThatAreUsedInBothParts.length))]; */
      // String[] latticeNames = new String[(arrayVariablesThatAreUsedInBothParts.length) + 1];
-      String[] latticeNames = new String[(arrayVariablesThatAreNotUsedInBothParts.length) + 2];
+      String[] latticeNames = new String[(arrayVariablesThatAreUsedInBothParts.length) + 2];
   /*    String[] powersetBase = new String[arrayVariablesThatAreUsedInBothParts.length];
       double d = arrayVariablesThatAreUsedInBothParts
           .length;
@@ -1423,7 +1423,9 @@ public class DomainSpecificAbstraction<T> {
       } */
       String finalnode = new String();
       for (int i = 1; i < latticeNames.length - 1; i++){
-        finalnode = finalnode + " ," + latticeNames[i];
+        if (latticeNames[i] != null) {
+          finalnode = finalnode + " ," + latticeNames[i];
+        }
       }
       latticeNames[latticeNames.length - 1] = finalnode;
       //arrayVariablesForFormulas = arrayVariablesThatAreUsedInBothParts;
@@ -1514,8 +1516,10 @@ public class DomainSpecificAbstraction<T> {
                     (k));
                 if (latticenames_h == null){
                   latticenames_h = latticeNames[h];
+                  logger.log(Level.WARNING, "Latticenames_h: " + latticenames_h);
                 } else {
                   latticenames_h = latticenames_h + " ," + latticeNames[h];
+                  logger.log(Level.WARNING, "Latticenames_h: " + latticenames_h);
                 }
 
               }
