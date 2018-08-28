@@ -1498,7 +1498,7 @@ public class DomainSpecificAbstraction<T> {
         logger.log(Level.WARNING, relationAbstraction1[h]);
       }
       logger.log(Level.WARNING, "RelationAbstraction2: ");
-      for (int h = 0; h < latticeNames.length; h++) {
+      for (int h = 0; h < relationAbstraction2.length; h++) {
         logger.log(Level.WARNING, relationAbstraction2[h]);
       }
       for (int h = 0; h < /*fullLatticeNames.length */ latticeNames.length; h++) {
@@ -1747,19 +1747,23 @@ public class DomainSpecificAbstraction<T> {
           for (String s : splitOperator) {
 
             for (int k = 0; k < relationAbstraction1.length; k++) {
-              if ((relationAbstraction1[k]).contains(s + " = ")) {
-                //BooleanFormula helperFormula_1;
-                helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
-                    (k));
+              if (relationAbstraction1[k] != null) {
+                if ((relationAbstraction1[k]).contains(s + " = ")) {
+                  //BooleanFormula helperFormula_1;
+                  helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
+                      (k));
 
 
+                }
               }
-              if ((relationAbstraction2[k]).contains(s + " = ")) {
-                //BooleanFormula helperFormula;
-                helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
-                    (k));
+              if (relationAbstraction2[k] != null) {
+                if ((relationAbstraction2[k]).contains(s + " = ")) {
+                  //BooleanFormula helperFormula;
+                  helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
+                      (k));
 
 
+                }
               }
             }
           }
@@ -1803,7 +1807,7 @@ public class DomainSpecificAbstraction<T> {
       Iterable<String> splitOperator = Splitter.on(" ,").split(latticenames_h);
       for (String s : splitOperator) {
         for (int i = 1; i < latticeNames.length; i++) {
-          if (s.equals(latticeNames[i])){
+          if (latticeNames[i] != null && s.equals(latticeNames[i])){
             formulaTypes.add(latticeNamesTypes.get(latticeNames[i]));
           }
         }
@@ -1836,17 +1840,21 @@ public class DomainSpecificAbstraction<T> {
         Iterable<String> splitOperator = Splitter.on(" ,").split(middleElementString);
         for (String s : splitOperator) {
           for (int k = 0; k < relationAbstraction1.length; k++) {
-            if ((relationAbstraction1[k]).contains(s + " = ")) {
-              helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
-                  (k));
+            if (relationAbstraction1[k] != null) {
+              if ((relationAbstraction1[k]).contains(s + " = ")) {
+                helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
+                    (k));
 
 
+              }
             }
-            if ((relationAbstraction2[k]).contains(s + " = ")) {
-              helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
-                  (k));
+            if (relationAbstraction2[k] != null) {
+              if ((relationAbstraction2[k]).contains(s + " = ")) {
+                helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
+                    (k));
 
 
+              }
             }
           }
         }
@@ -1863,7 +1871,7 @@ public class DomainSpecificAbstraction<T> {
           Iterable<String> splitOperator2 = Splitter.on(" ,").split(middleElement[counter/2]);
           for (String s : splitOperator2) {
             for (int i = 1; i < latticeNames.length; i++) {
-              if (s.equals(latticeNames[i])){
+              if (latticeNames[i] != null && s.equals(latticeNames[i])){
                 formulaTypes2.add(latticeNamesTypes.get(latticeNames[i]));
               }
             }
@@ -1879,7 +1887,7 @@ public class DomainSpecificAbstraction<T> {
           Iterable<String> splitOperator3 = Splitter.on(" ,").split(latticenames_h);
           for (String s : splitOperator3) {
             for (int i = 1; i < latticeNames.length; i++) {
-              if (s.equals(latticeNames[i])){
+              if (latticeNames[i] != null && s.equals(latticeNames[i])){
                 formulaTypes.add(latticeNamesTypes.get(latticeNames[i]));
               }
             }
@@ -1944,7 +1952,7 @@ public class DomainSpecificAbstraction<T> {
     Iterable<String> splitOperator = Splitter.on(" ,").split(latticeNames_h);
     for (String s : splitOperator) {
       for (int i = 1; i < latticeNames.length; i++) {
-        if (s.equals(latticeNames[i])){
+        if (latticeNames[i] != null && s.equals(latticeNames[i])){
           formulaTypes.add(latticeNamesTypes.get(latticeNames[i]));
         }
       }
