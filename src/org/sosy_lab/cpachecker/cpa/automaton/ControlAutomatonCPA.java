@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopAlwaysOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -80,10 +79,6 @@ public class ControlAutomatonCPA
   @Option(secure=true, name="dotExport",
       description="export automaton to file")
   private boolean export = false;
-
-  @Option(secure = true, name = "ignoreInStop",
-      description = "ignore Control Automaton state in termination check (stop operator)")
-  private boolean alwaysStop = false;
 
   @Option(
       secure = true,
@@ -245,11 +240,7 @@ public class ControlAutomatonCPA
 
   @Override
   public StopOperator getStopOperator() {
-    if (alwaysStop) {
-      return StopAlwaysOperator.getInstance();
-    } else {
       return new StopSepOperator(getAbstractDomain());
-    }
   }
 
   @Override

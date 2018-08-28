@@ -1073,9 +1073,6 @@ cpa.automaton.dotExportFile = "%s.dot"
 # yet reached
 cpa.automaton.extraIterationsLimit = -1
 
-# ignore Control Automaton state in termination check (stop operator)
-cpa.automaton.ignoreInStop = false
-
 # file with automaton specification for ObserverAutomatonCPA and
 # ControlAutomatonCPA
 cpa.automaton.inputFile = no default value
