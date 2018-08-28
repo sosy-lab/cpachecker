@@ -663,6 +663,10 @@ class WebInterface:
                         params.append(("option", "parser.usePreprocessor=true"))
                     elif option == "-generateReport":
                         params.append(('generateReport', 'true'))
+                    elif option == "-sourcepath":
+                        params.append(("option", "java.sourcepath=" + next(i)))
+                    elif option in ["-cp", "-classpath"]:
+                        params.append(("option", "java.classpath=" + next(i)))
 
                     elif option == "-spec":
                         spec_path = next(i)
