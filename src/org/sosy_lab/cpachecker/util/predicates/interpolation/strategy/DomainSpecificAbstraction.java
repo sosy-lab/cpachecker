@@ -103,7 +103,7 @@ public class DomainSpecificAbstraction<T> {
       if (it == 0) {
         formulas.add(oldFormulas.get(it));
         formulas.add(oldFormulas.get(it + 1));
-        variablesInFormulas.add(oldFmgr.extractVariableNames(oldFormulas.get(it)));
+        //variablesInFormulas.add(oldFmgr.extractVariableNames(oldFormulas.get(it)));
         variableTypes.add(oldFmgr.extractVariables(oldFormulas.get(it)));
       }
       else {
@@ -135,6 +135,11 @@ public class DomainSpecificAbstraction<T> {
      // for (int i = 0; i < it + 1; i++) {
       if (it == 0) {
         variables1 = variablesInFormulas.get(0);
+        for (int i = 1; i < variablesInFormulas.size(); i++) {
+          for (String f : variablesInFormulas.get(i)) {
+            variables2.add(f);
+          }
+        }
       }
       else {
         for (String f : variablesInFormulas.get(0)) {
@@ -143,19 +148,26 @@ public class DomainSpecificAbstraction<T> {
         for (String f : variablesInFormulas.get(1)) {
           variables1.add(f);
         }
+        for (int i = 2; i < variablesInFormulas.size(); i++) {
+          for (String f : variablesInFormulas.get(i)) {
+            variables2.add(f);
+          }
+        }
       }
      // }
-      for (int i = 2; i < variablesInFormulas.size(); i++) {
+    /*  for (int i = 2; i < variablesInFormulas.size(); i++) {
         for (String f : variablesInFormulas.get(i)) {
           variables2.add(f);
         }
-      }
+      } */
       Set<String> variablesThatAreUsedInBothParts = Sets.intersection(variables1, variables2)
           .immutableCopy();
       Set<String> variablesThatAreNotUsedInBothParts = Sets.difference(variables1, variables2)
           .immutableCopy();
       HashMap<String, FormulaType> variablesUsedInBothPartsClasses = new HashMap<>();
       int m = 0;
+      logger.log(Level.WARNING, "Variables That Are Used In Both Parts: " +
+          Arrays.toString(arrayVariablesThatAreNotUsedInBothParts));
    /*   for (Map<String, Formula> s : variableTypes) {
         s.get(variablesThatAreUsedInBothParts)
       }  */
