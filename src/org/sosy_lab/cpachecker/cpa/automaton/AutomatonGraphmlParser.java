@@ -126,6 +126,8 @@ public class AutomatonGraphmlParser {
   private static final GraphMLTransition.GraphMLThread DEFAULT_THREAD =
       GraphMLTransition.createThread(0, "__CPAchecker_default_thread");
 
+  private static final String THREAD_ID_VAR_NAME = KeyDef.THREADID.toString().toUpperCase();
+
   private static final String TOO_MANY_GRAPHS_ERROR_MESSAGE =
       "The witness file must describe exactly one witness automaton.";
 
@@ -998,8 +1000,8 @@ public class AutomatonGraphmlParser {
       state
           .getAutomatonVariables()
           .put(
-              KeyDef.THREADNAME.name(),
-              AutomatonVariable.createAutomatonVariable("int", KeyDef.THREADNAME.name()));
+              THREAD_ID_VAR_NAME,
+              AutomatonVariable.createAutomatonVariable("int", THREAD_ID_VAR_NAME));
     }
 
     return state;
@@ -1282,7 +1284,7 @@ public class AutomatonGraphmlParser {
    */
   private static AutomatonAction getThreadIdAssignment(int pThreadId) {
     AutomatonIntExpr expr = new AutomatonIntExpr.Constant(pThreadId);
-    return new AutomatonAction.Assignment(KeyDef.THREADID.name(), expr);
+    return new AutomatonAction.Assignment(THREAD_ID_VAR_NAME, expr);
   }
 
   /**
