@@ -129,7 +129,7 @@ public class DomainSpecificAbstraction<T> {
       logger.log(Level.WARNING, "Formulas:");
       if (formulas != null) {
         for (int i = 0; i < formulas.size(); i++) {
-          logger.log(Level.WARNING, formulas.get(i).toString());
+          logger.log(Level.WARNING, i + ". Formel" + formulas.get(i).toString());
         }
       }
      // for (int i = 0; i < it + 1; i++) {
@@ -166,8 +166,12 @@ public class DomainSpecificAbstraction<T> {
           .immutableCopy();
       HashMap<String, FormulaType> variablesUsedInBothPartsClasses = new HashMap<>();
       int m = 0;
+      logger.log(Level.WARNING, "Variables1: " +
+          variables1.toString());
+      logger.log(Level.WARNING, "Variables2: " +
+          variables2.toString());
       logger.log(Level.WARNING, "Variables That Are Used In Both Parts: " +
-          Arrays.toString(arrayVariablesThatAreNotUsedInBothParts));
+          Arrays.toString(arrayVariablesThatAreUsedInBothParts));
    /*   for (Map<String, Formula> s : variableTypes) {
         s.get(variablesThatAreUsedInBothParts)
       }  */
