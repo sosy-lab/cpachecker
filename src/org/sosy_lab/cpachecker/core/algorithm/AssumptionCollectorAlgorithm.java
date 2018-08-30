@@ -165,7 +165,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         status = status.update(innerAlgorithm.run(reached));
 
       } catch (RefinementFailedException failedRefinement) {
-        logger.log(Level.FINER, "Dumping assumptions due to:", failedRefinement);
+        logger.logUserException(
+            Level.INFO, failedRefinement, "Will generate assumption for incomplete analysis");
 
         ARGPath path = failedRefinement.getErrorPath();
         ARGState errorState = path.getLastState();
