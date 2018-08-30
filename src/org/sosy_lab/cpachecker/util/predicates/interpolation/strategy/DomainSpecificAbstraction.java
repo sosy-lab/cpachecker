@@ -104,7 +104,7 @@ public class DomainSpecificAbstraction<T> {
         formulas.add(oldFormulas.get(it));
         formulas.add(oldFormulas.get(it + 1));
         //variablesInFormulas.add(oldFmgr.extractVariableNames(oldFormulas.get(it)));
-        variableTypes.add(oldFmgr.extractVariables(oldFormulas.get(it)));
+       // variableTypes.add(oldFmgr.extractVariables(oldFormulas.get(it)));
       }
       else {
         oldInterpolant = oldFmgr.translateFrom(interpolants.get(it - 1), fmgr);
@@ -134,6 +134,7 @@ public class DomainSpecificAbstraction<T> {
       }
      // for (int i = 0; i < it + 1; i++) {
       if (it == 0) {
+        logger.log(Level.WARNING, "it is equals to 0");
         variables1 = variablesInFormulas.get(0);
         for (int i = 1; i < variablesInFormulas.size(); i++) {
           for (String f : variablesInFormulas.get(i)) {
@@ -142,6 +143,7 @@ public class DomainSpecificAbstraction<T> {
         }
       }
       else {
+        logger.log(Level.WARNING, "it is equals to > 0");
         for (String f : variablesInFormulas.get(0)) {
           variables1.add(f);
         }
@@ -171,7 +173,7 @@ public class DomainSpecificAbstraction<T> {
       logger.log(Level.WARNING, "Variables2: " +
           variables2.toString());
       logger.log(Level.WARNING, "Variables That Are Used In Both Parts: " +
-          Arrays.toString(arrayVariablesThatAreUsedInBothParts));
+          arrayVariablesThatAreUsedInBothParts.toString());
    /*   for (Map<String, Formula> s : variableTypes) {
         s.get(variablesThatAreUsedInBothParts)
       }  */
