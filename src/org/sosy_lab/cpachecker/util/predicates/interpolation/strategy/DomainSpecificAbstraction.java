@@ -183,7 +183,7 @@ public class DomainSpecificAbstraction<T> {
       logger.log(Level.WARNING, "Variables2: " +
           variables2.toString());
       logger.log(Level.WARNING, "Variables That Are Used In Both Parts: " +
-          arrayVariablesThatAreUsedInBothParts.toString());
+          variablesThatAreUsedInBothParts.toString());
    /*   for (Map<String, Formula> s : variableTypes) {
         s.get(variablesThatAreUsedInBothParts)
       }  */
