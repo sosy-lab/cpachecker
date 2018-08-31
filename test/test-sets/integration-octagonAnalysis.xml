@@ -52,6 +52,8 @@
       <exclude reason="timeout">../programs/benchmarks/loop-invgen/*</exclude>
       <exclude reason="timeout">../programs/benchmarks/loop-industry-pattern/*</exclude>
       <exclude reason="timeout">../programs/benchmarks/loop-new/*</exclude>
+      <exclude reason="timeout">../programs/benchmarks/loop-crafted/*</exclude>
+      <exclude reason="timeout">../programs/benchmarks/loop-lit/*</exclude>
       <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
       <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
       <option name="-setprop">analysis.algorithm.CEGAR=false</option>
