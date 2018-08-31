@@ -94,13 +94,17 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
     return null;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   protected void finishIteration(Pair<UsageInfo, UsageInfo> usagePair, RefinementResult r) {
     UsageInfo first = usagePair.getFirst();
     UsageInfo second = usagePair.getSecond();
 
-    @SuppressWarnings("unchecked")
     List<UsageInfo> unreachableUsages = (List<UsageInfo>) r.getInfo(PathPairIterator.class);
+
+    if (unreachableUsages == null) {
+      unreachableUsages = (List<UsageInfo>) r.getInfo(SinglePathProvider.class);
+    }
 
     if (unreachableUsages != null && unreachableUsages.contains(second)) {
       logger.log(Level.FINE, "Usage " + secondUsageIterator + " is not reachable, remove it from container");

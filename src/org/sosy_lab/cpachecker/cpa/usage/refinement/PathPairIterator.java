@@ -64,6 +64,8 @@ public class PathPairIterator extends
 
   private Map<UsageInfo, List<ExtendedARGPath>> computedPathsForUsage = new IdentityHashMap<>();
   private Map<UsageInfo, Iterator<ExtendedARGPath>> currentIterators = new IdentityHashMap<>();
+  // Not set, hash is changed
+  private List<ExtendedARGPath> missedPaths = new ArrayList<>();
 
   private final Function<ARGState, Integer> idExtractor;
 
@@ -167,6 +169,12 @@ public class PathPairIterator extends
     UsageInfo secondUsage = pInput.getSecond();
     List<UsageInfo> unreacheableUsages = new ArrayList<>(2);
 
+    if (!missedPaths.isEmpty()) {
+      for (ExtendedARGPath path : new ArrayList<>(missedPaths)) {
+        updateTheComputedSet(path);
+      }
+    }
+
     if (checkIsUsageUnreachable(firstUsage)) {
       unreacheableUsages.add(firstUsage);
     }
@@ -193,11 +201,11 @@ public class PathPairIterator extends
       refinedStates.clear();
       targetToPathIterator.clear();
       firstPath = null;
-      subgraphComputer = null;
     } else if (callerClass.equals(PointIterator.class)) {
       currentIterators.clear();
       computedPathsForUsage.clear();
       skippedUsages.clear();
+      assert missedPaths.isEmpty();
     }
   }
 
@@ -205,6 +213,7 @@ public class PathPairIterator extends
     UsageInfo usage = path.getUsageInfo();
 
     boolean alreadyComputed = computedPathsForUsage.containsKey(usage);
+    missedPaths.remove(path);
 
     if (!path.isUnreachable()) {
       List<ExtendedARGPath> alreadyComputedPaths;
@@ -263,8 +272,10 @@ public class PathPairIterator extends
       return null;
     }
     numberOfPathFinished.inc();
+    ExtendedARGPath result = new ExtendedARGPath(currentPath, info);
+    missedPaths.add(result);
     //Not add result now, only after refinement
-    return new ExtendedARGPath(currentPath, info);
+    return result;
   }
 
   private void handleAffectedStates(List<ARGState> affectedStates) {

@@ -22,6 +22,7 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Function;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -68,13 +69,20 @@ public class SinglePathProvider extends
   public RefinementResult performBlockRefinement(Pair<UsageInfo, UsageInfo> pInput)
       throws CPAException, InterruptedException {
     RefinementResult result = RefinementResult.createFalse();
+    List<UsageInfo> unreacheableUsages = new ArrayList<>(2);
+    UsageInfo firstUsage = pInput.getFirst();
+    UsageInfo secondUsage = pInput.getSecond();
 
-    ExtendedARGPath firstPath = createPathFor(pInput.getFirst());
+    ExtendedARGPath firstPath = createPathFor(firstUsage);
     if (firstPath == null) {
+      unreacheableUsages.add(firstUsage);
+      result.addInfo(this.getClass(), unreacheableUsages);
       return result;
     }
-    ExtendedARGPath secondPath = createPathFor(pInput.getSecond());
+    ExtendedARGPath secondPath = createPathFor(secondUsage);
     if (secondPath == null) {
+      unreacheableUsages.add(secondUsage);
+      result.addInfo(this.getClass(), unreacheableUsages);
       return result;
     }
     result = wrappedRefiner.performBlockRefinement(Pair.of(firstPath, secondPath));
@@ -86,14 +94,19 @@ public class SinglePathProvider extends
       List<Integer> changedStateNumbers = from(affectedStates).transform(idExtractor).toList();
       refinedStates.add(changedStateNumbers);
     }
-    addIfReachable(firstPath);
-    addIfReachable(secondPath);
+    addIfReachable(firstPath, unreacheableUsages);
+    addIfReachable(secondPath, unreacheableUsages);
+    if (!unreacheableUsages.isEmpty()) {
+      result.addInfo(this.getClass(), unreacheableUsages);
+    }
     return result;
   }
 
-  private void addIfReachable(ExtendedARGPath path) {
+  private void addIfReachable(ExtendedARGPath path, List<UsageInfo> usages) {
     if (path.isUnreachable()) {
-      skippedUsages.add(path.getUsageInfo());
+      UsageInfo unreachableUsage = path.getUsageInfo();
+      skippedUsages.add(unreachableUsage);
+      usages.add(unreachableUsage);
     } else {
       cachedPaths.put(path.getUsageInfo(), path);
     }
@@ -110,8 +123,6 @@ public class SinglePathProvider extends
       return cachedPaths.get(usage);
     }
 
-    numberOfPathCalculated.inc();
-
     computingPath.start();
     ARGState target = (ARGState) usage.getKeyState();
     currentPath = subgraphComputer.computePath(target, refinedStates);
@@ -122,6 +133,7 @@ public class SinglePathProvider extends
       skippedUsages.add(usage);
       return null;
     } else {
+      numberOfPathCalculated.inc();
       return new ExtendedARGPath(currentPath, usage);
     }
   }
@@ -133,6 +145,7 @@ public class SinglePathProvider extends
         .put(numberOfSkippedPath)
         .put(numberOfCachedPath)
         .put(numberOfPathCalculated);
+    wrappedRefiner.printStatistics(pOut);
   }
 
   @Override
