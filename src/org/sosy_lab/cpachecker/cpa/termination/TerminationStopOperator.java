@@ -24,15 +24,17 @@
 package org.sosy_lab.cpachecker.cpa.termination;
 
 import com.google.common.base.Preconditions;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.stream.Collectors;
 
 public class TerminationStopOperator implements StopOperator {
 
@@ -58,6 +60,60 @@ public class TerminationStopOperator implements StopOperator {
             .map(TerminationState::getWrappedState)
             .collect(Collectors.toCollection(ArrayList::new));
 
+    if (terminationState.isPartOfLoop()
+        && terminationState.getHondaLocation() instanceof FunctionEntryNode) {
+      return checkCoverageInRecursion(wrappedState, terminationState, wrappedReached, pPrecision);
+    }
+
     return stopOperator.stop(wrappedState, wrappedReached, pPrecision);
+  }
+
+  public boolean checkCoverageInRecursion(
+      final AbstractState pWrappedState,
+      final TerminationState pTerminationState,
+      final Collection<AbstractState> pWrappedReached,
+      final Precision pPrecision)
+      throws CPAException, InterruptedException {
+    // maybe unsound, possibly also not sufficient
+    // TODO currently does not work properly (stopAlways for callstack works)
+    Preconditions.checkArgument(
+        pWrappedState instanceof CompositeState,
+        "Recursion detection assumes that TerminationCPA wraps CompositeCPA");
+
+    List<AbstractState> elements =
+        new ArrayList<>(((CompositeState) pWrappedState).getWrappedStates());
+    CompositeState newWrappedState;
+
+    int index = -1;
+    CallstackState callState = null;
+
+    for (int i = 0; i < elements.size(); i++) {
+      if (elements.get(i) instanceof CallstackState) {
+        callState = (CallstackState) elements.get(i);
+        index = i;
+        break;
+      }
+    }
+
+    if (index >= 0) {
+      String functionName = pTerminationState.getHondaLocation().getFunctionName();
+
+      while (callState != null) {
+        elements.set(index, callState);
+        newWrappedState = new CompositeState(elements);
+
+        if (stopOperator.stop(newWrappedState, pWrappedReached, pPrecision)) {
+          return true;
+        }
+
+        do {
+          callState = callState.getPreviousState();
+        } while (callState != null && !callState.getCurrentFunction().equals(functionName));
+      }
+
+      return false;
+    }
+
+    return stopOperator.stop(pWrappedState, pWrappedReached, pPrecision);
   }
 }

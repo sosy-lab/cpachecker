@@ -32,6 +32,8 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -74,6 +76,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -104,6 +107,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
@@ -157,6 +161,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         "consider counterexamples for loops for which only pointer variables are relevant or which check that pointer is unequal to null pointer to be imprecise"
   )
   private boolean useCexImpreciseHeuristic = false;
+
+  @Option(secure = true, description = "enable to also analyze whether recursive calls terminate")
+  private boolean considerRecursion = false;
 
   private final TerminationStatistics statistics;
 
@@ -287,10 +294,20 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     List<Loop> allLoops = Lists.newArrayList(cfa.getLoopStructure().get().getAllLoops());
     Collections.sort(allLoops, comparingInt(l -> l.getInnerLoopEdges().size()));
+
+    if (considerRecursion) {
+      List<Loop> allRecursions = new ArrayList<>(LoopStructure.getRecursions(cfa));
+      Collections.sort(allRecursions, comparingInt(l -> l.getInnerLoopEdges().size()));
+      allLoops.addAll(allRecursions);
+    }
+
     for (Loop loop : allLoops) {
       shutdownNotifier.shutdownIfNecessary();
       statistics.analysisOfLoopStarted(loop);
 
+      if (considerRecursion) {
+        setExplicitAbstractionNodes(ImmutableSet.of());
+      }
       resetReachedSet(pReachedSet, initialLocation);
       CPAcheckerResult.Result loopTermiantion =
           prooveLoopTermination(pReachedSet, loop, initialLocation);
@@ -307,7 +324,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       statistics.analysisOfLoopFinished(loop);
     }
 
-    if (status.isSound()) {
+    if (status.isSound() && !considerRecursion) {
       status = status.update(checkRecursion(initialLocation));
     }
 
@@ -330,6 +347,10 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     // Pass current loop and relevant variables to TerminationCPA.
     Set<CVariableDeclaration> relevantVariables = getRelevantVariables(pLoop);
     terminationInformation.setProcessedLoop(pLoop, relevantVariables);
+
+    if (considerRecursion) {
+      setExplicitAbstractionNodes(pLoop);
+    }
 
     Result result = Result.TRUE;
     while (pReachedSet.hasWaitingState() && result != Result.FALSE) {
@@ -478,13 +499,26 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   private Set<CVariableDeclaration> getRelevantVariables(Loop pLoop) {
-    String function = pLoop.getLoopHeads().iterator().next().getFunctionName();
-    Set<CVariableDeclaration> relevantVariabels =
-        ImmutableSet.<CVariableDeclaration>builder()
-            .addAll(globalDeclaration)
-            .addAll(localDeclarations.get(function))
-            .build();
-    return relevantVariabels;
+    CFANode firstLoopHead = pLoop.getLoopHeads().iterator().next();
+    if (firstLoopHead instanceof FunctionEntryNode) {
+      ImmutableSet.Builder<CVariableDeclaration> relVarBuilder =
+          ImmutableSet.<CVariableDeclaration>builder();
+      relVarBuilder.addAll(globalDeclaration);
+      for (CFANode entryNode :
+          FluentIterable.from(pLoop.getLoopNodes())
+              .filter(Predicates.instanceOf(FunctionEntryNode.class))) {
+        relVarBuilder.addAll(localDeclarations.get(entryNode.getFunctionName()));
+      }
+      return relVarBuilder.build();
+    } else {
+      String function = firstLoopHead.getFunctionName();
+      Set<CVariableDeclaration> relevantVariabels =
+          ImmutableSet.<CVariableDeclaration>builder()
+              .addAll(globalDeclaration)
+              .addAll(localDeclarations.get(function))
+              .build();
+      return relevantVariabels;
+    }
   }
 
   private void removeIntermediateStates(ReachedSet pReachedSet, AbstractState pTargetState) {
@@ -657,6 +691,20 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         safetyCPA.getInitialPrecision(pInitialLocation, getDefaultPartition());
     pReachedSet.clear();
     pReachedSet.add(initialState, initialPrecision);
+  }
+
+  private void setExplicitAbstractionNodes(final Loop pLoop) {
+    CFANode firstLoopHead = pLoop.getLoopHeads().iterator().next();
+    if (firstLoopHead instanceof FunctionEntryNode) {
+      setExplicitAbstractionNodes(ImmutableSet.of(firstLoopHead));
+    }
+  }
+
+  private void setExplicitAbstractionNodes(final ImmutableSet<CFANode> newAbsLocs) {
+    PredicateCPA predCPA = CPAs.retrieveCPA(safetyCPA, PredicateCPA.class);
+    if (predCPA != null) {
+      predCPA.changeExplicitAbstractionNodes(newAbsLocs);
+    }
   }
 
   private static class DeclarationCollectionCFAVisitor extends DefaultCFAVisitor {

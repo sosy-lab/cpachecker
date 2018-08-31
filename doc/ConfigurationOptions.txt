@@ -3548,6 +3548,9 @@ stop = "SEP"
 # instead of the current one.
 termination.config = no default value
 
+# enable to also analyze whether recursive calls terminate
+termination.considerRecursion = false
+
 # Number of generalized eigenvectors in the geometric nontermination
 # argument.
 termination.lassoAnalysis.eigenvectors = 3
