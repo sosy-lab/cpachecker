@@ -324,8 +324,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] =
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i + 1]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 2]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType2);
           }
@@ -358,8 +358,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] =
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i + 1]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 2]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType1);
           }
@@ -386,8 +386,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] =
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i + 1]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 2]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType1);
           } else if (resultType1.isBitvectorType() &&
@@ -416,8 +416,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] =
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i + 1]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 2]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType1);
           } else if (resultType1 == resultType2 && !(resultType1.isIntegerType()) && !
@@ -444,8 +444,8 @@ public class DomainSpecificAbstraction<T> {
               latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
               latticeNames[i + 1] =
                   arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i + 1]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 2]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
               latticeNamesTypes.put(latticeNames[i], resultType1);
               latticeNamesTypes.put(latticeNames[i + 1], resultType2);
           }
@@ -520,8 +520,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i + 1]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 2]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType1);
            /* latticeNamesTypes[i + 1] = resultType1;
@@ -749,8 +749,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] =
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i + 1]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 2]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType2);
           }
@@ -783,8 +783,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] =
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i + 1]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 2]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType1);
           }
@@ -811,8 +811,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] =
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i + 1]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 2]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType1);
           } else if (resultType1.isBitvectorType() &&
@@ -841,8 +841,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] =
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i + 1]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 2]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType1);
           } else if (resultType1 == resultType2 && !(resultType1.isIntegerType()) && !
@@ -869,8 +869,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] =
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i + 1]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 2]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType2);
           }
@@ -947,8 +947,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i + 1]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 2]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType1);
          /* latticeNamesTypes[i + 1] = resultType1;
