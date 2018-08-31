@@ -383,7 +383,8 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
         logger.log(Level.FINEST, "Starting Newton-based refinement");
         return performNewtonRefinement(allStatesTrace, formulas);
       } catch (RefinementFailedException e) {
-        if (e.getReason() == Reason.SequenceOfAssertionsToWeak) {
+        if (e.getReason() == Reason.SequenceOfAssertionsToWeak
+            && newtonManager.get().fallbackToInterpolation()) {
           logger.log(
               Level.FINEST,
               "Fallback from Newton-based refinement to interpolation-based refinement");
