@@ -1804,7 +1804,7 @@ public class DomainSpecificAbstraction<T> {
         .size() - 1);
 
    // for (int i = placeinlattice + 1; i < fullLatticeNames.length; i++){
-      for (int i = 1; i < latticeNames.length; i++) {
+      for (int i = 0; i < latticeNames.length; i++) {
         /*if (lattice[placeinlattice][i] == true) */ if (!latticenames_h.contains
             (latticeNames[i])){
           //call prover function with fullLatticeNames[i] applied to firstPartChanged and
@@ -1858,7 +1858,7 @@ public class DomainSpecificAbstraction<T> {
           } */
          if (isFeasible){
            hasFeasibleSuccessor = true;
-           for (int m = 1; m < latticeNames.length; m++){
+           for (int m = 0; m < latticeNames.length; m++){
              if (!latticenames_h.isEmpty() && !(latticenames_h == null) &&!latticenames_h.contains
                  (latticeNames[m])){
                middleElement[middleElemIndex] = latticenames_h + " ," + latticeNames[m];
@@ -1877,7 +1877,7 @@ public class DomainSpecificAbstraction<T> {
           - 1);
       Iterable<String> splitOperator = Splitter.on(" ,").split(latticenames_h);
       for (String s : splitOperator) {
-        for (int i = 1; i < latticeNames.length; i++) {
+        for (int i = 0; i < latticeNames.length; i++) {
           if (latticeNames[i] != null && !(s == null) && s.equals(latticeNames[i])){
             formulaTypes.add(latticeNamesTypes.get(latticeNames[i]));
           }
@@ -2022,7 +2022,7 @@ public class DomainSpecificAbstraction<T> {
         - 1);
     Iterable<String> splitOperator = Splitter.on(" ,").split(latticeNames_h);
     for (String s : splitOperator) {
-      for (int i = 1; i < latticeNames.length; i++) {
+      for (int i = 0; i < latticeNames.length; i++) {
         if (latticeNames[i] != null && s.equals(latticeNames[i])){
           formulaTypes.add(latticeNamesTypes.get(latticeNames[i]));
         }
