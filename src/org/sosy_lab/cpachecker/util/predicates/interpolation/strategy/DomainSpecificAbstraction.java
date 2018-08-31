@@ -1558,7 +1558,7 @@ public class DomainSpecificAbstraction<T> {
       for (int h = 0; h < relationAbstraction2.length; h++) {
         logger.log(Level.WARNING, relationAbstraction2[h]);
       }
-      for (int h = 1; h < /*fullLatticeNames.length */ latticeNames.length; h++) {
+      for (int h = 0; h < /*fullLatticeNames.length */ latticeNames.length; h++) {
        /* helperFormula1 = firstPartChanged;
         helperFormula2 = scndPartChanged; */
      //   Iterable<String> splitOperator = Splitter.on(" ,").split(/*fullLatticeNames[h]*/
@@ -1569,6 +1569,7 @@ public class DomainSpecificAbstraction<T> {
               if ((relationAbstraction1[k]).contains(/*s*/ latticeNames[h] + " = ")) {
                 helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
                     (k));
+                logger.log(Level.WARNING, "Updated helperformula1: " + helperFormula1.toString());
                 if (latticenames_h.isEmpty() || (latticenames_h == null)) {
                   latticenames_h = latticeNames[h];
                   logger.log(Level.WARNING, "Latticenames_h: " + latticenames_h);
@@ -1583,6 +1584,7 @@ public class DomainSpecificAbstraction<T> {
               if ((relationAbstraction2[k]).contains(/*s*/ latticeNames[h] + " = ")) {
                 helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
                     (k));
+                logger.log(Level.WARNING, "Updated helperformula2: " + helperFormula2.toString());
 
               }
             }
