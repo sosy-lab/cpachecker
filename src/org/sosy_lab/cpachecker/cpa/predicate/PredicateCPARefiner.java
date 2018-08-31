@@ -65,6 +65,8 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -377,16 +379,19 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
     } else if (useNewtonRefinement) {
       assert newtonManager.isPresent();
-      if (repeatedCounterexample && newtonManager.get().fallbackToInterpolation()) {
-        logger.log(
-            Level.FINEST,
-            "Fallback from Newton-based refinement to interpolation-based refinement");
-        return performInterpolatingRefinement(abstractionStatesTrace, formulas);
-      } else {
+      try {
         logger.log(Level.FINEST, "Starting Newton-based refinement");
         return performNewtonRefinement(allStatesTrace, formulas);
+      } catch (RefinementFailedException e) {
+        if (e.getReason() == Reason.SequenceOfAssertionsToWeak) {
+          logger.log(
+              Level.FINEST,
+              "Fallback from Newton-based refinement to interpolation-based refinement");
+          return performInterpolatingRefinement(abstractionStatesTrace, formulas);
+        } else {
+          throw e;
+        }
       }
-
     } else if (useUCBRefinement) {
       logger.log(Level.FINEST, "Starting unsat-core-based refinement");
       return performUCBRefinement(abstractionStatesTrace, formulas);
@@ -401,7 +406,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       final List<ARGState> abstractionStatesTrace,
       final BlockFormulas formulas)
       throws CPAException, InterruptedException {
-      
+
     return interpolationManager.buildCounterexampleTrace(
         formulas, Lists.<AbstractState>newArrayList(abstractionStatesTrace));
   }

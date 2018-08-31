@@ -187,9 +187,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
         // Test if the predicate of the error state is unsatisfiable
         try {
           if (!solver.isUnsat(predicates.get(predicates.size() - 1))) {
-            logger.log(
-                Level.SEVERE,
-                "Created last predicate is not unsatisfiable. The refinement failed to find a sequence of assertions ruling out counterexample.");
+            throw new RefinementFailedException(Reason.SequenceOfAssertionsToWeak, pAllStatesTrace);
           }
         } catch (SolverException e) {
           throw new RefinementFailedException(Reason.NewtonRefinementFailed, pAllStatesTrace, e);
