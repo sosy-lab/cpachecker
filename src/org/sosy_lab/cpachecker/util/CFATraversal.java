@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
@@ -156,9 +157,21 @@ public class CFATraversal {
   }
 
   /**
-   * Traverse through the CFA according to the strategy represented by the
-   * current instance, starting at a given node and passing each
-   * encountered node and edge to a given visitor.
+   * Returns a new instance of this class which behaves exactly like the current instance, except
+   * that it ignores all CFA edges of the specified type. It will not call the visitor for them, and
+   * it will not follow this edge during traversing.
+   */
+  public CFATraversal ignoreEdgeType(final CFAEdgeType ignoreType) {
+    return new CFATraversal(
+        edgeSupplier,
+        successorSupplier,
+        Predicates.or(ignoreEdge, edge -> edge.getEdgeType() == ignoreType));
+  }
+
+  /**
+   * Traverse through the CFA according to the strategy represented by the current instance,
+   * starting at a given node and passing each encountered node and edge to a given visitor.
+   *
    * @param startingNode The starting node.
    * @param visitor The visitor to notify.
    */
