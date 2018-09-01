@@ -370,8 +370,9 @@ public class TransitionSystem {
   private static BooleanFormula makeProgramcounterFormula(
       int pLocationNumber, BitvectorFormulaManagerView pBvfmgr, CFA pCFA) {
     int bitLength =
-        pCFA.getMachineModel().getSizeof(PROGRAM_COUNTER_TYPE)
-            * pCFA.getMachineModel().getSizeofCharInBits();
+        Math.toIntExact(
+            pCFA.getMachineModel().getSizeof(PROGRAM_COUNTER_TYPE)
+                * pCFA.getMachineModel().getSizeofCharInBits());
     BitvectorFormula pc = pBvfmgr.makeVariable(bitLength, PROGRAM_COUNTER_VARIABLE_NAME);
     BitvectorFormula value = pBvfmgr.makeBitvector(bitLength, pLocationNumber);
     return pBvfmgr.equal(pc, value);

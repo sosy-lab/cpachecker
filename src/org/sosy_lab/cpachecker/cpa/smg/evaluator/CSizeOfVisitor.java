@@ -55,24 +55,24 @@ public class CSizeOfVisitor extends BaseSizeofVisitor {
   }
 
   @Override
-  public Integer visit(CArrayType pArrayType) throws IllegalArgumentException {
+  public Long visit(CArrayType pArrayType) throws IllegalArgumentException {
 
     CExpression arrayLength = pArrayType.getLength();
 
-    int sizeOfType = pArrayType.getType().accept(this);
+    long sizeOfType = pArrayType.getType().accept(this);
 
     /* If the array type has a constant size, we can simply
      * get the length of the array, but if the size
      * of the array type is variable, we have to try and calculate
      * the current size.
      */
-    int length;
+    long length;
 
     if(arrayLength == null) {
       // treat size of unknown array length type as ptr
       return super.visit(pArrayType);
     } else if (arrayLength instanceof CIntegerLiteralExpression) {
-      length = ((CIntegerLiteralExpression) arrayLength).getValue().intValue();
+      length = ((CIntegerLiteralExpression) arrayLength).getValue().longValue();
     } else if (edge instanceof CDeclarationEdge) {
 
       /* If we currently declare the array of this type,
@@ -91,7 +91,7 @@ public class CSizeOfVisitor extends BaseSizeofVisitor {
       if (lengthAsExplicitValue.isUnknown()) {
         length = handleUnkownArrayLengthValue(pArrayType);
       } else {
-        length = lengthAsExplicitValue.getAsInt();
+        length = lengthAsExplicitValue.getAsLong();
       }
 
     } else {
@@ -121,7 +121,7 @@ public class CSizeOfVisitor extends BaseSizeofVisitor {
         }
 
         SMGObject arrayObject = addressOfField.getObject();
-        int offset = addressOfField.getOffset().getAsInt();
+        long offset = addressOfField.getOffset().getAsLong();
         return arrayObject.getSize() - offset;
       } else {
         throw new IllegalArgumentException(
@@ -132,7 +132,7 @@ public class CSizeOfVisitor extends BaseSizeofVisitor {
     return length * sizeOfType;
   }
 
-  int handleUnkownArrayLengthValue(CArrayType pArrayType) {
+  long handleUnkownArrayLengthValue(CArrayType pArrayType) {
     throw new IllegalArgumentException(
         "Can't calculate array length of type " + pArrayType.toASTString("") + ".");
   }

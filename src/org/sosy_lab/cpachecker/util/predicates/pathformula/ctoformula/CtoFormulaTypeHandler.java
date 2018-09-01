@@ -57,7 +57,7 @@ public class CtoFormulaTypeHandler {
    * @return the size in bytes of the given type.
    */
   public int getSizeof(CType pType) {
-    int size = machineModel.getSizeof(pType);
+    int size = Math.toIntExact(machineModel.getSizeof(pType));
     if (size == 0) {
       CType type = pType.getCanonicalType();
       if (type instanceof CArrayType) {

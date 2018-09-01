@@ -69,7 +69,7 @@ public class SMGEdgeHasValue extends SMGEdge {
   }
 
   public int getSizeInBits(MachineModel pMachineModel) {
-    return pMachineModel.getSizeofInBits(type);
+    return Math.toIntExact(pMachineModel.getSizeofInBits(type));
   }
 
   @Override

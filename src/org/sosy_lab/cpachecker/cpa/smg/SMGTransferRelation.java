@@ -980,7 +980,7 @@ public class SMGTransferRelation
         return Pair.of(offset, listCounter);
       } else {
         if (pLValueType.getKind() == ComplexTypeKind.STRUCT) {
-          int memberSize = machineModel.getSizeofInBits(memberDcl.getType());
+          int memberSize = Math.toIntExact(machineModel.getSizeofInBits(memberDcl.getType()));
           if (!(memberDcl.getType() instanceof CBitFieldType)) {
             offset += memberSize;
             long overByte = offset % machineModel.getSizeofCharInBits();

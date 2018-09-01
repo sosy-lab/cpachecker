@@ -492,7 +492,7 @@ public enum MachineModel {
   private final BaseSizeofVisitor sizeofVisitor =
       new BaseSizeofVisitor(this);
 
-  public static class BaseSizeofVisitor implements CTypeVisitor<Integer, IllegalArgumentException> {
+  public static class BaseSizeofVisitor implements CTypeVisitor<Long, IllegalArgumentException> {
     private final MachineModel model;
 
     protected BaseSizeofVisitor(MachineModel model) {
@@ -500,24 +500,24 @@ public enum MachineModel {
     }
 
     @Override
-    public Integer visit(CArrayType pArrayType) throws IllegalArgumentException {
+    public Long visit(CArrayType pArrayType) throws IllegalArgumentException {
       // TODO: Take possible padding into account
 
       CExpression arrayLength = pArrayType.getLength();
 
       if (arrayLength instanceof CIntegerLiteralExpression) {
-        int length = ((CIntegerLiteralExpression) arrayLength).getValue().intValue();
+        long length = ((CIntegerLiteralExpression) arrayLength).getValue().longValue(); // TODO
 
-        int sizeOfType = model.getSizeof(pArrayType.getType());
+        long sizeOfType = model.getSizeof(pArrayType.getType());
         return length * sizeOfType;
       }
 
       // Treat arrays with variable length as pointer.
-      return model.getSizeofPtr();
+      return (long) model.getSizeofPtr();
     }
 
     @Override
-    public Integer visit(CCompositeType pCompositeType) throws IllegalArgumentException {
+    public Long visit(CCompositeType pCompositeType) throws IllegalArgumentException {
 
       switch (pCompositeType.getKind()) {
         case STRUCT:
@@ -542,15 +542,13 @@ public enum MachineModel {
       return result;
     }
 
-    private Integer handleSizeOfStruct(CCompositeType pCompositeType) {
-      long size = model.getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pCompositeType, null, null);
-
-      return Math.toIntExact(size);
+    private Long handleSizeOfStruct(CCompositeType pCompositeType) {
+      return model.getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pCompositeType, null, null);
     }
 
-    private Integer handleSizeOfUnion(CCompositeType pCompositeType) {
-      int size = 0;
-      int sizeOfType = 0;
+    private Long handleSizeOfUnion(CCompositeType pCompositeType) {
+      long size = 0L;
+      long sizeOfType = 0L;
       // TODO: Take possible padding into account
       for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
         sizeOfType = decl.getType().accept(this);
@@ -560,14 +558,14 @@ public enum MachineModel {
     }
 
     @Override
-    public Integer visit(CElaboratedType pElaboratedType) throws IllegalArgumentException {
+    public Long visit(CElaboratedType pElaboratedType) throws IllegalArgumentException {
       CType def = pElaboratedType.getRealType();
       if (def != null) {
         return def.accept(this);
       }
 
       if (pElaboratedType.getKind() == ComplexTypeKind.ENUM) {
-        return model.getSizeofInt();
+        return (long) model.getSizeofInt();
       }
 
       throw new IllegalArgumentException(
@@ -575,49 +573,49 @@ public enum MachineModel {
     }
 
     @Override
-    public Integer visit(CEnumType pEnumType) throws IllegalArgumentException {
-      return model.getSizeofInt();
+    public Long visit(CEnumType pEnumType) throws IllegalArgumentException {
+      return (long) model.getSizeofInt();
     }
 
     @Override
-    public Integer visit(CFunctionType pFunctionType) throws IllegalArgumentException {
+    public Long visit(CFunctionType pFunctionType) throws IllegalArgumentException {
       // A function does not really have a size,
       // but references to functions can be used as pointers.
-      return model.getSizeofPtr();
+      return (long) model.getSizeofPtr();
     }
 
     @Override
-    public Integer visit(CPointerType pPointerType) throws IllegalArgumentException {
-      return model.getSizeofPtr();
+    public Long visit(CPointerType pPointerType) throws IllegalArgumentException {
+      return (long) model.getSizeofPtr();
     }
 
     @Override
-    public Integer visit(CProblemType pProblemType) throws IllegalArgumentException {
+    public Long visit(CProblemType pProblemType) throws IllegalArgumentException {
       throw new IllegalArgumentException("Unknown C-Type: " + pProblemType.getClass().toString());
     }
 
     @Override
-    public Integer visit(CSimpleType pSimpleType) throws IllegalArgumentException {
-      return model.getSizeof(pSimpleType);
+    public Long visit(CSimpleType pSimpleType) throws IllegalArgumentException {
+      return (long) model.getSizeof(pSimpleType);
     }
 
     @Override
-    public Integer visit(CTypedefType pTypedefType) throws IllegalArgumentException {
+    public Long visit(CTypedefType pTypedefType) throws IllegalArgumentException {
       return pTypedefType.getRealType().accept(this);
     }
 
     @Override
-    public Integer visit(CVoidType pVoidType) throws IllegalArgumentException {
-      return model.getSizeofVoid();
+    public Long visit(CVoidType pVoidType) throws IllegalArgumentException {
+      return (long) model.getSizeofVoid();
     }
 
     @Override
-    public Integer visit(CBitFieldType pCBitFieldType) throws IllegalArgumentException {
-      return calculateByteSize(pCBitFieldType.getBitFieldSize());
+    public Long visit(CBitFieldType pCBitFieldType) throws IllegalArgumentException {
+      return (long) calculateByteSize(pCBitFieldType.getBitFieldSize());
     }
   }
 
-  public int getSizeof(CType pType) {
+  public long getSizeof(CType pType) {
     checkArgument(
         pType instanceof CVoidType || !pType.isIncomplete(),
         "Cannot compute size of incomplete type %s",
@@ -625,7 +623,7 @@ public enum MachineModel {
     return getSizeof(pType, sizeofVisitor);
   }
 
-  public int getSizeof(CType pType, BaseSizeofVisitor pSizeofVisitor) {
+  public long getSizeof(CType pType, BaseSizeofVisitor pSizeofVisitor) {
     checkNotNull(pSizeofVisitor);
     return pType.accept(pSizeofVisitor);
   }
@@ -634,16 +632,17 @@ public enum MachineModel {
     return getSizeofPtr() * getSizeofCharInBits();
   }
 
-  public int getSizeofInBits(CType pType) {
+  public long getSizeofInBits(CType pType) {
     return getSizeofInBits(pType, sizeofVisitor);
   }
 
-  public int getSizeofInBits(CType pType, BaseSizeofVisitor pSizeofVisitor) {
+  public long getSizeofInBits(CType pType, BaseSizeofVisitor pSizeofVisitor) {
     checkNotNull(pSizeofVisitor);
     if (pType instanceof CBitFieldType) {
       return ((CBitFieldType) pType).getBitFieldSize();
     } else {
-      return getSizeof(pType, pSizeofVisitor) * getSizeofCharInBits();
+      return getSizeof(pType, pSizeofVisitor)
+          * getSizeofCharInBits(); // TODO: handle overflow (e.g. 9223372036854775296 * 8 = -4096 )
     }
   }
 

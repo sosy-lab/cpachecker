@@ -275,7 +275,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
 
   private NumeralFormula<CompoundInterval> getPointerTargetSizeLiteral(
       final CPointerType pointerType, final CType implicitType) {
-    final int pointerTargetSize = machineModel.getSizeof(pointerType.getType());
+    final long pointerTargetSize = machineModel.getSizeof(pointerType.getType());
     return asConstant(implicitType, pointerTargetSize);
   }
 

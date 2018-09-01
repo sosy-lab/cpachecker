@@ -107,7 +107,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
       final int sizeOfType = getSizeofUncached(t.getType());
       return length * sizeOfType;
     } else {
-      return model.getSizeof(cType);
+      return Math.toIntExact(model.getSizeof(cType));
     }
   }
 

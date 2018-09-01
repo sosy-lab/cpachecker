@@ -189,7 +189,7 @@ public class ExpressionSimplificationVisitor
 
     switch (idOperator) {
     case SIZEOF:
-      int size = machineModel.getSizeof(innerType);
+        long size = machineModel.getSizeof(innerType);
       return new CIntegerLiteralExpression(expr.getFileLocation(),
               expr.getExpressionType(), BigInteger.valueOf(size));
 

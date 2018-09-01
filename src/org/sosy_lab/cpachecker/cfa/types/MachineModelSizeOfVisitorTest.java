@@ -27,7 +27,7 @@ import static com.google.common.truth.Truth8.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.OptionalInt;
+import java.util.OptionalLong;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -238,6 +238,6 @@ public class MachineModelSizeOfVisitorTest {
 
   @Test
   public void testSizeOfStruct() {
-    assertThat(OptionalInt.of(model.getSizeof(testStruct))).hasValue(expectedSize);
+    assertThat(OptionalLong.of(model.getSizeof(testStruct))).hasValue(expectedSize);
   }
 }

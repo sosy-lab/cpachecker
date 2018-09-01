@@ -46,9 +46,9 @@ class RHSCSizeOfVisitor extends CSizeOfVisitor {
   }
 
   @Override
-  protected int handleUnkownArrayLengthValue(CArrayType pArrayType) {
+  protected long handleUnkownArrayLengthValue(CArrayType pArrayType) {
     if (smgTransferRelation.kind == SMGTransferRelationKind.REFINEMENT) {
-      return 0;
+      return 0L;
     } else {
       return super.handleUnkownArrayLengthValue(pArrayType);
     }

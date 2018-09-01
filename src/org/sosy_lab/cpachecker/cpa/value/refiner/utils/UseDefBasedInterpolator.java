@@ -201,7 +201,7 @@ public class UseDefBasedInterpolator {
     /**
      * the current offset for which to create the next memory location
      */
-    private int currentOffset = 0;
+    private long currentOffset = 0L;
 
     /**
      * marker to know if traversal went through a complex type
@@ -295,7 +295,7 @@ public class UseDefBasedInterpolator {
       return createSingleMemoryLocation(model.getSizeofVoid());
     }
 
-    private List<MemoryLocation> createSingleMemoryLocation(final int pSize) {
+    private List<MemoryLocation> createSingleMemoryLocation(final long pSize) {
       if (withinComplexType) {
         List<MemoryLocation> memory = Collections.singletonList(MemoryLocation.valueOf(qualifiedName, currentOffset));
 
@@ -308,7 +308,7 @@ public class UseDefBasedInterpolator {
     }
 
     private List<MemoryLocation> createMemoryLocationsForArray(final int pLength, final CType pType) {
-      int sizeOfType = model.getSizeof(pType);
+      long sizeOfType = model.getSizeof(pType);
 
       List<MemoryLocation> memoryLocationsForArray = new ArrayList<>(pLength);
       for (int i = 0; i < pLength; i++) {

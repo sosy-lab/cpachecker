@@ -1793,8 +1793,8 @@ public class AssumptionToEdgeAllocator {
           return false;
         }
 
-        int typeSize = machineModel.getSizeofInBits(pExpectedType);
-        int subscriptOffset = pSubscript * typeSize;
+        long typeSize = machineModel.getSizeofInBits(pExpectedType);
+        long subscriptOffset = pSubscript * typeSize;
 
         // Check if we are already out of array bound, if we have an array length.
         // FIXME Imprecise due to imprecise getSizeOf method

@@ -1057,7 +1057,7 @@ public class ValueAnalysisTransferRelation
       CCompositeType pLType, CExpression pExp,
       ExpressionValueVisitor pVisitor) throws UnrecognizedCodeException {
 
-    int offset = 0;
+    long offset = 0L;
     for (CCompositeType.CCompositeTypeMemberDeclaration memberType : pLType.getMembers()) {
       MemoryLocation assignedField = createFieldMemoryLocation(pAssignedVar, offset);
       CExpression owner = null;
@@ -1072,7 +1072,7 @@ public class ValueAnalysisTransferRelation
     }
   }
 
-  private MemoryLocation createFieldMemoryLocation(MemoryLocation pStruct, int pOffset) {
+  private MemoryLocation createFieldMemoryLocation(MemoryLocation pStruct, long pOffset) {
 
     long baseOffset = pStruct.isReference() ? pStruct.getOffset() : 0;
 
