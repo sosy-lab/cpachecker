@@ -131,10 +131,10 @@ public class DomainSpecificAbstraction<T> {
           ());
       Set<String> variables1 = Sets.newHashSet();
       Set<String> variables2 = Sets.newHashSet();
-      logger.log(Level.WARNING, "Formulas:");
+     // logger.log(Level.WARNING, "Formulas:");
       if (formulas != null) {
         for (int i = 0; i < formulas.size(); i++) {
-          logger.log(Level.WARNING, i + ". Formel" + formulas.get(i).toString());
+          //logger.log(Level.WARNING, i + ". Formel" + formulas.get(i).toString());
         }
       }
       logger.log(Level.WARNING, "Variables in Formulas:");
@@ -1576,7 +1576,8 @@ public class DomainSpecificAbstraction<T> {
               if ((relationAbstraction1[k]).contains(/*s*/ latticeNames[h] + " = ")) {
                 helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
                     (k));
-                logger.log(Level.WARNING, "Updated helperformula1: " + helperFormula1.toString());
+                //logger.log(Level.WARNING, "Updated helperformula1: " + helperFormula1.toString
+                // ());
                 if (latticenames_h.isEmpty() || (latticenames_h == null)) {
                   latticenames_h = latticeNames[h];
                   logger.log(Level.WARNING, "Latticenames_h: " + latticenames_h);
@@ -1591,7 +1592,8 @@ public class DomainSpecificAbstraction<T> {
               if ((relationAbstraction2[k]).contains(/*s*/ latticeNames[h] + " = ")) {
                 helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
                     (k));
-                logger.log(Level.WARNING, "Updated helperformula2: " + helperFormula2.toString());
+                //logger.log(Level.WARNING, "Updated helperformula2: " + helperFormula2.toString
+                // ());
 
               }
             }
@@ -1690,16 +1692,16 @@ public class DomainSpecificAbstraction<T> {
      } */
     if (it != 0){
       for (BooleanFormula f : changed_formulas_rest1){
-        logger.log(Level.WARNING, "Changed Formulas Rest 1:", changed_formulas_rest1.toString());
+        //logger.log(Level.WARNING, "Changed Formulas Rest 1:", changed_formulas_rest1.toString());
         myItpGroupIds.add(myItpProver.push(f));
       }
     }
 
      myItpGroupIds.add(myItpProver.push(helperFormula1));
-        logger.log(Level.WARNING, "helper Formula 1:", helperFormula1.toString());
+        //logger.log(Level.WARNING, "helper Formula 1:", helperFormula1.toString());
       //  myItpGroupIds.add(myItpProver.push(helperFormula2));
      myItpProver.push(helperFormula2);
-        logger.log(Level.WARNING, "helper Formula 2:", helperFormula2.toString());
+       // logger.log(Level.WARNING, "helper Formula 2:", helperFormula2.toString());
     /*  for (int i = 0; i < it; i++) {
         myItpProver.push(oldFormulas.get(i));
       }
@@ -1708,7 +1710,7 @@ public class DomainSpecificAbstraction<T> {
       } */
     if (! changed_formulas_rest2.isEmpty()) {
       for (BooleanFormula f : changed_formulas_rest2) {
-        logger.log(Level.WARNING, "Changed Formulas Rest 2:", changed_formulas_rest2.toString());
+        //logger.log(Level.WARNING, "Changed Formulas Rest 2:", changed_formulas_rest2.toString());
         myItpProver.push(f);
       }
     }
@@ -1720,11 +1722,11 @@ public class DomainSpecificAbstraction<T> {
 
           BooleanFormula myInterpolant = myItpProver.getInterpolant
               (myItpGroupIds);
-          logger.log(Level.WARNING, "Interpolant:", myInterpolant.toString());
+          //logger.log(Level.WARNING, "Interpolant:", myInterpolant.toString());
 
           if (myInterpolant != null) {
             interpolants.add(myInterpolant);
-            logger.log(Level.WARNING, "Current Interpolants:", interpolants.toString());
+           // logger.log(Level.WARNING, "Current Interpolants:", interpolants.toString());
             fmgr.translateFrom(myInterpolant, mySolver.getFormulaManager());
           }
         }
