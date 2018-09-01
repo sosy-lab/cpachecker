@@ -40,7 +40,7 @@ public class ScndPartRenamingFct implements java.util.function.Function<String,
     for (int i = 0; i < arrayVariablesForFormulasHere.length;
          i++){
       if (name.equals(arrayVariablesForFormulasHere[i])){
-        myBuilder.append("''");
+        myBuilder.append("##");
         while (equalsOtherArrayVariable == true) {
           equalsOtherArrayVariable = false;
           String currentVariableName = myBuilder.toString();

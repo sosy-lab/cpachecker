@@ -247,12 +247,12 @@ public class DomainSpecificAbstraction<T> {
       for (int i = 0; i < arrayVariablesThatAreUsedInBothParts.length; i++) {
         for (int j = 0; j < arrayVariables1.length; j++) {
           if (arrayVariablesThatAreUsedInBothParts[i].equals(arrayVariables1[j])) {
-            arrayVariables1[j] = arrayVariables1[j] + "'";
+            arrayVariables1[j] = arrayVariables1[j] + "#";
           }
         }
         for (int j = 0; j < arrayVariables2.length; j++) {
           if (arrayVariablesThatAreUsedInBothParts[i].equals(arrayVariables2[j])) {
-            arrayVariables2[j] = arrayVariables2[j] + "''";
+            arrayVariables2[j] = arrayVariables2[j] + "##";
           }
         }
       }
@@ -304,9 +304,9 @@ public class DomainSpecificAbstraction<T> {
           if (!resultType1.equals(resultType2)){
             logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
             relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "'";
+                arrayVariablesThatAreUsedInBothParts[i] + "#";
             relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "'";
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
             Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
@@ -315,9 +315,9 @@ public class DomainSpecificAbstraction<T> {
             helperFormula2 = fmgr.makeVariable(resultType2,
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
             helperFormula7 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i] + "'");
+                arrayVariablesThatAreUsedInBothParts[i] + "#");
             helperFormula8 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "'");
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction1Formula.add(helperFormula6);
@@ -338,9 +338,9 @@ public class DomainSpecificAbstraction<T> {
             FormulaType indexType2 = resultType2Array.getIndexType();
             FormulaType elementType2 = resultType2Array.getElementType();
             relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "'";
+                arrayVariablesThatAreUsedInBothParts[i] + "#";
             relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "'";
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
             Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
@@ -349,9 +349,9 @@ public class DomainSpecificAbstraction<T> {
             helperFormula2 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
             helperFormula7 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
-                arrayVariablesThatAreUsedInBothParts[i] + "'");
+                arrayVariablesThatAreUsedInBothParts[i] + "#");
             helperFormula8 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "'");
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction1Formula.add(helperFormula6);
@@ -366,9 +366,9 @@ public class DomainSpecificAbstraction<T> {
           }
           else if (resultType1.isBooleanType() && resultType2.isBooleanType()){
             relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "'";
+                arrayVariablesThatAreUsedInBothParts[i] + "#";
             relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "'";
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
             BooleanFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
@@ -377,9 +377,9 @@ public class DomainSpecificAbstraction<T> {
             helperFormula2 = fmgr.makeVariable(FormulaType.BooleanType,
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
             helperFormula7 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i] + "'");
+                arrayVariablesThatAreUsedInBothParts[i] + "#");
             helperFormula8 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "'");
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction1Formula.add(helperFormula6);
@@ -394,9 +394,9 @@ public class DomainSpecificAbstraction<T> {
           } else if (resultType1.isBitvectorType() &&
               resultType2.isBitvectorType()) {
             relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "'";
+                arrayVariablesThatAreUsedInBothParts[i] + "#";
             relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "'";
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
             BitvectorFormula helperFormula1, helperFormula2, helperFormula3,
                 helperFormula4,
                 helperFormula7, helperFormula8;
@@ -407,9 +407,9 @@ public class DomainSpecificAbstraction<T> {
             helperFormula2 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
             helperFormula7 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
-                arrayVariablesThatAreUsedInBothParts[i] + "'");
+                arrayVariablesThatAreUsedInBothParts[i] + "#");
             helperFormula8 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "'");
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction1Formula.add(helperFormula6);
@@ -424,9 +424,9 @@ public class DomainSpecificAbstraction<T> {
           } else if (resultType1 == resultType2 && !(resultType1.isIntegerType()) && !
               (resultType1.isFloatingPointRoundingModeType()) && !(resultType1.isRationalType())){
               relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                  arrayVariablesThatAreUsedInBothParts[i] + "'";
+                  arrayVariablesThatAreUsedInBothParts[i] + "#";
               relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "'";
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
               Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                   helperFormula7, helperFormula8;
               BooleanFormula helperFormula5, helperFormula6;
@@ -435,9 +435,9 @@ public class DomainSpecificAbstraction<T> {
               helperFormula2 = fmgr.makeVariable(resultType2,
                   arrayVariablesThatAreUsedInBothParts[i + 1]);
               helperFormula7 = fmgr.makeVariable(resultType1,
-                  arrayVariablesThatAreUsedInBothParts[i] + "'");
+                  arrayVariablesThatAreUsedInBothParts[i] + "#");
               helperFormula8 = fmgr.makeVariable(resultType2,
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "'");
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
               helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
               helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
               relationAbstraction1Formula.add(helperFormula6);
@@ -452,11 +452,11 @@ public class DomainSpecificAbstraction<T> {
           }
           else {
             relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "'";
+                arrayVariablesThatAreUsedInBothParts[i] + "#";
             relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
                 arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "'" + " - " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "'";
+                arrayVariablesThatAreUsedInBothParts[i] + "#" + " - " +
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
         /*  FormulaType resultType1 = variablesUsedInBothPartsClasses.get
               (arrayVariablesThatAreUsedInBothParts[i]);
           FormulaType resultType2 = variablesUsedInBothPartsClasses.get
@@ -471,9 +471,9 @@ public class DomainSpecificAbstraction<T> {
                   arrayVariablesThatAreUsedInBothParts[i + 1]);
               helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
               helperFormula7 = fmgr.makeVariable(FormulaType.IntegerType,
-                  arrayVariablesThatAreUsedInBothParts[i] + "'");
+                  arrayVariablesThatAreUsedInBothParts[i] + "#");
               helperFormula8 = fmgr.makeVariable(FormulaType.IntegerType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "'");
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
               helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
               helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
               helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
@@ -489,9 +489,9 @@ public class DomainSpecificAbstraction<T> {
                   arrayVariablesThatAreUsedInBothParts[i + 1]);
               helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
               helperFormula7 = fmgr.makeVariable(FormulaType.RationalType,
-                  arrayVariablesThatAreUsedInBothParts[i] + "'");
+                  arrayVariablesThatAreUsedInBothParts[i] + "#");
               helperFormula8 = fmgr.makeVariable(FormulaType.RationalType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "'");
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
               helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
               helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
               helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
@@ -509,9 +509,9 @@ public class DomainSpecificAbstraction<T> {
                   arrayVariablesThatAreUsedInBothParts[i + 1]);
               helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
               helperFormula7 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-                  arrayVariablesThatAreUsedInBothParts[i] + "'");
+                  arrayVariablesThatAreUsedInBothParts[i] + "#");
               helperFormula8 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "'");
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
               helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
               helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
               helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
@@ -537,9 +537,9 @@ public class DomainSpecificAbstraction<T> {
           if (!resultType1.equals(resultType2)){
             logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
             relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "''";
+                arrayVariablesThatAreUsedInBothParts[i] + "##";
             relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''";
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
             Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
@@ -548,9 +548,9 @@ public class DomainSpecificAbstraction<T> {
             helperFormula2 = fmgr.makeVariable(resultType2,
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
             helperFormula7 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i] + "''");
+                arrayVariablesThatAreUsedInBothParts[i] + "##");
             helperFormula8 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''");
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction2Formula.add(helperFormula6);
@@ -564,9 +564,9 @@ public class DomainSpecificAbstraction<T> {
             FormulaType indexType2 = resultType2Array.getIndexType();
             FormulaType elementType2 = resultType2Array.getElementType();
             relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "''";
+                arrayVariablesThatAreUsedInBothParts[i] + "##";
             relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''";
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
             Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
@@ -575,9 +575,9 @@ public class DomainSpecificAbstraction<T> {
             helperFormula2 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
             helperFormula7 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
-                arrayVariablesThatAreUsedInBothParts[i] + "''");
+                arrayVariablesThatAreUsedInBothParts[i] + "##");
             helperFormula8 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''");
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction2Formula.add(helperFormula6);
@@ -585,9 +585,9 @@ public class DomainSpecificAbstraction<T> {
           }
           else if (resultType1.isBooleanType() && resultType2.isBooleanType()){
             relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "''";
+                arrayVariablesThatAreUsedInBothParts[i] + "##";
             relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''";
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
             BooleanFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
@@ -596,9 +596,9 @@ public class DomainSpecificAbstraction<T> {
             helperFormula2 = fmgr.makeVariable(FormulaType.BooleanType,
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
             helperFormula7 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i] + "''");
+                arrayVariablesThatAreUsedInBothParts[i] + "##");
             helperFormula8 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''");
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction2Formula.add(helperFormula6);
@@ -606,9 +606,9 @@ public class DomainSpecificAbstraction<T> {
           } else if (resultType1.isBitvectorType() &&
               resultType2.isBitvectorType()) {
             relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "''";
+                arrayVariablesThatAreUsedInBothParts[i] + "##";
             relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''";
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
             BitvectorFormula helperFormula1, helperFormula2, helperFormula3,
                 helperFormula4,
                 helperFormula7, helperFormula8;
@@ -619,9 +619,9 @@ public class DomainSpecificAbstraction<T> {
             helperFormula2 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
             helperFormula7 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
-                arrayVariablesThatAreUsedInBothParts[i] + "''");
+                arrayVariablesThatAreUsedInBothParts[i] + "##");
             helperFormula8 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''");
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction2Formula.add(helperFormula6);
@@ -629,9 +629,9 @@ public class DomainSpecificAbstraction<T> {
           }else if (resultType1 == resultType2 && !(resultType1.isIntegerType()) && !
               (resultType1.isFloatingPointRoundingModeType()) && !(resultType1.isRationalType())){
             relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "''";
+                arrayVariablesThatAreUsedInBothParts[i] + "##";
             relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''";
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
             Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
@@ -640,9 +640,9 @@ public class DomainSpecificAbstraction<T> {
             helperFormula2 = fmgr.makeVariable(resultType2,
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
             helperFormula7 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i] + "''");
+                arrayVariablesThatAreUsedInBothParts[i] + "##");
             helperFormula8 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''");
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction1Formula.add(helperFormula6);
@@ -650,11 +650,11 @@ public class DomainSpecificAbstraction<T> {
           }
           else {
           relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-              arrayVariablesThatAreUsedInBothParts[i] + "''";
+              arrayVariablesThatAreUsedInBothParts[i] + "##";
           relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
               arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-              arrayVariablesThatAreUsedInBothParts[i] + "''" + " - " +
-              arrayVariablesThatAreUsedInBothParts[i + 1] + "''";
+              arrayVariablesThatAreUsedInBothParts[i] + "##" + " - " +
+              arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
          /* FormulaType resultType1 = variablesUsedInBothPartsClasses.get
           (arrayVariablesThatAreUsedInBothParts[i]);
           FormulaType resultType2 = variablesUsedInBothPartsClasses.get
@@ -670,9 +670,9 @@ public class DomainSpecificAbstraction<T> {
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
             helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
             helperFormula7 = fmgr.makeVariable(FormulaType.IntegerType,
-                arrayVariablesThatAreUsedInBothParts[i] + "''");
+                arrayVariablesThatAreUsedInBothParts[i] + "##");
             helperFormula8 = fmgr.makeVariable(FormulaType.IntegerType,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''");
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
             helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
             helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
@@ -689,9 +689,9 @@ public class DomainSpecificAbstraction<T> {
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
             helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
             helperFormula7 = fmgr.makeVariable(FormulaType.RationalType,
-                arrayVariablesThatAreUsedInBothParts[i] + "''");
+                arrayVariablesThatAreUsedInBothParts[i] + "##");
             helperFormula8 = fmgr.makeVariable(FormulaType.RationalType,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''");
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
             helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
             helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
@@ -709,9 +709,9 @@ public class DomainSpecificAbstraction<T> {
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
             helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
             helperFormula7 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-                arrayVariablesThatAreUsedInBothParts[i] + "''");
+                arrayVariablesThatAreUsedInBothParts[i] + "##");
             helperFormula8 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''");
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
             helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
             helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
@@ -729,9 +729,9 @@ public class DomainSpecificAbstraction<T> {
           if (!resultType1.equals(resultType2)){
             logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
             relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "'";
+                arrayVariablesThatAreUsedInBothParts[i] + "#";
             relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "'";
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
             Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
@@ -740,9 +740,9 @@ public class DomainSpecificAbstraction<T> {
             helperFormula2 = fmgr.makeVariable(resultType2,
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
             helperFormula7 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i] + "'");
+                arrayVariablesThatAreUsedInBothParts[i] + "#");
             helperFormula8 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "'");
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction1Formula.add(helperFormula6);
@@ -763,9 +763,9 @@ public class DomainSpecificAbstraction<T> {
             FormulaType indexType2 = resultType2Array.getIndexType();
             FormulaType elementType2 = resultType2Array.getElementType();
             relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "'";
+                arrayVariablesThatAreUsedInBothParts[i] + "#";
             relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "'";
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
             Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
@@ -774,9 +774,9 @@ public class DomainSpecificAbstraction<T> {
             helperFormula2 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
             helperFormula7 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
-                arrayVariablesThatAreUsedInBothParts[i] + "'");
+                arrayVariablesThatAreUsedInBothParts[i] + "#");
             helperFormula8 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "'");
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction1Formula.add(helperFormula6);
@@ -791,9 +791,9 @@ public class DomainSpecificAbstraction<T> {
           }
           else if (resultType1.isBooleanType() && resultType2.isBooleanType()) {
             relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "'";
+                arrayVariablesThatAreUsedInBothParts[i] + "#";
             relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "'";
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
             BooleanFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
@@ -802,9 +802,9 @@ public class DomainSpecificAbstraction<T> {
             helperFormula2 = fmgr.makeVariable(FormulaType.BooleanType,
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
             helperFormula7 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i] + "'");
+                arrayVariablesThatAreUsedInBothParts[i] + "#");
             helperFormula8 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "'");
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction1Formula.add(helperFormula6);
@@ -819,9 +819,9 @@ public class DomainSpecificAbstraction<T> {
           } else if (resultType1.isBitvectorType() &&
               resultType2.isBitvectorType()) {
             relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "'";
+                arrayVariablesThatAreUsedInBothParts[i] + "#";
             relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "'";
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
             BitvectorFormula helperFormula1, helperFormula2, helperFormula3,
                 helperFormula4,
                 helperFormula7, helperFormula8;
@@ -832,9 +832,9 @@ public class DomainSpecificAbstraction<T> {
             helperFormula2 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
             helperFormula7 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
-                arrayVariablesThatAreUsedInBothParts[i] + "'");
+                arrayVariablesThatAreUsedInBothParts[i] + "#");
             helperFormula8 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "'");
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction1Formula.add(helperFormula6);
@@ -849,9 +849,9 @@ public class DomainSpecificAbstraction<T> {
           } else if (resultType1 == resultType2 && !(resultType1.isIntegerType()) && !
               (resultType1.isFloatingPointRoundingModeType()) && !(resultType1.isRationalType())){
             relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "'";
+                arrayVariablesThatAreUsedInBothParts[i] + "#";
             relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "'";
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
             Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
@@ -860,9 +860,9 @@ public class DomainSpecificAbstraction<T> {
             helperFormula2 = fmgr.makeVariable(resultType2,
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
             helperFormula7 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i] + "'");
+                arrayVariablesThatAreUsedInBothParts[i] + "#");
             helperFormula8 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "'");
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction1Formula.add(helperFormula6);
@@ -878,11 +878,11 @@ public class DomainSpecificAbstraction<T> {
 
           else {
             relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "'";
+                arrayVariablesThatAreUsedInBothParts[i] + "#";
             relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
                 arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "'" + " - " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "'";
+                arrayVariablesThatAreUsedInBothParts[i] + "#" + " - " +
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
          /* FormulaType resultType1 = variablesUsedInBothPartsClasses.get
           (arrayVariablesThatAreUsedInBothParts[i]);
           FormulaType resultType2 = variablesUsedInBothPartsClasses.get
@@ -898,9 +898,9 @@ public class DomainSpecificAbstraction<T> {
                   arrayVariablesThatAreUsedInBothParts[i + 1]);
               helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
               helperFormula7 = fmgr.makeVariable(FormulaType.IntegerType,
-                  arrayVariablesThatAreUsedInBothParts[i] + "'");
+                  arrayVariablesThatAreUsedInBothParts[i] + "#");
               helperFormula8 = fmgr.makeVariable(FormulaType.IntegerType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "'");
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
               helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
               helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
               helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
@@ -916,9 +916,9 @@ public class DomainSpecificAbstraction<T> {
                   arrayVariablesThatAreUsedInBothParts[i + 1]);
               helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
               helperFormula7 = fmgr.makeVariable(FormulaType.RationalType,
-                  arrayVariablesThatAreUsedInBothParts[i] + "'");
+                  arrayVariablesThatAreUsedInBothParts[i] + "#");
               helperFormula8 = fmgr.makeVariable(FormulaType.RationalType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "'");
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
               helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
               helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
               helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
@@ -936,9 +936,9 @@ public class DomainSpecificAbstraction<T> {
                   arrayVariablesThatAreUsedInBothParts[i + 1]);
               helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
               helperFormula7 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-                  arrayVariablesThatAreUsedInBothParts[i] + "'");
+                  arrayVariablesThatAreUsedInBothParts[i] + "#");
               helperFormula8 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "'");
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
               helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
               helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
               helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
@@ -964,9 +964,9 @@ public class DomainSpecificAbstraction<T> {
           if (!resultType1.equals(resultType2)){
             logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
             relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "''";
+                arrayVariablesThatAreUsedInBothParts[i] + "##";
             relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''";
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
             Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
@@ -975,9 +975,9 @@ public class DomainSpecificAbstraction<T> {
             helperFormula2 = fmgr.makeVariable(resultType2,
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
             helperFormula7 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i] + "''");
+                arrayVariablesThatAreUsedInBothParts[i] + "##");
             helperFormula8 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''");
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction2Formula.add(helperFormula6);
@@ -991,9 +991,9 @@ public class DomainSpecificAbstraction<T> {
             FormulaType indexType2 = resultType2Array.getIndexType();
             FormulaType elementType2 = resultType2Array.getElementType();
             relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "''";
+                arrayVariablesThatAreUsedInBothParts[i] + "##";
             relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''";
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
             Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
@@ -1002,9 +1002,9 @@ public class DomainSpecificAbstraction<T> {
             helperFormula2 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
             helperFormula7 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
-                arrayVariablesThatAreUsedInBothParts[i] + "''");
+                arrayVariablesThatAreUsedInBothParts[i] + "##");
             helperFormula8 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''");
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction2Formula.add(helperFormula6);
@@ -1012,9 +1012,9 @@ public class DomainSpecificAbstraction<T> {
           }
           else if (resultType1.isBooleanType() && resultType2.isBooleanType()) {
             relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "''";
+                arrayVariablesThatAreUsedInBothParts[i] + "##";
             relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''";
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
             BooleanFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
@@ -1023,9 +1023,9 @@ public class DomainSpecificAbstraction<T> {
             helperFormula2 = fmgr.makeVariable(FormulaType.BooleanType,
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
             helperFormula7 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i] + "''");
+                arrayVariablesThatAreUsedInBothParts[i] + "##");
             helperFormula8 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''");
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction2Formula.add(helperFormula6);
@@ -1034,9 +1034,9 @@ public class DomainSpecificAbstraction<T> {
           else if (resultType1.isBitvectorType() &&
               resultType2.isBitvectorType()) {
             relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "''";
+                arrayVariablesThatAreUsedInBothParts[i] + "##";
             relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''";
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
             BitvectorFormula helperFormula1, helperFormula2, helperFormula3,
                 helperFormula4,
                 helperFormula7, helperFormula8;
@@ -1047,9 +1047,9 @@ public class DomainSpecificAbstraction<T> {
             helperFormula2 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
             helperFormula7 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
-                arrayVariablesThatAreUsedInBothParts[i] + "''");
+                arrayVariablesThatAreUsedInBothParts[i] + "##");
             helperFormula8 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''");
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction2Formula.add(helperFormula6);
@@ -1057,9 +1057,9 @@ public class DomainSpecificAbstraction<T> {
           } else if (resultType1 == resultType2 && !(resultType1.isIntegerType()) && !
               (resultType1.isFloatingPointRoundingModeType()) && !(resultType1.isRationalType())){
             relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "''";
+                arrayVariablesThatAreUsedInBothParts[i] + "##";
             relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''";
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
             Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
@@ -1068,9 +1068,9 @@ public class DomainSpecificAbstraction<T> {
             helperFormula2 = fmgr.makeVariable(resultType2,
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
             helperFormula7 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i] + "''");
+                arrayVariablesThatAreUsedInBothParts[i] + "##");
             helperFormula8 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''");
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
             relationAbstraction1Formula.add(helperFormula6);
@@ -1078,11 +1078,11 @@ public class DomainSpecificAbstraction<T> {
           }
           else {
             relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "''";
+                arrayVariablesThatAreUsedInBothParts[i] + "##";
             relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
                 arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "''" + " - " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "''";
+                arrayVariablesThatAreUsedInBothParts[i] + "##" + " - " +
+                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
           /*FormulaType resultType1 = variablesUsedInBothPartsClasses.get
               (arrayVariablesThatAreUsedInBothParts[i]);
           FormulaType resultType2 = variablesUsedInBothPartsClasses.get
@@ -1098,9 +1098,9 @@ public class DomainSpecificAbstraction<T> {
                   arrayVariablesThatAreUsedInBothParts[i + 1]);
               helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
               helperFormula7 = fmgr.makeVariable(FormulaType.IntegerType,
-                  arrayVariablesThatAreUsedInBothParts[i] + "''");
+                  arrayVariablesThatAreUsedInBothParts[i] + "##");
               helperFormula8 = fmgr.makeVariable(FormulaType.IntegerType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "''");
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
               helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
               helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
               helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
@@ -1117,9 +1117,9 @@ public class DomainSpecificAbstraction<T> {
                   arrayVariablesThatAreUsedInBothParts[i + 1]);
               helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
               helperFormula7 = fmgr.makeVariable(FormulaType.RationalType,
-                  arrayVariablesThatAreUsedInBothParts[i] + "''");
+                  arrayVariablesThatAreUsedInBothParts[i] + "##");
               helperFormula8 = fmgr.makeVariable(FormulaType.RationalType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "''");
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
               helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
               helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
               helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
@@ -1138,9 +1138,9 @@ public class DomainSpecificAbstraction<T> {
                   arrayVariablesThatAreUsedInBothParts[i + 1]);
               helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
               helperFormula7 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-                  arrayVariablesThatAreUsedInBothParts[i] + "''");
+                  arrayVariablesThatAreUsedInBothParts[i] + "##");
               helperFormula8 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "''");
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
               helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
               helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
               helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
@@ -1153,7 +1153,7 @@ public class DomainSpecificAbstraction<T> {
             arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
                 + ""
                 + " = " + arrayVariablesThatAreUsedInBothParts
-                [arrayVariablesThatAreUsedInBothParts.length - 1] + "'";
+                [arrayVariablesThatAreUsedInBothParts.length - 1] + "#";
         FormulaType resultType1 = variablesUsedInBothPartsClasses.get
             (arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]);
         FormulaType resultType2 = variablesUsedInBothPartsClasses.get
@@ -1165,7 +1165,7 @@ public class DomainSpecificAbstraction<T> {
                   - 1]);
           helperFormula2 =
               fmgr.makeVariable(FormulaType.BooleanType, arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "'");
+                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
           helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
           relationAbstraction1Formula.add(helperFormula3);
        IntegerFormula helperFormula1, helperFormula2;
@@ -1174,7 +1174,7 @@ public class DomainSpecificAbstraction<T> {
            arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]);
         helperFormula2 =
             fmgr.makeVariable(FormulaType.IntegerType, arrayVariablesThatAreUsedInBothParts
-                [arrayVariablesThatAreUsedInBothParts.length - 1] + "'");
+                [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
         helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
         relationAbstraction1Formula.add(helperFormula3);
 
@@ -1188,7 +1188,7 @@ public class DomainSpecificAbstraction<T> {
                   - 1]);
           helperFormula2 =
               fmgr.makeVariable(resultType2, arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "'");
+                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
           helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
           relationAbstraction1Formula.add(helperFormula3);
         }
@@ -1207,7 +1207,7 @@ public class DomainSpecificAbstraction<T> {
                   1]);
           helperFormula7 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
               arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
-                  + "'");
+                  + "#");
           helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
           relationAbstraction1Formula.add(helperFormula6);
         }
@@ -1219,7 +1219,7 @@ public class DomainSpecificAbstraction<T> {
                   - 1]);
           helperFormula2 =
               fmgr.makeVariable(FormulaType.IntegerType, arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "'");
+                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
           helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
           relationAbstraction1Formula.add(helperFormula3);
         } else if (resultType1.isIntegerType() && resultType2.isIntegerType()){
@@ -1230,7 +1230,7 @@ public class DomainSpecificAbstraction<T> {
                   - 1]);
           helperFormula2 =
               fmgr.makeVariable(FormulaType.RationalType, arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "'");
+                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
           helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
           relationAbstraction1Formula.add(helperFormula3);
         } else if (resultType1.isFloatingPointRoundingModeType() && resultType2.isFloatingPointRoundingModeType()){
@@ -1241,7 +1241,7 @@ public class DomainSpecificAbstraction<T> {
                   - 1]);
           helperFormula2 =
               fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType, arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "'");
+                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
           helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
           relationAbstraction1Formula.add(helperFormula3);
         } else if (resultType1.isBooleanType() && resultType2.isBooleanType()){
@@ -1252,7 +1252,7 @@ public class DomainSpecificAbstraction<T> {
                   - 1]);
           helperFormula2 =
               fmgr.makeVariable(FormulaType.BooleanType, arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "'");
+                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
           helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
           relationAbstraction1Formula.add(helperFormula3);
         } else if (resultType1.isBitvectorType() && resultType2.isBitvectorType()){
@@ -1264,7 +1264,7 @@ public class DomainSpecificAbstraction<T> {
           helperFormula2 =
               fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
                   arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "'");
+                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
           helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
           relationAbstraction1Formula.add(helperFormula3);
         }  else if (resultType1 == resultType2){
@@ -1275,7 +1275,7 @@ public class DomainSpecificAbstraction<T> {
                   - 1]);
           helperFormula2 =
               fmgr.makeVariable(resultType2, arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "'");
+                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
           helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
           relationAbstraction1Formula.add(helperFormula3);
         }
@@ -1283,7 +1283,7 @@ public class DomainSpecificAbstraction<T> {
             arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
                 + ""
                 + " = " + arrayVariablesThatAreUsedInBothParts
-                [arrayVariablesThatAreUsedInBothParts.length - 1] + "''";
+                [arrayVariablesThatAreUsedInBothParts.length - 1] + "##";
       /*  FormulaType resultType2 = variablesUsedInBothPartsClasses.get
             (arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length -
             1]); */
@@ -1294,7 +1294,7 @@ public class DomainSpecificAbstraction<T> {
                   - 1]);
           helperFormula5 = fmgr.makeVariable(FormulaType.BooleanType,
               arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "''");
+                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
           helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
           relationAbstraction2Formula.add(helperFormula6); */
       /*  IntegerFormula helperFormula4, helperFormula5;
@@ -1304,7 +1304,7 @@ public class DomainSpecificAbstraction<T> {
                 - 1]);
         helperFormula5 = fmgr.makeVariable(FormulaType.IntegerType,
             arrayVariablesThatAreUsedInBothParts
-                [arrayVariablesThatAreUsedInBothParts.length - 1] + "''");
+                [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
         helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
         relationAbstraction2Formula.add(helperFormula6);
         } else */
@@ -1317,7 +1317,7 @@ public class DomainSpecificAbstraction<T> {
                   - 1]);
           helperFormula5 = fmgr.makeVariable(resultType2,
               arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "''");
+                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
           helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
           relationAbstraction2Formula.add(helperFormula6);
         }
@@ -1336,7 +1336,7 @@ public class DomainSpecificAbstraction<T> {
                   1]);
           helperFormula7 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
               arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
-                  + "''");
+                  + "##");
           helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
           relationAbstraction2Formula.add(helperFormula6);
         }
@@ -1348,7 +1348,7 @@ public class DomainSpecificAbstraction<T> {
                   - 1]);
           helperFormula5 = fmgr.makeVariable(FormulaType.IntegerType,
               arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "''");
+                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
           helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
           relationAbstraction2Formula.add(helperFormula6);
         } else if (resultType2.isRationalType() && resultType1.isRationalType()){
@@ -1359,7 +1359,7 @@ public class DomainSpecificAbstraction<T> {
                   - 1]);
           helperFormula5 = fmgr.makeVariable(FormulaType.RationalType,
               arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "''");
+                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
           helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
           relationAbstraction2Formula.add(helperFormula6);
         } else if (resultType2.isFloatingPointRoundingModeType() && resultType1.isFloatingPointRoundingModeType()){
@@ -1370,7 +1370,7 @@ public class DomainSpecificAbstraction<T> {
                   - 1]);
           helperFormula5 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
               arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "''");
+                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
           helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
           relationAbstraction2Formula.add(helperFormula6);
         } else if (resultType2.isBooleanType() && resultType1.isBooleanType()){
@@ -1381,7 +1381,7 @@ public class DomainSpecificAbstraction<T> {
                   - 1]);
           helperFormula5 = fmgr.makeVariable(FormulaType.BooleanType,
               arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "''");
+                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
           helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
           relationAbstraction2Formula.add(helperFormula6);
         } else if (resultType1.isBitvectorType() && resultType2.isBitvectorType()){
@@ -1393,7 +1393,7 @@ public class DomainSpecificAbstraction<T> {
           helperFormula2 =
               fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
                   arrayVariablesThatAreUsedInBothParts
-                      [arrayVariablesThatAreUsedInBothParts.length - 1] + "'");
+                      [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
           helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
           relationAbstraction2Formula.add(helperFormula3);
         } else if (resultType1 == resultType2){
@@ -1404,7 +1404,7 @@ public class DomainSpecificAbstraction<T> {
                   - 1]);
           helperFormula2 =
               fmgr.makeVariable(resultType2, arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "'");
+                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
           helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
           relationAbstraction1Formula.add(helperFormula3);
         }
