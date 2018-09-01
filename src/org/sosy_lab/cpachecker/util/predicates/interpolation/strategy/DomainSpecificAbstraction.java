@@ -92,7 +92,8 @@ public class DomainSpecificAbstraction<T> {
         // running the algorithm for every formula with its successor
     for (int it = 0; it < oldFormulas.size() - 1; it = it + 1) {
       BooleanFormula oldInterpolant;
-      logger.log(Level.WARNING, "old Formulas: " + oldFormulas.get(it) + oldFormulas.get(it + 1));
+      //logger.log(Level.WARNING, "old Formulas: " + oldFormulas.get(it) + oldFormulas.get(it +
+      // 1));
       formulas = Lists.newArrayListWithExpectedSize(oldFormulas.size
           ());
       final List<Set<String>> variablesInFormulas =
@@ -1941,7 +1942,7 @@ public class DomainSpecificAbstraction<T> {
               - 1);
           Iterable<String> splitOperator2 = Splitter.on(" ,").split(middleElement[counter/2]);
           for (String s : splitOperator2) {
-            for (int i = 1; i < latticeNames.length; i++) {
+            for (int i = 0; i < latticeNames.length; i++) {
               if (latticeNames[i] != null && s.equals(latticeNames[i])){
                 formulaTypes2.add(latticeNamesTypes.get(latticeNames[i]));
               }
@@ -1957,7 +1958,7 @@ public class DomainSpecificAbstraction<T> {
               - 1);
           Iterable<String> splitOperator3 = Splitter.on(" ,").split(latticenames_h);
           for (String s : splitOperator3) {
-            for (int i = 1; i < latticeNames.length; i++) {
+            for (int i = 0; i < latticeNames.length; i++) {
               if (latticeNames[i] != null && s.equals(latticeNames[i])){
                 formulaTypes.add(latticeNamesTypes.get(latticeNames[i]));
               }
