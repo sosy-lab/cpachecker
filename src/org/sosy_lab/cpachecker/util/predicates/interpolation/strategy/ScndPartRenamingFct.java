@@ -46,7 +46,7 @@ public class ScndPartRenamingFct implements java.util.function.Function<String,
           String currentVariableName = myBuilder.toString();
           for (int j = 0; j < otherArrayVariables.length; j++) {
             if (currentVariableName.equals(otherArrayVariables[j])) {
-              myBuilder.append("'");
+              myBuilder.append("#");
               equalsOtherArrayVariable = true;
               break;
             }
