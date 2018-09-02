@@ -397,18 +397,19 @@ public class DomainSpecificAbstraction<T> {
                 arrayVariablesThatAreUsedInBothParts[i] + "#";
             relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
                 arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
-            BitvectorFormula helperFormula1, helperFormula2, helperFormula3,
+            /*BitvectorFormula*/ Formula helperFormula1, helperFormula2, helperFormula3,
                 helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize
-                    (1),
+            helperFormula1 = fmgr.makeVariable(/*FormulaType.getBitvectorTypeWithSize
+                    (1) */ resultType1,
                 arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
+            helperFormula2 = fmgr.makeVariable(/*FormulaType.getBitvectorTypeWithSize(1)*/
+                resultType2,
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
+            helperFormula7 = fmgr.makeVariable(/*FormulaType.getBitvectorTypeWithSize(1)*/ resultType1,
                 arrayVariablesThatAreUsedInBothParts[i] + "#");
-            helperFormula8 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
+            helperFormula8 = fmgr.makeVariable(/*FormulaType.getBitvectorTypeWithSize(1) */ resultType2,
                 arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
@@ -609,18 +610,18 @@ public class DomainSpecificAbstraction<T> {
                 arrayVariablesThatAreUsedInBothParts[i] + "##";
             relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
                 arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
-            BitvectorFormula helperFormula1, helperFormula2, helperFormula3,
+            /*BitvectorFormula*/ Formula helperFormula1, helperFormula2, helperFormula3,
                 helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize
-                    (1),
+            helperFormula1 = fmgr.makeVariable(/*FormulaType.getBitvectorTypeWithSize
+                    (1)*/ resultType1,
                 arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
+            helperFormula2 = fmgr.makeVariable(/*FormulaType.getBitvectorTypeWithSize(1)*/ resultType2,
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
+            helperFormula7 = fmgr.makeVariable(/*FormulaType.getBitvectorTypeWithSize(1)*/ resultType1,
                 arrayVariablesThatAreUsedInBothParts[i] + "##");
-            helperFormula8 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
+            helperFormula8 = fmgr.makeVariable(/*FormulaType.getBitvectorTypeWithSize(1)*/ resultType2,
                 arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
@@ -822,18 +823,18 @@ public class DomainSpecificAbstraction<T> {
                 arrayVariablesThatAreUsedInBothParts[i] + "#";
             relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
                 arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
-            BitvectorFormula helperFormula1, helperFormula2, helperFormula3,
+            /*BitvectorFormula*/ Formula helperFormula1, helperFormula2, helperFormula3,
                 helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize
-                    (1),
+            helperFormula1 = fmgr.makeVariable(/*FormulaType.getBitvectorTypeWithSize
+                    (1)*/ resultType1,
                 arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
+            helperFormula2 = fmgr.makeVariable(/*FormulaType.getBitvectorTypeWithSize(1)*/ resultType2,
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
+            helperFormula7 = fmgr.makeVariable(/*FormulaType.getBitvectorTypeWithSize(1)*/ resultType1,
                 arrayVariablesThatAreUsedInBothParts[i] + "#");
-            helperFormula8 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
+            helperFormula8 = fmgr.makeVariable(/*FormulaType.getBitvectorTypeWithSize(1)*/ resultType2,
                 arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
@@ -1037,18 +1038,18 @@ public class DomainSpecificAbstraction<T> {
                 arrayVariablesThatAreUsedInBothParts[i] + "##";
             relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
                 arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
-            BitvectorFormula helperFormula1, helperFormula2, helperFormula3,
+            /*BitvectorFormula*/ Formula helperFormula1, helperFormula2, helperFormula3,
                 helperFormula4,
                 helperFormula7, helperFormula8;
             BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize
-                    (1),
+            helperFormula1 = fmgr.makeVariable(/*FormulaType.getBitvectorTypeWithSize
+                    (1)*/ resultType1,
                 arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
+            helperFormula2 = fmgr.makeVariable(/*FormulaType.getBitvectorTypeWithSize(1)*/ resultType2,
                 arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
+            helperFormula7 = fmgr.makeVariable(/*FormulaType.getBitvectorTypeWithSize(1)*/ resultType1,
                 arrayVariablesThatAreUsedInBothParts[i] + "##");
-            helperFormula8 = fmgr.makeVariable(FormulaType.getBitvectorTypeWithSize(1),
+            helperFormula8 = fmgr.makeVariable(/*FormulaType.getBitvectorTypeWithSize(1)*/ resultType2,
                 arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
             helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
             helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
