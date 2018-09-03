@@ -28,20 +28,26 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationLoopInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class TerminationStopOperator implements StopOperator {
 
   private final StopOperator stopOperator;
+  private final TerminationLoopInformation terminationInformation;
 
-  public TerminationStopOperator(StopOperator pStopOperator) {
+  public TerminationStopOperator(
+      StopOperator pStopOperator, TerminationLoopInformation pTerminationInformation) {
     stopOperator = Preconditions.checkNotNull(pStopOperator);
+    terminationInformation = pTerminationInformation;
   }
 
   @Override
@@ -59,9 +65,11 @@ public class TerminationStopOperator implements StopOperator {
             .filter(s -> terminationState.isPartOfLoop() == s.isPartOfLoop())
             .map(TerminationState::getWrappedState)
             .collect(Collectors.toCollection(ArrayList::new));
+    CFANode locNode = AbstractStates.extractLocation(wrappedState);
 
     if (terminationState.isPartOfLoop()
-        && terminationState.getHondaLocation() instanceof FunctionEntryNode) {
+            && terminationState.getHondaLocation() instanceof FunctionEntryNode
+        || locNode instanceof FunctionEntryNode && terminationInformation.isLoopHead(locNode)) {
       return checkCoverageInRecursion(wrappedState, terminationState, wrappedReached, pPrecision);
     }
 
@@ -96,7 +104,12 @@ public class TerminationStopOperator implements StopOperator {
     }
 
     if (index >= 0) {
-      String functionName = pTerminationState.getHondaLocation().getFunctionName();
+      String functionName;
+      if (pTerminationState.getHondaLocation() != null) {
+        functionName = pTerminationState.getHondaLocation().getFunctionName();
+      } else {
+        functionName = AbstractStates.extractLocation(pWrappedState).getFunctionName();
+      }
 
       while (callState != null) {
         elements.set(index, callState);
