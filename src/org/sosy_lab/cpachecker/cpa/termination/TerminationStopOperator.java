@@ -67,9 +67,9 @@ public class TerminationStopOperator implements StopOperator {
             .collect(Collectors.toCollection(ArrayList::new));
     CFANode locNode = AbstractStates.extractLocation(wrappedState);
 
-    if (terminationState.isPartOfLoop()
-            && terminationState.getHondaLocation() instanceof FunctionEntryNode
-        || locNode instanceof FunctionEntryNode && terminationInformation.isLoopHead(locNode)) {
+    if ((terminationState.isPartOfLoop()
+            && terminationState.getHondaLocation() instanceof FunctionEntryNode)
+        || (locNode instanceof FunctionEntryNode && terminationInformation.isLoopHead(locNode))) {
       return checkCoverageInRecursion(wrappedState, terminationState, wrappedReached, pPrecision);
     }
 
