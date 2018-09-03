@@ -1636,6 +1636,71 @@ public class DomainSpecificAbstraction<T> {
                   latticenames_h,
                   mySolver);
               frontierList.add(new_frontier_elem);
+              //interpolationFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
+              List<BooleanFormula> interpolationFormulaList =
+                  Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+
+              interpolationFormulaList.add(helperFormula1);
+              interpolationFormulaList.add(helperFormula2);
+              try (@SuppressWarnings("unchecked")
+                   InterpolatingProverEnvironment<T> myItpProver =
+                       (InterpolatingProverEnvironment<T>) mySolver.newProverEnvironmentWithInterpolation
+                           ()) {
+
+      /*  List<T> myItpGroupIds = new ArrayList<>(formulas.size());
+        for (BooleanFormula f : formulas) {
+          myItpGroupIds.add(myItpProver.push(f));
+        } */
+
+                List<T> myItpGroupIds = new ArrayList<>(formulas.size());
+    /*  for (BooleanFormula f : interpolationFormulaList){
+        myItpGroupIds.add(myItpProver.push(f));
+      }  */
+    /* for (BooleanFormula f : changed_formulas_rest1){
+       myItpGroupIds.add(myItpProver.push(f));
+     } */
+                if (it != 0){
+                  for (BooleanFormula f : changed_formulas_rest1){
+                    //logger.log(Level.WARNING, "Changed Formulas Rest 1:", changed_formulas_rest1.toString());
+                    myItpGroupIds.add(myItpProver.push(f));
+                  }
+                }
+
+                myItpGroupIds.add(myItpProver.push(helperFormula1));
+                //logger.log(Level.WARNING, "helper Formula 1:", helperFormula1.toString());
+                //  myItpGroupIds.add(myItpProver.push(helperFormula2));
+                myItpProver.push(helperFormula2);
+                // logger.log(Level.WARNING, "helper Formula 2:", helperFormula2.toString());
+    /*  for (int i = 0; i < it; i++) {
+        myItpProver.push(oldFormulas.get(i));
+      }
+      for (int i = it + 2; i < oldFormulas.size(); i++){
+        myItpProver.push(oldFormulas.get(i));
+      } */
+                if (! changed_formulas_rest2.isEmpty()) {
+                  for (BooleanFormula f : changed_formulas_rest2) {
+                    //logger.log(Level.WARNING, "Changed Formulas Rest 2:", changed_formulas_rest2.toString());
+                    myItpProver.push(f);
+                  }
+                }
+
+                if (!myItpProver.isUnsat()) {
+                  throw new SolverException("Interpolant kann nicht berechnet werden!");
+
+                } else {
+
+                  BooleanFormula myInterpolant = myItpProver.getInterpolant
+                      (myItpGroupIds);
+                  //logger.log(Level.WARNING, "Interpolant:", myInterpolant.toString());
+
+                  if (myInterpolant != null) {
+                    interpolants.add(myInterpolant);
+                    // logger.log(Level.WARNING, "Current Interpolants:", interpolants.toString());
+                    fmgr.translateFrom(myInterpolant, mySolver.getFormulaManager());
+                  }
+                  break;
+                }
+              }
             }
           }
         }
@@ -1669,7 +1734,7 @@ public class DomainSpecificAbstraction<T> {
       } */
 
       //interpolationFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
-      List<BooleanFormula> interpolationFormulaList =
+ /*     List<BooleanFormula> interpolationFormulaList =
           Lists.newArrayListWithExpectedSize(formulas.size() - 1);
 
       interpolationFormulaList.add(helperFormula1);
@@ -1679,39 +1744,18 @@ public class DomainSpecificAbstraction<T> {
                (InterpolatingProverEnvironment<T>) mySolver.newProverEnvironmentWithInterpolation
                    ()) {
 
-      /*  List<T> myItpGroupIds = new ArrayList<>(formulas.size());
-        for (BooleanFormula f : formulas) {
-          myItpGroupIds.add(myItpProver.push(f));
-        } */
 
       List<T> myItpGroupIds = new ArrayList<>(formulas.size());
-    /*  for (BooleanFormula f : interpolationFormulaList){
-        myItpGroupIds.add(myItpProver.push(f));
-      }  */
-    /* for (BooleanFormula f : changed_formulas_rest1){
-       myItpGroupIds.add(myItpProver.push(f));
-     } */
     if (it != 0){
       for (BooleanFormula f : changed_formulas_rest1){
-        //logger.log(Level.WARNING, "Changed Formulas Rest 1:", changed_formulas_rest1.toString());
         myItpGroupIds.add(myItpProver.push(f));
       }
     }
 
      myItpGroupIds.add(myItpProver.push(helperFormula1));
-        //logger.log(Level.WARNING, "helper Formula 1:", helperFormula1.toString());
-      //  myItpGroupIds.add(myItpProver.push(helperFormula2));
      myItpProver.push(helperFormula2);
-       // logger.log(Level.WARNING, "helper Formula 2:", helperFormula2.toString());
-    /*  for (int i = 0; i < it; i++) {
-        myItpProver.push(oldFormulas.get(i));
-      }
-      for (int i = it + 2; i < oldFormulas.size(); i++){
-        myItpProver.push(oldFormulas.get(i));
-      } */
     if (! changed_formulas_rest2.isEmpty()) {
       for (BooleanFormula f : changed_formulas_rest2) {
-        //logger.log(Level.WARNING, "Changed Formulas Rest 2:", changed_formulas_rest2.toString());
         myItpProver.push(f);
       }
     }
@@ -1723,15 +1767,12 @@ public class DomainSpecificAbstraction<T> {
 
           BooleanFormula myInterpolant = myItpProver.getInterpolant
               (myItpGroupIds);
-          //logger.log(Level.WARNING, "Interpolant:", myInterpolant.toString());
-
           if (myInterpolant != null) {
             interpolants.add(myInterpolant);
-           // logger.log(Level.WARNING, "Current Interpolants:", interpolants.toString());
             fmgr.translateFrom(myInterpolant, mySolver.getFormulaManager());
           }
         }
-      }
+      } */
 
  /*     @SuppressWarnings("unchecked")
       InterpolatingProverEnvironment<BooleanFormula> newEnvironment =
