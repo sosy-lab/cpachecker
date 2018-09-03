@@ -105,7 +105,7 @@ public class TerminationStopOperator implements StopOperator {
 
     if (index >= 0) {
       String functionName;
-      if (pTerminationState.getHondaLocation() != null) {
+      if (pTerminationState.isPartOfLoop()) {
         functionName = pTerminationState.getHondaLocation().getFunctionName();
       } else {
         functionName = AbstractStates.extractLocation(pWrappedState).getFunctionName();
