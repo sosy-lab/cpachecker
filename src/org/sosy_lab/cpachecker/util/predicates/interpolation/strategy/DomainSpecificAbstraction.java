@@ -86,14 +86,14 @@ public class DomainSpecificAbstraction<T> {
     InterpolatingProverEnvironment<BooleanFormula> myEnvironment =
         (InterpolatingProverEnvironment<BooleanFormula>) myInterpolator
             .newEnvironment(); */
-  logger.log(Level.WARNING, "Entering domainSpecificAbstractionsCheck: ");
+  logger.log(Level.WARNING, "Entering domainSpecificAbstractionsCheck: " + oldFormulas.toString());
         List<BooleanFormula> interpolants = Lists.newArrayListWithExpectedSize(oldFormulas.size()
             - 1);
         // running the algorithm for every formula with its successor
     for (int it = 0; it < oldFormulas.size() - 1; it = it + 1) {
       BooleanFormula oldInterpolant;
-      //logger.log(Level.WARNING, "old Formulas: " + oldFormulas.get(it) + oldFormulas.get(it +
-      // 1));
+      logger.log(Level.WARNING, "old Formulas: " + oldFormulas.get(it).toString() + oldFormulas.get(it +
+       1).toString());
       formulas = Lists.newArrayListWithExpectedSize(oldFormulas.size
           ());
       final List<Set<String>> variablesInFormulas =
@@ -1769,6 +1769,7 @@ public class DomainSpecificAbstraction<T> {
               (myItpGroupIds);
           if (myInterpolant != null) {
             interpolants.add(myInterpolant);
+            logger.log(Level.WARNING, "Current Interpolants:", interpolants.toString());
             fmgr.translateFrom(myInterpolant, mySolver.getFormulaManager());
           }
         }
