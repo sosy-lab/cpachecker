@@ -303,8 +303,6 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
         throw new IllegalStateException("Iterator not at valid location");
       }
 
-      Constraint constraintToRemove = constraints.get(index);
-
       constraints.remove(index);
       index--;
     }

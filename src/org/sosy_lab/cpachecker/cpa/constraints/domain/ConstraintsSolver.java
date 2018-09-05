@@ -137,7 +137,6 @@ public class ConstraintsSolver implements StatisticsProvider {
 
   private BooleanFormula literalForModel;
   private BooleanFormula literalForSingleAssignment;
-  private BooleanFormula literalForDefiniteAssignment;
 
   public ConstraintsSolver(
       final Configuration pConfig,
@@ -152,7 +151,6 @@ public class ConstraintsSolver implements StatisticsProvider {
     booleanFormulaManager = formulaManager.getBooleanFormulaManager();
     literalForModel = booleanFormulaManager.makeVariable("__M");
     literalForSingleAssignment = booleanFormulaManager.makeVariable("__A");
-    literalForDefiniteAssignment = booleanFormulaManager.makeVariable("__D");
     converter = pConverter;
     locator = SymbolicIdentifierLocator.getInstance();
 
@@ -207,15 +205,9 @@ public class ConstraintsSolver implements StatisticsProvider {
 
       } else {
         prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
-        BooleanFormula singleConstraintFormula = booleanFormulaManager.and(constraintsAsFormulas);
-        prover.push(singleConstraintFormula);
-
-        BooleanFormula definiteAssignments = pConstraints.getDefiniteAssignment()
-            .stream()
-            .map(ValueAssignment::getAssignmentAsFormula)
-            .collect(booleanFormulaManager.toConjunction());
-        definiteAssignments = createLiteralLabel(literalForDefiniteAssignment, definiteAssignments);
-        prover.push(definiteAssignments);
+        BooleanFormula definitesAndConstraints =
+            combineWithDefinites(constraintsAsFormulas, pConstraints);
+        prover.push(definitesAndConstraints);
 
         ImmutableList<ValueAssignment> newModelAsAssignment;
         ImmutableList<ValueAssignment> modelAsAssignment = pConstraints.getModel();
@@ -232,7 +224,7 @@ public class ConstraintsSolver implements StatisticsProvider {
             modelFormula = createLiteralLabel(literalForModel, modelFormula);
             prover.push(modelFormula);
             unsat = prover.isUnsatWithAssumptions(
-                ImmutableList.of(literalForDefiniteAssignment, literalForModel));
+                ImmutableList.of(literalForModel));
             if (!unsat) {
               modelReuseSuccesses.inc();
             }
@@ -244,7 +236,7 @@ public class ConstraintsSolver implements StatisticsProvider {
         if (unsat == null || unsat) {
           try {
             timeForSatCheck.start();
-            unsat = prover.isUnsatWithAssumptions(ImmutableList.of(literalForDefiniteAssignment));
+            unsat = prover.isUnsat();
           } finally {
             timeForSatCheck.stop();
           }
@@ -281,7 +273,22 @@ public class ConstraintsSolver implements StatisticsProvider {
       closeProver();
       timeForSolving.stop();
     }
+  }
 
+  private BooleanFormula combineWithDefinites(
+      Collection<BooleanFormula> pConstraintsAsFormulas,
+      ConstraintsState pConstraints) {
+
+    BooleanFormula singleConstraintFormula = booleanFormulaManager.and(pConstraintsAsFormulas);
+    BooleanFormula definites = getDefAssignmentsFormula(pConstraints);
+    return booleanFormulaManager.and(definites, singleConstraintFormula);
+  }
+
+  private BooleanFormula getDefAssignmentsFormula(ConstraintsState pConstraints) {
+    return pConstraints.getDefiniteAssignment()
+        .stream()
+        .map(ValueAssignment::getAssignmentAsFormula)
+        .collect(booleanFormulaManager.toConjunction());
   }
 
   private BooleanFormula createLiteralLabel(
