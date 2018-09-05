@@ -308,7 +308,7 @@ public class UseDefBasedInterpolator {
     }
 
     private List<MemoryLocation> createMemoryLocationsForArray(final int pLength, final CType pType) {
-      long sizeOfType = model.getSizeof(pType);
+      long sizeOfType = model.getSizeof(pType).longValueExact();
 
       List<MemoryLocation> memoryLocationsForArray = new ArrayList<>(pLength);
       for (int i = 0; i < pLength; i++) {
@@ -328,13 +328,13 @@ public class UseDefBasedInterpolator {
     }
 
     private List<MemoryLocation> createMemoryLocationsForUnion(final CCompositeType pCompositeType) {
-      return createSingleMemoryLocation(model.getSizeof(pCompositeType));
+      return createSingleMemoryLocation(model.getSizeof(pCompositeType).longValueExact());
     }
 
     @Override
     public List<MemoryLocation> visit(CBitFieldType pCBitFieldType)
         throws IllegalArgumentException {
-      return createSingleMemoryLocation(model.getSizeof(pCBitFieldType));
+      return createSingleMemoryLocation(model.getSizeof(pCBitFieldType).longValueExact());
     }
   }
 }

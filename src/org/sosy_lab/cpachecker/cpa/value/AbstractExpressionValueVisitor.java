@@ -1373,7 +1373,7 @@ public abstract class AbstractExpressionValueVisitor
 
     switch (idOperator) {
     case SIZEOF:
-        long size = machineModel.getSizeof(innerType);
+        BigInteger size = machineModel.getSizeof(innerType);
       return new NumericValue(size);
 
     default: // TODO support more operators

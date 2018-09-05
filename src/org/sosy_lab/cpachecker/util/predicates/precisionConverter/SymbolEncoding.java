@@ -151,7 +151,7 @@ public class SymbolEncoding {
       fType = FormulaType.RationalType;
     } else {
       int length =
-          Math.toIntExact(machineModel.getSizeof(cType) * machineModel.getSizeofCharInBits());
+          machineModel.getSizeof(cType).intValueExact() * machineModel.getSizeofCharInBits();
       fType = FormulaType.getBitvectorTypeWithSize(length);
     }
     Type<FormulaType<?>> type = new Type<>(fType);

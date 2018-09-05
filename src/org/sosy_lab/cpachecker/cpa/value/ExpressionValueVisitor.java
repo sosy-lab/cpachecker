@@ -236,7 +236,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return null;
       }
 
-      long typeSize = evv.getMachineModel().getSizeofInBits(elementType);
+      long typeSize = evv.getMachineModel().getSizeofInBits(elementType).longValueExact();
 
       long subscriptOffset = subscriptValue.asNumericValue().longValue() * typeSize;
 
@@ -304,7 +304,9 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return getFieldOffsetInBits(((CElaboratedType) ownerType).getRealType(), fieldName);
       } else if (ownerType instanceof CCompositeType) {
         return OptionalLong.of(
-            evv.getMachineModel().getFieldOffsetInBits((CCompositeType) ownerType, fieldName));
+            evv.getMachineModel()
+                .getFieldOffsetInBits((CCompositeType) ownerType, fieldName)
+                .longValueExact());
       } else if (ownerType instanceof CPointerType) {
         evv.missingPointer = true;
         return OptionalLong.empty();
@@ -329,7 +331,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         final int pSlotNumber,
         final CArrayType pArrayType) {
 
-      long typeSize = evv.getMachineModel().getSizeofInBits(pArrayType.getType());
+      long typeSize = evv.getMachineModel().getSizeofInBits(pArrayType.getType()).longValueExact();
       long offset = typeSize * pSlotNumber;
       long baseOffset = pArrayStartLocation.isReference() ? pArrayStartLocation.getOffset() : 0;
 

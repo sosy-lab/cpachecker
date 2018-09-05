@@ -1068,7 +1068,7 @@ public class ValueAnalysisTransferRelation
           new CFieldReference(pExp.getFileLocation(), memberType.getType(), memberType.getName(), owner, false);
       handleAssignmentToVariable(pNewElement, assignedField, memberType.getType(), fieldReference, pVisitor);
 
-      offset = offset + machineModel.getSizeof(memberType.getType());
+      offset = offset + machineModel.getSizeof(memberType.getType()).longValueExact();
     }
   }
 
