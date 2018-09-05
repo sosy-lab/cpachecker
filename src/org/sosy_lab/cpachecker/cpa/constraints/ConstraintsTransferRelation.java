@@ -29,7 +29,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -55,7 +54,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -72,11 +70,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /** Transfer relation for Symbolic Execution Analysis. */
@@ -100,11 +93,10 @@ public class ConstraintsTransferRelation
   private StateSimplifier simplifier;
 
   public ConstraintsTransferRelation(
-      final Solver pSolver,
+      final ConstraintsSolver pSolver,
       final MachineModel pMachineModel,
       final LogManager pLogger,
-      final Configuration pConfig,
-      final ShutdownNotifier pShutdownNotifier
+      final Configuration pConfig
   ) throws InvalidConfigurationException {
 
     pConfig.inject(this);
@@ -112,34 +104,8 @@ public class ConstraintsTransferRelation
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
     simplifier = new StateSimplifier(pConfig);
-
-    FormulaManagerView formulaManager = pSolver.getFormulaManager();
-    CtoFormulaConverter converter =
-        initializeCToFormulaConverter(formulaManager, pLogger, pConfig, pShutdownNotifier);
-    solver = new ConstraintsSolver(pConfig, pSolver, formulaManager, converter);
+    solver = pSolver;
   }
-
-  // Can only be called after machineModel and formulaManager are set
-  private CtoFormulaConverter initializeCToFormulaConverter(
-      FormulaManagerView pFormulaManager,
-      LogManager pLogger,
-      Configuration pConfig,
-      ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException {
-
-    FormulaEncodingOptions options = new FormulaEncodingOptions(pConfig);
-    CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, machineModel);
-
-    return new CtoFormulaConverter(
-        options,
-        pFormulaManager,
-        machineModel,
-        Optional.empty(),
-        pLogger,
-        pShutdownNotifier,
-        typeHandler,
-        AnalysisDirection.FORWARD);
-}
 
   @Override
   protected ConstraintsState handleFunctionCallEdge(FunctionCallEdge pCfaEdge, List<? extends AExpression> pArguments,

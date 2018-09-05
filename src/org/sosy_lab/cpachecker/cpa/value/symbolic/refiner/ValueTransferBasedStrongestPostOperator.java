@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsTransferRelation;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
@@ -50,7 +51,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 /**
  * Strongest post-operator based on symbolic value analysis.
@@ -64,11 +64,10 @@ public class ValueTransferBasedStrongestPostOperator
   private final ConstraintsTransferRelation constraintsTransfer;
 
   public ValueTransferBasedStrongestPostOperator(
-      final Solver pSolver,
+      final ConstraintsSolver pSolver,
       final LogManager pLogger,
       final Configuration pConfig,
-      final CFA pCfa,
-      final ShutdownNotifier pShutdownNotifier
+      final CFA pCfa
   ) throws InvalidConfigurationException {
 
     valueTransfer =
@@ -86,8 +85,7 @@ public class ValueTransferBasedStrongestPostOperator
         new ConstraintsTransferRelation(pSolver,
                                         pCfa.getMachineModel(),
                                         pLogger,
-                                        pConfig,
-                                        pShutdownNotifier);
+            pConfig);
   }
 
   @Override

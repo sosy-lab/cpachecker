@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.constraints;
 
 import java.util.Collection;
+import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -32,6 +33,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -48,12 +51,17 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsMergeOperator;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.SubsetLessOrEqualOperator;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.FullConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 /** Configurable Program Analysis that tracks constraints for analysis. */
@@ -82,6 +90,7 @@ public class ConstraintsCPA
   private ConstraintsPrecisionAdjustment precisionAdjustment;
   private ConstraintsPrecision precision;
 
+  private final ConstraintsSolver constraintsSolver;
   private final Solver solver;
 
   public static CPAFactory factory() {
@@ -95,16 +104,46 @@ public class ConstraintsCPA
 
     logger = pLogger;
     solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
+    FormulaManagerView formulaManager = solver.getFormulaManager();
+    CtoFormulaConverter converter =
+        initializeCToFormulaConverter(formulaManager, pLogger, pConfig, pShutdownNotifier,
+            pCfa.getMachineModel());
+    constraintsSolver = new ConstraintsSolver(pConfig, solver, formulaManager, converter);
 
     SymbolicValues.initialize();
     abstractDomain = initializeAbstractDomain();
     mergeOperator = initializeMergeOperator();
     stopOperator = initializeStopOperator();
+
     transferRelation =
-        new ConstraintsTransferRelation(solver, pCfa.getMachineModel(), logger, pConfig, pShutdownNotifier);
+        new ConstraintsTransferRelation(constraintsSolver, pCfa.getMachineModel(), logger, pConfig);
     precisionAdjustment = new ConstraintsPrecisionAdjustment();
     precision = FullConstraintsPrecision.getInstance();
   }
+
+  // Can only be called after machineModel and formulaManager are set
+  private CtoFormulaConverter initializeCToFormulaConverter(
+      FormulaManagerView pFormulaManager,
+      LogManager pLogger,
+      Configuration pConfig,
+      ShutdownNotifier pShutdownNotifier,
+      MachineModel pMachineModel)
+      throws InvalidConfigurationException {
+
+    FormulaEncodingOptions options = new FormulaEncodingOptions(pConfig);
+    CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
+
+    return new CtoFormulaConverter(
+        options,
+        pFormulaManager,
+        pMachineModel,
+        Optional.empty(),
+        pLogger,
+        pShutdownNotifier,
+        typeHandler,
+        AnalysisDirection.FORWARD);
+  }
+
 
   private MergeOperator initializeMergeOperator() {
     switch (mergeType) {
@@ -134,7 +173,9 @@ public class ConstraintsCPA
     return abstractDomain;
   }
 
-  public Solver getSolver() { return solver; }
+  public ConstraintsSolver getSolver() {
+    return constraintsSolver;
+  }
 
   @Override
   public AbstractDomain getAbstractDomain() {

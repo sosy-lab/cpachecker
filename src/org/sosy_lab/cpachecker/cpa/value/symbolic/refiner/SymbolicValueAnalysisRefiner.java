@@ -83,6 +83,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.RefinableConstraintsPrecision;
@@ -105,7 +106,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.GenericRefiner;
@@ -167,10 +167,10 @@ public class SymbolicValueAnalysisRefiner
     final CFA cfa = valueAnalysisCpa.getCFA();
     final ShutdownNotifier shutdownNotifier = valueAnalysisCpa.getShutdownNotifier();
 
-    final Solver solver = constraintsCpa.getSolver();
+    final ConstraintsSolver solver = constraintsCpa.getSolver();
 
     final SymbolicStrongestPostOperator strongestPostOperator =
-        new ValueTransferBasedStrongestPostOperator(solver, logger, config, cfa, shutdownNotifier);
+        new ValueTransferBasedStrongestPostOperator(solver, logger, config, cfa);
 
     final SymbolicFeasibilityChecker feasibilityChecker =
         new SymbolicValueAnalysisFeasibilityChecker(strongestPostOperator,
