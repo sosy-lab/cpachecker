@@ -282,7 +282,6 @@ public class SymbolicValueAnalysisRefiner
     CFAEdge currentEdge;
     while (fullPath.hasNext()) {
       List<CFAEdge> intermediateEdges = new ArrayList<>();
-      do {
         currentEdge = fullPath.getOutgoingEdge();
         intermediateEdges.add(currentEdge);
 
@@ -319,9 +318,8 @@ public class SymbolicValueAnalysisRefiner
               }
             }
           }
+          stateSequence.add(Pair.of(currentState, intermediateEdges));
         }
-      } while (!fullPath.isPositionWithState());
-      stateSequence.add(Pair.of(currentState, intermediateEdges));
     }
 
     return stateSequence;
@@ -343,6 +341,7 @@ public class SymbolicValueAnalysisRefiner
     ForgettingCompositeState currentState =
         new ForgettingCompositeState(firstValue, firstConstraints);
     ValueVisitor<CExpression> toCExpressionVisitor;
+
     for (Pair<ForgettingCompositeState, List<CFAEdge>> p : stateSequence) {
       ConstraintsState nextConstraints;
       ValueAnalysisState nextVals;
@@ -366,8 +365,6 @@ public class SymbolicValueAnalysisRefiner
             new CBinaryExpression(FileLocation.DUMMY, t, t, lhs, rhs, BinaryOperator.EQUALS);
         exp = new CExpressionStatement(FileLocation.DUMMY, assignment);
         assumptions.add(exp);
-
-        currentState = nextState;
       }
 
       nextConstraints = nextState.getConstraintsState();
@@ -392,6 +389,7 @@ public class SymbolicValueAnalysisRefiner
       if (!cCode.isEmpty()) {
         symbolicInfo.append(edgeWithAssumption.prettyPrintCode(1));
       }
+      currentState = nextState;
     }
 
     currentState = stateSequence.get(stateSequence.size() - 1).getFirst();
