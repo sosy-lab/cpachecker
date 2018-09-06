@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 import static org.sosy_lab.cpachecker.util.BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -345,7 +346,11 @@ public class ExpressionToFormulaVisitor
     BooleanFormulaManagerView bfmgr = mgr.getBooleanFormulaManager();
 
     if (exp.getOperand2() instanceof CIntegerLiteralExpression) {
-      long modulo = ((CIntegerLiteralExpression)exp.getOperand2()).asLong();
+      // We use a BigInteger because it can always be made positive, this is not true for type long!
+      BigInteger modulo = ((CIntegerLiteralExpression) exp.getOperand2()).getValue();
+      // modular congruence expects a positive modulo. If our divisor b in a%b is negative, we
+      // actually want to generate a modular congruence condition mod (-b):
+      modulo = modulo.abs();
       BooleanFormula modularCongruence = mgr.makeModularCongruence(ret, f1, modulo, signed);
       if (!bfmgr.isTrue(modularCongruence)) {
         constraints.addConstraint(modularCongruence);
