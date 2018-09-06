@@ -1054,9 +1054,11 @@ public class AutomatonGraphmlParser {
   }
 
   private static AutomatonBoolExpr getFunctionExitMatcher(String pExitedFunction) {
-    AutomatonBoolExpr functionExitMatcher = or(
-        new AutomatonBoolExpr.MatchFunctionExit(pExitedFunction),
-        new AutomatonBoolExpr.MatchFunctionCallStatement(pExitedFunction));
+    AutomatonBoolExpr functionExitMatcher =
+        or(
+            AutomatonBoolExpr.EpsilonMatch.forwardEpsilonMatch(
+                new AutomatonBoolExpr.MatchFunctionExit(pExitedFunction), false),
+            new AutomatonBoolExpr.MatchFunctionCallStatement(pExitedFunction));
     return functionExitMatcher;
   }
 
