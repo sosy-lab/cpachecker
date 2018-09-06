@@ -3619,6 +3619,9 @@ testcase.file = no default value
 # display all test targets and non-covered test targets in statistics
 testcase.inStats = false
 
+# export test values to file (line separated)
+testcase.values = no default value
+
 # export undefined functions as C file
 undefFuncCollectorAlgorithm.file = "env.c"
 

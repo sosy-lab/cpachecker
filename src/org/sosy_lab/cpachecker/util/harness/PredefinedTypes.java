@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 
-final class PredefinedTypes {
+public final class PredefinedTypes {
 
   private PredefinedTypes() {
 
