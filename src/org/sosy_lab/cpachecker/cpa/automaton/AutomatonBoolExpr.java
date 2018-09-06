@@ -288,9 +288,15 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
         @Override
         public TraversalProcess visitNode(CFANode pNode) {
-          return continueAtBranching || pNode.getNumEnteringEdges() < 2
-              ? TraversalProcess.CONTINUE
-              : TraversalProcess.SKIP;
+          if (continueAtBranching) {
+            return TraversalProcess.CONTINUE;
+          }
+          if (forward && pNode.getNumLeavingEdges() < 2) {
+            return TraversalProcess.CONTINUE;
+          } else if (!forward && pNode.getNumEnteringEdges() < 2) {
+            return TraversalProcess.CONTINUE;
+          }
+          return TraversalProcess.SKIP;
         }
       }
       EpsilonMatchVisitor epsilonMatchVisitor = new EpsilonMatchVisitor(eval);
