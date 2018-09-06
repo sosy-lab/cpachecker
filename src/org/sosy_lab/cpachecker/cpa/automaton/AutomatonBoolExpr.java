@@ -788,13 +788,18 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      if (pArgs.getCfaEdge() instanceof AssumeEdge) {
+      CFAEdge edge = pArgs.getCfaEdge();
+      if (edge instanceof AssumeEdge) {
         AssumeEdge a = (AssumeEdge) pArgs.getCfaEdge();
         boolean actualBranchInSource = a.getTruthAssumption() != a.isSwapped();
         if (matchPositiveCase == actualBranchInSource) {
           return CONST_TRUE;
         }
       }
+      if (matchPositiveCase && AutomatonGraphmlCommon.treatAsWhileTrue(edge)) {
+        return CONST_TRUE;
+      }
+
       return CONST_FALSE;
     }
 

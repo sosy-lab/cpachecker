@@ -542,6 +542,9 @@ public class AutomatonGraphmlCommon {
       if (edge.getSuccessor() instanceof FunctionExitNode) {
         return isEmptyStub(((FunctionExitNode) edge.getSuccessor()).getEntryNode());
       }
+      if (AutomatonGraphmlCommon.treatAsWhileTrue(edge)) {
+        return false;
+      }
       return true;
     } else if (edge instanceof CFunctionCallEdge) {
       return isEmptyStub(((CFunctionCallEdge) edge).getSuccessor());
@@ -1090,5 +1093,14 @@ public class AutomatonGraphmlCommon {
       return false;
     }
     return pEntryNode.getExitNode().equals(defaultReturnEdge.getSuccessor());
+  }
+
+  public static boolean treatAsWhileTrue(CFAEdge pEdge) {
+    CFANode pred = pEdge.getPredecessor();
+    return pEdge instanceof BlankEdge
+        && pred.getNumLeavingEdges() == 1
+        && CFAUtils.enteringEdges(pred)
+            .filter(BlankEdge.class)
+            .anyMatch(e -> e.getDescription().equals("while"));
   }
 }
