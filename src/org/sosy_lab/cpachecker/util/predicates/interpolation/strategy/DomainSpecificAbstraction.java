@@ -1647,7 +1647,7 @@ public class DomainSpecificAbstraction<T> {
         }
       }
       helperFormula1 = firstPartChanged;
-      helperFormula2 = firstPartChanged;
+      helperFormula2 = scndPartChanged;
       for (Formula y : frontierList.get(0)){
         for(int k = 0; k < relationAbstraction1.length; k++){
           if (relationAbstraction1[k].contains(" = " + y.toString())){
