@@ -101,7 +101,9 @@ public class DomainSpecificAbstraction<T> {
       final List<Set<String>> variablesInFormulas =
           Lists.newArrayListWithExpectedSize(formulas.size());
 
-      final List<Map<String, Formula>> variableTypes = Lists.newArrayListWithExpectedSize(oldFormulas.size()
+      final List<Map<String, Formula>> variableTypes = Lists
+          .newArrayListWithExpectedSize
+          (oldFormulas.size()
           - 1);
       if (it == 0) {
         formulas.add(oldFormulas.get(it));
@@ -1644,6 +1646,20 @@ public class DomainSpecificAbstraction<T> {
           }
         }
       }
+      helperFormula1 = firstPartChanged;
+      helperFormula2 = firstPartChanged;
+      for (Formula y : frontierList.get(0)){
+        for(int k = 0; k < relationAbstraction1.length; k++){
+          if (relationAbstraction1[k].contains(" = " + y.toString())){
+            helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get(k));
+          }
+          if (relationAbstraction2[k].contains(" = " + y.toString())){
+            helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get(k));
+          }
+        }
+      }
+      logger.log(Level.WARNING, "Current HelperFormula1:", helperFormula1.toString());
+      logger.log(Level.WARNING, "Current HelperFormula2:", helperFormula2.toString());
   /*    helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
 
@@ -1708,7 +1724,7 @@ public class DomainSpecificAbstraction<T> {
               (myItpGroupIds);
           if (myInterpolant != null) {
             interpolants.add(myInterpolant);
-            //logger.log(Level.WARNING, "Current Interpolants:", interpolants.toString());
+            logger.log(Level.WARNING, "Current Interpolants:", interpolants.toString());
             fmgr.translateFrom(myInterpolant, mySolver.getFormulaManager());
           }
         }
@@ -1731,7 +1747,7 @@ public class DomainSpecificAbstraction<T> {
      // myInterpolator.itpProver.getInterpolant((List<T>) interpolationFormulaList);
 
    //return Collections.emptyList();
-    //logger.log(Level.WARNING, "Interpolants:", interpolants.toString());
+    logger.log(Level.WARNING, "Interpolants:", interpolants.toString());
     if (interpolants != null && !(interpolants.isEmpty())){
       return interpolants;
     } else {
