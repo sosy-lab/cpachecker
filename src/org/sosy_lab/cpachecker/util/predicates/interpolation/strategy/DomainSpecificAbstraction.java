@@ -102,7 +102,7 @@ public class DomainSpecificAbstraction<T> {
       final List<Set<String>> variablesInFormulas =
           Lists.newArrayListWithExpectedSize(formulas.size());
 
-      final List<LinkedHashMap<String, Formula>> variableTypes = Lists
+      final List<Map<String, Formula>> variableTypes = Lists
           .newArrayListWithExpectedSize
           (oldFormulas.size()
           - 1);
@@ -118,15 +118,14 @@ public class DomainSpecificAbstraction<T> {
         formulas.add(oldFormulas.get(it));
         formulas.add(oldFormulas.get(it + 1));
         variablesInFormulas.add(oldFmgr.extractVariableNames(oldInterpolant));
-        variableTypes.add((LinkedHashMap<String, Formula>) oldFmgr.extractVariables(oldInterpolant));
+        variableTypes.add(oldFmgr.extractVariables(oldInterpolant));
         logger.log(Level.WARNING, "Variables in Formulas after adding old interpolant:" +
             variablesInFormulas.toString());
       }
 
       for (int i = it; i < oldFormulas.size(); i++) {
         variablesInFormulas.add(oldFmgr.extractVariableNames(oldFormulas.get(i)));
-        variableTypes.add(
-            (LinkedHashMap<String, Formula>) oldFmgr.extractVariables(oldFormulas.get(i)));
+        variableTypes.add(oldFmgr.extractVariables(oldFormulas.get(i)));
         //logger.log(Level.WARNING, "Variables in Formulas after adding oldFormulas[:" + i + "] "
          //   + variablesInFormulas.toString());
       }
@@ -241,7 +240,7 @@ public class DomainSpecificAbstraction<T> {
       for(int i = 0; i < arrayVariablesThatAreUsedInBothParts.length; i++){
         Formula helperFormula;
         FormulaType helperFormulaType;
-        for (LinkedHashMap<String, Formula> f : variableTypes){
+        for (Map<String, Formula> f : variableTypes){
           helperFormula = f.get(arrayVariablesThatAreUsedInBothParts[i]);
           if (helperFormula != null) {
             helperFormulaType = oldFmgr.getFormulaType(helperFormula);
