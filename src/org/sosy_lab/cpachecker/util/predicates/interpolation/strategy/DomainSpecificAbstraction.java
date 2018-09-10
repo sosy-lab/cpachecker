@@ -185,6 +185,8 @@ public class DomainSpecificAbstraction<T> {
           .immutableCopy();
       LinkedHashMap<String, FormulaType> variablesUsedInBothPartsClasses = new LinkedHashMap<>();
       int m = 0;
+      logger.log(Level.WARNING, "Variables that are used in both parts:",
+          variablesThatAreNotUsedInBothParts.toString());
       //logger.log(Level.WARNING, "Variables1: " +
       //    variables1.toString());
       //logger.log(Level.WARNING, "Variables2: " +
@@ -1658,6 +1660,7 @@ public class DomainSpecificAbstraction<T> {
       helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
       if (!frontierList.isEmpty() && !(frontierList == null)) {
+        logger.log(Level.WARNING, "FrontierList ist not empty: ");
         for (Formula y : frontierList.get(frontierList.size() - 1)) {
           for (int k = 0; k < relationAbstraction1.length; k++) {
             if (relationAbstraction1[k].contains(" = " + y.toString())) {
@@ -1669,6 +1672,7 @@ public class DomainSpecificAbstraction<T> {
           }
         }
       } else {
+        logger.log(Level.WARNING, "FrontierList is empty: ");
         //just try interpolation without any renamed variables and relation abstractions
         helperFormula1 = firstPart;
         helperFormula2 = scndPart;
