@@ -1661,6 +1661,7 @@ public class DomainSpecificAbstraction<T> {
       helperFormula2 = scndPartChanged;
       if (!frontierList.isEmpty() && !(frontierList == null)) {
         logger.log(Level.WARNING, "FrontierList ist not empty: ");
+        logger.log(Level.WARNING, "FrontierList: " + frontierList.toString());
         for (Formula y : frontierList.get(frontierList.size() - 1)) {
           for (int k = 0; k < relationAbstraction1.length; k++) {
             if (relationAbstraction1[k].contains(" = " + y.toString())) {
