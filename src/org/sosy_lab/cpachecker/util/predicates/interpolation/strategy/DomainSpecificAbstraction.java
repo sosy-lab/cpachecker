@@ -1628,7 +1628,9 @@ public class DomainSpecificAbstraction<T> {
                 toCheckFormulaList.add(f);
               }
               BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
-
+              logger.log(Level.WARNING, "toCheckFormulaBlocked before maximising: " +
+                  toCheckFormulaBlocked
+                  .toString());
               abstractionFeasible = prove(toCheckFormulaBlocked, mySolver);
               if (abstractionFeasible) {
           /*List<List<IntegerFormula>> */
@@ -1650,6 +1652,8 @@ public class DomainSpecificAbstraction<T> {
                       relationAbstraction2Formula /*lattice, fullLatticeNames, */, latticeNames, /*h,*/
                       latticenames_h,
                       mySolver);
+                  logger.log(Level.WARNING, "NewFrontierElem after maximising: " +
+                      new_frontier_elem.toString());
                   frontierList.add(new_frontier_elem);
 
                 }
