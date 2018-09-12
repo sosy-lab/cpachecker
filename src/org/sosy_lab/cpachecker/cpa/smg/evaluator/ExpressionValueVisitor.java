@@ -207,6 +207,9 @@ public class ExpressionValueVisitor
       SMGObject variableObject =
           smgState.getHeap().getObjectForVisibleVariable(idExpression.getName());
 
+      if (variableObject != null) {
+        // Witness validation cannot compute an assignment for some cases.
+        // Then the variableObject can be NULL. TODO when exactly does this happen?
       smgState.addElementToCurrentChain(variableObject);
       SMGValueAndState result =
           smgExpressionEvaluator.readValue(
@@ -218,6 +221,7 @@ public class ExpressionValueVisitor
       result.getSmgState().addElementToCurrentChain(result.getObject());
 
       return singletonList(result);
+      }
     }
 
     return singletonList(SMGValueAndState.of(getInitialSmgState()));
