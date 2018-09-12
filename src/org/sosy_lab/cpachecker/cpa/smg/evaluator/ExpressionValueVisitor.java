@@ -210,17 +210,17 @@ public class ExpressionValueVisitor
       if (variableObject != null) {
         // Witness validation cannot compute an assignment for some cases.
         // Then the variableObject can be NULL. TODO when exactly does this happen?
-      smgState.addElementToCurrentChain(variableObject);
-      SMGValueAndState result =
-          smgExpressionEvaluator.readValue(
-              smgState,
-              variableObject,
-              SMGZeroValue.INSTANCE,
-              TypeUtils.getRealExpressionType(idExpression),
-              cfaEdge);
-      result.getSmgState().addElementToCurrentChain(result.getObject());
+        smgState.addElementToCurrentChain(variableObject);
+        SMGValueAndState result =
+            smgExpressionEvaluator.readValue(
+                smgState,
+                variableObject,
+                SMGZeroValue.INSTANCE,
+                TypeUtils.getRealExpressionType(idExpression),
+                cfaEdge);
+        result.getSmgState().addElementToCurrentChain(result.getObject());
 
-      return singletonList(result);
+        return singletonList(result);
       }
     }
 
