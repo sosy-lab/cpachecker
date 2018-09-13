@@ -955,7 +955,7 @@ public class CFABuilder {
         return createFromArithmeticOp(pItem, pOpCode, pFileName);
 
       case GetElementPtr:
-        return createGepExp(pItem, pFileName);
+        return createGetElementPtrExp(pItem, pFileName);
       case BitCast:
         return createBitcast(pItem, pFileName);
 
@@ -1563,7 +1563,7 @@ public class CFABuilder {
         null /* no initializer */);
   }
 
-  private CExpression createGepExp(final Value pItem, final String pFileName) throws LLVMException {
+  private CExpression createGetElementPtrExp(final Value pItem, final String pFileName) throws LLVMException {
 
     CType baseType = typeConverter.getCType(pItem.getOperand(0).typeOf());
     Value startPointer = pItem.getOperand(0);
