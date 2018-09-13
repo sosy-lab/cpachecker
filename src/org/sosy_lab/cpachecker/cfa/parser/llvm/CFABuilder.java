@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -785,7 +786,17 @@ public class CFABuilder {
       // i = 1 to skip the function name, we only want to look at arguments
       for (int i = 0; i < argumentCount; i++) {
         Value functionArg = pItem.getArgOperand(i);
-        CType expectedType = parameterDeclarations.get(i).getType();
+        CType expectedType;
+
+        if (i < parameterDeclarations.size()) {
+          // Fixed parameter
+          expectedType = parameterDeclarations.get(i).getType();
+        } else {
+          // var arg
+          assert functionType.takesVarArgs() : "Too many arguments for function "
+              + functionDeclaration + ": " + functionArg;
+          expectedType = typeConverter.getCType(functionArg.typeOf());
+        }
 
         assert functionArg.isConstant()
             || variableDeclarations.containsKey(functionArg.getAddress());
@@ -1571,6 +1582,18 @@ public class CFABuilder {
         : "Start of getelementptr is not a pointer";
 
     FileLocation fileLocation = getLocation(pItem, pFileName);
+
+    if (pItem.canBeTransformedFromGetElementPtrToString()) {
+      String constant = pItem.getGetElementPtrAsString();
+      CType constCharType = new CSimpleType(
+          true, false, CBasicType.CHAR, false, false, false,
+          false, false, false, false);
+
+      CType stringType = new CPointerType(false, false, constCharType);
+
+      return new CStringLiteralExpression(fileLocation, stringType, constant);
+    }
+
 
     CType currentType = baseType;
     CExpression currentExpression = getExpression(startPointer, currentType, pFileName);
