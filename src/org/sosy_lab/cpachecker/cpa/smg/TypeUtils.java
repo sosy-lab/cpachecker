@@ -43,8 +43,7 @@ public class TypeUtils {
       return new CArrayType(false, false, CNumericTypes.SIGNED_CHAR, arrayLen);
     } else {
       CSimpleType fieldType = CNumericTypes.SIGNED_CHAR;
-      CType bitFieldType = new CBitFieldType(fieldType, pSizeInBits);
-      return bitFieldType;
+      return new CBitFieldType(fieldType, pSizeInBits);
     }
   }
 

@@ -1718,9 +1718,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     // TODO: This can actually be an invalid read too
     //      The flagging mechanism should be improved
-    SMGState smgState =
-        new SMGState(this, Property.INVALID_WRITE).withErrorDescription("Unknown dereference");
-    return smgState;
+    return new SMGState(this, Property.INVALID_WRITE).withErrorDescription("Unknown dereference");
   }
 
   public void identifyEqualValues(SMGKnownSymbolicValue pKnownVal1, SMGKnownSymbolicValue pKnownVal2) {

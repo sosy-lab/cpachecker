@@ -258,7 +258,7 @@ public final class SMGPlotter {
 
   private String smgScopeFrameAsDot(Map<String, SMGRegion> pNamespace, String pStructId) {
     StringBuilder sb = new StringBuilder();
-    sb.append("struct" + pStructId + "[shape=record,label=\" ");
+    sb.append("struct").append(pStructId).append("[shape=record,label=\" ");
 
     // I sooo wish for Python list comprehension here...
     ArrayList<String> nodes = new ArrayList<>();
