@@ -3622,6 +3622,12 @@ testcase.inStats = false
 # export test values to file (line separated)
 testcase.values = no default value
 
+# zip all exported test values into a single file
+testcase.values.compress = false
+
+# Zip file into which all test values files are bundled
+testcase.values.zip = no default value
+
 # export undefined functions as C file
 undefFuncCollectorAlgorithm.file = "env.c"
 
