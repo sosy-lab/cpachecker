@@ -77,7 +77,7 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
   )
   private boolean aggressiveCaching = true;
 
-  public BAMCPA(
+  private BAMCPA(
       ConfigurableProgramAnalysis pCpa,
       Configuration config,
       LogManager pLogger,

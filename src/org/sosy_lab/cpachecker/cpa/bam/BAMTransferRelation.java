@@ -71,8 +71,8 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
   // Callstack-CPA is used for additional recursion handling
   private final CallstackTransferRelation callstackTransfer;
 
-  //Stats
-  int maxRecursiveDepth = 0;
+  // Stats
+  private int maxRecursiveDepth = 0;
 
   public BAMTransferRelation(
       Configuration pConfig,

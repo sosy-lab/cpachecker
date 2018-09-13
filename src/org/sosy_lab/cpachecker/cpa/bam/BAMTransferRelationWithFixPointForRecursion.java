@@ -70,7 +70,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   private boolean recursionSeen = false;
   private boolean resultStatesChanged = false;
   private boolean targetFound = false;
-  final Collection<AbstractState> potentialRecursionUpdateStates = new HashSet<>();
+  private final Collection<AbstractState> potentialRecursionUpdateStates = new HashSet<>();
 
   public BAMTransferRelationWithFixPointForRecursion(
       Configuration pConfig,

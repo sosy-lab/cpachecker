@@ -59,7 +59,7 @@ public class BAMCPAWithBreakOnMissingBlock extends AbstractBAMCPA {
   private final BAMCache cache;
   private final BAMDataManager data;
 
-  public BAMCPAWithBreakOnMissingBlock(
+  private BAMCPAWithBreakOnMissingBlock(
       ConfigurableProgramAnalysis pCpa,
       Configuration pConfig,
       LogManager pLogger,
