@@ -74,6 +74,16 @@ public final class PredefinedTypes {
         || isVerifierAssume(pDeclaration);
   }
 
+  public static boolean isKnownTestFunction(@Nullable AFunctionDeclaration pDeclaration) {
+    return isMalloc(pDeclaration)
+        || isFree(pDeclaration)
+        || isExit(pDeclaration)
+        || isAbort(pDeclaration)
+        || isPrintf(pDeclaration)
+        || isVerifierError(pDeclaration)
+        || isVerifierAssume(pDeclaration);
+  }
+
   public static boolean isPredefinedFunctionWithoutVerifierError(
       @Nullable AFunctionDeclaration pDeclaration) {
     return !isVerifierError(pDeclaration) && isPredefinedFunction(pDeclaration);
