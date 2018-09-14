@@ -33,7 +33,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -41,6 +40,7 @@ import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
@@ -557,9 +557,8 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
 
     // create zip file if does not exist
     // should work without due to env entries, but failed on some systems
-    if (!testValueZip.toFile().exists()) {
-      try (final ZipOutputStream zos =
-          new ZipOutputStream(new FileOutputStream(testValueZip.toFile()))) {
+    if (!Files.exists(testValueZip)) {
+      try (final ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(testValueZip))) {
         zos.flush();
       }
     }
