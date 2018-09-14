@@ -1591,6 +1591,17 @@ public class CFABuilder {
     /* if this expression starts with *, just remove the * */
     if (expr instanceof CPointerExpression) {
         return ((CPointerExpression) expr).getOperand();
+    } else if (expr instanceof CArraySubscriptExpression) {
+        /* this is taking an address of "array[x]", so just
+         * transform it to "array + x" */
+        CType type = getPointerOfType(exprType);
+        return new CBinaryExpression(
+                        fileLocation,
+                        type,
+                        type,
+                        ((CArraySubscriptExpression) expr).getArrayExpression(),
+                        ((CArraySubscriptExpression) expr).getSubscriptExpression(),
+                        BinaryOperator.PLUS);
     }
 
     return new CUnaryExpression(fileLocation, getPointerOfType(exprType),
