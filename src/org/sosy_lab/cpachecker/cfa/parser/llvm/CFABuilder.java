@@ -1418,7 +1418,7 @@ public class CFABuilder {
 
     CSimpleDeclaration assignedVarDeclaration = variableDeclarations.get(pItem.getAddress());
     String assignedVarName = assignedVarDeclaration.getName();
-    CType expressionType = assignedVarDeclaration.getType();
+    CType expressionType = assignedVarDeclaration.getType().getCanonicalType();
     CIdExpression idExpression =
         new CIdExpression(
             getLocation(pItem, pFileName), expressionType, assignedVarName, assignedVarDeclaration);
