@@ -359,9 +359,18 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   }
 
   /**
-   * Writes automaton to gravics dot
+   * Writes automaton to dot format
    *
-   * @param sb
+   * @param sb Where to write the String into.
+   * @param pInitialState The initial state of the automaton.
+   * @param relevantStates A set with all states with non-trivial assumptions (all others will have
+   *     assumption TRUE).
+   * @param falseAssumptionStates A set with all states with the assumption FALSE
+   * @param branchingThreshold After branchingThreshold many branches on a path the automaton will
+   *     be ignored (0 to disable)")
+   * @param ignoreAssumptions if set to true, the automaton does not add assumption which is
+   *     considered to continue path with corresponding this edge.
+   * @return the number of states contained in the written automaton
    */
   public static void writeAutomatonToDot(
       Appendable sb,
@@ -371,7 +380,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       int branchingThreshold,
       boolean ignoreAssumptions)
       throws IOException {
-    sb.append("digraph CMC {\n");
+    sb.append("digraph AssumptionAutomaton {\n");
 
     // TODO branchingThreshold
     String actionOnFinalEdges = "";
@@ -390,13 +399,6 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     if (!falseAssumptionStates.isEmpty()) {
       statesInDot.append(stateToStringDotFormat("__FALSE"));
     }
-
-    //    for (final ARGState s : relevantStates) {
-    //      assert !s.isCovered();
-    //      if (s.getStateId() != pInitialState.getStateId()) {
-    //        sb.append(stateToStringDotFormat(s));
-    //      }
-    //    }
 
     edgesInDot.append(edgeToDotFormat("__TRUE", "__TRUE", "true"));
 
@@ -431,7 +433,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           edgesInDot.append(
               edgeToDotFormat(
                   String.valueOf(s.getStateId()),
-                  "M" + String.valueOf(s.getStateId()),
+                  "0" + String.valueOf(s.getStateId()),
                   escape(edges.get(0).getRawStatement())));
 
           boolean first = true;
@@ -442,7 +444,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
             if (!first) {
               multiEdgeID++;
               edgesInDot.append(
-                  edgeToDotFormat(sourceState, s.getStateId() + "M" + multiEdgeID, edgeDescription));
+                  edgeToDotFormat(
+                      sourceState, s.getStateId() + "0" + multiEdgeID, edgeDescription));
               edgesInDot.append(
                   edgeToDotFormat(sourceState, "__TRUE", "true")); // TODO branching Threshold
 
@@ -450,8 +453,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
               first = false;
             }
 
-            statesInDot.append(stateToStringDotFormat(s.getStateId() + "M" + multiEdgeID));
-            sourceState = s.getStateId() + "M" + multiEdgeID;
+            statesInDot.append(stateToStringDotFormat(s.getStateId() + "0" + multiEdgeID));
+            sourceState = s.getStateId() + "0" + multiEdgeID;
             edgeDescription = escape(innerEdge.getRawStatement());
           }
 
@@ -512,46 +515,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         state + " " + "[shape=\"circle\" label=\"ARG%s\"]\n", state);
   }
 
-  public static String edgeToDotFormat(ARGState state1, ARGState state2, String description) {
-    return String.format(
-        "%d -> %d [label=\"%s\"]\n", state1.getStateId(), state2.getStateId(), description);
-  }
-
   public static String edgeToDotFormat(String state1, String state2, String description) {
     return String.format(
         "%s -> %s [label=\"%s\"]\n", state1, state2, description);
-  }
-
-  // public static String edgeToDotFormatWithoutTarget(String state)
-
-  public static int writeAutomaton(
-      Appendable sb,
-      ARGState pInitialState,
-      Set<ARGState> relevantStates,
-      Set<AbstractState> falseAssumptionStates,
-      int branchingThreshold,
-      boolean ignoreAssumptions)
-      throws IOException {
-
-    // Writer w = IO.openOutputFile(assumptionAutomatonDotFile, Charset.defaultCharset());
-
-    //    writeAutomatonToDot(
-    //        sb,
-    //        pInitialState,
-    //        relevantStates,
-    //        falseAssumptionStates,
-    //        branchingThreshold,
-    //        ignoreAssumptions);
-
-    // w.close();
-
-    return writeAutomatonToTxt(
-        sb,
-        pInitialState,
-        relevantStates,
-        falseAssumptionStates,
-        branchingThreshold,
-        ignoreAssumptions);
   }
 
   /**
@@ -568,7 +534,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
    *     considered to continue path with corresponding this edge.
    * @return the number of states contained in the written automaton
    */
-  public static int writeAutomatonToTxt(
+  public static int writeAutomaton(
       Appendable sb,
       ARGState pInitialState,
       Set<ARGState> relevantStates,
@@ -699,142 +665,6 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     return numProducedStates;
   }
 
-  //  /**
-  //   * Create a String containing the assumption automaton.
-  //   * @param sb Where to write the String into.
-  //   * @param pInitialState The initial state of the automaton.
-  //   * @param relevantStates A set with all states with non-trivial assumptions (all others will
-  // have assumption TRUE).
-  //   * @param falseAssumptionStates A set with all states with the assumption FALSE
-  //   * @param branchingThreshold After branchingThreshold many branches on a path the automaton
-  // will be ignored (0 to disable)")
-  //   * @param ignoreAssumptions if set to true, the automaton does not add assumption which is
-  // considered to continue path with corresponding this edge.
-  //   * @return the number of states contained in the written automaton
-  //   */
-  //  public static int writeAutomaton(Appendable sb, ARGState pInitialState,
-  //      Set<ARGState> relevantStates, Set<AbstractState> falseAssumptionStates, int
-  // branchingThreshold,
-  //      boolean ignoreAssumptions) throws IOException {
-  //   int numProducedStates = 0;
-  //    sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
-  //
-  //    String actionOnFinalEdges = "";
-  //    if (branchingThreshold > 0) {
-  //      sb.append("LOCAL int branchingThreshold = " + branchingThreshold + ";\n");
-  //      sb.append("LOCAL int branchingCount = 0;\n\n");
-  //
-  //      // Reset automaton variable on all edges like "GOTO __FALSE"
-  //      // to allow merging of states.
-  //      actionOnFinalEdges = "DO branchingCount = 0 ";
-  //    }
-  //
-  //    String initialStateName;
-  //    if (relevantStates.isEmpty()) {
-  //      initialStateName = "__TRUE";
-  //    } else {
-  //      initialStateName = "ARG" + pInitialState.getStateId();
-  //    }
-  //
-  //    sb.append("INITIAL STATE ").append(initialStateName).append(";\n\n");
-  //    sb.append("STATE __TRUE :\n");
-  //    sb.append("    TRUE -> GOTO __TRUE;\n\n");
-  //
-  //    if (!falseAssumptionStates.isEmpty()) {
-  //      sb.append("STATE __FALSE :\n");
-  //      if (ignoreAssumptions) {
-  //        sb.append("    TRUE -> GOTO __FALSE;\n\n");
-  //      } else {
-  //        sb.append("    TRUE -> ASSUME {false} GOTO __FALSE;\n\n");
-  //      }
-  //    }
-  //
-  //    for (final ARGState s : relevantStates) {
-  //      assert !s.isCovered();
-  //
-  //      if (falseAssumptionStates.contains(s)) {
-  //        continue;
-  //      }
-  //
-  //      sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
-  //      numProducedStates++;
-  //
-  //      boolean branching = false;
-  //      if ((branchingThreshold > 0) && (s.getChildren().size() > 1)) {
-  //        branching = true;
-  //        sb.append("    branchingCount == branchingThreshold -> " + actionOnFinalEdges + "GOTO
-  // __FALSE;\n");
-  //      }
-  //
-  //      final StringBuilder descriptionForInnerMultiEdges = new StringBuilder();
-  //      int multiEdgeID = 0;
-  //
-  //      for (final ARGState child : getUncoveredChildrenView(s)) {
-  //        assert !child.isCovered();
-  //
-  //        List<CFAEdge> edges = s.getEdgesToChild(child);
-  //
-  //        if (edges.size() > 1) {
-  //          sb.append("    MATCH \"");
-  //          escape(edges.get(0).getRawStatement(), sb);
-  //          sb.append("\" -> ");
-  //          sb.append("GOTO ARG" + s.getStateId() + "M" + multiEdgeID);
-  //
-  //          boolean first = true;
-  //          for (CFAEdge innerEdge : from(edges).skip(1)) {
-  //
-  //            if (!first) {
-  //              multiEdgeID++;
-  //              descriptionForInnerMultiEdges.append("GOTO ARG" + s.getStateId() + "M" +
-  // multiEdgeID + ";\n");
-  //              descriptionForInnerMultiEdges.append("    TRUE -> " + actionOnFinalEdges + "GOTO
-  // __TRUE;\n\n");
-  //            } else {
-  //              first = false;
-  //            }
-  //
-  //            descriptionForInnerMultiEdges.append("STATE USEFIRST ARG" + s.getStateId() + "M" +
-  // multiEdgeID + " :\n");
-  //            numProducedStates++;
-  //            descriptionForInnerMultiEdges.append("    MATCH \"");
-  //            escape(innerEdge.getRawStatement(), descriptionForInnerMultiEdges);
-  //            descriptionForInnerMultiEdges.append("\" -> ");
-  //          }
-  //
-  //          AssumptionStorageState assumptionChild = AbstractStates.extractStateByType(child,
-  // AssumptionStorageState.class);
-  //          addAssumption(descriptionForInnerMultiEdges, assumptionChild, ignoreAssumptions);
-  //          finishTransition(descriptionForInnerMultiEdges, child, relevantStates,
-  // falseAssumptionStates,
-  //              actionOnFinalEdges, branching);
-  //          descriptionForInnerMultiEdges.append(";\n");
-  //          descriptionForInnerMultiEdges.append("    TRUE -> " + actionOnFinalEdges + "GOTO
-  // __TRUE;\n\n");
-  //
-  //        } else {
-  //
-  //          sb.append("    MATCH \"");
-  //          escape(Iterables.getOnlyElement(edges).getRawStatement(), sb);
-  //          sb.append("\" -> ");
-  //
-  //          AssumptionStorageState assumptionChild = AbstractStates.extractStateByType(child,
-  // AssumptionStorageState.class);
-  //          addAssumption(sb, assumptionChild, ignoreAssumptions);
-  //          finishTransition(sb, child, relevantStates, falseAssumptionStates, actionOnFinalEdges,
-  // branching);
-  //
-  //        }
-  //
-  //        sb.append(";\n");
-  //      }
-  //      sb.append("    TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");
-  //      sb.append(descriptionForInnerMultiEdges);
-  //
-  //    }
-  //    sb.append("END AUTOMATON\n");
-  //    return numProducedStates;
-  //  }
-
   private static void addAssumption(
       final Appendable writer,
       final AssumptionStorageState assumptionState,
@@ -854,7 +684,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   }
 
   private static String getAssumption(
-      final AssumptionStorageState assumptionState, boolean ignoreAssumptions) throws IOException {
+      final AssumptionStorageState assumptionState, boolean ignoreAssumptions) {
     if (!ignoreAssumptions) {
       final BooleanFormulaManagerView bmgr =
           assumptionState.getFormulaManager().getBooleanFormulaManager();
@@ -958,7 +788,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-  private static String escape(String s) throws IOException {
+  private static String escape(String s) {
     final StringBuilder result = new StringBuilder();
     for (int i = 0; i < s.length(); i++) {
       char c = s.charAt(i);
