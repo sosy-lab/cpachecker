@@ -33,6 +33,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -50,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.zip.ZipOutputStream;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -552,6 +554,14 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
   private void openZipFS() throws IOException {
     Map<String, String> env = new HashMap<>(1);
     env.put("create", "true");
+
+    // create zip file if does not exist
+    // should work without due to env entries, but failed on some systems
+    if (!testValueZip.toFile().exists()) {
+      try (final ZipOutputStream zos =
+          new ZipOutputStream(new FileOutputStream(testValueZip.toFile()))) {
+      }
+    }
 
     zipFS =
         FileSystems.newFileSystem(URI.create("jar:" + testValueZip.toUri().toString()), env, null);
