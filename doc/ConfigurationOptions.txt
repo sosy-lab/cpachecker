@@ -436,6 +436,12 @@ assumptions.automatonIgnoreAssumptions = false
 # compress the produced assumption automaton using GZIP compression.
 assumptions.compressAutomaton = false
 
+# export assumptions as automaton to dot file
+assumptions.dotExport = false
+
+# write collected assumptions as automaton to dot file
+assumptions.dotFile = "AssumptionAutomaton.dot"
+
 # write collected assumptions to file
 assumptions.export = true
 
