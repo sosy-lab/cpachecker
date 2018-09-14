@@ -156,7 +156,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
   private final HarnessExporter harnessExporter;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private Set<CFAEdge> testTargets;
+  private final Set<CFAEdge> testTargets;
   private FileSystem zipFS = null;
 
   public TestCaseGeneratorAlgorithm(
@@ -190,6 +190,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
   @Override
   public AlgorithmStatus run(final ReachedSet pReached)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+    int uncoveredGoalsAtStart = testTargets.size();
     // clean up ARG
     if (pReached.getWaitlist().size() > 1
         || !pReached.getWaitlist().contains(pReached.getFirstState())) {
@@ -307,6 +308,9 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
     } catch (IOException e) {
       logger.logException(Level.SEVERE, e, "Problem while handling zip file with test cass");
     } finally {
+      if (uncoveredGoalsAtStart != testTargets.size()) {
+        logger.log(Level.WARNING, TestTargetProvider.getCoverageInfo());
+      }
       closeZipFS();
     }
 
@@ -556,8 +560,12 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
     Map<String, String> env = new HashMap<>(1);
     env.put("create", "true");
 
+    Preconditions.checkNotNull(testValueZip);
     // create parent directories if do not exist
-    Files.createDirectories(testValueZip.getParent());
+    Path parent = testValueZip.getParent();
+    if (parent != null) {
+      Files.createDirectories(parent);
+    }
 
     if (!Files.exists(testValueZip)) {
       try (final ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(testValueZip))) {

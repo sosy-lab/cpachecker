@@ -68,11 +68,20 @@ public class TestTargetProvider implements Statistics {
     return instance.uncoveredTargets;
   }
 
+  public static String getCoverageInfo() {
+    Preconditions.checkNotNull(instance);
+    return (instance.initialTestTargets.size() - instance.uncoveredTargets.size())
+        + " of "
+        + instance.initialTestTargets.size()
+        + " covered";
+  }
+
   public static Statistics getTestTargetStatisitics(boolean pPrintTestGoalInfo) {
-    Preconditions.checkState(instance != null);
+    Preconditions.checkNotNull(instance);
     instance.printTargets = pPrintTestGoalInfo;
     return instance;
   }
+
 
   @Override
   public @Nullable String getName() {
@@ -100,5 +109,6 @@ public class TestTargetProvider implements Statistics {
       pOut.println(edge.toString());
     }
     }
+    pOut.flush(); // TODO check if makes sense
   }
 }
