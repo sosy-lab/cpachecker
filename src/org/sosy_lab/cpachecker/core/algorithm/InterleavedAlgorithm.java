@@ -439,11 +439,6 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
           }
           fReached.setDelegate(currentContext.reached);
 
-          if (currentContext.algorithm instanceof StatisticsProvider) {
-            ((StatisticsProvider) currentContext.algorithm)
-                .collectStatistics(stats.getSubStatistics());
-          }
-
           shutdownNotifier.shutdownIfNecessary();
 
           logger.logf(Level.INFO, "Starting analysis %d ...", stats.noOfCurrentAlgorithm);
@@ -648,6 +643,10 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
 
     // always create algorithm with new "local" shutdown manager
     pContext.algorithm = localCoreComponents.createAlgorithm(pContext.cpa, cfa, specification);
+
+    if (pContext.algorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider) pContext.algorithm).collectStatistics(stats.getSubStatistics());
+    }
 
     if (pContext.cpa instanceof StatisticsProvider) {
       ((StatisticsProvider) pContext.cpa).collectStatistics(stats.getSubStatistics());
