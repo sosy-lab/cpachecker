@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.URI;
+import java.nio.channels.ClosedByInterruptException;
 import java.nio.charset.Charset;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -241,9 +242,9 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
           }
         } catch (InterruptedException e1) {
           // may be thrown only be counterexample check, if not will be thrown again in finally
-          // block
-          // (due to respective shutdown notifier call)
+          // block due to respective shutdown notifier call)
           status = status.withPrecise(false);
+          closeZipFS();
         } catch (Exception e2) {
           // precaution always set precision to false, thus last target state not handled in case of
           // exception
@@ -555,8 +556,9 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
     Map<String, String> env = new HashMap<>(1);
     env.put("create", "true");
 
-    // create zip file if does not exist
-    // should work without due to env entries, but failed on some systems
+    // create parent directories if do not exist
+    Files.createDirectories(testValueZip.getParent());
+
     if (!Files.exists(testValueZip)) {
       try (final ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(testValueZip))) {
         zos.flush();
@@ -571,6 +573,8 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
     if (zipFS != null && zipFS.isOpen()) {
       try {
         zipFS.close();
+      } catch (ClosedByInterruptException e1) {
+        // nothing needs to be done, is closed anyway
       } catch (IOException e) {
         logger.logException(Level.SEVERE, e, "Problem while handling zip file with test cass");
       }
