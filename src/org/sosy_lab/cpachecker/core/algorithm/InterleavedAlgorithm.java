@@ -455,13 +455,13 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
           }
           if (!status.isSound()) {
             logger.logf(
-                Level.INFO,
+                Level.FINE,
                 "Analysis %d terminated, but result is unsound.",
                 stats.noOfCurrentAlgorithm);
 
           } else if (currentContext.reached.hasWaitingState()) {
             logger.logf(
-                Level.INFO,
+                Level.FINE,
                 "Analysis %d terminated but did not finish: There are still states to be processed.",
                 stats.noOfCurrentAlgorithm);
 
@@ -484,7 +484,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
 
         } catch (InterruptedException e) {
           logger.logUserException(
-              Level.WARNING, e, "Analysis " + stats.noOfCurrentAlgorithm + " stopped.");
+              Level.FINE, e, "Analysis " + stats.noOfCurrentAlgorithm + " stopped.");
 
           shutdownNotifier.shutdownIfNecessary();
 
