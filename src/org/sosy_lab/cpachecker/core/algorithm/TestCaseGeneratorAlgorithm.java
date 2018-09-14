@@ -560,6 +560,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
     if (!testValueZip.toFile().exists()) {
       try (final ZipOutputStream zos =
           new ZipOutputStream(new FileOutputStream(testValueZip.toFile()))) {
+        zos.flush();
       }
     }
 
