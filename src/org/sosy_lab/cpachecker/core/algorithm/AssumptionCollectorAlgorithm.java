@@ -111,6 +111,12 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   @Option(
       secure = true,
+      name = "dotExport",
+      description = "export assumptions as automaton to dot file")
+  private boolean dotExport = false;
+
+  @Option(
+      secure = true,
       name = "file",
       description = "write collected assumptions as automaton to dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -679,10 +685,12 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
           // After calling writeAutomaton the assumptionAutomatonTxt now contains the automaton
           // description and the correspond dot file can be created by creating the Automaton object
-          try {
-            writeAutomatonToDot(constructAutomataFromFile());
-          } catch (InvalidConfigurationException e) {
-            logger.logfUserException(Level.WARNING, e, "Could not write to DOT File");
+          if (dotExport) {
+            try {
+              writeAutomatonToDot(constructAutomataFromFile());
+            } catch (InvalidConfigurationException e) {
+              logger.logfUserException(Level.WARNING, e, "Could not write to DOT File");
+            }
           }
         }
       }
