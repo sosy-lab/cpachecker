@@ -117,7 +117,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   @Option(
       secure = true,
-      name = "file",
+      name = "dotFile",
       description = "write collected assumptions as automaton to dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path assumptionAutomatonDotFile = Paths.get("AssumptionAutomaton.dot");
@@ -337,7 +337,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   }
 
-  private Automaton constructAutomataFromFile() throws InvalidConfigurationException{
+  private Automaton constructAutomatonFromFile() throws InvalidConfigurationException {
 
     Scope scope = cfa.getLanguage() == Language.C ? new CProgramScope(cfa, logger) : DummyScope.getInstance();
 
@@ -686,7 +686,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           // description and the correspond dot file can be created by creating the Automaton object
           if (dotExport) {
             try {
-              writeAutomatonToDot(constructAutomataFromFile());
+              writeAutomatonToDot(constructAutomatonFromFile());
             } catch (InvalidConfigurationException e) {
               logger.logfUserException(Level.WARNING, e, "Could not write to DOT File");
             }
