@@ -1500,7 +1500,7 @@ public class DomainSpecificAbstraction<T> {
       } */
      // latticeNames[latticeNames.length - 1] = finalnode;
       //arrayVariablesForFormulas = arrayVariablesThatAreUsedInBothParts;
-      FirstPartRenamingFct renamer1 = new FirstPartRenamingFct
+    /*  FirstPartRenamingFct renamer1 = new FirstPartRenamingFct
           (arrayVariablesThatAreUsedInBothParts, arrayVariablesThatAreNotUsedInBothParts);
       ScndPartRenamingFct renamer2 = new ScndPartRenamingFct
           (arrayVariablesThatAreUsedInBothParts, arrayVariablesThatAreNotUsedInBothParts);
@@ -1540,7 +1540,7 @@ public class DomainSpecificAbstraction<T> {
       BooleanFormula helperFormula2;
 
       firstPartChanged = fmgr.translateFrom(firstPartChanged, oldFmgr);
-      scndPartChanged = fmgr.translateFrom(scndPartChanged, oldFmgr);
+      scndPartChanged = fmgr.translateFrom(scndPartChanged, oldFmgr); */
      /* for (int i = 0; i < it; i++){
         BooleanFormula addFormula = oldFormulas.get(i);
         BooleanFormula changedFormula = oldFmgr.renameFreeVariablesAndUFs(addFormula, renamer1);
@@ -1548,7 +1548,7 @@ public class DomainSpecificAbstraction<T> {
         changed_formulas_rest1.add(changedFormula);
       } */
 
-     if (it != 0){
+    /* if (it != 0){
        BooleanFormula addFormula = interpolants.get(it - 1);
        hasBeenChangedRest1.add(addFormula);
        BooleanFormula changedFormula = fmgr.renameFreeVariablesAndUFs(addFormula, renamer1);
@@ -1560,14 +1560,17 @@ public class DomainSpecificAbstraction<T> {
         BooleanFormula changedFormula = oldFmgr.renameFreeVariablesAndUFs(addFormula, renamer2);
         changedFormula = fmgr.translateFrom(changedFormula, oldFmgr);
         changed_formulas_rest2.add(changedFormula);
-      }
+      } */
 
 
       boolean abstractionFeasible = false;
       boolean isIncomparable = false;
-      helperFormula1 = firstPartChanged;
-      helperFormula2 = scndPartChanged;
+      /*helperFormula1 = firstPartChanged;
+      helperFormula2 = scndPartChanged; */
+      BooleanFormula helperFormula1 = null;
+      BooleanFormula helperFormula2 = null;
       String latticenames_h = new String();
+
 
      /* logger.log(Level.WARNING, "Showing LatticeNames: ");
       for (int h = 0; h < latticeNames.length; h++) {
@@ -1582,6 +1585,19 @@ public class DomainSpecificAbstraction<T> {
         logger.log(Level.WARNING, relationAbstraction2[h]);
       } */
       for (int h = 0; h < /*fullLatticeNames.length */ latticeNames.length; h++) {
+        String[] variablesToChange = new String[arrayVariablesThatAreUsedInBothParts.length];
+        BooleanFormula firstPartChanged;
+        BooleanFormula scndPartChanged;
+        List<BooleanFormula> changed_formulas =
+            Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+        List<BooleanFormula> changed_formulas_rest1 =
+            Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+        List<BooleanFormula> changed_formulas_rest2 =
+            Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+        List<BooleanFormula> hasBeenChangedRest1 =
+            Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+        List<BooleanFormula> hasBeenChangedRest2 =
+            Lists.newArrayListWithExpectedSize(formulas.size() - 1);
        /* helperFormula1 = firstPartChanged;
         helperFormula2 = scndPartChanged; */
      //   Iterable<String> splitOperator = Splitter.on(" ,").split(/*fullLatticeNames[h]*/
@@ -1590,10 +1606,21 @@ public class DomainSpecificAbstraction<T> {
           for (int k = 0; k < relationAbstraction1.length; k++) {
             if (relationAbstraction1[k] != null && latticeNames[h] != null) {
               if ((relationAbstraction1[k]).contains(/*s*/ latticeNames[h] + " = ")) {
-                helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
-                    (k));
+                if (helperFormula1 != null) {
+                  helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
+                      (k));
+                } else {
+                  helperFormula1 = relationAbstraction1Formula.get(k);
+                }
                 //logger.log(Level.WARNING, "Updated helperformula1: " + helperFormula1.toString
                 // ());
+                int y = 0;
+                for (int x = 0; x < arrayVariablesThatAreUsedInBothParts.length; x++){
+                  if (latticeNames[h].contains(arrayVariablesThatAreUsedInBothParts[x])){
+                    variablesToChange[y] = arrayVariablesThatAreUsedInBothParts[x];
+                    y++;
+                  }
+                }
                 if (latticenames_h.isEmpty() || (latticenames_h == null)) {
                   latticenames_h = latticeNames[h];
                   // logger.log(Level.WARNING, "Latticenames_h: " + latticenames_h);
@@ -1606,8 +1633,12 @@ public class DomainSpecificAbstraction<T> {
             }
             if (relationAbstraction2[k] != null && latticeNames[h] != null) {
               if ((relationAbstraction2[k]).contains(/*s*/ latticeNames[h] + " = ")) {
-                helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
-                    (k));
+                if (helperFormula2 != null) {
+                  helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
+                      (k));
+                } else {
+                  helperFormula2 = relationAbstraction2Formula.get(k);
+                }
                 //logger.log(Level.WARNING, "Updated helperformula2: " + helperFormula2.toString
                 // ());
 
@@ -1615,8 +1646,57 @@ public class DomainSpecificAbstraction<T> {
             }
             // }
             // }
+            FirstPartRenamingFct renamer1 = new FirstPartRenamingFct
+                (arrayVariablesThatAreNotUsedInBothParts,
+                    variablesToChange);
+            ScndPartRenamingFct renamer2 = new ScndPartRenamingFct
+                (arrayVariablesThatAreNotUsedInBothParts,
+                    variablesToChange);
+            BooleanFormula firstPart;
+            BooleanFormula scndPart;
+            if (it == 0) {
+              firstPart = formulas.get(0);
+              scndPart = formulas.get(1);
+            } else {
+              firstPart = formulas.get(1);
+              scndPart = formulas.get(2);
+            }
+            if (it == 0) {
+              firstPartChanged = oldFmgr.renameFreeVariablesAndUFs(firstPart, renamer1);
+              scndPartChanged = oldFmgr.renameFreeVariablesAndUFs(scndPart, renamer2);
+            }
+            else {
+              firstPartChanged = oldFmgr.renameFreeVariablesAndUFs(firstPart, renamer1);
+              scndPartChanged = oldFmgr.renameFreeVariablesAndUFs(scndPart, renamer2);
+            }
+
+            changed_formulas.add(firstPartChanged);
+            changed_formulas.add(scndPartChanged);
+
+            //changed_formulas.add(firstPartChanged);
+            //BooleanFormula helperFormula1;
+            //BooleanFormula helperFormula2;
+
+            firstPartChanged = fmgr.translateFrom(firstPartChanged, oldFmgr);
+            scndPartChanged = fmgr.translateFrom(scndPartChanged, oldFmgr);
+
+            if (it != 0){
+              BooleanFormula addFormula = interpolants.get(it - 1);
+              hasBeenChangedRest1.add(addFormula);
+              BooleanFormula changedFormula = fmgr.renameFreeVariablesAndUFs(addFormula, renamer1);
+              changed_formulas_rest1.add(changedFormula);
+            }
+            for (int i = it + 2; i < oldFormulas.size(); i++){
+              BooleanFormula addFormula = oldFormulas.get(i);
+              hasBeenChangedRest2.add(addFormula);
+              BooleanFormula changedFormula = oldFmgr.renameFreeVariablesAndUFs(addFormula, renamer2);
+              changedFormula = fmgr.translateFrom(changedFormula, oldFmgr);
+              changed_formulas_rest2.add(changedFormula);
+            }
 
             if (!latticenames_h.isEmpty() && !(latticenames_h == null)) {
+              helperFormula1 = fmgr.makeAnd(helperFormula1, firstPartChanged);
+              helperFormula2 = fmgr.makeAnd(helperFormula2, scndPartChanged);
               BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
               List<BooleanFormula> toCheckFormulaList =
                   Lists.newArrayListWithExpectedSize(formulas.size() - 1);
@@ -1661,26 +1741,118 @@ public class DomainSpecificAbstraction<T> {
             }
           }
       }
-      helperFormula1 = firstPartChanged;
-      helperFormula2 = scndPartChanged;
+      //helperFormula1 = firstPartChanged;
+      //helperFormula2 = scndPartChanged;
+      helperFormula1 = null;
+      helperFormula2 = null;
+      String[] variablesToChange = new String[arrayVariablesThatAreUsedInBothParts.length];
+      BooleanFormula firstPartChanged;
+      BooleanFormula scndPartChanged;
+      List<BooleanFormula> changed_formulas =
+          Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+      List<BooleanFormula> changed_formulas_rest1 =
+          Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+      List<BooleanFormula> changed_formulas_rest2 =
+          Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+      List<BooleanFormula> hasBeenChangedRest1 =
+          Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+      List<BooleanFormula> hasBeenChangedRest2 =
+          Lists.newArrayListWithExpectedSize(formulas.size() - 1);
       if (!frontierList.isEmpty() && !(frontierList == null)) {
         logger.log(Level.WARNING, "FrontierList ist not empty: ");
         logger.log(Level.WARNING, "FrontierList: " + frontierList.toString());
-        for (Formula y : frontierList.get(frontierList.size() - 1)) {
+        for (Formula y : frontierList.get(0)) {
           for (int k = 0; k < relationAbstraction1.length; k++) {
             if (relationAbstraction1[k].contains(" = " + y.toString())) {
-              helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get(k));
+              if (helperFormula1 != null) {
+                helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get(k));
+              } else {
+                helperFormula1 = relationAbstraction1Formula.get(k);
+              }
+              int z = 0;
+              for (int x = 0; x < arrayVariablesThatAreUsedInBothParts.length; x++){
+                if (relationAbstraction1[k].contains(arrayVariablesThatAreUsedInBothParts[x])){
+                  variablesToChange[z] = arrayVariablesThatAreUsedInBothParts[x];
+                  z++;
+                }
+              }
             }
             if (relationAbstraction2[k].contains(" = " + y.toString())) {
-              helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get(k));
+              if (helperFormula2 != null) {
+                helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get(k));
+              } else {
+                helperFormula2 = relationAbstraction2Formula.get(k);
+              }
             }
           }
         }
+        FirstPartRenamingFct renamer1 = new FirstPartRenamingFct
+            (arrayVariablesThatAreNotUsedInBothParts,
+                variablesToChange);
+        ScndPartRenamingFct renamer2 = new ScndPartRenamingFct
+            (arrayVariablesThatAreNotUsedInBothParts,
+                variablesToChange);
+        BooleanFormula firstPart;
+        BooleanFormula scndPart;
+        if (it == 0) {
+          firstPart = formulas.get(0);
+          scndPart = formulas.get(1);
+        } else {
+          firstPart = formulas.get(1);
+          scndPart = formulas.get(2);
+        }
+        if (it == 0) {
+          firstPartChanged = oldFmgr.renameFreeVariablesAndUFs(firstPart, renamer1);
+          scndPartChanged = oldFmgr.renameFreeVariablesAndUFs(scndPart, renamer2);
+        }
+        else {
+          firstPartChanged = oldFmgr.renameFreeVariablesAndUFs(firstPart, renamer1);
+          scndPartChanged = oldFmgr.renameFreeVariablesAndUFs(scndPart, renamer2);
+        }
+
+        changed_formulas.add(firstPartChanged);
+        changed_formulas.add(scndPartChanged);
+
+        //changed_formulas.add(firstPartChanged);
+        //BooleanFormula helperFormula1;
+        //BooleanFormula helperFormula2;
+
+        firstPartChanged = fmgr.translateFrom(firstPartChanged, oldFmgr);
+        scndPartChanged = fmgr.translateFrom(scndPartChanged, oldFmgr);
+
+        if (it != 0){
+          BooleanFormula addFormula = interpolants.get(it - 1);
+          hasBeenChangedRest1.add(addFormula);
+          BooleanFormula changedFormula = fmgr.renameFreeVariablesAndUFs(addFormula, renamer1);
+          changed_formulas_rest1.add(changedFormula);
+        }
+        for (int i = it + 2; i < oldFormulas.size(); i++){
+          BooleanFormula addFormula = oldFormulas.get(i);
+          hasBeenChangedRest2.add(addFormula);
+          BooleanFormula changedFormula = oldFmgr.renameFreeVariablesAndUFs(addFormula, renamer2);
+          changedFormula = fmgr.translateFrom(changedFormula, oldFmgr);
+          changed_formulas_rest2.add(changedFormula);
+        }
+        helperFormula1 = fmgr.makeAnd(helperFormula1, firstPartChanged);
+        helperFormula2 = fmgr.makeAnd(helperFormula2, scndPartChanged);
       } else {
         logger.log(Level.WARNING, "FrontierList is empty: ");
         //just try interpolation without any renamed variables and relation abstractions
-        helperFormula1 = firstPart;
-        helperFormula2 = scndPart;
+        if (it == 0) {
+          helperFormula1 = formulas.get(0);
+          helperFormula2 = formulas.get(1);
+        } else {
+          helperFormula1 = formulas.get(1);
+          helperFormula2 = formulas.get(2);
+        }
+        if (it != 0){
+          BooleanFormula addFormula = interpolants.get(it - 1);
+          hasBeenChangedRest1.add(addFormula);
+        }
+        for (int i = it + 2; i < oldFormulas.size(); i++){
+          BooleanFormula addFormula = oldFormulas.get(i);
+          hasBeenChangedRest2.add(addFormula);
+        }
         changed_formulas_rest1 = hasBeenChangedRest1;
         changed_formulas_rest2 = hasBeenChangedRest2;
       }

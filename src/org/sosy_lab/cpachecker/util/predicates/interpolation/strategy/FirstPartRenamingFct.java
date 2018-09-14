@@ -30,9 +30,9 @@ public class FirstPartRenamingFct implements java.util
   String[] arrayVariablesForFormulasHere;
   String[] otherArrayVariables;
 
-  FirstPartRenamingFct(String[] arrayVariablesThatAreUsedInBothParts, String[]
-      arrayVariablesThatAreNotUsedInBothParts){
-    arrayVariablesForFormulasHere = arrayVariablesThatAreUsedInBothParts;
+  FirstPartRenamingFct(String[]
+      arrayVariablesThatAreNotUsedInBothParts, String[] variablesToChange){
+    arrayVariablesForFormulasHere = variablesToChange;
     otherArrayVariables = arrayVariablesThatAreNotUsedInBothParts;
   }
   @Override public String apply (String name){
