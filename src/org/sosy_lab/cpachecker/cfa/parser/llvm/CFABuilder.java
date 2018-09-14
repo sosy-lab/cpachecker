@@ -742,15 +742,25 @@ public class CFABuilder {
     Value calledFunction = pItem.getCalledFunction();
     CFunctionDeclaration functionDeclaration = null;
     String functionName = null;
+
+    // if the function has been casted in the call, strip the cast
+    if (calledFunction.isConstantExpr() &&
+        calledFunction.getConstOpCode() == OpCode.BitCast) {
+        calledFunction = calledFunction.getOperand(0);
+    }
+
+    // we must have a function now, otherwise it is a call
+    // via function pointer
     if (calledFunction.isFunction()) {
       functionName = calledFunction.getValueName();
       functionDeclaration = functionDeclarations.get(functionName);
-      if (functionDeclaration == null) {
-        logger.logf(
-            Level.WARNING,
-            "Declaration for function %s not found, trying to derive it.",
-            functionName);
-      }
+    }
+
+    if (functionDeclaration == null) {
+      logger.logf(
+          Level.WARNING,
+          "Declaration for function %s not found, trying to derive it.",
+          functionName);
     }
 
     List<CExpression> parameters = new ArrayList<>(argumentCount);
