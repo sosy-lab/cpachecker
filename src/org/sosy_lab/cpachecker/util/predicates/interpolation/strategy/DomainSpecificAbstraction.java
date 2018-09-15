@@ -1725,13 +1725,24 @@ public class DomainSpecificAbstraction<T> {
 
                 if (isIncomparable) {
             /*List<IntegerFormula> */
-                  List<Formula> new_frontier_elem = maximise(firstPartChanged,
+                  /*List<Formula> new_frontier_elem = maximise(firstPartChanged,
                       scndPartChanged,
                       relationAbstraction1,
                       relationAbstraction2, relationAbstraction1Formula,
-                      relationAbstraction2Formula /*lattice, fullLatticeNames, */, latticeNames, /*h,*/
+                      relationAbstraction2Formula, latticeNames,
                       latticenames_h,
-                      mySolver);
+                      mySolver);*/
+                  List<FormulaType> formulaTypes = Lists.newArrayListWithExpectedSize(latticeNamesTypes.size()
+                      - 1);
+                  Iterable<String> splitOperator = Splitter.on(" ,").split(latticenames_h);
+                  for (String s : splitOperator) {
+                    for (int i = 0; i < latticeNames.length; i++) {
+                      if (latticeNames[i] != null && !(s == null) && s.equals(latticeNames[i])){
+                        formulaTypes.add(latticeNamesTypes.get(latticeNames[i]));
+                      }
+                    }
+                  }
+                  List<Formula> new_frontier_elem = StringtoIntegerFormulaList(latticenames_h, formulaTypes);
                   logger.log(Level.WARNING, "NewFrontierElem after maximising: " +
                       new_frontier_elem.toString());
                   frontierList.add(new_frontier_elem);
