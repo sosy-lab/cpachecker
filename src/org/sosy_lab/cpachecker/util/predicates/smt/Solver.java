@@ -302,7 +302,8 @@ public final class Solver implements AutoCloseable {
    * It is recommended to use the try-with-resources syntax.
    */
   public OptimizationProverEnvironment newOptEnvironment() {
-    OptimizationProverEnvironment environment = solvingContext.newOptimizationProverEnvironment();
+    OptimizationProverEnvironment environment =
+        solvingContext.newOptimizationProverEnvironment(ProverOptions.GENERATE_MODELS);
     environment = new OptimizationProverEnvironmentView(environment, fmgr);
     return environment;
   }
