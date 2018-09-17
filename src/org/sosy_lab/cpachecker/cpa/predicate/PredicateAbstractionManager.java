@@ -759,7 +759,8 @@ public class PredicateAbstractionManager {
       throws SolverException, InterruptedException {
     Region abs = rmgr.makeTrue();
 
-    try (ProverEnvironment thmProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+    try (ProverEnvironment thmProver =
+        solver.newProverEnvironment(ProverOptions.GENERATE_ALL_SAT)) {
       thmProver.push(f);
 
       if (remainingPredicates.isEmpty()) {
