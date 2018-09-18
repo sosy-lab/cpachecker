@@ -640,61 +640,63 @@ public final class InterpolationManager {
 
 
     if (domainSpecificAbstractions) {
-
-      Solver my_solver = null;
+      dsaAnalysisTimer.start();
       try {
-        my_solver = Solver.create(
-            my_config, logger,
-            shutdownNotifier);
-      } catch (InvalidConfigurationException pE) {
-        logger.log(Level.WARNING, "Invalid Configuration!");
-      }
-      if (my_solver != null) {
-        dsaAnalysisTimer.start();
-        FormulaManagerView new_fmgr = my_solver.getFormulaManager();
-        DomainSpecificAbstraction<T> dsa = new DomainSpecificAbstraction<>(/*shutdownNotifier,*/
-            new_fmgr,
-            /*bfmgr, */ fmgr, /* pInterpolator, */ logger, inequalityInterpolationAbstractions);
-        List<BooleanFormula> tocheck =
-            Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst);
-        if (tocheck != null) {
-          my_interpolants = dsa.domainSpecificAbstractionsCheck
-              (my_solver, tocheck);
-        } else {
-          my_interpolants = null;
-        }
-        //final List<BooleanFormula> interpolants = dsa.domainSpecificAbstractionsCheck
-        //    (my_solver, tocheck);
-        if (my_interpolants != null && !(my_interpolants.isEmpty())) {
-          //logger.log(Level.WARNING, "My Interpolants:", my_interpolants.toString());
-          List<BooleanFormula> interpolantList =
-              new ArrayList<>(my_interpolants.size());
-          for (BooleanFormula f : my_interpolants) {
-            BooleanFormula interpolant = fmgr.translateFrom(f, new_fmgr);
-            interpolantList.add(interpolant);
-          }
 
-          my_solver.close();
-          //return my_interpolants;
-          if (interpolantList != null && !(interpolantList.isEmpty())) {
-           // logger.log(Level.WARNING, "InterpolantList in InterpolationManager:", interpolantList
-           //     .toString
-           //     ());
-            return interpolantList;
+        Solver my_solver = null;
+        try {
+          my_solver = Solver.create(
+              my_config, logger,
+              shutdownNotifier);
+        } catch (InvalidConfigurationException pE) {
+          logger.log(Level.WARNING, "Invalid Configuration!");
+        }
+        if (my_solver != null) {
+          dsaAnalysisTimer.start();
+          FormulaManagerView new_fmgr = my_solver.getFormulaManager();
+          DomainSpecificAbstraction<T> dsa = new DomainSpecificAbstraction<>(/*shutdownNotifier,*/
+              new_fmgr,
+            /*bfmgr, */ fmgr, /* pInterpolator, */ logger, inequalityInterpolationAbstractions);
+          List<BooleanFormula> tocheck =
+              Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst);
+          if (tocheck != null) {
+            my_interpolants = dsa.domainSpecificAbstractionsCheck
+                (my_solver, tocheck);
+          } else {
+            my_interpolants = null;
+          }
+          //final List<BooleanFormula> interpolants = dsa.domainSpecificAbstractionsCheck
+          //    (my_solver, tocheck);
+          if (my_interpolants != null && !(my_interpolants.isEmpty())) {
+            //logger.log(Level.WARNING, "My Interpolants:", my_interpolants.toString());
+            List<BooleanFormula> interpolantList =
+                new ArrayList<>(my_interpolants.size());
+            for (BooleanFormula f : my_interpolants) {
+              BooleanFormula interpolant = fmgr.translateFrom(f, new_fmgr);
+              interpolantList.add(interpolant);
+            }
+
+            my_solver.close();
+            //return my_interpolants;
+            if (interpolantList != null && !(interpolantList.isEmpty())) {
+              // logger.log(Level.WARNING, "InterpolantList in InterpolationManager:", interpolantList
+              //     .toString
+              //     ());
+              return interpolantList;
+            } else {
+              my_solver.close();
+              logger.log(Level.WARNING, "Returning empty list");
+              return Collections.emptyList();
+            }
           } else {
             my_solver.close();
-            logger.log(Level.WARNING, "Returning empty list");
-            dsaAnalysisTimer.stop();
             return Collections.emptyList();
           }
         } else {
-          my_solver.close();
-          dsaAnalysisTimer.stop();
           return Collections.emptyList();
         }
-      } else {
+      } finally {
         dsaAnalysisTimer.stop();
-        return Collections.emptyList();
       }
     } else {
       final ITPStrategy<T> itpStrategy;

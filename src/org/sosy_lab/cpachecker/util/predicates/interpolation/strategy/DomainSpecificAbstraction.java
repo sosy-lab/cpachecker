@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
+import org.sosy_lab.cpachecker.util.predicates.simpleformulas.Term;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
@@ -346,7 +347,7 @@ public class DomainSpecificAbstraction<T> {
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType2);
           }
-          else if (resultType1.isArrayType() && resultType2.isArrayType()){
+          else  if (resultType1.isArrayType() && resultType2.isArrayType()){
             ArrayFormulaType resultType1Array = (ArrayFormulaType) resultType1;
             FormulaType indexType1 = resultType1Array.getIndexType();
             FormulaType elementType1 = resultType1Array.getElementType();
@@ -2342,14 +2343,15 @@ public class DomainSpecificAbstraction<T> {
 
                 if (isIncomparable) {
             /*List<IntegerFormula> */
-                  /*List<Formula> new_frontier_elem = maximise(firstPartChanged,
+                  List<Formula> new_frontier_elem = maximise(firstPartChanged,
                       scndPartChanged,
                       relationAbstraction1,
                       relationAbstraction2, relationAbstraction1Formula,
                       relationAbstraction2Formula, latticeNames,
                       latticenames_h,
-                      mySolver);*/
-                  List<FormulaType> formulaTypes = Lists.newArrayListWithExpectedSize(latticeNamesTypes.size()
+                      mySolver);
+                  /*List<FormulaType> formulaTypes = Lists.newArrayListWithExpectedSize
+                      (latticeNamesTypes.size()
                       - 1);
                   Iterable<String> splitOperator = Splitter.on(" ,").split(latticenames_h);
                   for (String s : splitOperator) {
@@ -2358,8 +2360,9 @@ public class DomainSpecificAbstraction<T> {
                         formulaTypes.add(latticeNamesTypes.get(latticeNames[i]));
                       }
                     }
-                  }
-                  List<Formula> new_frontier_elem = StringtoIntegerFormulaList(latticenames_h, formulaTypes);
+                  } */
+                  //List<Formula> new_frontier_elem = StringtoIntegerFormulaList(latticenames_h,
+                  //    formulaTypes);
                   logger.log(Level.WARNING, "NewFrontierElem after maximising: " +
                       new_frontier_elem.toString());
                   frontierList.add(new_frontier_elem);
