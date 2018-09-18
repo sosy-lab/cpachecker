@@ -147,6 +147,11 @@ public final class InterpolationManager {
           + "leading to a different routine")
   private boolean domainSpecificAbstractions = false;
 
+  @Option(secure=true, name="inequalityInterpolationAbstractions",
+      description="additional variation to domainSpecificAbstractions "
+          + "using inequalities instead of equalities")
+  private boolean inequalityInterpolationAbstractions = false;
+
   @Option(secure=true, name="cexTraceCheckDirection",
       description="Direction for doing counterexample analysis: from start of trace, from end of trace, or alternatingly from start and end of the trace towards the middle")
   private CexTraceAnalysisDirection direction = CexTraceAnalysisDirection.FORWARDS;
@@ -649,7 +654,7 @@ public final class InterpolationManager {
         FormulaManagerView new_fmgr = my_solver.getFormulaManager();
         DomainSpecificAbstraction<T> dsa = new DomainSpecificAbstraction<>(/*shutdownNotifier,*/
             new_fmgr,
-            /*bfmgr, */ fmgr, /* pInterpolator, */ logger);
+            /*bfmgr, */ fmgr, /* pInterpolator, */ logger, inequalityInterpolationAbstractions);
         List<BooleanFormula> tocheck =
             Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst);
         if (tocheck != null) {
