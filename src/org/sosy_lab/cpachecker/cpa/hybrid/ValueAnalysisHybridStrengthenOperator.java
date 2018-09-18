@@ -23,30 +23,27 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
-import java.util.Collection;
-import java.util.List;
-
-import javax.annotation.Nullable;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
-import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridStrengthenOperator;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 
-public class HybridAnalysisTransferRelation
-    extends ForwardingTransferRelation<HybridAnalysisState, HybridAnalysisState, VariableTrackingPrecision>
-{
-    
+public class ValueAnalysisHybridStrengthenOperator
+        implements HybridStrengthenOperator<ValueAnalysisState> {
+
     @Override
-    public Collection<? extends AbstractState> strengthen(
-      AbstractState state,
-      List<AbstractState> otherStates,
-      @Nullable CFAEdge cfaEdge,
-      Precision precision)
-      throws CPATransferException, InterruptedException
-      {
+    public HybridAnalysisState strengthen(
+            HybridAnalysisState pStateToStrengthen,
+            ValueAnalysisState pStrengtheningInformationState,
+            CFAEdge pEdge) {
         return null;
-      }
+    }
+
+    @Override
+    public ValueAnalysisState injectStrengthening(
+            ValueAnalysisState pStateToStrengthen,
+            HybridAnalysisState pStrengtheningInformationState,
+            CFAEdge pEdge) {
+        return null;
+  }
+
 }

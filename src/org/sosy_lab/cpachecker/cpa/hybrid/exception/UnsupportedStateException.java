@@ -21,15 +21,25 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.model;
+package org.sosy_lab.cpachecker.cpa.hybrid.exception;
 
-public enum CFAEdgeType {
-    BlankEdge,
-    AssumeEdge,
-    StatementEdge,
-    DeclarationEdge,
-    ReturnStatementEdge,
-    FunctionCallEdge,
-    FunctionReturnEdge,
-    CallToReturnEdge;
+/**
+ * Exception extension for methods deciding wether a given state is processable or not
+ */
+public class UnsupportedStateException extends Exception
+{
+    private static final long serialVersionUID = 1L;
+
+    public UnsupportedStateException()
+    {
+        super();
+    }
+
+    public UnsupportedStateException(String message) {
+        super(message);
+    }
+
+    public UnsupportedStateException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

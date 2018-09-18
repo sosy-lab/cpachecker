@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.hybrid.util;
 
 import java.util.Collection;
+import java.util.LinkedList;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class CollectionUtils
@@ -47,5 +49,30 @@ public class CollectionUtils
             .map(elem -> (T) elem)
             .collect(Collectors.toList());
             
+    }
+
+    public <T> boolean appliesToAtLeastOne(Iterable<T> collection, Predicate<T> pred)
+    {
+        return getApplyingElements(collection, pred).size() >= 1;
+    }
+
+    public <T> boolean appliesToAll(Collection<T> collection, Predicate<T> pred)
+    {
+        return getApplyingElements(collection, pred).size() == collection.size();
+    }
+
+    public <T> Collection<T> getApplyingElements(Iterable<T> collection, Predicate<T> pred)
+    {
+        Collection<T> resultCollection = new LinkedList<>();
+
+        for(T element : collection)
+        {
+            if(pred.test(element))
+            {
+                resultCollection.add(element);
+            }
+        }
+
+        return resultCollection;
     }
 }

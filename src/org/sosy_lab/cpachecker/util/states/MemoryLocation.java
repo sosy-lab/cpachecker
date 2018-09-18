@@ -60,6 +60,19 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
   protected MemoryLocation(String pIdentifier, @Nullable Long pOffset) {
     checkNotNull(pIdentifier);
 
+    // final String[] identifierParts = pIdentifier.split("::");
+    // >> more efficient approach, only 1 iteration over the identifier is needed <<
+    // if(identifierParts.length == 2)
+    // {
+    //   functionName = identifierParts[0];
+    //   identifier = identifierParts[1];
+    // }
+    // else 
+    // {
+    //   functionName = null; // may not make functionName optional?
+    //   identifier = pIdentifier;
+    // }
+
     int separatorIndex = pIdentifier.indexOf("::");
     if (separatorIndex >= 0) {
       functionName = pIdentifier.substring(0, separatorIndex);

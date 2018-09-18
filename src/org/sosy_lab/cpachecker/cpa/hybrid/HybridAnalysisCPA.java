@@ -37,23 +37,27 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-public class HybridAnalysisCPA extends AbstractCPA implements ConfigurableProgramAnalysis {
+public class HybridAnalysisCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
+{
 
-
+    private final AbstractDomain abstractDomain;
 
     protected HybridAnalysisCPA(String mergeType, String stopType, @Nullable TransferRelation transfer)
     {
         super(mergeType, stopType, transfer);
+        abstractDomain = super.getAbstractDomain();
     }
 
     protected HybridAnalysisCPA(AbstractDomain domain, TransferRelation transfer)
     {
         super(domain, transfer);
+        abstractDomain = domain;
     }
 
     protected HybridAnalysisCPA(String mergeType, String stopType, AbstractDomain domain, @Nullable TransferRelation transfer)
     {
         super(mergeType, stopType, domain, transfer);
+        abstractDomain = domain;
     }
 
     @Override
@@ -62,6 +66,11 @@ public class HybridAnalysisCPA extends AbstractCPA implements ConfigurableProgra
         return null;
     }
 
-    
+    @Override
+    public TransferRelation getTransferRelation()
+    {
+        return new HybridAnalysisTransferRelation();
+    }
+
 
 }

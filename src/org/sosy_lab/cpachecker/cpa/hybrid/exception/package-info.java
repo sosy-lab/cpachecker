@@ -21,15 +21,4 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.model;
-
-public enum CFAEdgeType {
-    BlankEdge,
-    AssumeEdge,
-    StatementEdge,
-    DeclarationEdge,
-    ReturnStatementEdge,
-    FunctionCallEdge,
-    FunctionReturnEdge,
-    CallToReturnEdge;
-}
+package org.sosy_lab.cpachecker.cpa.hybrid.exception;
