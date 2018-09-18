@@ -97,6 +97,7 @@ public final class InterpolationManager {
   private final Timer getInterpolantTimer = new Timer();
   private final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
   private final Timer interpolantVerificationTimer = new Timer();
+  private final Timer dsaAnalysisTimer = new Timer();
   private int reusedFormulasOnSolverStack = 0;
 
   public void printStatistics(StatisticsWriter w0) {
@@ -104,6 +105,12 @@ public final class InterpolationManager {
     StatisticsWriter w1 = w0.beginLevel();
     if (cexAnalysisGetUsefulBlocksTimer.getNumberOfIntervals() > 0) {
       w1.put("Cex.focusing", cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ")");
+    }
+    if (dsaAnalysisTimer.getNumberOfIntervals() > 0) {
+      w1.put("Domain Specific Abstractions Part: ", dsaAnalysisTimer + " (Max: " +
+          dsaAnalysisTimer
+          .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + dsaAnalysisTimer
+          .getAvgTime() + ")" + "Number of Intervals: " + dsaAnalysisTimer.getNumberOfIntervals());
     }
     w1.put("Refinement sat check", satCheckTimer);
     if (reuseInterpolationEnvironment && satCheckTimer.getNumberOfIntervals() > 0) {
@@ -638,6 +645,7 @@ public final class InterpolationManager {
         logger.log(Level.WARNING, "Invalid Configuration!");
       }
       if (my_solver != null) {
+        dsaAnalysisTimer.start();
         FormulaManagerView new_fmgr = my_solver.getFormulaManager();
         DomainSpecificAbstraction<T> dsa = new DomainSpecificAbstraction<>(/*shutdownNotifier,*/
             new_fmgr,
@@ -671,13 +679,16 @@ public final class InterpolationManager {
           } else {
             my_solver.close();
             logger.log(Level.WARNING, "Returning empty list");
+            dsaAnalysisTimer.stop();
             return Collections.emptyList();
           }
         } else {
           my_solver.close();
+          dsaAnalysisTimer.stop();
           return Collections.emptyList();
         }
       } else {
+        dsaAnalysisTimer.stop();
         return Collections.emptyList();
       }
     } else {
