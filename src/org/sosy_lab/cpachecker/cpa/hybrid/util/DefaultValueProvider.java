@@ -23,10 +23,30 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid.util;
 
-import org.sosy_lab.cpachecker.cfa.types.Type;
-
-public interface ConcreteValueProvider<T extends Type>
+public final class DefaultValueProvider
 {
 
-    public T provideValue(T type);
+    // static class will not instantiated
+    private DefaultValueProvider() {}
+
+    public Number getDefaultNumber()
+    {
+        return 0.0;
+    }
+
+    // string will be handled as a primitive type - although there is no built-in string type in C-Programs
+    public String getDefaultString()
+    {
+        return "";
+    }
+
+    public char getDefaultCharacter()
+    {
+        return '\u0000';
+    }
+
+    public Object getDefaultReference()
+    {
+        return null;
+    }
 }
