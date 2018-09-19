@@ -46,6 +46,7 @@ public class CollectionUtils
             .stream()
             .filter(elem -> elem.getClass() == clazz)
             // the cast is safe due to filter operation
+            @SuppresWarnings("unchecked")
             .map(elem -> (T) elem)
             .collect(Collectors.toList());
             

@@ -27,37 +27,42 @@ import javax.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
 
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 public class HybridAnalysisCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
 {
 
-    private final AbstractDomain abstractDomain;
+    private static final String cfaErrorMessage = "CFA must be present for HybridAnalysis";
 
-    protected HybridAnalysisCPA(String mergeType, String stopType, @Nullable TransferRelation transfer)
+    private final AbstractDomain abstractDomain;
+    private final CFA cfa;
+
+    protected HybridAnalysisCPA(String mergeType, String stopType, @Nullable TransferRelation transfer, CFA cfa)
     {
         super(mergeType, stopType, transfer);
         abstractDomain = super.getAbstractDomain();
+        this.cfa = Preconditions.checkNotNull(cfa, cfaErroMessage);
     }
 
-    protected HybridAnalysisCPA(AbstractDomain domain, TransferRelation transfer)
+    protected HybridAnalysisCPA(AbstractDomain domain, TransferRelation transfer, CFA cfa)
     {
         super(domain, transfer);
         abstractDomain = domain;
+        this.cfa = Preconditions.checkNotNull(cfa, cfaErroMessage);
     }
 
-    protected HybridAnalysisCPA(String mergeType, String stopType, AbstractDomain domain, @Nullable TransferRelation transfer)
+    protected HybridAnalysisCPA(String mergeType, String stopType, AbstractDomain domain, @Nullable TransferRelation transfer, CFA cfa)
     {
         super(mergeType, stopType, domain, transfer);
         abstractDomain = domain;
+        this.cfa = Preconditions.checkNotNull(cfa, cfaErroMessage);
     }
 
     @Override

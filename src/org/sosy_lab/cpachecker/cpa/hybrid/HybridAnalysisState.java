@@ -28,6 +28,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 public class HybridAnalysisState implements AbstractQueryableState
 {
 
+    private Set<HybridValue> definitiveVars; 
+
     @Override
     public String getCPAName() {
         return null;
