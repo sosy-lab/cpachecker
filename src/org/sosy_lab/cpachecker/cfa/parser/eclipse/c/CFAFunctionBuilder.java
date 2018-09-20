@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -1895,10 +1896,31 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     } else {
 
-      prevNode = createEdgesForSideEffects(prevNode, sideAssignmentStack.getAndResetPreSideAssignments(), rawSignature, fileLocation);
+      List<CAstNode> sideAssignments = sideAssignmentStack.getAndResetPreSideAssignments();
+      List<Pair<IASTExpression, CIdExpression>> conditionalExpressions =
+          sideAssignmentStack.getAndResetConditionalExpressions();
 
-      // handle ternary operator or && or || or { }
-      for (Pair<IASTExpression, CIdExpression> cond : sideAssignmentStack.getAndResetConditionalExpressions()) {
+      // check each side assignment and handle possible corresponding conditional expression
+      for (CAstNode sideAssignment : sideAssignments) {
+        prevNode = createEdgeForSideEffect(prevNode, sideAssignment, rawSignature, fileLocation);
+        Iterator<Pair<IASTExpression, CIdExpression>> it = conditionalExpressions.iterator();
+        while (it.hasNext()) {
+          Pair<IASTExpression, CIdExpression> cond = it.next();
+          IASTExpression condExp = cond.getFirst();
+          CIdExpression tempVar = cond.getSecond();
+          if (sideAssignment instanceof CVariableDeclaration) {
+            CVariableDeclaration cvd = (CVariableDeclaration) sideAssignment;
+            if (cvd.getOrigName().equals(tempVar.getName())) {
+              prevNode = handleConditionalExpression(prevNode, condExp, tempVar);
+              it.remove();
+            }
+          }
+        }
+      }
+
+      // handle ternary operator or && or || or { } if there are still conditional expressions left
+      for (Pair<IASTExpression, CIdExpression> cond :
+          sideAssignmentStack.getAndResetConditionalExpressions()) {
         IASTExpression condExp = cond.getFirst();
         CIdExpression tempVar = cond.getSecond();
 
@@ -2218,6 +2240,42 @@ class CFAFunctionBuilder extends ASTVisitor {
       addToCFA(edge);
       prevNode = nextNode;
     }
+
+    return prevNode;
+  }
+
+  private CFANode createEdgeForSideEffect(
+      CFANode prevNode, CAstNode sideeffect, String rawSignature, FileLocation fileLocation) {
+
+    CFANode nextNode = newCFANode();
+
+    if (sideeffect instanceof CExpression) {
+      sideeffect = new CExpressionStatement(sideeffect.getFileLocation(), (CExpression) sideeffect);
+      }
+
+    CFAEdge edge;
+    if (sideeffect instanceof CStatement) {
+      ((CStatement) sideeffect).accept(checkBinding);
+      edge =
+          new CStatementEdge(
+              rawSignature, (CStatement) sideeffect, fileLocation, prevNode, nextNode);
+
+    } else if (sideeffect instanceof CDeclaration) {
+      if (sideeffect instanceof CVariableDeclaration) {
+        CInitializer init = ((CVariableDeclaration) sideeffect).getInitializer();
+        if (init != null) {
+          init.accept(checkBinding);
+        }
+        }
+
+      edge =
+          new CDeclarationEdge(
+              rawSignature, fileLocation, prevNode, nextNode, (CDeclaration) sideeffect);
+    } else {
+      throw new AssertionError();
+      }
+    addToCFA(edge);
+    prevNode = nextNode;
 
     return prevNode;
   }
