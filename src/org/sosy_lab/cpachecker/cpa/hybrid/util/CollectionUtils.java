@@ -46,7 +46,6 @@ public class CollectionUtils
             .stream()
             .filter(elem -> elem.getClass() == clazz)
             // the cast is safe due to filter operation
-            @SuppresWarnings("unchecked")
             .map(elem -> (T) elem)
             .collect(Collectors.toList());
             
@@ -57,9 +56,9 @@ public class CollectionUtils
         return getApplyingElements(collection, pred).size() >= 1;
     }
 
-    public <T> boolean appliesToAll(Collection<T> collection, Predicate<T> pred)
+    public <T> boolean appliesToAll(Iterable<T> collection, Predicate<T> pred)
     {
-        return getApplyingElements(collection, pred).size() == collection.size();
+        return getApplyingElements(collection, pred).size() == count(collection);
     }
 
     public <T> Collection<T> getApplyingElements(Iterable<T> collection, Predicate<T> pred)
@@ -76,4 +75,29 @@ public class CollectionUtils
 
         return resultCollection;
     }
+
+    /**
+     * @param collection The collection to calculate the element count for
+     * @return The size of the collection
+     */
+    public <T> int count(Iterable<T> collection)
+    {
+        int count = 0;
+        for(T elem : collection)
+        {
+            count++;
+        }
+
+        return count;
+    }
+
+    /**
+     * 
+     * @param collection The respective collection 
+     * @return True, if the collection has any elements, else false
+     */
+    public <T> boolean any(Iterable<T> collection)
+    {
+        return count(collection) > 0;
+    } 
 }

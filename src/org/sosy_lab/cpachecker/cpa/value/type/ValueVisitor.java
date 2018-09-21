@@ -41,6 +41,10 @@ public interface ValueVisitor<T> {
   default T visit(HybridValue pValue)
   {
     throw new UnsupportedOperationException(
+<<<<<<< ecf323fe50032b94c8e846cec9b798bcc76d5f6f
       String.format("Visitor does not support visiting values of class %s.", pValue.getClass().getName()));
+=======
+      String.format("Visitor does not support %s", pValue.getClass().getName()));
+>>>>>>> Strenghten Operator test
   }
 }

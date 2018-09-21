@@ -55,9 +55,4 @@ public final class ConstantValue extends HybridValue
         return true;
     }
 
-    @Override
-    public <T> T accept(ValueVisitor<T> pVisitor) {
-        return pVisitor.visit(this);
-    }
-
 }

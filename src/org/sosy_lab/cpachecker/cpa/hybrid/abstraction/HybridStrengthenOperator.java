@@ -49,9 +49,12 @@ public interface HybridStrengthenOperator<State extends AbstractState>
      * @param edge The respective dege of the cfa
      * @return A state of another domain with (possible) concrete values injected
      */
-    public State injectStrengthening(
+    default State injectStrengthening(
         State stateToStrengthen,
         HybridAnalysisState strengtheningInformationState,
-        CFAEdge edge);
+        CFAEdge edge)
+    {
+        return stateToStrengthen;
+    }
     
 }

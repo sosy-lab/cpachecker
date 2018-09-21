@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid.util;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.hybrid.ValueAnalysisHybridStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridStrengthenOperator;
@@ -31,17 +34,48 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 
 public final class StrengthenOperatorFactory
 {
+
+    // cache
+    private static Map<String, HybridStrengthenOperator<? extends AbstractState>> operatorMap;
+
+    static
+    {
+        operatorMap = new HashMap<>();
+    }
+
     // static factory class will not be instantiated
     private StrengthenOperatorFactory() {}
 
-    public HybridStrengthenOperator<? extends AbstractState> ProvideStrenghtenOperator(AbstractState state)
+    @SuppressWarnings("unchecked")
+    public static HybridStrengthenOperator<? extends AbstractState> ProvideStrenghtenOperator(AbstractState state)
         throws UnsupportedStateException
     {
+        // first check if the 
+        String stateClassName = state.getClass().getName();
+        if(operatorMap.containsKey(stateClassName))
+        {
+            return operatorMap.get(stateClassName);
+        }
+
+        // check for new domain states
+
         if(state instanceof ValueAnalysisState)
         {
-            return new ValueAnalysisHybridStrengthenOperator();
+            return pushAndReturn(
+                new ValueAnalysisHybridStrengthenOperator(),
+                stateClassName);
         }
 
         throw new UnsupportedStateException(String.format("The state %s is not supported for HybridAnalysis Strengthening Operator.", state.toString()));
+    }
+
+    // assume existence in map is already checked
+    private static HybridStrengthenOperator<? extends AbstractState> 
+        pushAndReturn(
+            HybridStrengthenOperator<? extends AbstractState> operator,
+            String key)
+    {
+        operatorMap.put(key, operator);
+        return operator;
     }
 }

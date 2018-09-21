@@ -21,21 +21,4 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.hybrid;
-
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridStrengthenOperator;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-
-public class ValueAnalysisHybridStrengthenOperator
-        implements HybridStrengthenOperator<ValueAnalysisState> {
-
-    @Override
-    public HybridAnalysisState strengthen(
-            HybridAnalysisState pStateToStrengthen,
-            ValueAnalysisState pStrengtheningInformationState,
-            CFAEdge pEdge) {
-        return pStateToStrengthen; // TODO
-    }
-
-}
+package org.sosy_lab.cpachecker.cpa.hybrid.test;
