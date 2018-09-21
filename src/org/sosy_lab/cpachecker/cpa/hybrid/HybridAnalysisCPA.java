@@ -48,27 +48,27 @@ public class HybridAnalysisCPA extends AbstractCPA implements ConfigurableProgra
     {
         super(mergeType, stopType, transfer);
         abstractDomain = super.getAbstractDomain();
-        this.cfa = Preconditions.checkNotNull(cfa, cfaErroMessage);
+        this.cfa = Preconditions.checkNotNull(cfa, cfaErrorMessage);
     }
 
     protected HybridAnalysisCPA(AbstractDomain domain, TransferRelation transfer, CFA cfa)
     {
         super(domain, transfer);
         abstractDomain = domain;
-        this.cfa = Preconditions.checkNotNull(cfa, cfaErroMessage);
+        this.cfa = Preconditions.checkNotNull(cfa, cfaErrorMessage);
     }
 
     protected HybridAnalysisCPA(String mergeType, String stopType, AbstractDomain domain, @Nullable TransferRelation transfer, CFA cfa)
     {
         super(mergeType, stopType, domain, transfer);
         abstractDomain = domain;
-        this.cfa = Preconditions.checkNotNull(cfa, cfaErroMessage);
+        this.cfa = Preconditions.checkNotNull(cfa, cfaErrorMessage);
     }
 
     @Override
     public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
             throws InterruptedException {
-        return null;
+        return new HybridAnalysisState();
     }
 
     @Override

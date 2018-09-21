@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.type;
 
+import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 
@@ -36,4 +37,10 @@ public interface ValueVisitor<T> {
   T visit(FunctionValue pValue);
   T visit(NumericValue pValue);
   T visit(NullValue pValue);
+
+  default T visit(HybridValue pValue)
+  {
+    throw new UnsupportedOperationException(
+      String.format("Visitor does not support visiting values of class %s.", pValue.getClass().getName()));
+  }
 }

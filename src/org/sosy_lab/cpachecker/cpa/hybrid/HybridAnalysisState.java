@@ -23,18 +23,39 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 public class HybridAnalysisState implements AbstractQueryableState
 {
 
     private Set<HybridValue> definitiveVars; 
 
-    @Override
-    public String getCPAName() {
-        return null;
+    public HybridAnalysisState()
+    {
+        this(new HashSet<>());
     }
 
-    //TODO: override default methods
+    public HybridAnalysisState(Set<HybridValue> definitiveVars)
+    {
+        this.definitiveVars = definitiveVars;
+    }
+
+    @Override
+    public String getCPAName() 
+    {
+        return HybridAnalysisCPA.class.getSimpleName();
+    }
+
+    @Override
+    public boolean checkProperty(String property) throws InvalidQueryException
+    {
+        // TODO: define dsl for properties
+        return true;
+    }
 
 }

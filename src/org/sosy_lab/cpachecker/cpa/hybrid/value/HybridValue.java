@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.hybrid.value;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.ValueVisitor;
 
-public abstract class HybridValue implements Value {
+public abstract class HybridValue implements Value 
+{
 
     private static final long serialVersionUID = 1L;
 
@@ -66,10 +66,13 @@ public abstract class HybridValue implements Value {
     }
 
     @Override
-    public <T> T accept(ValueVisitor<T> pVisitor) 
+    public <T> T accept(ValueVisitor<T> pVisitor) {
+        return pVisitor.visit(this);
+    }
+
+    public Value getInnerValue()
     {
-        //TODO: extend ValueVisitor for HybridValue
-        return pVisitor.visit((NullValue)NullValue.getInstance());
+        return value;
     }
 
 }

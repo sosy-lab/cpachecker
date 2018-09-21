@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.hybrid.value;
 import com.google.errorprone.annotations.Immutable;
 
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.ValueVisitor;
 
 /**
  * This class represents a hybrid value 
@@ -52,6 +53,11 @@ public final class ConstantValue extends HybridValue
     public boolean isExplicitlyKnown() 
     {
         return true;
+    }
+
+    @Override
+    public <T> T accept(ValueVisitor<T> pVisitor) {
+        return pVisitor.visit(this);
     }
 
 }
