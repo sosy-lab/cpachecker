@@ -52,7 +52,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.zip.ZipOutputStream;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -565,12 +564,6 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
     Path parent = testValueZip.getParent();
     if (parent != null) {
       Files.createDirectories(parent);
-    }
-
-    if (!Files.exists(testValueZip)) {
-      try (final ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(testValueZip))) {
-        zos.flush();
-      }
     }
 
     zipFS =
