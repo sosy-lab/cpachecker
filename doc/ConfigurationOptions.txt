@@ -3622,6 +3622,9 @@ testHarnessExport.useModel = true
 # export test harness to file as code
 testcase.file = no default value
 
+# set to true if run multiple test case generation instances in parallel
+testcase.generate.parallel = false
+
 # display all test targets and non-covered test targets in statistics
 testcase.inStats = false
 

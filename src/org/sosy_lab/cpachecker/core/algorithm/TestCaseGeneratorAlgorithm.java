@@ -351,6 +351,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
     }
 
     // write test values
+    // TODO check if this and openZipFS(), closeZipFS() are thread-safe
     if (testValueFile != null) {
       CounterexampleInfo cexInfo =
           ARGUtils.tryGetOrCreateCounterexampleInformation(pTarget, cpa, assumptionToEdgeAllocator)

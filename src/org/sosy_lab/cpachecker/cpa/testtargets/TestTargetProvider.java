@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.testtargets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import javax.annotation.Nullable;
@@ -46,10 +47,16 @@ public class TestTargetProvider implements Statistics {
   private final ImmutableSet<CFAEdge> initialTestTargets;
   private final Set<CFAEdge> uncoveredTargets;
   private boolean printTargets = false;
+  private boolean runParallel;
 
-  private TestTargetProvider(final CFA pCfa) {
+  private TestTargetProvider(final CFA pCfa, final boolean pRunParallel) {
     cfa = pCfa;
-    uncoveredTargets = extractAssumeEdges();
+    runParallel = pRunParallel;
+    if (runParallel) {
+      uncoveredTargets = Collections.synchronizedSet(extractAssumeEdges());
+    } else {
+      uncoveredTargets = extractAssumeEdges();
+    }
     initialTestTargets = ImmutableSet.copyOf(uncoveredTargets);
   }
 
@@ -61,10 +68,11 @@ public class TestTargetProvider implements Statistics {
     return edges;
   }
 
-  public static Set<CFAEdge> getTestTargets(final CFA pCfa) {
+  public static Set<CFAEdge> getTestTargets(final CFA pCfa, final boolean pRunParallel) {
     if (instance == null || pCfa != instance.cfa) {
-      instance = new TestTargetProvider(pCfa);
+      instance = new TestTargetProvider(pCfa, pRunParallel);
     }
+    Preconditions.checkState(instance.runParallel || !pRunParallel);
     return instance.uncoveredTargets;
   }
 
