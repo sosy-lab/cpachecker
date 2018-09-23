@@ -1556,9 +1556,10 @@ public class ValueAnalysisTransferRelation
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(oldState);
 
     if (missingFieldVariableObject) {
-      newElement.assignConstant(getRTTScopedVariableName(
-          fieldNameAndInitialValue.getFirst(),
-          rttState.getKeywordThisUniqueObject()),
+      newElement.assignConstant(
+          getRTTScopedVariableName(
+            fieldNameAndInitialValue.getFirst(),
+            rttState.getKeywordThisUniqueObject()),
           fieldNameAndInitialValue.getSecond());
 
       missingFieldVariableObject = false;

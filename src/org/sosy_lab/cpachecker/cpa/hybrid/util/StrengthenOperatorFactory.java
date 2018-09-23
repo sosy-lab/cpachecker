@@ -29,14 +29,13 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.hybrid.ValueAnalysisHybridStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridStrengthenOperator;
-import org.sosy_lab.cpachecker.cpa.hybrid.exception.UnsupportedStateException;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 
 public final class StrengthenOperatorFactory
 {
 
     // cache
-    private static Map<String, HybridStrengthenOperator<? extends AbstractState>> operatorMap;
+    private static Map<String, HybridStrengthenOperator> operatorMap;
 
     static
     {
@@ -47,8 +46,7 @@ public final class StrengthenOperatorFactory
     private StrengthenOperatorFactory() {}
 
     @SuppressWarnings("unchecked")
-    public static HybridStrengthenOperator<? extends AbstractState> ProvideStrenghtenOperator(AbstractState state)
-        throws UnsupportedStateException
+    public static HybridStrengthenOperator ProvideStrenghtenOperator(AbstractState state)
     {
         // first check if the 
         String stateClassName = state.getClass().getName();
@@ -66,13 +64,14 @@ public final class StrengthenOperatorFactory
                 stateClassName);
         }
 
-        throw new UnsupportedStateException(String.format("The state %s is not supported for HybridAnalysis Strengthening Operator.", state.toString()));
+        // fallback
+        return new DefaultStrengthenOperator();
     }
 
     // assume existence in map is already checked
-    private static HybridStrengthenOperator<? extends AbstractState> 
+    private static HybridStrengthenOperator 
         pushAndReturn(
-            HybridStrengthenOperator<? extends AbstractState> operator,
+            HybridStrengthenOperator operator,
             String key)
     {
         operatorMap.put(key, operator);

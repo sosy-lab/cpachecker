@@ -24,17 +24,25 @@
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 
+/**
+ * This class provides the strengthening for a HybridAnalysisState via a ValueAnalysisState
+ */
 public class ValueAnalysisHybridStrengthenOperator
-        implements HybridStrengthenOperator<ValueAnalysisState> {
+        implements HybridStrengthenOperator {
 
     @Override
     public HybridAnalysisState strengthen(
             HybridAnalysisState pStateToStrengthen,
-            ValueAnalysisState pStrengtheningInformationState,
-            CFAEdge pEdge) {
+            AbstractState pStrengtheningInformationState,
+            CFAEdge pEdge) 
+    {
+        // instantiation shall only be done by factory
+        assert pStrengtheningInformationState instanceof ValueAnalysisState;
+
         return pStateToStrengthen; // TODO
     }
 

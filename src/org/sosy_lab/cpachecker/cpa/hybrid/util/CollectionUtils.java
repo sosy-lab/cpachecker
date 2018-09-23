@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid.util;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.function.Predicate;
@@ -40,6 +41,7 @@ public class CollectionUtils
      * @param collection The collection to filter
      * @param clazz The class object of type T to 
      */
+    @SuppressWarnings("unchecked")
     public <T> Collection<T>  ofType(Collection<? super T> collection, Class<T> clazz)
     {
         return collection
@@ -49,6 +51,15 @@ public class CollectionUtils
             .map(elem -> (T) elem)
             .collect(Collectors.toList());
             
+    }
+
+    /**
+     * Creates a new collection of a specified generic param type
+     * Consider specialization into >>many additions<< and >>many look-ups<<
+     */
+    public <T> Collection<T> of()
+    {
+        return new ArrayList<>();
     }
 
     public <T> boolean appliesToAtLeastOne(Iterable<T> collection, Predicate<T> pred)
@@ -80,6 +91,7 @@ public class CollectionUtils
      * @param collection The collection to calculate the element count for
      * @return The size of the collection
      */
+    @SuppressWarnings("unused")
     public <T> int count(Iterable<T> collection)
     {
         int count = 0;

@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.hybrid.HybridAnalysisState;
 
-public interface HybridStrengthenOperator<State extends AbstractState>
+public interface HybridStrengthenOperator
 {
 
     /**
@@ -39,7 +39,7 @@ public interface HybridStrengthenOperator<State extends AbstractState>
      */
     public HybridAnalysisState strengthen(
         HybridAnalysisState stateToStrengthen,
-        State strengtheningInformationState,
+        AbstractState strengtheningInformationState,
         CFAEdge edge);
 
     /**
@@ -49,8 +49,8 @@ public interface HybridStrengthenOperator<State extends AbstractState>
      * @param edge The respective dege of the cfa
      * @return A state of another domain with (possible) concrete values injected
      */
-    default State injectStrengthening(
-        State stateToStrengthen,
+    default AbstractState injectStrengthening(
+        AbstractState stateToStrengthen,
         HybridAnalysisState strengtheningInformationState,
         CFAEdge edge)
     {

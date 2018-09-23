@@ -21,37 +21,26 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.hybrid.value;
+package org.sosy_lab.cpachecker.cpa.hybrid.util;
 
-import com.google.errorprone.annotations.Immutable;
-
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.hybrid.HybridAnalysisState;
+import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridStrengthenOperator;
 
 /**
- * This class represents a hybrid value 
- * that will never change over the complete program flow
+ * This class provides a simple fallback method for states  of (yet) unsupported types
+ * It is sound, because the state simply stays the same
  */
-@Immutable
-public final class ConstantValue extends HybridValue
-{
-
-    private static final long serialVersionUID = 1L;
-
-    public ConstantValue(Value value)
-    {
-        super(value);
-    }
+public class DefaultStrengthenOperator implements HybridStrengthenOperator{
 
     @Override
-    public boolean isUnknown()
+    public HybridAnalysisState strengthen(
+            HybridAnalysisState pStateToStrengthen,
+            AbstractState pStrengtheningInformationState,
+            CFAEdge pEdge) 
     {
-        return false;
-    }
-
-    @Override
-    public boolean isExplicitlyKnown() 
-    {
-        return true;
+        return pStateToStrengthen;
     }
 
 }
