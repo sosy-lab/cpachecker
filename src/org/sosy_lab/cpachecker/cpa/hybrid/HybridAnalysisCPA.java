@@ -23,58 +23,82 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
-import javax.annotation.Nullable;
-
 import com.google.common.base.Preconditions;
 
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
+import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.hybrid.util.AssumptionParser;
 
-public class HybridAnalysisCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
+@Options(prefix = "cpa.hybrid")
+public class HybridAnalysisCPA implements ConfigurableProgramAnalysis 
 {
+    @Option(secure = true, 
+            name = "initialAssumptions",
+            description = "The initial assumptions for a given program.")
+    private String initialAssumptionsStringEncoded = "";
+
+    @Option(secure = true,
+            name = "ignnoreInvalidAssumptions",
+            description = "Per default, invalid assumptions (e.g. declared variable does not exist) will be ignored." +
+                          "If set to true, invalid assumptions will cause an error.")
+    private boolean ignoreInvalidAssumptions = true;
+
+    @Option(secure = true,
+            name = "delimiter",
+            description = "The delimiter for different assumptions in 'initialAssumptions' (e.g. x = 10.0; y = -5).")
+    private String delimiter = ";";
 
     private static final String cfaErrorMessage = "CFA must be present for HybridAnalysis";
 
     private final AbstractDomain abstractDomain;
     private final CFA cfa;
+    private final LogManager logger;
 
-    protected HybridAnalysisCPA(String mergeType, String stopType, @Nullable TransferRelation transfer, CFA cfa)
+    protected HybridAnalysisCPA( 
+        CFA cfa, 
+        LogManager logger)
     {
-        super(mergeType, stopType, transfer);
-        abstractDomain = super.getAbstractDomain();
+        this.abstractDomain = DelegateAbstractDomain.<HybridAnalysisState>getInstance();
         this.cfa = Preconditions.checkNotNull(cfa, cfaErrorMessage);
-    }
-
-    protected HybridAnalysisCPA(AbstractDomain domain, TransferRelation transfer, CFA cfa)
-    {
-        super(domain, transfer);
-        abstractDomain = domain;
-        this.cfa = Preconditions.checkNotNull(cfa, cfaErrorMessage);
-    }
-
-    protected HybridAnalysisCPA(String mergeType, String stopType, AbstractDomain domain, @Nullable TransferRelation transfer, CFA cfa)
-    {
-        super(mergeType, stopType, domain, transfer);
-        abstractDomain = domain;
-        this.cfa = Preconditions.checkNotNull(cfa, cfaErrorMessage);
+        this.logger = logger;
     }
 
     @Override
     public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
             throws InterruptedException {
-        return new HybridAnalysisState();
+        return new HybridAnalysisState(new AssumptionParser(delimiter).parseMany(initialAssumptionsStringEncoded));
     }
 
     @Override
     public TransferRelation getTransferRelation()
     {
         return new HybridAnalysisTransferRelation();
+    }
+
+    @Override
+    public AbstractDomain getAbstractDomain() {
+        return abstractDomain;
+    }
+
+    @Override
+    public MergeOperator getMergeOperator() {
+        return null;
+    }
+
+    @Override
+    public StopOperator getStopOperator() {
+      return null;
     }
 
 

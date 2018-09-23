@@ -23,26 +23,37 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
-import java.util.HashSet;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableList;
+
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-public class HybridAnalysisState implements AbstractQueryableState
+public class HybridAnalysisState implements 
+    AbstractQueryableState, 
+    LatticeAbstractState<HybridAnalysisState>,
+    AbstractStateWithAssumptions
 {
 
     private Set<HybridValue> definitiveVars; 
+    private Set<CExpression> assumptions;
 
     public HybridAnalysisState()
     {
-        this(new HashSet<>());
+        this(Collections.emptySet());
     }
 
-    public HybridAnalysisState(Set<HybridValue> definitiveVars)
+    public HybridAnalysisState(Set<CExpression> assumptions)
     {
-        this.definitiveVars = definitiveVars;
+        this.assumptions = assumptions;
     }
 
     @Override
@@ -57,5 +68,25 @@ public class HybridAnalysisState implements AbstractQueryableState
         // TODO: define dsl for properties
         return true;
     }
+
+    @Override
+    public HybridAnalysisState join(HybridAnalysisState pOther)
+            throws CPAException, InterruptedException {
+        return null;
+    }
+
+    @Override
+    public boolean isLessOrEqual(HybridAnalysisState pOther)
+            throws CPAException, InterruptedException {
+        return false;
+    }
+
+    @Override
+    public List<CExpression> getAssumptions() 
+    {
+      return ImmutableList.copyOf(assumptions);
+    }
+
+
 
 }

@@ -43,6 +43,8 @@ public class ValueAnalysisHybridStrengthenOperator
         // instantiation shall only be done by factory
         assert pStrengtheningInformationState instanceof ValueAnalysisState;
 
+        ValueAnalysisState strengtheningState = (ValueAnalysisState) pStrengtheningInformationState;
+
         return pStateToStrengthen; // TODO
     }
 
