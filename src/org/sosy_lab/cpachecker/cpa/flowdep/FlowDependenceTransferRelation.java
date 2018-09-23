@@ -181,10 +181,9 @@ class FlowDependenceTransferRelation
       // If the declaration contains an initializer, create the corresponding flow dependences
       // for its variable uses
       CExpression initializerExp = ((CInitializerExpression) maybeInitializer).getExpression();
-      MemoryLocation def = MemoryLocation.valueOf(pDecl.getQualifiedName());
       return handleOperation(
           pCfaEdge,
-          Optional.of(def),
+          Optional.empty(),
           getUsedVars(initializerExp, pPointerState),
           pNextFlowState,
           pReachDefState);
@@ -205,7 +204,7 @@ class FlowDependenceTransferRelation
    */
   private FlowDependenceState handleOperation(
       CFAEdge pCfaEdge,
-      Optional<MemoryLocation> pDef,
+      Optional<MemoryLocation> pNewDeclaration,
       Set<MemoryLocation> pUses,
       FlowDependenceState pNextState,
       ReachingDefState pReachDefState) {
@@ -229,7 +228,7 @@ class FlowDependenceTransferRelation
       dependences = FlowDependence.create(defs);
     }
     if (dependences.isUnknownPointerDependence() || !dependences.isEmpty()) {
-      pNextState.addDependence(pCfaEdge, pDef, dependences);
+      pNextState.addDependence(pCfaEdge, pNewDeclaration, dependences);
     }
 
     return pNextState;
@@ -316,6 +315,7 @@ class FlowDependenceTransferRelation
       ReachingDefState pReachDefState,
       PointerState pPointerState)
       throws CPATransferException {
+
     return handleOperation(
         cfaEdge,
         Optional.empty(),
@@ -363,33 +363,12 @@ class FlowDependenceTransferRelation
       PointerState pPointerState)
       throws CPATransferException {
 
-    FlowDependenceState nextState = pNextState;
-    Set<MemoryLocation> possibleDefs;
-    if (pStatement instanceof CAssignment) {
-      possibleDefs = getDef(((CAssignment) pStatement).getLeftHandSide(), pPointerState);
-
-      if (possibleDefs != null) {
-        for (MemoryLocation def : possibleDefs) {
-          nextState =
-              handleOperation(
-                  pCfaEdge,
-                  Optional.ofNullable(def),
-                  getUsedVars(pStatement, pPointerState),
-                  nextState,
-                  pReachDefState);
-        }
-      } else {
-        nextState =
-            handleOperation(
-                pCfaEdge,
-                Optional.empty(),
-                getUsedVars(pStatement, pPointerState),
-                nextState,
-                pReachDefState);
-      }
-    }
-
-    return nextState;
+    return handleOperation(
+        pCfaEdge,
+        Optional.empty(),
+        getUsedVars(pStatement, pPointerState),
+        pNextState,
+        pReachDefState);
   }
 
   @Override

@@ -2301,6 +2301,10 @@ cpa.propertychecker.className = org.sosy_lab.cpachecker.pcc.propertychecker.Defa
 # empty string represents an empty parameter list.
 cpa.propertychecker.parameters = ""
 
+# Whether to consider constraints on program variables (e.g., x > 10) as
+# definitions)
+cpa.reachdef.constraintIsDef = false
+
 # which merge operator to use for ReachingDefCPA
 cpa.reachdef.merge = "JOIN"
   allowed values: [SEP, JOIN, IGNORECALLSTACK]
@@ -2886,10 +2890,20 @@ cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
 
 # File to export dependence graph to. If `null`, dependence graph will not be
 # exported as dot.
-dependenceGraph.exportDot = "DependenceGraph.dot"
+dependencegraph.exportDot = "DependenceGraph.dot"
 
 # Run flow dependence analysis with constant propagation
 dependencegraph.flowdep.constantPropagation = false
+
+# Whether to consider constraints on program variables (e.g., x > 10) as
+# definitions.
+dependencegraph.flowdep.constraintIsDef = false
+
+# Whether to consider control dependencies.
+dependencegraph.useControlDeps = true
+
+# Whether to consider (data-)flow dependencies.
+dependencegraph.useFlowDeps = true
 
 # ignore declarations when detecting modifications, be careful when variables
 # are renamed (could be unsound)
