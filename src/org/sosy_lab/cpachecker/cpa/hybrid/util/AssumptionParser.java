@@ -32,13 +32,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 /**
  * This class provides methods for parsing string encoded assumptions into CExpressions
  */
-public class AssumptionParser
-{
+public class AssumptionParser {
 
     private final String delimiter;
 
-    public AssumptionParser(final String delimiter) 
-    {
+    public AssumptionParser(final String delimiter) {
         this.delimiter = delimiter;
     }
 
@@ -47,10 +45,8 @@ public class AssumptionParser
      * @param assumptions The string containing all defined string encoded assumptions
      * @return A set of parsed CExpressions
      */
-    public Set<CExpression> parseMany(final String assumptions)
-    {
-        if(assumptions.isEmpty())
-        {
+    public Set<CExpression> parseMany(final String assumptions) {
+        if(assumptions.isEmpty()) {
             return Collections.emptySet();
         }
 
@@ -58,8 +54,7 @@ public class AssumptionParser
         Set<CExpression> assumptionSet = new HashSet<>();
 
         // iterate over all assumptions defined in the assumptions-string
-        for(String assumption : assumptions.split(delimiter))
-        {
+        for(String assumption : assumptions.split(delimiter)) {
             assumptionSet.add(parseAssumption(assumption));
         }
 
@@ -71,30 +66,26 @@ public class AssumptionParser
      * @param assumption The string encoded assumption to parse
      * @return A CExpression containing the assumtion information
      */
-    public CExpression parseAssumption(final String assumption)
-    {
+    public CExpression parseAssumption(final String assumption) {
         final String[] assumptionSplit = assumption.split("=");
 
         // there can only be a left hand side and a right hand side in an assignment
         assert(assumptionSplit.length == 2);
 
         // complex assumption on structs are defined with curly braces
-        if(assumptionSplit[1].contains("{"))
-        {
+        if(assumptionSplit[1].contains("{")) {
             return parseComplex(assumptionSplit);
         }
 
         return parseSimple(assumptionSplit);
     }
 
-    private CExpression parseSimple(final String[] assumptionSplit)
-    {
+    private CExpression parseSimple(final String[] assumptionSplit) {
         // to construct a CIdExpression, we need more information of the variable
         return null;
     }
 
-    private CExpression parseComplex(final String[] assumptionSplit)
-    {
+    private CExpression parseComplex(final String[] assumptionSplit) {
         return null;
     }
 }

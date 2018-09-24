@@ -26,20 +26,19 @@ package org.sosy_lab.cpachecker.cpa.hybrid.util;
 /**
  * Enum for differentiation of Merge and Stop operators
  */
-public enum OperatorType
-{
+public enum OperatorType {
+    
     SEP("SEP"),
-    JOIN("SEP");
+    JOIN("JOIN");
 
     private final String rep;
 
-    private OperatorType(String rep)
-    {
+    private OperatorType(String rep) {
         this.rep = rep;
     }
 
-    public String getRepresentation()
-    {
+  /** @return The string representation of the operator type */
+  public String getRepresentation() {
         return rep;
     }
 }

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
 import com.google.common.base.Preconditions;
-
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
@@ -41,8 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.AssumptionParser;
 
 @Options(prefix = "cpa.hybrid")
-public class HybridAnalysisCPA implements ConfigurableProgramAnalysis 
-{
+public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
     @Option(secure = true, 
             name = "initialAssumptions",
             description = "The initial assumptions for a given program.")
@@ -67,9 +65,9 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis
 
     protected HybridAnalysisCPA( 
         CFA cfa, 
-        LogManager logger)
-    {
-        this.abstractDomain = DelegateAbstractDomain.<HybridAnalysisState>getInstance();
+        LogManager logger) {
+    // HybridAnalysisState implements LatticeAbstractState
+    this.abstractDomain = DelegateAbstractDomain.<HybridAnalysisState>getInstance();
         this.cfa = Preconditions.checkNotNull(cfa, cfaErrorMessage);
         this.logger = logger;
     }
@@ -81,8 +79,7 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis
     }
 
     @Override
-    public TransferRelation getTransferRelation()
-    {
+    public TransferRelation getTransferRelation() {
         return new HybridAnalysisTransferRelation();
     }
 

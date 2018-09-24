@@ -23,30 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid.util;
 
-public final class DefaultValueProvider
-{
+/** This class provides default values for simple types */
+public final class DefaultValueProvider {
 
     // static class will not instantiated
     private DefaultValueProvider() {}
 
-    public Number getDefaultNumber()
-    {
+    public Number getDefaultNumber() {
         return 0.0;
     }
 
     // string will be handled as a primitive type - although there is no built-in string type in C-Programs
-    public String getDefaultString()
-    {
+    public String getDefaultString() {
         return "";
     }
 
-    public char getDefaultCharacter()
-    {
+    public char getDefaultCharacter() {
         return '\u0000';
     }
 
-    public Object getDefaultReference()
-    {
+    public Object getDefaultReference() {
         return null;
     }
 }

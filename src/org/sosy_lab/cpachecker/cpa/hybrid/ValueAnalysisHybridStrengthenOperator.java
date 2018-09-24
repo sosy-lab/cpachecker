@@ -38,14 +38,13 @@ public class ValueAnalysisHybridStrengthenOperator
     public HybridAnalysisState strengthen(
             HybridAnalysisState pStateToStrengthen,
             AbstractState pStrengtheningInformationState,
-            CFAEdge pEdge) 
-    {
+            CFAEdge pEdge) {
         // instantiation shall only be done by factory
         assert pStrengtheningInformationState instanceof ValueAnalysisState;
 
         ValueAnalysisState strengtheningState = (ValueAnalysisState) pStrengtheningInformationState;
 
-        return pStateToStrengthen; // TODO
+        return pStateToStrengthen;
     }
 
 }

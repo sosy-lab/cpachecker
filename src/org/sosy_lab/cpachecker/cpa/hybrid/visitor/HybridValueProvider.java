@@ -87,6 +87,7 @@ public class HybridValueProvider implements CTypeVisitor<HybridValue, NoExceptio
 
   @Override
   public HybridValue visit(CVoidType pVoidType) throws NoException {
+    // probably nothing to do here
     return null;
   }
 

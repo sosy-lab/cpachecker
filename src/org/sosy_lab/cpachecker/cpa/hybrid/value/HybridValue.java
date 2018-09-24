@@ -28,8 +28,8 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.ValueVisitor;
 
-public abstract class HybridValue implements Value 
-{
+/** This class wraps a Value with some additional funtionality */
+public abstract class HybridValue implements Value {
 
     private static final long serialVersionUID = 1L;
 

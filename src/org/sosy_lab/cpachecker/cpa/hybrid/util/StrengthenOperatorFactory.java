@@ -25,40 +25,40 @@ package org.sosy_lab.cpachecker.cpa.hybrid.util;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.hybrid.ValueAnalysisHybridStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 
-public final class StrengthenOperatorFactory
-{
+public final class StrengthenOperatorFactory {
 
     // cache
     private static Map<String, HybridStrengthenOperator> operatorMap;
 
-    static
-    {
+    static {
         operatorMap = new HashMap<>();
     }
 
     // static factory class will not be instantiated
     private StrengthenOperatorFactory() {}
 
-    @SuppressWarnings("unchecked")
-    public static HybridStrengthenOperator ProvideStrenghtenOperator(AbstractState state)
-    {
+  /**
+   * Factory method for strengthening operators
+   *
+   * @param state The state for which to provide the operator
+   * @return A instance of an object implementing HybridStrengthenOperator
+   */
+  @SuppressWarnings("unchecked")
+  public static HybridStrengthenOperator provideStrenghtenOperator(AbstractState state) {
         // first check if the 
         String stateClassName = state.getClass().getName();
-        if(operatorMap.containsKey(stateClassName))
-        {
+        if(operatorMap.containsKey(stateClassName)) {
             return operatorMap.get(stateClassName);
         }
 
         // check for new domain states
 
-        if(state instanceof ValueAnalysisState)
-        {
+        if(state instanceof ValueAnalysisState) {
             return pushAndReturn(
                 new ValueAnalysisHybridStrengthenOperator(),
                 stateClassName);
@@ -69,11 +69,9 @@ public final class StrengthenOperatorFactory
     }
 
     // assume existence in map is already checked
-    private static HybridStrengthenOperator 
-        pushAndReturn(
+    private static HybridStrengthenOperator pushAndReturn(
             HybridStrengthenOperator operator,
-            String key)
-    {
+            String key) {
         operatorMap.put(key, operator);
         return operator;
     }

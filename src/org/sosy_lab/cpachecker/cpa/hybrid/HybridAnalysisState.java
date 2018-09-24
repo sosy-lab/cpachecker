@@ -23,12 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-
-import com.google.common.collect.ImmutableList;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -40,33 +38,28 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 public class HybridAnalysisState implements 
     AbstractQueryableState, 
     LatticeAbstractState<HybridAnalysisState>,
-    AbstractStateWithAssumptions
-{
+    AbstractStateWithAssumptions {
 
     private Set<HybridValue> definitiveVars; 
     private Set<CExpression> assumptions;
 
-    public HybridAnalysisState()
-    {
+    public HybridAnalysisState() {
         this(Collections.emptySet());
     }
 
-    public HybridAnalysisState(Set<CExpression> assumptions)
-    {
+    public HybridAnalysisState(Set<CExpression> assumptions) {
         this.assumptions = assumptions;
     }
 
     @Override
-    public String getCPAName() 
-    {
+    public String getCPAName() {
         return HybridAnalysisCPA.class.getSimpleName();
     }
 
     @Override
-    public boolean checkProperty(String property) throws InvalidQueryException
-    {
-        // TODO: define dsl for properties
-        return true;
+    public boolean checkProperty(String property) throws InvalidQueryException {
+    // TODO: define dsl for properties or withdraw
+    return true;
     }
 
     @Override
@@ -82,8 +75,7 @@ public class HybridAnalysisState implements
     }
 
     @Override
-    public List<CExpression> getAssumptions() 
-    {
+    public List<CExpression> getAssumptions() {
       return ImmutableList.copyOf(assumptions);
     }
 

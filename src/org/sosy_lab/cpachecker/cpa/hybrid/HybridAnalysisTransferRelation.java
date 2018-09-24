@@ -26,9 +26,7 @@ package org.sosy_lab.cpachecker.cpa.hybrid;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-
 import javax.annotation.Nullable;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
@@ -39,8 +37,7 @@ import org.sosy_lab.cpachecker.cpa.hybrid.util.StrengthenOperatorFactory;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class HybridAnalysisTransferRelation
-    extends ForwardingTransferRelation<HybridAnalysisState, HybridAnalysisState, VariableTrackingPrecision>
-{
+    extends ForwardingTransferRelation<HybridAnalysisState, HybridAnalysisState, VariableTrackingPrecision> {
     
     @Override
     public Collection<? extends AbstractState> strengthen(
@@ -48,8 +45,7 @@ public class HybridAnalysisTransferRelation
       List<AbstractState> otherStates,
       @Nullable CFAEdge cfaEdge,
       Precision pPrecision)
-      throws CPATransferException, InterruptedException
-      {
+      throws CPATransferException, InterruptedException {
         // make sure the state to strengthen is of the correct domain
         assert pState instanceof HybridAnalysisState;
 
@@ -57,9 +53,8 @@ public class HybridAnalysisTransferRelation
         HybridStrengthenOperator operator;
         HybridAnalysisState strongerState = (HybridAnalysisState) pState;
 
-        for(AbstractState otherState : otherStates)
-        {
-          operator = StrengthenOperatorFactory.ProvideStrenghtenOperator(otherState);
+        for(AbstractState otherState : otherStates) {
+          operator = StrengthenOperatorFactory.provideStrenghtenOperator(otherState);
           strongerState = operator.strengthen(strongerState, otherState, cfaEdge);
           super.setInfo(strongerState, pPrecision, cfaEdge);
         }

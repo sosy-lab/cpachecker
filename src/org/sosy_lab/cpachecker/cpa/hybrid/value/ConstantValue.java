@@ -24,16 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.hybrid.value;
 
 import com.google.errorprone.annotations.Immutable;
-
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
-/**
- * This class represents a hybrid value 
- * that will never change over the complete program flow
- */
+/** This class represents a hybrid value that will never change over the complete program flow. */
 @Immutable
-public final class ConstantValue extends HybridValue
-{
+public final class ConstantValue extends HybridValue {
 
     private static final long serialVersionUID = 1L;
 

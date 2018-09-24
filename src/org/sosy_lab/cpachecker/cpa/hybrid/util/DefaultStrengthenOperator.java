@@ -29,17 +29,16 @@ import org.sosy_lab.cpachecker.cpa.hybrid.HybridAnalysisState;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridStrengthenOperator;
 
 /**
- * This class provides a simple fallback method for states  of (yet) unsupported types
- * It is sound, because the state simply stays the same
+ * This class provides a simple fallback method for states of (yet) unsupported types It is sound,
+ * because the state simply stays the same (gets returned instantly)
  */
-public class DefaultStrengthenOperator implements HybridStrengthenOperator{
+public class DefaultStrengthenOperator implements HybridStrengthenOperator {
 
     @Override
     public HybridAnalysisState strengthen(
             HybridAnalysisState pStateToStrengthen,
             AbstractState pStrengtheningInformationState,
-            CFAEdge pEdge) 
-    {
+            CFAEdge pEdge) {
         return pStateToStrengthen;
     }
 

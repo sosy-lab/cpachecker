@@ -23,15 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid.exception;
 
-/**
- * Exception extension for methods deciding wether a given state is processable or not
- */
-public class UnsupportedStateException extends Exception
-{
+/** Exception extension for methods deciding wether a given state is processable or not */
+public class UnsupportedStateException extends Exception {
     private static final long serialVersionUID = 1L;
 
-    public UnsupportedStateException()
-    {
+  public UnsupportedStateException() {
         super();
     }
 
