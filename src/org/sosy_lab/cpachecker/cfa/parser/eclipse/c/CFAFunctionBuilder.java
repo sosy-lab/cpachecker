@@ -1919,8 +1919,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
 
       // handle ternary operator or && or || or { } if there are still conditional expressions left
-      for (Pair<IASTExpression, CIdExpression> cond :
-          sideAssignmentStack.getAndResetConditionalExpressions()) {
+      for (Pair<IASTExpression, CIdExpression> cond : conditionalExpressions) {
         IASTExpression condExp = cond.getFirst();
         CIdExpression tempVar = cond.getSecond();
 
