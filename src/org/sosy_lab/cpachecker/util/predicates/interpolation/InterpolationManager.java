@@ -652,7 +652,6 @@ public final class InterpolationManager {
           logger.log(Level.WARNING, "Invalid Configuration!");
         }
         if (my_solver != null) {
-          dsaAnalysisTimer.start();
           FormulaManagerView new_fmgr = my_solver.getFormulaManager();
           DomainSpecificAbstraction<T> dsa = new DomainSpecificAbstraction<>(/*shutdownNotifier,*/
               new_fmgr,
@@ -686,6 +685,7 @@ public final class InterpolationManager {
             } else {
               my_solver.close();
               logger.log(Level.WARNING, "Returning empty list");
+
               return Collections.emptyList();
             }
           } else {
