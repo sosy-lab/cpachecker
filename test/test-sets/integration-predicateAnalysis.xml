@@ -3,7 +3,6 @@
 <benchmark tool="cpachecker" timelimit="2000 s" hardtimelimit="2000 s" memlimit="30 GB" cpuCores="1">
 
 	<option name="-setprop">cpa.predicate.refinement.domainSpecificAbstractions=true</option>
-	<option name="-setprop">cpa.predicate.refinement.inequalityInterpolationAbstractions=true</option>
 <option name="-heap">20000M</option>
 
   <rundefinition>
