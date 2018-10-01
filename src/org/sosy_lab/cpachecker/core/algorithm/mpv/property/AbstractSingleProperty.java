@@ -22,8 +22,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpv.property;
 import com.google.common.collect.Sets;
 import java.util.Set;
 import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
@@ -69,10 +69,7 @@ public abstract class AbstractSingleProperty {
    */
   public abstract boolean isTarget(AutomatonState state);
 
-  /*
-   * Check if this property was used during the analysis.
-   */
-  public abstract void checkIfRelevant(AbstractState targetState);
+  public abstract void determineRelevancy(CFA cfa);
 
   /*
    * Return true, if this property did not get final result (TRUE, FALSE or UNKNOWN).

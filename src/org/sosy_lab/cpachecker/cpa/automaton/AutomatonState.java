@@ -455,8 +455,4 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   public void setMatches(int pMatches) {
     matches = pMatches;
   }
-
-  public long getTransfersWithBranching() {
-    return automatonCPA.stats.getStateBranching();
-  }
 }

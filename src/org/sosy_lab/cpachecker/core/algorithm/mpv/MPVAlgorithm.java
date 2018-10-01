@@ -261,6 +261,8 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
     MultipleProperties multipleProperties =
         new MultipleProperties(
             specification.getSpecification(), propertySeparator, findAllViolations);
+    multipleProperties.determineRelevance(pCfa);
+
     stats = new MPVStatistics(multipleProperties);
     propertyDistribution = initializePropertyDistribution();
   }

@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
@@ -184,11 +185,9 @@ public final class MultipleProperties {
   /*
    * Based on the given reached set determine relevant properties.
    */
-  public void determineRelevance(ReachedSet reached) {
+  public void determineRelevance(CFA cfa) {
     for (AbstractSingleProperty property : properties) {
-      if (!property.isRelevant()) {
-        property.checkIfRelevant(reached.getLastState());
-      }
+      property.determineRelevancy(cfa);
     }
   }
 
