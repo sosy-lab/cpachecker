@@ -28,13 +28,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -56,7 +55,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -74,13 +72,9 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
-import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.TraversalDirection;
 import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
-import org.sosy_lab.cpachecker.util.statistics.StatInt;
-import org.sosy_lab.cpachecker.util.statistics.StatKind;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
-import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
+import org.sosy_lab.cpachecker.util.slicing.Slicer;
+import org.sosy_lab.cpachecker.util.slicing.StaticSlicer;
 
 /**
  * Refiner for {@link SlicingPrecision}. Precision refinement is done through program slicing [1].
@@ -120,6 +114,9 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   @Option(secure = true, description = "What kind of restart to do after a successful refinement")
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
 
+  private Slicer slicer;
+  private CFA cfa;
+
   private enum RestartStrategy {
     /**
      * Restart at the pivot element, i.e., the first abstract state for which the precision changes.
@@ -131,7 +128,6 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
 
   private final PathExtractor pathExtractor;
   private final ARGCPA argCpa;
-  private final DependenceGraph depGraph;
 
   private final TransferRelation transfer;
   private final WrapperPrecision currentPrecision;
@@ -141,10 +137,6 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   private Set<Integer> previousTargetPaths = new HashSet<>();
 
   private int refinementCount = 0;
-  private StatInt candidateSliceCount =
-      new StatInt(StatKind.SUM, "Number of proposed slicing " + "procedures");
-  private StatInt sliceCount = new StatInt(StatKind.SUM, "Number of slicing procedures");
-  private StatTimer slicingTime = new StatTimer(StatKind.SUM, "Time needed for slicing");
 
   public static SlicingRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -183,12 +175,21 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
         compositePrecision.replaceWrappedPrecision(
             fullSlicingPrecision, Predicates.instanceOf(SlicingPrecision.class));
 
+    ShutdownNotifier shutdownNotifier = slicingCPA.getShutdownNotifier();
+    Slicer slicer =
+        new StaticSlicer(
+            logger,
+            shutdownNotifier,
+            cfa.getDependenceGraph()
+                .orElseThrow(
+                    () ->
+                        new InvalidConfigurationException("Dependence graph of CFA " + "missing")));
+
     return new SlicingRefiner(
         pathExtractor,
         argCpa,
-        cfa.getDependenceGraph()
-            .orElseThrow(
-                () -> new InvalidConfigurationException("Dependence graph of CFA " + "missing")),
+        slicer,
+        cfa,
         transferRelation,
         initialCompositeState,
         compositePrecision,
@@ -199,7 +200,8 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   private SlicingRefiner(
       final PathExtractor pPathExtractor,
       final ARGCPA pArgCpa,
-      final DependenceGraph pDepGraph,
+      final Slicer pSlicer,
+      final CFA pCfa,
       final TransferRelation pTransferRelation,
       final AbstractState pInitialState,
       final WrapperPrecision pCurrentArgPrecision,
@@ -209,7 +211,8 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     pConfig.inject(this);
     pathExtractor = pPathExtractor;
     argCpa = pArgCpa;
-    depGraph = pDepGraph;
+    slicer = pSlicer;
+    cfa = pCfa;
     currentPrecision = pCurrentArgPrecision;
     fullPrecision = pFullPrecision;
     transfer = pTransferRelation;
@@ -358,54 +361,37 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   }
 
   private Set<CFAEdge> getSlice(ARGPath pPath) throws InterruptedException {
-    int candidateSlices = 0;
-    int realSlices = 0;
-    try {
-      Set<CFAEdge> relevantEdges = new HashSet<>();
-      List<CFAEdge> innerEdges = pPath.getInnerEdges();
+    Set<CFAEdge> relevantEdges = new HashSet<>();
+    List<CFAEdge> innerEdges = pPath.getInnerEdges();
 
-      List<CFAEdge> cexConstraints =
-          innerEdges
-              .stream()
-              .filter(Predicates.instanceOf(CAssumeEdge.class))
-              .collect(Collectors.toList());
+    List<CFAEdge> cexConstraints =
+        innerEdges
+            .stream()
+            .filter(Predicates.instanceOf(CAssumeEdge.class))
+            .collect(Collectors.toList());
 
-      List<CFAEdge> criteriaEdges = new ArrayList<>(1);
-      if (takeEagerSlice) {
-        criteriaEdges = cexConstraints;
-      }
-      CFANode finalNode = AbstractStates.extractLocation(pPath.getLastState());
-      List<CFAEdge> edgesToTarget =
-          CFAUtils.enteringEdges(finalNode).filter(innerEdges::contains).toList();
-      criteriaEdges.addAll(edgesToTarget);
-
-      // Heuristic: Reverse to make states that are deeper in the path first - these
-      // have a higher chance of including earlier states in their dependences
-      criteriaEdges = Lists.reverse(criteriaEdges);
-
-      for (CFAEdge e : criteriaEdges) {
-        candidateSlices++;
-        // If the relevant edges contain e, then all dependences of e are also already included
-        // and we can skip it (this is only true as long as no function call/return edge is a
-        // criterion!)
-        if (!relevantEdges.contains(e)) {
-          realSlices++;
-          Collection<CFAEdge> slice = getSlice(e);
-          relevantEdges.addAll(slice);
-        }
-      }
-
-      if (addCexConstraintsToSlice) {
-        // this must always be added _after_ adding the slices, otherwise
-        // slices may be incomplete
-        relevantEdges.addAll(cexConstraints);
-      }
-
-      return relevantEdges;
-    } finally {
-      candidateSliceCount.setNextValue(candidateSlices);
-      sliceCount.setNextValue(realSlices);
+    List<CFAEdge> criteriaEdges = new ArrayList<>(1);
+    if (takeEagerSlice) {
+      criteriaEdges = cexConstraints;
     }
+    CFANode finalNode = AbstractStates.extractLocation(pPath.getLastState());
+    List<CFAEdge> edgesToTarget =
+        CFAUtils.enteringEdges(finalNode).filter(innerEdges::contains).toList();
+    criteriaEdges.addAll(edgesToTarget);
+
+    // Heuristic: Reverse to make states that are deeper in the path first - these
+    // have a higher chance of including earlier states in their dependences
+    criteriaEdges = Lists.reverse(criteriaEdges);
+
+    relevantEdges.addAll(slicer.getRelevantEdges(cfa, criteriaEdges));
+
+    if (addCexConstraintsToSlice) {
+      // this must always be added _after_ adding the slices, otherwise
+      // slices may be incomplete
+      relevantEdges.addAll(cexConstraints);
+    }
+
+    return relevantEdges;
   }
 
   private SlicingPrecision mergeOnSubgraph(
@@ -438,16 +424,6 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     }
   }
 
-  /** Returns the program slice for the given {@link ARGState} as slicing criterion. */
-  Collection<CFAEdge> getSlice(final CFAEdge pCriterion) throws InterruptedException {
-    try {
-      slicingTime.start();
-      return depGraph.getReachable(pCriterion, TraversalDirection.BACKWARD);
-    } finally {
-      slicingTime.stop();
-    }
-  }
-
   private ARGState getRefinementRoot(final ARGPath pPath, final Collection<CFAEdge> relevantEdges) {
     switch (restartStrategy) {
       case PIVOT:
@@ -477,22 +453,9 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.add(
-        new Statistics() {
-
-          @Override
-          public void printStatistics(
-              final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
-
-            StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
-            writer.put(candidateSliceCount).put(sliceCount).put(slicingTime);
-          }
-
-          @Override
-          public String getName() {
-            return SlicingRefiner.class.getSimpleName();
-          }
-        });
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    if (slicer instanceof StatisticsProvider) {
+      ((StatisticsProvider) slicer).collectStatistics(pStatsCollection);
+    }
   }
 }
