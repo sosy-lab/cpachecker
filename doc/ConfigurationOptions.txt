@@ -2351,6 +2351,10 @@ cpa.slicing.leastRemovalsDepthLimit = 2
 # Pre-run syntactic weakening
 cpa.slicing.preRunSyntacticWeakening = true
 
+# Add all assumptions of an infeasible target path to the slice, in addition
+# to the original slice
+cpa.slicing.refinement.addCexConstraintsToSlice = true
+
 # Allow counterexamples that are valid only on the program slice. If you set
 # this to `false`, you may have to set takeEagerSlice=true to avoid failed
 # refinements. If this is set to true, the counterexample check won't work
@@ -2361,10 +2365,9 @@ cpa.slicing.refinement.counterexampleCheckOnSlice = false
 cpa.slicing.refinement.restartStrategy = PIVOT
   enum:     [PIVOT, ROOT]
 
-# Use all assumptions of a target path as counterexamples, not just the edge
-# to the target location. Always set this to `true` if you use
-# SlicingDelegatingRefiner.
-cpa.slicing.refinement.takeEagerSlice = true
+# Use all assumptions of a target path as slicing criteria, not just the edge
+# to the target location.
+cpa.slicing.refinement.takeEagerSlice = false
 
 # Strategy for abstracting children during CEX weakening
 cpa.slicing.removalSelectionStrategy = ALL

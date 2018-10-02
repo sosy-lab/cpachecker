@@ -104,12 +104,18 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   private boolean counterexampleCheckOnSlice = false;
 
   @Option(
-    secure = true,
-    description =
-        "Use all assumptions of a target path as counterexamples, not just the edge to the target"
-            + " location. Always set this to `true` if you use SlicingDelegatingRefiner."
-  )
-  private boolean takeEagerSlice = true;
+      secure = true,
+      description =
+          "Use all assumptions of a target path as slicing criteria, not just the edge to the target"
+              + " location.")
+  private boolean takeEagerSlice = false;
+
+  @Option(
+      secure = true,
+      description =
+          "Add all assumptions of an infeasible target path to the slice, in addition"
+              + " to the original slice")
+  private boolean addCexConstraintsToSlice = true;
 
   @Option(secure = true, description = "What kind of restart to do after a successful refinement")
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
@@ -357,14 +363,16 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     try {
       Set<CFAEdge> relevantEdges = new HashSet<>();
       List<CFAEdge> innerEdges = pPath.getInnerEdges();
-      List<CFAEdge> criteriaEdges = new ArrayList<>(1);
 
+      List<CFAEdge> cexConstraints =
+          innerEdges
+              .stream()
+              .filter(Predicates.instanceOf(CAssumeEdge.class))
+              .collect(Collectors.toList());
+
+      List<CFAEdge> criteriaEdges = new ArrayList<>(1);
       if (takeEagerSlice) {
-        criteriaEdges =
-            innerEdges
-                .stream()
-                .filter(Predicates.instanceOf(CAssumeEdge.class))
-                .collect(Collectors.toList());
+        criteriaEdges = cexConstraints;
       }
       CFANode finalNode = AbstractStates.extractLocation(pPath.getLastState());
       List<CFAEdge> edgesToTarget =
@@ -386,6 +394,13 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
           relevantEdges.addAll(slice);
         }
       }
+
+      if (addCexConstraintsToSlice) {
+        // this must always be added _after_ adding the slices, otherwise
+        // slices may be incomplete
+        relevantEdges.addAll(cexConstraints);
+      }
+
       return relevantEdges;
     } finally {
       candidateSliceCount.setNextValue(candidateSlices);
