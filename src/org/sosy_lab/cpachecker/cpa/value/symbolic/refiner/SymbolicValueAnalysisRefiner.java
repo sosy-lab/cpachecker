@@ -74,6 +74,8 @@ import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -295,7 +297,9 @@ public class SymbolicValueAnalysisRefiner
         fullPath.advance();
 
         if (!maybeNext.isPresent()) {
-          throw new CPAException("Counterexample said to be feasible but spurious");
+        throw new CPAException(
+            "Counterexample said to be feasible but spurious at edge: " + currentEdge);
+
         } else {
           currentState = maybeNext.get();
           if (!pIdentifierAssignment.isEmpty()) {
@@ -499,5 +503,13 @@ public class SymbolicValueAnalysisRefiner
   protected void printAdditionalStatistics(
       PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
     // DO NOTHING for now
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    super.collectStatistics(pStatsCollection);
+    if (strongestPost instanceof StatisticsProvider) {
+      ((StatisticsProvider) strongestPost).collectStatistics(pStatsCollection);
+    }
   }
 }

@@ -58,8 +58,6 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintFactory;
@@ -75,8 +73,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 /** Transfer relation for Symbolic Execution Analysis. */
 @Options(prefix = "cpa.constraints")
 public class ConstraintsTransferRelation
-    extends ForwardingTransferRelation<ConstraintsState, ConstraintsState, SingletonPrecision>
-    implements StatisticsProvider {
+    extends ForwardingTransferRelation<ConstraintsState, ConstraintsState, SingletonPrecision> {
 
   private enum CheckStrategy { AT_ASSUME, AT_TARGET }
 
@@ -94,16 +91,17 @@ public class ConstraintsTransferRelation
 
   public ConstraintsTransferRelation(
       final ConstraintsSolver pSolver,
+      final ConstraintsStatistics pStats,
       final MachineModel pMachineModel,
       final LogManager pLogger,
-      final Configuration pConfig
-  ) throws InvalidConfigurationException {
+      final Configuration pConfig)
+      throws InvalidConfigurationException {
 
     pConfig.inject(this);
 
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
-    simplifier = new StateSimplifier(pConfig);
+    simplifier = new StateSimplifier(pConfig, pStats);
     solver = pSolver;
   }
 
@@ -329,12 +327,6 @@ public class ConstraintsTransferRelation
     } else {
       return newStates;
     }
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> statsCollection) {
-    solver.collectStatistics(statsCollection);
-    statsCollection.add(simplifier);
   }
 
   private class ValueAnalysisStrengthenOperator implements StrengthenOperator {

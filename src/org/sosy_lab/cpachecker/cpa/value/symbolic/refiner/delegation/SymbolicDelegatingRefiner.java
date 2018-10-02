@@ -249,6 +249,8 @@ public class SymbolicDelegatingRefiner implements ARGBasedRefiner, StatisticsPro
         return SymbolicDelegatingRefiner.class.getSimpleName();
       }
     });
+
+    symbolicRefiner.collectStatistics(statsCollection);
   }
 
   @Override
