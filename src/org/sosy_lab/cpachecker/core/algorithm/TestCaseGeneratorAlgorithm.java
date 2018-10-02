@@ -308,7 +308,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
       logger.logException(Level.SEVERE, e, "Problem while handling zip file with test cass");
     } finally {
       if (uncoveredGoalsAtStart != testTargets.size()) {
-        logger.log(Level.WARNING, TestTargetProvider.getCoverageInfo());
+        logger.log(Level.SEVERE, TestTargetProvider.getCoverageInfo());
       }
       closeZipFS();
     }
