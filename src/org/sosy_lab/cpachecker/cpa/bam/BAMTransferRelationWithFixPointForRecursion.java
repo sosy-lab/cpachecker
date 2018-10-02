@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
@@ -76,11 +75,11 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   public BAMTransferRelationWithFixPointForRecursion(
       Configuration pConfig,
       BAMCPA pBamCpa,
-      ProofChecker wrappedChecker,
       ShutdownNotifier pShutdownNotifier,
-      AlgorithmFactory pAlgorithmFactory)
+      AlgorithmFactory pAlgorithmFactory,
+      BAMPCCManager pBamPccManager)
       throws InvalidConfigurationException {
-    super(pConfig, pBamCpa, wrappedChecker, pShutdownNotifier, pAlgorithmFactory);
+    super(pBamCpa, pShutdownNotifier, pAlgorithmFactory, pBamPccManager);
     pConfig.inject(this);
     bamCpa = pBamCpa;
   }

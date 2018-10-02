@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -47,7 +46,6 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache;
@@ -76,11 +74,10 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
   private int maxRecursiveDepth = 0;
 
   public BAMTransferRelation(
-      Configuration pConfig,
       BAMCPA bamCpa,
-      ProofChecker wrappedChecker,
       ShutdownNotifier pShutdownNotifier,
-      AlgorithmFactory pFactory)
+      AlgorithmFactory pFactory,
+      BAMPCCManager pBamPccManager)
       throws InvalidConfigurationException {
     super(bamCpa, pShutdownNotifier);
     algorithmFactory = pFactory;
@@ -88,8 +85,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
         (CallstackTransferRelation)
             (CPAs.retrieveCPAOrFail(bamCpa, CallstackCPA.class, BAMTransferRelation.class))
                 .getTransferRelation();
-    bamPccManager = new BAMPCCManager(
-        wrappedChecker, pConfig, partitioning, wrappedReducer, bamCpa, data);
+    bamPccManager = pBamPccManager;
   }
 
   @Override

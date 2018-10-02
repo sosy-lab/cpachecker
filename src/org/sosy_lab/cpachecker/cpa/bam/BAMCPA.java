@@ -123,13 +123,11 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
     }
 
     if (handleRecursiveProcedures) {
-
       transfer =
           new BAMTransferRelationWithFixPointForRecursion(
-              config, this, wrappedProofChecker, pShutdownNotifier, factory);
+              config, this, pShutdownNotifier, factory, bamPccManager);
     } else {
-      transfer =
-          new BAMTransferRelation(config, this, wrappedProofChecker, pShutdownNotifier, factory);
+      transfer = new BAMTransferRelation(this, pShutdownNotifier, factory, bamPccManager);
     }
   }
 
