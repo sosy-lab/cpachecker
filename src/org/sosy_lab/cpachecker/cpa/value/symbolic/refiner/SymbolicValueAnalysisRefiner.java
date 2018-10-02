@@ -129,14 +129,19 @@ public class SymbolicValueAnalysisRefiner
   private boolean trackConstraints = true;
 
   @Option(
-    secure = true,
-    name = "pathConstraintsFile",
-    description =
-        "File to which path constraints should be written. If null, no path constraints are written"
-  )
+      secure = true,
+      name = "pathConstraintsFile",
+      description = "File to which path constraints should be written.")
   @FileOption(Type.OUTPUT_FILE)
   private PathTemplate pathConstraintsOutputFile =
       PathTemplate.ofFormatString("Counterexample.%d.symbolic-trace.txt");
+
+  @Option(
+      secure = true,
+      name = "writePathConstraints",
+      description =
+          "Whether to write symbolic trace (including path constraints) for found erexamples")
+  private boolean writePathConstraints = true;
 
   private SymbolicStrongestPostOperator strongestPost;
   private Precision fullPrecision;
@@ -243,7 +248,7 @@ public class SymbolicValueAnalysisRefiner
     machineModel = pCfa.getMachineModel();
     errorPathAllocator =
         new ValueAnalysisConcreteErrorPathAllocator(pConfig, pLogger, machineModel);
-    if (pathConstraintsOutputFile != null && !pCfa.getLanguage().equals(Language.C)) {
+    if (writePathConstraints && !pCfa.getLanguage().equals(Language.C)) {
       throw new InvalidConfigurationException(
           "At the moment, writing path constraints is only supported for C");
     }
@@ -254,8 +259,7 @@ public class SymbolicValueAnalysisRefiner
       ARGReachedSet pReached, ARGPath targetPathToUse)
       throws CPAException, InterruptedException {
     CounterexampleInfo info = super.performRefinementForPath(pReached, targetPathToUse);
-    if (!info.isSpurious()
-        && pathConstraintsOutputFile != null) {
+    if (!info.isSpurious() && writePathConstraints && pathConstraintsOutputFile != null) {
       return getCexWithSymbolicInformation(info, pathConstraintsOutputFile);
     } else {
       return info;

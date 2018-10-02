@@ -2782,8 +2782,7 @@ cpa.value.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
 # from them
 cpa.value.refinement.itpSortedTargets = false
 
-# File to which path constraints should be written. If null, no path
-# constraints are written
+# File to which path constraints should be written.
 cpa.value.refinement.pathConstraintsFile = "Counterexample.%d.symbolic-trace.txt"
 
 # whether or not to perform path slicing before interpolation
@@ -2814,6 +2813,10 @@ cpa.value.refinement.trackConstraints = true
 # whether to use the top-down interpolation strategy or the bottom-up
 # interpolation strategy
 cpa.value.refinement.useTopDownInterpolationStrategy = true
+
+# Whether to write symbolic trace (including path constraints) for found
+# erexamples
+cpa.value.refinement.writePathConstraints = true
 
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"
