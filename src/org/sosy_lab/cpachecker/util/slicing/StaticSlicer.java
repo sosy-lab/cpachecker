@@ -24,8 +24,10 @@
 package org.sosy_lab.cpachecker.util.slicing;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -67,13 +69,23 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
   @Override
   public Set<CFAEdge> getRelevantEdges(CFA pCfa, Collection<CFAEdge> pSlicingCriteria)
       throws InterruptedException {
-
     candidateSliceCount.setNextValue(pSlicingCriteria.size());
     int realSlices = 0;
     slicingTime.start();
     Set<CFAEdge> relevantEdges = new HashSet<>();
     try {
-      for (CFAEdge g : pSlicingCriteria) {
+
+      List<CFAEdge> criteriaEdges = new ArrayList<>(pSlicingCriteria);
+
+      // Heuristic: Reverse to make states that are deeper in the path first - these
+      // have a higher chance of including earlier states in their dependences
+      criteriaEdges.sort(
+          (f, s) ->
+              Integer.compare(
+                  f.getPredecessor().getReversePostorderId(),
+                  s.getPredecessor().getReversePostorderId()));
+
+      for (CFAEdge g : criteriaEdges) {
         if (relevantEdges.contains(g)) {
           // If the relevant edges contain g, then all dependences of g are also already included
           // and we can skip it (this is only true as long as no function call/return edge is a

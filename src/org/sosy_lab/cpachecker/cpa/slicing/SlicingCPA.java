@@ -34,6 +34,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -49,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -64,6 +66,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
+import org.sosy_lab.cpachecker.util.slicing.Slicer;
+import org.sosy_lab.cpachecker.util.slicing.StaticSlicer;
 
 /**
  * CPA that performs program slicing during analysis. The Slicing CPA wraps another CPA. If a CFA
@@ -77,16 +82,6 @@ import org.sosy_lab.cpachecker.util.Precisions;
 @Options(prefix = "cpa.slicing")
 public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsProvider {
 
-  private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
-  private final Configuration config;
-  private final CFA cfa;
-
-  private TransferRelation transferRelation;
-  private MergeOperator mergeOperator;
-  private StopOperator stopOperator;
-  private PrecisionAdjustment precisionAdjustment;
-
   @Option(
       secure = true,
       name = "exportSlice",
@@ -96,6 +91,27 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
   @Option(secure = true, name = "exportSliceFile", description = "File to export final slice to")
   @FileOption(Type.OUTPUT_FILE)
   private Path exportSliceFile = Paths.get("ProgramSlice.txt");
+
+  @Option(
+      secure = true,
+      name = "refinableSlice",
+      description =
+          "Whether to use a refinable slicing precision that starts with an empty slice, or a statically computed, fixed slicing precision")
+  private boolean useRefinableSlice = false;
+
+  private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
+  private final Configuration config;
+  private final CFA cfa;
+  private final Specification spec;
+
+  private final Slicer slicer;
+
+  private TransferRelation transferRelation;
+  private MergeOperator mergeOperator;
+  private StopOperator stopOperator;
+  private PrecisionAdjustment precisionAdjustment;
+
 
   /**
    * Returns the factory for creating this CPA.
@@ -109,7 +125,8 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final Configuration pConfig,
-      final CFA pCfa)
+      final CFA pCfa,
+      final Specification pSpec)
       throws InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
@@ -122,11 +139,18 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
     shutdownNotifier = pShutdownNotifier;
     config = pConfig;
     cfa = pCfa;
+    spec = pSpec;
 
     transferRelation = new SlicingTransferRelation(pCpa.getTransferRelation());
     mergeOperator = new PrecisionDelegatingMerge(pCpa.getMergeOperator());
     stopOperator = new PrecisionDelegatingStop(pCpa.getStopOperator());
     precisionAdjustment = new PrecisionDelegatingPrecisionAdjustment(pCpa.getPrecisionAdjustment());
+
+    final DependenceGraph dependenceGraph =
+        pCfa.getDependenceGraph()
+            .orElseThrow(
+                () -> new InvalidConfigurationException("SlicingCPA requires dependence graph"));
+    slicer = new StaticSlicer(logger, shutdownNotifier, dependenceGraph);
   }
 
   @Override
@@ -159,7 +183,19 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
   public Precision getInitialPrecision(
       CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
     Precision wrappedPrec = getWrappedCpa().getInitialPrecision(pNode, pPartition);
-    return new SlicingPrecision(wrappedPrec, Collections.emptySet());
+
+    Set<CFAEdge> relevantEdges;
+    if (useRefinableSlice) {
+      relevantEdges = Collections.emptySet();
+    } else {
+      relevantEdges = computeSlice(cfa, spec);
+    }
+
+    return new SlicingPrecision(wrappedPrec, relevantEdges);
+  }
+
+  private Set<CFAEdge> computeSlice(CFA pCfa, Specification pSpec) throws InterruptedException {
+    return slicer.getRelevantEdges(pCfa, pSpec);
   }
 
   public LogManager getLogger() {

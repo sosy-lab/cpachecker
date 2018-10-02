@@ -2351,6 +2351,10 @@ cpa.slicing.leastRemovalsDepthLimit = 2
 # Pre-run syntactic weakening
 cpa.slicing.preRunSyntacticWeakening = true
 
+# Whether to use a refinable slicing precision that starts with an empty
+# slice, or a statically computed, fixed slicing precision
+cpa.slicing.refinableSlice = false
+
 # Add all assumptions of an infeasible target path to the slice, in addition
 # to the original slice
 cpa.slicing.refinement.addCexConstraintsToSlice = true

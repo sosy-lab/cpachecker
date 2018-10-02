@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.slicing;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -361,7 +360,6 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   }
 
   private Set<CFAEdge> getSlice(ARGPath pPath) throws InterruptedException {
-    Set<CFAEdge> relevantEdges = new HashSet<>();
     List<CFAEdge> innerEdges = pPath.getInnerEdges();
 
     List<CFAEdge> cexConstraints =
@@ -379,11 +377,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
         CFAUtils.enteringEdges(finalNode).filter(innerEdges::contains).toList();
     criteriaEdges.addAll(edgesToTarget);
 
-    // Heuristic: Reverse to make states that are deeper in the path first - these
-    // have a higher chance of including earlier states in their dependences
-    criteriaEdges = Lists.reverse(criteriaEdges);
-
-    relevantEdges.addAll(slicer.getRelevantEdges(cfa, criteriaEdges));
+    Set<CFAEdge> relevantEdges = slicer.getRelevantEdges(cfa, criteriaEdges);
 
     if (addCexConstraintsToSlice) {
       // this must always be added _after_ adding the slices, otherwise
