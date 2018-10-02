@@ -104,7 +104,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 
 /** Factory for creating a {@link DependenceGraph} from a {@link CFA}. */
 @Options(prefix = "dependencegraph")
-public class DGBuilder implements StatisticsProvider {
+public class DependenceGraphBuilder implements StatisticsProvider {
 
   private final MutableCFA cfa;
   private final Optional<VariableClassification> varClassification;
@@ -143,7 +143,7 @@ public class DGBuilder implements StatisticsProvider {
       description = "Whether to consider (data-)flow dependencies.")
   private boolean considerFlowDeps = true;
 
-  public DGBuilder(
+  public DependenceGraphBuilder(
       final MutableCFA pCfa,
       final Optional<VariableClassification> pVarClassification,
       final Configuration pConfig,
