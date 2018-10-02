@@ -35,6 +35,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmFactory;
+import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm.CEGARAlgorithmFactory;
+import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -77,6 +80,9 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
   )
   private boolean aggressiveCaching = true;
 
+  @Option(description = "Should the nested CPA-algorithm be wrapped with CEGAR within BAM?")
+  private boolean useCEGAR = false;
+
   private BAMCPA(
       ConfigurableProgramAnalysis pCpa,
       Configuration config,
@@ -111,21 +117,19 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
         this,
         data);
 
+    AlgorithmFactory factory = new CPAAlgorithmFactory(this, logger, config, pShutdownNotifier);
+    if (useCEGAR) {
+      factory = new CEGARAlgorithmFactory(factory, this, logger, config);
+    }
+
     if (handleRecursiveProcedures) {
 
       transfer =
           new BAMTransferRelationWithFixPointForRecursion(
-              config,
-              this,
-              wrappedProofChecker,
-              pShutdownNotifier);
+              config, this, wrappedProofChecker, pShutdownNotifier, factory);
     } else {
       transfer =
-          new BAMTransferRelation(
-              config,
-              this,
-              wrappedProofChecker,
-              pShutdownNotifier);
+          new BAMTransferRelation(config, this, wrappedProofChecker, pShutdownNotifier, factory);
     }
   }
 

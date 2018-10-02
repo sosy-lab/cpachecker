@@ -1160,6 +1160,9 @@ cpa.bam.maximalDepthForExplicitRecursion = -1
 # export used parts of blocked ARG as .dot file
 cpa.bam.simplifiedArgFile = "BlockedARGSimplified.dot"
 
+# Should the nested CPA-algorithm be wrapped with CEGAR within BAM?
+cpa.bam.useCEGAR = false
+
 # This flag determines which refinement procedure we should use. We can
 # choose between an in-place refinement and a copy-on-write refinement.
 cpa.bam.useCopyOnWriteRefinement = false

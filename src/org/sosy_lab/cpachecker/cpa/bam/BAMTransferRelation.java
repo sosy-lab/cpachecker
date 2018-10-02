@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,8 +42,9 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
@@ -65,7 +66,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
 
   protected final Deque<Triple<AbstractState, Precision, Block>> stack = new ArrayDeque<>();
 
-  private final CPAAlgorithmFactory algorithmFactory;
+  private final AlgorithmFactory algorithmFactory;
   protected final BAMPCCManager bamPccManager;
 
   // Callstack-CPA is used for additional recursion handling
@@ -78,10 +79,11 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
       Configuration pConfig,
       BAMCPA bamCpa,
       ProofChecker wrappedChecker,
-      ShutdownNotifier pShutdownNotifier)
+      ShutdownNotifier pShutdownNotifier,
+      AlgorithmFactory pFactory)
       throws InvalidConfigurationException {
     super(bamCpa, pShutdownNotifier);
-    algorithmFactory = new CPAAlgorithmFactory(bamCpa, logger, pConfig, pShutdownNotifier);
+    algorithmFactory = pFactory;
     callstackTransfer =
         (CallstackTransferRelation)
             (CPAs.retrieveCPAOrFail(bamCpa, CallstackCPA.class, BAMTransferRelation.class))
@@ -377,7 +379,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
       throws InterruptedException, CPAException {
 
     // CPAAlgorithm is not re-entrant due to statistics
-    final CPAAlgorithm algorithm = algorithmFactory.newInstance();
+    final Algorithm algorithm = algorithmFactory.newInstance();
     algorithm.run(reached);
 
     // if the element is an error element
