@@ -2336,6 +2336,12 @@ cpa.slicing.applyLBETransformation = true
 # Check target states reachability
 cpa.slicing.checkTargetStates = true
 
+# Whether to export the final slice to a file
+cpa.slicing.exportSlice = true
+
+# File to export final slice to
+cpa.slicing.exportSliceFile = "ProgramSlice.txt"
+
 # Filter lemmas by liveness
 cpa.slicing.filterByLiveness = true
 
