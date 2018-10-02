@@ -88,7 +88,13 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   )
   private boolean keepCoveredStatesInReached = false;
 
-  private final MergeOperator merge;
+  @Option(
+      secure = true,
+      name = "cpa.arg.mergeOnWrappedSubsumption",
+      description =
+          "If this option is enabled, ARG states will also be merged if the first wrapped state is \n"
+              + " subsumed by the second wrapped state (and the parents are not yet subsumed).")
+  private boolean mergeOnWrappedSubsumption = false;
 
   private final LogManager logger;
 
@@ -104,16 +110,6 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     super(cpa);
     config.inject(this);
     this.logger = logger;
-
-    MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
-    if (wrappedMergeOperator == MergeSepOperator.getInstance()) {
-      merge =  MergeSepOperator.getInstance();
-    } else if (inCPAEnabledAnalysis) {
-      merge =  new ARGMergeJoinCPAEnabledAnalysis(wrappedMergeOperator, deleteInCPAEnabledAnalysis);
-    } else {
-      merge = new ARGMergeJoin(wrappedMergeOperator, cpa.getAbstractDomain(), config);
-    }
-
     stats = new ARGStatistics(config, logger, this, pSpecification, cfa);
   }
 
@@ -129,7 +125,15 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   @Override
   public MergeOperator getMergeOperator() {
-    return merge;
+    MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
+    if (wrappedMergeOperator == MergeSepOperator.getInstance()) {
+      return MergeSepOperator.getInstance();
+    } else if (inCPAEnabledAnalysis) {
+      return new ARGMergeJoinCPAEnabledAnalysis(wrappedMergeOperator, deleteInCPAEnabledAnalysis);
+    } else {
+      return new ARGMergeJoin(
+          wrappedMergeOperator, getWrappedCpa().getAbstractDomain(), mergeOnWrappedSubsumption);
+    }
   }
 
   @Override
