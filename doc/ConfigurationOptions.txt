@@ -1001,9 +1001,8 @@ cpa.arg.inCPAEnabledAnalysis = false
 cpa.arg.keepCoveredStatesInReached = false
 
 # If this option is enabled, ARG states will also be merged if the first
-# wrapped state is 
-#  subsumed by the second wrapped state (and the parents are not yet
-# subsumed).
+# wrapped state is subsumed by the second wrapped state (and the parents are
+# not yet subsumed).
 cpa.arg.mergeOnWrappedSubsumption = false
 
 # Export final ARG as pixel graphic to the given file name. The suffix is

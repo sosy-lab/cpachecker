@@ -62,27 +62,30 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-@Options
-public class ARGCPA extends AbstractSingleWrapperCPA implements
-    ConfigurableProgramAnalysisWithBAM, ProofChecker {
+@Options(prefix = "cpa.arg")
+public class ARGCPA extends AbstractSingleWrapperCPA
+    implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ARGCPA.class);
   }
 
-  @Option(secure=true, name="cpa.arg.inCPAEnabledAnalysis",
-  description="inform ARG CPA if it is run in an analysis with enabler CPA because then it must "
-    + "behave differently during merge.")
+  @Option(
+      secure = true,
+      description =
+          "inform ARG CPA if it is run in an analysis with enabler CPA because then it must "
+              + "behave differently during merge.")
   private boolean inCPAEnabledAnalysis = false;
 
-  @Option(secure=true, name="cpa.arg.deleteInCPAEnabledAnalysis",
-      description="inform merge operator in CPA enabled analysis that it should delete the subgraph of the merged node "
-        + "which is required to get at most one successor per CFA edge.")
-      private boolean deleteInCPAEnabledAnalysis = false;
+  @Option(
+      secure = true,
+      description =
+          "inform merge operator in CPA enabled analysis that it should delete the subgraph "
+              + "of the merged node which is required to get at most one successor per CFA edge.")
+  private boolean deleteInCPAEnabledAnalysis = false;
 
   @Option(
     secure = true,
-    name = "cpa.arg.keepCoveredStatesInReached",
     description =
         "whether to keep covered states in the reached set as addition to keeping them in the ARG"
   )
@@ -90,10 +93,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   @Option(
       secure = true,
-      name = "cpa.arg.mergeOnWrappedSubsumption",
       description =
-          "If this option is enabled, ARG states will also be merged if the first wrapped state is \n"
-              + " subsumed by the second wrapped state (and the parents are not yet subsumed).")
+          "If this option is enabled, ARG states will also be merged if the first wrapped state "
+              + "is subsumed by the second wrapped state (and the parents are not yet subsumed).")
   private boolean mergeOnWrappedSubsumption = false;
 
   private final LogManager logger;
