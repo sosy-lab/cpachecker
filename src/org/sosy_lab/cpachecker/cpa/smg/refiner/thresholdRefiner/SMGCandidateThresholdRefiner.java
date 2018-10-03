@@ -83,9 +83,10 @@ public class SMGCandidateThresholdRefiner extends SMGThresholdRefiner {
 
     CounterexampleInfo cex = isAnyPathFeasible(pArgReached, pTargetPaths);
 
+    int lengthThreshold = 0;
+    ARGState cutState = null;
     if (cex.isSpurious()) {
-      int lengthThreshold = 0;
-      ARGState cutState = checker.getCutState();
+      cutState = checker.getCutState();
       List<Integer> sortedMaxLengths = checker.getSortedMaxLengths();
       for (Integer len : sortedMaxLengths) {
         lengthThreshold = len + 1;
@@ -101,6 +102,9 @@ public class SMGCandidateThresholdRefiner extends SMGThresholdRefiner {
           }
         }
       }
+    }
+    if (cex.isSpurious()) {
+      refineUsingMaxLength(pArgReached, cutState, 2 * lengthThreshold);
     }
 
     return cex;
