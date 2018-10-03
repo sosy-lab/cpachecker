@@ -69,7 +69,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGThresholdPrecision;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
@@ -108,8 +108,7 @@ public class SMGCPA
   private final SMGExportDotOption exportOptions;
   private final SMGStatistics stats = new SMGStatistics();
 
-  private SMGPrecision precision;
-
+  private SMGThresholdPrecision precision;
 
   private SMGCPA(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       CFA pCfa) throws InvalidConfigurationException {
@@ -131,7 +130,8 @@ public class SMGCPA
     blockOperator.setCFA(cfa);
 
     precision =
-        SMGPrecision.createStaticPrecision(options.isHeapAbstractionEnabled(), blockOperator);
+        SMGThresholdPrecision.createStaticPrecision(
+            options.isHeapAbstractionEnabled(), blockOperator);
 
     smgPredicateManager = new SMGPredicateManager(config, logger, pShutdownNotifier);
     transferRelation =
@@ -146,7 +146,7 @@ public class SMGCPA
 
   public void injectRefinablePrecision() {
     // replace the full precision with an empty, refinable precision
-    precision = SMGPrecision.createRefineablePrecision(precision);
+    precision = SMGThresholdPrecision.createRefineablePrecision(precision);
   }
 
   public MachineModel getMachineModel() {

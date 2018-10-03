@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions.SMGExportLevel;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGThresholdPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -91,12 +91,12 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
 
     return prec(
         (UnmodifiableSMGState) pState,
-        (SMGPrecision) pPrecision,
+        (SMGThresholdPrecision) pPrecision,
         AbstractStates.extractStateByType(pFullState, LocationState.class));
   }
 
   private Optional<PrecisionAdjustmentResult> prec(
-      UnmodifiableSMGState pState, SMGPrecision pPrecision, LocationState location)
+      UnmodifiableSMGState pState, SMGThresholdPrecision pPrecision, LocationState location)
       throws CPAException {
 
     boolean allowsFieldAbstraction = pPrecision.allowsFieldAbstraction();
@@ -150,8 +150,11 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
     if (allowsHeapAbstraction) {
 
       boolean refineablePrecision = pPrecision.usesHeapInterpolation();
+      SMGHeapAbstractionThreshold heapAbstractionThreshold =
+          pPrecision.getHeapAbstractionThreshold();
       boolean heapAbstractionChange =
-          newState.executeHeapAbstraction(pPrecision.getAbstractionBlocks(node), refineablePrecision);
+          newState.executeHeapAbstraction(
+              pPrecision.getAbstractionBlocks(node), heapAbstractionThreshold, refineablePrecision);
 
       if (heapAbstractionChange) {
         String name = String.format("%03d-before-heap-abstraction", result.getId());

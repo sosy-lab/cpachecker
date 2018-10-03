@@ -53,14 +53,20 @@ public class SMGAbstractionManager {
     sllCandidateFinder = new SMGSingleLinkedListFinder();
   }
 
-  public SMGAbstractionManager(LogManager pLogger, CLangSMG pSMG, SMGState pSMGstate,
-      Set<SMGAbstractionBlock> pBlocks) {
-    smg = pSMG;
-    smgState = pSMGstate;
-    logger = pLogger;
-    blocks = pBlocks;
-    dllCandidateFinder = new SMGDoublyLinkedListFinder();
-    sllCandidateFinder = new SMGSingleLinkedListFinder();
+  public SMGAbstractionManager(
+      LogManager pLogger,
+      CLangSMG pSMG,
+      SMGState pSMGstate,
+      Set<SMGAbstractionBlock> pBlocks,
+      SMGHeapAbstractionThreshold pHeapAbstractionThreshold) {
+    this(
+        pLogger,
+        pSMG,
+        pSMGstate,
+        pBlocks,
+        pHeapAbstractionThreshold.getEqualThreshold(),
+        pHeapAbstractionThreshold.getEntailThreshold(),
+        pHeapAbstractionThreshold.getIncombarableThreshold());
   }
 
   public SMGAbstractionManager(LogManager pLogger, CLangSMG pSMG, SMGState pSMGstate,

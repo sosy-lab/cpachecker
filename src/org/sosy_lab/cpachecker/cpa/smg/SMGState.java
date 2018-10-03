@@ -1929,13 +1929,15 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   public boolean executeHeapAbstraction(
-      Set<SMGAbstractionBlock> blocks, boolean usesHeapInterpolation)
+      Set<SMGAbstractionBlock> blocks,
+      SMGHeapAbstractionThreshold pHeapAbstractionThreshold,
+      boolean usesHeapInterpolation)
       throws SMGInconsistentException {
     final SMGAbstractionManager manager;
     if (usesHeapInterpolation) {
       manager = new SMGAbstractionManager(logger, heap, this, blocks, 2, 2, 2);
     } else {
-      manager = new SMGAbstractionManager(logger, heap, this, blocks);
+      manager = new SMGAbstractionManager(logger, heap, this, blocks, pHeapAbstractionThreshold);
     }
     boolean change = manager.execute();
     performConsistencyCheck(SMGRuntimeCheck.HALF);
