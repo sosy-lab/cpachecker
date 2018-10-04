@@ -302,7 +302,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
       Precision precision = pair.getSecond();
       shutdownNotifier.shutdownIfNecessary();
       logger.log(Level.FINER, "Considering successor of current state");
-      //logger.log(Level.ALL, "Successor of", state, "\nis", successor);
+      logger.log(Level.ALL, "Successor of", element, "\nis", successor);
 
       stats.precisionTimer.start();
       PrecisionAdjustmentResult precAdjustmentResult;

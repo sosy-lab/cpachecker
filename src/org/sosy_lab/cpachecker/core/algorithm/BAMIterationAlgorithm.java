@@ -80,7 +80,7 @@ public class BAMIterationAlgorithm implements Algorithm {
           }
         }
       }
-      from(reachedSets).filter(InferenceObject.class).toSet();
+      newObjects = from(reachedSets).filter(InferenceObject.class).toSet();
       if (objects.containsAll(newObjects)) {
         //fix point
         return status;
