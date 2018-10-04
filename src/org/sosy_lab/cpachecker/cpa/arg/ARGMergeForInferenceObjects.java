@@ -44,6 +44,10 @@ public class ARGMergeForInferenceObjects implements MergeOperator {
 
     assert !object1.isCovered() : "Trying to merge covered element " + object1;
 
+    if (object2.isDestroyed()) {
+      return object2;
+    }
+
     if (!object2.mayCover()) {
       // elements that may not cover should also not be used for merge
       return object2;

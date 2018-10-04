@@ -33,6 +33,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -50,14 +51,16 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.core.interfaces.ThreadIdProvider;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
 
 /** This immutable state represents a location state combined with a callstack state. */
-public class ThreadingState implements AbstractState, AbstractStateWithLocations, Graphable, Partitionable, AbstractQueryableState {
+public class ThreadingState implements AbstractState, AbstractStateWithLocations, Graphable, Partitionable, AbstractQueryableState, ThreadIdProvider {
 
   private static final String PROPERTY_DEADLOCK = "deadlock";
 
@@ -430,5 +433,52 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     Preconditions.checkArgument(
         threadIdsForWitness.containsKey(threadId), "removing non-existant thread: " + threadId);
     return withThreadIdsForWitness(threadIdsForWitness.removeAndCopy(threadId));
+  }
+
+  @Override
+  public String getThreadIdForEdge(CFAEdge pEdge) {
+    for (String threadId : getThreadIds()) {
+      if (getThreadLocation(threadId).getLocationNode().equals(pEdge.getPredecessor())) {
+        return threadId;
+      }
+    }
+    return "";
+  }
+
+  @Override
+  public Optional<Pair<String, String>> getSpawnedThreadIdByEdge(CFAEdge pEdge, ThreadIdProvider pSuccessor) {
+    ThreadingState succThreadingState = (ThreadingState) pSuccessor;
+    String calledFunctionName = null;
+
+    if (pEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+      AStatement statement = ((AStatementEdge) pEdge).getStatement();
+      if (statement instanceof AFunctionCall) {
+        AExpression functionNameExp =
+            ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
+        if (functionNameExp instanceof AIdExpression) {
+          final String functionName = ((AIdExpression) functionNameExp).getName();
+          switch (functionName) {
+            case ThreadingTransferRelation.THREAD_START:
+              {
+                for (String threadId : succThreadingState.getThreadIds()) {
+                  if (!getThreadIds().contains(threadId)) {
+                    // we found the new created thread-id. we assume there is only 'one' match
+                  calledFunctionName =
+                        succThreadingState
+                            .getThreadLocation(threadId)
+                            .getLocationNode()
+                            .getFunctionName();
+                  return Optional.of(Pair.of(threadId, calledFunctionName));
+                  }
+                }
+                break;
+              }
+            default:
+              // nothing to do
+          }
+        }
+      }
+    }
+    return Optional.empty();
   }
 }

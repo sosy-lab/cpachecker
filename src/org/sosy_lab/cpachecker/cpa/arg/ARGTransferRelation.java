@@ -53,7 +53,7 @@ public class ARGTransferRelation implements TransferRelationTM {
     ARGState element = (ARGState)pElement;
 
     // covered elements may be in the reached set, but should always be ignored
-    if (element.isCovered()) {
+    if (element.isDestroyed() || element.isCovered()) {
       return Collections.emptySet();
     }
 

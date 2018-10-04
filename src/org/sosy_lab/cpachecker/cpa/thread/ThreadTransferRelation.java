@@ -174,11 +174,11 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation implement
     return success;
   }
 
-  private boolean isThreadCreateFunction(CFunctionCall statement) {
+  public static boolean isThreadCreateFunction(CFunctionCall statement) {
     return (statement instanceof CThreadCreateStatement);
   }
 
-  private boolean isThreadJoinFunction(CFunctionCall statement) {
+  static boolean isThreadJoinFunction(CFunctionCall statement) {
     return (statement instanceof CThreadJoinStatement);
   }
 

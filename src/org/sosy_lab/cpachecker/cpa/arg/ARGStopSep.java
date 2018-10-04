@@ -130,6 +130,9 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
   private boolean stop(ARGState pElement, ARGState pReachedState, Precision pPrecision)
                                                       throws CPAException, InterruptedException {
 
+    if (pReachedState.isDestroyed()) {
+      return false;
+    }
     if (!pReachedState.mayCover()) {
       return false;
     }

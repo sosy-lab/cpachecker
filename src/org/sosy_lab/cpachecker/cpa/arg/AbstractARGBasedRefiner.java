@@ -94,7 +94,7 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
   public final boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "Starting ARG based refinement");
 
-    assert ARGUtils.checkARG(pReached) : "ARG and reached set do not match before refinement";
+    //assert ARGUtils.checkARG(pReached) : "ARG and reached set do not match before refinement";
 
     final ARGState lastElement = (ARGState)pReached.getLastState();
     assert lastElement.isTarget() : "Last element in reached is not a target state before refinement";
