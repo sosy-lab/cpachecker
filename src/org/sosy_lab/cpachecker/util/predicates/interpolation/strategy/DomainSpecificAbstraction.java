@@ -1536,7 +1536,8 @@ public class DomainSpecificAbstraction<T> {
       boolean isIncomparable = false;
       helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
-      String latticenames_h = new String();
+      //String latticenames_h = new String();
+      int latticeindex = latticeNames.length + 1;
 
       /*logger.log(Level.WARNING, "Showing LatticeNames: ");
       for (int h = 0; h < latticeNames.length; h++) {
@@ -1550,6 +1551,9 @@ public class DomainSpecificAbstraction<T> {
       for (int h = 0; h < relationAbstraction2.length; h++) {
         logger.log(Level.WARNING, relationAbstraction2[h]);
       } */
+      while (abstractionFeasible == false){
+        String latticenames_h = new String();
+        latticeindex = latticeindex - 1;
       for (int h = 0; h < /*fullLatticeNames.length */ latticeNames.length; h++) {
        /* helperFormula1 = firstPartChanged;
         helperFormula2 = scndPartChanged; */
@@ -1601,29 +1605,29 @@ public class DomainSpecificAbstraction<T> {
           abstractionFeasible = prove(toCheckFormulaBlocked, mySolver);
           if (abstractionFeasible) {
           /*List<List<IntegerFormula>> */
+            abstractionFeasible = true;
             List<List<Formula>> frontierListCopy = Lists
                 .newArrayListWithExpectedSize(oldFormulas.size() - 1);
             for (/*List<IntegerFormula> */ List<Formula> s : frontierList) {
               frontierListCopy.add(s);
             }
             //logger.log(Level.WARNING, "Comparability Check: Latticenames_h: " + latticenames_h);
-            isIncomparable = checkComparability(frontierListCopy, /*fullLatticeNames[h] */
+            /*isIncomparable = checkComparability(frontierListCopy,
                 latticenames_h, latticeNames);
 
             if (isIncomparable) {
-            /*List<IntegerFormula> */
               List<Formula> new_frontier_elem = maximise(firstPartChanged,
                   scndPartChanged,
                   relationAbstraction1,
                   relationAbstraction2, relationAbstraction1Formula,
-                  relationAbstraction2Formula /*lattice, fullLatticeNames, */, latticeNames, /*h,*/
+                  relationAbstraction2Formula, latticeNames,
                   latticenames_h,
                   mySolver);
               frontierList.add(new_frontier_elem);
-            }
+            } */
           }
         }
-    //  }
+      }
       helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
       if (frontierList != null && (frontierList.size() >= 1)) {
