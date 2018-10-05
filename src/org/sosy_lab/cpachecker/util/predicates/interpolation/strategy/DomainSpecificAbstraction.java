@@ -1594,7 +1594,7 @@ public class DomainSpecificAbstraction<T> {
             }
           }
         }
-        // }
+         }
 
         if (!latticenames_h.isEmpty() && !(latticenames_h == null)) {
           BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
@@ -1634,7 +1634,7 @@ public class DomainSpecificAbstraction<T> {
             }
           }
         }
-      }
+    //  }
       helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
       if (frontierList != null && (frontierList.size() >= 1)) {
