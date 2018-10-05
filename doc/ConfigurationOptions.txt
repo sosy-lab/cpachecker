@@ -2827,7 +2827,7 @@ cpa.value.refinement.writePathConstraints = true
 
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"
-  allowed values: [SEP, JOIN, NEVER]
+  allowed values: [SEP, JOIN, NEVER, EQUALS]
 
 # Default size of arrays whose length can't be determined.
 cpa.value.symbolic.defaultArraySize = 20

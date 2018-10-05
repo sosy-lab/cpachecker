@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.StopEqualsOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -91,8 +92,12 @@ public class ValueAnalysisCPA
       description="which merge operator to use for ValueAnalysisCPA")
   private String mergeType = "SEP";
 
-  @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"},
-      description="which stop operator to use for ValueAnalysisCPA")
+  @Option(
+      secure = true,
+      name = "stop",
+      toUppercase = true,
+      values = {"SEP", "JOIN", "NEVER", "EQUALS"},
+      description = "which stop operator to use for ValueAnalysisCPA")
   private String stopType = "SEP";
 
   @Option(secure=true, description="get an initial precision from file")
@@ -262,6 +267,9 @@ public class ValueAnalysisCPA
 
       case "NEVER":
         return new StopNeverOperator();
+
+      case "EQUALS":
+        return new StopEqualsOperator();
 
       default:
         throw new AssertionError("unknown stop operator");
