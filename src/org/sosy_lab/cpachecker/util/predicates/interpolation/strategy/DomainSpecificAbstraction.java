@@ -86,7 +86,7 @@ public class DomainSpecificAbstraction<T> {
     InterpolatingProverEnvironment<BooleanFormula> myEnvironment =
         (InterpolatingProverEnvironment<BooleanFormula>) myInterpolator
             .newEnvironment(); */
-    logger.log(Level.WARNING, "Entering domainSpecificAbstractionsCheck: ");
+    //logger.log(Level.WARNING, "Entering domainSpecificAbstractionsCheck: ");
     List<BooleanFormula> interpolants = Lists.newArrayListWithExpectedSize(oldFormulas.size()
         - 1);
     // running the algorithm for every formula with its successor
@@ -114,15 +114,15 @@ public class DomainSpecificAbstraction<T> {
         formulas.add(oldFormulas.get(it + 1));
         variablesInFormulas.add(oldFmgr.extractVariableNames(oldInterpolant));
         variableTypes.add(oldFmgr.extractVariables(oldInterpolant));
-        logger.log(Level.WARNING, "Variables in Formulas after adding old interpolant:" +
-            variablesInFormulas.toString());
+        //logger.log(Level.WARNING, "Variables in Formulas after adding old interpolant:" +
+        //    variablesInFormulas.toString());
       }
 
       for (int i = it; i < oldFormulas.size(); i++) {
         variablesInFormulas.add(oldFmgr.extractVariableNames(oldFormulas.get(i)));
         variableTypes.add(oldFmgr.extractVariables(oldFormulas.get(i)));
-        logger.log(Level.WARNING, "Variables in Formulas after adding oldFormulas[:" + i + "] "
-            + variablesInFormulas.toString());
+        //logger.log(Level.WARNING, "Variables in Formulas after adding oldFormulas[:" + i + "] "
+        //    + variablesInFormulas.toString());
       }
       // extracting the variables that have to be renamed - make external function?
       /*List<List<IntegerFormula>> frontierList = Lists.newArrayListWithExpectedSize(formulas.size
@@ -132,20 +132,9 @@ public class DomainSpecificAbstraction<T> {
       Set<String> variables1 = Sets.newHashSet();
       Set<String> variables2 = Sets.newHashSet();
       // logger.log(Level.WARNING, "Formulas:");
-      if (formulas != null) {
-        for (int i = 0; i < formulas.size(); i++) {
-          //logger.log(Level.WARNING, i + ". Formel" + formulas.get(i).toString());
-        }
-      }
-      logger.log(Level.WARNING, "Variables in Formulas:");
-      if (variablesInFormulas != null) {
-        for (int i = 0; i < variablesInFormulas.size(); i++) {
-          logger.log(Level.WARNING, i + ". VariablesInFormulas" + variablesInFormulas.get(i).toString());
-        }
-      }
       // for (int i = 0; i < it + 1; i++) {
       if (it == 0) {
-        logger.log(Level.WARNING, "it is equals to 0");
+        //logger.log(Level.WARNING, "it is equals to 0");
         variables1 = variablesInFormulas.get(0);
         for (int i = 1; i < variablesInFormulas.size(); i++) {
           for (String f : variablesInFormulas.get(i)) {
@@ -154,7 +143,7 @@ public class DomainSpecificAbstraction<T> {
         }
       }
       else {
-        logger.log(Level.WARNING, "it is equals to > 0");
+       // logger.log(Level.WARNING, "it is equals to > 0");
         for (String f : variablesInFormulas.get(0)) {
           variables1.add(f);
         }
@@ -179,12 +168,12 @@ public class DomainSpecificAbstraction<T> {
           .immutableCopy();
       HashMap<String, FormulaType> variablesUsedInBothPartsClasses = new HashMap<>();
       int m = 0;
-      logger.log(Level.WARNING, "Variables1: " +
+      /*logger.log(Level.WARNING, "Variables1: " +
           variables1.toString());
       logger.log(Level.WARNING, "Variables2: " +
           variables2.toString());
       logger.log(Level.WARNING, "Variables That Are Used In Both Parts: " +
-          variablesThatAreUsedInBothParts.toString());
+          variablesThatAreUsedInBothParts.toString()); */
    /*   for (Map<String, Formula> s : variableTypes) {
         s.get(variablesThatAreUsedInBothParts)
       }  */
@@ -220,8 +209,8 @@ public class DomainSpecificAbstraction<T> {
           }
       } */
 
-      String[] arrayVariables1 = variables1.toArray(new String[variables1.size()]);
-      String[] arrayVariables2 = variables2.toArray(new String[variables2.size()]);
+      //String[] arrayVariables1 = variables1.toArray(new String[variables1.size()]);
+      //String[] arrayVariables2 = variables2.toArray(new String[variables2.size()]);
       arrayVariablesThatAreUsedInBothParts = variablesThatAreUsedInBothParts.toArray(new
           String[variablesThatAreUsedInBothParts.size
           ()]);
@@ -244,7 +233,7 @@ public class DomainSpecificAbstraction<T> {
         }
       }
       // not necessary, could be deleted
-      for (int i = 0; i < arrayVariablesThatAreUsedInBothParts.length; i++) {
+     /* for (int i = 0; i < arrayVariablesThatAreUsedInBothParts.length; i++) {
         for (int j = 0; j < arrayVariables1.length; j++) {
           if (arrayVariablesThatAreUsedInBothParts[i].equals(arrayVariables1[j])) {
             arrayVariables1[j] = arrayVariables1[j] + "#";
@@ -255,10 +244,10 @@ public class DomainSpecificAbstraction<T> {
             arrayVariables2[j] = arrayVariables2[j] + "##";
           }
         }
-      }
+      } */
 
       // building the lattice structure
-      logger.log(Level.WARNING, "Allocating lattice: ");
+      //logger.log(Level.WARNING, "Allocating lattice: ");
      /* boolean[][] lattice = new boolean[(int) Math.pow(2, (arrayVariablesThatAreUsedInBothParts
           .length))][(int) Math.pow(2,
           (arrayVariablesThatAreUsedInBothParts.length))]; */
@@ -302,7 +291,7 @@ public class DomainSpecificAbstraction<T> {
           FormulaType resultType2 = variablesUsedInBothPartsClasses.get
               (arrayVariablesThatAreUsedInBothParts[i + 1]);
           if (!resultType1.equals(resultType2)){
-            logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
+            //logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
             relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
                 arrayVariablesThatAreUsedInBothParts[i] + "#";
             relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
@@ -325,8 +314,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] =
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+            //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType2);
           }
@@ -359,8 +348,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] =
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+           // logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+           // logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType1);
           }
@@ -387,8 +376,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] =
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+            //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType1);
           } else if (resultType1.isBitvectorType() &&
@@ -416,8 +405,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] =
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+            //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType1);
           } else if (resultType1 == resultType2 && !(resultType1.isIntegerType()) && !
@@ -444,8 +433,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] =
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+            //.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType2);
           }
@@ -520,8 +509,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+            //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType1);
            /* latticeNamesTypes[i + 1] = resultType1;
@@ -534,7 +523,7 @@ public class DomainSpecificAbstraction<T> {
           FormulaType resultType2 = variablesUsedInBothPartsClasses.get
               (arrayVariablesThatAreUsedInBothParts[i + 1]);
           if (!resultType1.equals(resultType2)){
-            logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
+            //logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
             relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
                 arrayVariablesThatAreUsedInBothParts[i] + "##";
             relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
@@ -725,7 +714,7 @@ public class DomainSpecificAbstraction<T> {
           FormulaType resultType2 = variablesUsedInBothPartsClasses.get
               (arrayVariablesThatAreUsedInBothParts[i + 1]);
           if (!resultType1.equals(resultType2)){
-            logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
+            //logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
             relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
                 arrayVariablesThatAreUsedInBothParts[i] + "#";
             relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
@@ -748,8 +737,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] =
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+            //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType2);
           }
@@ -782,8 +771,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] =
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+            //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType1);
           }
@@ -810,8 +799,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] =
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+            //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType1);
           } else if (resultType1.isBitvectorType() &&
@@ -839,8 +828,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] =
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+            //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType1);
           } else if (resultType1 == resultType2 && !(resultType1.isIntegerType()) && !
@@ -867,8 +856,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] =
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+            //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType2);
           }
@@ -945,8 +934,8 @@ public class DomainSpecificAbstraction<T> {
             latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
             latticeNames[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
                 arrayVariablesThatAreUsedInBothParts[i + 1];
-            logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+            //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+            //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
             latticeNamesTypes.put(latticeNames[i], resultType1);
             latticeNamesTypes.put(latticeNames[i + 1], resultType1);
          /* latticeNamesTypes[i + 1] = resultType1;
@@ -959,7 +948,7 @@ public class DomainSpecificAbstraction<T> {
           FormulaType resultType2 = variablesUsedInBothPartsClasses.get
               (arrayVariablesThatAreUsedInBothParts[i + 1]);
           if (!resultType1.equals(resultType2)){
-            logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
+            //logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
             relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
                 arrayVariablesThatAreUsedInBothParts[i] + "##";
             relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
@@ -1176,7 +1165,7 @@ public class DomainSpecificAbstraction<T> {
 
         } else */
         if (!resultType1.equals(resultType2)){
-          logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
+          //logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
           Formula helperFormula1, helperFormula2;
           BooleanFormula helperFormula3;
           helperFormula1 = fmgr.makeVariable(resultType1,
@@ -1305,7 +1294,7 @@ public class DomainSpecificAbstraction<T> {
         relationAbstraction2Formula.add(helperFormula6);
         } else */
         if (!resultType2.equals(resultType1)){
-          logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
+          //logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
           Formula helperFormula4, helperFormula5;
           BooleanFormula helperFormula6;
           helperFormula4 = fmgr.makeVariable(resultType1,
@@ -1407,8 +1396,8 @@ public class DomainSpecificAbstraction<T> {
         latticeNames[latticeNames.length - 1] =
             arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1];
         latticeNamesTypes.put(latticeNames[latticeNames.length - 1], resultType1);
-        logger.log(Level.WARNING, "LatticeNames[" + (latticeNames.length - 1) + "] = " +
-            latticeNames[latticeNames.length - 1]);
+        //logger.log(Level.WARNING, "LatticeNames[" + (latticeNames.length - 1) + "] = " +
+        //    latticeNames[latticeNames.length - 1]);
         //latticeNamesTypes[latticeNamesTypes.length - 1] = resultType1;
       }
 
@@ -1549,7 +1538,7 @@ public class DomainSpecificAbstraction<T> {
       helperFormula2 = scndPartChanged;
       String latticenames_h = new String();
 
-      logger.log(Level.WARNING, "Showing LatticeNames: ");
+      /*logger.log(Level.WARNING, "Showing LatticeNames: ");
       for (int h = 0; h < latticeNames.length; h++) {
         logger.log(Level.WARNING, latticeNames[h]);
       }
@@ -1560,7 +1549,7 @@ public class DomainSpecificAbstraction<T> {
       logger.log(Level.WARNING, "RelationAbstraction2: ");
       for (int h = 0; h < relationAbstraction2.length; h++) {
         logger.log(Level.WARNING, relationAbstraction2[h]);
-      }
+      } */
       for (int h = 0; h < /*fullLatticeNames.length */ latticeNames.length; h++) {
        /* helperFormula1 = firstPartChanged;
         helperFormula2 = scndPartChanged; */
@@ -1576,10 +1565,10 @@ public class DomainSpecificAbstraction<T> {
               // ());
               if (latticenames_h.isEmpty() || (latticenames_h == null)) {
                 latticenames_h = latticeNames[h];
-                logger.log(Level.WARNING, "Latticenames_h: " + latticenames_h);
+                //logger.log(Level.WARNING, "Latticenames_h: " + latticenames_h);
               } else {
                 latticenames_h = latticenames_h + " ," + latticeNames[h];
-                logger.log(Level.WARNING, "Latticenames_h: " + latticenames_h);
+                //logger.log(Level.WARNING, "Latticenames_h: " + latticenames_h);
               }
 
             }
@@ -1617,7 +1606,7 @@ public class DomainSpecificAbstraction<T> {
             for (/*List<IntegerFormula> */ List<Formula> s : frontierList) {
               frontierListCopy.add(s);
             }
-            logger.log(Level.WARNING, "Comparability Check: Latticenames_h: " + latticenames_h);
+            //logger.log(Level.WARNING, "Comparability Check: Latticenames_h: " + latticenames_h);
             isIncomparable = checkComparability(frontierListCopy, /*fullLatticeNames[h] */
                 latticenames_h, latticeNames);
 
@@ -1767,7 +1756,7 @@ public class DomainSpecificAbstraction<T> {
     // myInterpolator.itpProver.getInterpolant((List<T>) interpolationFormulaList);
 
     //return Collections.emptyList();
-    logger.log(Level.WARNING, "Interpolants:", interpolants.toString());
+    //logger.log(Level.WARNING, "Interpolants:", interpolants.toString());
     if (interpolants != null && !(interpolants.isEmpty())){
       return interpolants;
     } else {
@@ -2007,8 +1996,8 @@ public class DomainSpecificAbstraction<T> {
       return Collections.emptyList();
     }
     String[] helperArray = new String[2];
-    logger.log(Level.WARNING, "StringtoIntegerFormulaList: input: " + input + " formulaTypes: " +
-        formulaTypes.toString());
+    //logger.log(Level.WARNING, "StringtoIntegerFormulaList: input: " + input + " formulaTypes: " +
+     //   formulaTypes.toString());
     int j = 0;
     Iterable<String> splitOperator = Splitter.on(" ,").split(input);
     for (String s : splitOperator) {
@@ -2049,8 +2038,8 @@ public class DomainSpecificAbstraction<T> {
         }
       }
     }
-    logger.log(Level.WARNING, "CheckComparability: latticeNames_h: " + latticeNames_h + " "
-        + "formulaTypes: " + formulaTypes.toString());
+   // logger.log(Level.WARNING, "CheckComparability: latticeNames_h: " + latticeNames_h + " "
+    //    + "formulaTypes: " + formulaTypes.toString());
     List<Formula> toCompareWith = StringtoIntegerFormulaList(latticeNames_h,
         /*fullLatticeNamesTypes.get(fullLatticeNames_h) */ formulaTypes);
     /*List<List<IntegerFormula>> compareList = Lists.newArrayListWithExpectedSize(formulas.size() -
