@@ -161,7 +161,6 @@ public class ExpressionToFormulaVisitor
     return mgr.makeAnd(
         mgr.makeEqual(leftType, rightType),
         conv.bfmgr.or(
-            mgr.makeEqual(conv.typeTags.OBJECT, leftType), // TODO non null objects
             mgr.makeEqual(conv.typeTags.UNDEFINED, leftType),
             conv.bfmgr.and(
                 mgr.makeEqual(conv.typeTags.NUMBER, leftType),
@@ -170,6 +169,9 @@ public class ExpressionToFormulaVisitor
             mgr.makeAnd(
                 mgr.makeEqual(conv.typeTags.BOOLEAN, leftType),
                 mgr.makeEqual(conv.toBoolean(pLeftOperand), conv.toBoolean(pRightOperand))),
+            mgr.makeAnd(
+                mgr.makeEqual(conv.typeTags.OBJECT, leftType),
+                mgr.makeEqual(conv.toObject(pLeftOperand), conv.toObject(pRightOperand))),
             mgr.makeAnd(
                 mgr.makeEqual(conv.typeTags.STRING, leftType),
                 mgr.makeEqual(

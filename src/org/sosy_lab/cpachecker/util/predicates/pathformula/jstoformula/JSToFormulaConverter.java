@@ -189,7 +189,8 @@ public class JSToFormulaConverter {
 
     typedValues = new TypedValues(ffmgr);
     typeTags = new TypeTags(ifmgr);
-    tvmgr = new TypedValueManager(typedValues, typeTags);
+    objectIdCounter = 0;
+    tvmgr = new TypedValueManager(typedValues, typeTags, createObjectId());
     stringIds = new Ids<>();
     functionDeclarationIds = new Ids<>();
     scopeOfDeclaration = ffmgr.declareUF("scopeOf", SCOPE_TYPE, VARIABLE_TYPE);
@@ -200,7 +201,6 @@ public class JSToFormulaConverter {
     mainScope = fmgr.makeNumber(SCOPE_TYPE, 0);
     globalScopeStack = afmgr.makeArray("globalScopeStack", SCOPE_STACK_TYPE);
     functionScopeManager = new FunctionScopeManager();
-    objectIdCounter = 0;
   }
 
   @SuppressWarnings("SameParameterValue")
@@ -919,6 +919,11 @@ public class JSToFormulaConverter {
           fmgr.assignment(typedValues.typeof(pLeft), typeTags.NUMBER),
           fmgr.makeEqual(typedValues.numberValue(pLeft), pRight.getValue()));
     }
+    if (rType.equals(typeTags.OBJECT)) {
+      return bfmgr.and(
+          fmgr.assignment(typedValues.typeof(pLeft), typeTags.OBJECT),
+          fmgr.makeEqual(typedValues.objectValue(pLeft), pRight.getValue()));
+    }
     if (rType.equals(typeTags.STRING)) {
       return bfmgr.and(
           fmgr.assignment(typedValues.typeof(pLeft), typeTags.STRING),
@@ -937,9 +942,11 @@ public class JSToFormulaConverter {
                 fmgr.makeEqual(typedValues.typeof(pLeft), typeTags.NUMBER),
                 fmgr.makeEqual(typedValues.numberValue(pLeft), toNumber(pRight))),
             fmgr.makeAnd(
+                fmgr.makeEqual(typedValues.typeof(pLeft), typeTags.OBJECT),
+                fmgr.makeEqual(typedValues.objectValue(pLeft), toObject(pRight))),
+            fmgr.makeAnd(
                 fmgr.makeEqual(typedValues.typeof(pLeft), typeTags.STRING),
                 fmgr.makeEqual(typedValues.stringValue(pLeft), toStringFormula(pRight))),
-            fmgr.makeEqual(typedValues.typeof(pLeft), typeTags.OBJECT),
             fmgr.makeEqual(typedValues.typeof(pLeft), typeTags.UNDEFINED)));
   }
 
@@ -960,6 +967,27 @@ public class JSToFormulaConverter {
 
   IntegerFormula createObjectId() {
     return fmgr.makeNumber(Types.OBJECT_TYPE, ++objectIdCounter);
+  }
+
+  IntegerFormula toObject(final TypedValue pValue) {
+    final IntegerFormula type = pValue.getType();
+    final IntegerFormula unknownObjectValue = fmgr.makeNumber(Types.OBJECT_TYPE, -1);
+    if (Lists.newArrayList(
+            typeTags.BOOLEAN,
+            typeTags.NUMBER,
+            typeTags.STRING,
+            typeTags.FUNCTION,
+            typeTags.UNDEFINED)
+        .contains(type)) {
+      return unknownObjectValue;
+    } else if (type.equals(typeTags.OBJECT)) {
+      return (IntegerFormula) pValue.getValue();
+    }
+    final IntegerFormula variable = (IntegerFormula) pValue.getValue();
+    return bfmgr.ifThenElse(
+        fmgr.makeEqual(type, typeTags.OBJECT),
+        typedValues.objectValue(variable),
+        unknownObjectValue);
   }
 
   IntegerFormula toStringFormula(final TypedValue pValue) {
@@ -1000,7 +1028,7 @@ public class JSToFormulaConverter {
     } else if (type.equals(typeTags.UNDEFINED)) {
       return bfmgr.makeFalse();
     } else if (type.equals(typeTags.OBJECT)) {
-      return bfmgr.makeFalse(); // TODO handle non null objects
+      return bfmgr.not(fmgr.makeEqual(tvmgr.getNullValue().getValue(), pValue.getValue()));
     } else {
       // variable
       final IntegerFormula variable = (IntegerFormula) pValue.getValue();
@@ -1011,9 +1039,14 @@ public class JSToFormulaConverter {
               fmgr.makeEqual(type, typeTags.NUMBER),
               numberToBoolean(typedValues.numberValue(variable)),
               bfmgr.ifThenElse(
-                  fmgr.makeEqual(type, typeTags.STRING),
-                  stringToBoolean(typedValues.stringValue(variable)),
-                  fmgr.makeEqual(type, typeTags.FUNCTION))));
+                  fmgr.makeEqual(type, typeTags.OBJECT),
+                  bfmgr.not(
+                      fmgr.makeEqual(
+                          tvmgr.getNullValue().getValue(), typedValues.objectValue(variable))),
+                  bfmgr.ifThenElse(
+                      fmgr.makeEqual(type, typeTags.STRING),
+                      stringToBoolean(typedValues.stringValue(variable)),
+                      fmgr.makeEqual(type, typeTags.FUNCTION)))));
     }
   }
 

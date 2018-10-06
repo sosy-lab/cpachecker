@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Ty
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.FUNCTION_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.JS_TYPE_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.NUMBER_TYPE;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.OBJECT_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.SCOPE_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.STRING_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.VARIABLE_TYPE;
@@ -44,6 +45,7 @@ class TypedValues {
   private final FunctionDeclaration<FloatingPointFormula> numberValueDeclaration;
   private final FunctionDeclaration<IntegerFormula> functionValueDeclaration;
   private final FunctionDeclaration<IntegerFormula> stringValueDeclaration;
+  private final FunctionDeclaration<IntegerFormula> objectValueDeclaration;
   private final FunctionDeclaration<IntegerFormula> varDeclaration;
 
   TypedValues(final FunctionFormulaManagerView pFfmgr) {
@@ -52,6 +54,7 @@ class TypedValues {
     booleanValueDeclaration = pFfmgr.declareUF("booleanValue", BOOLEAN_TYPE, VARIABLE_TYPE);
     numberValueDeclaration = pFfmgr.declareUF("numberValue", NUMBER_TYPE, VARIABLE_TYPE);
     functionValueDeclaration = pFfmgr.declareUF("functionValue", FUNCTION_TYPE, VARIABLE_TYPE);
+    objectValueDeclaration = pFfmgr.declareUF("objectValue", OBJECT_TYPE, VARIABLE_TYPE);
     stringValueDeclaration = pFfmgr.declareUF("stringValue", STRING_TYPE, VARIABLE_TYPE);
     varDeclaration = pFfmgr.declareUF("var", VARIABLE_TYPE, SCOPE_TYPE, VARIABLE_TYPE);
   }
@@ -70,6 +73,10 @@ class TypedValues {
 
   IntegerFormula functionValue(final IntegerFormula pVariable) {
     return ffmgr.callUF(functionValueDeclaration, pVariable);
+  }
+
+  IntegerFormula objectValue(final IntegerFormula pVariable) {
+    return ffmgr.callUF(objectValueDeclaration, pVariable);
   }
 
   IntegerFormula stringValue(final IntegerFormula pVariable) {

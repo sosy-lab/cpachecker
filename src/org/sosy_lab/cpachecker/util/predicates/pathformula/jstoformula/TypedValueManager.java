@@ -35,11 +35,14 @@ class TypedValueManager {
   private final TypedValue undefinedValue;
   private final TypedValue nullValue;
 
-  TypedValueManager(final TypedValues pTypedValues, final TypeTags pTypeTags) {
+  TypedValueManager(
+      final TypedValues pTypedValues,
+      final TypeTags pTypeTags,
+      final IntegerFormula pNullValueObjectId) {
     typedValues = pTypedValues;
     typeTags = pTypeTags;
+    nullValue = new TypedValue(typeTags.OBJECT, pNullValueObjectId);
     undefinedValue = new UndefinedValue();
-    nullValue = new ObjectValue();
   }
 
   TypedValue getUndefinedValue() {
@@ -81,20 +84,6 @@ class TypedValueManager {
     public Formula getValue() {
       throw new RuntimeException(
           "Can not get value of 'undefined'. Check for type 'undefined' instead.");
-    }
-  }
-
-  private class ObjectValue extends TypedValue {
-
-    ObjectValue() {
-      super(typeTags.OBJECT, typeTags.OBJECT);
-    }
-
-    @Nonnull
-    @Override
-    public Formula getValue() {
-      throw new RuntimeException(
-          "Can not get value of 'null'. Object values are not supported yet.");
     }
   }
 
