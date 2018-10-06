@@ -1915,6 +1915,9 @@ cpa.predicate.invariants.useGlobalInvariants = true
 # interpolation.)
 cpa.predicate.invariants.useStrongInvariantsOnly = true
 
+# Maximum count of different constants used as string or field name
+cpa.predicate.js.maxFieldNameCount = 3
+
 # Do not check for NaN in operations
 cpa.predicate.js.useNaN = true
 

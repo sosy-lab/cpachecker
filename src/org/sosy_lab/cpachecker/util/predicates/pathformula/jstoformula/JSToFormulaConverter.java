@@ -26,6 +26,9 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.FUNCTION_DECLARATION_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.FUNCTION_TYPE;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.OBJECT_FIELDS_TYPE;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.OBJECT_ID_TYPE;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.OBJECT_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.SCOPE_STACK_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.SCOPE_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.VARIABLE_TYPE;
@@ -52,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFieldAccess;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
@@ -131,8 +135,8 @@ public class JSToFormulaConverter {
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bfmgr;
   private final FunctionFormulaManagerView ffmgr;
-  private final ArrayFormulaManagerView afmgr;
-  private final IntegerFormulaManagerView ifmgr;
+  final ArrayFormulaManagerView afmgr;
+  final IntegerFormulaManagerView ifmgr;
   protected final LogManagerWithoutDuplicates logger;
   protected final ShutdownNotifier shutdownNotifier;
 
@@ -155,6 +159,20 @@ public class JSToFormulaConverter {
   @Option(secure = true, description = "Do not check for NaN in operations")
   private boolean useNaN = true;
 
+  /**
+   * Count of string constants ist restricted to a limit to avoid quantifier in object encoding.
+   * Each string constant is mapped to
+   */
+  @Option(
+      secure = true,
+      description = "Maximum count of different constants used as string or field name")
+  int maxFieldNameCount = 3;
+
+  final IntegerFormula objectFieldNotSet;
+
+  private final FunctionDeclaration<ArrayFormula<IntegerFormula, IntegerFormula>>
+      objectFieldsDeclaration;
+  private final FunctionDeclaration<IntegerFormula> objectIdDeclaration;
   private final FunctionDeclaration<IntegerFormula> scopeOfDeclaration;
   private final FunctionDeclaration<ArrayFormula<IntegerFormula, IntegerFormula>>
       scopeStackDeclaration;
@@ -193,6 +211,13 @@ public class JSToFormulaConverter {
     tvmgr = new TypedValueManager(typedValues, typeTags, createObjectId());
     stringIds = new Ids<>();
     functionDeclarationIds = new Ids<>();
+    // Used as a special field value that represents unset fields of an object.
+    // Since, variables are used as named values, but no explicit value is assigned to a variable
+    // name, any value (here 0) can be used to represent a special variable value (that is not used
+    // as another special variable value somewhere else)
+    objectFieldNotSet = ifmgr.makeNumber(0);
+    objectFieldsDeclaration = ffmgr.declareUF("objectFields", OBJECT_FIELDS_TYPE, OBJECT_TYPE);
+    objectIdDeclaration = ffmgr.declareUF("objectId", OBJECT_ID_TYPE, OBJECT_TYPE);
     scopeOfDeclaration = ffmgr.declareUF("scopeOf", SCOPE_TYPE, VARIABLE_TYPE);
     afmgr = fmgr.getArrayFormulaManager();
     scopeStackDeclaration = ffmgr.declareUF("scopeStack", SCOPE_STACK_TYPE, SCOPE_TYPE);
@@ -700,6 +725,14 @@ public class JSToFormulaConverter {
     return ffmgr.callUF(scopeStackDeclaration, pScope);
   }
 
+  ArrayFormula<IntegerFormula, IntegerFormula> objectFields(final IntegerFormula pObjectValue) {
+    return ffmgr.callUF(objectFieldsDeclaration, pObjectValue);
+  }
+
+  IntegerFormula objectId(final IntegerFormula pObjectValue) {
+    return ffmgr.callUF(objectIdDeclaration, pObjectValue);
+  }
+
   IntegerFormula declarationOf(final IntegerFormula pFunctionObject) {
     return ffmgr.callUF(declarationOfDeclaration, pFunctionObject);
   }
@@ -863,8 +896,53 @@ public class JSToFormulaConverter {
     final TypedValue r = buildTerm(rhs, edge, rhsFunction, ssa, constraints, errorConditions);
     if (lhs instanceof JSIdExpression) {
       return makeAssignment((JSIdExpression) lhs, lhsFunction, ssa, constraints, r);
+    } else if (lhs instanceof JSFieldAccess) {
+      return makeAssignment(
+          (JSFieldAccess) lhs, edge, lhsFunction, ssa, constraints, r, errorConditions);
     }
     throw new UnrecognizedCodeException("Unimplemented left-hand-side in assignment", edge, lhs);
+  }
+
+  private BooleanFormula makeAssignment(
+      final JSFieldAccess pLhs,
+      final CFAEdge pEdge,
+      final String pLhsFunction,
+      final SSAMapBuilder pSsa,
+      final Constraints pConstraints,
+      final TypedValue pRhsValue,
+      final ErrorConditions pErrorConditions)
+      throws UnrecognizedCodeException {
+    if (!(pLhs.getObject() instanceof JSIdExpression)) {
+      throw new UnrecognizedCodeException(
+          "Field access on object that is not JSIdExpression not implemented yet", pEdge, pLhs);
+    }
+    final JSSimpleDeclaration objectDeclaration =
+        ((JSIdExpression) pLhs.getObject()).getDeclaration();
+    assert objectDeclaration != null;
+    final String objectVariableName = objectDeclaration.getQualifiedName();
+    final IntegerFormula oldObjectValue =
+        typedValues.objectValue(
+            typedValues.var(
+                scopeOf(pLhsFunction, objectDeclaration, pSsa),
+                makeVariable(objectVariableName, pSsa)));
+    final IntegerFormula newObjectVar = buildLvalueTerm(pLhsFunction, objectDeclaration, pSsa);
+    final ArrayFormula<IntegerFormula, IntegerFormula> newObjectFields =
+        objectFields(typedValues.objectValue(newObjectVar));
+    final String fieldName = pLhs.getFieldName();
+    final IntegerFormula field = makeFreshVariable("field_" + fieldName, pSsa);
+    // Mark field as set
+    pConstraints.addConstraint(bfmgr.not(fmgr.makeEqual(field, objectFieldNotSet)));
+    // A new object variable represents the object after the assignment.
+    // The type and object ID stay the same, but the fields change.
+    pConstraints.addConstraint(fmgr.makeEqual(typedValues.typeof(newObjectVar), typeTags.OBJECT));
+    pConstraints.addConstraint(
+        fmgr.makeEqual(objectId(typedValues.objectValue(newObjectVar)), objectId(oldObjectValue)));
+    pConstraints.addConstraint(
+        fmgr.makeEqual(
+            newObjectFields,
+            afmgr.store(objectFields(oldObjectValue), getStringFormula(fieldName), field)));
+    updateIndicesOfOtherScopeVariables(objectVariableName, pLhsFunction, pSsa, pConstraints);
+    return makeAssignment(field, pRhsValue);
   }
 
   @Nonnull
@@ -987,12 +1065,16 @@ public class JSToFormulaConverter {
   }
 
   IntegerFormula createObjectId() {
-    return fmgr.makeNumber(Types.OBJECT_TYPE, ++objectIdCounter);
+    return fmgr.makeNumber(OBJECT_ID_TYPE, ++objectIdCounter);
+  }
+
+  IntegerFormula createObjectValue(final SSAMapBuilder pSsa) {
+    return makeFreshVariable("object", pSsa);
   }
 
   IntegerFormula toObject(final TypedValue pValue) {
     final IntegerFormula type = pValue.getType();
-    final IntegerFormula unknownObjectValue = fmgr.makeNumber(Types.OBJECT_TYPE, -1);
+    final IntegerFormula unknownObjectValue = fmgr.makeNumber(OBJECT_TYPE, -1);
     if (Lists.newArrayList(
             typeTags.BOOLEAN,
             typeTags.NUMBER,

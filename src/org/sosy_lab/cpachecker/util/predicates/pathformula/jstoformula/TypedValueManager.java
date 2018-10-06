@@ -61,8 +61,8 @@ class TypedValueManager {
     return new TypedValue(typeTags.NUMBER, pFloatingPointFormula);
   }
 
-  TypedValue createObjectValue(final IntegerFormula pObjectId) {
-    return new TypedValue(typeTags.OBJECT, pObjectId);
+  TypedValue createObjectValue(final IntegerFormula pObjectValue) {
+    return new TypedValue(typeTags.OBJECT, pObjectValue);
   }
 
   TypedValue createStringValue(final IntegerFormula pStringId) {

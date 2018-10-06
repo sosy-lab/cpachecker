@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.OBJECT_FIELDS_TYPE;
+
 import java.math.BigDecimal;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
@@ -47,6 +49,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -172,7 +175,9 @@ public class ExpressionToFormulaVisitor
                 mgr.makeEqual(conv.toBoolean(pLeftOperand), conv.toBoolean(pRightOperand))),
             mgr.makeAnd(
                 mgr.makeEqual(conv.typeTags.OBJECT, leftType),
-                mgr.makeEqual(conv.toObject(pLeftOperand), conv.toObject(pRightOperand))),
+                mgr.makeEqual(
+                    conv.objectId(conv.toObject(pLeftOperand)),
+                    conv.objectId(conv.toObject(pRightOperand)))),
             mgr.makeAnd(
                 mgr.makeEqual(conv.typeTags.STRING, leftType),
                 mgr.makeEqual(
@@ -227,13 +232,21 @@ public class ExpressionToFormulaVisitor
 
   @Override
   public TypedValue visit(final JSNullLiteralExpression pNullLiteralExpression) {
-    return conv.tvmgr.getNullValue();
+    final TypedValue nullValue = conv.tvmgr.getNullValue();
+    final IntegerFormula nvv = (IntegerFormula) nullValue.getValue();
+    constraints.addConstraint(mgr.makeEqual(conv.objectId(nvv), conv.createObjectId()));
+    constraints.addConstraint(mgr.makeEqual(conv.objectFields(nvv), getEmptyObjectFields()));
+    return nullValue;
   }
 
   @Override
   public TypedValue visit(final JSObjectLiteralExpression pObjectLiteralExpression)
       throws UnrecognizedCodeException {
-    return conv.tvmgr.createObjectValue(conv.createObjectId());
+    final TypedValue objectValue = conv.tvmgr.createObjectValue(conv.createObjectValue(ssa));
+    final IntegerFormula ovv = (IntegerFormula) objectValue.getValue();
+    constraints.addConstraint(mgr.makeEqual(conv.objectId(ovv), conv.createObjectId()));
+    constraints.addConstraint(mgr.makeEqual(conv.objectFields(ovv), getEmptyObjectFields()));
+    return objectValue;
   }
 
   @Override
@@ -286,8 +299,19 @@ public class ExpressionToFormulaVisitor
   }
 
   @Override
-  public TypedValue visit(final JSFieldAccess pJSFieldAccess) throws UnrecognizedCodeException {
-    return conv.tvmgr.getUndefinedValue();
+  public TypedValue visit(final JSFieldAccess pFieldAccess) throws UnrecognizedCodeException {
+    final ArrayFormula<IntegerFormula, IntegerFormula> fields =
+        conv.objectFields(
+            conv.typedValues.objectValue(
+                (IntegerFormula) visit(pFieldAccess.getObject()).getValue()));
+    final IntegerFormula field =
+        conv.afmgr.select(fields, conv.getStringFormula(pFieldAccess.getFieldName()));
+    final BooleanFormula isObjectFieldNotSet = mgr.makeEqual(field, conv.objectFieldNotSet);
+    // TODO use undefined instead of conv.objectFieldNotSet as value
+    return new TypedValue(
+        conv.bfmgr.ifThenElse(
+            isObjectFieldNotSet, conv.typeTags.UNDEFINED, conv.typedValues.typeof(field)),
+        conv.bfmgr.ifThenElse(isObjectFieldNotSet, conv.objectFieldNotSet, field));
   }
 
   private TypedValue handlePredefined(final JSIdExpression pIdExpression)
@@ -302,5 +326,16 @@ public class ExpressionToFormulaVisitor
         throw new UnrecognizedCodeException(
             "Variable without declaration is not defined on global object", pIdExpression);
     }
+  }
+
+  private ArrayFormula<IntegerFormula, IntegerFormula> getEmptyObjectFields() {
+    ArrayFormula<IntegerFormula, IntegerFormula> emptyObjectFields =
+        conv.afmgr.makeArray("emptyObjectFields", OBJECT_FIELDS_TYPE);
+    for (int stringId = 1; stringId <= conv.maxFieldNameCount; stringId++) {
+      emptyObjectFields =
+          conv.afmgr.store(
+              emptyObjectFields, conv.ifmgr.makeNumber(stringId), conv.objectFieldNotSet);
+    }
+    return emptyObjectFields;
   }
 }

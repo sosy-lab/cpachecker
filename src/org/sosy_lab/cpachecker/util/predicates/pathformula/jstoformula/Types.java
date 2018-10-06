@@ -41,4 +41,7 @@ public class Types {
   static final FormulaType<IntegerFormula> FUNCTION_DECLARATION_TYPE = FormulaType.IntegerType;
   static final FormulaType<IntegerFormula> STRING_TYPE = FormulaType.IntegerType;
   static final FormulaType<IntegerFormula> OBJECT_TYPE = FormulaType.IntegerType;
+  static final FormulaType<IntegerFormula> OBJECT_ID_TYPE = FormulaType.IntegerType;
+  static final ArrayFormulaType<IntegerFormula, IntegerFormula> OBJECT_FIELDS_TYPE =
+      FormulaType.getArrayType(STRING_TYPE, VARIABLE_TYPE); // field name to field variable
 }
