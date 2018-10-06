@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
@@ -43,18 +43,16 @@ class AssignmentCFABuilder implements AssignmentAppendable {
 
   @Override
   public JSExpression append(final JavaScriptCFABuilder pBuilder, final Assignment pAssignment) {
-    // TODO handle other left hand side expressions like field access
-    final JSIdExpression varId = (JSIdExpression) pBuilder.append(pAssignment.getLeftHandSide());
+    final JSLeftHandSide lhs = (JSLeftHandSide) pBuilder.append(pAssignment.getLeftHandSide());
     final JSExpression value = pBuilder.append(pAssignment.getRightHandSide());
     final Optional<BinaryOperator> operator = binaryOperatorOf(pAssignment.getOperator());
     final JSExpression newValue =
         operator.isPresent()
-            ? new JSBinaryExpression(FileLocation.DUMMY, varId, value, operator.get())
+            ? new JSBinaryExpression(FileLocation.DUMMY, lhs, value, operator.get())
             : value;
     pBuilder.appendEdge(
-        JSStatementEdge.of(
-            new JSExpressionAssignmentStatement(FileLocation.DUMMY, varId, newValue)));
-    return varId;
+        JSStatementEdge.of(new JSExpressionAssignmentStatement(FileLocation.DUMMY, lhs, newValue)));
+    return lhs;
   }
 
   private static final @Nonnull Map<Operator, BinaryOperator> assignmentOperatorToBinaryOperator;
