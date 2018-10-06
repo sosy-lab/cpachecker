@@ -915,12 +915,8 @@ public class JSToFormulaConverter {
     final JSSimpleDeclaration objectDeclaration =
         getObjectDeclarationOfFieldAccess(pLhs, pEdge, pLhsFunction, pSsa, pConstraints,
             pErrorConditions);
-    final String objectVariableName = objectDeclaration.getQualifiedName();
     final IntegerFormula objectId =
-        typedValues.objectValue(
-            typedValues.var(
-                scopeOf(pLhsFunction, objectDeclaration, pSsa),
-                makeVariable(objectVariableName, pSsa)));
+        typedValues.objectValue(scopedVariable(pLhsFunction, objectDeclaration, pSsa));
     final String fieldName = pLhs.getFieldName();
     final IntegerFormula field = makeFreshVariable("field_" + fieldName, pSsa);
     // Mark field as set
