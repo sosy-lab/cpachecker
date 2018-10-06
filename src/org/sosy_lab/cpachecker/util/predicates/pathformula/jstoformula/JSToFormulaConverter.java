@@ -935,7 +935,8 @@ public class JSToFormulaConverter {
       final CFAEdge pEdge,
       final String pLhsFunction,
       final SSAMapBuilder pSsa,
-      final Constraints pConstraints, final ErrorConditions pErrorConditions)
+      final Constraints pConstraints,
+      final ErrorConditions pErrorConditions)
       throws UnrecognizedCodeException {
     final JSSimpleDeclaration objectDeclaration;
     if (pLhs.getObject() instanceof JSIdExpression) {
