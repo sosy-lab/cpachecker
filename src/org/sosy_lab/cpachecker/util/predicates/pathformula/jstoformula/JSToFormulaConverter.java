@@ -945,7 +945,7 @@ public class JSToFormulaConverter {
         fmgr.makeEqual(
             newObjectFields,
             afmgr.store(objectFields(oldObjectValue), getStringFormula(fieldName), field)));
-    updateIndicesOfOtherScopeVariables(objectVariableName, pLhsFunction, pSsa, pConstraints);
+    updateIndicesOfOtherScopeVariables(objectDeclaration, pLhsFunction, pSsa, pConstraints);
     return makeAssignment(field, pRhsValue);
   }
 
@@ -959,8 +959,7 @@ public class JSToFormulaConverter {
     final JSSimpleDeclaration declaration = pLhs.getDeclaration();
     assert declaration != null;
     final IntegerFormula l = buildLvalueTerm(pLhsFunction, declaration, pSsa);
-    final String variableName = declaration.getQualifiedName();
-    updateIndicesOfOtherScopeVariables(variableName, pLhsFunction, pSsa, pConstraints);
+    updateIndicesOfOtherScopeVariables(declaration, pLhsFunction, pSsa, pConstraints);
     return makeAssignment(l, pRhsValue);
   }
 
@@ -978,29 +977,31 @@ public class JSToFormulaConverter {
    * f::p@3)).
    */
   private void updateIndicesOfOtherScopeVariables(
-      final String pVariableName,
-      final String pLhsFunction,
+      final JSSimpleDeclaration pVariableDeclaration,
+      final String pCurrentFunction,
       final SSAMapBuilder pSsa,
       final Constraints pConstraints) {
-    final List<Long> scopeIds = functionScopeManager.getScopeIds(pLhsFunction);
+    final String variableName = pVariableDeclaration.getQualifiedName();
+    final List<Long> scopeIds =
+        functionScopeManager.getScopeIds(
+            pVariableDeclaration.getScope().getFunctionDeclaration().getQualifiedName());
     pConstraints.addConstraint(
         bfmgr.and(
             scopeIds
                 .stream()
                 .map(
                     (pScopeId) ->
-                        bfmgr.implication(
-                            bfmgr.not(
-                                fmgr.makeEqual(
-                                    fmgr.makeNumber(SCOPE_TYPE, pScopeId),
-                                    getCurrentScope(pLhsFunction, pSsa))),
+                        bfmgr.or(
+                            fmgr.makeEqual(
+                                fmgr.makeNumber(SCOPE_TYPE, pScopeId),
+                                scopeOf(pCurrentFunction, pVariableDeclaration, pSsa)),
                             fmgr.makeEqual(
                                 typedValues.var(
                                     fmgr.makeNumber(SCOPE_TYPE, pScopeId),
-                                    makePreviousVariable(pVariableName, pSsa)),
+                                    makePreviousVariable(variableName, pSsa)),
                                 typedValues.var(
                                     fmgr.makeNumber(SCOPE_TYPE, pScopeId),
-                                    makeVariable(pVariableName, pSsa)))))
+                                    makeVariable(variableName, pSsa)))))
                 .collect(Collectors.toList())));
   }
 
