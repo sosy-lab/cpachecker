@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.FUNCTION_DECLARATION_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.FUNCTION_TYPE;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.OBJECT_FIELDS_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.OBJECT_ID_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.OBJECT_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.SCOPE_STACK_TYPE;
@@ -42,6 +41,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -62,6 +63,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSParameterDeclaration;
@@ -127,6 +129,7 @@ public class JSToFormulaConverter {
   final TypedValueManager tvmgr;
   private final Ids<String> stringIds;
   final Ids<JSFunctionDeclaration> functionDeclarationIds;
+  private static final String OBJECT_FIELDS_VARIABLE_NAME = "objectFields";
   private long objectIdCounter;
 
   private final FormulaEncodingOptions options;
@@ -170,9 +173,6 @@ public class JSToFormulaConverter {
 
   final IntegerFormula objectFieldNotSet;
 
-  private final FunctionDeclaration<ArrayFormula<IntegerFormula, IntegerFormula>>
-      objectFieldsDeclaration;
-  private final FunctionDeclaration<IntegerFormula> objectIdDeclaration;
   private final FunctionDeclaration<IntegerFormula> scopeOfDeclaration;
   private final FunctionDeclaration<ArrayFormula<IntegerFormula, IntegerFormula>>
       scopeStackDeclaration;
@@ -216,8 +216,6 @@ public class JSToFormulaConverter {
     // name, any value (here 0) can be used to represent a special variable value (that is not used
     // as another special variable value somewhere else)
     objectFieldNotSet = ifmgr.makeNumber(0);
-    objectFieldsDeclaration = ffmgr.declareUF("objectFields", OBJECT_FIELDS_TYPE, OBJECT_TYPE);
-    objectIdDeclaration = ffmgr.declareUF("objectId", OBJECT_ID_TYPE, OBJECT_TYPE);
     scopeOfDeclaration = ffmgr.declareUF("scopeOf", SCOPE_TYPE, VARIABLE_TYPE);
     afmgr = fmgr.getArrayFormulaManager();
     scopeStackDeclaration = ffmgr.declareUF("scopeStack", SCOPE_STACK_TYPE, SCOPE_TYPE);
@@ -240,18 +238,17 @@ public class JSToFormulaConverter {
 
   /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
   @SuppressWarnings("ResultOfMethodCallIgnored")
-  private int makeFreshIndex(String name, JSType type, SSAMapBuilder ssa) {
+  private int makeFreshIndex(String name, SSAMapBuilder ssa) {
     int idx = getFreshIndex(name, ssa);
-    ssa.setIndex(name, type, idx);
+    ssa.setIndex(name, JSAnyType.ANY, idx);
     return idx;
   }
 
   /**
    * Produces a fresh new SSA index for an assignment, but does _not_ update the SSA map. Usually
-   * you should use {@link #makeFreshIndex(String, JSType, SSAMapBuilder)} instead, because using
-   * variables with indices that are not stored in the SSAMap is not a good idea (c.f. the comment
-   * inside getIndex()). If you use this method, you need to make sure to update the SSAMap
-   * correctly.
+   * you should use {@link #makeFreshIndex(String, SSAMapBuilder)} instead, because using variables
+   * with indices that are not stored in the SSAMap is not a good idea (c.f. the comment inside
+   * getIndex()). If you use this method, you need to make sure to update the SSAMap correctly.
    */
   private int getFreshIndex(String name, SSAMapBuilder ssa) {
 //    checkSsaSavedType(name, type, ssa.getType(name));
@@ -349,13 +346,13 @@ public class JSToFormulaConverter {
     if (direction == AnalysisDirection.BACKWARD) {
       useIndex = getIndex(name, type, ssa);
     } else {
-      useIndex = makeFreshIndex(name, type, ssa);
+      useIndex = makeFreshIndex(name, ssa);
     }
 
     Formula result = fmgr.makeVariable(Types.VARIABLE_TYPE, name, useIndex);
 
     if (direction == AnalysisDirection.BACKWARD) {
-      makeFreshIndex(name, type, ssa);
+      makeFreshIndex(name, ssa);
     }
 
     return result;
@@ -368,13 +365,13 @@ public class JSToFormulaConverter {
     if (direction == AnalysisDirection.BACKWARD) {
       useIndex = getIndex(name, JSAnyType.ANY, ssa);
     } else {
-      useIndex = makeFreshIndex(name, JSAnyType.ANY, ssa);
+      useIndex = makeFreshIndex(name, ssa);
     }
 
     IntegerFormula result = fmgr.makeVariable(Types.VARIABLE_TYPE, name, useIndex);
 
     if (direction == AnalysisDirection.BACKWARD) {
-      makeFreshIndex(name, JSAnyType.ANY, ssa);
+      makeFreshIndex(name, ssa);
     }
 
     return result;
@@ -622,8 +619,8 @@ public class JSToFormulaConverter {
     // between closure contexts (see updateIndicesOfOtherScopeVariables).
     // It is assumed that it is a closure variable if the variable is already part of the SSA
     // with a valid index.
-    if (direction == AnalysisDirection.FORWARD && 2 > ssa.getIndex(varName)) {
-      makeFreshIndex(varName, decl.getType(), ssa);
+    if (direction == AnalysisDirection.FORWARD && !ssa.allVariables().contains(varName)) {
+      makeFreshIndex(varName, ssa);
     }
 
     // if there is an initializer associated to this variable,
@@ -727,14 +724,6 @@ public class JSToFormulaConverter {
 
   private ArrayFormula<IntegerFormula, IntegerFormula> scopeStack(final IntegerFormula pScope) {
     return ffmgr.callUF(scopeStackDeclaration, pScope);
-  }
-
-  ArrayFormula<IntegerFormula, IntegerFormula> objectFields(final IntegerFormula pObjectValue) {
-    return ffmgr.callUF(objectFieldsDeclaration, pObjectValue);
-  }
-
-  IntegerFormula objectId(final IntegerFormula pObjectValue) {
-    return ffmgr.callUF(objectIdDeclaration, pObjectValue);
   }
 
   IntegerFormula declarationOf(final IntegerFormula pFunctionObject) {
@@ -907,6 +896,13 @@ public class JSToFormulaConverter {
     throw new UnrecognizedCodeException("Unimplemented left-hand-side in assignment", edge, lhs);
   }
 
+  private long tmpVariableCount = 0;
+
+  private String generateTemporaryVariableName() {
+    ++tmpVariableCount;
+    return "tmp" + tmpVariableCount;
+  }
+
   private BooleanFormula makeAssignment(
       final JSFieldAccess pLhs,
       final CFAEdge pEdge,
@@ -916,35 +912,41 @@ public class JSToFormulaConverter {
       final TypedValue pRhsValue,
       final ErrorConditions pErrorConditions)
       throws UnrecognizedCodeException {
-    if (!(pLhs.getObject() instanceof JSIdExpression)) {
-      throw new UnrecognizedCodeException(
-          "Field access on object that is not JSIdExpression not implemented yet", pEdge, pLhs);
+    final JSSimpleDeclaration objectDeclaration;
+    if (pLhs.getObject() instanceof JSIdExpression) {
+      objectDeclaration = ((JSIdExpression) pLhs.getObject()).getDeclaration();
+    } else {
+      final String temporaryVariableName = generateTemporaryVariableName();
+      objectDeclaration =
+          new JSVariableDeclaration(
+              FileLocation.DUMMY,
+              Scope.GLOBAL,
+              temporaryVariableName,
+              temporaryVariableName,
+              temporaryVariableName,
+              new JSInitializerExpression(FileLocation.DUMMY, pLhs.getObject()));
+      pConstraints.addConstraint(
+          makeAssignment(
+              buildLvalueTerm(pLhsFunction, objectDeclaration, pSsa),
+              buildTerm(
+                  pLhs.getObject(), pEdge, pLhsFunction, pSsa, pConstraints, pErrorConditions)));
     }
-    final JSSimpleDeclaration objectDeclaration =
-        ((JSIdExpression) pLhs.getObject()).getDeclaration();
     assert objectDeclaration != null;
     final String objectVariableName = objectDeclaration.getQualifiedName();
-    final IntegerFormula oldObjectValue =
+    final IntegerFormula objectId =
         typedValues.objectValue(
             typedValues.var(
                 scopeOf(pLhsFunction, objectDeclaration, pSsa),
                 makeVariable(objectVariableName, pSsa)));
-    final IntegerFormula newObjectVar = buildLvalueTerm(pLhsFunction, objectDeclaration, pSsa);
-    final ArrayFormula<IntegerFormula, IntegerFormula> newObjectFields =
-        objectFields(typedValues.objectValue(newObjectVar));
     final String fieldName = pLhs.getFieldName();
     final IntegerFormula field = makeFreshVariable("field_" + fieldName, pSsa);
     // Mark field as set
     pConstraints.addConstraint(bfmgr.not(fmgr.makeEqual(field, objectFieldNotSet)));
-    // A new object variable represents the object after the assignment.
-    // The type and object ID stay the same, but the fields change.
-    pConstraints.addConstraint(fmgr.makeEqual(typedValues.typeof(newObjectVar), typeTags.OBJECT));
-    pConstraints.addConstraint(
-        fmgr.makeEqual(objectId(typedValues.objectValue(newObjectVar)), objectId(oldObjectValue)));
-    pConstraints.addConstraint(
-        fmgr.makeEqual(
-            newObjectFields,
-            afmgr.store(objectFields(oldObjectValue), getStringFormula(fieldName), field)));
+    setObjectFields(
+        objectId,
+        afmgr.store(getObjectFields(objectId, pSsa), getStringFormula(fieldName), field),
+        pSsa,
+        pConstraints);
     updateIndicesOfOtherScopeVariables(objectDeclaration, pLhsFunction, pSsa, pConstraints);
     return makeAssignment(field, pRhsValue);
   }
@@ -1071,10 +1073,6 @@ public class JSToFormulaConverter {
 
   IntegerFormula createObjectId() {
     return fmgr.makeNumber(OBJECT_ID_TYPE, ++objectIdCounter);
-  }
-
-  IntegerFormula createObjectValue(final SSAMapBuilder pSsa) {
-    return makeFreshVariable("object", pSsa);
   }
 
   IntegerFormula toObject(final TypedValue pValue) {
@@ -1293,5 +1291,41 @@ public class JSToFormulaConverter {
     final Formula newVariable = fmgr.makeVariable(Types.VARIABLE_TYPE, variableName, newIndex);
 
     return fmgr.assignment(newVariable, oldVariable);
+  }
+
+  void setObjectFields(
+      final IntegerFormula pObjectId,
+      final ArrayFormula<IntegerFormula, IntegerFormula> pObjectFields,
+      final SSAMapBuilder pSsa,
+      final Constraints pConstraints) {
+    pConstraints.addConstraint(
+        afmgr.equivalence(
+            afmgr.store(makeObjectFieldsVariable(pSsa), pObjectId, pObjectFields),
+            fmgr.makeVariable(
+                Types.OBJECT_FIELDS_VARIABLE_TYPE,
+                OBJECT_FIELDS_VARIABLE_NAME,
+                makeFreshIndex(OBJECT_FIELDS_VARIABLE_NAME, pSsa))));
+  }
+
+  @SuppressWarnings("ResultOfMethodCallIgnored")
+  @Nonnull
+  private ArrayFormula<IntegerFormula, ArrayFormula<IntegerFormula, IntegerFormula>>
+      makeObjectFieldsVariable(final SSAMapBuilder pSsa) {
+    if (!pSsa.allVariables().contains(OBJECT_FIELDS_VARIABLE_NAME)) {
+      makeFreshIndex(OBJECT_FIELDS_VARIABLE_NAME, pSsa);
+      return afmgr.makeArray(
+          OBJECT_FIELDS_VARIABLE_NAME,
+          makeFreshIndex(OBJECT_FIELDS_VARIABLE_NAME, pSsa),
+          Types.OBJECT_FIELDS_VARIABLE_TYPE);
+    }
+    return fmgr.makeVariable(
+        Types.OBJECT_FIELDS_VARIABLE_TYPE,
+        OBJECT_FIELDS_VARIABLE_NAME,
+        pSsa.getIndex(OBJECT_FIELDS_VARIABLE_NAME));
+  }
+
+  ArrayFormula<IntegerFormula, IntegerFormula> getObjectFields(
+      final IntegerFormula pObjectId, final SSAMapBuilder pSsa) {
+    return afmgr.select(makeObjectFieldsVariable(pSsa), pObjectId);
   }
 }

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
+import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.ArrayFormulaType;
@@ -44,4 +45,7 @@ public class Types {
   static final FormulaType<IntegerFormula> OBJECT_ID_TYPE = FormulaType.IntegerType;
   static final ArrayFormulaType<IntegerFormula, IntegerFormula> OBJECT_FIELDS_TYPE =
       FormulaType.getArrayType(STRING_TYPE, VARIABLE_TYPE); // field name to field variable
+  /** Maps object id to object fields. */
+  static final ArrayFormulaType<IntegerFormula, ArrayFormula<IntegerFormula, IntegerFormula>>
+      OBJECT_FIELDS_VARIABLE_TYPE = FormulaType.getArrayType(OBJECT_TYPE, OBJECT_FIELDS_TYPE);
 }

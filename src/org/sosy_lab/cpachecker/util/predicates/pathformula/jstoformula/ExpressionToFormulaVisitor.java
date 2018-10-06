@@ -175,9 +175,7 @@ public class ExpressionToFormulaVisitor
                 mgr.makeEqual(conv.toBoolean(pLeftOperand), conv.toBoolean(pRightOperand))),
             mgr.makeAnd(
                 mgr.makeEqual(conv.typeTags.OBJECT, leftType),
-                mgr.makeEqual(
-                    conv.objectId(conv.toObject(pLeftOperand)),
-                    conv.objectId(conv.toObject(pRightOperand)))),
+                mgr.makeEqual(conv.toObject(pLeftOperand), conv.toObject(pRightOperand))),
             mgr.makeAnd(
                 mgr.makeEqual(conv.typeTags.STRING, leftType),
                 mgr.makeEqual(
@@ -232,20 +230,15 @@ public class ExpressionToFormulaVisitor
 
   @Override
   public TypedValue visit(final JSNullLiteralExpression pNullLiteralExpression) {
-    final TypedValue nullValue = conv.tvmgr.getNullValue();
-    final IntegerFormula nvv = (IntegerFormula) nullValue.getValue();
-    constraints.addConstraint(mgr.makeEqual(conv.objectId(nvv), conv.createObjectId()));
-    constraints.addConstraint(mgr.makeEqual(conv.objectFields(nvv), getEmptyObjectFields()));
-    return nullValue;
+    return conv.tvmgr.getNullValue();
   }
 
   @Override
   public TypedValue visit(final JSObjectLiteralExpression pObjectLiteralExpression)
       throws UnrecognizedCodeException {
-    final TypedValue objectValue = conv.tvmgr.createObjectValue(conv.createObjectValue(ssa));
+    final TypedValue objectValue = conv.tvmgr.createObjectValue(conv.createObjectId());
     final IntegerFormula ovv = (IntegerFormula) objectValue.getValue();
-    constraints.addConstraint(mgr.makeEqual(conv.objectId(ovv), conv.createObjectId()));
-    constraints.addConstraint(mgr.makeEqual(conv.objectFields(ovv), getEmptyObjectFields()));
+    conv.setObjectFields(ovv, getEmptyObjectFields(), ssa, constraints);
     return objectValue;
   }
 
@@ -300,10 +293,10 @@ public class ExpressionToFormulaVisitor
 
   @Override
   public TypedValue visit(final JSFieldAccess pFieldAccess) throws UnrecognizedCodeException {
-    final ArrayFormula<IntegerFormula, IntegerFormula> fields =
-        conv.objectFields(
-            conv.typedValues.objectValue(
-                (IntegerFormula) visit(pFieldAccess.getObject()).getValue()));
+    // TODO fix nested access a.b.c using temporay assignment: var tmp = a.b; tmp.c
+    final IntegerFormula objectId =
+        conv.typedValues.objectValue((IntegerFormula) visit(pFieldAccess.getObject()).getValue());
+    final ArrayFormula<IntegerFormula, IntegerFormula> fields = conv.getObjectFields(objectId, ssa);
     final IntegerFormula field =
         conv.afmgr.select(fields, conv.getStringFormula(pFieldAccess.getFieldName()));
     final BooleanFormula isObjectFieldNotSet = mgr.makeEqual(field, conv.objectFieldNotSet);
