@@ -729,10 +729,11 @@ public class JSToFormulaConverter {
       ss =
           scopeStack(
               scopeOf(
-                  scopedVariable(
-                      callerFunction,
-                      Objects.requireNonNull(functionObject.get().getDeclaration()),
-                      ssa)));
+                  typedValues.functionValue(
+                      scopedVariable(
+                          callerFunction,
+                          Objects.requireNonNull(functionObject.get().getDeclaration()),
+                          ssa))));
     } else {
       ss =
           scopeStack(afmgr.select(scopeStack(callerScopeVariable), ifmgr.makeNumber(nestingLevel)));
