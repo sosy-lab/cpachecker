@@ -912,26 +912,9 @@ public class JSToFormulaConverter {
       final TypedValue pRhsValue,
       final ErrorConditions pErrorConditions)
       throws UnrecognizedCodeException {
-    final JSSimpleDeclaration objectDeclaration;
-    if (pLhs.getObject() instanceof JSIdExpression) {
-      objectDeclaration = ((JSIdExpression) pLhs.getObject()).getDeclaration();
-    } else {
-      final String temporaryVariableName = generateTemporaryVariableName();
-      objectDeclaration =
-          new JSVariableDeclaration(
-              FileLocation.DUMMY,
-              Scope.GLOBAL,
-              temporaryVariableName,
-              temporaryVariableName,
-              temporaryVariableName,
-              new JSInitializerExpression(FileLocation.DUMMY, pLhs.getObject()));
-      pConstraints.addConstraint(
-          makeAssignment(
-              buildLvalueTerm(pLhsFunction, objectDeclaration, pSsa),
-              buildTerm(
-                  pLhs.getObject(), pEdge, pLhsFunction, pSsa, pConstraints, pErrorConditions)));
-    }
-    assert objectDeclaration != null;
+    final JSSimpleDeclaration objectDeclaration =
+        getObjectDeclarationOfFieldAccess(pLhs, pEdge, pLhsFunction, pSsa, pConstraints,
+            pErrorConditions);
     final String objectVariableName = objectDeclaration.getQualifiedName();
     final IntegerFormula objectId =
         typedValues.objectValue(
@@ -949,6 +932,36 @@ public class JSToFormulaConverter {
         pConstraints);
     updateIndicesOfOtherScopeVariables(objectDeclaration, pLhsFunction, pSsa, pConstraints);
     return makeAssignment(field, pRhsValue);
+  }
+
+  private JSSimpleDeclaration getObjectDeclarationOfFieldAccess(
+      final JSFieldAccess pLhs,
+      final CFAEdge pEdge,
+      final String pLhsFunction,
+      final SSAMapBuilder pSsa,
+      final Constraints pConstraints, final ErrorConditions pErrorConditions)
+      throws UnrecognizedCodeException {
+    final JSSimpleDeclaration objectDeclaration;
+    if (pLhs.getObject() instanceof JSIdExpression) {
+      objectDeclaration = ((JSIdExpression) pLhs.getObject()).getDeclaration();
+      assert objectDeclaration != null;
+    } else {
+      final String temporaryVariableName = generateTemporaryVariableName();
+      objectDeclaration =
+          new JSVariableDeclaration(
+              FileLocation.DUMMY,
+              Scope.GLOBAL,
+              temporaryVariableName,
+              temporaryVariableName,
+              temporaryVariableName,
+              new JSInitializerExpression(FileLocation.DUMMY, pLhs.getObject()));
+      pConstraints.addConstraint(
+          makeAssignment(
+              buildLvalueTerm(pLhsFunction, objectDeclaration, pSsa),
+              buildTerm(
+                  pLhs.getObject(), pEdge, pLhsFunction, pSsa, pConstraints, pErrorConditions)));
+    }
+    return objectDeclaration;
   }
 
   @Nonnull
