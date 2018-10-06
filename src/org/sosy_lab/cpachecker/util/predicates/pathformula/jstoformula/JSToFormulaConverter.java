@@ -123,6 +123,7 @@ public class JSToFormulaConverter {
   final TypedValueManager tvmgr;
   private final Ids<String> stringIds;
   final Ids<JSFunctionDeclaration> functionDeclarationIds;
+  private long objectIdCounter;
 
   private final FormulaEncodingOptions options;
   protected final MachineModel machineModel;
@@ -199,6 +200,7 @@ public class JSToFormulaConverter {
     mainScope = fmgr.makeNumber(SCOPE_TYPE, 0);
     globalScopeStack = afmgr.makeArray("globalScopeStack", SCOPE_STACK_TYPE);
     functionScopeManager = new FunctionScopeManager();
+    objectIdCounter = 0;
   }
 
   @SuppressWarnings("SameParameterValue")
@@ -953,6 +955,10 @@ public class JSToFormulaConverter {
     final IntegerFormula variable = (IntegerFormula) pValue.getValue();
     return bfmgr.ifThenElse(
         fmgr.makeEqual(type, typeTags.FUNCTION), typedValues.functionValue(variable), notAFunction);
+  }
+
+  IntegerFormula createObjectId() {
+    return fmgr.makeNumber(Types.OBJECT_TYPE, ++objectIdCounter);
   }
 
   IntegerFormula toStringFormula(final TypedValue pValue) {

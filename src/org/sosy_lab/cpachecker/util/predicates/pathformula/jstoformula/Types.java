@@ -40,4 +40,5 @@ public class Types {
   static final FormulaType<IntegerFormula> FUNCTION_TYPE = FormulaType.IntegerType;
   static final FormulaType<IntegerFormula> FUNCTION_DECLARATION_TYPE = FormulaType.IntegerType;
   static final FormulaType<IntegerFormula> STRING_TYPE = FormulaType.IntegerType;
+  static final FormulaType<IntegerFormula> OBJECT_TYPE = FormulaType.IntegerType;
 }

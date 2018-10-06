@@ -230,7 +230,7 @@ public class ExpressionToFormulaVisitor
   @Override
   public TypedValue visit(final JSObjectLiteralExpression pObjectLiteralExpression)
       throws UnrecognizedCodeException {
-    throw new UnrecognizedCodeException("JSObjectLiteralExpression not implemented yet", pObjectLiteralExpression);
+    return conv.tvmgr.createObjectValue(conv.createObjectId());
   }
 
   @Override
