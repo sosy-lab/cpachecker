@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.FUNCTION_DECLARATION_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.FUNCTION_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.SCOPE_STACK_TYPE;
@@ -1089,4 +1090,21 @@ public class JSToFormulaConverter {
     return new ExpressionToFormulaVisitor(this, useNaN, fmgr, pEdge, pFunction, ssa, constraints);
   }
 
+  /**
+   * Create the necessary equivalence terms for adjusting the SSA indices of a given symbol (of any
+   * type) from oldIndex to newIndex.
+   *
+   * @param variableName The name of the variable for which the index is adjusted.
+   * @param oldIndex The previous SSA index.
+   * @param newIndex The new SSA index.
+   */
+  public BooleanFormula makeSsaUpdateTerm(
+      final String variableName, final int oldIndex, final int newIndex) {
+    checkArgument(oldIndex > 0 && newIndex > oldIndex);
+
+    final Formula oldVariable = fmgr.makeVariable(Types.VARIABLE_TYPE, variableName, oldIndex);
+    final Formula newVariable = fmgr.makeVariable(Types.VARIABLE_TYPE, variableName, newIndex);
+
+    return fmgr.assignment(newVariable, oldVariable);
+  }
 }

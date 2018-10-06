@@ -337,6 +337,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             useNondetFlags,
             fmgr,
             converter,
+            jsConverter,
             shutdownNotifier,
             NONDET_FORMULA_TYPE);
     final MergeResult<SSAMap> mergeSSAResult = merger.mergeSSAMaps(ssa1, pts1, ssa2, pts2);
@@ -560,6 +561,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             useNondetFlags,
             fmgr,
             converter,
+            jsConverter,
             shutdownNotifier,
             NONDET_FORMULA_TYPE);
     BooleanFormula bF = pF2.getFormula();

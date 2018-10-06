@@ -29,8 +29,11 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaMan
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.JSToFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -46,6 +49,7 @@ public class SSAMapMerger {
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
+  private final JSToFormulaConverter jsConverter;
   private final ShutdownNotifier shutdownNotifier;
   private final CtoFormulaConverter converter;
   private final boolean useNondetFlags;
@@ -55,12 +59,14 @@ public class SSAMapMerger {
       boolean pUseNondetFlags,
       FormulaManagerView pFmgr,
       CtoFormulaConverter pConverter,
+      JSToFormulaConverter pJSToFormulaConverter,
       ShutdownNotifier pShutdownNotifier,
       FormulaType<?> pNondetFormulaType) {
     useNondetFlags = pUseNondetFlags;
     fmgr = pFmgr;
     bfmgr = pFmgr.getBooleanFormulaManager();
     converter = pConverter;
+    jsConverter = pJSToFormulaConverter;
     shutdownNotifier = pShutdownNotifier;
     nondetFormulaType = pNondetFormulaType;
   }
@@ -94,7 +100,7 @@ public class SSAMapMerger {
     for (final MapsDifference.Entry<String, Integer> symbolDifference : symbolDifferences) {
       shutdownNotifier.shutdownIfNecessary();
       final String symbolName = symbolDifference.getKey();
-      final CType symbolType = resultSSA.getType(symbolName);
+      final Type symbolType = resultSSA.getType(symbolName);
       final int index1 = symbolDifference.getLeftValue().orElse(1);
       final int index2 = symbolDifference.getRightValue().orElse(1);
 
@@ -125,7 +131,7 @@ public class SSAMapMerger {
    */
   private BooleanFormula makeSsaMerger(
       final String symbolName,
-      final CType symbolType,
+      final Type symbolType,
       final int oldIndex,
       final int newIndex,
       final PointerTargetSet oldPts)
@@ -139,8 +145,10 @@ public class SSAMapMerger {
 
     if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
       return makeSsaNondetFlagMerger(oldIndex, newIndex);
+    } else if (symbolType instanceof JSAnyType) {
+      return jsConverter.makeSsaUpdateTerm(symbolName, oldIndex, newIndex);
     } else {
-      return converter.makeSsaUpdateTerm(symbolName, symbolType, oldIndex, newIndex, oldPts);
+      return converter.makeSsaUpdateTerm(symbolName, (CType) symbolType, oldIndex, newIndex, oldPts);
     }
   }
 
@@ -175,7 +183,7 @@ public class SSAMapMerger {
     for (final MapsDifference.Entry<String, Integer> symbolDifference : symbolDifferences) {
       shutdownNotifier.shutdownIfNecessary();
       final String symbolName = symbolDifference.getKey();
-      final CType symbolType = resultSSA.getType(symbolName);
+      final CType symbolType = (CType) resultSSA.getType(symbolName);
       final int index1 = symbolDifference.getLeftValue().orElse(1);
       final int index2 = symbolDifference.getRightValue().orElse(1);
 

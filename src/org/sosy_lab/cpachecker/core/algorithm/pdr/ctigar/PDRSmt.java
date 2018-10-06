@@ -745,7 +745,7 @@ public class PDRSmt {
       shutdownNotifier.shutdownIfNecessary();
 
       // Make variable
-      CType type = unprimedContext.getSsa().getType(variableName);
+      CType type = (CType) unprimedContext.getSsa().getType(variableName);
       BitvectorFormula unprimedVar =
           (BitvectorFormula)
               pfmgr.makeFormulaForVariable(unprimedContext, variableName, type, false);

@@ -374,7 +374,7 @@ public class BAMPredicateReducer implements Reducer {
 
     final SSAMap expandedSSA = expandedState.getAbstractionFormula().getBlockFormula().getSsa();
     for (String var : expandedSSA.allVariables()) {
-      final CType type = expandedSSA.getType(var);
+      final CType type = (CType) expandedSSA.getType(var);
       if (var.startsWith(calledFunction + "::")
               && var.endsWith(PARAM_VARIABLE_NAME)) {
         int newIndex = entrySsaWithRet.getIndex(var);
@@ -462,7 +462,7 @@ public class BAMPredicateReducer implements Reducer {
 
       // Depending on the scope of vars, set either only the lastUsedIndex or the default index.
       // var was used and maybe overridden inside the block
-      final CType type = expandedSSA.getType(var);
+      final CType type = (CType) expandedSSA.getType(var);
       if (var.contains("::") && !isReturnVar(var, functionExitNode)) { // var is scoped -> not global
 
         if (!rootSSA.containsVariable(var)) {

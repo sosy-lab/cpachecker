@@ -32,11 +32,7 @@ import java.io.Serializable;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map;
 import java.util.SortedMap;
-import java.util.SortedSet;
 import org.sosy_lab.common.collect.Collections3;
-import java.io.Serializable;
-import java.util.AbstractMap.SimpleImmutableEntry;
-import java.util.Map;
 import java.util.NavigableSet;
 import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -50,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 
 
 /**
@@ -349,8 +344,8 @@ public class SSAMap implements Serializable {
     return vars.containsKey(variable);
   }
 
-  public CType getType(String name) {
-    return (CType) varTypes.get(name);
+  public Type getType(String name) {
+    return varTypes.get(name);
   }
 
   public NavigableSet<String> allVariables() {

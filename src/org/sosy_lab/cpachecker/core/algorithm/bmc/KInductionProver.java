@@ -679,11 +679,11 @@ class KInductionProver implements AutoCloseable {
           if (ssaMap.containsVariable(input)) {
             inputs.put(input, ssaMap.getIndex(input) - 1);
             inputs.put(input, ssaMap.getIndex(input));
-            types.put(input, ssaMap.getType(input));
+            types.put(input, (CType) ssaMap.getType(input));
           }
         }
         for (String varName : ssaMap.allVariables()) {
-          types.put(varName, ssaMap.getType(varName));
+          types.put(varName, (CType) ssaMap.getType(varName));
         }
       }
       ARGState argState = AbstractStates.extractStateByType(current, ARGState.class);

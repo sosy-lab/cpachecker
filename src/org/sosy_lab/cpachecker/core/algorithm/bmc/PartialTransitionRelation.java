@@ -273,7 +273,7 @@ public class PartialTransitionRelation implements Comparable<PartialTransitionRe
                       .map(
                           name -> {
                             return pmgr.makeFormulaForVariable(
-                                pathFormula, name, ssaMap.getType(name), false);
+                                pathFormula, name, (CType) ssaMap.getType(name), false);
                           })
                       .map(fmgr::uninstantiate);
                 })
@@ -487,11 +487,11 @@ public class PartialTransitionRelation implements Comparable<PartialTransitionRe
         for (String input : is.getInputs()) {
           if (ssaMap.containsVariable(input)) {
             inputs.put(input, ssaMap.getIndex(input) - 1);
-            types.put(input, ssaMap.getType(input));
+            types.put(input, (CType) ssaMap.getType(input));
           }
         }
         for (String varName : ssaMap.allVariables()) {
-          types.put(varName, ssaMap.getType(varName));
+          types.put(varName, (CType) ssaMap.getType(varName));
         }
       }
     }

@@ -73,7 +73,7 @@ final class Reindexer {
     Set<String> formulaVariables = pFormulaManager.extractVariableNames(pFormula);
     SSAMapBuilder builder = SSAMap.emptySSAMap().builder();
     for (String variableName : pFormulaSSAMap.allVariables()) {
-      CType type = pFormulaSSAMap.getType(variableName);
+      CType type = (CType) pFormulaSSAMap.getType(variableName);
       int highIndex = pFormulaSSAMap.getIndex(variableName);
       String highVariableName =
           FormulaManagerView.instantiateVariableName(variableName, pFormulaSSAMap);
@@ -108,7 +108,7 @@ final class Reindexer {
     Set<String> allIndexedVariables = pFormulaManager.extractVariableNames(pOldFormula);
     Map<String, String> substitution = Maps.newHashMapWithExpectedSize(allVariables.size());
     for (String variableName : allVariables) {
-      CType type = pFormulaSSAMap.getType(variableName);
+      CType type = (CType) pFormulaSSAMap.getType(variableName);
       int highIndex = pFormulaSSAMap.getIndex(variableName);
       for (int index = pLowIndex; index <= highIndex; ++index) {
         SSAMap oldSSAMap =

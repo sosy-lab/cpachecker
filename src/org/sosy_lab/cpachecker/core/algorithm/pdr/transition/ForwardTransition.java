@@ -397,7 +397,7 @@ public class ForwardTransition {
               PathFormula pathFormula = pas.getPathFormula();
               SSAMap ssaMap = pathFormula.getSsa();
               for (String variable : intersection) {
-                CType type = ssaMap.getType(variable);
+                CType type = (CType) ssaMap.getType(variable);
                 if (type != null) {
                   Formula varFormula =
                       pathFormulaManager.makeFormulaForVariable(pathFormula, variable, type, false);

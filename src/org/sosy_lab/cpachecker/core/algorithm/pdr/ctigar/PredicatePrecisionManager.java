@@ -183,8 +183,8 @@ public class PredicatePrecisionManager {
       for (int j = i + 1; j < varNames.size(); ++j) {
         String name1 = varNames.get(i);
         String name2 = varNames.get(j);
-        CType type1 = ssa.getType(name1);
-        CType type2 = ssa.getType(name2);
+        CType type1 = (CType) ssa.getType(name1);
+        CType type2 = (CType) ssa.getType(name2);
 
         if (!areComparableSimpleTypes(type1, type2)) {
           continue;
