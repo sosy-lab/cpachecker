@@ -297,9 +297,11 @@ public class ExpressionToFormulaVisitor
 
   @Override
   public TypedValue visit(final JSFieldAccess pFieldAccess) throws UnrecognizedCodeException {
-    // TODO fix nested access a.b.c using temporay assignment: var tmp = a.b; tmp.c
+    final JSSimpleDeclaration objectDeclaration =
+        conv.getObjectDeclarationOfFieldAccess(
+            pFieldAccess, edge, function, ssa, constraints, errorConditions);
     final IntegerFormula objectId =
-        conv.typedValues.objectValue((IntegerFormula) visit(pFieldAccess.getObject()).getValue());
+        conv.typedValues.objectValue(conv.scopedVariable(function, objectDeclaration, ssa));
     final ArrayFormula<IntegerFormula, IntegerFormula> fields = conv.getObjectFields(objectId, ssa);
     final IntegerFormula field =
         conv.afmgr.select(fields, conv.getStringFormula(pFieldAccess.getFieldName()));

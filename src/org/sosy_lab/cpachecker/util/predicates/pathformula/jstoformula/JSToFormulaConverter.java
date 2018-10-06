@@ -934,7 +934,7 @@ public class JSToFormulaConverter {
     return makeAssignment(field, pRhsValue);
   }
 
-  private JSSimpleDeclaration getObjectDeclarationOfFieldAccess(
+  JSSimpleDeclaration getObjectDeclarationOfFieldAccess(
       final JSFieldAccess pLhs,
       final CFAEdge pEdge,
       final String pLhsFunction,
