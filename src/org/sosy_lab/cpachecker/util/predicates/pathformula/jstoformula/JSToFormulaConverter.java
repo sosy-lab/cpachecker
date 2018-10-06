@@ -861,12 +861,23 @@ public class JSToFormulaConverter {
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException {
     final TypedValue r = buildTerm(rhs, edge, rhsFunction, ssa, constraints, errorConditions);
-    assert lhs instanceof JSIdExpression
-        : "Only assignment to variable is implemented yet";
-    final JSSimpleDeclaration declaration = ((JSIdExpression) lhs).getDeclaration();
+    if (lhs instanceof JSIdExpression) {
+      return makeAssignment((JSIdExpression) lhs, lhsFunction, ssa, constraints, r);
+    }
+    throw new UnrecognizedCodeException("Unimplemented left-hand-side in assignment", edge, lhs);
+  }
+
+  @Nonnull
+  private BooleanFormula makeAssignment(
+      final JSIdExpression pLhs,
+      final String pLhsFunction,
+      final SSAMapBuilder pSsa,
+      final Constraints pConstraints,
+      final TypedValue pRhsValue) {
+    final JSSimpleDeclaration declaration = pLhs.getDeclaration();
     assert declaration != null;
-    final List<Long> scopeIds = functionScopeManager.getScopeIds(lhsFunction);
-    final IntegerFormula l = buildLvalueTerm(lhsFunction, declaration, ssa);
+    final List<Long> scopeIds = functionScopeManager.getScopeIds(pLhsFunction);
+    final IntegerFormula l = buildLvalueTerm(pLhsFunction, declaration, pSsa);
     // Update indices of other scope variables:
     // If a function f(p) is called the first time a scope s0 is created and variables/parameters
     // are associated with this scope like (var s0 f::p@2).
@@ -879,7 +890,7 @@ public class JSToFormulaConverter {
     // assigned to the variable.
     // Since, p is assigned a value on the second call of f(p) using (var s1 f::p@3), the index of
     // p in s0 has to be updated by (= (var s0 f::p@2) (var s0 f::p@3)).
-    constraints.addConstraint(
+    pConstraints.addConstraint(
         bfmgr.and(
             scopeIds
                 .stream()
@@ -889,16 +900,16 @@ public class JSToFormulaConverter {
                             bfmgr.not(
                                 fmgr.makeEqual(
                                     fmgr.makeNumber(SCOPE_TYPE, pScopeId),
-                                    getCurrentScope(lhsFunction, ssa))),
+                                    getCurrentScope(pLhsFunction, pSsa))),
                             fmgr.makeEqual(
                                 typedValues.var(
                                     fmgr.makeNumber(SCOPE_TYPE, pScopeId),
-                                    makePreviousVariable(declaration.getQualifiedName(), ssa)),
+                                    makePreviousVariable(declaration.getQualifiedName(), pSsa)),
                                 typedValues.var(
                                     fmgr.makeNumber(SCOPE_TYPE, pScopeId),
-                                    makeVariable(declaration.getQualifiedName(), ssa)))))
+                                    makeVariable(declaration.getQualifiedName(), pSsa)))))
                 .collect(Collectors.toList())));
-    return makeAssignment(l, r);
+    return makeAssignment(l, pRhsValue);
   }
 
   @Nonnull
