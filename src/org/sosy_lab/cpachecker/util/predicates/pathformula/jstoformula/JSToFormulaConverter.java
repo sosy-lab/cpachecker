@@ -618,7 +618,11 @@ public class JSToFormulaConverter {
     // In case of an existing initializer, we increment the index twice
     // (here and below) so that the index 2 only occurs for uninitialized variables.
     // DO NOT OMIT THIS CALL, even without an initializer!
-    if (direction == AnalysisDirection.FORWARD) {
+    // It is only omitted if the variable is a closure variable, since then the variable is shared
+    // between closure contexts (see updateIndicesOfOtherScopeVariables).
+    // It is assumed that it is a closure variable if the variable is already part of the SSA
+    // with a valid index.
+    if (direction == AnalysisDirection.FORWARD && 2 > ssa.getIndex(varName)) {
       makeFreshIndex(varName, decl.getType(), ssa);
     }
 
