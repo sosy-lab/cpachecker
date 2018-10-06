@@ -90,6 +90,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSDeclaredByExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFieldAccess;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
@@ -2267,6 +2268,12 @@ public abstract class AbstractExpressionValueVisitor
   public Value visit(final JSThisExpression pThisExpression) throws RuntimeException {
     // TODO implement evaluation of this-expression
     throw new RuntimeException("Evaluation of this-expression not implemented yet");
+  }
+
+  @Override
+  public Value visit(final JSFieldAccess pFieldAccess) throws RuntimeException {
+    // TODO implement evaluation of field access
+    throw new RuntimeException("Evaluation of JSFieldAccess not implemented yet");
   }
 
   @Override

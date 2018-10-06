@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.DefaultJSExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSDeclaredByExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFieldAccess;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
@@ -128,5 +129,10 @@ class LValueVisitor extends DefaultJSExpressionVisitor<Formula, UnrecognizedCode
   public Formula visit(final JSIdExpression pIdExpression) throws UnrecognizedCodeException {
     return conv.makeFreshVariable(pIdExpression.getDeclaration().getQualifiedName(), pIdExpression.getExpressionType
         (), ssa);
+  }
+
+  @Override
+  public Formula visit(final JSFieldAccess pJSFieldAccess) throws UnrecognizedCodeException {
+    throw new UnrecognizedCodeException("JSFieldAccess not handled yet", pJSFieldAccess);
   }
 }

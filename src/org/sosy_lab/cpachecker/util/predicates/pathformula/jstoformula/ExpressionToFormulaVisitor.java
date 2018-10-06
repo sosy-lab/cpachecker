@@ -28,6 +28,7 @@ import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSDeclaredByExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFieldAccess;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
@@ -282,6 +283,11 @@ public class ExpressionToFormulaVisitor
     }
     final IntegerFormula variable = conv.scopedVariable(function, declaration, ssa);
     return new TypedValue(conv.typedValues.typeof(variable), variable);
+  }
+
+  @Override
+  public TypedValue visit(final JSFieldAccess pJSFieldAccess) throws UnrecognizedCodeException {
+    throw new UnrecognizedCodeException("JSFieldAccess not handled yet", pJSFieldAccess);
   }
 
   private TypedValue handlePredefined(final JSIdExpression pIdExpression)

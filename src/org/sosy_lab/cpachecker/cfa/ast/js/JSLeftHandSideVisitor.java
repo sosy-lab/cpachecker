@@ -31,6 +31,8 @@ public interface JSLeftHandSideVisitor<R, X extends Exception> {
 
   R visit(JSIdExpression pIdExpression) throws X;
 
+  R visit(JSFieldAccess pJSFieldAccess) throws X;
+
   //  R visit(JSPointerExpression pointerExpression) throws X;
   //
   //  R visit(JSComplexCastExpression complexCastExpression) throws X;

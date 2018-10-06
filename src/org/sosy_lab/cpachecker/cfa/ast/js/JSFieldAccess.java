@@ -44,7 +44,7 @@ public class JSFieldAccess extends AbstractLeftHandSide implements JSLeftHandSid
 
   @Override
   public <R, X extends Exception> R accept(final JSLeftHandSideVisitor<R, X> v) throws X {
-    return null; // TODO visit
+    return v.visit(this);
   }
 
   @Override
