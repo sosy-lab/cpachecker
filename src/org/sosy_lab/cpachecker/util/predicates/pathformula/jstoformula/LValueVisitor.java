@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSNullLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSObjectLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -97,6 +98,12 @@ class LValueVisitor extends DefaultJSExpressionVisitor<Formula, UnrecognizedCode
   public Formula visit(final JSNullLiteralExpression pNullLiteralExpression)
       throws UnrecognizedCodeException {
     throw new UnrecognizedCodeException("Not handled yet", pNullLiteralExpression);
+  }
+
+  @Override
+  public Formula visit(final JSObjectLiteralExpression pObjectLiteralExpression)
+      throws UnrecognizedCodeException {
+    throw new UnrecognizedCodeException("JSObjectLiteralExpression not handled yet", pObjectLiteralExpression);
   }
 
   @Override

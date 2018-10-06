@@ -95,6 +95,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSNullLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSObjectLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSStringLiteralExpression;
@@ -2248,6 +2249,12 @@ public abstract class AbstractExpressionValueVisitor
   @Override
   public Value visit(final JSNullLiteralExpression pNullLiteralExpression) throws RuntimeException {
     return NullValue.getInstance();
+  }
+
+  @Override
+  public Value visit(final JSObjectLiteralExpression pThisExpression) throws RuntimeException {
+    // TODO implement evaluation of object-literal-expression
+    throw new RuntimeException("Evaluation of object-literal-expression not implemented yet");
   }
 
   @Override

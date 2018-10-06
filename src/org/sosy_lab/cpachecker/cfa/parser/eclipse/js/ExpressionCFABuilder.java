@@ -32,6 +32,7 @@ import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
 import org.eclipse.wst.jsdt.core.dom.InfixExpression;
 import org.eclipse.wst.jsdt.core.dom.NullLiteral;
 import org.eclipse.wst.jsdt.core.dom.NumberLiteral;
+import org.eclipse.wst.jsdt.core.dom.ObjectLiteral;
 import org.eclipse.wst.jsdt.core.dom.ParenthesizedExpression;
 import org.eclipse.wst.jsdt.core.dom.PostfixExpression;
 import org.eclipse.wst.jsdt.core.dom.PrefixExpression;
@@ -52,6 +53,7 @@ class ExpressionCFABuilder implements ExpressionAppendable {
   private InfixExpressionAppendable infixExpressionAppendable;
   private NullLiteralConverter nullLiteralConverter;
   private NumberLiteralConverter numberLiteralConverter;
+  private ObjectLiteralAppendable objectLiteralAppendable;
   private ParenthesizedExpressionAppendable parenthesizedExpressionAppendable;
   private PrefixExpressionAppendable prefixExpressionAppendable;
   private PostfixExpressionAppendable postfixExpressionAppendable;
@@ -94,6 +96,10 @@ class ExpressionCFABuilder implements ExpressionAppendable {
 
   void setNumberLiteralConverter(final NumberLiteralConverter pNumberLiteralConverter) {
     numberLiteralConverter = pNumberLiteralConverter;
+  }
+
+  void setObjectLiteralAppendable(final ObjectLiteralAppendable pObjectLiteralAppendable) {
+    objectLiteralAppendable = pObjectLiteralAppendable;
   }
 
   void setParenthesizedExpressionAppendable(
@@ -143,6 +149,8 @@ class ExpressionCFABuilder implements ExpressionAppendable {
       return nullLiteralConverter.convert(pBuilder, (NullLiteral) pExpression);
     } else if (pExpression instanceof NumberLiteral) {
       return numberLiteralConverter.convert(pBuilder, (NumberLiteral) pExpression);
+    } else if (pExpression instanceof ObjectLiteral) {
+      return objectLiteralAppendable.append(pBuilder, (ObjectLiteral) pExpression);
     } else if (pExpression instanceof ParenthesizedExpression) {
       return parenthesizedExpressionAppendable.append(
           pBuilder, (ParenthesizedExpression) pExpression);

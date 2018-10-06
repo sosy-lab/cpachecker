@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSNullLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSObjectLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSStringLiteralExpression;
@@ -224,6 +225,12 @@ public class ExpressionToFormulaVisitor
   @Override
   public TypedValue visit(final JSNullLiteralExpression pNullLiteralExpression) {
     return conv.tvmgr.getNullValue();
+  }
+
+  @Override
+  public TypedValue visit(final JSObjectLiteralExpression pObjectLiteralExpression)
+      throws UnrecognizedCodeException {
+    throw new UnrecognizedCodeException("JSObjectLiteralExpression not implemented yet", pObjectLiteralExpression);
   }
 
   @Override
