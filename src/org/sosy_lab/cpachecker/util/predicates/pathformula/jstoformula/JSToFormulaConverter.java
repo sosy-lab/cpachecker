@@ -39,6 +39,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -145,6 +146,8 @@ public class JSToFormulaConverter {
   @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
   private final Set<JSVariableDeclaration> globalDeclarations = new HashSet<>();
 
+  private final FunctionScopeManager functionScopeManager;
+
   FloatingPointFormulaManagerView fpfmgr;
 
   // TODO this option should be removed as soon as NaN and float interpolation can be used together
@@ -157,7 +160,6 @@ public class JSToFormulaConverter {
   private final FunctionDeclaration<IntegerFormula> declarationOfDeclaration;
   private final IntegerFormula mainScope;
   private final ArrayFormula<IntegerFormula, IntegerFormula> globalScopeStack;
-  private int scopeCounter;
 
   public JSToFormulaConverter(
       FormulaEncodingOptions pOptions,
@@ -196,7 +198,7 @@ public class JSToFormulaConverter {
         ffmgr.declareUF("declarationOf", FUNCTION_DECLARATION_TYPE, FUNCTION_TYPE);
     mainScope = fmgr.makeNumber(SCOPE_TYPE, 0);
     globalScopeStack = afmgr.makeArray("globalScopeStack", SCOPE_STACK_TYPE);
-    scopeCounter = 0;
+    functionScopeManager = new FunctionScopeManager();
   }
 
   @SuppressWarnings("SameParameterValue")
@@ -268,6 +270,11 @@ public class JSToFormulaConverter {
   protected IntegerFormula makeVariable(String name, SSAMapBuilder ssa) {
     int useIndex = getIndex(name, JSAnyType.ANY, ssa);
     return fmgr.makeVariable(Types.VARIABLE_TYPE, name, useIndex);
+  }
+
+  private IntegerFormula makePreviousVariable(String name, SSAMapBuilder ssa) {
+    int useIndex = getIndex(name, JSAnyType.ANY, ssa);
+    return fmgr.makeVariable(Types.VARIABLE_TYPE, name, useIndex - 1);
   }
 
   /**
@@ -719,7 +726,10 @@ public class JSToFormulaConverter {
     final Optional<JSIdExpression> functionObject = functionCallExpression.getFunctionObject();
     final IntegerFormula callerScopeVariable = getCurrentScope(callerFunction, ssa);
     final IntegerFormula currentScopeVariable = createCurrentScope(calledFunctionName, ssa);
-    result.add(fmgr.makeEqual(currentScopeVariable, createScope()));
+    result.add(
+        fmgr.makeEqual(
+            currentScopeVariable,
+            fmgr.makeNumber(SCOPE_TYPE, functionScopeManager.createScope(calledFunctionName))));
     // TODO refactor
     final ArrayFormula<IntegerFormula, IntegerFormula> ss;
     final int nestingLevel = functionCallExpression.getDeclaration().getScope().getNestingLevel();
@@ -791,10 +801,6 @@ public class JSToFormulaConverter {
     return bfmgr.and(result);
   }
 
-  private IntegerFormula createScope() {
-    return fmgr.makeNumber(SCOPE_TYPE, ++scopeCounter);
-  }
-
   private BooleanFormula makeReturn(
       final JSAssignment assignment,
       final JSReturnStatementEdge edge,
@@ -856,7 +862,39 @@ public class JSToFormulaConverter {
         : "Only assignment to variable is implemented yet";
     final JSSimpleDeclaration declaration = ((JSIdExpression) lhs).getDeclaration();
     assert declaration != null;
+    final List<Long> scopeIds = functionScopeManager.getScopeIds(lhsFunction);
     final IntegerFormula l = buildLvalueTerm(lhsFunction, declaration, ssa);
+    // Update indices of other scope variables:
+    // If a function f(p) is called the first time a scope s0 is created and variables/parameters
+    // are associated with this scope like (var s0 f::p@2).
+    // On the second call of f(p) another scope s1 is created and the index of p is incremented,
+    // e.g. p=3, and p is associated to s1 by (var s1 f::p@3).
+    // However, if p of the first scope is captured in a closure then it would be addressed by
+    // (var s0 f::p@3) instead of (var s0 f::p@2) since the index of p has changed due to the
+    // other call of f.
+    // To work around, indices of the same variable in other scopes are updated too, when a value is
+    // assigned to the variable.
+    // Since, p is assigned a value on the second call of f(p) using (var s1 f::p@3), the index of
+    // p in s0 has to be updated by (= (var s0 f::p@2) (var s0 f::p@3)).
+    constraints.addConstraint(
+        bfmgr.and(
+            scopeIds
+                .stream()
+                .map(
+                    (pScopeId) ->
+                        bfmgr.implication(
+                            bfmgr.not(
+                                fmgr.makeEqual(
+                                    fmgr.makeNumber(SCOPE_TYPE, pScopeId),
+                                    getCurrentScope(lhsFunction, ssa))),
+                            fmgr.makeEqual(
+                                typedValues.var(
+                                    fmgr.makeNumber(SCOPE_TYPE, pScopeId),
+                                    makePreviousVariable(declaration.getQualifiedName(), ssa)),
+                                typedValues.var(
+                                    fmgr.makeNumber(SCOPE_TYPE, pScopeId),
+                                    makeVariable(declaration.getQualifiedName(), ssa)))))
+                .collect(Collectors.toList())));
     return makeAssignment(l, r);
   }
 
