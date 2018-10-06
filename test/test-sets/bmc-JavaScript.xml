@@ -11,15 +11,23 @@
     </rundefinition>
 
     <tasks>
+        <option name="-setprop">solver.solver=z3</option>
         <include>../programs/javascript/**.js</include>
+        <exclude>../programs/javascript/binary-expressions_true_assert.js</exclude>
         <excludesfile>unimplemented-features-JavaScript.set</excludesfile>
         <excludesfile>predicateAnalysis-JavaScript-encodeFloatAsRational.set</excludesfile>
     </tasks>
 
     <tasks>
+        <include>../programs/javascript/binary-expressions_true_assert.js</include>
+    </tasks>
+
+    <tasks>
+        <option name="-setprop">solver.solver=z3</option>
         <option name="-setprop">cpa.predicate.encodeFloatAs=rational</option>
         <!-- TODO this option should be removed as soon as NaN and float interpolation can be used together -->
         <option name="-setprop">cpa.predicate.js.useNaN=false</option>
+        <exclude>../programs/javascript/binary-expressions_true_assert.js</exclude>
         <includesfile>predicateAnalysis-JavaScript-encodeFloatAsRational.set</includesfile>
     </tasks>
 </benchmark>
