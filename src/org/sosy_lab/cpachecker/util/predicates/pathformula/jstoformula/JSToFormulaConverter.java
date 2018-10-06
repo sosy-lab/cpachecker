@@ -876,20 +876,31 @@ public class JSToFormulaConverter {
       final TypedValue pRhsValue) {
     final JSSimpleDeclaration declaration = pLhs.getDeclaration();
     assert declaration != null;
-    final List<Long> scopeIds = functionScopeManager.getScopeIds(pLhsFunction);
     final IntegerFormula l = buildLvalueTerm(pLhsFunction, declaration, pSsa);
-    // Update indices of other scope variables:
-    // If a function f(p) is called the first time a scope s0 is created and variables/parameters
-    // are associated with this scope like (var s0 f::p@2).
-    // On the second call of f(p) another scope s1 is created and the index of p is incremented,
-    // e.g. p=3, and p is associated to s1 by (var s1 f::p@3).
-    // However, if p of the first scope is captured in a closure then it would be addressed by
-    // (var s0 f::p@3) instead of (var s0 f::p@2) since the index of p has changed due to the
-    // other call of f.
-    // To work around, indices of the same variable in other scopes are updated too, when a value is
-    // assigned to the variable.
-    // Since, p is assigned a value on the second call of f(p) using (var s1 f::p@3), the index of
-    // p in s0 has to be updated by (= (var s0 f::p@2) (var s0 f::p@3)).
+    final String variableName = declaration.getQualifiedName();
+    updateIndicesOfOtherScopeVariables(variableName, pLhsFunction, pSsa, pConstraints);
+    return makeAssignment(l, pRhsValue);
+  }
+
+  /**
+   * Indices of other scope variables have to be updated on every assignment.
+   *
+   * <p>If a function f(p) is called the first time a scope s0 is created and variables/parameters
+   * are associated with this scope like (var s0 f::p@2). On the second call of f(p) another scope
+   * s1 is created and the index of p is incremented, e.g. p=3, and p is associated to s1 by (var s1
+   * f::p@3). However, if p of the first scope is captured in a closure then it would be addressed
+   * by (var s0 f::p@3) instead of (var s0 f::p@2) since the index of p has changed due to the other
+   * call of f. To work around, indices of the same variable in other scopes are updated too, when a
+   * value is assigned to the variable. Since, p is assigned a value on the second call of f(p)
+   * using (var s1 f::p@3), the index of p in s0 has to be updated by (= (var s0 f::p@2) (var s0
+   * f::p@3)).
+   */
+  private void updateIndicesOfOtherScopeVariables(
+      final String pVariableName,
+      final String pLhsFunction,
+      final SSAMapBuilder pSsa,
+      final Constraints pConstraints) {
+    final List<Long> scopeIds = functionScopeManager.getScopeIds(pLhsFunction);
     pConstraints.addConstraint(
         bfmgr.and(
             scopeIds
@@ -904,12 +915,11 @@ public class JSToFormulaConverter {
                             fmgr.makeEqual(
                                 typedValues.var(
                                     fmgr.makeNumber(SCOPE_TYPE, pScopeId),
-                                    makePreviousVariable(declaration.getQualifiedName(), pSsa)),
+                                    makePreviousVariable(pVariableName, pSsa)),
                                 typedValues.var(
                                     fmgr.makeNumber(SCOPE_TYPE, pScopeId),
-                                    makeVariable(declaration.getQualifiedName(), pSsa)))))
+                                    makeVariable(pVariableName, pSsa)))))
                 .collect(Collectors.toList())));
-    return makeAssignment(l, pRhsValue);
   }
 
   @Nonnull
