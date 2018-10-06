@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -67,6 +68,7 @@ public class ExpressionToFormulaVisitor
   private final String        function;
   private final Constraints   constraints;
   protected final FormulaManagerView mgr;
+  private final ErrorConditions errorConditions;
   protected final SSAMapBuilder ssa;
 
   public ExpressionToFormulaVisitor(
@@ -76,7 +78,8 @@ public class ExpressionToFormulaVisitor
       CFAEdge pEdge,
       String pFunction,
       SSAMapBuilder pSsa,
-      Constraints pConstraints) {
+      Constraints pConstraints,
+      final ErrorConditions pErrorConditions) {
 
     useNaN = pUseNaN;
     conv = pJSToFormulaConverter;
@@ -85,6 +88,7 @@ public class ExpressionToFormulaVisitor
     ssa = pSsa;
     constraints = pConstraints;
     mgr = pFmgr;
+    errorConditions = pErrorConditions;
   }
 
   @Override

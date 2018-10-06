@@ -1285,7 +1285,8 @@ public class JSToFormulaConverter {
           SSAMapBuilder ssa,
           Constraints constraints,
           ErrorConditions errorConditions) {
-    return new ExpressionToFormulaVisitor(this, useNaN, fmgr, pEdge, pFunction, ssa, constraints);
+    return new ExpressionToFormulaVisitor(
+        this, useNaN, fmgr, pEdge, pFunction, ssa, constraints, errorConditions);
   }
 
   /**
