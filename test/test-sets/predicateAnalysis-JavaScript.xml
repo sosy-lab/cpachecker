@@ -13,6 +13,7 @@
 
     <tasks>
         <include>../programs/javascript/**.js</include>
+        <include>../programs/javascript/objects/**.js</include>
         <excludesfile>unimplemented-features-JavaScript.set</excludesfile>
         <excludesfile>predicateAnalysis-JavaScript-encodeFloatAsRational.set</excludesfile>
     </tasks>
