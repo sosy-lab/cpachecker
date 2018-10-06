@@ -714,6 +714,7 @@ public class JSToFormulaConverter {
     return makeFreshVariable(pFunction + "_currentScope", ssa);
   }
 
+  @SuppressWarnings("OptionalIsPresent")
   private BooleanFormula makeFunctionCall(
       final JSFunctionCallEdge edge,
       final String callerFunction,
