@@ -42,6 +42,14 @@ public class JSFieldAccess extends AbstractLeftHandSide implements JSLeftHandSid
     fieldName = pFieldName;
   }
 
+  public JSExpression getObject() {
+    return object;
+  }
+
+  public String getFieldName() {
+    return fieldName;
+  }
+
   @Override
   public <R, X extends Exception> R accept(final JSLeftHandSideVisitor<R, X> v) throws X {
     return v.visit(this);
