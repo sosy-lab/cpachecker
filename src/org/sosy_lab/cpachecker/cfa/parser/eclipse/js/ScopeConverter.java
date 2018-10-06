@@ -23,18 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 
 class ScopeConverter {
 
   static org.sosy_lab.cpachecker.cfa.ast.js.Scope toCFAScope(final Scope pScope) {
     // TODO cache
-    final List<JSFunctionDeclaration> functionDeclarationStack = new ArrayList<>();
+    final Deque<JSFunctionDeclaration> functionDeclarationStack = new ArrayDeque<>();
     FunctionScope f = pScope.getScope(FunctionScope.class);
     while (f != null) {
-      functionDeclarationStack.add(f.getFunctionDeclaration());
+      functionDeclarationStack.addFirst(f.getFunctionDeclaration());
       f = f.getParentScope(FunctionScope.class);
     }
     org.sosy_lab.cpachecker.cfa.ast.js.Scope cfaScope =
