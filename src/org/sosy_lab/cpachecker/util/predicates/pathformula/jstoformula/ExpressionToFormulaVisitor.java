@@ -287,7 +287,7 @@ public class ExpressionToFormulaVisitor
 
   @Override
   public TypedValue visit(final JSFieldAccess pJSFieldAccess) throws UnrecognizedCodeException {
-    throw new UnrecognizedCodeException("JSFieldAccess not handled yet", pJSFieldAccess);
+    return conv.tvmgr.getUndefinedValue();
   }
 
   private TypedValue handlePredefined(final JSIdExpression pIdExpression)
