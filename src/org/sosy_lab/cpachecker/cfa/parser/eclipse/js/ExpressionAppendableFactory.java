@@ -33,6 +33,7 @@ final class ExpressionAppendableFactory {
     builder.setAssignmentAppendable(new AssignmentCFABuilder());
     builder.setBooleanLiteralConverter(new BooleanLiteralConverterImpl());
     builder.setConditionalExpressionAppendable(new ConditionalExpressionCFABuilder());
+    builder.setFieldAccessAppendable(new FieldAccessCFABuilder());
     builder.setFunctionExpressionAppendable(new FunctionExpressionCFABuilder());
     builder.setFunctionInvocationAppendable(
         new FunctionInvocationCFABuilder(pUnknownFunctionCallerDeclaration));

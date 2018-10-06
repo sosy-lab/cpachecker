@@ -27,6 +27,7 @@ import org.eclipse.wst.jsdt.core.dom.Assignment;
 import org.eclipse.wst.jsdt.core.dom.BooleanLiteral;
 import org.eclipse.wst.jsdt.core.dom.ConditionalExpression;
 import org.eclipse.wst.jsdt.core.dom.Expression;
+import org.eclipse.wst.jsdt.core.dom.FieldAccess;
 import org.eclipse.wst.jsdt.core.dom.FunctionExpression;
 import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
 import org.eclipse.wst.jsdt.core.dom.InfixExpression;
@@ -48,6 +49,7 @@ class ExpressionCFABuilder implements ExpressionAppendable {
   private AssignmentAppendable assignmentAppendable;
   private BooleanLiteralConverter booleanLiteralConverter;
   private ConditionalExpressionAppendable conditionalExpressionAppendable;
+  private FieldAccessAppendable fieldAccessAppendable;
   private FunctionExpressionAppendable functionExpressionAppendable;
   private FunctionInvocationAppendable functionInvocationAppendable;
   private InfixExpressionAppendable infixExpressionAppendable;
@@ -73,6 +75,10 @@ class ExpressionCFABuilder implements ExpressionAppendable {
   void setConditionalExpressionAppendable(
       final ConditionalExpressionAppendable pConditionalExpressionAppendable) {
     conditionalExpressionAppendable = pConditionalExpressionAppendable;
+  }
+
+  void setFieldAccessAppendable(final FieldAccessAppendable pFieldAccessAppendable) {
+    fieldAccessAppendable = pFieldAccessAppendable;
   }
 
   void setFunctionExpressionAppendable(
@@ -139,6 +145,8 @@ class ExpressionCFABuilder implements ExpressionAppendable {
       return assignmentAppendable.append(pBuilder, (Assignment) pExpression);
     } else if (pExpression instanceof ConditionalExpression) {
       return conditionalExpressionAppendable.append(pBuilder, (ConditionalExpression) pExpression);
+    } else if (pExpression instanceof FieldAccess) {
+      return fieldAccessAppendable.append(pBuilder, (FieldAccess) pExpression);
     } else if (pExpression instanceof FunctionExpression) {
       return functionExpressionAppendable.append(pBuilder, (FunctionExpression) pExpression);
     } else if (pExpression instanceof FunctionInvocation) {
