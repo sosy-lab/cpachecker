@@ -50,7 +50,7 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
   private final ImmutableMap<CFAEdge, Loop> loopExitEdges;
   private final ImmutableMultimap<CFANode, Loop> loopHeads;
 
-  public LoopBoundTransferRelation(CFA pCFA) throws CPAException {
+  LoopBoundTransferRelation(CFA pCFA) throws CPAException {
     checkNotNull(pCFA, "CFA instance needed to create LoopBoundCPA");
     if (!pCFA.getLoopStructure().isPresent()) {
       throw new CPAException("LoopBoundCPA cannot work without loop-structure information in CFA.");
