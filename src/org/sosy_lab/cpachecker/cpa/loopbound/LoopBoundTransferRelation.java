@@ -29,10 +29,8 @@ import static com.google.common.base.Predicates.not;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Multimap;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
 import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -48,10 +46,9 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
 
-  private Map<CFAEdge, Loop> loopEntryEdges = null;
-  private Map<CFAEdge, Loop> loopExitEdges = null;
-
-  private Multimap<CFANode, Loop> loopHeads = null;
+  private final ImmutableMap<CFAEdge, Loop> loopEntryEdges;
+  private final ImmutableMap<CFAEdge, Loop> loopExitEdges;
+  private final ImmutableMultimap<CFANode, Loop> loopHeads;
 
   public LoopBoundTransferRelation(CFA pCFA) throws CPAException {
     checkNotNull(pCFA, "CFA instance needed to create LoopBoundCPA");
@@ -75,9 +72,7 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
 
       incomingEdges.forEach(e -> entryEdges.put(e, l));
       outgoingEdges.forEach(e -> exitEdges.put(e, l));
-      for (CFANode h : l.getLoopHeads()) {
-        heads.put(h, l);
-      }
+      l.getLoopHeads().forEach(h -> heads.put(h, l));
     }
     loopEntryEdges = entryEdges.build();
     loopExitEdges = exitEdges.build();
