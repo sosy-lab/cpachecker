@@ -23,17 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.loopbound;
 
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Set;
-import org.checkerframework.checker.nullness.compatqual.NullableDecl;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -86,8 +81,7 @@ public class LoopBoundCPA extends AbstractCPA
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     LoopBoundState initialState = new LoopBoundState();
-    Set<Loop> loopsAtLocation = loopStructure.getLoopsForLoopHead(pNode);
-    for (Loop loop : loopsAtLocation) {
+    for (Loop loop : loopStructure.getLoopsForLoopHead(pNode)) {
       initialState = initialState.visitLoopHead(new LoopEntry(pNode, loop));
     }
     return initialState;
@@ -114,22 +108,13 @@ public class LoopBoundCPA extends AbstractCPA
 
   @Override
   public void adjustReachedSet(final ReachedSet pReachedSet) {
-    Set<AbstractState> toRemove =
-        from(pReachedSet)
-            .filter(
-                new Predicate<AbstractState>() {
-
-                  @Override
-                  public boolean apply(@NullableDecl AbstractState pArg0) {
-                    if (pArg0 == null) {
-                      return false;
-                    }
-                    LoopBoundState loopBoundState = extractStateByType(pArg0, LoopBoundState.class);
-                    return loopBoundState != null
-                        && loopBoundState.mustDumpAssumptionForAvoidance();
-                  }
-                })
-            .toSet();
+    Set<AbstractState> toRemove = new LinkedHashSet<>();
+    for (AbstractState s : pReachedSet) {
+      LoopBoundState loopBoundState = extractStateByType(s, LoopBoundState.class);
+      if (loopBoundState != null && loopBoundState.mustDumpAssumptionForAvoidance()) {
+        toRemove.add(s);
+      }
+    }
 
     // Never delete the first state
     if (toRemove.contains(pReachedSet.getFirstState())) {
@@ -137,35 +122,23 @@ public class LoopBoundCPA extends AbstractCPA
       return;
     }
 
-    List<AbstractState> waitlist =
-        from(toRemove)
-            .transformAndConcat(
-                new Function<AbstractState, Iterable<? extends AbstractState>>() {
-
-                  @Override
-                  public Iterable<? extends AbstractState> apply(
-                      @NullableDecl AbstractState pArg0) {
-                    if (pArg0 == null) {
-                      return Collections.emptyList();
-                    }
-                    ARGState argState = extractStateByType(pArg0, ARGState.class);
-                    if (argState == null) {
-                      return Collections.emptyList();
-                    }
-                    return argState.getParents();
-                  }
-                })
-            .toSet()
-            .asList();
-
-    // Add the new waitlist
-    for (AbstractState s : waitlist) {
-      pReachedSet.reAddToWaitlist(s);
+    Set<AbstractState> waitlist = new LinkedHashSet<>();
+    for (AbstractState s : toRemove) {
+      ARGState argState = extractStateByType(s, ARGState.class);
+      if (argState != null) {
+        waitlist.addAll(argState.getParents());
+      }
     }
 
+    // Add the new waitlist
+    waitlist.forEach(pReachedSet::reAddToWaitlist);
+
     pReachedSet.removeAll(toRemove);
-    for (ARGState s : from(toRemove).filter(ARGState.class)) {
-      s.removeFromARG();
+    for (AbstractState s : toRemove) {
+      ARGState argState = extractStateByType(s, ARGState.class);
+      if (argState != null) {
+        argState.removeFromARG();
+      }
     }
   }
 
