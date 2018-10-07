@@ -195,7 +195,7 @@ public class PredicateCPA
 
     transfer =
         new PredicateTransferRelation(
-            config, logger, direction, formulaManager, pfMgr, blk, predicateManager);
+            config, logger, direction, formulaManager, pathFormulaManager, blk, predicateManager);
 
     topState = PredicateAbstractState.mkAbstractionState(
         pathFormulaManager.makeEmptyPathFormula(),
@@ -206,7 +206,7 @@ public class PredicateCPA
     if (mergeType.equals("SEP")) {
       merge = MergeSepOperator.getInstance();
     } else if (mergeType.equals("ABE")) {
-      merge = new PredicateMergeOperator(logger, pfMgr);
+      merge = new PredicateMergeOperator(logger, pathFormulaManager);
     } else {
       throw new InternalError("Update list of allowed merge operators");
     }
@@ -221,7 +221,7 @@ public class PredicateCPA
         new PredicatePrecisionAdjustment(
             logger,
             formulaManager,
-            pfMgr,
+            pathFormulaManager,
             blk,
             predicateManager,
             invariantsManager,
@@ -230,7 +230,7 @@ public class PredicateCPA
     if (stopType.equals("SEP")) {
       stop = new PredicateStopOperator(domain);
     } else if (stopType.equals("SEPPCC")) {
-      stop = new PredicatePCCStopOperator(pfMgr, predicateManager);
+      stop = new PredicatePCCStopOperator(pathFormulaManager, predicateManager);
     } else {
       throw new InternalError("Update list of allowed stop operators");
     }
@@ -241,7 +241,7 @@ public class PredicateCPA
             logger,
             pCfa,
             solver,
-            pfMgr,
+            pathFormulaManager,
             blk,
             regionManager,
             abstractionManager,
