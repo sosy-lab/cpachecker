@@ -30,6 +30,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
+import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.common.time.Timer;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -50,6 +52,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 import com.google.common.base.Splitter;
 import java.util.Map;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 
 
@@ -63,17 +66,29 @@ public class DomainSpecificAbstraction<T> {
   //private String[] arrayVariablesForFormulas;
   private List<BooleanFormula> formulas;
   //private Interpolator<T> myInterpolator;
+  private final Timer findingCommonVariablesTimer;
+  private final Timer buildingLatticeNamesAndLatticeTypesTimer;
+  private final Timer renamingTimer;
+  private final Timer buildingAbstractionsTimer;
+  private final Timer interpolationTimer;
   LogManager logger;
   private HashMap<String, List<FormulaType>> fullLatticeNamesTypes = new HashMap<>();
   private HashMap<String, FormulaType> latticeNamesTypes = new HashMap<>();
   public DomainSpecificAbstraction(/*ShutdownNotifier pShutdownNotifier, */
                                    FormulaManagerView pFmgr, /*BooleanFormulaManager pBfmgr, */
                                    FormulaManagerView oldFmgr0, /*Interpolator<T> pTInterpolator,
-                                    */ LogManager pLogger) {
+                                    */ LogManager pLogger, Timer pFindingCommonVariablesTimer,
+                                   Timer pBuildingLatticeNamesAndLatticeTypesTimer, Timer
+                                       pRenamingTimer, Timer pBuildingAbstractionsTimer, Timer pInterpolationTimer) {
     fmgr = pFmgr;
     oldFmgr = oldFmgr0;
     //myInterpolator = pTInterpolator;
     logger = pLogger;
+    findingCommonVariablesTimer = pFindingCommonVariablesTimer;
+    buildingLatticeNamesAndLatticeTypesTimer = pBuildingLatticeNamesAndLatticeTypesTimer;
+    renamingTimer = pRenamingTimer;
+    buildingAbstractionsTimer = pBuildingAbstractionsTimer;
+    interpolationTimer = pInterpolationTimer;
   }
 
 
@@ -127,47 +142,51 @@ public class DomainSpecificAbstraction<T> {
       // extracting the variables that have to be renamed - make external function?
       /*List<List<IntegerFormula>> frontierList = Lists.newArrayListWithExpectedSize(formulas.size
           ()); */
-      List<List<Formula>> frontierList = Lists.newArrayListWithExpectedSize(formulas.size
-          ());
-      Set<String> variables1 = Sets.newHashSet();
-      Set<String> variables2 = Sets.newHashSet();
-      // logger.log(Level.WARNING, "Formulas:");
-      // for (int i = 0; i < it + 1; i++) {
-      if (it == 0) {
-        //logger.log(Level.WARNING, "it is equals to 0");
-        variables1 = variablesInFormulas.get(0);
-        for (int i = 1; i < variablesInFormulas.size(); i++) {
-          for (String f : variablesInFormulas.get(i)) {
-            variables2.add(f);
+        List<List<Formula>> frontierList = Lists.newArrayListWithExpectedSize(formulas.size
+            ());
+        Set<String> variables1 = Sets.newHashSet();
+        Set<String> variables2 = Sets.newHashSet();
+        // logger.log(Level.WARNING, "Formulas:");
+        // for (int i = 0; i < it + 1; i++) {
+        findingCommonVariablesTimer.start();
+        try {
+        if (it == 0) {
+          //logger.log(Level.WARNING, "it is equals to 0");
+          variables1 = variablesInFormulas.get(0);
+          for (int i = 1; i < variablesInFormulas.size(); i++) {
+            for (String f : variablesInFormulas.get(i)) {
+              variables2.add(f);
+            }
+          }
+        } else {
+          // logger.log(Level.WARNING, "it is equals to > 0");
+          for (String f : variablesInFormulas.get(0)) {
+            variables1.add(f);
+          }
+          for (String f : variablesInFormulas.get(1)) {
+            variables1.add(f);
+          }
+          for (int i = 2; i < variablesInFormulas.size(); i++) {
+            for (String f : variablesInFormulas.get(i)) {
+              variables2.add(f);
+            }
           }
         }
-      }
-      else {
-       // logger.log(Level.WARNING, "it is equals to > 0");
-        for (String f : variablesInFormulas.get(0)) {
-          variables1.add(f);
-        }
-        for (String f : variablesInFormulas.get(1)) {
-          variables1.add(f);
-        }
-        for (int i = 2; i < variablesInFormulas.size(); i++) {
-          for (String f : variablesInFormulas.get(i)) {
-            variables2.add(f);
-          }
-        }
-      }
-      // }
+        // }
     /*  for (int i = 2; i < variablesInFormulas.size(); i++) {
         for (String f : variablesInFormulas.get(i)) {
           variables2.add(f);
         }
       } */
-      Set<String> variablesThatAreUsedInBothParts = Sets.intersection(variables1, variables2)
-          .immutableCopy();
-      Set<String> variablesThatAreNotUsedInBothParts = Sets.difference(variables1, variables2)
-          .immutableCopy();
-      HashMap<String, FormulaType> variablesUsedInBothPartsClasses = new HashMap<>();
-      int m = 0;
+      } finally {
+        findingCommonVariablesTimer.stop();
+      }
+        Set<String> variablesThatAreUsedInBothParts = Sets.intersection(variables1, variables2)
+            .immutableCopy();
+        Set<String> variablesThatAreNotUsedInBothParts = Sets.difference(variables1, variables2)
+            .immutableCopy();
+        HashMap<String, FormulaType> variablesUsedInBothPartsClasses = new HashMap<>();
+        int m = 0;
       /*logger.log(Level.WARNING, "Variables1: " +
           variables1.toString());
       logger.log(Level.WARNING, "Variables2: " +
@@ -209,14 +228,14 @@ public class DomainSpecificAbstraction<T> {
           }
       } */
 
-      //String[] arrayVariables1 = variables1.toArray(new String[variables1.size()]);
-      //String[] arrayVariables2 = variables2.toArray(new String[variables2.size()]);
-      arrayVariablesThatAreUsedInBothParts = variablesThatAreUsedInBothParts.toArray(new
-          String[variablesThatAreUsedInBothParts.size
-          ()]);
-      arrayVariablesThatAreNotUsedInBothParts = variablesThatAreNotUsedInBothParts.toArray(new
-          String[variablesThatAreNotUsedInBothParts.size
-          ()]);
+        //String[] arrayVariables1 = variables1.toArray(new String[variables1.size()]);
+        //String[] arrayVariables2 = variables2.toArray(new String[variables2.size()]);
+        arrayVariablesThatAreUsedInBothParts = variablesThatAreUsedInBothParts.toArray(new
+            String[variablesThatAreUsedInBothParts.size
+            ()]);
+        arrayVariablesThatAreNotUsedInBothParts = variablesThatAreNotUsedInBothParts.toArray(new
+            String[variablesThatAreNotUsedInBothParts.size
+            ()]);
 
 
 
@@ -284,865 +303,862 @@ public class DomainSpecificAbstraction<T> {
       String[] relationAbstraction1 = new String[variablesThatAreUsedInBothParts.size()];
       String[] relationAbstraction2 = new String[variablesThatAreUsedInBothParts.size()];
 
-      if ((arrayVariablesThatAreUsedInBothParts.length % 2) == 0) {
-        for (int i = 0; i < arrayVariablesThatAreUsedInBothParts.length; i = i + 2) {
-          FormulaType resultType1 = variablesUsedInBothPartsClasses.get
-              (arrayVariablesThatAreUsedInBothParts[i]);
-          FormulaType resultType2 = variablesUsedInBothPartsClasses.get
-              (arrayVariablesThatAreUsedInBothParts[i + 1]);
-          if (!resultType1.equals(resultType2)){
-            //logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
-            relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "#";
-            relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
-            Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-                helperFormula7, helperFormula8;
-            BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i] + "#");
-            helperFormula8 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
-            helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-            helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-            relationAbstraction1Formula.add(helperFormula6);
-            relationAbstraction1Formula.add(helperFormula5);
-            latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
-            latticeNames[i + 1] =
-                arrayVariablesThatAreUsedInBothParts[i + 1];
-            //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
-            latticeNamesTypes.put(latticeNames[i], resultType1);
-            latticeNamesTypes.put(latticeNames[i + 1], resultType2);
-          }
-          else if (resultType1.isArrayType() && resultType2.isArrayType()){
-            ArrayFormulaType resultType1Array = (ArrayFormulaType) resultType1;
-            FormulaType indexType1 = resultType1Array.getIndexType();
-            FormulaType elementType1 = resultType1Array.getElementType();
-            ArrayFormulaType resultType2Array = (ArrayFormulaType) resultType2;
-            FormulaType indexType2 = resultType2Array.getIndexType();
-            FormulaType elementType2 = resultType2Array.getElementType();
-            relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "#";
-            relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
-            Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-                helperFormula7, helperFormula8;
-            BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
-                arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
-                arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
-                arrayVariablesThatAreUsedInBothParts[i] + "#");
-            helperFormula8 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
-            helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-            helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-            relationAbstraction1Formula.add(helperFormula6);
-            relationAbstraction1Formula.add(helperFormula5);
-            latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
-            latticeNames[i + 1] =
-                arrayVariablesThatAreUsedInBothParts[i + 1];
-           // logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-           // logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
-            latticeNamesTypes.put(latticeNames[i], resultType1);
-            latticeNamesTypes.put(latticeNames[i + 1], resultType1);
-          }
-          else if (resultType1.isBooleanType() && resultType2.isBooleanType()){
-            relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "#";
-            relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
-            BooleanFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-                helperFormula7, helperFormula8;
-            BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i] + "#");
-            helperFormula8 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
-            helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-            helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-            relationAbstraction1Formula.add(helperFormula6);
-            relationAbstraction1Formula.add(helperFormula5);
-            latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
-            latticeNames[i + 1] =
-                arrayVariablesThatAreUsedInBothParts[i + 1];
-            //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
-            latticeNamesTypes.put(latticeNames[i], resultType1);
-            latticeNamesTypes.put(latticeNames[i + 1], resultType1);
-          } else if (resultType1.isBitvectorType() &&
-              resultType2.isBitvectorType()) {
-            relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "#";
-            relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
-            Formula helperFormula1, helperFormula2, helperFormula3,
-                helperFormula4,
-                helperFormula7, helperFormula8;
-            BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i] + "#");
-            helperFormula8 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
-            helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-            helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-            relationAbstraction1Formula.add(helperFormula6);
-            relationAbstraction1Formula.add(helperFormula5);
-            latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
-            latticeNames[i + 1] =
-                arrayVariablesThatAreUsedInBothParts[i + 1];
-            //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
-            latticeNamesTypes.put(latticeNames[i], resultType1);
-            latticeNamesTypes.put(latticeNames[i + 1], resultType1);
-          } else if (resultType1 == resultType2 && !(resultType1.isIntegerType()) && !
-              (resultType1.isFloatingPointRoundingModeType()) && !(resultType1.isRationalType())){
-            relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "#";
-            relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
-            Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-                helperFormula7, helperFormula8;
-            BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i] + "#");
-            helperFormula8 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
-            helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-            helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-            relationAbstraction1Formula.add(helperFormula6);
-            relationAbstraction1Formula.add(helperFormula5);
-            latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
-            latticeNames[i + 1] =
-                arrayVariablesThatAreUsedInBothParts[i + 1];
-            //.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
-            latticeNamesTypes.put(latticeNames[i], resultType1);
-            latticeNamesTypes.put(latticeNames[i + 1], resultType2);
-          }
-          else {
-            relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "#";
-            relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "#" + " - " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
+      buildingLatticeNamesAndLatticeTypesTimer.start();
+      try {
+
+        if ((arrayVariablesThatAreUsedInBothParts.length % 2) == 0) {
+          for (int i = 0; i < arrayVariablesThatAreUsedInBothParts.length; i = i + 2) {
+            FormulaType resultType1 = variablesUsedInBothPartsClasses.get
+                (arrayVariablesThatAreUsedInBothParts[i]);
+            FormulaType resultType2 = variablesUsedInBothPartsClasses.get
+                (arrayVariablesThatAreUsedInBothParts[i + 1]);
+            if (!resultType1.equals(resultType2)) {
+              //logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
+              relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "#";
+              relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
+              Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+                  helperFormula7, helperFormula8;
+              BooleanFormula helperFormula5, helperFormula6;
+              helperFormula1 = fmgr.makeVariable(resultType1,
+                  arrayVariablesThatAreUsedInBothParts[i]);
+              helperFormula2 = fmgr.makeVariable(resultType2,
+                  arrayVariablesThatAreUsedInBothParts[i + 1]);
+              helperFormula7 = fmgr.makeVariable(resultType1,
+                  arrayVariablesThatAreUsedInBothParts[i] + "#");
+              helperFormula8 = fmgr.makeVariable(resultType2,
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
+              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
+              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              relationAbstraction1Formula.add(helperFormula6);
+              relationAbstraction1Formula.add(helperFormula5);
+              latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
+              latticeNames[i + 1] =
+                  arrayVariablesThatAreUsedInBothParts[i + 1];
+              //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+              //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+              latticeNamesTypes.put(latticeNames[i], resultType1);
+              latticeNamesTypes.put(latticeNames[i + 1], resultType2);
+            } else if (resultType1.isArrayType() && resultType2.isArrayType()) {
+              ArrayFormulaType resultType1Array = (ArrayFormulaType) resultType1;
+              FormulaType indexType1 = resultType1Array.getIndexType();
+              FormulaType elementType1 = resultType1Array.getElementType();
+              ArrayFormulaType resultType2Array = (ArrayFormulaType) resultType2;
+              FormulaType indexType2 = resultType2Array.getIndexType();
+              FormulaType elementType2 = resultType2Array.getElementType();
+              relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "#";
+              relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
+              Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+                  helperFormula7, helperFormula8;
+              BooleanFormula helperFormula5, helperFormula6;
+              helperFormula1 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
+                  arrayVariablesThatAreUsedInBothParts[i]);
+              helperFormula2 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
+                  arrayVariablesThatAreUsedInBothParts[i + 1]);
+              helperFormula7 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
+                  arrayVariablesThatAreUsedInBothParts[i] + "#");
+              helperFormula8 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
+              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
+              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              relationAbstraction1Formula.add(helperFormula6);
+              relationAbstraction1Formula.add(helperFormula5);
+              latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
+              latticeNames[i + 1] =
+                  arrayVariablesThatAreUsedInBothParts[i + 1];
+              // logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+              // logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+              latticeNamesTypes.put(latticeNames[i], resultType1);
+              latticeNamesTypes.put(latticeNames[i + 1], resultType1);
+            } else if (resultType1.isBooleanType() && resultType2.isBooleanType()) {
+              relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "#";
+              relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
+              BooleanFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+                  helperFormula7, helperFormula8;
+              BooleanFormula helperFormula5, helperFormula6;
+              helperFormula1 = fmgr.makeVariable(FormulaType.BooleanType,
+                  arrayVariablesThatAreUsedInBothParts[i]);
+              helperFormula2 = fmgr.makeVariable(FormulaType.BooleanType,
+                  arrayVariablesThatAreUsedInBothParts[i + 1]);
+              helperFormula7 = fmgr.makeVariable(FormulaType.BooleanType,
+                  arrayVariablesThatAreUsedInBothParts[i] + "#");
+              helperFormula8 = fmgr.makeVariable(FormulaType.BooleanType,
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
+              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
+              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              relationAbstraction1Formula.add(helperFormula6);
+              relationAbstraction1Formula.add(helperFormula5);
+              latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
+              latticeNames[i + 1] =
+                  arrayVariablesThatAreUsedInBothParts[i + 1];
+              //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+              //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+              latticeNamesTypes.put(latticeNames[i], resultType1);
+              latticeNamesTypes.put(latticeNames[i + 1], resultType1);
+            } else if (resultType1.isBitvectorType() &&
+                resultType2.isBitvectorType()) {
+              relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "#";
+              relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
+              Formula helperFormula1, helperFormula2, helperFormula3,
+                  helperFormula4,
+                  helperFormula7, helperFormula8;
+              BooleanFormula helperFormula5, helperFormula6;
+              helperFormula1 = fmgr.makeVariable(resultType1,
+                  arrayVariablesThatAreUsedInBothParts[i]);
+              helperFormula2 = fmgr.makeVariable(resultType2,
+                  arrayVariablesThatAreUsedInBothParts[i + 1]);
+              helperFormula7 = fmgr.makeVariable(resultType1,
+                  arrayVariablesThatAreUsedInBothParts[i] + "#");
+              helperFormula8 = fmgr.makeVariable(resultType2,
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
+              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
+              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              relationAbstraction1Formula.add(helperFormula6);
+              relationAbstraction1Formula.add(helperFormula5);
+              latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
+              latticeNames[i + 1] =
+                  arrayVariablesThatAreUsedInBothParts[i + 1];
+              //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+              //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+              latticeNamesTypes.put(latticeNames[i], resultType1);
+              latticeNamesTypes.put(latticeNames[i + 1], resultType1);
+            } else if (resultType1 == resultType2 && !(resultType1.isIntegerType()) && !
+                (resultType1.isFloatingPointRoundingModeType()) && !(resultType1
+                .isRationalType())) {
+              relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "#";
+              relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
+              Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+                  helperFormula7, helperFormula8;
+              BooleanFormula helperFormula5, helperFormula6;
+              helperFormula1 = fmgr.makeVariable(resultType1,
+                  arrayVariablesThatAreUsedInBothParts[i]);
+              helperFormula2 = fmgr.makeVariable(resultType2,
+                  arrayVariablesThatAreUsedInBothParts[i + 1]);
+              helperFormula7 = fmgr.makeVariable(resultType1,
+                  arrayVariablesThatAreUsedInBothParts[i] + "#");
+              helperFormula8 = fmgr.makeVariable(resultType2,
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
+              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
+              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              relationAbstraction1Formula.add(helperFormula6);
+              relationAbstraction1Formula.add(helperFormula5);
+              latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
+              latticeNames[i + 1] =
+                  arrayVariablesThatAreUsedInBothParts[i + 1];
+              //.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+              //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+              latticeNamesTypes.put(latticeNames[i], resultType1);
+              latticeNamesTypes.put(latticeNames[i + 1], resultType2);
+            } else {
+              relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "#";
+              relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "#" + " - " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
         /*  FormulaType resultType1 = variablesUsedInBothPartsClasses.get
               (arrayVariablesThatAreUsedInBothParts[i]);
           FormulaType resultType2 = variablesUsedInBothPartsClasses.get
           (arrayVariablesThatAreUsedInBothParts[i + 1]); */
-            if (resultType1.isIntegerType() && resultType2.isIntegerType()) {
-              IntegerFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+              if (resultType1.isIntegerType() && resultType2.isIntegerType()) {
+                IntegerFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+                    helperFormula7, helperFormula8;
+                BooleanFormula helperFormula5, helperFormula6;
+                helperFormula1 = fmgr.makeVariable(FormulaType.IntegerType,
+                    arrayVariablesThatAreUsedInBothParts[i]);
+                helperFormula2 = fmgr.makeVariable(FormulaType.IntegerType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1]);
+                helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
+                helperFormula7 = fmgr.makeVariable(FormulaType.IntegerType,
+                    arrayVariablesThatAreUsedInBothParts[i] + "#");
+                helperFormula8 = fmgr.makeVariable(FormulaType.IntegerType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
+                helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
+                helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
+                helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+                relationAbstraction1Formula.add(helperFormula6);
+                relationAbstraction1Formula.add(helperFormula5);
+              } else if (resultType1.isRationalType() && resultType2.isRationalType()) {
+                RationalFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+                    helperFormula7, helperFormula8;
+                BooleanFormula helperFormula5, helperFormula6;
+                helperFormula1 = fmgr.makeVariable(FormulaType.RationalType,
+                    arrayVariablesThatAreUsedInBothParts[i]);
+                helperFormula2 = fmgr.makeVariable(FormulaType.RationalType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1]);
+                helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
+                helperFormula7 = fmgr.makeVariable(FormulaType.RationalType,
+                    arrayVariablesThatAreUsedInBothParts[i] + "#");
+                helperFormula8 = fmgr.makeVariable(FormulaType.RationalType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
+                helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
+                helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
+                helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+                relationAbstraction1Formula.add(helperFormula6);
+                relationAbstraction1Formula.add(helperFormula5);
+              } else if (resultType1.isFloatingPointRoundingModeType() &&
+                  resultType2.isFloatingPointRoundingModeType()) {
+                FloatingPointRoundingModeFormula helperFormula1, helperFormula2, helperFormula3,
+                    helperFormula4,
+                    helperFormula7, helperFormula8;
+                BooleanFormula helperFormula5, helperFormula6;
+                helperFormula1 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+                    arrayVariablesThatAreUsedInBothParts[i]);
+                helperFormula2 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1]);
+                helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
+                helperFormula7 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+                    arrayVariablesThatAreUsedInBothParts[i] + "#");
+                helperFormula8 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
+                helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
+                helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
+                helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+                relationAbstraction1Formula.add(helperFormula6);
+                relationAbstraction1Formula.add(helperFormula5);
+              }
+              latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
+              latticeNames[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1];
+              //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+              //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+              latticeNamesTypes.put(latticeNames[i], resultType1);
+              latticeNamesTypes.put(latticeNames[i + 1], resultType1);
+           /* latticeNamesTypes[i + 1] = resultType1;
+            latticeNamesTypes[i + 2] = resultType2; */
+            }
+          }
+          for (int i = 0; i < arrayVariablesThatAreUsedInBothParts.length; i = i + 2) {
+            FormulaType resultType1 = variablesUsedInBothPartsClasses.get
+                (arrayVariablesThatAreUsedInBothParts[i]);
+            FormulaType resultType2 = variablesUsedInBothPartsClasses.get
+                (arrayVariablesThatAreUsedInBothParts[i + 1]);
+            if (!resultType1.equals(resultType2)) {
+              //logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
+              relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "##";
+              relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
+              Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                   helperFormula7, helperFormula8;
               BooleanFormula helperFormula5, helperFormula6;
-              helperFormula1 = fmgr.makeVariable(FormulaType.IntegerType,
+              helperFormula1 = fmgr.makeVariable(resultType1,
                   arrayVariablesThatAreUsedInBothParts[i]);
-              helperFormula2 = fmgr.makeVariable(FormulaType.IntegerType,
+              helperFormula2 = fmgr.makeVariable(resultType2,
                   arrayVariablesThatAreUsedInBothParts[i + 1]);
-              helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
-              helperFormula7 = fmgr.makeVariable(FormulaType.IntegerType,
-                  arrayVariablesThatAreUsedInBothParts[i] + "#");
-              helperFormula8 = fmgr.makeVariable(FormulaType.IntegerType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
-              helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
-              helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
+              helperFormula7 = fmgr.makeVariable(resultType1,
+                  arrayVariablesThatAreUsedInBothParts[i] + "##");
+              helperFormula8 = fmgr.makeVariable(resultType2,
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
+              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
               helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-              relationAbstraction1Formula.add(helperFormula6);
-              relationAbstraction1Formula.add(helperFormula5);
-            } else if (resultType1.isRationalType() && resultType2.isRationalType()) {
-              RationalFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+              relationAbstraction2Formula.add(helperFormula6);
+              relationAbstraction2Formula.add(helperFormula5);
+            } else if (resultType1.isArrayType() && resultType2.isArrayType()) {
+              ArrayFormulaType resultType1Array = (ArrayFormulaType) resultType1;
+              FormulaType indexType1 = resultType1Array.getIndexType();
+              FormulaType elementType1 = resultType1Array.getElementType();
+              ArrayFormulaType resultType2Array = (ArrayFormulaType) resultType2;
+              FormulaType indexType2 = resultType2Array.getIndexType();
+              FormulaType elementType2 = resultType2Array.getElementType();
+              relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "##";
+              relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
+              Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                   helperFormula7, helperFormula8;
               BooleanFormula helperFormula5, helperFormula6;
-              helperFormula1 = fmgr.makeVariable(FormulaType.RationalType,
+              helperFormula1 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
                   arrayVariablesThatAreUsedInBothParts[i]);
-              helperFormula2 = fmgr.makeVariable(FormulaType.RationalType,
+              helperFormula2 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
                   arrayVariablesThatAreUsedInBothParts[i + 1]);
-              helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
-              helperFormula7 = fmgr.makeVariable(FormulaType.RationalType,
-                  arrayVariablesThatAreUsedInBothParts[i] + "#");
-              helperFormula8 = fmgr.makeVariable(FormulaType.RationalType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
-              helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
-              helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
+              helperFormula7 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
+                  arrayVariablesThatAreUsedInBothParts[i] + "##");
+              helperFormula8 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
+              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
               helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-              relationAbstraction1Formula.add(helperFormula6);
-              relationAbstraction1Formula.add(helperFormula5);
-            } else if (resultType1.isFloatingPointRoundingModeType() &&
-                resultType2.isFloatingPointRoundingModeType()) {
-              FloatingPointRoundingModeFormula helperFormula1, helperFormula2, helperFormula3,
+              relationAbstraction2Formula.add(helperFormula6);
+              relationAbstraction2Formula.add(helperFormula5);
+            } else if (resultType1.isBooleanType() && resultType2.isBooleanType()) {
+              relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "##";
+              relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
+              BooleanFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+                  helperFormula7, helperFormula8;
+              BooleanFormula helperFormula5, helperFormula6;
+              helperFormula1 = fmgr.makeVariable(FormulaType.BooleanType,
+                  arrayVariablesThatAreUsedInBothParts[i]);
+              helperFormula2 = fmgr.makeVariable(FormulaType.BooleanType,
+                  arrayVariablesThatAreUsedInBothParts[i + 1]);
+              helperFormula7 = fmgr.makeVariable(FormulaType.BooleanType,
+                  arrayVariablesThatAreUsedInBothParts[i] + "##");
+              helperFormula8 = fmgr.makeVariable(FormulaType.BooleanType,
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
+              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
+              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              relationAbstraction2Formula.add(helperFormula6);
+              relationAbstraction2Formula.add(helperFormula5);
+            } else if (resultType1.isBitvectorType() &&
+                resultType2.isBitvectorType()) {
+              relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "##";
+              relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
+              Formula helperFormula1, helperFormula2, helperFormula3,
                   helperFormula4,
                   helperFormula7, helperFormula8;
               BooleanFormula helperFormula5, helperFormula6;
-              helperFormula1 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+              helperFormula1 = fmgr.makeVariable(resultType1,
                   arrayVariablesThatAreUsedInBothParts[i]);
-              helperFormula2 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+              helperFormula2 = fmgr.makeVariable(resultType2,
                   arrayVariablesThatAreUsedInBothParts[i + 1]);
-              helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
-              helperFormula7 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-                  arrayVariablesThatAreUsedInBothParts[i] + "#");
-              helperFormula8 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
-              helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
-              helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
+              helperFormula7 = fmgr.makeVariable(resultType1,
+                  arrayVariablesThatAreUsedInBothParts[i] + "##");
+              helperFormula8 = fmgr.makeVariable(resultType2,
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
+              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
+              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              relationAbstraction2Formula.add(helperFormula6);
+              relationAbstraction2Formula.add(helperFormula5);
+            } else if (resultType1 == resultType2 && !(resultType1.isIntegerType()) && !
+                (resultType1.isFloatingPointRoundingModeType()) && !(resultType1
+                .isRationalType())) {
+              relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "##";
+              relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
+              Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+                  helperFormula7, helperFormula8;
+              BooleanFormula helperFormula5, helperFormula6;
+              helperFormula1 = fmgr.makeVariable(resultType1,
+                  arrayVariablesThatAreUsedInBothParts[i]);
+              helperFormula2 = fmgr.makeVariable(resultType2,
+                  arrayVariablesThatAreUsedInBothParts[i + 1]);
+              helperFormula7 = fmgr.makeVariable(resultType1,
+                  arrayVariablesThatAreUsedInBothParts[i] + "##");
+              helperFormula8 = fmgr.makeVariable(resultType2,
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
+              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
               helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
               relationAbstraction1Formula.add(helperFormula6);
               relationAbstraction1Formula.add(helperFormula5);
-            }
-            latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
-            latticeNames[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
-                arrayVariablesThatAreUsedInBothParts[i + 1];
-            //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
-            latticeNamesTypes.put(latticeNames[i], resultType1);
-            latticeNamesTypes.put(latticeNames[i + 1], resultType1);
-           /* latticeNamesTypes[i + 1] = resultType1;
-            latticeNamesTypes[i + 2] = resultType2; */
-          }
-        }
-        for (int i = 0; i < arrayVariablesThatAreUsedInBothParts.length; i = i + 2) {
-          FormulaType resultType1 = variablesUsedInBothPartsClasses.get
-              (arrayVariablesThatAreUsedInBothParts[i]);
-          FormulaType resultType2 = variablesUsedInBothPartsClasses.get
-              (arrayVariablesThatAreUsedInBothParts[i + 1]);
-          if (!resultType1.equals(resultType2)){
-            //logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
-            relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "##";
-            relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
-            Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-                helperFormula7, helperFormula8;
-            BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i] + "##");
-            helperFormula8 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
-            helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-            helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-            relationAbstraction2Formula.add(helperFormula6);
-            relationAbstraction2Formula.add(helperFormula5);
-          }
-          else if (resultType1.isArrayType() && resultType2.isArrayType()){
-            ArrayFormulaType resultType1Array = (ArrayFormulaType) resultType1;
-            FormulaType indexType1 = resultType1Array.getIndexType();
-            FormulaType elementType1 = resultType1Array.getElementType();
-            ArrayFormulaType resultType2Array = (ArrayFormulaType) resultType2;
-            FormulaType indexType2 = resultType2Array.getIndexType();
-            FormulaType elementType2 = resultType2Array.getElementType();
-            relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "##";
-            relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
-            Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-                helperFormula7, helperFormula8;
-            BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
-                arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
-                arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
-                arrayVariablesThatAreUsedInBothParts[i] + "##");
-            helperFormula8 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
-            helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-            helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-            relationAbstraction2Formula.add(helperFormula6);
-            relationAbstraction2Formula.add(helperFormula5);
-          }
-          else if (resultType1.isBooleanType() && resultType2.isBooleanType()){
-            relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "##";
-            relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
-            BooleanFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-                helperFormula7, helperFormula8;
-            BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i] + "##");
-            helperFormula8 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
-            helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-            helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-            relationAbstraction2Formula.add(helperFormula6);
-            relationAbstraction2Formula.add(helperFormula5);
-          } else if (resultType1.isBitvectorType() &&
-              resultType2.isBitvectorType()) {
-            relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "##";
-            relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
-            Formula helperFormula1, helperFormula2, helperFormula3,
-                helperFormula4,
-                helperFormula7, helperFormula8;
-            BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i] + "##");
-            helperFormula8 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
-            helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-            helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-            relationAbstraction2Formula.add(helperFormula6);
-            relationAbstraction2Formula.add(helperFormula5);
-          }else if (resultType1 == resultType2 && !(resultType1.isIntegerType()) && !
-              (resultType1.isFloatingPointRoundingModeType()) && !(resultType1.isRationalType())){
-            relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "##";
-            relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
-            Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-                helperFormula7, helperFormula8;
-            BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i] + "##");
-            helperFormula8 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
-            helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-            helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-            relationAbstraction1Formula.add(helperFormula6);
-            relationAbstraction1Formula.add(helperFormula5);
-          }
-          else {
-            relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "##";
-            relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "##" + " - " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
+            } else {
+              relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "##";
+              relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "##" + " - " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
          /* FormulaType resultType1 = variablesUsedInBothPartsClasses.get
           (arrayVariablesThatAreUsedInBothParts[i]);
           FormulaType resultType2 = variablesUsedInBothPartsClasses.get
           (arrayVariablesThatAreUsedInBothParts[i + 1]); */
-            if (resultType1.isIntegerType() && resultType2.isIntegerType()) {
-              IntegerFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-                  helperFormula7, helperFormula8;
-              BooleanFormula
-                  helperFormula5, helperFormula6;
-              helperFormula1 = fmgr.makeVariable(FormulaType.IntegerType,
-                  arrayVariablesThatAreUsedInBothParts[i]);
-              helperFormula2 = fmgr.makeVariable(FormulaType.IntegerType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1]);
-              helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
-              helperFormula7 = fmgr.makeVariable(FormulaType.IntegerType,
-                  arrayVariablesThatAreUsedInBothParts[i] + "##");
-              helperFormula8 = fmgr.makeVariable(FormulaType.IntegerType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
-              helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
-              helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
-              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-              relationAbstraction2Formula.add(helperFormula6);
-              relationAbstraction2Formula.add(helperFormula5);
-            } else if (resultType1.isRationalType() && resultType2.isRationalType()) {
-              RationalFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-                  helperFormula7, helperFormula8;
-              BooleanFormula
-                  helperFormula5, helperFormula6;
-              helperFormula1 = fmgr.makeVariable(FormulaType.RationalType,
-                  arrayVariablesThatAreUsedInBothParts[i]);
-              helperFormula2 = fmgr.makeVariable(FormulaType.RationalType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1]);
-              helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
-              helperFormula7 = fmgr.makeVariable(FormulaType.RationalType,
-                  arrayVariablesThatAreUsedInBothParts[i] + "##");
-              helperFormula8 = fmgr.makeVariable(FormulaType.RationalType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
-              helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
-              helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
-              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-              relationAbstraction2Formula.add(helperFormula6);
-              relationAbstraction2Formula.add(helperFormula5);
-            } else if (resultType1.isFloatingPointRoundingModeType() &&
-                resultType2.isFloatingPointRoundingModeType()){
-              FloatingPointRoundingModeFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-                  helperFormula7, helperFormula8;
-              BooleanFormula
-                  helperFormula5, helperFormula6;
-              helperFormula1 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-                  arrayVariablesThatAreUsedInBothParts[i]);
-              helperFormula2 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1]);
-              helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
-              helperFormula7 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-                  arrayVariablesThatAreUsedInBothParts[i] + "##");
-              helperFormula8 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
-              helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
-              helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
-              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-              relationAbstraction2Formula.add(helperFormula6);
-              relationAbstraction2Formula.add(helperFormula5);
+              if (resultType1.isIntegerType() && resultType2.isIntegerType()) {
+                IntegerFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+                    helperFormula7, helperFormula8;
+                BooleanFormula
+                    helperFormula5, helperFormula6;
+                helperFormula1 = fmgr.makeVariable(FormulaType.IntegerType,
+                    arrayVariablesThatAreUsedInBothParts[i]);
+                helperFormula2 = fmgr.makeVariable(FormulaType.IntegerType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1]);
+                helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
+                helperFormula7 = fmgr.makeVariable(FormulaType.IntegerType,
+                    arrayVariablesThatAreUsedInBothParts[i] + "##");
+                helperFormula8 = fmgr.makeVariable(FormulaType.IntegerType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
+                helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
+                helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
+                helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+                relationAbstraction2Formula.add(helperFormula6);
+                relationAbstraction2Formula.add(helperFormula5);
+              } else if (resultType1.isRationalType() && resultType2.isRationalType()) {
+                RationalFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+                    helperFormula7, helperFormula8;
+                BooleanFormula
+                    helperFormula5, helperFormula6;
+                helperFormula1 = fmgr.makeVariable(FormulaType.RationalType,
+                    arrayVariablesThatAreUsedInBothParts[i]);
+                helperFormula2 = fmgr.makeVariable(FormulaType.RationalType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1]);
+                helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
+                helperFormula7 = fmgr.makeVariable(FormulaType.RationalType,
+                    arrayVariablesThatAreUsedInBothParts[i] + "##");
+                helperFormula8 = fmgr.makeVariable(FormulaType.RationalType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
+                helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
+                helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
+                helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+                relationAbstraction2Formula.add(helperFormula6);
+                relationAbstraction2Formula.add(helperFormula5);
+              } else if (resultType1.isFloatingPointRoundingModeType() &&
+                  resultType2.isFloatingPointRoundingModeType()) {
+                FloatingPointRoundingModeFormula helperFormula1, helperFormula2, helperFormula3,
+                    helperFormula4,
+                    helperFormula7, helperFormula8;
+                BooleanFormula
+                    helperFormula5, helperFormula6;
+                helperFormula1 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+                    arrayVariablesThatAreUsedInBothParts[i]);
+                helperFormula2 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1]);
+                helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
+                helperFormula7 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+                    arrayVariablesThatAreUsedInBothParts[i] + "##");
+                helperFormula8 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
+                helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
+                helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
+                helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+                relationAbstraction2Formula.add(helperFormula6);
+                relationAbstraction2Formula.add(helperFormula5);
+              }
             }
-          }}
-      } else {
-        int i;
-        for (i = 0; i < arrayVariablesThatAreUsedInBothParts.length - 1; i = i + 2) {
-          FormulaType resultType1 = variablesUsedInBothPartsClasses.get
-              (arrayVariablesThatAreUsedInBothParts[i]);
-          FormulaType resultType2 = variablesUsedInBothPartsClasses.get
-              (arrayVariablesThatAreUsedInBothParts[i + 1]);
-          if (!resultType1.equals(resultType2)){
-            //logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
-            relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "#";
-            relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
-            Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-                helperFormula7, helperFormula8;
-            BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i] + "#");
-            helperFormula8 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
-            helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-            helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-            relationAbstraction1Formula.add(helperFormula6);
-            relationAbstraction1Formula.add(helperFormula5);
-            latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
-            latticeNames[i + 1] =
-                arrayVariablesThatAreUsedInBothParts[i + 1];
-            //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
-            latticeNamesTypes.put(latticeNames[i], resultType1);
-            latticeNamesTypes.put(latticeNames[i + 1], resultType2);
           }
-          else if (resultType1.isArrayType() && resultType2.isArrayType()){
-            ArrayFormulaType resultType1Array = (ArrayFormulaType) resultType1;
-            FormulaType indexType1 = resultType1Array.getIndexType();
-            FormulaType elementType1 = resultType1Array.getElementType();
-            ArrayFormulaType resultType2Array = (ArrayFormulaType) resultType2;
-            FormulaType indexType2 = resultType2Array.getIndexType();
-            FormulaType elementType2 = resultType2Array.getElementType();
-            relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "#";
-            relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
-            Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-                helperFormula7, helperFormula8;
-            BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
-                arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
-                arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
-                arrayVariablesThatAreUsedInBothParts[i] + "#");
-            helperFormula8 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
-            helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-            helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-            relationAbstraction1Formula.add(helperFormula6);
-            relationAbstraction1Formula.add(helperFormula5);
-            latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
-            latticeNames[i + 1] =
-                arrayVariablesThatAreUsedInBothParts[i + 1];
-            //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
-            latticeNamesTypes.put(latticeNames[i], resultType1);
-            latticeNamesTypes.put(latticeNames[i + 1], resultType1);
-          }
-          else if (resultType1.isBooleanType() && resultType2.isBooleanType()) {
-            relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "#";
-            relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
-            BooleanFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-                helperFormula7, helperFormula8;
-            BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i] + "#");
-            helperFormula8 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
-            helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-            helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-            relationAbstraction1Formula.add(helperFormula6);
-            relationAbstraction1Formula.add(helperFormula5);
-            latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
-            latticeNames[i + 1] =
-                arrayVariablesThatAreUsedInBothParts[i + 1];
-            //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
-            latticeNamesTypes.put(latticeNames[i], resultType1);
-            latticeNamesTypes.put(latticeNames[i + 1], resultType1);
-          } else if (resultType1.isBitvectorType() &&
-              resultType2.isBitvectorType()) {
-            relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "#";
-            relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
-            Formula helperFormula1, helperFormula2, helperFormula3,
-                helperFormula4,
-                helperFormula7, helperFormula8;
-            BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i] + "#");
-            helperFormula8 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
-            helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-            helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-            relationAbstraction1Formula.add(helperFormula6);
-            relationAbstraction1Formula.add(helperFormula5);
-            latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
-            latticeNames[i + 1] =
-                arrayVariablesThatAreUsedInBothParts[i + 1];
-            //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
-            latticeNamesTypes.put(latticeNames[i], resultType1);
-            latticeNamesTypes.put(latticeNames[i + 1], resultType1);
-          } else if (resultType1 == resultType2 && !(resultType1.isIntegerType()) && !
-              (resultType1.isFloatingPointRoundingModeType()) && !(resultType1.isRationalType())){
-            relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "#";
-            relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
-            Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-                helperFormula7, helperFormula8;
-            BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i] + "#");
-            helperFormula8 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
-            helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-            helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-            relationAbstraction1Formula.add(helperFormula6);
-            relationAbstraction1Formula.add(helperFormula5);
-            latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
-            latticeNames[i + 1] =
-                arrayVariablesThatAreUsedInBothParts[i + 1];
-            //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
-            latticeNamesTypes.put(latticeNames[i], resultType1);
-            latticeNamesTypes.put(latticeNames[i + 1], resultType2);
-          }
-
-          else {
-            relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "#";
-            relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "#" + " - " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
+        } else {
+          int i;
+          for (i = 0; i < arrayVariablesThatAreUsedInBothParts.length - 1; i = i + 2) {
+            FormulaType resultType1 = variablesUsedInBothPartsClasses.get
+                (arrayVariablesThatAreUsedInBothParts[i]);
+            FormulaType resultType2 = variablesUsedInBothPartsClasses.get
+                (arrayVariablesThatAreUsedInBothParts[i + 1]);
+            if (!resultType1.equals(resultType2)) {
+              //logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
+              relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "#";
+              relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
+              Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+                  helperFormula7, helperFormula8;
+              BooleanFormula helperFormula5, helperFormula6;
+              helperFormula1 = fmgr.makeVariable(resultType1,
+                  arrayVariablesThatAreUsedInBothParts[i]);
+              helperFormula2 = fmgr.makeVariable(resultType2,
+                  arrayVariablesThatAreUsedInBothParts[i + 1]);
+              helperFormula7 = fmgr.makeVariable(resultType1,
+                  arrayVariablesThatAreUsedInBothParts[i] + "#");
+              helperFormula8 = fmgr.makeVariable(resultType2,
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
+              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
+              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              relationAbstraction1Formula.add(helperFormula6);
+              relationAbstraction1Formula.add(helperFormula5);
+              latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
+              latticeNames[i + 1] =
+                  arrayVariablesThatAreUsedInBothParts[i + 1];
+              //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+              //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+              latticeNamesTypes.put(latticeNames[i], resultType1);
+              latticeNamesTypes.put(latticeNames[i + 1], resultType2);
+            } else if (resultType1.isArrayType() && resultType2.isArrayType()) {
+              ArrayFormulaType resultType1Array = (ArrayFormulaType) resultType1;
+              FormulaType indexType1 = resultType1Array.getIndexType();
+              FormulaType elementType1 = resultType1Array.getElementType();
+              ArrayFormulaType resultType2Array = (ArrayFormulaType) resultType2;
+              FormulaType indexType2 = resultType2Array.getIndexType();
+              FormulaType elementType2 = resultType2Array.getElementType();
+              relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "#";
+              relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
+              Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+                  helperFormula7, helperFormula8;
+              BooleanFormula helperFormula5, helperFormula6;
+              helperFormula1 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
+                  arrayVariablesThatAreUsedInBothParts[i]);
+              helperFormula2 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
+                  arrayVariablesThatAreUsedInBothParts[i + 1]);
+              helperFormula7 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
+                  arrayVariablesThatAreUsedInBothParts[i] + "#");
+              helperFormula8 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
+              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
+              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              relationAbstraction1Formula.add(helperFormula6);
+              relationAbstraction1Formula.add(helperFormula5);
+              latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
+              latticeNames[i + 1] =
+                  arrayVariablesThatAreUsedInBothParts[i + 1];
+              //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+              //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+              latticeNamesTypes.put(latticeNames[i], resultType1);
+              latticeNamesTypes.put(latticeNames[i + 1], resultType1);
+            } else if (resultType1.isBooleanType() && resultType2.isBooleanType()) {
+              relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "#";
+              relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
+              BooleanFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+                  helperFormula7, helperFormula8;
+              BooleanFormula helperFormula5, helperFormula6;
+              helperFormula1 = fmgr.makeVariable(FormulaType.BooleanType,
+                  arrayVariablesThatAreUsedInBothParts[i]);
+              helperFormula2 = fmgr.makeVariable(FormulaType.BooleanType,
+                  arrayVariablesThatAreUsedInBothParts[i + 1]);
+              helperFormula7 = fmgr.makeVariable(FormulaType.BooleanType,
+                  arrayVariablesThatAreUsedInBothParts[i] + "#");
+              helperFormula8 = fmgr.makeVariable(FormulaType.BooleanType,
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
+              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
+              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              relationAbstraction1Formula.add(helperFormula6);
+              relationAbstraction1Formula.add(helperFormula5);
+              latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
+              latticeNames[i + 1] =
+                  arrayVariablesThatAreUsedInBothParts[i + 1];
+              //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+              //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+              latticeNamesTypes.put(latticeNames[i], resultType1);
+              latticeNamesTypes.put(latticeNames[i + 1], resultType1);
+            } else if (resultType1.isBitvectorType() &&
+                resultType2.isBitvectorType()) {
+              relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "#";
+              relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
+              Formula helperFormula1, helperFormula2, helperFormula3,
+                  helperFormula4,
+                  helperFormula7, helperFormula8;
+              BooleanFormula helperFormula5, helperFormula6;
+              helperFormula1 = fmgr.makeVariable(resultType1,
+                  arrayVariablesThatAreUsedInBothParts[i]);
+              helperFormula2 = fmgr.makeVariable(resultType2,
+                  arrayVariablesThatAreUsedInBothParts[i + 1]);
+              helperFormula7 = fmgr.makeVariable(resultType1,
+                  arrayVariablesThatAreUsedInBothParts[i] + "#");
+              helperFormula8 = fmgr.makeVariable(resultType2,
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
+              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
+              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              relationAbstraction1Formula.add(helperFormula6);
+              relationAbstraction1Formula.add(helperFormula5);
+              latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
+              latticeNames[i + 1] =
+                  arrayVariablesThatAreUsedInBothParts[i + 1];
+              //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+              //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+              latticeNamesTypes.put(latticeNames[i], resultType1);
+              latticeNamesTypes.put(latticeNames[i + 1], resultType1);
+            } else if (resultType1 == resultType2 && !(resultType1.isIntegerType()) && !
+                (resultType1.isFloatingPointRoundingModeType()) && !(resultType1
+                .isRationalType())) {
+              relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "#";
+              relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
+              Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+                  helperFormula7, helperFormula8;
+              BooleanFormula helperFormula5, helperFormula6;
+              helperFormula1 = fmgr.makeVariable(resultType1,
+                  arrayVariablesThatAreUsedInBothParts[i]);
+              helperFormula2 = fmgr.makeVariable(resultType2,
+                  arrayVariablesThatAreUsedInBothParts[i + 1]);
+              helperFormula7 = fmgr.makeVariable(resultType1,
+                  arrayVariablesThatAreUsedInBothParts[i] + "#");
+              helperFormula8 = fmgr.makeVariable(resultType2,
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
+              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
+              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              relationAbstraction1Formula.add(helperFormula6);
+              relationAbstraction1Formula.add(helperFormula5);
+              latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
+              latticeNames[i + 1] =
+                  arrayVariablesThatAreUsedInBothParts[i + 1];
+              //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+              //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+              latticeNamesTypes.put(latticeNames[i], resultType1);
+              latticeNamesTypes.put(latticeNames[i + 1], resultType2);
+            } else {
+              relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "#";
+              relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "#" + " - " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#";
          /* FormulaType resultType1 = variablesUsedInBothPartsClasses.get
           (arrayVariablesThatAreUsedInBothParts[i]);
           FormulaType resultType2 = variablesUsedInBothPartsClasses.get
           (arrayVariablesThatAreUsedInBothParts[i +
           1]); */
-            if (resultType1.isIntegerType() && resultType2.isIntegerType()) {
-              IntegerFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+              if (resultType1.isIntegerType() && resultType2.isIntegerType()) {
+                IntegerFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+                    helperFormula7, helperFormula8;
+                BooleanFormula helperFormula5, helperFormula6;
+                helperFormula1 = fmgr.makeVariable(FormulaType.IntegerType,
+                    arrayVariablesThatAreUsedInBothParts[i]);
+                helperFormula2 = fmgr.makeVariable(FormulaType.IntegerType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1]);
+                helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
+                helperFormula7 = fmgr.makeVariable(FormulaType.IntegerType,
+                    arrayVariablesThatAreUsedInBothParts[i] + "#");
+                helperFormula8 = fmgr.makeVariable(FormulaType.IntegerType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
+                helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
+                helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
+                helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+                relationAbstraction1Formula.add(helperFormula6);
+                relationAbstraction1Formula.add(helperFormula5);
+              } else if (resultType1.isRationalType() && resultType2.isRationalType()) {
+                RationalFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+                    helperFormula7, helperFormula8;
+                BooleanFormula helperFormula5, helperFormula6;
+                helperFormula1 = fmgr.makeVariable(FormulaType.RationalType,
+                    arrayVariablesThatAreUsedInBothParts[i]);
+                helperFormula2 = fmgr.makeVariable(FormulaType.RationalType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1]);
+                helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
+                helperFormula7 = fmgr.makeVariable(FormulaType.RationalType,
+                    arrayVariablesThatAreUsedInBothParts[i] + "#");
+                helperFormula8 = fmgr.makeVariable(FormulaType.RationalType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
+                helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
+                helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
+                helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+                relationAbstraction1Formula.add(helperFormula6);
+                relationAbstraction1Formula.add(helperFormula5);
+              } else if (resultType1.isFloatingPointRoundingModeType() &&
+                  resultType2.isFloatingPointRoundingModeType()) {
+                FloatingPointRoundingModeFormula helperFormula1, helperFormula2, helperFormula3,
+                    helperFormula4,
+                    helperFormula7, helperFormula8;
+                BooleanFormula helperFormula5, helperFormula6;
+                helperFormula1 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+                    arrayVariablesThatAreUsedInBothParts[i]);
+                helperFormula2 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1]);
+                helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
+                helperFormula7 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+                    arrayVariablesThatAreUsedInBothParts[i] + "#");
+                helperFormula8 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
+                helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
+                helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
+                helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+                relationAbstraction1Formula.add(helperFormula6);
+                relationAbstraction1Formula.add(helperFormula5);
+              }
+              latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
+              latticeNames[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1];
+              //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
+              //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
+              latticeNamesTypes.put(latticeNames[i], resultType1);
+              latticeNamesTypes.put(latticeNames[i + 1], resultType1);
+         /* latticeNamesTypes[i + 1] = resultType1;
+          latticeNamesTypes[i + 2] = resultType2; */
+            }
+          }
+          for (i = 0; i < arrayVariablesThatAreUsedInBothParts.length - 1; i = i + 2) {
+            FormulaType resultType1 = variablesUsedInBothPartsClasses.get
+                (arrayVariablesThatAreUsedInBothParts[i]);
+            FormulaType resultType2 = variablesUsedInBothPartsClasses.get
+                (arrayVariablesThatAreUsedInBothParts[i + 1]);
+            if (!resultType1.equals(resultType2)) {
+              //logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
+              relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "##";
+              relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
+              Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                   helperFormula7, helperFormula8;
               BooleanFormula helperFormula5, helperFormula6;
-              helperFormula1 = fmgr.makeVariable(FormulaType.IntegerType,
+              helperFormula1 = fmgr.makeVariable(resultType1,
                   arrayVariablesThatAreUsedInBothParts[i]);
-              helperFormula2 = fmgr.makeVariable(FormulaType.IntegerType,
+              helperFormula2 = fmgr.makeVariable(resultType2,
                   arrayVariablesThatAreUsedInBothParts[i + 1]);
-              helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
-              helperFormula7 = fmgr.makeVariable(FormulaType.IntegerType,
-                  arrayVariablesThatAreUsedInBothParts[i] + "#");
-              helperFormula8 = fmgr.makeVariable(FormulaType.IntegerType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
-              helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
-              helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
+              helperFormula7 = fmgr.makeVariable(resultType1,
+                  arrayVariablesThatAreUsedInBothParts[i] + "##");
+              helperFormula8 = fmgr.makeVariable(resultType2,
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
+              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
               helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-              relationAbstraction1Formula.add(helperFormula6);
-              relationAbstraction1Formula.add(helperFormula5);
-            } else if (resultType1.isRationalType() && resultType2.isRationalType()) {
-              RationalFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+              relationAbstraction2Formula.add(helperFormula6);
+              relationAbstraction2Formula.add(helperFormula5);
+            } else if (resultType1.isArrayType() && resultType2.isArrayType()) {
+              ArrayFormulaType resultType1Array = (ArrayFormulaType) resultType1;
+              FormulaType indexType1 = resultType1Array.getIndexType();
+              FormulaType elementType1 = resultType1Array.getElementType();
+              ArrayFormulaType resultType2Array = (ArrayFormulaType) resultType2;
+              FormulaType indexType2 = resultType2Array.getIndexType();
+              FormulaType elementType2 = resultType2Array.getElementType();
+              relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "##";
+              relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
+              Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
                   helperFormula7, helperFormula8;
               BooleanFormula helperFormula5, helperFormula6;
-              helperFormula1 = fmgr.makeVariable(FormulaType.RationalType,
+              helperFormula1 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
                   arrayVariablesThatAreUsedInBothParts[i]);
-              helperFormula2 = fmgr.makeVariable(FormulaType.RationalType,
+              helperFormula2 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
                   arrayVariablesThatAreUsedInBothParts[i + 1]);
-              helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
-              helperFormula7 = fmgr.makeVariable(FormulaType.RationalType,
-                  arrayVariablesThatAreUsedInBothParts[i] + "#");
-              helperFormula8 = fmgr.makeVariable(FormulaType.RationalType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
-              helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
-              helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
+              helperFormula7 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
+                  arrayVariablesThatAreUsedInBothParts[i] + "##");
+              helperFormula8 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
+              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
               helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-              relationAbstraction1Formula.add(helperFormula6);
-              relationAbstraction1Formula.add(helperFormula5);
-            } else if (resultType1.isFloatingPointRoundingModeType() &&
-                resultType2.isFloatingPointRoundingModeType()) {
-              FloatingPointRoundingModeFormula helperFormula1, helperFormula2, helperFormula3,
+              relationAbstraction2Formula.add(helperFormula6);
+              relationAbstraction2Formula.add(helperFormula5);
+            } else if (resultType1.isBooleanType() && resultType2.isBooleanType()) {
+              relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "##";
+              relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
+              BooleanFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+                  helperFormula7, helperFormula8;
+              BooleanFormula helperFormula5, helperFormula6;
+              helperFormula1 = fmgr.makeVariable(FormulaType.BooleanType,
+                  arrayVariablesThatAreUsedInBothParts[i]);
+              helperFormula2 = fmgr.makeVariable(FormulaType.BooleanType,
+                  arrayVariablesThatAreUsedInBothParts[i + 1]);
+              helperFormula7 = fmgr.makeVariable(FormulaType.BooleanType,
+                  arrayVariablesThatAreUsedInBothParts[i] + "##");
+              helperFormula8 = fmgr.makeVariable(FormulaType.BooleanType,
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
+              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
+              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              relationAbstraction2Formula.add(helperFormula6);
+              relationAbstraction2Formula.add(helperFormula5);
+            } else if (resultType1.isBitvectorType() &&
+                resultType2.isBitvectorType()) {
+              relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "##";
+              relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
+              Formula helperFormula1, helperFormula2, helperFormula3,
                   helperFormula4,
                   helperFormula7, helperFormula8;
               BooleanFormula helperFormula5, helperFormula6;
-              helperFormula1 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+              helperFormula1 = fmgr.makeVariable(resultType1,
                   arrayVariablesThatAreUsedInBothParts[i]);
-              helperFormula2 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+              helperFormula2 = fmgr.makeVariable(resultType2,
                   arrayVariablesThatAreUsedInBothParts[i + 1]);
-              helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
-              helperFormula7 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-                  arrayVariablesThatAreUsedInBothParts[i] + "#");
-              helperFormula8 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
-              helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
-              helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
+              helperFormula7 = fmgr.makeVariable(resultType1,
+                  arrayVariablesThatAreUsedInBothParts[i] + "##");
+              helperFormula8 = fmgr.makeVariable(resultType2,
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
+              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
+              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+              relationAbstraction2Formula.add(helperFormula6);
+              relationAbstraction2Formula.add(helperFormula5);
+            } else if (resultType1 == resultType2 && !(resultType1.isIntegerType()) && !
+                (resultType1.isFloatingPointRoundingModeType()) && !(resultType1
+                .isRationalType())) {
+              relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "##";
+              relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
+              Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+                  helperFormula7, helperFormula8;
+              BooleanFormula helperFormula5, helperFormula6;
+              helperFormula1 = fmgr.makeVariable(resultType1,
+                  arrayVariablesThatAreUsedInBothParts[i]);
+              helperFormula2 = fmgr.makeVariable(resultType2,
+                  arrayVariablesThatAreUsedInBothParts[i + 1]);
+              helperFormula7 = fmgr.makeVariable(resultType1,
+                  arrayVariablesThatAreUsedInBothParts[i] + "##");
+              helperFormula8 = fmgr.makeVariable(resultType2,
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
+              helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
               helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
               relationAbstraction1Formula.add(helperFormula6);
               relationAbstraction1Formula.add(helperFormula5);
-            }
-            latticeNames[i] = arrayVariablesThatAreUsedInBothParts[i];
-            latticeNames[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
-                arrayVariablesThatAreUsedInBothParts[i + 1];
-            //logger.log(Level.WARNING, "LatticeNames[" + (i) + "] = " + latticeNames[i]);
-            //logger.log(Level.WARNING, "LatticeNames[" + (i+1) + "] = " + latticeNames[i + 1]);
-            latticeNamesTypes.put(latticeNames[i], resultType1);
-            latticeNamesTypes.put(latticeNames[i + 1], resultType1);
-         /* latticeNamesTypes[i + 1] = resultType1;
-          latticeNamesTypes[i + 2] = resultType2; */
-          }
-        }
-        for (i = 0; i < arrayVariablesThatAreUsedInBothParts.length - 1; i = i + 2) {
-          FormulaType resultType1 = variablesUsedInBothPartsClasses.get
-              (arrayVariablesThatAreUsedInBothParts[i]);
-          FormulaType resultType2 = variablesUsedInBothPartsClasses.get
-              (arrayVariablesThatAreUsedInBothParts[i + 1]);
-          if (!resultType1.equals(resultType2)){
-            //logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
-            relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "##";
-            relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
-            Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-                helperFormula7, helperFormula8;
-            BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i] + "##");
-            helperFormula8 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
-            helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-            helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-            relationAbstraction2Formula.add(helperFormula6);
-            relationAbstraction2Formula.add(helperFormula5);
-          }
-          else if (resultType1.isArrayType() && resultType2.isArrayType()){
-            ArrayFormulaType resultType1Array = (ArrayFormulaType) resultType1;
-            FormulaType indexType1 = resultType1Array.getIndexType();
-            FormulaType elementType1 = resultType1Array.getElementType();
-            ArrayFormulaType resultType2Array = (ArrayFormulaType) resultType2;
-            FormulaType indexType2 = resultType2Array.getIndexType();
-            FormulaType elementType2 = resultType2Array.getElementType();
-            relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "##";
-            relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
-            Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-                helperFormula7, helperFormula8;
-            BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
-                arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
-                arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
-                arrayVariablesThatAreUsedInBothParts[i] + "##");
-            helperFormula8 = fmgr.makeVariable(FormulaType.getArrayType(elementType2, indexType2),
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
-            helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-            helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-            relationAbstraction2Formula.add(helperFormula6);
-            relationAbstraction2Formula.add(helperFormula5);
-          }
-          else if (resultType1.isBooleanType() && resultType2.isBooleanType()) {
-            relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "##";
-            relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
-            BooleanFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-                helperFormula7, helperFormula8;
-            BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i] + "##");
-            helperFormula8 = fmgr.makeVariable(FormulaType.BooleanType,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
-            helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-            helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-            relationAbstraction2Formula.add(helperFormula6);
-            relationAbstraction2Formula.add(helperFormula5);
-          }
-          else if (resultType1.isBitvectorType() &&
-              resultType2.isBitvectorType()) {
-            relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "##";
-            relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
-            Formula helperFormula1, helperFormula2, helperFormula3,
-                helperFormula4,
-                helperFormula7, helperFormula8;
-            BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i] + "##");
-            helperFormula8 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
-            helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-            helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-            relationAbstraction2Formula.add(helperFormula6);
-            relationAbstraction2Formula.add(helperFormula5);
-          } else if (resultType1 == resultType2 && !(resultType1.isIntegerType()) && !
-              (resultType1.isFloatingPointRoundingModeType()) && !(resultType1.isRationalType())){
-            relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "##";
-            relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
-            Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-                helperFormula7, helperFormula8;
-            BooleanFormula helperFormula5, helperFormula6;
-            helperFormula1 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i]);
-            helperFormula2 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1]);
-            helperFormula7 = fmgr.makeVariable(resultType1,
-                arrayVariablesThatAreUsedInBothParts[i] + "##");
-            helperFormula8 = fmgr.makeVariable(resultType2,
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
-            helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
-            helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-            relationAbstraction1Formula.add(helperFormula6);
-            relationAbstraction1Formula.add(helperFormula5);
-          }
-          else {
-            relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "##";
-            relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
-                arrayVariablesThatAreUsedInBothParts[i] + "##" + " - " +
-                arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
+            } else {
+              relationAbstraction2[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "##";
+              relationAbstraction2[i + 1] = arrayVariablesThatAreUsedInBothParts[i] + " - " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
+                  arrayVariablesThatAreUsedInBothParts[i] + "##" + " - " +
+                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##";
           /*FormulaType resultType1 = variablesUsedInBothPartsClasses.get
               (arrayVariablesThatAreUsedInBothParts[i]);
           FormulaType resultType2 = variablesUsedInBothPartsClasses.get
           (arrayVariablesThatAreUsedInBothParts[i + 1]); */
-            if (resultType1.isIntegerType() && resultType2.isIntegerType()) {
-              IntegerFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-                  helperFormula7, helperFormula8;
-              BooleanFormula
-                  helperFormula5, helperFormula6;
-              helperFormula1 = fmgr.makeVariable(FormulaType.IntegerType,
-                  arrayVariablesThatAreUsedInBothParts[i]);
-              helperFormula2 = fmgr.makeVariable(FormulaType.IntegerType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1]);
-              helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
-              helperFormula7 = fmgr.makeVariable(FormulaType.IntegerType,
-                  arrayVariablesThatAreUsedInBothParts[i] + "##");
-              helperFormula8 = fmgr.makeVariable(FormulaType.IntegerType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
-              helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
-              helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
-              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-              relationAbstraction2Formula.add(helperFormula6);
-              relationAbstraction2Formula.add(helperFormula5);
-            } else if (resultType1.isRationalType() && resultType2.isRationalType()) {
-              RationalFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-                  helperFormula7, helperFormula8;
-              BooleanFormula
-                  helperFormula5, helperFormula6;
-              helperFormula1 = fmgr.makeVariable(FormulaType.RationalType,
-                  arrayVariablesThatAreUsedInBothParts[i]);
-              helperFormula2 = fmgr.makeVariable(FormulaType.RationalType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1]);
-              helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
-              helperFormula7 = fmgr.makeVariable(FormulaType.RationalType,
-                  arrayVariablesThatAreUsedInBothParts[i] + "##");
-              helperFormula8 = fmgr.makeVariable(FormulaType.RationalType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
-              helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
-              helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
-              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-              relationAbstraction2Formula.add(helperFormula6);
-              relationAbstraction2Formula.add(helperFormula5);
-            } else if (resultType1.isFloatingPointRoundingModeType() &&
-                resultType2.isFloatingPointRoundingModeType()) {
-              FloatingPointRoundingModeFormula helperFormula1, helperFormula2, helperFormula3,
-                  helperFormula4,
-                  helperFormula7, helperFormula8;
-              BooleanFormula
-                  helperFormula5, helperFormula6;
-              helperFormula1 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-                  arrayVariablesThatAreUsedInBothParts[i]);
-              helperFormula2 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1]);
-              helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
-              helperFormula7 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-                  arrayVariablesThatAreUsedInBothParts[i] + "##");
-              helperFormula8 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-                  arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
-              helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
-              helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
-              helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-              relationAbstraction2Formula.add(helperFormula6);
-              relationAbstraction2Formula.add(helperFormula5);
+              if (resultType1.isIntegerType() && resultType2.isIntegerType()) {
+                IntegerFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+                    helperFormula7, helperFormula8;
+                BooleanFormula
+                    helperFormula5, helperFormula6;
+                helperFormula1 = fmgr.makeVariable(FormulaType.IntegerType,
+                    arrayVariablesThatAreUsedInBothParts[i]);
+                helperFormula2 = fmgr.makeVariable(FormulaType.IntegerType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1]);
+                helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
+                helperFormula7 = fmgr.makeVariable(FormulaType.IntegerType,
+                    arrayVariablesThatAreUsedInBothParts[i] + "##");
+                helperFormula8 = fmgr.makeVariable(FormulaType.IntegerType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
+                helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
+                helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
+                helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+                relationAbstraction2Formula.add(helperFormula6);
+                relationAbstraction2Formula.add(helperFormula5);
+              } else if (resultType1.isRationalType() && resultType2.isRationalType()) {
+                RationalFormula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+                    helperFormula7, helperFormula8;
+                BooleanFormula
+                    helperFormula5, helperFormula6;
+                helperFormula1 = fmgr.makeVariable(FormulaType.RationalType,
+                    arrayVariablesThatAreUsedInBothParts[i]);
+                helperFormula2 = fmgr.makeVariable(FormulaType.RationalType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1]);
+                helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
+                helperFormula7 = fmgr.makeVariable(FormulaType.RationalType,
+                    arrayVariablesThatAreUsedInBothParts[i] + "##");
+                helperFormula8 = fmgr.makeVariable(FormulaType.RationalType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
+                helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
+                helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
+                helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+                relationAbstraction2Formula.add(helperFormula6);
+                relationAbstraction2Formula.add(helperFormula5);
+              } else if (resultType1.isFloatingPointRoundingModeType() &&
+                  resultType2.isFloatingPointRoundingModeType()) {
+                FloatingPointRoundingModeFormula helperFormula1, helperFormula2, helperFormula3,
+                    helperFormula4,
+                    helperFormula7, helperFormula8;
+                BooleanFormula
+                    helperFormula5, helperFormula6;
+                helperFormula1 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+                    arrayVariablesThatAreUsedInBothParts[i]);
+                helperFormula2 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1]);
+                helperFormula3 = fmgr.makeMinus(helperFormula1, helperFormula2);
+                helperFormula7 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+                    arrayVariablesThatAreUsedInBothParts[i] + "##");
+                helperFormula8 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+                    arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
+                helperFormula4 = fmgr.makeMinus(helperFormula7, helperFormula8);
+                helperFormula5 = fmgr.makeEqual(helperFormula3, helperFormula4);
+                helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+                relationAbstraction2Formula.add(helperFormula6);
+                relationAbstraction2Formula.add(helperFormula5);
+              }
             }
           }
-        }
-        relationAbstraction1[arrayVariablesThatAreUsedInBothParts.length - 1] =
-            arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
-                + ""
-                + " = " + arrayVariablesThatAreUsedInBothParts
-                [arrayVariablesThatAreUsedInBothParts.length - 1] + "#";
-        FormulaType resultType1 = variablesUsedInBothPartsClasses.get
-            (arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]);
-        FormulaType resultType2 = variablesUsedInBothPartsClasses.get
-            (arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]);
+          relationAbstraction1[arrayVariablesThatAreUsedInBothParts.length - 1] =
+              arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
+                  + ""
+                  + " = " + arrayVariablesThatAreUsedInBothParts
+                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "#";
+          FormulaType resultType1 = variablesUsedInBothPartsClasses.get
+              (arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
+                  - 1]);
+          FormulaType resultType2 = variablesUsedInBothPartsClasses.get
+              (arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
+                  - 1]);
        /* if (resultType1.isBooleanType()) {
           BooleanFormula helperFormula1, helperFormula2, helperFormula3;
           helperFormula1 = fmgr.makeVariable(FormulaType.BooleanType,
@@ -1164,111 +1180,112 @@ public class DomainSpecificAbstraction<T> {
         relationAbstraction1Formula.add(helperFormula3);
 
         } else */
-        if (!resultType1.equals(resultType2)){
-          //logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
-          Formula helperFormula1, helperFormula2;
-          BooleanFormula helperFormula3;
-          helperFormula1 = fmgr.makeVariable(resultType1,
-              arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
-                  - 1]);
-          helperFormula2 =
-              fmgr.makeVariable(resultType2, arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
-          helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
-          relationAbstraction1Formula.add(helperFormula3);
-        }
-        else if (resultType1.isArrayType() && resultType2.isArrayType()){
-          ArrayFormulaType resultType1Array = (ArrayFormulaType) resultType1;
-          FormulaType indexType1 = resultType1Array.getIndexType();
-          FormulaType elementType1 = resultType1Array.getElementType();
-          ArrayFormulaType resultType2Array = (ArrayFormulaType) resultType2;
-          FormulaType indexType2 = resultType2Array.getIndexType();
-          FormulaType elementType2 = resultType2Array.getElementType();
-          Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-              helperFormula7, helperFormula8;
-          BooleanFormula helperFormula5, helperFormula6;
-          helperFormula1 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
-              arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length -
-                  1]);
-          helperFormula7 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
+          if (!resultType1.equals(resultType2)) {
+            //logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
+            Formula helperFormula1, helperFormula2;
+            BooleanFormula helperFormula3;
+            helperFormula1 = fmgr.makeVariable(resultType1,
+                arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
+                    - 1]);
+            helperFormula2 =
+                fmgr.makeVariable(resultType2, arrayVariablesThatAreUsedInBothParts
+                    [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
+            helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
+            relationAbstraction1Formula.add(helperFormula3);
+          } else if (resultType1.isArrayType() && resultType2.isArrayType()) {
+            ArrayFormulaType resultType1Array = (ArrayFormulaType) resultType1;
+            FormulaType indexType1 = resultType1Array.getIndexType();
+            FormulaType elementType1 = resultType1Array.getElementType();
+            ArrayFormulaType resultType2Array = (ArrayFormulaType) resultType2;
+            FormulaType indexType2 = resultType2Array.getIndexType();
+            FormulaType elementType2 = resultType2Array.getElementType();
+            Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+                helperFormula7, helperFormula8;
+            BooleanFormula helperFormula5, helperFormula6;
+            helperFormula1 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
+                arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length -
+                    1]);
+            helperFormula7 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
+                arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
+                    - 1]
+                    + "#");
+            helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+            relationAbstraction1Formula.add(helperFormula6);
+          } else if (resultType1.isIntegerType() && resultType2.isIntegerType()) {
+            IntegerFormula helperFormula1, helperFormula2;
+            BooleanFormula helperFormula3;
+            helperFormula1 = fmgr.makeVariable(FormulaType.IntegerType,
+                arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
+                    - 1]);
+            helperFormula2 =
+                fmgr.makeVariable(FormulaType.IntegerType, arrayVariablesThatAreUsedInBothParts
+                    [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
+            helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
+            relationAbstraction1Formula.add(helperFormula3);
+          } else if (resultType1.isIntegerType() && resultType2.isIntegerType()) {
+            RationalFormula helperFormula1, helperFormula2;
+            BooleanFormula helperFormula3;
+            helperFormula1 = fmgr.makeVariable(FormulaType.RationalType,
+                arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
+                    - 1]);
+            helperFormula2 =
+                fmgr.makeVariable(FormulaType.RationalType, arrayVariablesThatAreUsedInBothParts
+                    [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
+            helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
+            relationAbstraction1Formula.add(helperFormula3);
+          } else if (resultType1.isFloatingPointRoundingModeType() && resultType2
+              .isFloatingPointRoundingModeType()) {
+            FloatingPointRoundingModeFormula helperFormula1, helperFormula2;
+            BooleanFormula helperFormula3;
+            helperFormula1 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+                arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
+                    - 1]);
+            helperFormula2 =
+                fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+                    arrayVariablesThatAreUsedInBothParts
+                        [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
+            helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
+            relationAbstraction1Formula.add(helperFormula3);
+          } else if (resultType1.isBooleanType() && resultType2.isBooleanType()) {
+            BooleanFormula helperFormula1, helperFormula2;
+            BooleanFormula helperFormula3;
+            helperFormula1 = fmgr.makeVariable(FormulaType.BooleanType,
+                arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
+                    - 1]);
+            helperFormula2 =
+                fmgr.makeVariable(FormulaType.BooleanType, arrayVariablesThatAreUsedInBothParts
+                    [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
+            helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
+            relationAbstraction1Formula.add(helperFormula3);
+          } else if (resultType1.isBitvectorType() && resultType2.isBitvectorType()) {
+            Formula helperFormula1, helperFormula2;
+            BooleanFormula helperFormula3;
+            helperFormula1 = fmgr.makeVariable(resultType1,
+                arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
+                    - 1]);
+            helperFormula2 =
+                fmgr.makeVariable(resultType2,
+                    arrayVariablesThatAreUsedInBothParts
+                        [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
+            helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
+            relationAbstraction1Formula.add(helperFormula3);
+          } else if (resultType1 == resultType2) {
+            Formula helperFormula1, helperFormula2;
+            BooleanFormula helperFormula3;
+            helperFormula1 = fmgr.makeVariable(resultType1,
+                arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
+                    - 1]);
+            helperFormula2 =
+                fmgr.makeVariable(resultType2, arrayVariablesThatAreUsedInBothParts
+                    [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
+            helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
+            relationAbstraction1Formula.add(helperFormula3);
+          }
+          relationAbstraction2[arrayVariablesThatAreUsedInBothParts.length - 1] =
               arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
-                  + "#");
-          helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-          relationAbstraction1Formula.add(helperFormula6);
-        }
-        else if (resultType1.isIntegerType() && resultType2.isIntegerType()){
-          IntegerFormula helperFormula1, helperFormula2;
-          BooleanFormula helperFormula3;
-          helperFormula1 = fmgr.makeVariable(FormulaType.IntegerType,
-              arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
-                  - 1]);
-          helperFormula2 =
-              fmgr.makeVariable(FormulaType.IntegerType, arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
-          helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
-          relationAbstraction1Formula.add(helperFormula3);
-        } else if (resultType1.isIntegerType() && resultType2.isIntegerType()){
-          RationalFormula helperFormula1, helperFormula2;
-          BooleanFormula helperFormula3;
-          helperFormula1 = fmgr.makeVariable(FormulaType.RationalType,
-              arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
-                  - 1]);
-          helperFormula2 =
-              fmgr.makeVariable(FormulaType.RationalType, arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
-          helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
-          relationAbstraction1Formula.add(helperFormula3);
-        } else if (resultType1.isFloatingPointRoundingModeType() && resultType2.isFloatingPointRoundingModeType()){
-          FloatingPointRoundingModeFormula helperFormula1, helperFormula2;
-          BooleanFormula helperFormula3;
-          helperFormula1 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-              arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
-                  - 1]);
-          helperFormula2 =
-              fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType, arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
-          helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
-          relationAbstraction1Formula.add(helperFormula3);
-        } else if (resultType1.isBooleanType() && resultType2.isBooleanType()){
-          BooleanFormula helperFormula1, helperFormula2;
-          BooleanFormula helperFormula3;
-          helperFormula1 = fmgr.makeVariable(FormulaType.BooleanType,
-              arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
-                  - 1]);
-          helperFormula2 =
-              fmgr.makeVariable(FormulaType.BooleanType, arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
-          helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
-          relationAbstraction1Formula.add(helperFormula3);
-        } else if (resultType1.isBitvectorType() && resultType2.isBitvectorType()){
-          Formula helperFormula1, helperFormula2;
-          BooleanFormula helperFormula3;
-          helperFormula1 = fmgr.makeVariable(resultType1,
-              arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
-                  - 1]);
-          helperFormula2 =
-              fmgr.makeVariable(resultType2,
-                  arrayVariablesThatAreUsedInBothParts
-                      [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
-          helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
-          relationAbstraction1Formula.add(helperFormula3);
-        }  else if (resultType1 == resultType2){
-          Formula helperFormula1, helperFormula2;
-          BooleanFormula helperFormula3;
-          helperFormula1 = fmgr.makeVariable(resultType1,
-              arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
-                  - 1]);
-          helperFormula2 =
-              fmgr.makeVariable(resultType2, arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "#");
-          helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
-          relationAbstraction1Formula.add(helperFormula3);
-        }
-        relationAbstraction2[arrayVariablesThatAreUsedInBothParts.length - 1] =
-            arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
-                + ""
-                + " = " + arrayVariablesThatAreUsedInBothParts
-                [arrayVariablesThatAreUsedInBothParts.length - 1] + "##";
+                  + ""
+                  + " = " + arrayVariablesThatAreUsedInBothParts
+                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "##";
       /*  FormulaType resultType2 = variablesUsedInBothPartsClasses.get
             (arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length -
             1]); */
@@ -1293,112 +1310,115 @@ public class DomainSpecificAbstraction<T> {
         helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
         relationAbstraction2Formula.add(helperFormula6);
         } else */
-        if (!resultType2.equals(resultType1)){
-          //logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
-          Formula helperFormula4, helperFormula5;
-          BooleanFormula helperFormula6;
-          helperFormula4 = fmgr.makeVariable(resultType1,
-              arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
-                  - 1]);
-          helperFormula5 = fmgr.makeVariable(resultType2,
-              arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
-          helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
-          relationAbstraction2Formula.add(helperFormula6);
+          if (!resultType2.equals(resultType1)) {
+            //logger.log(Level.WARNING, "resulttype1 does not equal resulttype2: ");
+            Formula helperFormula4, helperFormula5;
+            BooleanFormula helperFormula6;
+            helperFormula4 = fmgr.makeVariable(resultType1,
+                arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
+                    - 1]);
+            helperFormula5 = fmgr.makeVariable(resultType2,
+                arrayVariablesThatAreUsedInBothParts
+                    [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
+            helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
+            relationAbstraction2Formula.add(helperFormula6);
+          } else if (resultType1.isArrayType() && resultType2.isArrayType()) {
+            ArrayFormulaType resultType1Array = (ArrayFormulaType) resultType1;
+            FormulaType indexType1 = resultType1Array.getIndexType();
+            FormulaType elementType1 = resultType1Array.getElementType();
+            ArrayFormulaType resultType2Array = (ArrayFormulaType) resultType2;
+            FormulaType indexType2 = resultType2Array.getIndexType();
+            FormulaType elementType2 = resultType2Array.getElementType();
+            Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
+                helperFormula7, helperFormula8;
+            BooleanFormula helperFormula5, helperFormula6;
+            helperFormula1 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
+                arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length -
+                    1]);
+            helperFormula7 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
+                arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
+                    - 1]
+                    + "##");
+            helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
+            relationAbstraction2Formula.add(helperFormula6);
+          } else if (resultType2.isIntegerType() && resultType1.isIntegerType()) {
+            IntegerFormula helperFormula4, helperFormula5;
+            BooleanFormula helperFormula6;
+            helperFormula4 = fmgr.makeVariable(FormulaType.IntegerType,
+                arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
+                    - 1]);
+            helperFormula5 = fmgr.makeVariable(FormulaType.IntegerType,
+                arrayVariablesThatAreUsedInBothParts
+                    [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
+            helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
+            relationAbstraction2Formula.add(helperFormula6);
+          } else if (resultType2.isRationalType() && resultType1.isRationalType()) {
+            RationalFormula helperFormula4, helperFormula5;
+            BooleanFormula helperFormula6;
+            helperFormula4 = fmgr.makeVariable(FormulaType.RationalType,
+                arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
+                    - 1]);
+            helperFormula5 = fmgr.makeVariable(FormulaType.RationalType,
+                arrayVariablesThatAreUsedInBothParts
+                    [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
+            helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
+            relationAbstraction2Formula.add(helperFormula6);
+          } else if (resultType2.isFloatingPointRoundingModeType() && resultType1
+              .isFloatingPointRoundingModeType()) {
+            FloatingPointRoundingModeFormula helperFormula4, helperFormula5;
+            BooleanFormula helperFormula6;
+            helperFormula4 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+                arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
+                    - 1]);
+            helperFormula5 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
+                arrayVariablesThatAreUsedInBothParts
+                    [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
+            helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
+            relationAbstraction2Formula.add(helperFormula6);
+          } else if (resultType2.isBooleanType() && resultType1.isBooleanType()) {
+            BooleanFormula helperFormula4, helperFormula5;
+            BooleanFormula helperFormula6;
+            helperFormula4 = fmgr.makeVariable(FormulaType.BooleanType,
+                arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
+                    - 1]);
+            helperFormula5 = fmgr.makeVariable(FormulaType.BooleanType,
+                arrayVariablesThatAreUsedInBothParts
+                    [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
+            helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
+            relationAbstraction2Formula.add(helperFormula6);
+          } else if (resultType1.isBitvectorType() && resultType2.isBitvectorType()) {
+            Formula helperFormula1, helperFormula2;
+            BooleanFormula helperFormula3;
+            helperFormula1 = fmgr.makeVariable(resultType1,
+                arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
+                    - 1]);
+            helperFormula2 =
+                fmgr.makeVariable(resultType2,
+                    arrayVariablesThatAreUsedInBothParts
+                        [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
+            helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
+            relationAbstraction2Formula.add(helperFormula3);
+          } else if (resultType1 == resultType2) {
+            Formula helperFormula1, helperFormula2;
+            BooleanFormula helperFormula3;
+            helperFormula1 = fmgr.makeVariable(resultType1,
+                arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
+                    - 1]);
+            helperFormula2 =
+                fmgr.makeVariable(resultType2, arrayVariablesThatAreUsedInBothParts
+                    [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
+            helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
+            relationAbstraction1Formula.add(helperFormula3);
+          }
+          latticeNames[latticeNames.length - 1] =
+              arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1];
+          latticeNamesTypes.put(latticeNames[latticeNames.length - 1], resultType1);
+          //logger.log(Level.WARNING, "LatticeNames[" + (latticeNames.length - 1) + "] = " +
+          //    latticeNames[latticeNames.length - 1]);
+          //latticeNamesTypes[latticeNamesTypes.length - 1] = resultType1;
         }
-        else if (resultType1.isArrayType() && resultType2.isArrayType()){
-          ArrayFormulaType resultType1Array = (ArrayFormulaType) resultType1;
-          FormulaType indexType1 = resultType1Array.getIndexType();
-          FormulaType elementType1 = resultType1Array.getElementType();
-          ArrayFormulaType resultType2Array = (ArrayFormulaType) resultType2;
-          FormulaType indexType2 = resultType2Array.getIndexType();
-          FormulaType elementType2 = resultType2Array.getElementType();
-          Formula helperFormula1, helperFormula2, helperFormula3, helperFormula4,
-              helperFormula7, helperFormula8;
-          BooleanFormula helperFormula5, helperFormula6;
-          helperFormula1 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
-              arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length -
-                  1]);
-          helperFormula7 = fmgr.makeVariable(FormulaType.getArrayType(elementType1, indexType1),
-              arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1]
-                  + "##");
-          helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
-          relationAbstraction2Formula.add(helperFormula6);
-        }
-        else if (resultType2.isIntegerType() && resultType1.isIntegerType()){
-          IntegerFormula helperFormula4, helperFormula5;
-          BooleanFormula helperFormula6;
-          helperFormula4 = fmgr.makeVariable(FormulaType.IntegerType,
-              arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
-                  - 1]);
-          helperFormula5 = fmgr.makeVariable(FormulaType.IntegerType,
-              arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
-          helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
-          relationAbstraction2Formula.add(helperFormula6);
-        } else if (resultType2.isRationalType() && resultType1.isRationalType()){
-          RationalFormula helperFormula4, helperFormula5;
-          BooleanFormula helperFormula6;
-          helperFormula4 = fmgr.makeVariable(FormulaType.RationalType,
-              arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
-                  - 1]);
-          helperFormula5 = fmgr.makeVariable(FormulaType.RationalType,
-              arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
-          helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
-          relationAbstraction2Formula.add(helperFormula6);
-        } else if (resultType2.isFloatingPointRoundingModeType() && resultType1.isFloatingPointRoundingModeType()){
-          FloatingPointRoundingModeFormula helperFormula4, helperFormula5;
-          BooleanFormula helperFormula6;
-          helperFormula4 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-              arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
-                  - 1]);
-          helperFormula5 = fmgr.makeVariable(FormulaType.FloatingPointRoundingModeType,
-              arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
-          helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
-          relationAbstraction2Formula.add(helperFormula6);
-        } else if (resultType2.isBooleanType() && resultType1.isBooleanType()){
-          BooleanFormula helperFormula4, helperFormula5;
-          BooleanFormula helperFormula6;
-          helperFormula4 = fmgr.makeVariable(FormulaType.BooleanType,
-              arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
-                  - 1]);
-          helperFormula5 = fmgr.makeVariable(FormulaType.BooleanType,
-              arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
-          helperFormula6 = fmgr.makeEqual(helperFormula4, helperFormula5);
-          relationAbstraction2Formula.add(helperFormula6);
-        } else if (resultType1.isBitvectorType() && resultType2.isBitvectorType()){
-          Formula helperFormula1, helperFormula2;
-          BooleanFormula helperFormula3;
-          helperFormula1 = fmgr.makeVariable(resultType1,
-              arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
-                  - 1]);
-          helperFormula2 =
-              fmgr.makeVariable(resultType2,
-                  arrayVariablesThatAreUsedInBothParts
-                      [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
-          helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
-          relationAbstraction2Formula.add(helperFormula3);
-        } else if (resultType1 == resultType2){
-          Formula helperFormula1, helperFormula2;
-          BooleanFormula helperFormula3;
-          helperFormula1 = fmgr.makeVariable(resultType1,
-              arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length
-                  - 1]);
-          helperFormula2 =
-              fmgr.makeVariable(resultType2, arrayVariablesThatAreUsedInBothParts
-                  [arrayVariablesThatAreUsedInBothParts.length - 1] + "##");
-          helperFormula3 = fmgr.makeEqual(helperFormula1, helperFormula2);
-          relationAbstraction1Formula.add(helperFormula3);
-        }
-        latticeNames[latticeNames.length - 1] =
-            arrayVariablesThatAreUsedInBothParts[arrayVariablesThatAreUsedInBothParts.length - 1];
-        latticeNamesTypes.put(latticeNames[latticeNames.length - 1], resultType1);
-        //logger.log(Level.WARNING, "LatticeNames[" + (latticeNames.length - 1) + "] = " +
-        //    latticeNames[latticeNames.length - 1]);
-        //latticeNamesTypes[latticeNamesTypes.length - 1] = resultType1;
+      } finally {
+        buildingLatticeNamesAndLatticeTypesTimer.stop();
       }
 
       //generating the nodes of the lattice
@@ -1482,54 +1502,60 @@ public class DomainSpecificAbstraction<T> {
           (arrayVariablesThatAreUsedInBothParts, arrayVariablesThatAreNotUsedInBothParts);
       BooleanFormula firstPart;
       BooleanFormula scndPart;
-      if (it == 0) {
-        firstPart = formulas.get(0);
-        scndPart = formulas.get(1);
-      } else {
-        firstPart = formulas.get(1);
-        scndPart = formulas.get(2);
-      }
-      BooleanFormula firstPartChanged;
-      BooleanFormula scndPartChanged;
-      if (it == 0) {
-        firstPartChanged = oldFmgr.renameFreeVariablesAndUFs(firstPart, renamer1);
-        scndPartChanged = oldFmgr.renameFreeVariablesAndUFs(scndPart, renamer2);
-      }
-      else {
-        firstPartChanged = oldFmgr.renameFreeVariablesAndUFs(firstPart, renamer1);
-        scndPartChanged = oldFmgr.renameFreeVariablesAndUFs(scndPart, renamer2);
-      }
-      List<BooleanFormula> changed_formulas =
-          Lists.newArrayListWithExpectedSize(formulas.size() - 1);
-      List<BooleanFormula> changed_formulas_rest1 =
-          Lists.newArrayListWithExpectedSize(formulas.size() - 1);
-      List<BooleanFormula> changed_formulas_rest2 =
-          Lists.newArrayListWithExpectedSize(formulas.size() - 1);
-      changed_formulas.add(firstPartChanged);
-      changed_formulas.add(scndPartChanged);
 
-      BooleanFormula helperFormula1;
-      BooleanFormula helperFormula2;
+        if (it == 0) {
+          firstPart = formulas.get(0);
+          scndPart = formulas.get(1);
+        } else {
+          firstPart = formulas.get(1);
+          scndPart = formulas.get(2);
+        }
+        BooleanFormula firstPartChanged;
+        BooleanFormula scndPartChanged;
+        if (it == 0) {
+          firstPartChanged = oldFmgr.renameFreeVariablesAndUFs(firstPart, renamer1);
+          scndPartChanged = oldFmgr.renameFreeVariablesAndUFs(scndPart, renamer2);
+        } else {
+          firstPartChanged = oldFmgr.renameFreeVariablesAndUFs(firstPart, renamer1);
+          scndPartChanged = oldFmgr.renameFreeVariablesAndUFs(scndPart, renamer2);
+        }
+        List<BooleanFormula> changed_formulas =
+            Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+        List<BooleanFormula> changed_formulas_rest1 =
+            Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+        List<BooleanFormula> changed_formulas_rest2 =
+            Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+        changed_formulas.add(firstPartChanged);
+        changed_formulas.add(scndPartChanged);
 
-      firstPartChanged = fmgr.translateFrom(firstPartChanged, oldFmgr);
-      scndPartChanged = fmgr.translateFrom(scndPartChanged, oldFmgr);
+        BooleanFormula helperFormula1;
+        BooleanFormula helperFormula2;
+
+        renamingTimer.start();
+        try {
+
+          firstPartChanged = fmgr.translateFrom(firstPartChanged, oldFmgr);
+          scndPartChanged = fmgr.translateFrom(scndPartChanged, oldFmgr);
      /* for (int i = 0; i < it; i++){
         BooleanFormula addFormula = oldFormulas.get(i);
         BooleanFormula changedFormula = oldFmgr.renameFreeVariablesAndUFs(addFormula, renamer1);
         changedFormula = fmgr.translateFrom(changedFormula, oldFmgr);
         changed_formulas_rest1.add(changedFormula);
       } */
-      if (it != 0){
-        BooleanFormula addFormula = interpolants.get(it - 1);
-        BooleanFormula changedFormula = fmgr.renameFreeVariablesAndUFs(addFormula, renamer1);
-        changed_formulas_rest1.add(changedFormula);
-      }
-      for (int i = it + 2; i < oldFormulas.size(); i++){
-        BooleanFormula addFormula = oldFormulas.get(i);
-        BooleanFormula changedFormula = oldFmgr.renameFreeVariablesAndUFs(addFormula, renamer2);
-        changedFormula = fmgr.translateFrom(changedFormula, oldFmgr);
-        changed_formulas_rest2.add(changedFormula);
-      }
+          if (it != 0) {
+            BooleanFormula addFormula = interpolants.get(it - 1);
+            BooleanFormula changedFormula = fmgr.renameFreeVariablesAndUFs(addFormula, renamer1);
+            changed_formulas_rest1.add(changedFormula);
+          }
+          for (int i = it + 2; i < oldFormulas.size(); i++) {
+            BooleanFormula addFormula = oldFormulas.get(i);
+            BooleanFormula changedFormula = oldFmgr.renameFreeVariablesAndUFs(addFormula, renamer2);
+            changedFormula = fmgr.translateFrom(changedFormula, oldFmgr);
+            changed_formulas_rest2.add(changedFormula);
+          }
+        } finally {
+          renamingTimer.stop();
+        }
 
 
       boolean abstractionFeasible = false;
@@ -1537,7 +1563,7 @@ public class DomainSpecificAbstraction<T> {
       helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
       //String latticenames_h = new String();
-      int latticeindex = latticeNames.length + 1;
+      //int latticeindex = latticeNames.length + 1;
 
       /*logger.log(Level.WARNING, "Showing LatticeNames: ");
       for (int h = 0; h < latticeNames.length; h++) {
@@ -1551,68 +1577,70 @@ public class DomainSpecificAbstraction<T> {
       for (int h = 0; h < relationAbstraction2.length; h++) {
         logger.log(Level.WARNING, relationAbstraction2[h]);
       } */
-      while (abstractionFeasible == false){
-        String latticenames_h = new String();
-        latticeindex = latticeindex - 1;
-      for (int h = 0; h < /*fullLatticeNames.length */ latticeNames.length; h++) {
+      buildingAbstractionsTimer.start();
+      try {
+       // while (abstractionFeasible == false) {
+          String latticenames_h = new String();
+         // latticeindex = latticeindex - 1;
+          for (int h = 0; h < /*fullLatticeNames.length */ latticeNames.length; h++) {
        /* helperFormula1 = firstPartChanged;
         helperFormula2 = scndPartChanged; */
-        //   Iterable<String> splitOperator = Splitter.on(" ,").split(/*fullLatticeNames[h]*/
-        //      latticeNames[h]);
-        //  for (String s : splitOperator) {
-        for (int k = 0; k < relationAbstraction1.length; k++) {
-          if (relationAbstraction1[k] != null && latticeNames[h] != null) {
-            if ((relationAbstraction1[k]).contains(/*s*/ latticeNames[h] + " = ")) {
-              helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
-                  (k));
-              //logger.log(Level.WARNING, "Updated helperformula1: " + helperFormula1.toString
-              // ());
-              if (latticenames_h.isEmpty() || (latticenames_h == null)) {
-                latticenames_h = latticeNames[h];
-                //logger.log(Level.WARNING, "Latticenames_h: " + latticenames_h);
-              } else {
-                latticenames_h = latticenames_h + " ," + latticeNames[h];
-                //logger.log(Level.WARNING, "Latticenames_h: " + latticenames_h);
+            //   Iterable<String> splitOperator = Splitter.on(" ,").split(/*fullLatticeNames[h]*/
+            //      latticeNames[h]);
+            //  for (String s : splitOperator) {
+            for (int k = 0; k < relationAbstraction1.length; k++) {
+              if (relationAbstraction1[k] != null && latticeNames[h] != null) {
+                if ((relationAbstraction1[k]).contains(/*s*/ latticeNames[h] + " = ")) {
+                  helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
+                      (k));
+                  //logger.log(Level.WARNING, "Updated helperformula1: " + helperFormula1.toString
+                  // ());
+                  if (latticenames_h.isEmpty() || (latticenames_h == null)) {
+                    latticenames_h = latticeNames[h];
+                    //logger.log(Level.WARNING, "Latticenames_h: " + latticenames_h);
+                  } else {
+                    latticenames_h = latticenames_h + " ," + latticeNames[h];
+                    //logger.log(Level.WARNING, "Latticenames_h: " + latticenames_h);
+                  }
+
+                }
               }
+              if (relationAbstraction2[k] != null && latticeNames[h] != null) {
+                if ((relationAbstraction2[k]).contains(/*s*/ latticeNames[h] + " = ")) {
+                  helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
+                      (k));
+                  //logger.log(Level.WARNING, "Updated helperformula2: " + helperFormula2.toString
+                  // ());
 
+                }
+              }
             }
-          }
-          if (relationAbstraction2[k] != null && latticeNames[h] != null) {
-            if ((relationAbstraction2[k]).contains(/*s*/ latticeNames[h] + " = ")) {
-              helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
-                  (k));
-              //logger.log(Level.WARNING, "Updated helperformula2: " + helperFormula2.toString
-              // ());
+         // }
 
+          if (!latticenames_h.isEmpty() && !(latticenames_h == null)) {
+            BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
+            List<BooleanFormula> toCheckFormulaList =
+                Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+            for (BooleanFormula f : changed_formulas_rest1) {
+              toCheckFormulaList.add(f);
             }
-          }
-        }
-         }
+            toCheckFormulaList.add(toCheckFormula);
+            for (BooleanFormula f : changed_formulas_rest2) {
+              toCheckFormulaList.add(f);
+            }
+            BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
 
-        if (!latticenames_h.isEmpty() && !(latticenames_h == null)) {
-          BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
-          List<BooleanFormula> toCheckFormulaList =
-              Lists.newArrayListWithExpectedSize(formulas.size() - 1);
-          for (BooleanFormula f : changed_formulas_rest1) {
-            toCheckFormulaList.add(f);
-          }
-          toCheckFormulaList.add(toCheckFormula);
-          for (BooleanFormula f : changed_formulas_rest2) {
-            toCheckFormulaList.add(f);
-          }
-          BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
-
-          abstractionFeasible = prove(toCheckFormulaBlocked, mySolver);
-          if (abstractionFeasible) {
+            abstractionFeasible = prove(toCheckFormulaBlocked, mySolver);
+            if (abstractionFeasible) {
           /*List<List<IntegerFormula>> */
-            abstractionFeasible = true;
-            List<List<Formula>> frontierListCopy = Lists
-                .newArrayListWithExpectedSize(oldFormulas.size() - 1);
-            for (/*List<IntegerFormula> */ List<Formula> s : frontierList) {
-              frontierListCopy.add(s);
-            }
-            //logger.log(Level.WARNING, "Comparability Check: Latticenames_h: " + latticenames_h);
-            /*isIncomparable = checkComparability(frontierListCopy,
+              abstractionFeasible = true;
+              List<List<Formula>> frontierListCopy = Lists
+                  .newArrayListWithExpectedSize(oldFormulas.size() - 1);
+              for (/*List<IntegerFormula> */ List<Formula> s : frontierList) {
+                frontierListCopy.add(s);
+              }
+              //logger.log(Level.WARNING, "Comparability Check: Latticenames_h: " + latticenames_h);
+            isIncomparable = checkComparability(frontierListCopy,
                 latticenames_h, latticeNames);
 
             if (isIncomparable) {
@@ -1624,9 +1652,12 @@ public class DomainSpecificAbstraction<T> {
                   latticenames_h,
                   mySolver);
               frontierList.add(new_frontier_elem);
-            } */
+            }
+            }
           }
         }
+      } finally {
+        buildingAbstractionsTimer.stop();
       }
       helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
@@ -1701,46 +1732,51 @@ public class DomainSpecificAbstraction<T> {
     /* for (BooleanFormula f : changed_formulas_rest1){
        myItpGroupIds.add(myItpProver.push(f));
      } */
-        if (it != 0){
-          for (BooleanFormula f : changed_formulas_rest1){
-            //logger.log(Level.WARNING, "Changed Formulas Rest 1:", changed_formulas_rest1.toString());
-            myItpGroupIds.add(myItpProver.push(f));
-          }
+    interpolationTimer.start();
+    try {
+      if (it != 0) {
+        for (BooleanFormula f : changed_formulas_rest1) {
+          //logger.log(Level.WARNING, "Changed Formulas Rest 1:", changed_formulas_rest1.toString());
+          myItpGroupIds.add(myItpProver.push(f));
         }
+      }
 
-        myItpGroupIds.add(myItpProver.push(helperFormula1));
-        //logger.log(Level.WARNING, "helper Formula 1:", helperFormula1.toString());
-        //  myItpGroupIds.add(myItpProver.push(helperFormula2));
-        myItpProver.push(helperFormula2);
-        // logger.log(Level.WARNING, "helper Formula 2:", helperFormula2.toString());
+      myItpGroupIds.add(myItpProver.push(helperFormula1));
+      //logger.log(Level.WARNING, "helper Formula 1:", helperFormula1.toString());
+      //  myItpGroupIds.add(myItpProver.push(helperFormula2));
+      myItpProver.push(helperFormula2);
+      // logger.log(Level.WARNING, "helper Formula 2:", helperFormula2.toString());
     /*  for (int i = 0; i < it; i++) {
         myItpProver.push(oldFormulas.get(i));
       }
       for (int i = it + 2; i < oldFormulas.size(); i++){
         myItpProver.push(oldFormulas.get(i));
       } */
-        if (! changed_formulas_rest2.isEmpty()) {
-          for (BooleanFormula f : changed_formulas_rest2) {
-            //logger.log(Level.WARNING, "Changed Formulas Rest 2:", changed_formulas_rest2.toString());
-            myItpProver.push(f);
-          }
+      if (!changed_formulas_rest2.isEmpty()) {
+        for (BooleanFormula f : changed_formulas_rest2) {
+          //logger.log(Level.WARNING, "Changed Formulas Rest 2:", changed_formulas_rest2.toString());
+          myItpProver.push(f);
         }
+      }
 
-        if (!myItpProver.isUnsat()) {
-          throw new SolverException("Interpolant kann nicht berechnet werden!");
+      if (!myItpProver.isUnsat()) {
+        throw new SolverException("Interpolant kann nicht berechnet werden!");
 
-        } else {
+      } else {
 
-          BooleanFormula myInterpolant = myItpProver.getInterpolant
-              (myItpGroupIds);
-          //logger.log(Level.WARNING, "Interpolant:", myInterpolant.toString());
+        BooleanFormula myInterpolant = myItpProver.getInterpolant
+            (myItpGroupIds);
+        //logger.log(Level.WARNING, "Interpolant:", myInterpolant.toString());
 
-          if (myInterpolant != null) {
-            interpolants.add(myInterpolant);
-            // logger.log(Level.WARNING, "Current Interpolants:", interpolants.toString());
-            fmgr.translateFrom(myInterpolant, mySolver.getFormulaManager());
-          }
+        if (myInterpolant != null) {
+          interpolants.add(myInterpolant);
+          // logger.log(Level.WARNING, "Current Interpolants:", interpolants.toString());
+          fmgr.translateFrom(myInterpolant, mySolver.getFormulaManager());
         }
+      }
+    } finally {
+      interpolationTimer.stop();
+    }
       }
 
  /*     @SuppressWarnings("unchecked")

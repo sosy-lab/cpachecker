@@ -99,6 +99,11 @@ public final class InterpolationManager {
   private final Timer interpolantVerificationTimer = new Timer();
   private final Timer dsaAnalysisTimer = new Timer();
   private int reusedFormulasOnSolverStack = 0;
+  protected final Timer findingCommonVariablesTimer = new Timer();
+  protected final Timer buildingLatticeNamesAndLatticeTypesTimer = new Timer();
+  protected final Timer renamingTimer = new Timer();
+  protected final Timer buildingAbstractionsTimer = new Timer();
+  final Timer interpolationTimer = new Timer();
 
   public void printStatistics(StatisticsWriter w0) {
     w0.put("Counterexample analysis", cexAnalysisTimer + " (Max: " + cexAnalysisTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
@@ -111,6 +116,30 @@ public final class InterpolationManager {
           dsaAnalysisTimer
           .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + dsaAnalysisTimer
           .getAvgTime() + ")" + "Number of Intervals: " + dsaAnalysisTimer.getNumberOfIntervals());
+    }
+    if (findingCommonVariablesTimer.getNumberOfIntervals() > 0){
+      w1.put("Finding Common Variables: ", findingCommonVariablesTimer + " (Max: " +
+          findingCommonVariablesTimer
+              .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + findingCommonVariablesTimer
+          .getAvgTime() + ")" + "Number of Intervals: " + findingCommonVariablesTimer.getNumberOfIntervals());
+    }
+    if (buildingLatticeNamesAndLatticeTypesTimer.getNumberOfIntervals() > 0){
+      w1.put("Finding Common Variables: ", buildingLatticeNamesAndLatticeTypesTimer + " (Max: " +
+          buildingLatticeNamesAndLatticeTypesTimer
+              .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + buildingLatticeNamesAndLatticeTypesTimer
+          .getAvgTime() + ")" + "Number of Intervals: " + buildingLatticeNamesAndLatticeTypesTimer.getNumberOfIntervals());
+    }
+    if (renamingTimer.getNumberOfIntervals() > 0){
+      w1.put("Finding Common Variables: ", renamingTimer + " (Max: " +
+          renamingTimer
+              .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + renamingTimer
+          .getAvgTime() + ")" + "Number of Intervals: " + renamingTimer.getNumberOfIntervals());
+    }
+    if (interpolationTimer.getNumberOfIntervals() > 0){
+      w1.put("Finding Common Variables: ", interpolationTimer + " (Max: " +
+          interpolationTimer
+              .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + interpolationTimer
+          .getAvgTime() + ")" + "Number of Intervals: " + interpolationTimer.getNumberOfIntervals());
     }
     w1.put("Refinement sat check", satCheckTimer);
     if (reuseInterpolationEnvironment && satCheckTimer.getNumberOfIntervals() > 0) {
@@ -637,8 +666,6 @@ public final class InterpolationManager {
     List<BooleanFormula> my_interpolants;
 
 
-
-
     if (domainSpecificAbstractions) {
       dsaAnalysisTimer.start();
       try {
@@ -655,7 +682,9 @@ public final class InterpolationManager {
           FormulaManagerView new_fmgr = my_solver.getFormulaManager();
           DomainSpecificAbstraction<T> dsa = new DomainSpecificAbstraction<>(/*shutdownNotifier,*/
               new_fmgr,
-            /*bfmgr, */ fmgr, /* pInterpolator, */ logger);
+            /*bfmgr, */ fmgr, /* pInterpolator, */ logger, findingCommonVariablesTimer,
+              buildingLatticeNamesAndLatticeTypesTimer, renamingTimer, buildingAbstractionsTimer,
+              interpolationTimer);
           List<BooleanFormula> tocheck =
               Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst);
           if (tocheck != null) {
