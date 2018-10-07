@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.LoopIterationBounding;
@@ -64,7 +65,7 @@ public class LoopBoundCPA extends AbstractCPA
   private boolean trackStack = false;
 
   public static CPAFactory factory() {
-    return new LoopBoundCPAFactory();
+    return AutomaticCPAFactory.forType(LoopBoundCPA.class);
   }
 
   private final LoopStructure loopStructure;

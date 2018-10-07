@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.loopbound;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.base.Predicates.not;
 
@@ -53,6 +54,7 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
   private Multimap<CFANode, Loop> loopHeads = null;
 
   public LoopBoundTransferRelation(CFA pCFA) throws CPAException {
+    checkNotNull(pCFA, "CFA instance needed to create LoopBoundCPA");
     if (!pCFA.getLoopStructure().isPresent()) {
       throw new CPAException("LoopBoundCPA cannot work without loop-structure information in CFA.");
     }
