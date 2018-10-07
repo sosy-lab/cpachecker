@@ -113,9 +113,7 @@ public class PredicateCPA
 
   private final PredicateAbstractDomain domain;
   private final PredicateTransferRelation transfer;
-  private final MergeOperator merge;
   private final PredicatePrecisionAdjustment prec;
-  private final StopOperator stop;
   private final PredicatePrecision initialPrecision;
   private final PathFormulaManager pathFormulaManager;
   private final Solver solver;
@@ -128,6 +126,7 @@ public class PredicateCPA
   private final PrefixProvider prefixProvider;
   private final PredicateCPAInvariantsManager invariantsManager;
   private final BlockOperator blk;
+  private final PredicateStatistics statistics;
 
   protected PredicateCPA(
       Configuration config,
@@ -203,14 +202,6 @@ public class PredicateCPA
         PathCopyingPersistentTreeMap.<CFANode, Integer>of());
     domain = new PredicateAbstractDomain(config, predicateManager);
 
-    if (mergeType.equals("SEP")) {
-      merge = MergeSepOperator.getInstance();
-    } else if (mergeType.equals("ABE")) {
-      merge = new PredicateMergeOperator(logger, pathFormulaManager);
-    } else {
-      throw new InternalError("Update list of allowed merge operators");
-    }
-
     precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, abstractionManager, formulaManager);
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
@@ -227,14 +218,7 @@ public class PredicateCPA
             invariantsManager,
             predicateProvider);
 
-    if (stopType.equals("SEP")) {
-      stop = new PredicateStopOperator(domain);
-    } else if (stopType.equals("SEPPCC")) {
-      stop = new PredicatePCCStopOperator(pathFormulaManager, predicateManager);
-    } else {
-      throw new InternalError("Update list of allowed stop operators");
-    }
-
+    statistics = new PredicateStatistics();
     stats =
         new PredicateCPAStatistics(
             config,
@@ -247,7 +231,7 @@ public class PredicateCPA
             abstractionManager,
             predicateManager,
             domain,
-            merge,
+            statistics,
             transfer,
             prec);
   }
@@ -264,12 +248,26 @@ public class PredicateCPA
 
   @Override
   public MergeOperator getMergeOperator() {
-    return merge;
+    switch (mergeType) {
+      case "SEP":
+        return MergeSepOperator.getInstance();
+      case "ABE":
+        return new PredicateMergeOperator(logger, pathFormulaManager, statistics);
+      default:
+        throw new InternalError("Update list of allowed merge operators");
+    }
   }
 
   @Override
   public StopOperator getStopOperator() {
-    return stop;
+    switch (stopType) {
+      case "SEP":
+        return new PredicateStopOperator(domain);
+      case "SEPPCC":
+        return new PredicatePCCStopOperator(pathFormulaManager, predicateManager);
+      default:
+        throw new InternalError("Update list of allowed stop operators");
+    }
   }
 
   public PredicateAbstractionManager getPredicateManager() {

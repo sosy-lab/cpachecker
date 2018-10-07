@@ -54,7 +54,6 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -135,7 +134,7 @@ class PredicateCPAStatistics implements Statistics {
   private final PredicateAbstractionManager amgr;
 
   private final PredicateAbstractDomain domain;
-  private final MergeOperator merge;
+  private final PredicateStatistics statistics;
   private final PredicateTransferRelation trans;
   private final PredicatePrecisionAdjustment prec;
 
@@ -154,7 +153,7 @@ class PredicateCPAStatistics implements Statistics {
       AbstractionManager pAbsmgr,
       PredicateAbstractionManager pPredAbsMgr,
       PredicateAbstractDomain pDomain,
-      MergeOperator pMerge,
+      PredicateStatistics pStatistics,
       PredicateTransferRelation pTransfer,
       PredicatePrecisionAdjustment pPrec)
       throws InvalidConfigurationException {
@@ -168,7 +167,7 @@ class PredicateCPAStatistics implements Statistics {
     absmgr = pAbsmgr;
     amgr = pPredAbsMgr;
     domain = pDomain;
-    merge = pMerge;
+    statistics = pStatistics;
     trans = pTransfer;
     prec = pPrec;
 
@@ -388,8 +387,8 @@ class PredicateCPAStatistics implements Statistics {
       out.println("    Time for BDD construction:       " + as.abstractionEnumTime.getInnerSumTime().formatAs(SECONDS)   + " (Max: " + as.abstractionEnumTime.getInnerMaxTime().formatAs(SECONDS) + ")");
     }
 
-    if (merge instanceof PredicateMergeOperator) {
-      out.println("Time for merge operator:             " + ((PredicateMergeOperator)merge).totalMergeTime);
+    if (statistics.totalMergeTime.getNumberOfIntervals() != 0) { // at least used once
+      out.println("Time for merge operator:             " + statistics.totalMergeTime);
     }
 
     out.println("Time for coverage check:             " + domain.coverageCheckTimer);
