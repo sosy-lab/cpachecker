@@ -136,7 +136,6 @@ class PredicateCPAStatistics implements Statistics {
   private final PredicateAbstractDomain domain;
   private final PredicateStatistics statistics;
   private final PredicateTransferRelation trans;
-  private final PredicatePrecisionAdjustment prec;
 
   private final PredicateMapWriter precisionWriter;
   private final LoopInvariantsWriter loopInvariantsWriter;
@@ -154,8 +153,7 @@ class PredicateCPAStatistics implements Statistics {
       PredicateAbstractionManager pPredAbsMgr,
       PredicateAbstractDomain pDomain,
       PredicateStatistics pStatistics,
-      PredicateTransferRelation pTransfer,
-      PredicatePrecisionAdjustment pPrec)
+      PredicateTransferRelation pTransfer)
       throws InvalidConfigurationException {
     pConfig.inject(this, PredicateCPAStatistics.class);
 
@@ -169,7 +167,6 @@ class PredicateCPAStatistics implements Statistics {
     domain = pDomain;
     statistics = pStatistics;
     trans = pTransfer;
-    prec = pPrec;
 
     FormulaManagerView fmgr = pSolver.getFormulaManager();
     loopInvariantsWriter = new LoopInvariantsWriter(pCfa, pLogger, pAbsmgr, fmgr, pRmgr);
@@ -281,20 +278,20 @@ class PredicateCPAStatistics implements Statistics {
 
     PredicateAbstractionManager.Stats as = amgr.stats;
 
-    out.println("Number of abstractions:            " + prec.numAbstractions + " (" + toPercent(prec.numAbstractions, trans.postTimer.getNumberOfIntervals()) + " of all post computations)");
-    if (prec.numAbstractions > 0) {
+    out.println("Number of abstractions:            " + statistics.numAbstractions + " (" + toPercent(statistics.numAbstractions, trans.postTimer.getNumberOfIntervals()) + " of all post computations)");
+    if (statistics.numAbstractions > 0) {
       out.println("  Times abstraction was reused:    " + as.numAbstractionReuses);
-      out.println("  Because of function entry/exit:  " + valueWithPercentage(blk.numBlkFunctions, prec.numAbstractions));
-      out.println("  Because of loop head:            " + valueWithPercentage(blk.numBlkLoops, prec.numAbstractions));
-      out.println("  Because of join nodes:           " + valueWithPercentage(blk.numBlkJoins, prec.numAbstractions));
-      out.println("  Because of threshold:            " + valueWithPercentage(blk.numBlkThreshold, prec.numAbstractions));
-      out.println("  Because of target state:         " + valueWithPercentage(prec.numTargetAbstractions, prec.numAbstractions));
+      out.println("  Because of function entry/exit:  " + valueWithPercentage(blk.numBlkFunctions, statistics.numAbstractions));
+      out.println("  Because of loop head:            " + valueWithPercentage(blk.numBlkLoops, statistics.numAbstractions));
+      out.println("  Because of join nodes:           " + valueWithPercentage(blk.numBlkJoins, statistics.numAbstractions));
+      out.println("  Because of threshold:            " + valueWithPercentage(blk.numBlkThreshold, statistics.numAbstractions));
+      out.println("  Because of target state:         " + valueWithPercentage(statistics.numTargetAbstractions, statistics.numAbstractions));
       out.println("  Times precision was empty:       " + valueWithPercentage(as.numSymbolicAbstractions, as.numCallsAbstraction));
       out.println("  Times precision was {false}:     " + valueWithPercentage(as.numSatCheckAbstractions, as.numCallsAbstraction));
       out.println("  Times result was cached:         " + valueWithPercentage(as.numCallsAbstractionCached, as.numCallsAbstraction));
       out.println("  Times cartesian abs was used:    " + valueWithPercentage(as.cartesianAbstractionTime.getNumberOfIntervals(), as.numCallsAbstraction));
       out.println("  Times boolean abs was used:      " + valueWithPercentage(as.booleanAbstractionTime.getNumberOfIntervals(), as.numCallsAbstraction));
-      out.println("  Times result was 'false':        " + valueWithPercentage(prec.numAbstractionsFalse, prec.numAbstractions));
+      out.println("  Times result was 'false':        " + valueWithPercentage(statistics.numAbstractionsFalse, statistics.numAbstractions));
       if (as.inductivePredicatesTime.getNumberOfIntervals() > 0) {
         out.println(
             "  Times inductive cache was used:  "
@@ -319,7 +316,7 @@ class PredicateCPAStatistics implements Statistics {
     out.println("  trivial:                         " + solver.trivialSatChecks);
     out.println("  cached:                          " + solver.cachedSatChecks);
     out.println();
-    out.println("Max ABE block size:                       " + prec.maxBlockSize);
+    out.println("Max ABE block size:                       " + statistics.maxBlockSize);
     out.println("Number of predicates discovered:          " + allDistinctPreds);
     if (precisionStatistics && allDistinctPreds > 0) {
       out.println("Number of abstraction locations:          " + allLocs);
@@ -363,9 +360,9 @@ class PredicateCPAStatistics implements Statistics {
     if (trans.strengthenCheckTimer.getNumberOfIntervals() > 0) {
       out.println("  Time for satisfiability checks:    " + trans.strengthenCheckTimer);
     }
-    out.println("Time for prec operator:              " + prec.totalPrecTime);
-    if (prec.numAbstractions > 0) {
-      out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.getMaxTime().formatAs(SECONDS) + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
+    out.println("Time for prec operator:              " + statistics.totalPrecTime);
+    if (statistics.numAbstractions > 0) {
+      out.println("  Time for abstraction:              " + statistics.computingAbstractionTime + " (Max: " + statistics.computingAbstractionTime.getMaxTime().formatAs(SECONDS) + ", Count: " + statistics.computingAbstractionTime.getNumberOfIntervals() + ")");
       if (as.trivialPredicatesTime.getNumberOfIntervals() > 0) {
         out.println("    Relevant predicate analysis:     " + as.trivialPredicatesTime);
       }

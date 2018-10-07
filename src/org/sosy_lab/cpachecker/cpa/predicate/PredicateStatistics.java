@@ -28,5 +28,14 @@ import org.sosy_lab.common.time.Timer;
  */
 public class PredicateStatistics {
 
+  // merge operator
   final Timer totalMergeTime = new Timer();
+
+  // precision adjustment
+  final Timer totalPrecTime = new Timer();
+  final Timer computingAbstractionTime = new Timer();
+  int numAbstractions = 0;
+  int numTargetAbstractions = 0;
+  int numAbstractionsFalse = 0;
+  int maxBlockSize = 0;
 }

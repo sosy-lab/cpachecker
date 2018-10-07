@@ -113,7 +113,6 @@ public class PredicateCPA
 
   private final PredicateAbstractDomain domain;
   private final PredicateTransferRelation transfer;
-  private final PredicatePrecisionAdjustment prec;
   private final PredicatePrecision initialPrecision;
   private final PathFormulaManager pathFormulaManager;
   private final Solver solver;
@@ -127,6 +126,8 @@ public class PredicateCPA
   private final PredicateCPAInvariantsManager invariantsManager;
   private final BlockOperator blk;
   private final PredicateStatistics statistics;
+  private final PredicateProvider predicateProvider;
+  private final FormulaManagerView formulaManager;
 
   protected PredicateCPA(
       Configuration config,
@@ -153,7 +154,7 @@ public class PredicateCPA
     blk.setCFA(cfa);
 
     solver = Solver.create(config, logger, pShutdownNotifier);
-    FormulaManagerView formulaManager = solver.getFormulaManager();
+    formulaManager = solver.getFormulaManager();
     String libraries = solver.getVersion();
 
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger, shutdownNotifier, cfa, direction);
@@ -206,17 +207,8 @@ public class PredicateCPA
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
-    PredicateProvider predicateProvider = new PredicateProvider(config, pCfa, logger, formulaManager, predicateManager);
-
-    prec =
-        new PredicatePrecisionAdjustment(
-            logger,
-            formulaManager,
-            pathFormulaManager,
-            blk,
-            predicateManager,
-            invariantsManager,
-            predicateProvider);
+    predicateProvider =
+        new PredicateProvider(config, pCfa, logger, formulaManager, predicateManager);
 
     statistics = new PredicateStatistics();
     stats =
@@ -232,8 +224,7 @@ public class PredicateCPA
             predicateManager,
             domain,
             statistics,
-            transfer,
-            prec);
+            transfer);
   }
 
   @Override
@@ -310,7 +301,15 @@ public class PredicateCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return prec;
+    return new PredicatePrecisionAdjustment(
+        logger,
+        formulaManager,
+        pathFormulaManager,
+        blk,
+        predicateManager,
+        invariantsManager,
+        predicateProvider,
+        statistics);
   }
 
   @Override
