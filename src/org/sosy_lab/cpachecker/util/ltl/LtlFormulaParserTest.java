@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.ltl;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Arrays;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.ltl.formulas.BooleanConstant;
@@ -44,9 +44,9 @@ import org.sosy_lab.cpachecker.util.ltl.formulas.WeakUntil;
 public class LtlFormulaParserTest {
 
   @Test
-  public void test_parse_appliesRandomSyntaxCorrectly() {
+  public void test_parse_appliesRandomSyntaxCorrectly() throws LtlParseException {
     List<String> in =
-        Arrays.asList(
+        ImmutableList.of(
             "!a",
             "G a",
             "F a & X b",
@@ -58,7 +58,7 @@ public class LtlFormulaParserTest {
             "a W b U c R a");
 
     List<LtlFormula> out =
-        Arrays.asList(
+        ImmutableList.of(
             new Literal("a", true),
             new Globally(new Literal("a")),
             new Conjunction(new Finally(new Literal("a")), new Next(new Literal("b"))),
@@ -72,14 +72,14 @@ public class LtlFormulaParserTest {
                 new Until(new Literal("b"), new Release(new Literal("c"), new Literal("a")))));
 
     for (int i = 0; i < in.size(); i++) {
-      assertEquals(in.get(i), out.get(i), LtlParser.parseString(in.get(i)));
+      assertEquals(in.get(i), out.get(i), LtlParser.parseProperty(in.get(i)).getFormula());
     }
   }
 
   @Test
-  public void test_parse_APs_appliesTrivialIdentities() {
+  public void test_parse_APs_appliesTrivialIdentities() throws LtlParseException {
     List<String> in =
-        Arrays.asList(
+        ImmutableList.of(
             "!false",
             "!true",
             "!!true",
@@ -90,7 +90,7 @@ public class LtlFormulaParserTest {
             "a -> a");
 
     List<LtlFormula> out =
-        Arrays.asList(
+        ImmutableList.of(
             BooleanConstant.TRUE,
             BooleanConstant.FALSE,
             BooleanConstant.TRUE,
@@ -101,14 +101,14 @@ public class LtlFormulaParserTest {
             BooleanConstant.TRUE);
 
     for (int i = 0; i < in.size(); i++) {
-      assertEquals(in.get(i), out.get(i), LtlParser.parseString(in.get(i)));
+      assertEquals(in.get(i), out.get(i), LtlParser.parseProperty(in.get(i)).getFormula());
     }
   }
 
   @Test
-  public void test_parse_APs_appliesCommutativeIdentities() {
+  public void test_parse_APs_appliesCommutativeIdentities() throws LtlParseException {
     List<String> in =
-        Arrays.asList(
+        ImmutableList.of(
             "false && a",
             "true && a",
             "a && false",
@@ -131,7 +131,7 @@ public class LtlFormulaParserTest {
             "a <-> a");
 
     List<LtlFormula> out =
-        Arrays.asList(
+        ImmutableList.of(
             BooleanConstant.FALSE,
             new Literal("a"),
             BooleanConstant.FALSE,
@@ -154,14 +154,14 @@ public class LtlFormulaParserTest {
             BooleanConstant.TRUE);
 
     for (int i = 0; i < in.size(); i++) {
-      assertEquals(in.get(i), out.get(i), LtlParser.parseString(in.get(i)));
+      assertEquals(in.get(i), out.get(i), LtlParser.parseProperty(in.get(i)).getFormula());
     }
   }
 
   @Test
-  public void test_parse_temporalOperators_appliesTrivialIdentities() {
+  public void test_parse_temporalOperators_appliesTrivialIdentities() throws LtlParseException {
     List<String> in =
-        Arrays.asList(
+        ImmutableList.of(
             "X false",
             "X true",
             "F false",
@@ -188,7 +188,7 @@ public class LtlFormulaParserTest {
             "a R a");
 
     List<LtlFormula> out =
-        Arrays.asList(
+        ImmutableList.of(
             BooleanConstant.FALSE,
             BooleanConstant.TRUE,
             BooleanConstant.FALSE,
@@ -215,7 +215,7 @@ public class LtlFormulaParserTest {
             new Literal("a"));
 
     for (int i = 0; i < in.size(); i++) {
-      assertEquals(in.get(i), out.get(i), LtlParser.parseString(in.get(i)));
+      assertEquals(in.get(i), out.get(i), LtlParser.parseProperty(in.get(i)).getFormula());
     }
   }
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedListCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
 
 final public class SMGJoinSubSMGsForAbstraction {
 
@@ -147,7 +146,7 @@ final public class SMGJoinSubSMGsForAbstraction {
     SMGJoinSubSMGs jss = new SMGJoinSubSMGs(SMGJoinStatus.EQUAL, inputSMG, inputSMG, smg, mapping1, mapping2, levelMap, obj1, obj2, newAbstractObject, lDiff, true, pStateOfSmg, pStateOfSmg);
 
     if(!jss.isDefined()) {
-      status = SMGJoinStatus.INCOMPLETE;
+      status = SMGJoinStatus.INCOMPARABLE;
       defined = false;
       resultSMG = null;
       nonSharedObjectsFromSMG1 = null;
@@ -158,8 +157,6 @@ final public class SMGJoinSubSMGsForAbstraction {
     }
 
     SMGJoinStatus s = jss.getStatus();
-    mapping1 = jss.getMapping1();
-    mapping2 = jss.getMapping2();
 
     //TODO Contains abstract 0Cycle?
 

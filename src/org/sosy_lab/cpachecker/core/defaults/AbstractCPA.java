@@ -115,6 +115,9 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
       case "ALWAYS":
         return new StopAlwaysOperator();
 
+      case "EQUALS":
+        return new StopEqualsOperator();
+
       default:
         throw new AssertionError("unknown stop operator");
     }

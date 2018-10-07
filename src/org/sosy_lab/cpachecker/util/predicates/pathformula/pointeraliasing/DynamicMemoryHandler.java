@@ -400,8 +400,8 @@ class DynamicMemoryHandler {
     if (type instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) type;
       for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        if (conv.isRelevantField(compositeType, memberDeclaration.getName())) {
-          pts.addField(compositeType, memberDeclaration.getName());
+        if (conv.isRelevantField(compositeType, memberDeclaration)) {
+          pts.addField(CompositeField.of(compositeType, memberDeclaration));
           final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
           addAllFields(memberType);
         }
@@ -420,11 +420,11 @@ class DynamicMemoryHandler {
    * @param allocationId A unique ID for this allocation
    * @return A name for allocations.
    */
-  private static String makeAllocVariableName(
+  private String makeAllocVariableName(
       final String functionName, final CType type, final int allocationId) {
     return functionName
         + "_"
-        + CToFormulaConverterWithPointerAliasing.getPointerAccessNameForType(type)
+        + typeHandler.getPointerAccessNameForType(type)
         + MALLOC_INDEX_SEPARATOR
         + allocationId;
   }

@@ -289,6 +289,11 @@ public class VariableClassificationBuilder implements StatisticsProvider {
         w.append(allVars.toString());
         w.append("\n\nDEPENDENCIES\n\n");
         w.append(dependencies.toString());
+        w.append("\n\nRELEVANT VARS\n\n");
+        w.append(relevantVariables.get().toString());
+        w.append("\n\nRELEVANT FIELDS\n\n");
+        w.append(relevantFields.get().toString());
+        w.append("\n");
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write variable classification to file");
       }

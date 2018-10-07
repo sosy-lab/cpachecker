@@ -540,6 +540,9 @@ public class AutomatonGraphmlCommon {
       if (edge.getSuccessor() instanceof FunctionExitNode) {
         return isEmptyStub(((FunctionExitNode) edge.getSuccessor()).getEntryNode());
       }
+      if (AutomatonGraphmlCommon.treatAsWhileTrue(edge)) {
+        return false;
+      }
       return true;
     } else if (edge instanceof CFunctionCallEdge) {
       return isEmptyStub(((CFunctionCallEdge) edge).getSuccessor());
@@ -912,12 +915,25 @@ public class AutomatonGraphmlCommon {
               return false;
             }
           }
-          if (successorEdge instanceof AStatementEdge) {
-            intermediateDeclarationsExpected = false;
-            AStatementEdge statementEdge = (AStatementEdge) successorEdge;
-            if (statementEdge.getFileLocation().equals(pEdge.getFileLocation())
-                && statementEdge.getStatement() instanceof AAssignment) {
-              AAssignment assignment = (AAssignment) statementEdge.getStatement();
+
+          if (successorEdge.getFileLocation().equals(pEdge.getFileLocation())) {
+            AAssignment assignment = null;
+            if (successorEdge instanceof FunctionCallEdge) {
+              FunctionCallEdge functionCallEdge = (FunctionCallEdge) successorEdge;
+              FunctionSummaryEdge summaryEdge = functionCallEdge.getSummaryEdge();
+              AFunctionCall functionCall = summaryEdge.getExpression();
+              if (functionCall instanceof AAssignment) {
+                assignment = (AAssignment) functionCall;
+                successorEdge = summaryEdge;
+              }
+            } else if (successorEdge instanceof AStatementEdge) {
+              intermediateDeclarationsExpected = false;
+              AStatementEdge statementEdge = (AStatementEdge) successorEdge;
+              if (statementEdge.getStatement() instanceof AAssignment) {
+                assignment = (AAssignment) statementEdge.getStatement();
+              }
+            }
+            if (assignment != null) {
               ALeftHandSide leftHandSide = assignment.getLeftHandSide();
               if (leftHandSide instanceof AIdExpression) {
                 AIdExpression lhs = (AIdExpression) leftHandSide;
@@ -930,8 +946,9 @@ public class AutomatonGraphmlCommon {
                 successor = successorEdge.getSuccessor();
               }
             }
-          } else if (intermediateDeclarationsExpected
-              && successorEdge instanceof ADeclarationEdge) {
+          }
+
+          if (intermediateDeclarationsExpected && successorEdge instanceof ADeclarationEdge) {
             ADeclarationEdge otherDeclEdge = (ADeclarationEdge) successorEdge;
             if (otherDeclEdge.getDeclaration() instanceof AVariableDeclaration) {
               // The current edge may just be the matching declaration of a preceding
@@ -1092,5 +1109,14 @@ public class AutomatonGraphmlCommon {
       return false;
     }
     return pEntryNode.getExitNode().equals(defaultReturnEdge.getSuccessor());
+  }
+
+  public static boolean treatAsWhileTrue(CFAEdge pEdge) {
+    CFANode pred = pEdge.getPredecessor();
+    return pEdge instanceof BlankEdge
+        && pred.getNumLeavingEdges() == 1
+        && CFAUtils.enteringEdges(pred)
+            .filter(BlankEdge.class)
+            .anyMatch(e -> e.getDescription().equals("while"));
   }
 }

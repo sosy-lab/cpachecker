@@ -620,11 +620,11 @@ JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFlo
 
 	switch(type) {
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-			return fp.f_value == 0.0;
+			return fp.f_value == 0.0 || fp.f_value == -0.0;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-			return fp.d_value == 0.0;
+			return fp.d_value == 0.0 || fp.d_value == -0.0;
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-			return fp.ld_value == 0.0L;
+			return fp.ld_value == 0.0L || fp.ld_value == -0.0L;
 		default:
 			throwNativeException(env, EX_TEXT);
 	}
@@ -688,11 +688,11 @@ JNIEXPORT jboolean JNICALL Java_org_sosy_1lab_cpachecker_util_floatingpoint_CFlo
 
 	switch(type) {
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_SINGLE:
-			return fp.f_value < 0.0;
+			return 0 != signbit(fp.f_value);
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_DOUBLE:
-			return fp.d_value < 0.0;
+			return 0 != signbit(fp.d_value);
 		case org_sosy_lab_cpachecker_util_floatingpoint_CFloatNativeAPI_FP_TYPE_LONG_DOUBLE:
-			return fp.ld_value < 0.0;
+			return 0 != signbit(fp.ld_value);
 		default:
 			throwNativeException(env, EX_TEXT);
 	}

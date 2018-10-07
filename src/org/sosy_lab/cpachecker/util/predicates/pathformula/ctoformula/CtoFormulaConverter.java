@@ -99,8 +99,8 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -256,12 +256,14 @@ public class CtoFormulaConverter {
     return typeHandler.getSizeof(pType);
   }
 
-  protected boolean isRelevantField(final CCompositeType compositeType,
-                          final String fieldName) {
-    return !variableClassification.isPresent() ||
-           !options.ignoreIrrelevantVariables() ||
-           !options.ignoreIrrelevantFields() ||
-           variableClassification.get().getRelevantFields().containsEntry(compositeType, fieldName);
+  protected boolean isRelevantField(final CCompositeType pCompositeType, final String fieldName) {
+    if (!variableClassification.isPresent()
+        || !options.ignoreIrrelevantVariables()
+        || !options.ignoreIrrelevantFields()) {
+      return true;
+    }
+    CCompositeType compositeType = CTypes.withoutVolatile(CTypes.withoutConst(pCompositeType));
+    return variableClassification.get().getRelevantFields().containsEntry(compositeType, fieldName);
   }
 
   protected boolean isRelevantLeftHandSide(final CLeftHandSide lhs) {
@@ -310,6 +312,7 @@ public class CtoFormulaConverter {
   }
 
   public final FormulaType<?> getFormulaTypeFromCType(CType type) {
+    type = type.getCanonicalType();
     if (type instanceof CSimpleType) {
       CSimpleType simpleType = (CSimpleType) type;
       switch (simpleType.getType()) {

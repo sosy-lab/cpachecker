@@ -735,7 +735,8 @@ public final class InterpolationManager {
     public InterpolatingProverEnvironment<T> newEnvironment() {
       // This is safe because we don't actually care about the value of T,
       // only the InterpolatingProverEnvironment itself cares about it.
-      return (InterpolatingProverEnvironment<T>)solver.newProverEnvironmentWithInterpolation();
+      return (InterpolatingProverEnvironment<T>)
+          solver.newProverEnvironmentWithInterpolation(ProverOptions.GENERATE_MODELS);
     }
 
     /**

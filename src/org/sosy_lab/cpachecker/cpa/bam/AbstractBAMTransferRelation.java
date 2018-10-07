@@ -59,9 +59,9 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
   protected final LogManager logger;
   protected final TransferRelation wrappedTransfer;
   protected final Reducer wrappedReducer;
-  protected final ShutdownNotifier shutdownNotifier;
+  private final ShutdownNotifier shutdownNotifier;
 
-  protected final boolean useDynamicAdjustment;
+  private final boolean useDynamicAdjustment;
 
   protected AbstractBAMTransferRelation(
       AbstractBAMCPA pBamCPA, ShutdownNotifier pShutdownNotifier) {

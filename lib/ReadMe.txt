@@ -7,9 +7,6 @@ Binary Libraries
 
 Binary libraries should be provided via Ivy.
 
-NOTE: If you add a binary library to CPAchecker, be sure to update MANIFEST.MF
-with the Eclipse PDE wizard!
-
 All libraries in the directory lib/java/ are managed by Apache Ivy.
 To add libraries there, add them to the file ivy.xml.
 Do not store any file in that directory, Ivy will delete it!

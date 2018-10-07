@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.constraints.util;
 
 import com.google.common.collect.Iterables;
-import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,34 +31,26 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityChecker;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.util.statistics.StatInt;
-import org.sosy_lab.cpachecker.util.statistics.StatKind;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
-import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /**
  * Simplifier for {@link ConstraintsState}s. Provides different methods for simplifying a <code>
  * ConstraintsState</code> through {@link #simplify(ConstraintsState, ValueAnalysisState)}.
  */
 @Options(prefix = "cpa.constraints")
-public class StateSimplifier implements Statistics {
+public class StateSimplifier {
 
   @Option(
     description =
@@ -76,18 +67,13 @@ public class StateSimplifier implements Statistics {
   )
   private boolean removeOutdated = true;
 
-  private final StatTimer trivialRemovalTime = new StatTimer("Time for trivial constraint removal");
-  private final StatTimer outdatedRemovalTime =
-      new StatTimer("Time for outdated constraint " + "removal");
-  private final StatInt removedTrivial =
-      new StatInt(StatKind.SUM, "Number of removed trivial " + "constraints");
-  private final StatInt removedOutdated =
-      new StatInt(StatKind.SUM, "Number of removed outdated " + "constraints");
+  private final ConstraintsStatistics stats;
 
-  public StateSimplifier(
-      final Configuration pConfig
-  ) throws InvalidConfigurationException {
+  public StateSimplifier(final Configuration pConfig, final ConstraintsStatistics pStats)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
+
+    stats = pStats;
   }
 
   /**
@@ -103,19 +89,19 @@ public class StateSimplifier implements Statistics {
 
     if (removeTrivial) {
       try {
-        trivialRemovalTime.start();
-        removeTrivialConstraints(pState, pState.getDefiniteAssignment());
+        stats.trivialRemovalTime.start();
+        removeTrivialConstraints(pState);
       } finally {
-        trivialRemovalTime.stop();
+        stats.trivialRemovalTime.stop();
       }
     }
 
     if (removeOutdated) {
       try {
-        outdatedRemovalTime.start();
+        stats.outdatedRemovalTime.start();
         removeOutdatedConstraints(pState, pValueState);
       } finally {
-        outdatedRemovalTime.stop();
+        stats.outdatedRemovalTime.stop();
       }
     }
 
@@ -123,8 +109,7 @@ public class StateSimplifier implements Statistics {
   }
 
   /** Removes all trivial constraints from the given state. */
-  public void removeTrivialConstraints(
-      final ConstraintsState pState, final IdentifierAssignment pAssignment) {
+  public void removeTrivialConstraints(final ConstraintsState pState) {
     int sizeBefore = pState.size();
 
     Iterator<Constraint> it = pState.iterator();
@@ -132,16 +117,16 @@ public class StateSimplifier implements Statistics {
     while (it.hasNext()) {
       Constraint currConstraint = it.next();
 
-      if (isTrivial(currConstraint, pAssignment)) {
+      if (isTrivial(currConstraint)) {
         it.remove();
       }
     }
 
-    removedTrivial.setNextValue(sizeBefore - pState.size());
+    stats.removedTrivial.setNextValue(sizeBefore - pState.size());
   }
 
-  private boolean isTrivial(Constraint pConstraint, IdentifierAssignment pAssignment) {
-    final ConstraintTrivialityChecker trivialityChecker = new ConstraintTrivialityChecker(pAssignment);
+  private boolean isTrivial(Constraint pConstraint) {
+    final ConstraintTrivialityChecker trivialityChecker = new ConstraintTrivialityChecker();
 
     return pConstraint.accept(trivialityChecker);
   }
@@ -161,7 +146,6 @@ public class StateSimplifier implements Statistics {
     int sizeBefore = pState.size();
     final Map<ActivityInfo, Set<ActivityInfo>> symIdActivity = getInitialActivityMap(pState);
     final Set<SymbolicIdentifier> symbolicValues = getExistingSymbolicIds(pValueState);
-    final IdentifierAssignment definiteAssignments = pState.getDefiniteAssignment();
 
     for (Entry<ActivityInfo, Set<ActivityInfo>> e : symIdActivity.entrySet()) {
       final ActivityInfo s = e.getKey();
@@ -176,7 +160,7 @@ public class StateSimplifier implements Statistics {
 
           if (!symbolicValues.contains(currId)) {
             boolean canBeRemoved;
-            if (s.getUsingConstraints().size() < 2 && !definiteAssignments.containsKey(currId)) {
+            if (s.getUsingConstraints().size() < 2) {
               // the symbolic identifier only occurs in one constraint and is not active,
               // so it does not constrain any currently existing symbolic identifier
               canBeRemoved = true;
@@ -202,7 +186,7 @@ public class StateSimplifier implements Statistics {
       }
     }
 
-    removedOutdated.setNextValue(sizeBefore - pState.size());
+    stats.removedOutdated.setNextValue(sizeBefore - pState.size());
   }
 
   private boolean removeOutdatedConstraints0(
@@ -323,22 +307,6 @@ public class StateSimplifier implements Statistics {
     }
 
     return activitySet;
-  }
-
-  @Override
-  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-
-    StatisticsWriter.writingStatisticsTo(out)
-        .put(removedTrivial)
-        .put(trivialRemovalTime)
-        .put(removedOutdated)
-        .put(outdatedRemovalTime);
-  }
-
-  @Nullable
-  @Override
-  public String getName() {
-    return StateSimplifier.class.getSimpleName();
   }
 
   private enum Activity { ACTIVE, UNUSED, DELETED }

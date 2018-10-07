@@ -82,7 +82,7 @@ class ProverEnvironmentWithFallback
       if (useInterpolation) {
         interpolatingProverEnvironment =
             (InterpolatingProverEnvironment<Object>)
-                solver.newProverEnvironmentWithInterpolation();
+                solver.newProverEnvironmentWithInterpolation(getOptions());
       } else {
         proverEnvironment = solver.newProverEnvironment(getOptions());
       }

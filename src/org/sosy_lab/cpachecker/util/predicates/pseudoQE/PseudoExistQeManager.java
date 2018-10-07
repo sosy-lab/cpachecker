@@ -26,14 +26,14 @@ package org.sosy_lab.cpachecker.util.predicates.pseudoQE;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -172,7 +172,6 @@ public class PseudoExistQeManager implements StatisticsProvider {
       while ((quantifierCountLastIteration > existFormula.getNumberOfQuantifiers())
           && existFormula.hasQuantifiers()) {
         quantifierCountLastIteration = existFormula.getNumberOfQuantifiers();
-
         if (useDER && existFormula.hasQuantifiers()) {
           existFormula = applyDER(existFormula);
         }
@@ -188,7 +187,7 @@ public class PseudoExistQeManager implements StatisticsProvider {
 
       stats.qeSuccessCounter += (pQuantifiedVars.size() - existFormula.getNumberOfQuantifiers());
       // How to handle remaining Quantifiers based on Options and result of previous operations
-      if (existFormula.hasQuantifiers()) {
+      if (pQuantifiedVars.size() - existFormula.getNumberOfQuantifiers() < 1) {
         if (overapprox) {
           logger.log(
               Level.FINE,
@@ -220,7 +219,7 @@ public class PseudoExistQeManager implements StatisticsProvider {
   PseudoExistFormula applyDER(PseudoExistFormula pExistFormula) throws InterruptedException {
     stats.derTimer.start();
     try {
-      Set<Formula> boundVars = new HashSet<>(pExistFormula.getQuantifiedVarFormulas());
+      Set<Formula> boundVars = ImmutableSet.copyOf(pExistFormula.getQuantifiedVarFormulas());
 
       FormulaVisitor<Map<Formula, Formula>> visitor =
           new DefaultFormulaVisitor<Map<Formula, Formula>>() {
@@ -304,7 +303,7 @@ public class PseudoExistQeManager implements StatisticsProvider {
     try {
       List<BooleanFormula> conjuncts_with_bound = pExistFormula.getConjunctsWithQuantifiedVars();
       List<BooleanFormula> conjuncts_to_eliminate = new ArrayList<>();
-      Map<String, Formula> boundVarsToElim = new HashMap<>(pExistFormula.getQuantifiedVars());
+      Map<String, Formula> boundVarsToElim = new LinkedHashMap<>(pExistFormula.getQuantifiedVars());
 
       for (BooleanFormula conjunct : conjuncts_with_bound) {
         Set<String> varNames = fmgr.extractVariableNames(conjunct);
@@ -383,21 +382,18 @@ public class PseudoExistQeManager implements StatisticsProvider {
                   new ArrayList<>(pExistFormula.getQuantifiedVarFormulas()),
                   pExistFormula.getInnerFormula());
 
-      BooleanFormula afterQE;
+      BooleanFormula afterQE = quantifiedFormula;
       // Apply the Quantifier elimination tactic
-      if (solverQeTactic == SolverQeTactic.LIGHT) {
+      if (solverQeTactic == SolverQeTactic.LIGHT || solverQeTactic == SolverQeTactic.FULL) {
         afterQE = fmgr.applyTactic(quantifiedFormula, Tactic.QE_LIGHT);
-      } else if (solverQeTactic == SolverQeTactic.FULL) {
+      }
+      if (solverQeTactic == SolverQeTactic.FULL) {
         try {
           afterQE = qFmgr.get().eliminateQuantifiers(quantifiedFormula);
         } catch (SolverException e) {
           logger.log(
               Level.FINER, "Solver based Quantifier Elimination failed with SolverException!", e);
-          // Unable to solve the QE-problem
-          afterQE = quantifiedFormula;
         }
-      } else {
-        afterQE = quantifiedFormula;
       }
       int numberQuantifiers = numberQuantifiers(afterQE);
       // Check if number of quantified vars less than before
@@ -406,7 +402,7 @@ public class PseudoExistQeManager implements StatisticsProvider {
 
         if (numberQuantifiers == 0) {
           // If no more quantifiers just return the result of QE
-          result = new PseudoExistFormula(new HashMap<>(), afterQE, fmgr);
+          result = new PseudoExistFormula(ImmutableMap.of(), afterQE, fmgr);
           logger.log(
               Level.FINER,
               "Successfully applied Solver-QE to eliminate "
@@ -414,7 +410,6 @@ public class PseudoExistQeManager implements StatisticsProvider {
                   + "quantified variable(s).");
           stats.solverQeSucessCounter += pExistFormula.getNumberOfQuantifiers();
         } else {
-
           // Extract Formula and map of quantified vars and create new Formula
 
           // TODO:    1. extract the Variable names of the still bound variables

@@ -51,7 +51,8 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -188,7 +189,11 @@ public class CEXExporter {
       // that are important for the error, it is not a complete path,
       // only some nodes of the targetPath are part of it
       ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
-      List<CFAEdge> shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
+      CFAPathWithAssumptions targetPAssum = null;
+      if (counterexample.isPreciseCounterExample()) {
+        targetPAssum = counterexample.getCFAPathWithAssignments();
+      }
+      List<CFAEdgeWithAssumptions> shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath, targetPAssum);
       writeErrorPathFile(
           options.getCoreFile(),
           uniqueId,

@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 /**
@@ -44,12 +45,24 @@ public final class SMGKnownAddressValue extends SMGKnownSymValue implements SMGA
     address = pAddress;
   }
 
-  public static SMGKnownAddressValue valueOf(
+  public static SMGAddressValue valueOf(
       SMGKnownSymbolicValue pAddress, SMGObject pObject, SMGKnownExpValue pOffset) {
+    if (pAddress.isZero() && pObject.equals(SMGNullObject.INSTANCE) && pOffset.isZero()) {
+      return SMGZeroValue.INSTANCE;
+    } else if (pAddress.isUnknown() || pObject == null) {
+      return SMGUnknownValue.INSTANCE;
+    }
     return new SMGKnownAddressValue(pAddress.getId(), SMGAddress.valueOf(pObject, pOffset));
   }
 
-  public static SMGKnownAddressValue valueOf(SMGEdgePointsTo edge) {
+  public static SMGAddressValue valueOf(SMGEdgePointsTo edge) {
+    if (edge.getValue().isZero()
+        && edge.getObject().equals(SMGNullObject.INSTANCE)
+        && edge.getOffset() == 0) {
+      return SMGZeroValue.INSTANCE;
+    } else if (edge.getValue().isUnknown() || edge.getObject() == null) {
+      return SMGUnknownValue.INSTANCE;
+    }
     return new SMGKnownAddressValue(
         ((SMGSymbolicValue) edge.getValue()).getId(),
         SMGAddress.valueOf(edge.getObject(), SMGKnownExpValue.valueOf(edge.getOffset())));

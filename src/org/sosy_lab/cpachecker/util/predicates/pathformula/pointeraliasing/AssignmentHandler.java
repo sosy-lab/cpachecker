@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
@@ -168,7 +167,7 @@ class AssignmentHandler {
 
     pts.addEssentialFields(rhsVisitor.getInitializedFields());
     pts.addEssentialFields(rhsVisitor.getUsedFields());
-    final List<Pair<CCompositeType, String>> rhsAddressedFields = rhsVisitor.getAddressedFields();
+    final List<CompositeField> rhsAddressedFields = rhsVisitor.getAddressedFields();
     final Map<String, CType> rhsLearnedPointersTypes = rhsVisitor.getLearnedPointerTypes();
 
     // LHS handling
@@ -227,8 +226,8 @@ class AssignmentHandler {
       }
     }
 
-    for (final Pair<CCompositeType, String> field : rhsAddressedFields) {
-      pts.addField(field.getFirst(), field.getSecond());
+    for (final CompositeField field : rhsAddressedFields) {
+      pts.addField(field);
     }
     return result;
   }
@@ -596,10 +595,9 @@ class AssignmentHandler {
     BooleanFormula result = bfmgr.makeTrue();
     for (final CCompositeTypeMemberDeclaration memberDeclaration :
         lvalueCompositeType.getMembers()) {
-      final String memberName = memberDeclaration.getName();
       final CType newLvalueType = typeHandler.getSimplifiedType(memberDeclaration);
       // Optimizing away the assignments from uninitialized fields
-      if (conv.isRelevantField(lvalueCompositeType, memberName)
+      if (conv.isRelevantField(lvalueCompositeType, memberDeclaration)
           && (
           // Assignment to a variable, no profit in optimizing it
           !lvalue.isAliased()
@@ -608,7 +606,7 @@ class AssignmentHandler {
               || // This is initialization, so the assignment is mandatory
               rvalue.isValue()
               || // The field is tracked as essential
-              pts.tracksField(lvalueCompositeType, memberName)
+              pts.tracksField(CompositeField.of(lvalueCompositeType, memberDeclaration))
               || // The variable representing the RHS was used somewhere (i.e. has SSA index)
               (!rvalue.isAliasedLocation()
                   && conv.hasIndex(
@@ -617,7 +615,7 @@ class AssignmentHandler {
                       newLvalueType,
                       ssa)))) {
 
-        final long offset = typeHandler.getBitOffset(lvalueCompositeType, memberName);
+        final long offset = typeHandler.getBitOffset(lvalueCompositeType, memberDeclaration);
         final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);
         final Location newLvalue;
         if (lvalue.isAliased()) {
@@ -677,7 +675,7 @@ class AssignmentHandler {
    * Creates a formula for a simple destructive assignment.
    *
    * @param lvalueType The type of the lvalue.
-   * @param rvalueType The type of the rvalue.
+   * @param pRvalueType The type of the rvalue.
    * @param lvalue The location of the lvalue.
    * @param rvalue The rvalue expression.
    * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
@@ -687,14 +685,14 @@ class AssignmentHandler {
    */
   private BooleanFormula makeSimpleDestructiveAssignment(
       CType lvalueType,
-      CType rvalueType,
+      final CType pRvalueType,
       final Location lvalue,
       Expression rvalue,
       final boolean useOldSSAIndices,
       final @Nullable Set<MemoryRegion> updatedRegions)
       throws UnrecognizedCodeException {
     // Arrays and functions are implicitly converted to pointers
-    rvalueType = implicitCastToPointer(rvalueType);
+    CType rvalueType = implicitCastToPointer(pRvalueType);
 
     checkArgument(isSimpleType(lvalueType));
     checkArgument(isSimpleType(rvalueType));
@@ -703,11 +701,17 @@ class AssignmentHandler {
     final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lvalueType);
     final BooleanFormula result;
 
-    final Optional<Formula> value = getValueFormula(rvalueType, rvalue);
-    Formula rhs =
-        value.isPresent()
-            ? conv.makeCast(rvalueType, lvalueType, value.get(), constraints, edge)
-            : null;
+    Formula rhs;
+    if (pRvalueType instanceof CArrayType && rvalue.isAliasedLocation()) {
+      // When assigning an array to a pointer, the address of the array is taken
+      rhs = rvalue.asAliasedLocation().getAddress();
+    } else {
+      final Optional<Formula> value = getValueFormula(rvalueType, rvalue);
+      rhs =
+          value.isPresent()
+              ? conv.makeCast(rvalueType, lvalueType, value.get(), constraints, edge)
+              : null;
+    }
 
     if (!lvalue.isAliased()) { // Unaliased LHS
       assert !useOldSSAIndices;
@@ -854,7 +858,7 @@ class AssignmentHandler {
           // calculate right indices. GCC orders fields in structs the other way around!
           // C11 6.7.2.1 (11) allows for arbitrary ordering, but we will stick to GCC behavior
           int fieldOffset =
-              (int) typeHandler.getBitOffset(((CCompositeType) memberType), innerMember.getName());
+              (int) typeHandler.getBitOffset(((CCompositeType) memberType), innerMember);
           int fieldSize = typeHandler.getBitSizeof(innerMember.getType());
           assert fieldSize > 0;
           int structSize = ((BitvectorType) conv.getFormulaTypeFromCType(memberType)).getSize();

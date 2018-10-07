@@ -242,7 +242,13 @@ public class WitnessExporter {
                     "Witnessexport was interrupted for generation of Proofwitness", e);
               }
               if (invString != null) {
-                stateInvariant = factory.and(stateInvariant, LeafExpression.of((Object) invString));
+                if (!invString.equals("1")) {
+                  if (invString.equals("0")) {
+                    return ExpressionTrees.getFalse();
+                  }
+                  stateInvariant =
+                      factory.and(stateInvariant, LeafExpression.of((Object) invString));
+                }
               }
             }
             return stateInvariant;

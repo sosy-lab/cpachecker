@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 /** This enum stores the sizes for all the basic types that exist. */
@@ -431,15 +432,15 @@ public enum MachineModel {
   }
 
   /** returns INT, if the type is smaller than INT, else the type itself. */
-  public CSimpleType getPromotedCType(CSimpleType pType) {
-
+  public CType applyIntegerPromotion(CType pType) {
+    checkArgument(CTypes.isIntegerType(pType), "Integer promotion cannot be applied to %s", pType);
     /*
      * ISO-C99 (6.3.1.1 #2):
      * If an int can represent all values of the original type, the value is
      * converted to an int; otherwise, it is converted to an unsigned int.
      * These are called the integer promotions.
+     * All smaller integer types actually fit in an int, even (n-1)-bit bitfields.
      */
-    // TODO when do we really need unsigned_int?
     if (getSizeof(pType) < getSizeofInt()) {
       return CNumericTypes.SIGNED_INT;
     } else {

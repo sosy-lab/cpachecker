@@ -25,7 +25,16 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import static com.google.common.primitives.Ints.max;
 
-public class CFloatNaN implements CFloat {
+/**
+ * This class is used to increase performance and debugging capabilities. Since <code>nan</code> and
+ * <code>-nan</code> are special numbers, operations including them or performed on them, evaluate
+ * in a specific manner that, generally, can be computed much easier than the usual floating point
+ * operations and therefore terminate some operations faster.
+ *
+ * <p>Also, the usual check for not-a-number uses some computations which can be saved by a default
+ * return of <code>true</code> when the object already is known to be an infinity.
+ */
+public class CFloatNaN extends CFloat {
 
   private boolean negative;
   private final int type;
@@ -159,13 +168,31 @@ public class CFloatNaN implements CFloat {
   @Override
   public Number castToOther(int pToType) {
     // TODO Determine behavior for other types than floating point
+    // XXX: effectively return pToType.MIN-VALUE
     return null;
   }
 
   @Override
   public CFloatWrapper copyWrapper() {
-    // TODO is there a wrapper necessary at all?
-    return null;
+    CFloatWrapper result = null;
+    switch (type) {
+      case CFloatNativeAPI.FP_TYPE_SINGLE:
+      case CFloatNativeAPI.FP_TYPE_DOUBLE:
+        result =
+            new CFloatWrapper(
+                getExponentMask() ^ (negative ? getSignBitMask() : 0L),
+                (getNormalizationMask() >>> 1));
+        break;
+      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
+        result =
+            new CFloatWrapper(
+                getExponentMask() ^ (negative ? getSignBitMask() : 0L),
+                getNormalizationMask() ^ (getNormalizationMask() >>> 1));
+        break;
+      default:
+        throw new RuntimeException("Unimplemented floating point type: " + type);
+    }
+    return result;
   }
 
   @Override
@@ -181,5 +208,10 @@ public class CFloatNaN implements CFloat {
   @Override
   public String toString() {
     return (negative ? "-" : "") + "nan";
+  }
+
+  @Override
+  public boolean greaterThan(CFloat pFloat) {
+    return false;
   }
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -528,19 +528,16 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     long nfo = pListSeg.getNfo();
     long hfo = pListSeg.getHfo();
 
-    SMGEdgeHasValue nextEdge = Iterables.getOnlyElement(
-        heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(nfo)));
-
-    SMGEdgePointsTo nextPointerEdge = heap.getPointer(nextEdge.getValue());
+    SMGValue nextPointer = readValue(pListSeg, nfo, CPointerType.POINTER_TO_VOID).getObject();
 
     SMGValue firstPointer = getAddress(pListSeg, hfo, SMGTargetSpecifier.FIRST);
 
     heap.removeHeapObjectAndEdges(pListSeg);
 
-    heap.replaceValue(nextEdge.getValue(), firstPointer);
+    heap.replaceValue(nextPointer, firstPointer);
 
     if (firstPointer.equals(pPointerToAbstractObject.getValue())) {
-      return getPointerFromValue(nextPointerEdge.getValue());
+      return getPointerFromValue(nextPointer);
     } else {
       throw new AssertionError(
           "Unexpected dereference of pointer " + pPointerToAbstractObject.getValue()
@@ -566,13 +563,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     long pfo = pListSeg.getPfo();
     long hfo = pListSeg.getHfo();
 
-    SMGEdgeHasValue nextEdge = Iterables.getOnlyElement(
-        heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(nfo)));
-    SMGEdgeHasValue prevEdge = Iterables.getOnlyElement(
-        heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(pfo)));
-
-    SMGEdgePointsTo nextPointerEdge = heap.getPointer(nextEdge.getValue());
-    SMGEdgePointsTo prevPointerEdge = heap.getPointer(prevEdge.getValue());
+    SMGValue nextPointer = readValue(pListSeg, nfo, CPointerType.POINTER_TO_VOID).getObject();
+    SMGValue prevPointer = readValue(pListSeg, pfo, CPointerType.POINTER_TO_VOID).getObject();
 
     SMGSymbolicValue firstPointer = getAddress(pListSeg, hfo, SMGTargetSpecifier.FIRST);
     SMGSymbolicValue lastPointer = getAddress(pListSeg, hfo, SMGTargetSpecifier.LAST);
@@ -583,17 +575,17 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
      *  */
 
     if (firstPointer != null) {
-      heap.replaceValue(nextEdge.getValue(), firstPointer);
+      heap.replaceValue(nextPointer, firstPointer);
     }
 
     if (lastPointer != null) {
-      heap.replaceValue(prevEdge.getValue(), lastPointer);
+      heap.replaceValue(prevPointer, lastPointer);
     }
 
     if (firstPointer != null && firstPointer.equals(pPointerToAbstractObject.getValue())) {
-      return getPointerFromValue(nextPointerEdge.getValue());
+      return getPointerFromValue(nextPointer);
     } else if (lastPointer != null && lastPointer.equals(pPointerToAbstractObject.getValue())) {
-      return getPointerFromValue(prevPointerEdge.getValue());
+      return getPointerFromValue(prevPointer);
     } else {
       throw new AssertionError(
           "Unexpected dereference of pointer " + pPointerToAbstractObject.getValue()
@@ -623,9 +615,14 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     long hfo = pListSeg.getHfo();
     long nfo = pListSeg.getNfo();
 
-    SMGEdgeHasValue oldSllFieldToOldRegion =
-        Iterables.getOnlyElement(
-            heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(nfo)));
+    Set<SMGEdgeHasValue> oldSllFieldsToOldRegion =
+        heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(nfo));
+    SMGSymbolicValue oldPointerToRegion =
+        readValue(pListSeg, nfo, CPointerType.POINTER_TO_VOID).getObject();
+    if (!oldSllFieldsToOldRegion.isEmpty()) {
+      SMGEdgeHasValue oldSllFieldToOldRegion = Iterables.getOnlyElement(oldSllFieldsToOldRegion);
+      heap.removeHasValueEdge(oldSllFieldToOldRegion);
+    }
 
     SMGValue oldPointerToSll = pPointerToAbstractObject.getValue();
 
@@ -633,7 +630,6 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg));
     Set<SMGEdgePointsTo> oldPtEdges = SMGUtils.getPointerToThisObject(pListSeg, heap);
 
-    heap.removeHasValueEdge(oldSllFieldToOldRegion);
     heap.removePointsToEdge(oldPointerToSll);
 
     heap.removeHeapObjectAndEdges(pListSeg);
@@ -656,7 +652,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGEdgePointsTo newPtEdgeToNewRegionFromOutsideSMG =
         new SMGEdgePointsTo(oldPointerToSll, newConcreteRegion, hfo);
 
-    SMGValue newPointerToSll = SMGKnownSymValue.of();
+    SMGSymbolicValue newPointerToSll = SMGKnownSymValue.of();
 
     /*If you can't find the pointer, use generic pointer type*/
     CType typeOfPointerToSll;
@@ -670,8 +666,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       typeOfPointerToSll = fieldsContainingOldPointerToSll.iterator().next().getType();
     }
 
-    SMGEdgeHasValue newFieldFromNewRegionToSll = new SMGEdgeHasValue(
-        typeOfPointerToSll, nfo, newConcreteRegion, newPointerToSll);
+    writeValue(newConcreteRegion, nfo, typeOfPointerToSll, newPointerToSll);
+
     SMGEdgePointsTo newPtEToSll =
         new SMGEdgePointsTo(newPointerToSll, newSll, hfo, SMGTargetSpecifier.FIRST);
 
@@ -688,8 +684,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     heap.addPointsToEdge(newPtEdgeToNewRegionFromOutsideSMG);
 
     heap.addValue(newPointerToSll);
-    heap.addHasValueEdge(newFieldFromNewRegionToSll);
+
     heap.addPointsToEdge(newPtEToSll);
+
+    writeValue(newSll, nfo, CPointerType.POINTER_TO_VOID, oldPointerToRegion);
 
     return SMGAddressValueAndState.of(
         this, SMGKnownAddressValue.valueOf(newPtEdgeToNewRegionFromOutsideSMG));
@@ -730,14 +728,19 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     long hfo = pListSeg.getHfo();
 
-    SMGEdgeHasValue oldDllFieldToOldRegion =
-        Iterables.getOnlyElement(heap.getHVEdges(
-            SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(offsetPointingToRegion)));
+    Set<SMGEdgeHasValue> oldDllFieldsToOldRegion =
+        heap.getHVEdges(
+            SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(offsetPointingToRegion));
+    SMGSymbolicValue oldPointerToRegion =
+        readValue(pListSeg, offsetPointingToRegion, CPointerType.POINTER_TO_VOID).getObject();
+    if (!oldDllFieldsToOldRegion.isEmpty()) {
+      SMGEdgeHasValue oldDllFieldToOldRegion = Iterables.getOnlyElement(oldDllFieldsToOldRegion);
+      heap.removeHasValueEdge(oldDllFieldToOldRegion);
+    }
 
     SMGKnownSymbolicValue oldPointerToDll =
         (SMGKnownSymbolicValue) pPointerToAbstractObject.getValue();
 
-    heap.removeHasValueEdge(oldDllFieldToOldRegion);
     heap.removePointsToEdge(oldPointerToDll);
 
     Set<SMGEdgeHasValue> oldFieldsEdges =
@@ -763,11 +766,13 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     SMGEdgePointsTo newPtEdgeToNewRegionFromOutsideSMG =
         new SMGEdgePointsTo(oldPointerToDll, newConcreteRegion, hfo);
-    SMGEdgeHasValue newFieldFromNewRegionToOutsideSMG =
-        new SMGEdgeHasValue(oldDllFieldToOldRegion.getType(), offsetPointingToRegion,
-            newConcreteRegion, oldDllFieldToOldRegion.getValue());
+    writeValue(
+        newConcreteRegion,
+        offsetPointingToRegion,
+        CPointerType.POINTER_TO_VOID,
+        oldPointerToRegion);
 
-    SMGValue newPointerToDll = SMGKnownSymValue.of();
+    SMGSymbolicValue newPointerToDll = SMGKnownSymValue.of();
 
     CType typeOfPointerToDll;
 
@@ -780,12 +785,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       typeOfPointerToDll = fieldsContainingOldPointerToDll.iterator().next().getType();
     }
 
-    SMGEdgeHasValue newFieldFromNewRegionToDll = new SMGEdgeHasValue(typeOfPointerToDll,
-        offsetPointingToDll, newConcreteRegion, newPointerToDll);
+    writeValue(newConcreteRegion, offsetPointingToDll, typeOfPointerToDll, newPointerToDll);
     SMGEdgePointsTo newPtEToDll = new SMGEdgePointsTo(newPointerToDll, newDll, hfo, tg);
 
-    SMGEdgeHasValue newFieldFromDllToNewRegion = new SMGEdgeHasValue(
-        oldDllFieldToOldRegion.getType(), offsetPointingToRegion, newDll, oldPointerToDll);
+    writeValue(newDll, offsetPointingToRegion, CPointerType.POINTER_TO_VOID, oldPointerToDll);
 
     for (SMGEdgeHasValue hve : oldFieldsEdges) {
       heap.addHasValueEdge(
@@ -798,13 +801,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
 
     heap.addPointsToEdge(newPtEdgeToNewRegionFromOutsideSMG);
-    heap.addHasValueEdge(newFieldFromNewRegionToOutsideSMG);
 
     heap.addValue(newPointerToDll);
-    heap.addHasValueEdge(newFieldFromNewRegionToDll);
-    heap.addPointsToEdge(newPtEToDll);
 
-    heap.addHasValueEdge(newFieldFromDllToNewRegion);
+    heap.addPointsToEdge(newPtEToDll);
 
     return SMGAddressValueAndState.of(
         this, SMGKnownAddressValue.valueOf(newPtEdgeToNewRegionFromOutsideSMG));
@@ -1311,11 +1311,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     SMGJoin join = new SMGJoin(this.heap, reachedState.getHeap(), this, reachedState);
 
-    if(join.getStatus() != SMGJoinStatus.INCOMPARABLE) {
-      return reachedState;
-    }
-
-    if (!join.isDefined()) {
+    if (!(join.getStatus() == SMGJoinStatus.INCOMPARABLE && join.isDefined())) {
       return reachedState;
     }
 
@@ -1719,9 +1715,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     // TODO: This can actually be an invalid read too
     //      The flagging mechanism should be improved
-    SMGState smgState =
-        new SMGState(this, Property.INVALID_WRITE).withErrorDescription("Unknown dereference");
-    return smgState;
+    return new SMGState(this, Property.INVALID_WRITE).withErrorDescription("Unknown dereference");
   }
 
   public void identifyEqualValues(SMGKnownSymbolicValue pKnownVal1, SMGKnownSymbolicValue pKnownVal2) {
@@ -1931,21 +1925,16 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
-  public boolean executeHeapAbstraction(Set<SMGAbstractionBlock> blocks,
-      boolean usesHeapInterpoaltion)
+  public boolean executeHeapAbstraction(
+      Set<SMGAbstractionBlock> blocks, boolean usesHeapInterpolation)
       throws SMGInconsistentException {
-
-    boolean change;
-
-    if (usesHeapInterpoaltion) {
-      SMGAbstractionManager manager =
-          new SMGAbstractionManager(logger, heap, this, blocks, 2, 2, 2);
-      change = manager.execute();
+    final SMGAbstractionManager manager;
+    if (usesHeapInterpolation) {
+      manager = new SMGAbstractionManager(logger, heap, this, blocks, 2, 2, 2);
     } else {
-      SMGAbstractionManager manager = new SMGAbstractionManager(logger, heap, this, blocks);
-      change = manager.execute();
+      manager = new SMGAbstractionManager(logger, heap, this, blocks);
     }
-
+    boolean change = manager.execute();
     performConsistencyCheck(SMGRuntimeCheck.HALF);
     return change;
   }

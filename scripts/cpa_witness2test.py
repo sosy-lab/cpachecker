@@ -46,7 +46,7 @@ __version__ = '0.1'
 
 
 GCC_ARGS_FIXED = ["-D__alias__(x)="]
-EXPECTED_ERRMSG = "__VERIFIER_error_called"
+EXPECTED_ERRMSG = "cpa_witness2test: violation"
 
 MACHINE_MODEL_32 = '32bit'
 MACHINE_MODEL_64 = '64bit'
@@ -252,7 +252,7 @@ def execute(command, quiet=False):
 
 
 def analyze_result(test_result, harness):
-    if test_result.stderr and EXPECTED_ERRMSG in test_result.stderr:
+    if test_result.returncode == 107 and test_result.stderr and EXPECTED_ERRMSG in test_result.stderr:
         logging.info("Harness {} reached expected error location.".format(harness))
         return RESULT_ACCEPT
     elif test_result.returncode == 0:

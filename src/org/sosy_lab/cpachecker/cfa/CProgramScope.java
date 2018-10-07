@@ -623,16 +623,17 @@ public class CProgramScope implements Scope {
   }
 
   private static Iterable<? extends AAstNode> getAstNodesFromCfaEdge(CFAEdge pEdge) {
+    Iterable<? extends AAstNode> nodes =
+        FluentIterable.from(CFAUtils.getAstNodesFromCfaEdge(pEdge))
+            .transformAndConcat(CFAUtils::traverseRecursively);
     if (pEdge instanceof ADeclarationEdge) {
       ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
       ADeclaration declaration = declarationEdge.getDeclaration();
       if (declaration instanceof AFunctionDeclaration) {
-        return Iterables.concat(
-            CFAUtils.getAstNodesFromCfaEdge(pEdge),
-            ((AFunctionDeclaration) declaration).getParameters());
+        nodes = Iterables.concat(nodes, ((AFunctionDeclaration) declaration).getParameters());
       }
     }
-    return CFAUtils.getAstNodesFromCfaEdge(pEdge);
+    return nodes;
   }
 
   private static Multimap<CAstNode, FileLocation> extractVarUseLocations(

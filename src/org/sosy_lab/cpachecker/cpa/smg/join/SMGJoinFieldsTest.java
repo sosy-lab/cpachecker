@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -180,20 +180,22 @@ public class SMGJoinFieldsTest {
     smg1.addHasValueEdge(nullifyObj1);
     smg2.addHasValueEdge(nonPointer);
 
-    Set<SMGEdgeHasValue> hvSet = SMGJoinFields.getHVSetOfMissingNullValues(smg1, smg2, obj1, obj2);
-    assertThat(hvSet).hasSize(0);
+    Set<SMGEdgeHasValue> hvSet1 = SMGJoinFields.getHVSetOfMissingNullValues(smg1, smg2, obj1, obj2);
+    assertThat(hvSet1).hasSize(1);
 
+    // adding a "back" edge should not change anything
     smg2.addPointsToEdge(new SMGEdgePointsTo(value2, obj2, 0));
 
-    hvSet = SMGJoinFields.getHVSetOfMissingNullValues(smg1, smg2, obj1, obj2);
-    assertThat(hvSet).hasSize(1);
+    Set<SMGEdgeHasValue> hvSet2 = SMGJoinFields.getHVSetOfMissingNullValues(smg1, smg2, obj1, obj2);
+    assertThat(hvSet2).hasSize(1);
 
-    SMGEdgeHasValue newHv = Iterables.getOnlyElement(hvSet);
-    assertThat(newHv.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
-    assertThat(newHv.getObject()).isSameAs(obj1);
-    assertThat(newHv.getSizeInBits(MachineModel.LINUX64)).isEqualTo(32);
-    assertThat(newHv.getOffset()).isEqualTo(16);
-    Assert.assertTrue(newHv.isCompatibleField(nonPointer));
+    for (SMGEdgeHasValue hv : Sets.union(hvSet1, hvSet2)) { // just two edges in there
+      assertThat(hv.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
+      assertThat(hv.getObject()).isSameAs(obj1);
+      assertThat(hv.getSizeInBits(MachineModel.LINUX64)).isEqualTo(32);
+      assertThat(hv.getOffset()).isEqualTo(16);
+      Assert.assertTrue(hv.isCompatibleField(nonPointer));
+    }
   }
 
   @Test
@@ -351,56 +353,55 @@ public class SMGJoinFieldsTest {
     SMGRegion object = new SMGRegion(64, "Object");
     smg1.addObject(object);
 
-    SMG smg04 = smg1.copyOf();
-    SMG smg48 = smg1.copyOf();
-    SMG smg26 = smg1.copyOf();
-    SMG smg08 = smg1.copyOf();
+    SMG smg0_0B_4B = smg1.copyOf();
+    SMG smg0_2B_6B = smg1.copyOf();
+    SMG smg0_4B_8B = smg1.copyOf();
+    SMG smg0_0B_8B = smg1.copyOf();
 
-    smg04.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, object, SMGZeroValue.INSTANCE));
-    smg48.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, object, SMGZeroValue.INSTANCE));
-    smg26.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 16, object, SMGZeroValue.INSTANCE));
-    smg08.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, object, SMGZeroValue.INSTANCE));
-    smg08.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, object, SMGZeroValue.INSTANCE));
+    smg0_0B_4B.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, object, SMGZeroValue.INSTANCE));
+    smg0_2B_6B.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 16, object, SMGZeroValue.INSTANCE));
+    smg0_4B_8B.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, object, SMGZeroValue.INSTANCE));
+    smg0_0B_8B.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 0, object, SMGZeroValue.INSTANCE));
+    smg0_0B_8B.addHasValueEdge(new SMGEdgeHasValue(mockType4b, 32, object, SMGZeroValue.INSTANCE));
 
-    Assert.assertEquals(SMGJoinStatus.INCOMPARABLE,
-        SMGJoinFields.joinFieldsRelaxStatus(smg04, smg48,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
-    Assert.assertEquals(SMGJoinStatus.INCOMPARABLE,
-        SMGJoinFields.joinFieldsRelaxStatus(smg04, smg26,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
-    Assert.assertEquals(SMGJoinStatus.EQUAL,
-        SMGJoinFields.joinFieldsRelaxStatus(smg04, smg08,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
+    // these test invalid inputs, so they are disabled now
+    /*
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_0B_4B, smg0_4B_8B, object); // invalid use
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_0B_4B, smg0_2B_6B, object); // invalid use
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_0B_4B, smg0_0B_8B, object); // invalid use, should throw
 
-    Assert.assertEquals(SMGJoinStatus.INCOMPARABLE,
-        SMGJoinFields.joinFieldsRelaxStatus(smg48, smg04,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
-    Assert.assertEquals(SMGJoinStatus.INCOMPARABLE,
-        SMGJoinFields.joinFieldsRelaxStatus(smg48, smg26,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
-    Assert.assertEquals(SMGJoinStatus.EQUAL,
-        SMGJoinFields.joinFieldsRelaxStatus(smg48, smg08,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_4B_8B, smg0_0B_4B, object); // invalid use
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_4B_8B, smg0_2B_6B, object); // invalid use
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_4B_8B, smg0_0B_8B, object); // invalid use
 
-    Assert.assertEquals(SMGJoinStatus.INCOMPARABLE,
-        SMGJoinFields.joinFieldsRelaxStatus(smg26, smg04,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
-    Assert.assertEquals(SMGJoinStatus.INCOMPARABLE,
-        SMGJoinFields.joinFieldsRelaxStatus(smg26, smg48,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
-    Assert.assertEquals(SMGJoinStatus.EQUAL,
-        SMGJoinFields.joinFieldsRelaxStatus(smg26, smg08,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_2B_6B, smg0_0B_4B, object); // invalid use
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_2B_6B, smg0_4B_8B, object); // invalid use
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_2B_6B, smg0_0B_8B, object); // invalid use
+    */
 
-    Assert.assertEquals(SMGJoinStatus.INCOMPARABLE,
-        SMGJoinFields.joinFieldsRelaxStatus(smg08, smg04,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
-    Assert.assertEquals(SMGJoinStatus.INCOMPARABLE,
-        SMGJoinFields.joinFieldsRelaxStatus(smg08, smg48,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
-    Assert.assertEquals(SMGJoinStatus.INCOMPARABLE,
-        SMGJoinFields.joinFieldsRelaxStatus(smg08, smg26,
-            SMGJoinStatus.EQUAL, SMGJoinStatus.INCOMPARABLE, object));
+    checkStatusAfterRelax(SMGJoinStatus.EQUAL       , smg0_0B_8B, smg0_0B_8B, object); // OK
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_0B_8B, smg0_0B_4B, object); // OK
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_0B_8B, smg0_4B_8B, object); // OK
+    checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_0B_8B, smg0_2B_6B, object); // OK
+
+    checkStatusAfterJoinFields(SMGJoinStatus.EQUAL       , smg0_0B_8B, smg0_0B_8B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL , smg0_0B_8B, smg0_0B_4B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL , smg0_0B_8B, smg0_2B_6B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL , smg0_0B_8B, smg0_4B_8B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.RIGHT_ENTAIL, smg0_0B_4B, smg0_0B_8B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.RIGHT_ENTAIL, smg0_2B_6B, smg0_0B_8B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.RIGHT_ENTAIL, smg0_4B_8B, smg0_0B_8B, object);
+  }
+
+  private void checkStatusAfterRelax(SMGJoinStatus expected, SMG a, SMG b, SMGRegion object) {
+    SMGJoinFields js = new SMGJoinFields(a, a, object, object); // dummy instantiation
+    js.joinFieldsRelaxStatus(a, b, SMGJoinStatus.INCOMPARABLE, object);
+    Assert.assertEquals(expected, js.getStatus());
+  }
+
+  private void checkStatusAfterJoinFields(SMGJoinStatus expected, SMG a, SMG b, SMGRegion object) {
+    SMGJoinFields js = new SMGJoinFields(a, b, object, object); // join fields
+    Assert.assertEquals(expected, js.getStatus());
   }
 
   @SuppressWarnings("unused")

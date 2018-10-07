@@ -83,13 +83,12 @@ public class BAMPredicateReducer implements Reducer {
   @Option(description = "Enable/disable precision reduction using RelevantPredicateComputer", secure = true)
   private boolean reduceIrrelevantPrecision = true;
 
-  public BAMPredicateReducer(
-      BooleanFormulaManager bfmgr, BAMPredicateCPA cpa, Configuration pConfig)
+  public BAMPredicateReducer(BAMPredicateCPA cpa, Configuration pConfig)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     this.pmgr = cpa.getPathFormulaManager();
     this.pamgr = cpa.getPredicateManager();
-    this.bfmgr = bfmgr;
+    this.bfmgr = cpa.getSolver().getFormulaManager().getBooleanFormulaManager();
     this.logger = cpa.getLogger();
     this.cpa = cpa;
   }

@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -265,9 +266,9 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
 
   private CType getPromotedCType(CType t) {
     t = t.getCanonicalType();
-    if (t instanceof CSimpleType) {
+    if (CTypes.isIntegerType(t)) {
       // Integer types smaller than int are promoted when an operation is performed on them.
-      return machineModel.getPromotedCType((CSimpleType) t);
+      return machineModel.applyIntegerPromotion(t);
     }
     return t;
   }

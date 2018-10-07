@@ -655,7 +655,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private @Nullable ThreadingState handleWitnessAutomaton(
       ThreadingState ts, AutomatonState automatonState) {
     Map<String, AutomatonVariable> vars = automatonState.getVars();
-    AutomatonVariable witnessThreadId = vars.get(KeyDef.THREADNAME.id.toUpperCase());
+    AutomatonVariable witnessThreadId = vars.get(KeyDef.THREADID.toString().toUpperCase());
     String threadId = ts.getActiveThread();
     if (witnessThreadId == null || threadId == null || witnessThreadId.getValue() == 0) {
       // values not available or default value zero -> ignore and return state unchanged

@@ -89,6 +89,55 @@ python-unit-tests:jdk-10:
     - build:jdk-10
   image: ${CI_REGISTRY_IMAGE}/test:jdk-10
 
+generate-sample-report:
+  stage: generate
+  dependencies:
+    - build-dependencies
+    - build:jdk-10
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-10
+  script:
+    - scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug_false-unreach-label.c
+  artifacts:
+    paths:
+     - "output/Counterexample.1.html"
+
+javascript-unit-tests:
+  stage: checks
+  dependencies: 
+    - generate-sample-report
+  image: node:8.9.4
+  before_script:
+    - cd src/org/sosy_lab/cpachecker/core/counterexample/
+    - npm install
+  script:
+    - cd node_modules/.bin/
+    - npm test --watch=false --single-run=true
+  cache:
+    paths:
+    - "src/org/sosy_lab/cpachecker/core/counterexample/node_modules/"
+  artifacts:
+    paths:
+      - src/org/sosy_lab/cpachecker/core/counterexample/unit_testing_report
+
+
+javascript-e2e-tests:
+  stage: checks
+  dependencies: 
+    - generate-sample-report
+  image: ${CI_REGISTRY_IMAGE}/test:java-node
+  before_script:
+    - cd src/org/sosy_lab/cpachecker/core/counterexample/
+    - npm install
+    - ./node_modules/protractor/node_modules/webdriver-manager/bin/webdriver-manager update
+  script:
+    - npm run e2e-test
+  cache:
+    paths:
+    - src/org/sosy_lab/cpachecker/core/counterexample/node_modules/
+  artifacts:
+    paths:
+      - src/org/sosy_lab/cpachecker/core/counterexample/e2e-tests-report
+
 
 # No coverage is computed for CPAchecker
 unit-tests:jdk-8:

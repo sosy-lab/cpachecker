@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
@@ -41,42 +41,44 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 
 class SMGJoinFields {
-  private final UnmodifiableSMG newSMG1;
-  private final UnmodifiableSMG newSMG2;
+  private final SMG newSMG1;
+  private final SMG newSMG2;
   private SMGJoinStatus status = SMGJoinStatus.EQUAL;
 
+  /** Algorithm 3 from FIT-TR-2012-04 */
   public SMGJoinFields(
       final UnmodifiableSMG pSMG1, final UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
-    if (pObj1.getSize() != pObj2.getSize()) {
-      throw new IllegalArgumentException("SMGJoinFields object arguments need to have identical size");
-    }
-    if (!(pSMG1.getObjects().contains(pObj1) && pSMG2.getObjects().contains(pObj2))) {
-      throw new IllegalArgumentException("SMGJoinFields object arguments need to be included in parameter SMGs");
-    }
 
-    final SMG joinedSmg1 = pSMG1.copyOf();
-    final SMG joinedSmg2 = pSMG2.copyOf();
+    Preconditions.checkArgument(
+        pObj1.getSize() == pObj2.getSize(),
+        "SMGJoinFields object arguments need to have identical size");
+    Preconditions.checkArgument(
+        pSMG1.getObjects().contains(pObj1) && pSMG2.getObjects().contains(pObj2),
+        "SMGJoinFields object arguments need to be included in parameter SMGs");
 
-    setCompatibleHVEdgesToSMG(joinedSmg1, pSMG2, pObj1, pObj2);
-    setCompatibleHVEdgesToSMG(joinedSmg2, pSMG1, pObj2, pObj1);
+    newSMG1 = pSMG1.copyOf();
+    newSMG2 = pSMG2.copyOf();
 
-    status = joinFieldsRelaxStatus(pSMG1, joinedSmg1, status, SMGJoinStatus.RIGHT_ENTAIL, pObj1);
-    status = joinFieldsRelaxStatus(pSMG2, joinedSmg2, status, SMGJoinStatus.LEFT_ENTAIL, pObj2);
+    // Algorithm 3 from FIT-TR-2012-04, line 2
+    setCompatibleHVEdgesToSMG(newSMG1, pSMG2, pObj1, pObj2);
+    setCompatibleHVEdgesToSMG(newSMG2, pSMG1, pObj2, pObj1);
 
-    Set<SMGEdgeHasValue> smg2Extension = mergeNonNullHasValueEdges(pSMG1, pSMG2, pObj1, pObj2);
-    Set<SMGEdgeHasValue> smg1Extension = mergeNonNullHasValueEdges(pSMG2, pSMG1, pObj2, pObj1);
+    // Algorithm 3 from FIT-TR-2012-04, line 4
+    joinFieldsRelaxStatus(pSMG1, newSMG1, SMGJoinStatus.LEFT_ENTAIL, pObj1);
+    joinFieldsRelaxStatus(pSMG2, newSMG2, SMGJoinStatus.RIGHT_ENTAIL, pObj2);
 
+    Set<SMGEdgeHasValue> smg2Extension = mergeNonNullHasValueEdges(pSMG1, newSMG2, pObj1, pObj2);
+    Set<SMGEdgeHasValue> smg1Extension = mergeNonNullHasValueEdges(pSMG2, newSMG1, pObj2, pObj1);
+
+    // Algorithm 3 from FIT-TR-2012-04, line 5
     for (SMGEdgeHasValue edge : smg1Extension) {
-      joinedSmg1.addValue(edge.getValue());
-      joinedSmg1.addHasValueEdge(edge);
+      newSMG1.addValue(edge.getValue());
+      newSMG1.addHasValueEdge(edge);
     }
     for (SMGEdgeHasValue edge : smg2Extension) {
-      joinedSmg2.addValue(edge.getValue());
-      joinedSmg2.addHasValueEdge(edge);
+      newSMG2.addValue(edge.getValue());
+      newSMG2.addHasValueEdge(edge);
     }
-
-    newSMG1 = joinedSmg1;
-    newSMG2 = joinedSmg2;
   }
 
   public SMGJoinStatus getStatus() {
@@ -91,6 +93,7 @@ class SMGJoinFields {
     return newSMG2;
   }
 
+  @VisibleForTesting
   public static Set<SMGEdgeHasValue> mergeNonNullHasValueEdges(
       UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
     Set<SMGEdgeHasValue> returnSet = new HashSet<>();
@@ -101,78 +104,94 @@ class SMGJoinFields {
 
     for (SMGEdgeHasValue edge : pSMG1.getHVEdges(filterForSMG1)) {
       filterForSMG2.filterAtOffset(edge.getOffset());
-      if (pSMG2.getHVEdges(filterForSMG2).size() == 0) {
+      if (pSMG2.getHVEdges(filterForSMG2).isEmpty()) {
         returnSet.add(
-            new SMGEdgeHasValue(
-                edge.getType(), edge.getOffset(), pObj2, SMGKnownSymValue.of()));
+            new SMGEdgeHasValue(edge.getType(), edge.getOffset(), pObj2, SMGKnownSymValue.of()));
       }
     }
 
-    return Collections.unmodifiableSet(returnSet);
+    return returnSet;
   }
 
-  public static SMGJoinStatus joinFieldsRelaxStatus(
+  // Checks whether the nullified blocks are same in the new SMG as in the original SMG
+  // or they got shrank / removed
+  @VisibleForTesting
+  void joinFieldsRelaxStatus(
       UnmodifiableSMG pOrigSMG,
       UnmodifiableSMG pNewSMG,
-      SMGJoinStatus pCurStatus,
       SMGJoinStatus pNewStatus,
       SMGObject pObject) {
-    TreeMap<Long, Integer> origNullEdges = pOrigSMG.getNullEdgesMapOffsetToSizeForObject(pObject);
-    TreeMap<Long, Integer> newNullEdges = pNewSMG.getNullEdgesMapOffsetToSizeForObject(pObject);
-    for (Entry<Long, Integer> origEdge : origNullEdges.entrySet()) {
-      Entry<Long, Integer> newFloorEntry = newNullEdges.floorEntry(origEdge.getKey());
-      if (newFloorEntry == null || newFloorEntry.getValue() + newFloorEntry.getKey() <
-                                    origEdge.getValue() + origEdge.getKey()) {
-        return SMGJoinStatus.updateStatus(pCurStatus, pNewStatus);
+    // consecutive null edge block maps (offset, length)
+    TreeMap<Long, Integer> origNullBlocks = pOrigSMG.getNullEdgesMapOffsetToSizeForObject(pObject);
+    TreeMap<Long, Integer> newNullBlocks = pNewSMG.getNullEdgesMapOffsetToSizeForObject(pObject);
+
+    // important: the new null edge block can only by same size or smaller!
+
+    // for each consecutive null edge block, that was originally there
+    for (Entry<Long, Integer> origEdge : origNullBlocks.entrySet()) {
+      // find a null edge block that is in the modified SMG, and starts at the same offset
+      Integer newNullBlock = newNullBlocks.get(origEdge.getKey());
+      if (// if there is none (meaning the block got shortened from the start)
+          newNullBlock == null ||
+          // or the new block has different size (got shortened from the end)
+          newNullBlock.intValue() != origEdge.getValue().intValue()) {
+
+        // check whether the block really got smaller and not bigger on its end
+        // there is also un-checked possibility that the block got bigger on its start
+        Preconditions.checkState(newNullBlock == null || newNullBlock < origEdge.getValue());
+
+        // then update the status accordingly
+        status = status.updateWith(pNewStatus);
       }
     }
-    return pCurStatus;
   }
 
+  /**
+   * split nullified fields such that each (partial) field corresponds to a field in the other SMG.
+   */
   @VisibleForTesting
-  public static void setCompatibleHVEdgesToSMG(
+  static void setCompatibleHVEdgesToSMG(
       SMG pSMG, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
-    SMGEdgeHasValueFilter nullValueFilter = SMGEdgeHasValueFilter.objectFilter(pObj1);
-    nullValueFilter.filterHavingValue(SMGZeroValue.INSTANCE);
 
+    SMGEdgeHasValueFilter nullValueFilter =
+        SMGEdgeHasValueFilter.objectFilter(pObj1).filterHavingValue(SMGZeroValue.INSTANCE);
     Set<SMGEdgeHasValue> edgesToRemove = pSMG.getHVEdges(nullValueFilter);
-    Set<SMGEdgeHasValue> edgesToAdd1 =
-        SMGJoinFields.getHVSetOfCommonNullValues(pSMG, pSMG2, pObj1, pObj2);
-    Set<SMGEdgeHasValue> edgesToAdd2 =
-        SMGJoinFields.getHVSetOfMissingNullValues(pSMG, pSMG2, pObj1, pObj2);
+    Set<SMGEdgeHasValue> edgesToAdd1 = getHVSetOfCommonNullValues(pSMG, pSMG2, pObj1, pObj2);
+    Set<SMGEdgeHasValue> edgesToAdd2 = getHVSetOfMissingNullValues(pSMG, pSMG2, pObj1, pObj2);
 
+    // step 2a
     for (SMGEdgeHasValue edge : edgesToRemove) {
       pSMG.removeHasValueEdge(edge);
     }
+    // step 2b
     for (SMGEdgeHasValue edge : edgesToAdd1) {
       pSMG.addHasValueEdge(edge);
     }
+    // step 2c
     for (SMGEdgeHasValue edge : edgesToAdd2) {
       pSMG.addHasValueEdge(edge);
     }
   }
 
+  /**
+   * get all HV-Edges that are part of both SMGs, such that in one SMG the edge points to NULL and
+   * in the other one the edge points to a non-NULL value.
+   */
   @VisibleForTesting
-  public static Set<SMGEdgeHasValue> getHVSetOfMissingNullValues(
+  static Set<SMGEdgeHasValue> getHVSetOfMissingNullValues(
       UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
     Set<SMGEdgeHasValue> retset = new HashSet<>();
 
-    SMGEdgeHasValueFilter nonNullPtrInSmg2 = SMGEdgeHasValueFilter.objectFilter(pObj2);
-    nonNullPtrInSmg2.filterNotHavingValue(SMGZeroValue.INSTANCE);
-
-    SMGEdgeHasValueFilter nonNullPtrInSmg1 = SMGEdgeHasValueFilter.objectFilter(pObj1);
-    nonNullPtrInSmg1.filterNotHavingValue(SMGZeroValue.INSTANCE);
+    SMGEdgeHasValueFilter nonNullPtrInSmg2 =
+        SMGEdgeHasValueFilter.objectFilter(pObj2).filterNotHavingValue(SMGZeroValue.INSTANCE);
+    SMGEdgeHasValueFilter nonNullPtrInSmg1 =
+        SMGEdgeHasValueFilter.objectFilter(pObj1).filterNotHavingValue(SMGZeroValue.INSTANCE);
 
     for (SMGEdgeHasValue edge : pSMG2.getHVEdges(nonNullPtrInSmg2)) {
-      if (! pSMG2.isPointer(edge.getValue())) {
-        continue;
-      }
-
       nonNullPtrInSmg1.filterAtOffset(edge.getOffset());
 
-      if (pSMG1.getHVEdges(nonNullPtrInSmg1).size() == 0) {
-
-        TreeMap<Long, Integer> newNullEdgesOffsetToSize =
+      if (pSMG1.getHVEdges(nonNullPtrInSmg1).isEmpty()) {
+        TreeMap <Long, Integer> newNullEdgesOffsetToSize =
             pSMG1.getNullEdgesMapOffsetToSizeForObject(pObj1);
 
         long min = edge.getOffset();
@@ -195,7 +214,9 @@ class SMGJoinFields {
     return new SMGEdgeHasValue(resultSize, resultOffset, pObj1, SMGZeroValue.INSTANCE);
   }
 
-  public static Set<SMGEdgeHasValue> getHVSetOfCommonNullValues(
+  /** get all HV-Edges that are common in both SMGs, i.e. where both objects point to NULL. */
+  @VisibleForTesting
+  static Set<SMGEdgeHasValue> getHVSetOfCommonNullValues(
       UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
     Set<SMGEdgeHasValue> retset = new HashSet<>();
     TreeMap<Long, Integer> map1 = pSMG1.getNullEdgesMapOffsetToSizeForObject(pObj1);
@@ -215,7 +236,7 @@ class SMGJoinFields {
       }
     }
 
-    return Collections.unmodifiableSet(retset);
+    return retset;
   }
 
   private static void checkResultConsistencySingleSide(

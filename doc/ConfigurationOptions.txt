@@ -188,6 +188,10 @@ analysis.algorithm.undefinedFunctionCollector = false
 # run the parallel BAM algortihm.
 analysis.algorithm.useParallelBAM = false
 
+# If not already done by the analysis, store a found counterexample in the
+# ARG for later re-use. Does nothing if no ARGCPA is used
+analysis.alwaysStoreCounterexamples = false
+
 # Construct a residual program from condition and verify residual program
 analysis.asConditionalVerifier = false
 
@@ -431,6 +435,12 @@ assumptions.automatonIgnoreAssumptions = false
 
 # compress the produced assumption automaton using GZIP compression.
 assumptions.compressAutomaton = false
+
+# export assumptions as automaton to dot file
+assumptions.dotExport = false
+
+# write collected assumptions as automaton to dot file
+assumptions.dotFile = "AssumptionAutomaton.dot"
 
 # write collected assumptions to file
 assumptions.export = true
@@ -991,9 +1001,8 @@ cpa.arg.inCPAEnabledAnalysis = false
 cpa.arg.keepCoveredStatesInReached = false
 
 # If this option is enabled, ARG states will also be merged if the first
-# wrapped state is 
-#  subsumed by the second wrapped state (and the parents are not yet
-# subsumed).
+# wrapped state is subsumed by the second wrapped state (and the parents are
+# not yet subsumed).
 cpa.arg.mergeOnWrappedSubsumption = false
 
 # Export final ARG as pixel graphic to the given file name. The suffix is
@@ -1149,6 +1158,9 @@ cpa.bam.maximalDepthForExplicitRecursion = -1
 
 # export used parts of blocked ARG as .dot file
 cpa.bam.simplifiedArgFile = "BlockedARGSimplified.dot"
+
+# Should the nested CPA-algorithm be wrapped with CEGAR within BAM?
+cpa.bam.useCEGAR = false
 
 # This flag determines which refinement procedure we should use. We can
 # choose between an in-place refinement and a copy-on-write refinement.
@@ -2079,6 +2091,10 @@ cpa.predicate.refinement.maxPrefixLength = 1024
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
 
+# Activate fallback to interpolation. Typically in case of a repeated
+# counterexample.
+cpa.predicate.refinement.newtonrefinement.fallbackToInterpolation = false
+
 # sets the level of the pathformulas to use for abstraction. 
 #   EDGE : Based on Pathformulas of every edge in ARGPath
 #   BLOCK: Based on Pathformulas at Abstractionstates
@@ -2295,6 +2311,10 @@ cpa.propertychecker.className = org.sosy_lab.cpachecker.pcc.propertychecker.Defa
 # empty string represents an empty parameter list.
 cpa.propertychecker.parameters = ""
 
+# Whether to consider constraints on program variables (e.g., x > 10) as
+# definitions)
+cpa.reachdef.constraintIsDef = false
+
 # which merge operator to use for ReachingDefCPA
 cpa.reachdef.merge = "JOIN"
   allowed values: [SEP, JOIN, IGNORECALLSTACK]
@@ -2324,6 +2344,12 @@ cpa.slicing.applyLBETransformation = true
 # Check target states reachability
 cpa.slicing.checkTargetStates = true
 
+# Whether to export the final slice to a file
+cpa.slicing.exportSlice = true
+
+# File to export final slice to
+cpa.slicing.exportSliceFile = "ProgramSlice.txt"
+
 # Filter lemmas by liveness
 cpa.slicing.filterByLiveness = true
 
@@ -2332,6 +2358,14 @@ cpa.slicing.leastRemovalsDepthLimit = 2
 
 # Pre-run syntactic weakening
 cpa.slicing.preRunSyntacticWeakening = true
+
+# Whether to use a refinable slicing precision that starts with an empty
+# slice, or a statically computed, fixed slicing precision
+cpa.slicing.refinableSlice = false
+
+# Add all assumptions of an infeasible target path to the slice, in addition
+# to the original slice
+cpa.slicing.refinement.addCexConstraintsToSlice = true
 
 # Allow counterexamples that are valid only on the program slice. If you set
 # this to `false`, you may have to set takeEagerSlice=true to avoid failed
@@ -2343,10 +2377,9 @@ cpa.slicing.refinement.counterexampleCheckOnSlice = false
 cpa.slicing.refinement.restartStrategy = PIVOT
   enum:     [PIVOT, ROOT]
 
-# Use all assumptions of a target path as counterexamples, not just the edge
-# to the target location. Always set this to `true` if you use
-# SlicingDelegatingRefiner.
-cpa.slicing.refinement.takeEagerSlice = true
+# Use all assumptions of a target path as slicing criteria, not just the edge
+# to the target location.
+cpa.slicing.refinement.takeEagerSlice = false
 
 # Strategy for abstracting children during CEX weakening
 cpa.slicing.removalSelectionStrategy = ALL
@@ -2693,10 +2726,8 @@ cpa.value.abstraction.iterationThreshold = -1
 # leaving edge
 cpa.value.abstraction.onlyAtNonLinearCFA = false
 
-# Whether to replace symbolic values with a concrete value when only one
-# value is possible for an assumption to be true (e.g. for (x == 1) set x to
-# 1, even if x is a symbolic expression).
-cpa.value.assignSymbolicAssumptionVars = false
+# Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
+cpa.value.assignEqualityAssumptions = true
 
 # Track or not function pointer values
 cpa.value.ignoreFunctionValue = true
@@ -2766,8 +2797,7 @@ cpa.value.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
 # from them
 cpa.value.refinement.itpSortedTargets = false
 
-# File to which path constraints should be written. If null, no path
-# constraints are written
+# File to which path constraints should be written.
 cpa.value.refinement.pathConstraintsFile = "Counterexample.%d.symbolic-trace.txt"
 
 # whether or not to perform path slicing before interpolation
@@ -2799,12 +2829,13 @@ cpa.value.refinement.trackConstraints = true
 # interpolation strategy
 cpa.value.refinement.useTopDownInterpolationStrategy = true
 
+# Whether to write symbolic trace (including path constraints) for found
+# erexamples
+cpa.value.refinement.writePathConstraints = true
+
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"
-  allowed values: [SEP, JOIN, NEVER]
-
-# Whether to adopt definite assignments computed by the ConstraintsCPA
-cpa.value.symbolic.adoptDefinites = true
+  allowed values: [SEP, JOIN, NEVER, EQUALS]
 
 # Default size of arrays whose length can't be determined.
 cpa.value.symbolic.defaultArraySize = 20
@@ -2885,10 +2916,24 @@ cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
 
 # File to export dependence graph to. If `null`, dependence graph will not be
 # exported as dot.
-dependenceGraph.exportDot = "DependenceGraph.dot"
+dependencegraph.exportDot = "DependenceGraph.dot"
 
 # Run flow dependence analysis with constant propagation
 dependencegraph.flowdep.constantPropagation = false
+
+# Whether to consider constraints on program variables (e.g., x > 10) as
+# definitions.
+dependencegraph.flowdep.constraintIsDef = false
+
+# Whether to consider control dependencies.
+dependencegraph.useControlDeps = true
+
+# Whether to consider (data-)flow dependencies.
+dependencegraph.useFlowDeps = true
+
+# ignore declarations when detecting modifications, be careful when variables
+# are renamed (could be unsound)
+differential.ignoreDeclarations = false
 
 # Program to check against
 differential.program = no default value
@@ -2968,7 +3013,8 @@ invariantGeneration.config = no default value
 invariantGeneration.kInduction.async = true
 
 # Guess some candidates for the k-induction invariant generator from the CFA.
-invariantGeneration.kInduction.guessCandidatesFromCFA = true
+invariantGeneration.kInduction.guessCandidatesFromCFA = ASSUME_EDGES_PLAIN
+  enum:     [NONE, ASSUME_EDGES_PLAIN, ASSUME_EDGE_TEMPLATES, LINEAR_TEMPLATES]
 
 # Provides additional candidate invariants to the k-induction invariant
 # generator.
@@ -3065,8 +3111,8 @@ overflow.trackLeftShifts = true
 # Track overflows in multiplication operations.
 overflow.trackMultiplications = true
 
-# Track overflow for signed integers.
-overflow.trackSignedIntegers = true
+# Track overflows in binary expressions involving pointers.
+overflow.trackPointers = false
 
 # Only check live variables for overflow, as compiler can remove dead
 # variables.
@@ -3548,6 +3594,9 @@ stop = "SEP"
 # instead of the current one.
 termination.config = no default value
 
+# enable to also analyze whether recursive calls terminate
+termination.considerRecursion = false
+
 # Number of generalized eigenvectors in the geometric nontermination
 # argument.
 termination.lassoAnalysis.eigenvectors = 3
@@ -3613,8 +3662,20 @@ testHarnessExport.useModel = true
 # export test harness to file as code
 testcase.file = no default value
 
+# set to true if run multiple test case generation instances in parallel
+testcase.generate.parallel = false
+
 # display all test targets and non-covered test targets in statistics
 testcase.inStats = false
+
+# export test values to file (line separated)
+testcase.values = no default value
+
+# zip all exported test values into a single file
+testcase.values.compress = false
+
+# Zip file into which all test values files are bundled
+testcase.values.zip = no default value
 
 # export undefined functions as C file
 undefFuncCollectorAlgorithm.file = "env.c"

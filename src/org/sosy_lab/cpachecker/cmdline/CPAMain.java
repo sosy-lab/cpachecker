@@ -28,7 +28,6 @@ import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -78,10 +77,11 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
+import org.sosy_lab.cpachecker.util.Property;
+import org.sosy_lab.cpachecker.util.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.util.PropertyFileParser;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
-import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -272,9 +272,11 @@ public class CPAMain {
     }
   }
 
-  private static final ImmutableSet<PropertyType> MEMSAFETY_PROPERTY_TYPES =
+  private static final ImmutableSet<? extends Property> MEMSAFETY_PROPERTY_TYPES =
       Sets.immutableEnumSet(
-          PropertyType.VALID_DEREF, PropertyType.VALID_FREE, PropertyType.VALID_MEMTRACK);
+          CommonPropertyType.VALID_DEREF,
+          CommonPropertyType.VALID_FREE,
+          CommonPropertyType.VALID_MEMTRACK);
 
   /**
    * Parse the command line, read the configuration file, and setup the program-wide base paths.
@@ -346,30 +348,29 @@ public class CPAMain {
       Configuration config,
       BootstrapOptions options,
       Map<String, String> cmdLineOptions,
-      Set<SpecificationProperty> properties)
+      Set<SpecificationProperty> pProperties)
       throws InvalidConfigurationException, IOException {
-    Set<PropertyType> propertyTypes =
-        Sets.immutableEnumSet(
-            Collections2.transform(properties, SpecificationProperty::getPropertyType));
+    Set<Property> properties =
+        pProperties.stream().map(p -> p.getProperty()).collect(ImmutableSet.toImmutableSet());
 
     Path alternateConfigFile = null;
 
-    if (!Collections.disjoint(propertyTypes, MEMSAFETY_PROPERTY_TYPES)) {
-      if (!MEMSAFETY_PROPERTY_TYPES.containsAll(propertyTypes)) {
+    if (!Collections.disjoint(properties, MEMSAFETY_PROPERTY_TYPES)) {
+      if (!MEMSAFETY_PROPERTY_TYPES.containsAll(properties)) {
         // Memsafety property cannot be checked with others in combination
         throw new InvalidConfigurationException(
-            "Unsupported combination of properties: " + propertyTypes);
+            "Unsupported combination of properties: " + properties);
       }
       if (options.memsafetyConfig == null) {
         throw new InvalidConfigurationException("Verifying memory safety is not supported if option memorysafety.config is not specified.");
       }
       alternateConfigFile = options.memsafetyConfig;
     }
-    if (propertyTypes.contains(PropertyType.OVERFLOW)) {
-      if (propertyTypes.size() != 1) {
+    if (properties.contains(CommonPropertyType.OVERFLOW)) {
+      if (properties.size() != 1) {
         // Overflow property cannot be checked with others in combination
         throw new InvalidConfigurationException(
-            "Unsupported combination of properties: " + propertyTypes);
+            "Unsupported combination of properties: " + properties);
       }
       if (options.overflowConfig == null) {
 
@@ -377,11 +378,11 @@ public class CPAMain {
       }
       alternateConfigFile = options.overflowConfig;
     }
-    if (propertyTypes.contains(PropertyType.TERMINATION)) {
+    if (properties.contains(CommonPropertyType.TERMINATION)) {
       // Termination property cannot be checked with others in combination
-      if (propertyTypes.size() != 1) {
+      if (properties.size() != 1) {
         throw new InvalidConfigurationException(
-            "Unsupported combination of properties: " + propertyTypes);
+            "Unsupported combination of properties: " + properties);
       }
       if (options.terminationConfig == null) {
         throw new InvalidConfigurationException(
@@ -406,16 +407,16 @@ public class CPAMain {
     return config;
   }
 
-  private static final ImmutableMap<PropertyType, String> SPECIFICATION_FILES =
-      ImmutableMap.<PropertyType, String>builder()
-          .put(PropertyType.REACHABILITY_LABEL, "sv-comp-errorlabel")
-          .put(PropertyType.REACHABILITY, "sv-comp-reachability")
-          .put(PropertyType.VALID_FREE, "sv-comp-memorysafety")
-          .put(PropertyType.VALID_DEREF, "sv-comp-memorysafety")
-          .put(PropertyType.VALID_MEMTRACK, "sv-comp-memorysafety")
-          .put(PropertyType.OVERFLOW, "sv-comp-overflow")
-          .put(PropertyType.DEADLOCK, "deadlock")
-          // .put(PropertyType.TERMINATION, "none needed")
+  private static final ImmutableMap<Property, String> SPECIFICATION_FILES =
+      ImmutableMap.<Property, String>builder()
+          .put(CommonPropertyType.REACHABILITY_LABEL, "sv-comp-errorlabel")
+          .put(CommonPropertyType.REACHABILITY, "sv-comp-reachability")
+          .put(CommonPropertyType.VALID_FREE, "sv-comp-memorysafety")
+          .put(CommonPropertyType.VALID_DEREF, "sv-comp-memorysafety")
+          .put(CommonPropertyType.VALID_MEMTRACK, "sv-comp-memorysafety")
+          .put(CommonPropertyType.OVERFLOW, "sv-comp-overflow")
+          .put(CommonPropertyType.DEADLOCK, "deadlock")
+          // .put(CommonPropertyType.TERMINATION, "none needed")
           .build();
 
   private static Set<SpecificationProperty> handlePropertyFile(Map<String, String> cmdLineOptions)

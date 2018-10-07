@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 import static org.sosy_lab.cpachecker.util.BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
@@ -125,9 +127,9 @@ public class ExpressionToFormulaVisitor
 
   private CType getPromotedCType(CType t) {
     t = t.getCanonicalType();
-    if (t instanceof CSimpleType) {
+    if (CTypes.isIntegerType(t)) {
       // Integer types smaller than int are promoted when an operation is performed on them.
-      return conv.machineModel.getPromotedCType((CSimpleType)t);
+      return conv.machineModel.applyIntegerPromotion(t);
     }
     return t;
   }
@@ -169,7 +171,12 @@ public class ExpressionToFormulaVisitor
 
     final boolean signed;
     if (calculationType instanceof CSimpleType) {
+      // this only gives the right value for "signed" because calculationType was determined using
+      // getCanonicalType, which e.g. converts a CNumericType.INT into a CNumericType.SIGNED_INT:
       signed = conv.machineModel.isSigned((CSimpleType)calculationType);
+    } else if (calculationType instanceof CPointerType) {
+      // pointers can also be signed if the machine model represents them using a signed type:
+      signed = conv.machineModel.getPointerEquivalentSimpleType().getCanonicalType().isSigned();
     } else {
       signed = false;
     }
@@ -339,7 +346,11 @@ public class ExpressionToFormulaVisitor
     BooleanFormulaManagerView bfmgr = mgr.getBooleanFormulaManager();
 
     if (exp.getOperand2() instanceof CIntegerLiteralExpression) {
-      long modulo = ((CIntegerLiteralExpression)exp.getOperand2()).asLong();
+      // We use a BigInteger because it can always be made positive, this is not true for type long!
+      BigInteger modulo = ((CIntegerLiteralExpression) exp.getOperand2()).getValue();
+      // modular congruence expects a positive modulo. If our divisor b in a%b is negative, we
+      // actually want to generate a modular congruence condition mod (-b):
+      modulo = modulo.abs();
       BooleanFormula modularCongruence = mgr.makeModularCongruence(ret, f1, modulo, signed);
       if (!bfmgr.isTrue(modularCongruence)) {
         constraints.addConstraint(modularCongruence);
@@ -485,8 +496,13 @@ public class ExpressionToFormulaVisitor
       if (!returnFormulaType.equals(mgr.getFormulaType(ret))) {
         ret = conv.makeCast(t, returnType, ret, constraints, edge);
       }
-      assert returnFormulaType.equals(mgr.getFormulaType(ret))
-            : "Returntype and Formulatype do not match in visit(CUnaryExpression)";
+          assert returnFormulaType.equals(mgr.getFormulaType(ret))
+              : "Returntype "
+                  + returnFormulaType
+                  + " and Formulatype "
+                  + mgr.getFormulaType(ret)
+                  + " do not match in visit(CUnaryExpression) for "
+                  + exp;
       return ret;
     }
 

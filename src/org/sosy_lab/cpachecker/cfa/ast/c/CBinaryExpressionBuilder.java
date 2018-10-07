@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** This Class build binary expression.
@@ -293,7 +294,7 @@ public class CBinaryExpressionBuilder {
     if (shiftOperators.contains(pBinOperator)) {
       checkIntegerType(pType1, pBinOperator, op1);
       checkIntegerType(pType2, pBinOperator, op2);
-      return machineModel.getPromotedCType((CSimpleType) pType1);
+      return machineModel.applyIntegerPromotion(pType1);
     }
 
     if (bitwiseOperators.contains(pBinOperator)) {
@@ -334,7 +335,7 @@ public class CBinaryExpressionBuilder {
     if (shiftOperators.contains(pBinOperator)) {
       checkIntegerType(pType1, pBinOperator, op1);
       checkIntegerType(pType2, pBinOperator, op2);
-      return machineModel.getPromotedCType((CSimpleType) pType1);
+      return machineModel.applyIntegerPromotion(pType1);
     }
 
     // both are simple types, we need a common simple type --> USUAL ARITHMETIC CONVERSIONS
@@ -512,8 +513,8 @@ public class CBinaryExpressionBuilder {
     /* Otherwise, the integer promotions are performed on both operands.
      * Then the following rules are applied to the promoted operands: */
 
-    t1 = machineModel.getPromotedCType(t1);
-    t2 = machineModel.getPromotedCType(t2);
+    t1 = (CSimpleType) machineModel.applyIntegerPromotion(t1);
+    t2 = (CSimpleType) machineModel.applyIntegerPromotion(t2);
 
     final int rank1 = getConversionRank(t1);
     final int rank2 = getConversionRank(t2);
@@ -602,7 +603,7 @@ public class CBinaryExpressionBuilder {
   }
 
   private static void checkIntegerType(final CType pType, final BinaryOperator op, CExpression e) throws UnrecognizedCodeException {
-    if (!((CSimpleType) pType).getType().isIntegerType()) {
+    if (!CTypes.isIntegerType(pType)) {
       throw new UnrecognizedCodeException(
           "Operator " + op + " needs integer type, but is used with " + pType, e);
     }

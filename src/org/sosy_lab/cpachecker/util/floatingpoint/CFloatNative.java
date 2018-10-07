@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 import static com.google.common.primitives.Ints.max;
 
 @Deprecated
-public class CFloatNative implements CFloat {
+public class CFloatNative extends CFloat {
   private final CFloatWrapper wrapper;
   private final int type;
 
@@ -322,5 +322,11 @@ public class CFloatNative implements CFloat {
   @Override
   public int getType() {
     return type;
+  }
+
+  @Override
+  public boolean greaterThan(CFloat pFloat) {
+    // TODO ... implement some time; not too urgent
+    return false;
   }
 }

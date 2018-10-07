@@ -576,6 +576,11 @@ public class FormulaManagerView {
 
   public <T extends Formula> BooleanFormula makeModularCongruence(
       T pF1, T pF2, long pModulo, boolean pSigned) {
+    return makeModularCongruence(pF1, pF2, BigInteger.valueOf(pModulo), pSigned);
+  }
+
+  public <T extends Formula> BooleanFormula makeModularCongruence(
+      T pF1, T pF2, BigInteger pModulo, boolean pSigned) {
     BooleanFormula t;
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.modularCongruence((IntegerFormula) pF1, (IntegerFormula) pF2, pModulo);

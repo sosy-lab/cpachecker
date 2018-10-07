@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -43,9 +42,8 @@ public class TypeUtils {
           CNumericTypes.UNSIGNED_LONG_INT, BigInteger.valueOf(pSizeInBits / 8));
       return new CArrayType(false, false, CNumericTypes.SIGNED_CHAR, arrayLen);
     } else {
-      CSimpleType fieldType = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
-      CType bitFieldType = new CBitFieldType(fieldType, pSizeInBits);
-      return bitFieldType;
+      CSimpleType fieldType = CNumericTypes.SIGNED_CHAR;
+      return new CBitFieldType(fieldType, pSizeInBits);
     }
   }
 

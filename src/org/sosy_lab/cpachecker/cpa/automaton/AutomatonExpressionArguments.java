@@ -35,14 +35,19 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonSetVariable;
 
 class AutomatonExpressionArguments {
 
@@ -196,31 +201,109 @@ class AutomatonExpressionArguments {
     this.transitionVariables.putAll(pTransitionVariables);
   }
 
+  private AutomatonVariable getAutomatonVariable(String name) {
+    Matcher matcher = AutomatonExpressionArguments.AUTOMATON_VARS_PATTERN.matcher(name);
+    if (matcher.find()) {
+      // Take value of internal automata variable ($$<variable>).
+      String varName = matcher.group().substring(2);
+      AutomatonVariable variable = automatonVariables.get(varName);
+      if (variable != null) {
+        return variable;
+      }
+    }
+    return null;
+  }
+
+  private CAstNode getTransitionVariable(String name) {
+    Matcher matcher = AutomatonExpressionArguments.TRANSITION_VARS_PATTERN.matcher(name);
+    if (matcher.find()) {
+      // Take name of variable, which was referenced in transition assumption ($<id>).
+      String varId = matcher.group().substring(1);
+      try {
+        return (CAstNode) transitionVariables.get(Integer.parseInt(varId));
+      } catch (NumberFormatException e) {
+        logger.log(Level.WARNING, "could not parse the int in transition variable " + varId);
+      }
+    }
+    return null;
+  }
+
   private CAstNode findSubstitute(CAstNode pNode) {
-    if ((pNode instanceof CIdExpression)) {
-      CIdExpression exp = (CIdExpression) pNode;
-      String name = exp.getName();
-      Matcher matcher = AutomatonExpressionArguments.AUTOMATON_VARS_PATTERN.matcher(name);
-      if (matcher.find()) {
-        // Take value of internal automata variable ($$<variable>).
-        String varName = matcher.group().substring(2);
-        AutomatonVariable variable = automatonVariables.get(varName);
-        if (variable != null) {
+    if (pNode instanceof CIdExpression) {
+      // Substitute id for automata variable value or transition variable name.
+      String idName = ((CIdExpression) pNode).getName();
+      AutomatonVariable automatonVariable = getAutomatonVariable(idName);
+      if (automatonVariable != null) {
+        return new CIntegerLiteralExpression(
+            pNode.getFileLocation(),
+            CNumericTypes.INT,
+            BigInteger.valueOf(automatonVariable.getValue()));
+      } else {
+        return getTransitionVariable(idName);
+      }
+    } else if (pNode instanceof CArraySubscriptExpression) {
+      // Take value of automata set variables in CArraySubscriptExpression.
+      CArraySubscriptExpression expr = (CArraySubscriptExpression) pNode;
+      String arrayExpr = expr.getArrayExpression().toASTString();
+      String subscriptExpr = expr.getSubscriptExpression().toASTString();
+      AutomatonVariable automatonVariable = getAutomatonVariable(arrayExpr);
+      if (automatonVariable != null) {
+        if (automatonVariable instanceof AutomatonSetVariable) {
+          String name = subscriptExpr;
+          CAstNode transitionVariable = getTransitionVariable(subscriptExpr);
+          if (transitionVariable != null) {
+            name = transitionVariable.toASTString();
+          }
           return new CIntegerLiteralExpression(
-              pNode.getFileLocation(), CNumericTypes.INT, BigInteger.valueOf(variable.getValue()));
+              pNode.getFileLocation(),
+              CNumericTypes.INT,
+              BigInteger.valueOf(
+                  ((AutomatonSetVariable<?>) automatonVariable).contains(name) ? 1 : 0));
         }
       }
-      matcher = AutomatonExpressionArguments.TRANSITION_VARS_PATTERN.matcher(name);
-      if (matcher.find()) {
-        // Take name of variable, which was referenced in transition assumption ($<id>).
-        String varId = matcher.group().substring(1);
-        try {
-          return (CAstNode) transitionVariables.get(Integer.parseInt(varId));
-        } catch (NumberFormatException e) {
-          logger.log(Level.WARNING, "could not parse the int in transition variable " + varId);
+    } else if (pNode instanceof CBinaryExpression) {
+      CBinaryExpression expr = (CBinaryExpression) pNode;
+      CExpression op1 = (CExpression) findSubstitute(expr.getOperand1());
+      CExpression op2 = (CExpression) findSubstitute(expr.getOperand2());
+      if (op1 == null) {
+        op1 = expr.getOperand1();
+      }
+      if (op2 == null) {
+        op2 = expr.getOperand2();
+      }
+      if (expr.getExpressionType() instanceof CProblemType) {
+        // Try to correct CProblemType in binary expression.
+        if (op1.getExpressionType()
+            .getCanonicalType()
+            .equals(op2.getExpressionType().getCanonicalType())) {
+          return new CBinaryExpression(
+              expr.getFileLocation(),
+              op1.getExpressionType().getCanonicalType(),
+              op1.getExpressionType().getCanonicalType(),
+              op1,
+              op2,
+              expr.getOperator());
+        }
+      }
+    } else if (pNode instanceof CFieldReference) {
+      // Execute operations for automata variables, which are encoded in field reference.
+      CFieldReference expr = (CFieldReference) pNode;
+      String fieldOwner = expr.getFieldOwner().toASTString();
+      String fieldName = expr.getFieldName();
+      AutomatonVariable automatonVariable = getAutomatonVariable(fieldOwner);
+      if (automatonVariable != null) {
+        if (automatonVariable instanceof AutomatonSetVariable) {
+          if (fieldName.toLowerCase().equals("empty")) {
+            return new CIntegerLiteralExpression(
+                pNode.getFileLocation(),
+                CNumericTypes.INT,
+                BigInteger.valueOf(
+                    ((AutomatonSetVariable<?>) automatonVariable).isEmpty() ? 1 : 0));
+          }
         }
       }
     }
+    // Do not substitute pNode.
     return null;
   }
 
@@ -231,6 +314,11 @@ class AutomatonExpressionArguments {
     for (AExpression expr : pAssumptions) {
       if ((expr instanceof CExpression)) {
         CExpression substitutedExpr = (CExpression) ((CExpression) expr).accept(visitor);
+        if (substitutedExpr.getExpressionType() instanceof CProblemType) {
+          logger.log(
+              Level.WARNING,
+              "Type of automaton assumption '" + substitutedExpr + "' cannot be evaluated");
+        }
         builder.add(substitutedExpr);
       } else {
         logger.log(Level.WARNING, "could not instantiate transition assumption");

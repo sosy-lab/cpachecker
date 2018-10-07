@@ -36,10 +36,12 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import java.io.Serializable;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -228,6 +230,39 @@ public final class ExpressionTrees {
               }
             };
     return pExpressionTree.accept(visitor);
+  }
+
+  public static <LeafType> Iterable<ExpressionTree<LeafType>> traverseRecursively(
+      ExpressionTree<LeafType> pExpressionTree) {
+    return new Iterable<ExpressionTree<LeafType>>() {
+
+      @Override
+      public Iterator<ExpressionTree<LeafType>> iterator() {
+
+        return new Iterator<ExpressionTree<LeafType>>() {
+
+          private final Deque<ExpressionTree<LeafType>> stack = new ArrayDeque<>();
+
+          {
+            stack.push(pExpressionTree);
+          }
+
+          @Override
+          public boolean hasNext() {
+            return !stack.isEmpty();
+          }
+
+          @Override
+          public ExpressionTree<LeafType> next() {
+            ExpressionTree<LeafType> next = stack.pop();
+            for (ExpressionTree<LeafType> child : getChildren(next)) {
+              stack.push(child);
+            }
+            return next;
+          }
+        };
+      }
+    };
   }
 
   public static <LeafType> boolean isInCNF(ExpressionTree<LeafType> pExpressionTree) {

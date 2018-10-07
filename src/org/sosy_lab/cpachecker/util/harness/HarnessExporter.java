@@ -104,6 +104,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -140,7 +141,7 @@ public class HarnessExporter {
 
   private static final String TMP_VAR = "__tmp_var";
 
-  private static final String ERR_MSG = "__VERIFIER_error_called";
+  private static final String ERR_MSG = "cpa_witness2test: violation";
 
   private final CFA cfa;
 
@@ -182,6 +183,8 @@ public class HarnessExporter {
       codeAppender.appendln("struct _IO_FILE;");
       codeAppender.appendln("typedef struct _IO_FILE FILE;");
       codeAppender.appendln("extern struct _IO_FILE *stderr;");
+      codeAppender.appendln("extern int fprintf(FILE *__restrict __stream, const char *__restrict __format, ...);");
+      codeAppender.appendln("extern void exit(int __status) __attribute__ ((__noreturn__));");
 
       // implement error-function
       CFAEdge edgeToTarget = testVector.get().edgeToTarget;
@@ -189,7 +192,10 @@ public class HarnessExporter {
           getErrorFunction(edgeToTarget, externalFunctions);
       if (errorFunction.isPresent()) {
         codeAppender.append(errorFunction.get());
-        codeAppender.appendln(" { fprintf(stderr, \"" + ERR_MSG + "\\n\"); exit(1); }");
+        codeAppender.appendln(" {");
+        codeAppender.appendln("  fprintf(stderr, \"" + ERR_MSG + "\\n\");");
+        codeAppender.appendln("  exit(107);");
+        codeAppender.appendln("}");
       } else {
         logger.log(Level.WARNING, "Could not find a call to an error function.");
       }
@@ -197,7 +203,7 @@ public class HarnessExporter {
       if (externalFunctions.stream().anyMatch(PredefinedTypes::isVerifierAssume)) {
         // implement __VERIFIER_assume with exit (EXIT_SUCCESS)
         codeAppender.appendln(
-            "void __VERIFIER_assume(int cond) { if (!(cond)) { exit(EXIT_SUCCESS); }}");
+            "void __VERIFIER_assume(int cond) { if (!(cond)) { exit(0); }}");
       }
 
       // implement actual harness
@@ -607,7 +613,8 @@ public class HarnessExporter {
         if (argState
             .getEdgesToChild(candidate)
             .stream()
-            .allMatch(AutomatonGraphmlCommon::handleAsEpsilonEdge)) {
+            .allMatch(
+                e -> e instanceof AssumeEdge || AutomatonGraphmlCommon.handleAsEpsilonEdge(e))) {
           argState = candidate;
           continue;
         }

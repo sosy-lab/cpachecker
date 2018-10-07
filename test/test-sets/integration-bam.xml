@@ -1,0 +1,160 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="2 GB" cpuCores="1">
+
+  <!--
+    This is a large collection of different configurations using BAM:
+    - analysis of recursive programs
+    - parallel BAM
+    - BAM with value analysis
+    - BAM with predicate analysis
+  -->
+
+  <columns>
+    <column title="block building time">Time for building block partitioning</column>
+    <column title="#blocks">Number of blocks</column>
+  </columns>
+
+  <option name="-noout"/>
+  <option name="-heap">1500M</option>
+  <!-- SV-Comp files assume that malloc always succeeds -->
+  <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+
+  <rundefinition/> <!-- BuildBot does not like names! -->
+
+  <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+
+  <!-- analysis of recursive programs -->
+  <tasks name="value">
+    <include>../programs/benchmarks/recursive-simple/a*.c</include>
+    <include>../programs/benchmarks/recursive-simple/f*.c</include>
+    <option name="-valueAnalysis-bam-rec"/>
+  </tasks>
+
+  <tasks name="interval">
+    <include>../programs/benchmarks/recursive-simple/i*.c</include>
+    <option name="-intervalAnalysis-bam-rec"/>
+  </tasks>
+
+  <tasks name="valuePredicate">
+    <include>../programs/benchmarks/recursive-simple/s*.c</include>
+    <option name="-valueAnalysis-predicateAnalysis-bam-rec"/>
+  </tasks>
+
+  <tasks name="predicate_tree">
+    <include>../programs/benchmarks/recursive/*.c</include>
+    <exclude>../programs/benchmarks/recursive/*1_*.c</exclude>
+    <exclude>../programs/benchmarks/recursive/*2_*.c</exclude>
+    <exclude>../programs/benchmarks/recursive/*3_*.c</exclude>
+    <option name="-predicateAnalysis-bam-rec"/>
+  </tasks>
+
+  <tasks name="predicate_tree_nested">
+    <include>../programs/benchmarks/recursive/*3_*.c</include>
+    <option name="-setprop">cpa.predicate.refinement.strategy=tree_nested</option>
+    <option name="-setprop">solver.solver=mathsat5</option>
+    <option name="-predicateAnalysis-bam-rec"/>
+  </tasks>
+
+  <tasks name="predicate_tree_cpachecker">
+    <include>../programs/benchmarks/recursive/*2_*.c</include>
+    <option name="-setprop">cpa.predicate.refinement.strategy=tree_cpachecker</option>
+    <option name="-setprop">solver.solver=mathsat5</option>
+    <option name="-predicateAnalysis-bam-rec"/>
+  </tasks>
+
+  <tasks name="predicate_tree_wellscoped">
+    <include>../programs/benchmarks/recursive/*1_*.c</include>
+    <option name="-setprop">cpa.predicate.refinement.strategy=tree_wellscoped</option>
+    <option name="-setprop">solver.solver=mathsat5</option>
+    <option name="-predicateAnalysis-bam-rec"/>
+  </tasks>
+
+
+  <!-- parallel BAM -->
+  <tasks name="VA-parallelBam-noCegar">
+    <option name="-valueAnalysis-parallelBam"/>
+    <option name='-setprop'>algorithm.parallelBam.numberOfThreads=8</option>
+    <include>../programs/benchmarks/eca-rers2012/Problem03*true-unreach-call*.c</include>
+    <include>../programs/benchmarks/eca-rers2012/Problem03*false-unreach-call*.c</include>
+  </tasks>
+  <tasks name="VA-parallelBam-Cegar">
+    <option name="-valueAnalysis-parallelBam-Cegar"/>
+    <option name='-setprop'>algorithm.parallelBam.numberOfThreads=8</option>
+    <include>../programs/benchmarks/eca-rers2012/Problem02*true-unreach-call*.c</include>
+    <include>../programs/benchmarks/eca-rers2012/Problem02*false-unreach-call*.c</include>
+  </tasks>
+
+
+  <!-- BAM with value analysis -->
+  <!-- TODO -->
+
+
+  <!-- BAM with predicate analysis -->
+  <tasks>
+    <option name="-predicateAnalysis-bam"/>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../programs/simple/ALL.prp</propertyfile>
+    <exclude>../programs/benchmarks/forester-heap/*</exclude>
+  </tasks>
+  <tasks>
+    <option name="-predicateAnalysis-bam"/>
+    <option name="-setprop">analysis.checkCounterexamples=true</option>
+    <option name="-setprop">counterexample.checker=CBMC</option>
+    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <exclude reason="timeout">../programs/benchmarks/ssh/s3_srvr.blast.1*</exclude>
+    <exclude reason="partial set only">../programs/benchmarks/ntdrivers/*</exclude>
+    <exclude reason="partial set only">../programs/benchmarks/ssh/*</exclude>
+    <exclude reason="partial set only">../programs/benchmarks/ntdrivers-simplified/*</exclude>
+    <exclude reason="partial set only">../programs/benchmarks/ssh-simplified/*</exclude>
+    <exclude reason="partial set only">../programs/benchmarks/locks/*</exclude>
+  </tasks>
+  <tasks>
+    <option name="-predicateAnalysis-bam"/>
+    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <!-- exclude tasks from Forester set -->
+    <exclude>../programs/benchmarks/forester-heap/*</exclude>
+  </tasks>
+  <tasks>
+    <option name="-predicateAnalysis-bam"/>
+    <option name="-setprop">analysis.checkCounterexamples=true</option>
+    <option name="-setprop">counterexample.checker=CBMC</option>
+    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <exclude>../programs/benchmarks/loop-invgen/*</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/loop-lit/*</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/loop-new/*</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/loop-acceleration/*</exclude> <!-- mostly timeout -->
+  </tasks>
+  <tasks>
+    <option name="-predicateAnalysis-bam"/>
+    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
+    <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
+    <exclude>../programs/benchmarks/seq-pthread/*</exclude>
+    <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_2_true-unreach-call_true-termination.cil.c</exclude>
+    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_8_true-unreach-call_false-termination.cil.c</exclude>
+    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_11_false-unreach-call_false-termination.cil.c</exclude>
+    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_13_false-unreach-call_false-termination.cil.c</exclude>
+    <exclude>../programs/benchmarks/systemc/mem_slave_tlm.1_true-unreach-call_false-termination.cil.c</exclude>
+    <exclude>../programs/benchmarks/systemc/token_ring.*_false*</exclude>
+    <exclude>../programs/benchmarks/systemc/toy1_false-unreach-call_false-termination.cil.c</exclude>
+    <exclude>../programs/benchmarks/systemc/transmitter.1*_false*</exclude>
+  </tasks>
+  <tasks>
+    <option name="-predicateAnalysis-bam"/>
+    <propertyfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.prp</propertyfile>
+    <option name="-skipRecursion"/>
+    <option name="-64"/>
+    <option name="-setprop">analysis.checkCounterexamples=true</option>
+    <option name="-setprop">counterexample.checker=CBMC</option>
+    <includesfile>integration-DeviceDriversLinux64.set</includesfile>
+    <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-scsi-dc395x.ko_true-unreach-call.cil.out.i.pp.i</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-net-wan-farsync.ko_false-unreach-call.cil.out.i.pp.i</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-input-misc-keyspan_remote.ko_false-unreach-call.cil.out.i.pp.i</exclude>
+    <!-- exclude some files that are nearly identical in complexity and runtime, some of them are timeout -->
+    <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--input--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--media--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--usb--*</exclude>
+  </tasks>
+
+</benchmark>

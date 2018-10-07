@@ -72,7 +72,10 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
       // use a new prover, because we use several distinct queries
       lastItp = getNestedInterpolant(formulasWithStatesAndGroupdIds, interpolants, callstack, interpolator, positionOfA, lastItp);
     }
-    assert lastItp == Iterables.getLast(interpolants);
+    assert formulasWithStatesAndGroupdIds.size() == interpolants.size() + 1;
+    if (!interpolants.isEmpty()) {
+      assert lastItp == Iterables.getLast(interpolants);
+    } // else: single block with unsatisfiable path formula -> no interpolant
     return interpolants;
   }
 

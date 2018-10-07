@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.ltl.formulas;
 
+import org.sosy_lab.cpachecker.util.ltl.LtlFormulaVisitor;
+
 /** Weak Release. */
 public final class Release extends BinaryFormula {
 
@@ -58,5 +60,10 @@ public final class Release extends BinaryFormula {
   @Override
   public Until not() {
     return new Until(left.not(), right.not());
+  }
+
+  @Override
+  public String accept(LtlFormulaVisitor v) {
+    return v.visit(this);
   }
 }

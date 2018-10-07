@@ -30,7 +30,6 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 import static org.sosy_lab.common.collect.PersistentLinkedList.toPersistentLinkedList;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
@@ -54,9 +53,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
@@ -74,11 +71,11 @@ public interface PointerTargetSetBuilder {
    */
   void addBase(String name, CType type, @Nullable Formula size, Constraints constraints);
 
-  boolean tracksField(CCompositeType compositeType, String fieldName);
+  boolean tracksField(CompositeField field);
 
-  boolean addField(CCompositeType composite, String fieldName);
+  boolean addField(CompositeField field);
 
-  void addEssentialFields(final List<Pair<CCompositeType, String>> fields);
+  void addEssentialFields(final List<CompositeField> fields);
 
   void addTemporaryDeferredAllocation(
       boolean isZeroed, Optional<CIntegerLiteralExpression> size, Formula sizeExp, String base);
@@ -143,41 +140,6 @@ public interface PointerTargetSetBuilder {
     private PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
     private PersistentList<Formula> highestAllocatedAddresses;
     private int allocationCount;
-
-    // Used in addEssentialFields()
-    private final Predicate<Pair<CCompositeType, String>> isNewFieldPredicate =
-      new Predicate<Pair<CCompositeType, String>> () {
-      @Override
-      public boolean apply(Pair<CCompositeType, String> field) {
-        final String type = CTypeUtils.typeToString(field.getFirst());
-        final CompositeField compositeField = CompositeField.of(type, field.getSecond());
-        return !fields.containsKey(compositeField);
-      }
-    };
-
-    // Used in addEssentialFields()
-    private static final Function<Pair<CCompositeType, String>, Triple<CCompositeType, String, CType>>
-      typeFieldFunction =
-        field -> {
-          final CCompositeType fieldComposite = field.getFirst();
-          final String fieldName = field.getSecond();
-          for (final CCompositeTypeMemberDeclaration declaration : fieldComposite.getMembers()) {
-            if (declaration.getName().equals(fieldName)) {
-              return Triple.of(fieldComposite, fieldName, declaration.getType());
-            }
-          }
-          throw new AssertionError("Tried to start tracking for a non-existent field " + fieldName +
-                                   " in composite type " + fieldComposite);
-        };
-
-    // Used in addEssentialFields()
-    private static final Comparator<Triple<CCompositeType, String, CType>>
-      simpleTypedFieldsFirstComparator =
-        (field1, field2) -> {
-          final int isField1Simple = field1.getThird() instanceof CCompositeType ? 1 : 0;
-          final int isField2Simple = field2.getThird() instanceof CCompositeType ? 1 : 0;
-          return isField1Simple - isField2Simple;
-        };
 
     /**
      * Creates a new RealPointerTargetSetBuilder.
@@ -372,13 +334,12 @@ public interface PointerTargetSetBuilder {
     /**
      * Returns, whether a field of a composite type is tracked or not.
      *
-     * @param compositeType The composite type.
-     * @param fieldName The name of the field in the composite type.
+     * @param field The field.
      * @return True, if the field is already tracked, false otherwise.
      */
     @Override
-    public boolean tracksField(final CCompositeType compositeType, final String fieldName) {
-      return fields.containsKey(CompositeField.of(CTypeUtils.typeToString(compositeType), fieldName));
+    public boolean tracksField(CompositeField field) {
+      return fields.containsKey(field);
     }
 
     /**
@@ -391,16 +352,14 @@ public interface PointerTargetSetBuilder {
      *     container
      * @param containerOffset Either {@code 0} or the offset of the innermost container relative to
      *     the base address
-     * @param composite The composite of the newly used field
-     * @param memberName The name of the newly used field
+     * @param field The newly used field.
      */
     private void addTargets(
         final String base,
         final CType cType,
         final long properOffset,
         final long containerOffset,
-        final String composite,
-        final String memberName) {
+        final CompositeField field) {
       checkIsSimplified(cType);
       if (cType instanceof CElaboratedType) {
         // unresolved struct type won't have any targets, do nothing
@@ -410,22 +369,20 @@ public interface PointerTargetSetBuilder {
         final int length = CTypeUtils.getArrayLength(arrayType, options);
         int offset = 0;
         for (int i = 0; i < length; ++i) {
-          addTargets(base, arrayType.getType(), offset, containerOffset + properOffset,
-                     composite, memberName);
+          addTargets(base, arrayType.getType(), offset, containerOffset + properOffset, field);
           offset += typeHandler.getBitSizeof(arrayType.getType());
         }
       } else if (cType instanceof CCompositeType) {
         final CCompositeType compositeType = (CCompositeType) cType;
         assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-        final String type = CTypeUtils.typeToString(compositeType);
-        final boolean isTargetComposite = type.equals(composite);
+        final boolean isTargetComposite = compositeType.equals(field.getOwnerType());
         for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-          final long offset = typeHandler.getBitOffset(compositeType, memberDeclaration.getName());
-          if (fields.containsKey(CompositeField.of(type, memberDeclaration.getName()))) {
-            addTargets(base, memberDeclaration.getType(), offset, containerOffset + properOffset,
-                       composite, memberName);
+          final long offset = typeHandler.getBitOffset(compositeType, memberDeclaration);
+          if (tracksField(CompositeField.of(compositeType, memberDeclaration))) {
+            addTargets(
+                base, memberDeclaration.getType(), offset, containerOffset + properOffset, field);
           }
-          if (isTargetComposite && memberDeclaration.getName().equals(memberName)) {
+          if (isTargetComposite && memberDeclaration.equals(field.getFieldDeclaration())) {
             MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
             targets = ptsMgr.addToTargets(base, newRegion, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);
           }
@@ -436,21 +393,18 @@ public interface PointerTargetSetBuilder {
     /**
      * Adds a field of a composite type to the tracking.
      *
-     * @param composite The composite type with the field in it.
-     * @param fieldName The name of the field in the composite type.
+     * @param field The field.
      * @return True, if the addition of the target was successful, false otherwise
      */
     @Override
-    public boolean addField(final CCompositeType composite, final String fieldName) {
-      final String type = CTypeUtils.typeToString(composite);
-      final CompositeField field = CompositeField.of(type, fieldName);
-      if (fields.containsKey(field)) {
+    public boolean addField(final CompositeField field) {
+      if (tracksField(field)) {
         return true; // The field has already been added
       }
 
       final PersistentSortedMap<String, PersistentList<PointerTarget>> oldTargets = targets;
       for (final PersistentSortedMap.Entry<String, CType> baseEntry : bases.entrySet()) {
-        addTargets(baseEntry.getKey(), baseEntry.getValue(), 0, 0, type, fieldName);
+        addTargets(baseEntry.getKey(), baseEntry.getValue(), 0, 0, field);
       }
       fields = fields.putAndCopy(field, true);
 
@@ -462,12 +416,9 @@ public interface PointerTargetSetBuilder {
      *
      * This can happen if we try to track a field of a composite that has no corresponding allocated bases.
      *
-     * @param composite The composite type which's field should be removed.
-     * @param fieldName The name of the field that should be removed.
+     * @param field The field that should be removed.
      */
-    private void shallowRemoveField(final CCompositeType composite, final String fieldName) {
-      final String type = CTypeUtils.typeToString(composite);
-      final CompositeField field = CompositeField.of(type, fieldName);
+    private void shallowRemoveField(final CompositeField field) {
       fields = fields.removeAndCopy(field);
     }
 
@@ -491,30 +442,43 @@ public interface PointerTargetSetBuilder {
      * @param pFields The fields that should be tracked.
      */
     @Override
-    public void addEssentialFields(final List<Pair<CCompositeType, String>> pFields) {
-      final List<Triple<CCompositeType, String, CType>> typedFields =
-          FluentIterable.from(pFields)
-              .filter(isNewFieldPredicate)
-              .transform(typeFieldFunction)
-              .transform(
-                  t ->
-                      Triple.of(
-                          t.getFirst(), t.getSecond(), typeHandler.simplifyType(t.getThird())))
-              .toSortedList(simpleTypedFieldsFirstComparator);
+    public void addEssentialFields(final List<CompositeField> pFields) {
+      final Predicate<CompositeField> isNewField = (compositeField) -> !tracksField(compositeField);
+
+      final Comparator<CompositeField> simpleTypedFieldsFirst =
+          (field1, field2) -> {
+            final int isField1Simple =
+                typeHandler.getSimplifiedType(field1.getFieldDeclaration())
+                        instanceof CCompositeType
+                    ? 1
+                    : 0;
+            final int isField2Simple =
+                typeHandler.getSimplifiedType(field2.getFieldDeclaration())
+                        instanceof CCompositeType
+                    ? 1
+                    : 0;
+            return isField1Simple - isField2Simple;
+          };
+
+      final List<CompositeField> typedFields =
+          FluentIterable.from(pFields).filter(isNewField).toSortedList(simpleTypedFieldsFirst);
       if (typedFields.isEmpty()) {
         return;
       }
-      final Set<Triple<CCompositeType, String, CType>> done = new HashSet<>();
-      final List<Triple<CCompositeType, String, CType>> currentChain = new ArrayList<>();
-      for (final Triple<CCompositeType, String, CType> field : typedFields) {
+      final Set<CompositeField> done = new HashSet<>();
+      final List<CompositeField> currentChain = new ArrayList<>();
+      for (final CompositeField field : typedFields) {
         if (!done.contains(field)) {
           currentChain.clear();
 
-          Triple<CCompositeType, String, CType> current = field;
+          CompositeField current = field;
           do {
             currentChain.add(current);
-            for (final Triple<CCompositeType, String, CType> parentField : typedFields) {
-              if (!done.contains(parentField) && parentField.getThird().equals(current.getFirst())) {
+            for (final CompositeField parentField : typedFields) {
+              if (!done.contains(parentField)
+                  && typeHandler
+                      .getSimplifiedType(parentField.getFieldDeclaration())
+                      .equals(current.getOwnerType())) {
                 current = parentField;
                 break;
               }
@@ -523,14 +487,14 @@ public interface PointerTargetSetBuilder {
 
           boolean useful = false;
           for (int i = currentChain.size() - 1; i >= 0; i--) {
-            final Triple<CCompositeType, String, CType> f = currentChain.get(i);
+            final CompositeField f = currentChain.get(i);
             done.add(f);
-            useful |= addField(f.getFirst(), f.getSecond());
+            useful |= addField(f);
           }
 
           if (!useful) {
-            for (final Triple<CCompositeType, String, CType> f : currentChain) {
-              shallowRemoveField(f.getFirst(), f.getSecond());
+            for (final CompositeField f : currentChain) {
+              shallowRemoveField(f);
             }
           }
         }
@@ -833,17 +797,17 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public boolean tracksField(CCompositeType pCompositeType, String pFieldName) {
+    public boolean tracksField(CompositeField pField) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public boolean addField(CCompositeType pComposite, String pFieldName) {
+    public boolean addField(CompositeField pField) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public void addEssentialFields(List<Pair<CCompositeType, String>> pFields) {
+    public void addEssentialFields(List<CompositeField> pFields) {
       throw new UnsupportedOperationException();
     }
 

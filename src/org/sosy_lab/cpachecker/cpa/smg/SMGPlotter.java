@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -258,7 +258,7 @@ public final class SMGPlotter {
 
   private String smgScopeFrameAsDot(Map<String, SMGRegion> pNamespace, String pStructId) {
     StringBuilder sb = new StringBuilder();
-    sb.append("struct" + pStructId + "[shape=record,label=\" ");
+    sb.append("struct").append(pStructId).append("[shape=record,label=\" ");
 
     // I sooo wish for Python list comprehension here...
     ArrayList<String> nodes = new ArrayList<>();

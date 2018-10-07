@@ -74,7 +74,7 @@ public class BAMCounterexampleCheckAlgorithm extends CounterexampleCheckAlgorith
         new ARGReachedSet(reached, (ARGCPA) cpa.getWrappedCpa(), 0 /* irrelevant number */);
 
     assert mainReachedSet.asReachedSet().contains(errorState);
-    assert errorState == (ARGState) reached.getLastState();
+    assert errorState == reached.getLastState();
 
     // compute BAM-reachedset for the reachable states,
     // it contains all error-paths and is sufficient to check counterexample.

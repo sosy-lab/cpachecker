@@ -236,72 +236,84 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
     statistics.totalVal.start();
 
+    FluentIterable<AutomatonInternalState> cycleHeadCandidates =
+        from(witness.getStates())
+            .filter(
+                (AutomatonInternalState automState) -> {
+                  return automState.isNontrivialCycleStart();
+                });
+
+    if (cycleHeadCandidates.isEmpty()) {
+      throw new CPAException("Invalid witness. Witness is missing cycle start state.");
+    }
+
     try {
-      AutomatonInternalState stemEndRepeatStart = getCycleStart();
-      shutdown.shutdownIfNecessary();
+      for (AutomatonInternalState stemEndRepeatStart : cycleHeadCandidates) {
+        shutdown.shutdownIfNecessary();
 
-      Optional<AbstractState> stemSynState = findStemEndLocation(stemEndRepeatStart);
-      shutdown.shutdownIfNecessary();
+        Optional<AbstractState> stemSynState = findStemEndLocation(stemEndRepeatStart);
+        shutdown.shutdownIfNecessary();
 
-      if (stemSynState.isPresent()) {
-        CFANode stemEndLoc = AbstractStates.extractLocation(stemSynState.get());
-        CFANode afterInvCheck = new CFANode(stemEndLoc.getFunctionName());
+        if (stemSynState.isPresent()) {
+          CFANode stemEndLoc = AbstractStates.extractLocation(stemSynState.get());
+          CFANode afterInvCheck = new CFANode(stemEndLoc.getFunctionName());
 
-        // extract quasi invariant which describes recurrent set, use true as default
-        ExpressionTree<AExpression> quasiInvariant = ExpressionTrees.getTrue();
+          // extract quasi invariant which describes recurrent set, use true as default
+          ExpressionTree<AExpression> quasiInvariant = ExpressionTrees.getTrue();
 
-        for (AbstractState state : AbstractStates.asIterable(stemSynState.get())) {
-          if (state instanceof AutomatonState) {
-            AutomatonState automatonState = (AutomatonState) state;
-            if (automatonState.getOwningAutomaton() == witness) {
-              quasiInvariant = automatonState.getCandidateInvariants();
-              break;
+          for (AbstractState state : AbstractStates.asIterable(stemSynState.get())) {
+            if (state instanceof AutomatonState) {
+              AutomatonState automatonState = (AutomatonState) state;
+              if (automatonState.getOwningAutomaton() == witness) {
+                quasiInvariant = automatonState.getCandidateInvariants();
+                break;
+              }
             }
           }
-        }
 
-        shutdown.shutdownIfNecessary();
-
-        CExpression expr =
-            quasiInvariant.accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
-
-        shutdown.shutdownIfNecessary();
-
-        // encode quasi invariant in assume edge leaving final stem location
-        CAssumeEdge invCheck =
-            new CAssumeEdge(
-                expr.toASTString(), FileLocation.DUMMY, stemEndLoc, afterInvCheck, expr, true);
-        stemEndLoc.addLeavingEdge(invCheck);
-        invCheck.getSuccessor().addEnteringEdge(invCheck);
-
-        CAssumeEdge negInvCheck =
-            new CAssumeEdge(
-                "!( " + invCheck.getRawStatement() + " )",
-                FileLocation.DUMMY,
-                stemEndLoc,
-                new CFANode(stemEndLoc.getFunctionName()),
-                invCheck.getExpression(),
-                false);
-
-        logger.log(Level.INFO, "Check that recurrent set is reachable");
-        if (checkReachabilityOfRecurrentSet(invCheck)) {
           shutdown.shutdownIfNecessary();
 
-          // remove invariant/recurrent set encoding from CFA, only needed for previous step
-          // continue with regular CFA
-          stemEndLoc.removeLeavingEdge(invCheck);
+          CExpression expr =
+              quasiInvariant.accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
 
-          logger.log(Level.INFO, "Check that recurrent set is valid");
-          if (confirmThatRecurrentSetIsProper(stemEndRepeatStart, stemEndLoc, negInvCheck)) {
+          shutdown.shutdownIfNecessary();
 
-            pReachedSet.popFromWaitlist();
-            logger.log(Level.INFO, "Non-termination witness confirmed.");
-            if (reportSuccessfulCheckAsViolation) {
-              pReachedSet.add(
-                  new ARGState(TerminationViolatingDummyState.INSTANCE, null),
-                  SingletonPrecision.getInstance());
+          // encode quasi invariant in assume edge leaving final stem location
+          CAssumeEdge invCheck =
+              new CAssumeEdge(
+                  expr.toASTString(), FileLocation.DUMMY, stemEndLoc, afterInvCheck, expr, true);
+          stemEndLoc.addLeavingEdge(invCheck);
+          invCheck.getSuccessor().addEnteringEdge(invCheck);
+
+          CAssumeEdge negInvCheck =
+              new CAssumeEdge(
+                  "!( " + invCheck.getRawStatement() + " )",
+                  FileLocation.DUMMY,
+                  stemEndLoc,
+                  new CFANode(stemEndLoc.getFunctionName()),
+                  invCheck.getExpression(),
+                  false);
+
+          logger.log(Level.INFO, "Check that recurrent set is reachable");
+          if (checkReachabilityOfRecurrentSet(invCheck)) {
+            shutdown.shutdownIfNecessary();
+
+            // remove invariant/recurrent set encoding from CFA, only needed for previous step
+            // continue with regular CFA
+            stemEndLoc.removeLeavingEdge(invCheck);
+
+            logger.log(Level.INFO, "Check that recurrent set is valid");
+            if (confirmThatRecurrentSetIsProper(stemEndRepeatStart, stemEndLoc, negInvCheck)) {
+
+              pReachedSet.popFromWaitlist();
+              logger.log(Level.INFO, "Non-termination witness confirmed.");
+              if (reportSuccessfulCheckAsViolation) {
+                pReachedSet.add(
+                    new ARGState(TerminationViolatingDummyState.INSTANCE, null),
+                    SingletonPrecision.getInstance());
+              }
+              return AlgorithmStatus.SOUND_AND_PRECISE; // TODO correct choice here?
             }
-            return AlgorithmStatus.SOUND_AND_PRECISE; // TODO correct choice here?
           }
         }
       }
@@ -314,24 +326,6 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
     } finally {
       statistics.totalVal.stop();
     }
-  }
-
-  private AutomatonInternalState getCycleStart() throws CPAException {
-    FluentIterable<AutomatonInternalState> repetitionStarts =
-        from(witness.getStates())
-            .filter(
-                (AutomatonInternalState automState) -> {
-                  return automState.isNontrivialCycleStart();
-                });
-    if (repetitionStarts.isEmpty()) {
-      throw new CPAException("Invalid witness. Witness is missing cycle start state.");
-    }
-
-    if (repetitionStarts.size() > 1) {
-      logger.log(Level.WARNING, "Found more than one cycle start state. Use one of them.");
-    }
-
-    return repetitionStarts.get(0);
   }
 
   private Optional<AbstractState> findStemEndLocation(final AutomatonInternalState cycleStart)
@@ -453,7 +447,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       AlgorithmStatus result = algorithm.run(reached);
 
       if (result.isPrecise()) {
-        if (!reached.hasViolatedProperties()) {
+        if (reached.hasViolatedProperties()) {
           logger.log(Level.INFO, "Recurrent set is reachable.");
           return true;
         }

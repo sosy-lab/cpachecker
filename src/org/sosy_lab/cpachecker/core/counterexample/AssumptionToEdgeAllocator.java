@@ -271,7 +271,6 @@ public class AssumptionToEdgeAllocator {
         + " == " + address.getCommentRepresentation();
   }
 
-  @Nullable
   private Collection<AExpressionStatement> createAssignmentsAtEdge(CFAEdge pCFAEdge, ConcreteState pConcreteState) {
 
     Set<AExpressionStatement> result = new LinkedHashSet<>();
@@ -285,6 +284,10 @@ public class AssumptionToEdgeAllocator {
     } else if (pCFAEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
       List<AExpressionStatement> stmtAssumptions =
           handleStatement(pCFAEdge, ((AStatementEdge) pCFAEdge).getStatement(), pConcreteState);
+      result.addAll(stmtAssumptions);
+    } else if (pCFAEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+      List<AExpressionStatement> stmtAssumptions =
+          handleAssumeStatement((AssumeEdge) pCFAEdge, pConcreteState);
       result.addAll(stmtAssumptions);
     }
 
@@ -373,6 +376,38 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
+  private List<AExpressionStatement> handleAssumeStatement(
+      AssumeEdge pCFAEdge,
+      ConcreteState pConcreteState) {
+
+    if (!(pCFAEdge instanceof CAssumeEdge)) {
+      return Collections.emptyList();
+
+    } else {
+      CExpression pCExpression = ((CAssumeEdge) pCFAEdge).getExpression();
+
+      if (!(pCExpression instanceof CBinaryExpression)) {
+        return Collections.emptyList();
+
+      } else {
+        CBinaryExpression binExp = ((CBinaryExpression) pCExpression);
+
+        CExpression op1 = binExp.getOperand1();
+        CExpression op2 = binExp.getOperand2();
+
+        List<AExpressionStatement> result = new ArrayList<>();
+        if (op1 instanceof CLeftHandSide) {
+          result.addAll(handleAssignment(pCFAEdge, (CLeftHandSide) op1, pConcreteState));
+        }
+
+        if (op2 instanceof CLeftHandSide) {
+          result.addAll(handleAssignment(pCFAEdge, (CLeftHandSide) op2, pConcreteState));
+        }
+        return result;
+      }
+    }
+  }
+
   private Object getValueObject(CExpression pOp1, String pFunctionName, ConcreteState pConcreteState) {
 
     LModelValueVisitor v = new LModelValueVisitor(pFunctionName, pConcreteState);
@@ -421,7 +456,6 @@ public class AssumptionToEdgeAllocator {
     return result;
   }
 
-  @Nullable
   private List<AExpressionStatement> handleAssignment(CFAEdge pCFAEdge, CLeftHandSide pLeftHandSide, ConcreteState pConcreteState) {
 
     String functionName = pCFAEdge.getPredecessor().getFunctionName();

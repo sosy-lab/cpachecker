@@ -65,11 +65,8 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
     }
 
     @Override
-    public String getName() {
-      return
-          CToFormulaConverterWithPointerAliasing.getPointerAccessNameForType(type)
-          + SEPARATOR
-          + GLOBAL;
+    public String getName(TypeHandlerWithPointerAliasing typeHandler) {
+      return typeHandler.getPointerAccessNameForType(type) + SEPARATOR + GLOBAL;
     }
 
     @Override
@@ -115,10 +112,8 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
     }
 
     @Override
-    public String getName() {
-      return CToFormulaConverterWithPointerAliasing.getPointerAccessNameForType(fieldOwnerType)
-      + SEPARATOR
-      + fieldName;
+    public String getName(TypeHandlerWithPointerAliasing typeHandler) {
+      return typeHandler.getPointerAccessNameForType(fieldOwnerType) + SEPARATOR + fieldName;
     }
 
     @Override
@@ -166,12 +161,6 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
     super(pTypeHandler);
     this.fieldRegions = fieldRegions;
     this.varClassification = var;
-  }
-
-  @Override
-  public String getPointerAccessName(MemoryRegion pRegion) {
-    checkNotNull(pRegion);
-    return pRegion.getName();
   }
 
   @Override
