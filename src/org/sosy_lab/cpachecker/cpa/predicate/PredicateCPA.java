@@ -118,7 +118,6 @@ public class PredicateCPA
   private final Solver solver;
   private final PredicateAbstractionManager predicateManager;
   private final PredicateCPAStatistics stats;
-  private final PredicateAbstractState topState;
   private final PredicatePrecisionBootstrapper precisionBootstraper;
   private final CFA cfa;
   private final AbstractionManager abstractionManager;
@@ -197,10 +196,6 @@ public class PredicateCPA
         new PredicateTransferRelation(
             config, logger, direction, formulaManager, pathFormulaManager, blk, predicateManager);
 
-    topState = PredicateAbstractState.mkAbstractionState(
-        pathFormulaManager.makeEmptyPathFormula(),
-        predicateManager.makeTrueAbstractionFormula(null),
-        PathCopyingPersistentTreeMap.<CFANode, Integer>of());
     domain = new PredicateAbstractDomain(config, predicateManager);
 
     precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, abstractionManager, formulaManager);
@@ -291,7 +286,10 @@ public class PredicateCPA
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition pPartition) {
-    return topState;
+    return PredicateAbstractState.mkAbstractionState(
+        pathFormulaManager.makeEmptyPathFormula(),
+        predicateManager.makeTrueAbstractionFormula(null),
+        PathCopyingPersistentTreeMap.of());
   }
 
   @Override
