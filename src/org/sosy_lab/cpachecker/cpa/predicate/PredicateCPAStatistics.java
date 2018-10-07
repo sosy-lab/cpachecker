@@ -133,7 +133,6 @@ class PredicateCPAStatistics implements Statistics {
   private final AbstractionManager absmgr;
   private final PredicateAbstractionManager amgr;
 
-  private final PredicateAbstractDomain domain;
   private final PredicateStatistics statistics;
   private final PredicateTransferRelation trans;
 
@@ -151,7 +150,6 @@ class PredicateCPAStatistics implements Statistics {
       RegionManager pRmgr,
       AbstractionManager pAbsmgr,
       PredicateAbstractionManager pPredAbsMgr,
-      PredicateAbstractDomain pDomain,
       PredicateStatistics pStatistics,
       PredicateTransferRelation pTransfer)
       throws InvalidConfigurationException {
@@ -164,7 +162,6 @@ class PredicateCPAStatistics implements Statistics {
     rmgr = pRmgr;
     absmgr = pAbsmgr;
     amgr = pPredAbsMgr;
-    domain = pDomain;
     statistics = pStatistics;
     trans = pTransfer;
 
@@ -307,10 +304,10 @@ class PredicateCPAStatistics implements Statistics {
     if (trans.strengthenCheckTimer.getNumberOfIntervals() > 0) {
       out.println("  Times result was 'false':        " + trans.numStrengthenChecksFalse + " (" + toPercent(trans.numStrengthenChecksFalse, trans.strengthenCheckTimer.getNumberOfIntervals()) + ")");
     }
-    out.println("Number of coverage checks:         " + domain.coverageCheckTimer.getNumberOfIntervals());
-    out.println("  BDD entailment checks:           " + domain.bddCoverageCheckTimer.getNumberOfIntervals());
-    if (domain.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
-      out.println("  Symbolic coverage check:         " + domain.symbolicCoverageCheckTimer.getNumberOfIntervals());
+    out.println("Number of coverage checks:         " + statistics.coverageCheckTimer.getNumberOfIntervals());
+    out.println("  BDD entailment checks:           " + statistics.bddCoverageCheckTimer.getNumberOfIntervals());
+    if (statistics.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
+      out.println("  Symbolic coverage check:         " + statistics.symbolicCoverageCheckTimer.getNumberOfIntervals());
     }
     out.println("Number of SMT sat checks:          " + solver.satChecks);
     out.println("  trivial:                         " + solver.trivialSatChecks);
@@ -388,12 +385,12 @@ class PredicateCPAStatistics implements Statistics {
       out.println("Time for merge operator:             " + statistics.totalMergeTime);
     }
 
-    out.println("Time for coverage check:             " + domain.coverageCheckTimer);
-    if (domain.bddCoverageCheckTimer.getNumberOfIntervals() > 0) {
-      out.println("  Time for BDD entailment checks:    " + domain.bddCoverageCheckTimer);
+    out.println("Time for coverage check:             " + statistics.coverageCheckTimer);
+    if (statistics.bddCoverageCheckTimer.getNumberOfIntervals() > 0) {
+      out.println("  Time for BDD entailment checks:    " + statistics.bddCoverageCheckTimer);
     }
-    if (domain.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
-      out.println("  Time for symbolic coverage checks: " + domain.symbolicCoverageCheckTimer);
+    if (statistics.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
+      out.println("  Time for symbolic coverage checks: " + statistics.symbolicCoverageCheckTimer);
     }
     out.println("Total time for SMT solver (w/o itp): " + TimeSpan.sum(solver.solverTime.getSumTime(), as.abstractionSolveTime.getSumTime(), as.abstractionEnumTime.getOuterSumTime()).formatAs(SECONDS));
 

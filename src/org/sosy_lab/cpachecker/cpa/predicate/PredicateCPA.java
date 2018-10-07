@@ -106,12 +106,17 @@ public class PredicateCPA
   @Option(secure=true, description="Direction of the analysis?")
   private AnalysisDirection direction = AnalysisDirection.FORWARD;
 
+  @Option(
+      secure = true,
+      description =
+          "whether to include the symbolic path formula in the "
+              + "coverage checks or do only the fast abstract checks")
+  private boolean symbolicCoverageCheck = false;
 
   protected final Configuration config;
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
 
-  private final PredicateAbstractDomain domain;
   private final PredicateTransferRelation transfer;
   private final PredicatePrecision initialPrecision;
   private final PathFormulaManager pathFormulaManager;
@@ -196,8 +201,6 @@ public class PredicateCPA
         new PredicateTransferRelation(
             config, logger, direction, formulaManager, pathFormulaManager, blk, predicateManager);
 
-    domain = new PredicateAbstractDomain(config, predicateManager);
-
     precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, abstractionManager, formulaManager);
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
@@ -217,14 +220,13 @@ public class PredicateCPA
             regionManager,
             abstractionManager,
             predicateManager,
-            domain,
             statistics,
             transfer);
   }
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return domain;
+    return new PredicateAbstractDomain(predicateManager, symbolicCoverageCheck, statistics);
   }
 
   @Override
@@ -248,7 +250,7 @@ public class PredicateCPA
   public StopOperator getStopOperator() {
     switch (stopType) {
       case "SEP":
-        return new PredicateStopOperator(domain);
+        return new PredicateStopOperator(getAbstractDomain());
       case "SEPPCC":
         return new PredicatePCCStopOperator(pathFormulaManager, predicateManager);
       default:

@@ -38,4 +38,9 @@ public class PredicateStatistics {
   int numTargetAbstractions = 0;
   int numAbstractionsFalse = 0;
   int maxBlockSize = 0;
+
+  // domain
+  final Timer coverageCheckTimer = new Timer();
+  final Timer bddCoverageCheckTimer = new Timer();
+  final Timer symbolicCoverageCheckTimer = new Timer();
 }
