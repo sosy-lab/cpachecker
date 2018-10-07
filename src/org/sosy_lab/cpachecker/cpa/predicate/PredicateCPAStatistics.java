@@ -134,8 +134,6 @@ class PredicateCPAStatistics implements Statistics {
   private final PredicateAbstractionManager amgr;
 
   private final PredicateStatistics statistics;
-  private final PredicateTransferRelation trans;
-
   private final PredicateMapWriter precisionWriter;
   private final LoopInvariantsWriter loopInvariantsWriter;
   private final PredicateAbstractionsWriter abstractionsWriter;
@@ -150,8 +148,7 @@ class PredicateCPAStatistics implements Statistics {
       RegionManager pRmgr,
       AbstractionManager pAbsmgr,
       PredicateAbstractionManager pPredAbsMgr,
-      PredicateStatistics pStatistics,
-      PredicateTransferRelation pTransfer)
+      PredicateStatistics pStatistics)
       throws InvalidConfigurationException {
     pConfig.inject(this, PredicateCPAStatistics.class);
 
@@ -163,7 +160,6 @@ class PredicateCPAStatistics implements Statistics {
     absmgr = pAbsmgr;
     amgr = pPredAbsMgr;
     statistics = pStatistics;
-    trans = pTransfer;
 
     FormulaManagerView fmgr = pSolver.getFormulaManager();
     loopInvariantsWriter = new LoopInvariantsWriter(pCfa, pLogger, pAbsmgr, fmgr, pRmgr);
@@ -275,7 +271,7 @@ class PredicateCPAStatistics implements Statistics {
 
     PredicateAbstractionManager.Stats as = amgr.stats;
 
-    out.println("Number of abstractions:            " + statistics.numAbstractions + " (" + toPercent(statistics.numAbstractions, trans.postTimer.getNumberOfIntervals()) + " of all post computations)");
+    out.println("Number of abstractions:            " + statistics.numAbstractions + " (" + toPercent(statistics.numAbstractions, statistics.postTimer.getNumberOfIntervals()) + " of all post computations)");
     if (statistics.numAbstractions > 0) {
       out.println("  Times abstraction was reused:    " + as.numAbstractionReuses);
       out.println("  Because of function entry/exit:  " + valueWithPercentage(blk.numBlkFunctions, statistics.numAbstractions));
@@ -296,13 +292,13 @@ class PredicateCPAStatistics implements Statistics {
       }
     }
 
-    if (trans.satCheckTimer.getNumberOfIntervals() > 0) {
-      out.println("Number of satisfiability checks:   " + trans.satCheckTimer.getNumberOfIntervals());
-      out.println("  Times result was 'false':        " + trans.numSatChecksFalse + " (" + toPercent(trans.numSatChecksFalse, trans.satCheckTimer.getNumberOfIntervals()) + ")");
+    if (statistics.satCheckTimer.getNumberOfIntervals() > 0) {
+      out.println("Number of satisfiability checks:   " + statistics.satCheckTimer.getNumberOfIntervals());
+      out.println("  Times result was 'false':        " + statistics.numSatChecksFalse + " (" + toPercent(statistics.numSatChecksFalse, statistics.satCheckTimer.getNumberOfIntervals()) + ")");
     }
-    out.println("Number of strengthen sat checks:   " + trans.strengthenCheckTimer.getNumberOfIntervals());
-    if (trans.strengthenCheckTimer.getNumberOfIntervals() > 0) {
-      out.println("  Times result was 'false':        " + trans.numStrengthenChecksFalse + " (" + toPercent(trans.numStrengthenChecksFalse, trans.strengthenCheckTimer.getNumberOfIntervals()) + ")");
+    out.println("Number of strengthen sat checks:   " + statistics.strengthenCheckTimer.getNumberOfIntervals());
+    if (statistics.strengthenCheckTimer.getNumberOfIntervals() > 0) {
+      out.println("  Times result was 'false':        " + statistics.numStrengthenChecksFalse + " (" + toPercent(statistics.numStrengthenChecksFalse, statistics.strengthenCheckTimer.getNumberOfIntervals()) + ")");
     }
     out.println("Number of coverage checks:         " + statistics.coverageCheckTimer.getNumberOfIntervals());
     out.println("  BDD entailment checks:           " + statistics.bddCoverageCheckTimer.getNumberOfIntervals());
@@ -348,14 +344,14 @@ class PredicateCPAStatistics implements Statistics {
     }
     out.println();
 
-    out.println("Time for post operator:              " + trans.postTimer);
-    out.println("  Time for path formula creation:    " + trans.pathFormulaTimer);
-    if (trans.satCheckTimer.getNumberOfIntervals() > 0) {
-      out.println("  Time for satisfiability checks:    " + trans.satCheckTimer);
+    out.println("Time for post operator:              " + statistics.postTimer);
+    out.println("  Time for path formula creation:    " + statistics.pathFormulaTimer);
+    if (statistics.satCheckTimer.getNumberOfIntervals() > 0) {
+      out.println("  Time for satisfiability checks:    " + statistics.satCheckTimer);
     }
-    out.println("Time for strengthen operator:        " + trans.strengthenTimer);
-    if (trans.strengthenCheckTimer.getNumberOfIntervals() > 0) {
-      out.println("  Time for satisfiability checks:    " + trans.strengthenCheckTimer);
+    out.println("Time for strengthen operator:        " + statistics.strengthenTimer);
+    if (statistics.strengthenCheckTimer.getNumberOfIntervals() > 0) {
+      out.println("  Time for satisfiability checks:    " + statistics.strengthenCheckTimer);
     }
     out.println("Time for prec operator:              " + statistics.totalPrecTime);
     if (statistics.numAbstractions > 0) {
@@ -394,9 +390,9 @@ class PredicateCPAStatistics implements Statistics {
     }
     out.println("Total time for SMT solver (w/o itp): " + TimeSpan.sum(solver.solverTime.getSumTime(), as.abstractionSolveTime.getSumTime(), as.abstractionEnumTime.getOuterSumTime()).formatAs(SECONDS));
 
-    if (trans.abstractionCheckTimer.getNumberOfIntervals() > 0) {
-      out.println("Time for abstraction checks:       " + trans.abstractionCheckTimer);
-      out.println("Time for unsat checks:             " + trans.satCheckTimer + " (Calls: " + trans.satCheckTimer.getNumberOfIntervals() + ")");
+    if (statistics.abstractionCheckTimer.getNumberOfIntervals() > 0) {
+      out.println("Time for abstraction checks:       " + statistics.abstractionCheckTimer);
+      out.println("Time for unsat checks:             " + statistics.satCheckTimer + " (Calls: " + statistics.satCheckTimer.getNumberOfIntervals() + ")");
     }
     out.println();
     pfmgr.printStatistics(out);

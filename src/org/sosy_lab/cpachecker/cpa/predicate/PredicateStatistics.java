@@ -43,4 +43,14 @@ public class PredicateStatistics {
   final Timer coverageCheckTimer = new Timer();
   final Timer bddCoverageCheckTimer = new Timer();
   final Timer symbolicCoverageCheckTimer = new Timer();
+
+  // transfer relation
+  final Timer postTimer = new Timer();
+  final Timer satCheckTimer = new Timer();
+  final Timer pathFormulaTimer = new Timer();
+  final Timer strengthenTimer = new Timer();
+  final Timer strengthenCheckTimer = new Timer();
+  final Timer abstractionCheckTimer = new Timer();
+  int numSatChecksFalse = 0;
+  int numStrengthenChecksFalse = 0;
 }

@@ -27,13 +27,18 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -54,15 +59,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes
@@ -91,17 +89,6 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure = true, description = "Use formula reporting states for strengthening.")
   private boolean strengthenWithFormulaReportingStates = false;
 
-  // statistics
-  final Timer postTimer = new Timer();
-  final Timer satCheckTimer = new Timer();
-  final Timer pathFormulaTimer = new Timer();
-  final Timer strengthenTimer = new Timer();
-  final Timer strengthenCheckTimer = new Timer();
-  final Timer abstractionCheckTimer = new Timer();
-
-  int numSatChecksFalse = 0;
-  int numStrengthenChecksFalse = 0;
-
   private final LogManager logger;
   private final PredicateAbstractionManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
@@ -114,6 +101,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   private final BooleanFormulaManagerView bfmgr;
 
   private final AnalysisDirection direction;
+  private final PredicateStatistics statistics;
 
   public PredicateTransferRelation(
       Configuration config,
@@ -122,7 +110,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
       BlockOperator pBlk,
-      PredicateAbstractionManager pPredAbsManager)
+      PredicateAbstractionManager pPredAbsManager,
+      PredicateStatistics pStatistics)
       throws InvalidConfigurationException {
     config.inject(this, PredicateTransferRelation.class);
 
@@ -133,6 +122,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     bfmgr = fmgr.getBooleanFormulaManager();
     blk = pBlk;
     direction = pDirection;
+    statistics = pStatistics;
   }
 
   @Override
@@ -140,7 +130,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       AbstractState pElement, Precision pPrecision, CFAEdge edge)
           throws CPATransferException, InterruptedException {
 
-    postTimer.start();
+    statistics.postTimer.start();
     try {
       PredicateAbstractState element = (PredicateAbstractState) pElement;
 
@@ -169,7 +159,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
           mkNonAbstractionStateWithNewPathFormula(pathFormula, element));
 
     } finally {
-      postTimer.stop();
+      statistics.postTimer.stop();
     }
   }
 
@@ -200,14 +190,14 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
    */
   private boolean unsatCheck(final AbstractionFormula lastAbstraction, final PathFormula pathFormulaFromLastAbstraction)
       throws SolverException, InterruptedException {
-    satCheckTimer.start();
+    statistics.satCheckTimer.start();
 
     boolean unsat = formulaManager.unsat(lastAbstraction, pathFormulaFromLastAbstraction);
 
-    satCheckTimer.stop();
+    statistics.satCheckTimer.stop();
 
     if (unsat) {
-      numSatChecksFalse++;
+      statistics.numSatChecksFalse++;
       logger.log(Level.FINEST, "Abstraction & PathFormula is unsatisfiable.");
     }
 
@@ -225,12 +215,12 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
    * @return  The new pathFormula.
    */
   private PathFormula convertEdgeToPathFormula(PathFormula pathFormula, CFAEdge edge) throws CPATransferException, InterruptedException {
-    pathFormulaTimer.start();
+    statistics.pathFormulaTimer.start();
     try {
       // compute new pathFormula with the operation on the edge
       return pathFormulaManager.makeAnd(pathFormula, edge);
     } finally {
-      pathFormulaTimer.stop();
+      statistics.pathFormulaTimer.stop();
     }
   }
 
@@ -300,7 +290,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       List<AbstractState> otherElements, CFAEdge edge, Precision pPrecision)
           throws CPATransferException, InterruptedException {
 
-    strengthenTimer.start();
+    statistics.strengthenTimer.start();
     try {
 
       PredicateAbstractState element = (PredicateAbstractState) pElement;
@@ -357,7 +347,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       throw new CPATransferException("Solver failed during strengthen sat check", e);
 
     } finally {
-      strengthenTimer.stop();
+      statistics.strengthenTimer.stop();
     }
   }
 
@@ -375,7 +365,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
             .anyMatch(var -> var.getExpressionType() instanceof CProblemType)) {
           continue;
         }
-        pathFormulaTimer.start();
+        statistics.pathFormulaTimer.start();
         try {
           // compute a pathFormula where the SSAMap/ PointerTargetSet is set back to the previous state:
           PathFormula temp = new PathFormula(
@@ -392,7 +382,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
               pf.getPointerTargetSet(),
               pf.getLength() + 1);
         } finally {
-          pathFormulaTimer.stop();
+          statistics.pathFormulaTimer.stop();
         }
       }
     }
@@ -405,12 +395,12 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
           .anyMatch(var -> var.getExpressionType() instanceof CProblemType)) {
         continue;
       }
-      pathFormulaTimer.start();
+      statistics.pathFormulaTimer.start();
       try {
         // compute new pathFormula with the operation on the edge
         pf = pathFormulaManager.makeAnd(pf, assumption);
       } finally {
-        pathFormulaTimer.stop();
+        statistics.pathFormulaTimer.stop();
       }
     }
 
@@ -466,13 +456,13 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
           throws SolverException, InterruptedException {
     logger.log(Level.FINEST, "Checking for feasibility of path because error has been found");
 
-    strengthenCheckTimer.start();
+    statistics.strengthenCheckTimer.start();
     PathFormula pathFormula = pElement.getPathFormula();
     boolean unsat = formulaManager.unsat(pElement.getAbstractionFormula(), pathFormula);
-    strengthenCheckTimer.stop();
+    statistics.strengthenCheckTimer.stop();
 
     if (unsat) {
-      numStrengthenChecksFalse++;
+      statistics.numStrengthenChecksFalse++;
       logger.log(Level.FINEST, "Path is infeasible.");
       return null;
     } else {
@@ -520,19 +510,19 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       if (successor.isAbstractionState()) {
         pathFormula = convertEdgeToPathFormula(pathFormula, pCfaEdge);
         // check abstraction
-        abstractionCheckTimer.start();
+        statistics.abstractionCheckTimer.start();
         if (!formulaManager.checkCoverage(predicateElement.getAbstractionFormula(), pathFormula,
             successor.getAbstractionFormula())) {
           result = false;
         }
-        abstractionCheckTimer.stop();
+        statistics.abstractionCheckTimer.stop();
       } else {
         // check abstraction
-        abstractionCheckTimer.start();
+        statistics.abstractionCheckTimer.start();
         if (!successor.getAbstractionFormula().equals(predicateElement.getAbstractionFormula())) {
           result = false;
         }
-        abstractionCheckTimer.stop();
+        statistics.abstractionCheckTimer.stop();
 
         // compute path formula
         PathFormula computedPathFormula = convertEdgeToPathFormula(pathFormula, pCfaEdge);

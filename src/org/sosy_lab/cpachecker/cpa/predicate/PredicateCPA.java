@@ -197,9 +197,17 @@ public class PredicateCPA
                 ? invariantsManager
                 : TrivialInvariantSupplier.INSTANCE);
 
+    statistics = new PredicateStatistics();
     transfer =
         new PredicateTransferRelation(
-            config, logger, direction, formulaManager, pathFormulaManager, blk, predicateManager);
+            config,
+            logger,
+            direction,
+            formulaManager,
+            pathFormulaManager,
+            blk,
+            predicateManager,
+            statistics);
 
     precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, abstractionManager, formulaManager);
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
@@ -208,7 +216,6 @@ public class PredicateCPA
     predicateProvider =
         new PredicateProvider(config, pCfa, logger, formulaManager, predicateManager);
 
-    statistics = new PredicateStatistics();
     stats =
         new PredicateCPAStatistics(
             config,
@@ -220,8 +227,7 @@ public class PredicateCPA
             regionManager,
             abstractionManager,
             predicateManager,
-            statistics,
-            transfer);
+            statistics);
   }
 
   @Override
