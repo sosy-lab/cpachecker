@@ -24,7 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.collect.ImmutableSet;
-
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
@@ -51,7 +54,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -62,6 +64,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
@@ -70,9 +73,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.java_smt.api.SolverException;
-
-import java.util.Collection;
-import java.util.logging.Level;
 
 /**
  * CPA that defines symbolic predicate abstraction.
@@ -117,7 +117,6 @@ public class PredicateCPA
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
 
-  private final PredicateTransferRelation transfer;
   private final PredicatePrecision initialPrecision;
   private final PathFormulaManager pathFormulaManager;
   private final Solver solver;
@@ -132,6 +131,10 @@ public class PredicateCPA
   private final PredicateStatistics statistics;
   private final PredicateProvider predicateProvider;
   private final FormulaManagerView formulaManager;
+  private final PredicateCpaOptions options;
+
+  // path formulas for PCC
+  private final Map<PredicateAbstractState, PathFormula> computedPathFormulaePcc = new HashMap<>();
 
   protected PredicateCPA(
       Configuration config,
@@ -198,17 +201,7 @@ public class PredicateCPA
                 : TrivialInvariantSupplier.INSTANCE);
 
     statistics = new PredicateStatistics();
-    transfer =
-        new PredicateTransferRelation(
-            config,
-            logger,
-            direction,
-            formulaManager,
-            pathFormulaManager,
-            blk,
-            predicateManager,
-            statistics);
-
+    options = new PredicateCpaOptions(config);
     precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, abstractionManager, formulaManager);
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
@@ -236,8 +229,16 @@ public class PredicateCPA
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
-    return transfer;
+  public PredicateTransferRelation getTransferRelation() {
+    return new PredicateTransferRelation(
+        logger,
+        direction,
+        formulaManager,
+        pathFormulaManager,
+        blk,
+        predicateManager,
+        statistics,
+        options);
   }
 
   @Override
@@ -333,7 +334,8 @@ public class PredicateCPA
   @Override
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     try {
-      return transfer.areAbstractSuccessors(pElement, pCfaEdge, pSuccessors);
+      return getTransferRelation()
+          .areAbstractSuccessors(pElement, pCfaEdge, pSuccessors, computedPathFormulaePcc);
     } catch (SolverException e) {
       throw new CPATransferException("Solver failed during abstract-successor check", e);
     }
