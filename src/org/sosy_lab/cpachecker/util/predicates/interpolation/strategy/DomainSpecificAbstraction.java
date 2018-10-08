@@ -71,6 +71,9 @@ public class DomainSpecificAbstraction<T> {
   private final Timer renamingTimer;
   private final Timer buildingAbstractionsTimer;
   private final Timer interpolationTimer;
+  private final Timer initialVariableExtractionTimer;
+  private final Timer feasibilityCheckTimer;
+  private final Timer maximisationTimer;
   LogManager logger;
   private HashMap<String, List<FormulaType>> fullLatticeNamesTypes = new HashMap<>();
   private HashMap<String, FormulaType> latticeNamesTypes = new HashMap<>();
@@ -79,7 +82,10 @@ public class DomainSpecificAbstraction<T> {
                                    FormulaManagerView oldFmgr0, /*Interpolator<T> pTInterpolator,
                                     */ LogManager pLogger, Timer pFindingCommonVariablesTimer,
                                    Timer pBuildingLatticeNamesAndLatticeTypesTimer, Timer
-                                       pRenamingTimer, Timer pBuildingAbstractionsTimer, Timer pInterpolationTimer) {
+                                       pRenamingTimer, Timer pBuildingAbstractionsTimer, Timer
+                                       pInterpolationTimer, Timer
+                                       pInitialVariableExtractionTimer, Timer
+                                       pFeasibilityCheckTimer, Timer pMaximisationTimer) {
     fmgr = pFmgr;
     oldFmgr = oldFmgr0;
     //myInterpolator = pTInterpolator;
@@ -89,6 +95,9 @@ public class DomainSpecificAbstraction<T> {
     renamingTimer = pRenamingTimer;
     buildingAbstractionsTimer = pBuildingAbstractionsTimer;
     interpolationTimer = pInterpolationTimer;
+    initialVariableExtractionTimer = pInitialVariableExtractionTimer;
+    feasibilityCheckTimer = pFeasibilityCheckTimer;
+    maximisationTimer = pMaximisationTimer;
   }
 
 
@@ -116,28 +125,32 @@ public class DomainSpecificAbstraction<T> {
 
       final List<Map<String, Formula>> variableTypes = Lists.newArrayListWithExpectedSize(oldFormulas.size()
           - 1);
-      if (it == 0) {
-        formulas.add(oldFormulas.get(it));
-        formulas.add(oldFormulas.get(it + 1));
-        //variablesInFormulas.add(oldFmgr.extractVariableNames(oldFormulas.get(it)));
-        // variableTypes.add(oldFmgr.extractVariables(oldFormulas.get(it)));
-      }
-      else {
-        oldInterpolant = oldFmgr.translateFrom(interpolants.get(it - 1), fmgr);
-        formulas.add(oldInterpolant);
-        formulas.add(oldFormulas.get(it));
-        formulas.add(oldFormulas.get(it + 1));
-        variablesInFormulas.add(oldFmgr.extractVariableNames(oldInterpolant));
-        variableTypes.add(oldFmgr.extractVariables(oldInterpolant));
-        //logger.log(Level.WARNING, "Variables in Formulas after adding old interpolant:" +
-        //    variablesInFormulas.toString());
-      }
+      initialVariableExtractionTimer.start();
+      try {
+        if (it == 0) {
+          formulas.add(oldFormulas.get(it));
+          formulas.add(oldFormulas.get(it + 1));
+          //variablesInFormulas.add(oldFmgr.extractVariableNames(oldFormulas.get(it)));
+          // variableTypes.add(oldFmgr.extractVariables(oldFormulas.get(it)));
+        } else {
+          oldInterpolant = oldFmgr.translateFrom(interpolants.get(it - 1), fmgr);
+          formulas.add(oldInterpolant);
+          formulas.add(oldFormulas.get(it));
+          formulas.add(oldFormulas.get(it + 1));
+          variablesInFormulas.add(oldFmgr.extractVariableNames(oldInterpolant));
+          variableTypes.add(oldFmgr.extractVariables(oldInterpolant));
+          //logger.log(Level.WARNING, "Variables in Formulas after adding old interpolant:" +
+          //    variablesInFormulas.toString());
+        }
 
-      for (int i = it; i < oldFormulas.size(); i++) {
-        variablesInFormulas.add(oldFmgr.extractVariableNames(oldFormulas.get(i)));
-        variableTypes.add(oldFmgr.extractVariables(oldFormulas.get(i)));
-        //logger.log(Level.WARNING, "Variables in Formulas after adding oldFormulas[:" + i + "] "
-        //    + variablesInFormulas.toString());
+        for (int i = it; i < oldFormulas.size(); i++) {
+          variablesInFormulas.add(oldFmgr.extractVariableNames(oldFormulas.get(i)));
+          variableTypes.add(oldFmgr.extractVariables(oldFormulas.get(i)));
+          //logger.log(Level.WARNING, "Variables in Formulas after adding oldFormulas[:" + i + "] "
+          //    + variablesInFormulas.toString());
+        }
+      } finally {
+        initialVariableExtractionTimer.stop();
       }
       // extracting the variables that have to be renamed - make external function?
       /*List<List<IntegerFormula>> frontierList = Lists.newArrayListWithExpectedSize(formulas.size
@@ -1629,11 +1642,15 @@ public class DomainSpecificAbstraction<T> {
               toCheckFormulaList.add(f);
             }
             BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
-
-            abstractionFeasible = prove(toCheckFormulaBlocked, mySolver);
+            feasibilityCheckTimer.start();
+            try {
+              abstractionFeasible = prove(toCheckFormulaBlocked, mySolver);
+            } finally {
+              feasibilityCheckTimer.stop();
+            }
             if (abstractionFeasible) {
           /*List<List<IntegerFormula>> */
-              abstractionFeasible = true;
+              //abstractionFeasible = true;
               List<List<Formula>> frontierListCopy = Lists
                   .newArrayListWithExpectedSize(oldFormulas.size() - 1);
               for (/*List<IntegerFormula> */ List<Formula> s : frontierList) {
@@ -1644,14 +1661,19 @@ public class DomainSpecificAbstraction<T> {
                 latticenames_h, latticeNames);
 
             if (isIncomparable) {
-              List<Formula> new_frontier_elem = maximise(firstPartChanged,
-                  scndPartChanged,
-                  relationAbstraction1,
-                  relationAbstraction2, relationAbstraction1Formula,
-                  relationAbstraction2Formula, latticeNames,
-                  latticenames_h,
-                  mySolver);
-              frontierList.add(new_frontier_elem);
+              maximisationTimer.start();
+              try {
+                List<Formula> new_frontier_elem = maximise(firstPartChanged,
+                    scndPartChanged,
+                    relationAbstraction1,
+                    relationAbstraction2, relationAbstraction1Formula,
+                    relationAbstraction2Formula, latticeNames,
+                    latticenames_h,
+                    mySolver);
+                frontierList.add(new_frontier_elem);
+              } finally {
+                maximisationTimer.stop();
+              }
             }
             }
           }

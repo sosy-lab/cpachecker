@@ -98,11 +98,14 @@ public final class InterpolationManager {
   private final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
   private final Timer interpolantVerificationTimer = new Timer();
   private final Timer dsaAnalysisTimer = new Timer();
+  private final Timer feasiblityCheckTimer = new Timer();
+  private final Timer maximisationTimer = new Timer();
   private int reusedFormulasOnSolverStack = 0;
   protected final Timer findingCommonVariablesTimer = new Timer();
   protected final Timer buildingLatticeNamesAndLatticeTypesTimer = new Timer();
   protected final Timer renamingTimer = new Timer();
   protected final Timer buildingAbstractionsTimer = new Timer();
+  protected final Timer initialVariableExtractionTimer = new Timer();
   final Timer interpolationTimer = new Timer();
 
   public void printStatistics(StatisticsWriter w0) {
@@ -117,6 +120,12 @@ public final class InterpolationManager {
           .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + dsaAnalysisTimer
           .getAvgTime() + ")" + "Number of Intervals: " + dsaAnalysisTimer.getNumberOfIntervals());
     }
+    if (initialVariableExtractionTimer.getNumberOfIntervals() > 0){
+      w1.put("Extracting Initial Variables: ", initialVariableExtractionTimer + " (Max: " +
+          initialVariableExtractionTimer
+              .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + initialVariableExtractionTimer
+          .getAvgTime() + ")" + "Number of Intervals: " + initialVariableExtractionTimer.getNumberOfIntervals());
+    }
     if (findingCommonVariablesTimer.getNumberOfIntervals() > 0){
       w1.put("Finding Common Variables: ", findingCommonVariablesTimer + " (Max: " +
           findingCommonVariablesTimer
@@ -124,19 +133,32 @@ public final class InterpolationManager {
           .getAvgTime() + ")" + "Number of Intervals: " + findingCommonVariablesTimer.getNumberOfIntervals());
     }
     if (buildingLatticeNamesAndLatticeTypesTimer.getNumberOfIntervals() > 0){
-      w1.put("Finding Common Variables: ", buildingLatticeNamesAndLatticeTypesTimer + " (Max: " +
+      w1.put("Building Lattice Names and Lattice Types: ",
+          buildingLatticeNamesAndLatticeTypesTimer + " (Max: " +
           buildingLatticeNamesAndLatticeTypesTimer
               .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + buildingLatticeNamesAndLatticeTypesTimer
           .getAvgTime() + ")" + "Number of Intervals: " + buildingLatticeNamesAndLatticeTypesTimer.getNumberOfIntervals());
     }
     if (renamingTimer.getNumberOfIntervals() > 0){
-      w1.put("Finding Common Variables: ", renamingTimer + " (Max: " +
+      w1.put("Renaming: ", renamingTimer + " (Max: " +
           renamingTimer
               .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + renamingTimer
           .getAvgTime() + ")" + "Number of Intervals: " + renamingTimer.getNumberOfIntervals());
     }
+    if (feasiblityCheckTimer.getNumberOfIntervals() > 0){
+      w1.put("Feasibility Check: ", feasiblityCheckTimer + " (Max: " +
+          feasiblityCheckTimer
+              .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + feasiblityCheckTimer
+          .getAvgTime() + ")" + "Number of Intervals: " + feasiblityCheckTimer.getNumberOfIntervals());
+    }
+    if (maximisationTimer.getNumberOfIntervals() > 0){
+      w1.put("Maximisation: ", maximisationTimer + " (Max: " +
+          maximisationTimer
+              .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + maximisationTimer
+          .getAvgTime() + ")" + "Number of Intervals: " + maximisationTimer.getNumberOfIntervals());
+    }
     if (interpolationTimer.getNumberOfIntervals() > 0){
-      w1.put("Finding Common Variables: ", interpolationTimer + " (Max: " +
+      w1.put("Interpolation: ", interpolationTimer + " (Max: " +
           interpolationTimer
               .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + interpolationTimer
           .getAvgTime() + ")" + "Number of Intervals: " + interpolationTimer.getNumberOfIntervals());
@@ -684,7 +706,7 @@ public final class InterpolationManager {
               new_fmgr,
             /*bfmgr, */ fmgr, /* pInterpolator, */ logger, findingCommonVariablesTimer,
               buildingLatticeNamesAndLatticeTypesTimer, renamingTimer, buildingAbstractionsTimer,
-              interpolationTimer);
+              interpolationTimer, initialVariableExtractionTimer, feasiblityCheckTimer, maximisationTimer);
           List<BooleanFormula> tocheck =
               Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst);
           if (tocheck != null) {
