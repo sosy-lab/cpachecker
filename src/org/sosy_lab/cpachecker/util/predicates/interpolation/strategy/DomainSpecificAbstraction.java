@@ -1576,7 +1576,7 @@ public class DomainSpecificAbstraction<T> {
       helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
       //String latticenames_h = new String();
-      //int latticeindex = latticeNames.length + 1;
+      int latticeindex = latticeNames.length + 1;
 
       /*logger.log(Level.WARNING, "Showing LatticeNames: ");
       for (int h = 0; h < latticeNames.length; h++) {
@@ -1592,10 +1592,10 @@ public class DomainSpecificAbstraction<T> {
       } */
       buildingAbstractionsTimer.start();
       try {
-       // while (abstractionFeasible == false) {
+        while (abstractionFeasible == false) {
           String latticenames_h = new String();
-         // latticeindex = latticeindex - 1;
-          for (int h = 0; h < /*fullLatticeNames.length */ latticeNames.length; h++) {
+          latticeindex = latticeindex - 1;
+          for (int h = 0; h < /*fullLatticeNames.length  latticeNames.length */ latticeindex; h++) {
        /* helperFormula1 = firstPartChanged;
         helperFormula2 = scndPartChanged; */
             //   Iterable<String> splitOperator = Splitter.on(" ,").split(/*fullLatticeNames[h]*/
@@ -1628,7 +1628,7 @@ public class DomainSpecificAbstraction<T> {
                 }
               }
             }
-         // }
+          }
 
           if (!latticenames_h.isEmpty() && !(latticenames_h == null)) {
             BooleanFormula toCheckFormula = fmgr.makeAnd(helperFormula1, helperFormula2);
@@ -1650,7 +1650,7 @@ public class DomainSpecificAbstraction<T> {
             }
             if (abstractionFeasible) {
           /*List<List<IntegerFormula>> */
-              //abstractionFeasible = true;
+              abstractionFeasible = true;
               List<List<Formula>> frontierListCopy = Lists
                   .newArrayListWithExpectedSize(oldFormulas.size() - 1);
               for (/*List<IntegerFormula> */ List<Formula> s : frontierList) {
