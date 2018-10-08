@@ -71,7 +71,6 @@ import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
@@ -125,7 +124,6 @@ public class PredicateCPA
   private final PredicatePrecisionBootstrapper precisionBootstraper;
   private final CFA cfa;
   private final AbstractionManager abstractionManager;
-  private final PrefixProvider prefixProvider;
   private final PredicateCPAInvariantsManager invariantsManager;
   private final BlockOperator blk;
   private final PredicateStatistics statistics;
@@ -183,7 +181,6 @@ public class PredicateCPA
 
     abstractionManager = new AbstractionManager(regionManager, config, logger, solver);
 
-    prefixProvider = new PredicateBasedPrefixProvider(config, logger, solver, pathFormulaManager, shutdownNotifier);
     invariantsManager =
         new PredicateCPAInvariantsManager(
             config, logger, pShutdownNotifier, pCfa, specification, pAggregatedReachedSets);
@@ -287,10 +284,6 @@ public class PredicateCPA
 
   public ShutdownNotifier getShutdownNotifier() {
     return shutdownNotifier;
-  }
-
-  public PrefixProvider getPrefixProvider() {
-    return prefixProvider;
   }
 
   @Override
