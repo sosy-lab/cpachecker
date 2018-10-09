@@ -105,7 +105,7 @@ public class SMGRefiner implements Refiner {
 
   @Option(secure = true, description = "export interpolant smgs for every path interpolation to this path template")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate exportRefinmentSMGs = PathTemplate.ofFormatString("smg/refinment-%d/smg-%s");
+  private PathTemplate exportRefinementSMGs = PathTemplate.ofFormatString("smg/refinement-%d/smg-%s");
 
   @Option(secure = true, description = "when to export the interpolation tree"
       + "\nNEVER:   never export the interpolation tree"
@@ -128,7 +128,7 @@ public class SMGRefiner implements Refiner {
     BlockOperator blockOperator = smgCpa.getBlockOperator();
 
     smgCpa.injectRefinablePrecision();
-    smgCpa.setTransferRelationToRefinment(exportRefinmentSMGs);
+    smgCpa.setTransferRelationToRefinement(exportRefinementSMGs);
 
     SMGStrongestPostOperator strongestPostOpForCEX =
         SMGStrongestPostOperator.getSMGStrongestPostOperatorForCEX(pLogger, pCfa, predicateManager, blockOperator, smgCpa.getOptions());
@@ -187,7 +187,7 @@ public class SMGRefiner implements Refiner {
     boolean isSpuriousCEX = cexInfo.isSpurious();
 
     if (isSpuriousCEX) {
-      smgCpa.nextRefinment();
+      smgCpa.nextRefinement();
     }
 
     return isSpuriousCEX;

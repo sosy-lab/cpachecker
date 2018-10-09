@@ -139,9 +139,9 @@ public class SMGCPA
             exportOptions, smgPredicateManager, blockOperator, options);
   }
 
-  public void setTransferRelationToRefinment(PathTemplate pNewPathTemplate) {
-    transferRelation.changeKindToRefinment();
-    exportOptions.changeToRefinment(pNewPathTemplate);
+  public void setTransferRelationToRefinement(PathTemplate pNewPathTemplate) {
+    transferRelation.changeKindToRefinement();
+    exportOptions.changeToRefinement(pNewPathTemplate);
   }
 
   public void injectRefinablePrecision() {
@@ -255,8 +255,8 @@ public class SMGCPA
     return blockOperator;
   }
 
-  public void nextRefinment() {
-    exportOptions.nextRefinment();
+  public void nextRefinement() {
+    exportOptions.nextRefinement();
   }
 
   @Override

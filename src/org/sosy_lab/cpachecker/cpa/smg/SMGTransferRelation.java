@@ -1238,7 +1238,7 @@ public class SMGTransferRelation
     }
   }
 
-  public void changeKindToRefinment() {
+  public void changeKindToRefinement() {
     kind = SMGTransferRelationKind.REFINEMENT;
   }
 
