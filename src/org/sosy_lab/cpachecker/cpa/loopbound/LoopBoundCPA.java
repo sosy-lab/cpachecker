@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.loopbound;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
+import static org.sosy_lab.cpachecker.util.AbstractStates.projectToType;
 
 import java.io.PrintStream;
 import java.util.Collection;
@@ -52,7 +53,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
@@ -124,22 +124,16 @@ public class LoopBoundCPA extends AbstractCPA
     }
 
     Set<AbstractState> waitlist = new LinkedHashSet<>();
-    for (AbstractState s : toRemove) {
-      ARGState argState = extractStateByType(s, ARGState.class);
-      if (argState != null) {
-        waitlist.addAll(argState.getParents());
-      }
+    for (ARGState s : projectToType(toRemove, ARGState.class)) {
+      waitlist.addAll(s.getParents());
     }
 
     // Add the new waitlist
     waitlist.forEach(pReachedSet::reAddToWaitlist);
 
     pReachedSet.removeAll(toRemove);
-    for (AbstractState s : toRemove) {
-      ARGState argState = extractStateByType(s, ARGState.class);
-      if (argState != null) {
-        argState.removeFromARG();
-      }
+    for (ARGState s : projectToType(toRemove, ARGState.class)) {
+      s.removeFromARG();
     }
   }
 
@@ -153,11 +147,9 @@ public class LoopBoundCPA extends AbstractCPA
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
     writer.put("Bound k", precisionAdjustment.getMaxLoopIterations());
     int maximumLoopIterationReached = 0;
-    for (AbstractState state : pReached) {
-      LoopBoundState loopstackState = AbstractStates.extractStateByType(state, LoopBoundState.class);
-      if (loopstackState != null) {
-        maximumLoopIterationReached = Math.max(maximumLoopIterationReached, loopstackState.getDeepestIteration());
-      }
+    for (LoopBoundState state : projectToType(pReached, LoopBoundState.class)) {
+      maximumLoopIterationReached =
+          Math.max(maximumLoopIterationReached, state.getDeepestIteration());
     }
     writer.put("Maximum loop iteration reached", maximumLoopIterationReached);
     writer.spacer();
