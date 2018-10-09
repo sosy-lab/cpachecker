@@ -24,9 +24,6 @@
 
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import static com.google.common.collect.Iterables.indexOf;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
-
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -74,6 +71,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import org.sosy_lab.cpachecker.util.Pair;
 
 
 /** The Class ErrorPathShrinker gets an targetPath and creates a new Path,
@@ -84,7 +82,7 @@ import java.util.Set;
 public final class ErrorPathShrinker {
 
   /** The short Path stores the result of PathHandler.handlePath(). */
-  private Deque<CFAEdgeWithAssumptions> shortPath;
+  private Deque<Pair<CFAEdgeWithAssumptions, Boolean>> shortPath;
 
   /** This Set stores the important variables of the Path. */
   private Set<String> importantVars;
@@ -92,7 +90,7 @@ public final class ErrorPathShrinker {
   /** This is the currently handled CFAEdge. */
   private CFAEdge currentCFAEdge;
 
-  /** THis is the Edge constituted from current handled CFA Edge, plus accumulated assumptions*/
+  /** This is an important Edge constituted from current handled CFA Edge, plus accumulated assumptions*/
   private CFAEdgeWithAssumptions currentCFAEdgeWithAssumptions;
 
   /** This List contains the accumulated assumptions for the current CFAEdge*/
@@ -109,8 +107,8 @@ public final class ErrorPathShrinker {
    * @return errorPath the "short" errorPath */
 
   //TODO: step 1: CFAEDgewithAssumptions auch durchiterieren wenn nicht null in der gleichen schleife;
-  public List<CFAEdgeWithAssumptions> shrinkErrorPath(ARGPath pTargetPath, CFAPathWithAssumptions pAssumePath) {
-    List<CFAEdge> targetPath = getEdgesUntilTarget(pTargetPath);
+  public ImmutableList<Pair<CFAEdgeWithAssumptions, Boolean>> shrinkErrorPath(ARGPath pTargetPath, CFAPathWithAssumptions pAssumePath) {
+    List<CFAEdge> targetPath = pTargetPath.getFullPath();
 
     List<CFAEdgeWithAssumptions> assumePath = null;
     if (pAssumePath != null) {
@@ -133,32 +131,29 @@ public final class ErrorPathShrinker {
     assumptions = new HashSet<>();
 
     // the short Path, the result
-    final Deque<CFAEdgeWithAssumptions> shortErrorPath = new ArrayDeque<>();
+    final Deque<Pair<CFAEdgeWithAssumptions, Boolean>> shortErrorPath = new ArrayDeque<>();
+
 
     /* if the ErrorNode is inside of a function, the long path (pTargetPath) is not handled
      * until the StartNode, but only until the functionCall.
      * so update the sets of variables and call the PathHandler again until
      * the longPath is completely handled.*/
     while (revIterator.hasNext()) {
-      handleEdge(revIterator.next(), shortErrorPath);
-      if (revAssumIterator != null){
-        // adds assumptions from current edge to the accumulated assumptions of the recent edges
-        assumptions.addAll(revAssumIterator.next().getExpStmts());
+      handleEdge(revIterator.next(), shortErrorPath, revAssumIterator);
 
-      }
     }
 
     // TODO assertion disabled, until we can track all pointers completely
     // assert importantVars.isEmpty() : "some variables are never declared: " + importantVars;
-
     return ImmutableList.copyOf(shortErrorPath);
   }
 
-
+  // this function is probably not needed, as the full path is believed to always end in the target state
   /** This method iterates a path and copies all the edges until
    * the target state into the result.
    *
    * @param path the Path to iterate */
+  /*
   private static List<CFAEdge> getEdgesUntilTarget(final ARGPath path) {
     int targetPos = indexOf(path.asStatesList(), IS_TARGET_STATE);
     if (targetPos > 0) {
@@ -167,10 +162,27 @@ public final class ErrorPathShrinker {
       return path.getFullPath();
     }
   }
+  */
 
-  private void handleEdge(final CFAEdge cfaEdge, final Deque<CFAEdgeWithAssumptions> shortErrorPath) {
+  private void handleEdge(final CFAEdge cfaEdge, final Deque<Pair<CFAEdgeWithAssumptions, Boolean>> shortErrorPath, Iterator<CFAEdgeWithAssumptions> revAssumIterator) {
     currentCFAEdge = cfaEdge;
     shortPath = shortErrorPath;
+
+    // define all edges as normal with their according assumptions
+    currentCFAEdgeWithAssumptions = new CFAEdgeWithAssumptions(currentCFAEdge, assumptions, "");
+    if(revAssumIterator.hasNext()) {
+      CFAEdgeWithAssumptions nextRevAssumEdge = revAssumIterator.next();
+      assumptions.addAll(nextRevAssumEdge.getExpStmts());
+      currentCFAEdgeWithAssumptions =
+          new CFAEdgeWithAssumptions(currentCFAEdge, nextRevAssumEdge.getExpStmts(), "");
+    }
+
+
+    // add each edge to the shrinkedErrorPath in the first place
+    if(currentCFAEdgeWithAssumptions != null){
+      Pair<CFAEdgeWithAssumptions, Boolean> normalPair = Pair.of(currentCFAEdgeWithAssumptions, Boolean.FALSE);
+      shortPath.addFirst(normalPair);
+    }
 
     switch (cfaEdge.getEdgeType()) {
 
@@ -259,6 +271,7 @@ public final class ErrorPathShrinker {
   }
 
   private void handleFunctionCallEdge(List<? extends AExpression> arguments, List<? extends AParameterDeclaration> functionParameters) {
+
     addCurrentCFAEdgeToShortPath(); // functioncalls are important
     for (int i = 0; i < functionParameters.size(); i++) {
       AExpression arg = arguments.get(i);
@@ -353,49 +366,52 @@ public final class ErrorPathShrinker {
    * @return is the assumption part of a switchStatement? */
   private boolean isSwitchStatement(final AExpression assumeExp) {
 
-    // Path can be empty at the end of a functionCall ("if (a) return b;")
-    if (!shortPath.isEmpty()) {
+    // path can be empty at the end of a functionCall ("if (a) return b;")
+    if (!shortPath.isEmpty() && shortPath.iterator().next().getSecond()) {
+      final CFAEdge lastEdge = shortPath.getFirst().getFirst().getCFAEdge();
 
-      //TODO: Fragen ob das so funktioniert?
-      final CFAEdge lastEdge = shortPath.getFirst().getCFAEdge();
+        //check, if the last edge was an assumption
+        if (assumeExp instanceof ABinaryExpression
+            && lastEdge instanceof AssumeEdge) {
+          final AssumeEdge lastAss = (AssumeEdge) lastEdge;
+          final AExpression lastExp = lastAss.getExpression();
 
-      //check, if the last edge was an assumption
-      if (assumeExp instanceof ABinaryExpression
-              && lastEdge instanceof AssumeEdge) {
-        final AssumeEdge lastAss = (AssumeEdge) lastEdge;
-        final AExpression lastExp = lastAss.getExpression();
+          // check, if the last edge was like "a==b"
+          if (lastExp instanceof ABinaryExpression) {
+            final AExpression currentBinExpOp1 =
+                ((ABinaryExpression) assumeExp).getOperand1();
+            final AExpression lastBinExpOp1 =
+                ((ABinaryExpression) lastExp).getOperand1();
 
-        // check, if the last edge was like "a==b"
-        if (lastExp instanceof ABinaryExpression) {
-          final AExpression currentBinExpOp1 =
-                  ((ABinaryExpression) assumeExp).getOperand1();
-          final AExpression lastBinExpOp1 =
-                  ((ABinaryExpression) lastExp).getOperand1();
+            // only the first variable of the assignment is checked
+            final boolean isEqualVarName = currentBinExpOp1.toASTString().
+                equals(lastBinExpOp1.toASTString());
 
-          // only the first variable of the assignment is checked
-          final boolean isEqualVarName = currentBinExpOp1.toASTString().
-                  equals(lastBinExpOp1.toASTString());
+            // check, if lastEdge is the true-branch of "==" or the false-branch of "!="
+            ABinaryExpression aLastExp = ((ABinaryExpression) lastExp);
+            final boolean isEqualOp;
 
-          // check, if lastEdge is the true-branch of "==" or the false-branch of "!="
-          ABinaryExpression aLastExp = ((ABinaryExpression) lastExp);
-          final boolean isEqualOp;
+            if (aLastExp instanceof CBinaryExpression) {
+              final CBinaryExpression.BinaryOperator op =
+                  (CBinaryExpression.BinaryOperator) aLastExp.getOperator();
+              isEqualOp =
+                  (op == CBinaryExpression.BinaryOperator.EQUALS && lastAss.getTruthAssumption())
+                      || (op == CBinaryExpression.BinaryOperator.NOT_EQUALS && !lastAss
+                      .getTruthAssumption());
 
-          if (aLastExp instanceof CBinaryExpression) {
-            final CBinaryExpression.BinaryOperator op = (CBinaryExpression.BinaryOperator) aLastExp.getOperator();
-            isEqualOp = (op == CBinaryExpression.BinaryOperator.EQUALS && lastAss.getTruthAssumption())
-                    || (op == CBinaryExpression.BinaryOperator.NOT_EQUALS && !lastAss.getTruthAssumption());
+            } else {
+              final JBinaryExpression.BinaryOperator op =
+                  (JBinaryExpression.BinaryOperator) aLastExp.getOperator();
+              isEqualOp =
+                  (op == JBinaryExpression.BinaryOperator.EQUALS && lastAss.getTruthAssumption())
+                      || (op == JBinaryExpression.BinaryOperator.NOT_EQUALS && !lastAss
+                      .getTruthAssumption());
 
-          } else {
-            final JBinaryExpression.BinaryOperator op = (JBinaryExpression.BinaryOperator) aLastExp.getOperator();
-            isEqualOp = (op == JBinaryExpression.BinaryOperator.EQUALS && lastAss.getTruthAssumption())
-                    || (op == JBinaryExpression.BinaryOperator.NOT_EQUALS && !lastAss.getTruthAssumption());
-
+            }
+            return (isEqualVarName && isEqualOp);
           }
-
-          return (isEqualVarName && isEqualOp);
         }
       }
-    }
     return false;
   }
 
@@ -488,16 +504,21 @@ public final class ErrorPathShrinker {
 
   /** This method adds the current CFAEdge in front of the shortPath. */
   private void addCurrentCFAEdgeToShortPath() {
-    //Save recent assumptions in own Set
-    HashSet<AExpressionStatement> currentAssumptions = new HashSet<>(assumptions);
 
-    // create an edge with assumptions from current edge, accumulated assumptions
-    currentCFAEdgeWithAssumptions = new CFAEdgeWithAssumptions(currentCFAEdge, currentAssumptions, "" );
-    shortPath.addFirst(currentCFAEdgeWithAssumptions);
+    // when an edge is important, remove the identical edge containing the Boolean value "false" and add the edge again with the Boolean value "true"
+    if (shortPath.getFirst().getFirst() == currentCFAEdgeWithAssumptions) {
+      shortPath.removeFirst();
+    }
+
+    //Add the set of recent assumptions to the important CFAEdgeWithAssumptions
+    currentCFAEdgeWithAssumptions.getExpStmts().addAll(assumptions);
 
     // empty assumptions for fresh accumulation for next edge in short path
     assumptions.clear();
 
+    Pair<CFAEdgeWithAssumptions, Boolean> importantPair = Pair.of(currentCFAEdgeWithAssumptions, Boolean.TRUE);
+
+    shortPath.addFirst(importantPair);
   }
 
 }

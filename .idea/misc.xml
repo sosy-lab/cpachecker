@@ -27,4 +27,32 @@
   <component name="ProjectRootManager" version="2" languageLevel="JDK_1_8" project-jdk-name="1.8" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/bin" />
   </component>
+  <component name="SvnBranchConfigurationManager">
+    <option name="myConfigurationMap">
+      <map>
+        <entry key="$PROJECT_DIR$">
+          <value>
+            <SvnBranchConfiguration>
+              <option name="branchUrls">
+                <list>
+                  <option value="https://svn.sosy-lab.org/software/cpachecker/branches" />
+                  <option value="https://svn.sosy-lab.org/software/cpachecker/html" />
+                  <option value="https://svn.sosy-lab.org/software/cpachecker/orphaned" />
+                  <option value="https://svn.sosy-lab.org/software/cpachecker/tags" />
+                </list>
+              </option>
+              <option name="trunkUrl" value="https://svn.sosy-lab.org/software/cpachecker/trunk" />
+            </SvnBranchConfiguration>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/test/programs/sv-benchmarks">
+          <value>
+            <SvnBranchConfiguration>
+              <option name="trunkUrl" value="https://github.com/sosy-lab/sv-benchmarks" />
+            </SvnBranchConfiguration>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
 </project>
