@@ -1928,10 +1928,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
-  public boolean executeHeapAbstraction(
-      Set<SMGAbstractionBlock> blocks, boolean usesHeapInterpolation)
+  public boolean executeHeapAbstraction(Set<SMGAbstractionBlock> blocks)
       throws SMGInconsistentException {
     final SMGAbstractionManager manager;
+    boolean usesHeapInterpolation = true; // TODO do we need this flag?
     if (usesHeapInterpolation) {
       manager = new SMGAbstractionManager(logger, heap, this, blocks, 2, 2, 2);
     } else {
