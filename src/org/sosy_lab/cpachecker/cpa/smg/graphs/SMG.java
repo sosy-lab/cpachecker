@@ -339,17 +339,18 @@ public class SMG implements UnmodifiableSMG {
    * @return Unmodifiable view on values set.
    */
   @Override
-  public final Set<SMGValue> getValues() {
-    return Collections.unmodifiableSet(values.asSet());
+  public final PersistentSet<SMGValue> getValues() {
+    return values;
   }
 
   /**
    * Getter for obtaining unmodifiable view on objects set. Constant.
+   *
    * @return Unmodifiable view on objects set.
    */
   @Override
-  final public Set<SMGObject> getObjects() {
-    return Collections.unmodifiableSet(objects.asSet());
+  public final PersistentSet<SMGObject> getObjects() {
+    return objects;
   }
 
   /**

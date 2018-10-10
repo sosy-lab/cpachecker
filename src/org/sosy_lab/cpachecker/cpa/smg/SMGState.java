@@ -1998,7 +1998,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
 
     if (change) {
-      for (SMGValue value : ImmutableSet.copyOf(heap.getValues())) {
+      for (SMGValue value : heap.getValues()) {
         if (!trackedValues.contains(value)) {
           heap.removePointsToEdge(value);
           heap.removeValue(value);

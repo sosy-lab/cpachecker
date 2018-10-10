@@ -315,13 +315,13 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
      * TODO: Perhaps introduce a SubSMG class which would be a SMG tied
      * to a certain (Clang)SMG and guaranteed to be a subset of it?
      */
-    Set<SMGObject> stray_objects = new HashSet<>(Sets.difference(getObjects(), seen));
+    Set<SMGObject> stray_objects = new HashSet<>(Sets.difference(getObjects().asSet(), seen));
 
     // Mark all reachable from ExternallyAllocated objects as safe for remove
     markExternallyAllocatedObjects(stray_objects);
 
     Set<SMGObject> unreachableObjects = removeObjects(stray_objects);
-    removeValues(Sets.difference(getValues(), seen_values));
+    removeValues(Sets.difference(getValues().asSet(), seen_values));
 
     if (CLangSMG.performChecks()) {
       CLangSMGConsistencyVerifier.verifyCLangSMG(CLangSMG.logger, this);

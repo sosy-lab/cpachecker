@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -46,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedListCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 
 final public class SMGJoinSubSMGsForAbstraction {
 
@@ -66,8 +66,8 @@ final public class SMGJoinSubSMGsForAbstraction {
       UnmodifiableSMGState pStateOfSmg)
       throws SMGInconsistentException {
 
-    Set<SMGObject> origObjects = ImmutableSet.copyOf(smg.getObjects());
-    Set<SMGValue> origValues = ImmutableSet.copyOf(smg.getValues());
+    PersistentSet<SMGObject> origObjects = smg.getObjects();
+    PersistentSet<SMGValue> origValues = smg.getValues();
 
     long nfo;
     long pfo;
