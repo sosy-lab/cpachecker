@@ -2083,23 +2083,23 @@ cpa.predicate.refinement.maxPrefixLength = 1024
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
 
-# Activate fallback to interpolation. Typically in case of a repeated
-# counterexample.
-cpa.predicate.refinement.newtonrefinement.fallbackToInterpolation = false
-
 # sets the level of the pathformulas to use for abstraction. 
 #   EDGE : Based on Pathformulas of every edge in ARGPath
 #   BLOCK: Based on Pathformulas at Abstractionstates
-cpa.predicate.refinement.newtonrefinement.pathFormulaAbstractionLevel = BLOCK
+cpa.predicate.refinement.newtonrefinement.abstractionLevel = BLOCK
   enum:     [BLOCK, EDGE]
 
-# use live variables in order to abstract the predicates produced while
-# NewtonRefinement
-cpa.predicate.refinement.newtonrefinement.useLiveVariables = true
+# Activate fallback to interpolation. Typically in case of a repeated
+# counterexample.
+cpa.predicate.refinement.newtonrefinement.fallback = false
 
 # use unsatisfiable Core in order to abstract the predicates produced while
 # NewtonRefinement
-cpa.predicate.refinement.newtonrefinement.useUnsatCore = true
+cpa.predicate.refinement.newtonrefinement.infeasibleCore = true
+
+# use live variables in order to abstract the predicates produced while
+# NewtonRefinement
+cpa.predicate.refinement.newtonrefinement.liveVariables = true
 
 # use heuristic to extract predicates from the CFA statically on first
 # refinement

@@ -379,19 +379,26 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
     } else if (useNewtonRefinement) {
       assert newtonManager.isPresent();
-      try {
-        logger.log(Level.FINEST, "Starting Newton-based refinement");
-        return performNewtonRefinement(allStatesTrace, formulas);
-      } catch (RefinementFailedException e) {
-        if (e.getReason() == Reason.SequenceOfAssertionsToWeak
-            && newtonManager.get().fallbackToInterpolation()) {
-          logger.log(
-              Level.FINEST,
-              "Fallback from Newton-based refinement to interpolation-based refinement");
-          return performInterpolatingRefinement(abstractionStatesTrace, formulas);
-        } else {
-          throw e;
+      if (!repeatedCounterexample) {
+        try {
+          logger.log(Level.FINEST, "Starting Newton-based refinement");
+          return performNewtonRefinement(allStatesTrace, formulas);
+        } catch (RefinementFailedException e) {
+          if (e.getReason() == Reason.SequenceOfAssertionsToWeak
+              && newtonManager.get().fallbackToInterpolation()) {
+            logger.log(
+                Level.FINEST,
+                "Fallback from Newton-based refinement to interpolation-based refinement");
+            return performInterpolatingRefinement(abstractionStatesTrace, formulas);
+          } else {
+            throw e;
+          }
         }
+      } else {
+        logger.log(
+            Level.FINEST,
+            "Fallback from Newton-based refinement to interpolation-based refinement");
+        return performInterpolatingRefinement(abstractionStatesTrace, formulas);
       }
     } else if (useUCBRefinement) {
       logger.log(Level.FINEST, "Starting unsat-core-based refinement");
