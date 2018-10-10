@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions.SMGExportLevel;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
@@ -92,16 +91,14 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
     return prec(
         (UnmodifiableSMGState) pState,
         (SMGPrecision) pPrecision,
-        AbstractStates.extractStateByType(pFullState, LocationState.class));
+        AbstractStates.extractLocation(pFullState));
   }
 
   private Optional<PrecisionAdjustmentResult> prec(
-      UnmodifiableSMGState pState, SMGPrecision pPrecision, LocationState location)
-      throws CPAException {
+      UnmodifiableSMGState pState, SMGPrecision pPrecision, CFANode node) throws CPAException {
 
     boolean allowsFieldAbstraction = pPrecision.getAbstractionOptions().allowsFieldAbstraction();
-    boolean allowsHeapAbstraction =
-        pPrecision.allowsHeapAbstractionOnNode(location.getLocationNode());
+    boolean allowsHeapAbstraction = pPrecision.allowsHeapAbstractionOnNode(node);
     boolean allowsStackAbstraction = pPrecision.getAbstractionOptions().allowsStackAbstraction();
 
     if (!allowsFieldAbstraction && !allowsHeapAbstraction && !allowsStackAbstraction) {
@@ -112,7 +109,6 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
 
     UnmodifiableSMGState result = pState;
     SMGState newState = pState.copyOf();
-    CFANode node = location.getLocationNode();
 
     if (allowsStackAbstraction) {
       Set<MemoryLocation> stackVariables = pPrecision.getTrackedStackVariablesOnNode(node);
