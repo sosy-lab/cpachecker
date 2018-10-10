@@ -174,16 +174,16 @@ public class SMGEdgeInterpolator {
 
     for (SMGState state : successors) {
 
-      if (currentPrecision.allowsStackAbstraction()) {
+      if (currentPrecision.getAbstractionOptions().allowsStackAbstraction()) {
         interpolateStackVariables(state, remainingErrorPath, currentEdge, pAllTargets);
       }
 
-      if (currentPrecision.allowsFieldAbstraction()) {
+      if (currentPrecision.getAbstractionOptions().allowsFieldAbstraction()) {
         interpolateFields(state, remainingErrorPath, currentEdge, pAllTargets);
       }
 
       Set<SMGAbstractionBlock> abstractionBlocks = ImmutableSet.of();
-      if (currentPrecision.allowsHeapAbstraction()) {
+      if (currentPrecision.getAbstractionOptions().allowsHeapAbstraction()) {
         SMGState originalState = state.copyOf();
         SMGHeapAbstractionInterpoaltionResult heapInterpoaltionResult =
             interpolateHeapAbstraction(state, remainingErrorPath,

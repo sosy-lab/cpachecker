@@ -59,16 +59,12 @@ public abstract class SMGPrecision implements Precision {
   public abstract SMGPrecision join(SMGPrecision pPrecision);
 
   public static SMGPrecision createRefineablePrecision(SMGPrecision pPrecision) {
-    PersistentMultimap<CFANode, SMGMemoryPath> emptyMemoryPaths = PersistentMultimap.of();
-    PersistentMultimap<CFANode, SMGAbstractionBlock> emptyAbstractionBlocks = PersistentMultimap.of();
-    PersistentMultimap<CFANode, MemoryLocation> emptyStackVariable = PersistentMultimap.of();
-
     return new SMGRefineablePrecision(
-        new SMGPrecisionAbstractionOptions(pPrecision.allowsHeapAbstraction(), true, true),
+        new SMGPrecisionAbstractionOptions(pPrecision.options.allowsHeapAbstraction(), true, true),
         pPrecision.getBlockOperator(),
-        emptyMemoryPaths,
-        emptyAbstractionBlocks,
-        emptyStackVariable);
+        PersistentMultimap.of(),
+        PersistentMultimap.of(),
+        PersistentMultimap.of());
   }
 
   public abstract boolean isTracked(SMGMemoryPath pPath, CFANode pCfaNode);
@@ -83,19 +79,7 @@ public abstract class SMGPrecision implements Precision {
     return options.allowsHeapAbstraction() && blockOperator.isBlockEnd(pCfaNode, threshold);
   }
 
-  public final boolean allowsHeapAbstraction() {
-    return options.allowsHeapAbstraction();
-  }
-
-  public final boolean allowsFieldAbstraction() {
-    return options.allowsFieldAbstraction();
-  }
-
-  public final boolean allowsStackAbstraction() {
-    return options.allowsStackAbstraction();
-  }
-
-  protected SMGPrecisionAbstractionOptions getAbstractionOptions() {
+  public SMGPrecisionAbstractionOptions getAbstractionOptions() {
     return options;
   }
 
@@ -125,7 +109,7 @@ public abstract class SMGPrecision implements Precision {
 
     @Override
     public boolean usesHeapInterpolation() {
-      return allowsHeapAbstraction();
+      return getAbstractionOptions().allowsHeapAbstraction();
     }
 
     @Override
@@ -245,7 +229,7 @@ public abstract class SMGPrecision implements Precision {
     }
   }
 
-  private static final class SMGPrecisionAbstractionOptions {
+  public static final class SMGPrecisionAbstractionOptions {
 
     private final boolean heapAbstraction;
     private final boolean fieldAbstraction;
