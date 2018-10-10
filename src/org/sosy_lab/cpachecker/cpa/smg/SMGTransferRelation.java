@@ -480,35 +480,33 @@ public class SMGTransferRelation
   protected Collection<SMGState> handleAssumption(
       CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
       throws CPATransferException {
-    return handleAssumption(state, expression, cfaEdge, truthAssumption, true);
+    return handleAssumption(expression, cfaEdge, truthAssumption);
   }
 
-  private List<SMGState> handleAssumption(SMGState smgState, CExpression expression, CFAEdge cfaEdge,
-      boolean truthValue, boolean createNewStateIfNecessary) throws CPATransferException {
-
+  private List<SMGState> handleAssumption(CExpression expression, CFAEdge cfaEdge,
+      boolean truthValue) throws CPATransferException {
     // FIXME Quickfix, simplify expressions for sv-comp, later assumption handling has to be refactored to be able to handle complex expressions
     expression = eliminateOuterEquals(expression);
 
     // get the value of the expression (either true[-1], false[0], or unknown[null])
-    AssumeVisitor visitor = expressionEvaluator.getAssumeVisitor(cfaEdge, smgState);
+    AssumeVisitor visitor = expressionEvaluator.getAssumeVisitor(cfaEdge, state);
     List<SMGState> result = new ArrayList<>();
     for (SMGValueAndState valueAndState : expression.accept(visitor)) {
 
       SMGSymbolicValue value = valueAndState.getObject();
-      smgState = valueAndState.getSmgState();
+      state = valueAndState.getSmgState();
 
       if (!value.isUnknown()) {
         if ((truthValue && value.equals(SMGKnownSymValue.TRUE))
             || (!truthValue && value.equals(SMGZeroValue.INSTANCE))) {
-          result.add(smgState);
+          result.add(state);
         } else {
           // This signals that there are no new States reachable from this State i. e. the
           // Assumption does not hold.
         }
       } else {
         result.addAll(
-            deriveFurtherInformationFromAssumption(smgState, visitor, cfaEdge, truthValue, expression,
-                createNewStateIfNecessary));
+            deriveFurtherInformationFromAssumption(visitor, cfaEdge, truthValue, expression));
       }
     }
 
@@ -524,25 +522,21 @@ public class SMGTransferRelation
   }
 
   private List<SMGState> deriveFurtherInformationFromAssumption(
-      SMGState pSmgState,
       AssumeVisitor visitor,
       CFAEdge cfaEdge,
       boolean truthValue,
-      CExpression expression,
-      boolean createNewStateIfNecessary)
+      CExpression expression)
       throws CPATransferException {
 
-    SMGState smgState = pSmgState;
-
-    boolean impliesEqOn = visitor.impliesEqOn(truthValue, smgState);
-    boolean impliesNeqOn = visitor.impliesNeqOn(truthValue, smgState);
+    boolean impliesEqOn = visitor.impliesEqOn(truthValue, state);
+    boolean impliesNeqOn = visitor.impliesNeqOn(truthValue, state);
 
     SMGSymbolicValue val1ImpliesOn;
     SMGSymbolicValue val2ImpliesOn;
 
     if(impliesEqOn || impliesNeqOn ) {
-      val1ImpliesOn = visitor.impliesVal1(smgState);
-      val2ImpliesOn = visitor.impliesVal2(smgState);
+      val1ImpliesOn = visitor.impliesVal1(state);
+      val2ImpliesOn = visitor.impliesVal2(state);
     } else {
       val1ImpliesOn = SMGUnknownValue.INSTANCE;
       val2ImpliesOn = SMGUnknownValue.INSTANCE;
@@ -551,7 +545,7 @@ public class SMGTransferRelation
     List<SMGState> result = new ArrayList<>();
 
     for (SMGExplicitValueAndState explicitValueAndState :
-        expressionEvaluator.evaluateExplicitValue(smgState, cfaEdge, expression)) {
+        expressionEvaluator.evaluateExplicitValue(state, cfaEdge, expression)) {
 
       SMGExplicitValue explicitValue = explicitValueAndState.getObject();
       SMGState explicitSmgState = explicitValueAndState.getSmgState();
@@ -559,8 +553,7 @@ public class SMGTransferRelation
       if (explicitValue.isUnknown()) {
 
         // Don't continuously create new states when strengthening.
-        SMGState newState =
-            createNewStateIfNecessary ? explicitSmgState.copyOf() : explicitSmgState;
+        SMGState newState = explicitSmgState.copyOf();
 
         if (!val1ImpliesOn.isUnknown() && !val2ImpliesOn.isUnknown()) {
           if (impliesEqOn) {
@@ -1214,16 +1207,14 @@ public class SMGTransferRelation
       assumeDesc.append(assume.toASTString());
 
       // only create new SMGState if necessary
-      List<SMGState> newElements =
-          handleAssumption(newElement, assume, pCfaEdge, true, pElement == newElement);
-
-      assert newElements.size() < 2;
+      state = newElement; // handleAssumptions accesses 'state'
+      List<SMGState> newElements = handleAssumption(assume, pCfaEdge, true);
 
       if (newElements.isEmpty()) {
         newElement = null;
         break;
       } else {
-        newElement = newElements.get(0).withViolationsOf(newElement);
+        newElement = Iterables.getOnlyElement(newElements).withViolationsOf(newElement);
       }
     }
 
