@@ -1968,7 +1968,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   public boolean forgetNonTrackedHve(Set<SMGMemoryPath> pMempaths) {
 
-    Set<SMGEdgeHasValue> trackkedHves = new HashSet<>(pMempaths.size());
+    Set<SMGEdgeHasValue> trackkedHves = new HashSet<>();
     Set<SMGValue> trackedValues = new HashSet<>();
     trackedValues.add(SMGZeroValue.INSTANCE);
 

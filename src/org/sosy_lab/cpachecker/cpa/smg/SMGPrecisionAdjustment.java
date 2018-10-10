@@ -27,7 +27,6 @@ import com.google.common.base.Function;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Optional;
-import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -41,12 +40,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions.SMGExportLevel;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
@@ -115,8 +112,8 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
     SMGState newState = pState.copyOf();
 
     if (allowsStackAbstraction) {
-      Set<MemoryLocation> stackVariables = pPrecision.getTrackedStackVariablesOnNode(node);
-      boolean stackAbstractionChange = newState.forgetNonTrackedStackVariables(stackVariables);
+      boolean stackAbstractionChange =
+          newState.forgetNonTrackedStackVariables(pPrecision.getTrackedStackVariablesOnNode(node));
 
       if (stackAbstractionChange) {
         String name =
@@ -132,8 +129,8 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
 
     if (allowsFieldAbstraction) {
 
-      Set<SMGMemoryPath> mempaths = pPrecision.getTrackedMemoryPathsOnNode(node);
-      boolean fieldAbstractionChange = newState.forgetNonTrackedHve(mempaths);
+      boolean fieldAbstractionChange =
+          newState.forgetNonTrackedHve(pPrecision.getTrackedMemoryPathsOnNode(node));
 
       if (fieldAbstractionChange) {
         String name = String.format("%03d-%03d-after-field-abstraction", result.getId(), newState.getId());
@@ -149,9 +146,9 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
 
     if (allowsHeapAbstraction) {
 
-      boolean refineablePrecision = pPrecision.usesHeapInterpolation();
       boolean heapAbstractionChange =
-          newState.executeHeapAbstraction(pPrecision.getAbstractionBlocks(node), refineablePrecision);
+          newState.executeHeapAbstraction(
+              pPrecision.getAbstractionBlocks(node), pPrecision.usesHeapInterpolation());
 
       if (heapAbstractionChange) {
         String name = String.format("%03d-before-heap-abstraction", result.getId());
