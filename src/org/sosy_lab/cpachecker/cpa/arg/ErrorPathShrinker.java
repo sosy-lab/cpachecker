@@ -149,10 +149,10 @@ public final class ErrorPathShrinker {
   }
 
   // this function is probably not needed, as the full path is believed to always end in the target state
-  /** This method iterates a path and copies all the edges until
+  /* This method iterates a path and copies all the edges until
    * the target state into the result.
    *
-   * param path the Path to iterate */
+   * @param path the Path to iterate */
   /*
   private static List<CFAEdge> getEdgesUntilTarget(final ARGPath path) {
     int targetPos = indexOf(path.asStatesList(), IS_TARGET_STATE);

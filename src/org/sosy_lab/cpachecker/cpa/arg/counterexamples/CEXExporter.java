@@ -168,7 +168,6 @@ public class CEXExporter {
     }
 
     final ARGPath targetPath = counterexample.getTargetPath();
-    final CFAPathWithAssumptions targetPAssum = counterexample.getCFAPathWithAssignments();
     final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge = Predicates.in(
         new HashSet<>(targetPath.getStatePairs()));
     final ARGState rootState = targetPath.getFirstState();
@@ -191,7 +190,11 @@ public class CEXExporter {
       // that are important for the error, it is not a complete path,
       // only some nodes of the targetPath are part of it
       ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
-      List<Pair<CFAEdgeWithAssumptions, Boolean>>
+      CFAPathWithAssumptions targetPAssum = null;
+      if (counterexample.isPreciseCounterExample()) {
+        targetPAssum = counterexample.getCFAPathWithAssignments();
+      }
+        List<Pair<CFAEdgeWithAssumptions, Boolean>>
           shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath, targetPAssum);
 
       // present only the important edges in the Counterxample.core.txt output file
