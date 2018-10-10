@@ -511,12 +511,18 @@ public final class ErrorPathShrinker {
     }
 
     //Add the set of recent assumptions to the important CFAEdgeWithAssumptions
-    currentCFAEdgeWithAssumptions.getExpStmts().addAll(assumptions);
+    assumptions.addAll(currentCFAEdgeWithAssumptions.getExpStmts());
+
+    Pair<CFAEdgeWithAssumptions, Boolean> importantPair =
+        Pair.of(
+            new CFAEdgeWithAssumptions(
+                currentCFAEdgeWithAssumptions.getCFAEdge(),
+                assumptions,
+                currentCFAEdgeWithAssumptions.getComment()),
+            Boolean.TRUE);
 
     // empty assumptions for fresh accumulation for next edge in short path
-    assumptions.clear();
-
-    Pair<CFAEdgeWithAssumptions, Boolean> importantPair = Pair.of(currentCFAEdgeWithAssumptions, Boolean.TRUE);
+    assumptions = new HashSet<>();
 
     shortPath.addFirst(importantPair);
   }
