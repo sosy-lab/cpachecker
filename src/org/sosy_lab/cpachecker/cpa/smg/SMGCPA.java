@@ -135,8 +135,8 @@ public class SMGCPA
 
     smgPredicateManager = new SMGPredicateManager(config, logger, pShutdownNotifier);
     transferRelation =
-        SMGTransferRelation.createTransferRelation(logger, machineModel,
-            exportOptions, smgPredicateManager, blockOperator, options);
+        SMGTransferRelation.createTransferRelation(
+            logger, machineModel, exportOptions, smgPredicateManager, options);
   }
 
   public void setTransferRelationToRefinement(PathTemplate pNewPathTemplate) {
@@ -195,7 +195,7 @@ public class SMGCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return new SMGPrecisionAdjustment(logger, exportOptions);
+    return new SMGPrecisionAdjustment(logger, exportOptions, blockOperator);
   }
 
   @Override

@@ -110,7 +110,6 @@ import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -123,7 +122,6 @@ public class SMGTransferRelation
   private final MachineModel machineModel;
   private final SMGOptions options;
   private final SMGExportDotOption exportSMGOptions;
-  private final BlockOperator blockOperator;
   private final SMGPredicateManager smgPredicateManager;
 
   final SMGRightHandSideEvaluator expressionEvaluator;
@@ -132,14 +130,17 @@ public class SMGTransferRelation
 
   public final SMGBuiltins builtins;
 
-  private SMGTransferRelation(LogManager pLogger,
-      MachineModel pMachineModel, SMGExportDotOption pExportOptions, SMGTransferRelationKind pKind,
-      SMGPredicateManager pSMGPredicateManager, BlockOperator pBlockOperator, SMGOptions pOptions) {
+  private SMGTransferRelation(
+      LogManager pLogger,
+      MachineModel pMachineModel,
+      SMGExportDotOption pExportOptions,
+      SMGTransferRelationKind pKind,
+      SMGPredicateManager pSMGPredicateManager,
+      SMGOptions pOptions) {
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
     expressionEvaluator = new SMGRightHandSideEvaluator(this, logger, machineModel, pOptions);
     smgPredicateManager = pSMGPredicateManager;
-    blockOperator = pBlockOperator;
     options = pOptions;
     exportSMGOptions = pExportOptions;
     kind = pKind;
@@ -147,39 +148,52 @@ public class SMGTransferRelation
   }
 
   public static SMGTransferRelation createTransferRelationForCEX(
-      LogManager pLogger, MachineModel pMachineModel, SMGPredicateManager pSMGPredicateManager,
-      BlockOperator pBlockOperator, SMGOptions pOptions) {
-    return new SMGTransferRelation( pLogger, pMachineModel,
-            SMGExportDotOption.getNoExportInstance(), SMGTransferRelationKind.STATIC,
-            pSMGPredicateManager, pBlockOperator, pOptions);
+      LogManager pLogger,
+      MachineModel pMachineModel,
+      SMGPredicateManager pSMGPredicateManager,
+      SMGOptions pOptions) {
+    return new SMGTransferRelation(
+        pLogger,
+        pMachineModel,
+        SMGExportDotOption.getNoExportInstance(),
+        SMGTransferRelationKind.STATIC,
+        pSMGPredicateManager,
+        pOptions);
   }
 
-  public static SMGTransferRelation createTransferRelation(LogManager pLogger,
-      MachineModel pMachineModel, SMGExportDotOption pExportOptions,
+  public static SMGTransferRelation createTransferRelation(
+      LogManager pLogger,
+      MachineModel pMachineModel,
+      SMGExportDotOption pExportOptions,
       SMGPredicateManager pSMGPredicateManager,
-      BlockOperator pBlockOperator, SMGOptions pOptions) {
-    return new SMGTransferRelation( pLogger, pMachineModel, pExportOptions,
-        SMGTransferRelationKind.STATIC, pSMGPredicateManager, pBlockOperator, pOptions);
+      SMGOptions pOptions) {
+    return new SMGTransferRelation(
+        pLogger,
+        pMachineModel,
+        pExportOptions,
+        SMGTransferRelationKind.STATIC,
+        pSMGPredicateManager,
+        pOptions);
   }
 
   public static SMGTransferRelation createTransferRelationForInterpolation(
       LogManager pLogger,
-      MachineModel pMachineModel, SMGPredicateManager pSMGPredicateManager,
-      BlockOperator pBlockOperator, SMGOptions pOptions) {
-    return new SMGTransferRelation(pLogger, pMachineModel,
-            SMGExportDotOption.getNoExportInstance(), SMGTransferRelationKind.REFINEMENT,
-            pSMGPredicateManager, pBlockOperator, pOptions);
+      MachineModel pMachineModel,
+      SMGPredicateManager pSMGPredicateManager,
+      SMGOptions pOptions) {
+    return new SMGTransferRelation(
+        pLogger,
+        pMachineModel,
+        SMGExportDotOption.getNoExportInstance(),
+        SMGTransferRelationKind.REFINEMENT,
+        pSMGPredicateManager,
+        pOptions);
   }
 
   @Override
   protected Collection<SMGState> postProcessing(Collection<SMGState> successors, CFAEdge edge) {
     plotWhenConfigured(successors, edge.getDescription(), SMGExportLevel.INTERESTING);
-    successors =
-        Collections2.transform(
-            successors,
-            s ->
-                checkAndSetErrorRelation(
-                    s.copyWithBlockEnd(blockOperator.isBlockEnd(edge.getSuccessor(), 0))));
+    successors = Collections2.transform(successors, this::checkAndSetErrorRelation);
     logger.log(
         Level.ALL,
         "state with id",

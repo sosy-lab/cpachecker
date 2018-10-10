@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -59,12 +60,14 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
   private final Statistics statistics;
   private final LogManager logger;
   private final SMGExportDotOption exportOptions;
+  private final BlockOperator blockOperator;
 
-
-  public SMGPrecisionAdjustment(LogManager pLogger, SMGExportDotOption pExportOptions) {
+  public SMGPrecisionAdjustment(
+      LogManager pLogger, SMGExportDotOption pExportOptions, BlockOperator pBlockOperator) {
 
     logger = pLogger;
     exportOptions = pExportOptions;
+    blockOperator = pBlockOperator;
 
     statistics = new Statistics() {
       @Override
@@ -88,10 +91,11 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
       UnmodifiableReachedSet pStates, Function<AbstractState, AbstractState> pStateProjection, AbstractState pFullState)
           throws CPAException, InterruptedException {
 
-    return prec(
-        (UnmodifiableSMGState) pState,
-        (SMGPrecision) pPrecision,
-        AbstractStates.extractLocation(pFullState));
+    CFANode node = AbstractStates.extractLocation(pFullState);
+    UnmodifiableSMGState state = (UnmodifiableSMGState) pState;
+    state = state.copyWithBlockEnd(blockOperator.isBlockEnd(node, 0));
+
+    return prec(state, (SMGPrecision) pPrecision, node);
   }
 
   private Optional<PrecisionAdjustmentResult> prec(

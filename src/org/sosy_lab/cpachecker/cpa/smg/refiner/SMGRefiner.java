@@ -69,7 +69,6 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.refinement.InterpolationTree;
 import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -125,13 +124,13 @@ public class SMGRefiner implements Refiner {
     smgCpa = pSmgCpa;
     pathExtractor = pPathExtractor;
     SMGPredicateManager predicateManager = smgCpa.getPredicateManager();
-    BlockOperator blockOperator = smgCpa.getBlockOperator();
 
     smgCpa.injectRefinablePrecision();
     smgCpa.setTransferRelationToRefinement(exportRefinementSMGs);
 
     SMGStrongestPostOperator strongestPostOpForCEX =
-        SMGStrongestPostOperator.getSMGStrongestPostOperatorForCEX(pLogger, pCfa, predicateManager, blockOperator, smgCpa.getOptions());
+        SMGStrongestPostOperator.getSMGStrongestPostOperatorForCEX(
+            pLogger, pCfa, predicateManager, smgCpa.getOptions());
 
     UnmodifiableSMGState initialState =
         smgCpa.getInitialState(pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
@@ -142,8 +141,8 @@ public class SMGRefiner implements Refiner {
     interpolantManager = new SMGInterpolantManager(smgCpa.getMachineModel(), logger, pCfa, smgCpa.getOptions());
 
     SMGStrongestPostOperator strongestPostOpForInterpolation =
-        SMGStrongestPostOperator.getSMGStrongestPostOperatorForInterpolation(pLogger, pCfa,
-            predicateManager, blockOperator, smgCpa.getOptions());
+        SMGStrongestPostOperator.getSMGStrongestPostOperatorForInterpolation(
+            pLogger, pCfa, predicateManager, smgCpa.getOptions());
 
     SMGFeasibilityChecker checkerForInterpolation =
         new SMGFeasibilityChecker(strongestPostOpForInterpolation, logger, pCfa, initialState, automatonCpas, smgCpa.getBlockOperator());
