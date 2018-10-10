@@ -106,6 +106,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -114,7 +115,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class SMGTransferRelation
-    extends ForwardingTransferRelation<Collection<SMGState>, SMGState, Precision> {
+    extends ForwardingTransferRelation<Collection<SMGState>, SMGState, SMGPrecision> {
 
   private final static AtomicInteger ID_COUNTER = new AtomicInteger(0);
 
@@ -175,15 +176,16 @@ public class SMGTransferRelation
     plotWhenConfigured(successors, edge.getDescription(), SMGExportLevel.INTERESTING);
     successors =
         Collections2.transform(
-            successors, s -> s.copyWithBlockEnd(blockOperator.isBlockEnd(edge.getSuccessor(), 0)));
+            successors,
+            s ->
+                checkAndSetErrorRelation(
+                    s.copyWithBlockEnd(blockOperator.isBlockEnd(edge.getSuccessor(), 0))));
     logger.log(
         Level.ALL,
         "state with id",
         state.getId(),
         "has successors with ids",
         Collections2.transform(successors, UnmodifiableSMGState::getId));
-    // Verify predicate on error feasibility
-    successors = Collections2.transform(successors, this::checkAndSetErrorRelation);
     return successors;
   }
 
@@ -251,15 +253,11 @@ public class SMGTransferRelation
       CFunctionCall summaryExpr,
       String callerFunctionName)
       throws CPATransferException {
-    Collection<SMGState> successors = handleFunctionReturn(state, functionReturnEdge);
+    Collection<SMGState> successors = handleFunctionReturn(functionReturnEdge);
     if (options.isCheckForMemLeaksAtEveryFrameDrop()) {
       for (SMGState successor : successors) {
-        String name =
-            String.format(
-                "%03d-%03d-%03d",
-                successor.getPredecessorId(), successor.getId(), ID_COUNTER.getAndIncrement());
         SMGUtils.plotWhenConfigured(
-            "beforePrune" + name,
+            "beforePrune" + getDotExportFileName(successor),
             successor,
             functionReturnEdge.getDescription(),
             logger,
@@ -271,13 +269,12 @@ public class SMGTransferRelation
     return successors;
   }
 
-  private List<SMGState> handleFunctionReturn(
-      UnmodifiableSMGState smgState, CFunctionReturnEdge functionReturnEdge)
+  private List<SMGState> handleFunctionReturn(CFunctionReturnEdge functionReturnEdge)
       throws CPATransferException {
 
     CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
     CFunctionCall exprOnSummary = summaryEdge.getExpression();
-    SMGState newState = smgState.copyOf();
+    SMGState newState = state.copyOf();
 
     assert Iterables.getLast(newState.getHeap().getStackFrames())
         .getFunctionDeclaration()
