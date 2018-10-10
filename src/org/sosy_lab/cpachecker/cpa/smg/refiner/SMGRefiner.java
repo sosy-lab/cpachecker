@@ -125,8 +125,7 @@ public class SMGRefiner implements Refiner {
     pathExtractor = pPathExtractor;
     SMGPredicateManager predicateManager = smgCpa.getPredicateManager();
 
-    smgCpa.injectRefinablePrecision();
-    smgCpa.setTransferRelationToRefinement(exportRefinementSMGs);
+    smgCpa.enableRefinement(exportRefinementSMGs);
 
     SMGStrongestPostOperator strongestPostOpForCEX =
         SMGStrongestPostOperator.getSMGStrongestPostOperatorForCEX(

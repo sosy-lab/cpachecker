@@ -141,12 +141,9 @@ public class SMGCPA
    *
    * <p>This method should only be called once before starting the analysis.
    */
-  public void setTransferRelationToRefinement(PathTemplate pNewPathTemplate) {
+  public void enableRefinement(PathTemplate pNewPathTemplate) {
     exportOptions.changeToRefinement(pNewPathTemplate);
     kind = SMGTransferRelationKind.REFINEMENT;
-  }
-
-  public void injectRefinablePrecision() {
     // replace the full precision with an empty, refinable precision
     precision = SMGPrecision.createRefineablePrecision(precision);
   }
