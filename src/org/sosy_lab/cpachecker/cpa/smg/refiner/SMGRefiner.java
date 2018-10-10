@@ -136,7 +136,7 @@ public class SMGRefiner implements Refiner {
         smgCpa.getInitialState(pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
 
     checker =
-        new SMGFeasibilityChecker(strongestPostOpForCEX, logger, pCfa, initialState, automatonCpas, smgCpa.getBlockOperator());
+        new SMGFeasibilityChecker(strongestPostOpForCEX, logger, pCfa, initialState, automatonCpas);
 
     interpolantManager = new SMGInterpolantManager(smgCpa.getMachineModel(), logger, pCfa, smgCpa.getOptions());
 
@@ -145,7 +145,8 @@ public class SMGRefiner implements Refiner {
             pLogger, pCfa, predicateManager, smgCpa.getOptions());
 
     SMGFeasibilityChecker checkerForInterpolation =
-        new SMGFeasibilityChecker(strongestPostOpForInterpolation, logger, pCfa, initialState, automatonCpas, smgCpa.getBlockOperator());
+        new SMGFeasibilityChecker(
+            strongestPostOpForInterpolation, logger, pCfa, initialState, automatonCpas);
 
     SMGEdgeInterpolator edgeInterpolator =
         new SMGEdgeInterpolator(checkerForInterpolation, strongestPostOpForInterpolation,

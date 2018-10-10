@@ -102,7 +102,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
       UnmodifiableSMGState pState, SMGPrecision pPrecision, CFANode node) throws CPAException {
 
     boolean allowsFieldAbstraction = pPrecision.getAbstractionOptions().allowsFieldAbstraction();
-    boolean allowsHeapAbstraction = pPrecision.allowsHeapAbstractionOnNode(node);
+    boolean allowsHeapAbstraction = pPrecision.allowsHeapAbstractionOnNode(node, blockOperator);
     boolean allowsStackAbstraction = pPrecision.getAbstractionOptions().allowsStackAbstraction();
 
     if (!allowsFieldAbstraction && !allowsHeapAbstraction && !allowsStackAbstraction) {

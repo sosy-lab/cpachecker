@@ -77,19 +77,14 @@ public class SMGEdgeInterpolator {
    */
   private final SMGFeasibilityChecker checker;
 
-  /**
-   * the number of interpolations
-   */
   private int numberOfInterpolationQueries = 0;
 
 //  private final SMGState initialState;
 
   private final SMGEdgeHeapAbstractionInterpolator heapAbstractionInterpolator;
 
-  /**
-   * the shutdownNotifier in use
-   */
   private final ShutdownNotifier shutdownNotifier;
+  private final BlockOperator blockOperator;
 
   public SMGEdgeInterpolator(SMGFeasibilityChecker pFeasibilityChecker,
       SMGStrongestPostOperator pStrongestPostOperator, SMGInterpolantManager pInterpolantManager,
@@ -100,10 +95,11 @@ public class SMGEdgeInterpolator {
     postOperator = pStrongestPostOperator;
     interpolantManager = pInterpolantManager;
 
-    strongPrecision = SMGPrecision.createStaticPrecision(false, pBlockOperator);
+    strongPrecision = SMGPrecision.createStaticPrecision(false);
     shutdownNotifier = pShutdownNotifier;
+    blockOperator = pBlockOperator;
     heapAbstractionInterpolator =
-        new SMGEdgeHeapAbstractionInterpolator(pLogger, pFeasibilityChecker);
+        new SMGEdgeHeapAbstractionInterpolator(pLogger, pFeasibilityChecker, pBlockOperator);
   }
 
   public List<SMGInterpolant> deriveInterpolant(CFAEdge pCurrentEdge,
@@ -156,7 +152,8 @@ public class SMGEdgeInterpolator {
     SMGPrecision currentPrecision = extractPrecisionByType(
             pReached.asReachedSet().getPrecision(pSuccessorARGstate), SMGPrecision.class);
     if (noChange
-        && !currentPrecision.allowsHeapAbstractionOnNode(currentEdge.getPredecessor())) {
+        && !currentPrecision.allowsHeapAbstractionOnNode(
+            currentEdge.getPredecessor(), blockOperator)) {
       return Collections.singletonList(pInputInterpolant);
     }
 
@@ -164,8 +161,10 @@ public class SMGEdgeInterpolator {
     // (e.g. function arguments, returned variables)
     // then return the input interpolant with those renamings
     boolean onlySuccessor = successors.size() == 1;
-    if (onlySuccessor && isOnlyVariableRenamingEdge(pCurrentEdge)
-        && !currentPrecision.allowsHeapAbstractionOnNode(currentEdge.getPredecessor())) {
+    if (onlySuccessor
+        && isOnlyVariableRenamingEdge(pCurrentEdge)
+        && !currentPrecision.allowsHeapAbstractionOnNode(
+            currentEdge.getPredecessor(), blockOperator)) {
       return Collections.singletonList(interpolantManager.createInterpolant(Iterables.getOnlyElement(successors)));
     }
 

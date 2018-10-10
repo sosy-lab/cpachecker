@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
 public class SMGFeasibilityChecker {
 
@@ -69,12 +68,11 @@ public class SMGFeasibilityChecker {
       LogManager pLogger,
       CFA pCfa,
       UnmodifiableSMGState pInitialState,
-      Set<ControlAutomatonCPA> pAutomatonCPA,
-      BlockOperator pBlockOperator) {
+      Set<ControlAutomatonCPA> pAutomatonCPA) {
     strongestPostOp = pStrongestPostOp;
     initialState = pInitialState;
     logger = pLogger;
-    precision = SMGPrecision.createStaticPrecision(false, pBlockOperator);
+    precision = SMGPrecision.createStaticPrecision(false);
     mainFunction = pCfa.getMainFunction();
     automatonCPA = pAutomatonCPA;
   }
