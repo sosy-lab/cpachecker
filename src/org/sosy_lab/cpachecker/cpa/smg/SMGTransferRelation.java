@@ -126,68 +126,23 @@ public class SMGTransferRelation
 
   final SMGRightHandSideEvaluator expressionEvaluator;
 
-  public SMGTransferRelationKind kind;
+  private final SMGTransferRelationKind kind;
 
-  public final SMGBuiltins builtins;
-
-  private SMGTransferRelation(
+  public SMGTransferRelation(
       LogManager pLogger,
       MachineModel pMachineModel,
       SMGExportDotOption pExportOptions,
       SMGTransferRelationKind pKind,
       SMGPredicateManager pSMGPredicateManager,
       SMGOptions pOptions) {
+    kind = pKind;
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
-    expressionEvaluator = new SMGRightHandSideEvaluator(this, logger, machineModel, pOptions);
+    expressionEvaluator =
+        new SMGRightHandSideEvaluator(logger, machineModel, pOptions, kind, pExportOptions);
     smgPredicateManager = pSMGPredicateManager;
     options = pOptions;
     exportSMGOptions = pExportOptions;
-    kind = pKind;
-    builtins = new SMGBuiltins(this, options, exportSMGOptions, machineModel, logger);
-  }
-
-  public static SMGTransferRelation createTransferRelationForCEX(
-      LogManager pLogger,
-      MachineModel pMachineModel,
-      SMGPredicateManager pSMGPredicateManager,
-      SMGOptions pOptions) {
-    return new SMGTransferRelation(
-        pLogger,
-        pMachineModel,
-        SMGExportDotOption.getNoExportInstance(),
-        SMGTransferRelationKind.STATIC,
-        pSMGPredicateManager,
-        pOptions);
-  }
-
-  public static SMGTransferRelation createTransferRelation(
-      LogManager pLogger,
-      MachineModel pMachineModel,
-      SMGExportDotOption pExportOptions,
-      SMGPredicateManager pSMGPredicateManager,
-      SMGOptions pOptions) {
-    return new SMGTransferRelation(
-        pLogger,
-        pMachineModel,
-        pExportOptions,
-        SMGTransferRelationKind.STATIC,
-        pSMGPredicateManager,
-        pOptions);
-  }
-
-  public static SMGTransferRelation createTransferRelationForInterpolation(
-      LogManager pLogger,
-      MachineModel pMachineModel,
-      SMGPredicateManager pSMGPredicateManager,
-      SMGOptions pOptions) {
-    return new SMGTransferRelation(
-        pLogger,
-        pMachineModel,
-        SMGExportDotOption.getNoExportInstance(),
-        SMGTransferRelationKind.REFINEMENT,
-        pSMGPredicateManager,
-        pOptions);
   }
 
   @Override
@@ -662,10 +617,10 @@ public class SMGTransferRelation
       CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
       String calledFunctionName = fileNameExpression.toASTString();
 
-      if (builtins.isABuiltIn(calledFunctionName)) {
+      if (expressionEvaluator.builtins.isABuiltIn(calledFunctionName)) {
         SMGState newState = state.copyOf();
 
-        if (builtins.isConfigurableAllocationFunction(calledFunctionName)) {
+        if (expressionEvaluator.builtins.isConfigurableAllocationFunction(calledFunctionName)) {
           logger.logf(
               Level.INFO,
               "%s: Calling '%s' and not using the result, resulting in memory leak.",
@@ -673,8 +628,8 @@ public class SMGTransferRelation
               calledFunctionName);
           List<SMGState> newStates =
               asSMGStateList(
-                  builtins.evaluateConfigurableAllocationFunction(
-                      cFCExpression, newState, pCfaEdge));
+                  expressionEvaluator.builtins.evaluateConfigurableAllocationFunction(
+                      cFCExpression, newState, pCfaEdge, kind));
           for (SMGState s : newStates) {
             s.setMemLeak(
                 "Calling '"
@@ -684,16 +639,17 @@ public class SMGTransferRelation
           }
           return newStates;
         }
-        if (builtins.isDeallocationFunction(calledFunctionName)) {
-          return builtins.evaluateFree(cFCExpression, newState, pCfaEdge);
+        if (expressionEvaluator.builtins.isDeallocationFunction(calledFunctionName)) {
+          return expressionEvaluator.builtins.evaluateFree(cFCExpression, newState, pCfaEdge);
         }
         return asSMGStateList(
-            builtins.handleBuiltinFunctionCall(
-                pCfaEdge, cFCExpression, calledFunctionName, newState));
+            expressionEvaluator.builtins.handleBuiltinFunctionCall(
+                pCfaEdge, cFCExpression, calledFunctionName, newState, kind));
 
       } else {
         return asSMGStateList(
-            builtins.handleUnknownFunction(pCfaEdge, cFCExpression, calledFunctionName, state));
+            expressionEvaluator.builtins.handleUnknownFunction(
+                pCfaEdge, cFCExpression, calledFunctionName, state));
       }
     } else {
       return ImmutableList.of(state);
@@ -1238,10 +1194,6 @@ public class SMGTransferRelation
       SMGUtils.plotWhenConfigured(getDotExportFileName(newElement), newElement, assumeDesc.toString(), logger, SMGExportLevel.EVERY, exportSMGOptions);
       return Collections.singleton(newElement);
     }
-  }
-
-  public void changeKindToRefinement() {
-    kind = SMGTransferRelationKind.REFINEMENT;
   }
 
   static List<SMGState> asSMGStateList(List<? extends SMGValueAndState> valueAndStateList) {

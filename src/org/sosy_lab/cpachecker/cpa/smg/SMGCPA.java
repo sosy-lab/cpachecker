@@ -92,8 +92,6 @@ public class SMGCPA
       description="which merge operator to use for the SMGCPA")
   private String mergeType = "SEP";
 
-  private final SMGTransferRelation transferRelation;
-
   private final SMGPredicateManager smgPredicateManager;
   private final BlockOperator blockOperator;
   private final MachineModel machineModel;
@@ -107,6 +105,9 @@ public class SMGCPA
   private final SMGOptions options;
   private final SMGExportDotOption exportOptions;
   private final SMGStatistics stats = new SMGStatistics();
+
+  // flag whether we perform CEGAR or static analysis.
+  private SMGTransferRelationKind kind = SMGTransferRelationKind.STATIC;
 
   private SMGPrecision precision;
 
@@ -134,14 +135,16 @@ public class SMGCPA
         SMGPrecision.createStaticPrecision(options.isHeapAbstractionEnabled(), blockOperator);
 
     smgPredicateManager = new SMGPredicateManager(config, logger, pShutdownNotifier);
-    transferRelation =
-        SMGTransferRelation.createTransferRelation(
-            logger, machineModel, exportOptions, smgPredicateManager, options);
   }
 
+  /**
+   * Switch analysis to CEGAR instead of static approach.
+   *
+   * <p>This method should only be called once before starting the analysis.
+   */
   public void setTransferRelationToRefinement(PathTemplate pNewPathTemplate) {
-    transferRelation.changeKindToRefinement();
     exportOptions.changeToRefinement(pNewPathTemplate);
+    kind = SMGTransferRelationKind.REFINEMENT;
   }
 
   public void injectRefinablePrecision() {
@@ -164,7 +167,8 @@ public class SMGCPA
 
   @Override
   public TransferRelation getTransferRelation() {
-    return transferRelation;
+    return new SMGTransferRelation(
+        logger, machineModel, exportOptions, kind, smgPredicateManager, options);
   }
 
   @Override

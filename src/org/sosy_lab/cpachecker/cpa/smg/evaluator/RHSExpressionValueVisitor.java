@@ -29,20 +29,24 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.smg.SMGBuiltins;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 class RHSExpressionValueVisitor extends ExpressionValueVisitor {
 
   private final SMGBuiltins builtins;
+  private final SMGTransferRelationKind kind;
 
   public RHSExpressionValueVisitor(
       SMGRightHandSideEvaluator pSmgRightHandSideEvaluator,
       SMGBuiltins pBuiltins,
       CFAEdge pEdge,
-      SMGState pSmgState) {
+      SMGState pSmgState,
+      SMGTransferRelationKind pKind) {
     super(pSmgRightHandSideEvaluator, pEdge, pSmgState);
     builtins = pBuiltins;
+    kind = pKind;
   }
 
   @Override
@@ -59,10 +63,10 @@ class RHSExpressionValueVisitor extends ExpressionValueVisitor {
     if (builtins.isABuiltIn(functionName)) {
       if (builtins.isConfigurableAllocationFunction(functionName)) {
         return builtins.evaluateConfigurableAllocationFunction(
-            pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
+            pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge(), kind);
       }
       return builtins.handleBuiltinFunctionCall(
-          getCfaEdge(), pIastFunctionCallExpression, functionName, getInitialSmgState());
+          getCfaEdge(), pIastFunctionCallExpression, functionName, getInitialSmgState(), kind);
     } else {
       return builtins.handleUnknownFunction(
           getCfaEdge(), pIastFunctionCallExpression, functionName, getInitialSmgState());

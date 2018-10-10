@@ -31,10 +31,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.smg.SMGExportDotOption;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -49,8 +51,13 @@ public class SMGStrongestPostOperator {
   public static SMGStrongestPostOperator getSMGStrongestPostOperatorForCEX(
       LogManager pLogger, CFA pCfa, SMGPredicateManager pSMGPredicateManager, SMGOptions pOptions) {
     SMGTransferRelation transfer =
-        SMGTransferRelation.createTransferRelationForCEX(
-            pLogger, pCfa.getMachineModel(), pSMGPredicateManager, pOptions);
+        new SMGTransferRelation(
+            pLogger,
+            pCfa.getMachineModel(),
+            SMGExportDotOption.getNoExportInstance(),
+            SMGTransferRelationKind.STATIC,
+            pSMGPredicateManager,
+            pOptions);
     return new SMGStrongestPostOperator(transfer);
   }
 
@@ -73,8 +80,13 @@ public class SMGStrongestPostOperator {
   public static SMGStrongestPostOperator getSMGStrongestPostOperatorForInterpolation(
       LogManager pLogger, CFA pCfa, SMGPredicateManager pSMGPredicateManager, SMGOptions pOptions) {
     SMGTransferRelation transferRelation =
-        SMGTransferRelation.createTransferRelationForInterpolation(
-            pLogger, pCfa.getMachineModel(), pSMGPredicateManager, pOptions);
+        new SMGTransferRelation(
+            pLogger,
+            pCfa.getMachineModel(),
+            SMGExportDotOption.getNoExportInstance(),
+            SMGTransferRelationKind.REFINEMENT,
+            pSMGPredicateManager,
+            pOptions);
     return new SMGStrongestPostOperator(transferRelation);
   }
 }
