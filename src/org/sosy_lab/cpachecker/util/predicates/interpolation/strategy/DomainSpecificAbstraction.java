@@ -1657,7 +1657,8 @@ public class DomainSpecificAbstraction<T> {
                 frontierListCopy.add(s);
               }
               //logger.log(Level.WARNING, "Comparability Check: Latticenames_h: " + latticenames_h);
-            isIncomparable = checkComparability(frontierListCopy,
+              // Test 11.10.18
+           /* isIncomparable = checkComparability(frontierListCopy,
                 latticenames_h, latticeNames);
 
             if (isIncomparable) {
@@ -1674,14 +1675,16 @@ public class DomainSpecificAbstraction<T> {
               } finally {
                 maximisationTimer.stop();
               }
-            }
+            } */
+           // END test 11.10.18
             }
           }
         }
       } finally {
         buildingAbstractionsTimer.stop();
       }
-      helperFormula1 = firstPartChanged;
+      // TEST 11.10.18
+    /*  helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
       if (frontierList != null && (frontierList.size() >= 1)) {
         for (Formula y : frontierList.get(0)) {
@@ -1702,7 +1705,8 @@ public class DomainSpecificAbstraction<T> {
             }
           }
         }
-      }
+      } */
+    // END Test 11.10.18
   /*    helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
 
