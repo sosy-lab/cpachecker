@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static com.google.common.truth.Fact.simpleFact;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assert_;
 import static org.mockito.ArgumentMatchers.any;
@@ -380,38 +381,49 @@ public class AutomatonInternalTest {
       try {
         matches = matches0(src);
       } catch (InvalidAutomatonException e) {
-        failWithRawMessageAndCause("Cannot parse source or pattern", e);
+        failWithoutActual(simpleFact(String.format("Cannot parse source or pattern: %s", e)));
         return new Matches() {
-              @Override
-              public void withVariableValue(int pVar, String pValue) {
-                ASTMatcherSubject.this.fail("Cannot test value of variable with failed parsing.");
-              }
-            };
+          @Override
+          public void withVariableValue(int pVar, String pValue) {
+            ASTMatcherSubject.this.failWithoutActual(
+                simpleFact("Cannot test value of variable with failed parsing."));
+          }
+        };
       }
 
       if (!matches) {
-        fail("matches", src);
+        failWithoutActual(
+            simpleFact(String.format("Not true that %s matches <%s>.", actualAsString(), src)));
         return new Matches() {
-            @Override
-            public void withVariableValue(int pVar, String pValue) {
-              ASTMatcherSubject.this.fail("Cannot test value of variable if pattern does not match.");
-            }
-          };
+          @Override
+          public void withVariableValue(int pVar, String pValue) {
+            ASTMatcherSubject.this.failWithoutActual(
+                simpleFact("Cannot test value of variable if pattern does not match."));
+          }
+        };
       }
       return new Matches() {
         @Override
         public void withVariableValue(int pVar, String pExpectedValue) {
           if (!args.getTransitionVariables().containsKey(pVar)) {
-            ASTMatcherSubject.this.failWithBadResults(
-                "has variable", pVar, "has variables", args.getTransitionVariables().keySet());
+            Object actual = args.getTransitionVariables().keySet();
+            String message =
+                String.format(
+                    "Not true that %s has variable <%d>. It has variables <%s>.",
+                    ASTMatcherSubject.this.actualAsString(), pVar, actual);
+            ASTMatcherSubject.this.failWithoutActual(simpleFact(message));
           }
           final String actualValue = args.getTransitionVariable(pVar).toASTString();
           if (!actualValue.equals(pExpectedValue)) {
-            ASTMatcherSubject.this.failWithBadResults(
-                "matches <" + src + "> with value of variable $" + pVar + " being",
-                pExpectedValue,
-                "has value",
-                actualValue);
+            ASTMatcherSubject.this.failWithoutActual(
+                simpleFact(
+                    String.format(
+                        "Not true that %s matches <%s> with value of variable $%s being %s. It has value <%s>.",
+                        ASTMatcherSubject.this.actualAsString(),
+                        src,
+                        pVar,
+                        pExpectedValue,
+                        actualValue)));
           }
         }
       };
@@ -420,10 +432,12 @@ public class AutomatonInternalTest {
     public void doesNotMatch(String src) {
       try {
         if (matches0(src)) {
-          fail("does not match", src);
+          failWithoutActual(
+              simpleFact(
+                  String.format("Not true that %s does not match <%s>.", actualAsString(), src)));
         }
       } catch (InvalidAutomatonException e) {
-        failWithRawMessageAndCause("Cannot parse source or pattern", e);
+        failWithoutActual(simpleFact(String.format("Cannot parse source or pattern: %s", e)));
       }
     }
   }
