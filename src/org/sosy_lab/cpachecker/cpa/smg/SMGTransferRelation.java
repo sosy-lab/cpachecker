@@ -195,7 +195,7 @@ public class SMGTransferRelation
         expType = returnAssignment.get().getLeftHandSide().getExpressionType();
       }
       successors =
-          handleAssignmentToField(smgState, returnEdge, tmpFieldMemory, 0, expType, returnExp);
+          assignFieldToState(smgState.copyOf(), returnEdge, tmpFieldMemory, 0, expType, returnExp);
     } else {
       successors = ImmutableList.of(smgState);
     }
@@ -670,20 +670,20 @@ public class SMGTransferRelation
       CType fieldType = TypeUtils.getRealExpressionType(lValue);
 
       if (addressOfField.isUnknown()) {
-        SMGState resultState = pState.copyOf();
         /*Check for dereference errors in rValue*/
         List<SMGState> newStates =
-            asSMGStateList(readValueToBeAssiged(resultState, cfaEdge, rValue));
+            asSMGStateList(readValueToBeAssiged(pState.copyOf(), cfaEdge, rValue));
         newStates.forEach(smgState -> smgState.unknownWrite());
         result.addAll(newStates);
       } else {
-        result.addAll(handleAssignmentToField(
-            pState,
-            cfaEdge,
-            addressOfField.getObject(),
-            addressOfField.getOffset().getAsLong(),
-            fieldType,
-            rValue));
+        result.addAll(
+            assignFieldToState(
+                pState.copyOf(),
+                cfaEdge,
+                addressOfField.getObject(),
+                addressOfField.getOffset().getAsLong(),
+                fieldType,
+                rValue));
       }
     }
 
@@ -770,19 +770,6 @@ public class SMGTransferRelation
     }
 
     return result;
-  }
-
-  private List<SMGState> handleAssignmentToField(
-      UnmodifiableSMGState pState,
-      CFAEdge cfaEdge,
-      SMGObject memoryOfField,
-      long fieldOffset,
-      CType pLFieldType,
-      CRightHandSide rValue)
-      throws CPATransferException {
-
-    return assignFieldToState(
-        pState.copyOf(), cfaEdge, memoryOfField, fieldOffset, pLFieldType, rValue);
   }
 
   private List<SMGState> handleVariableDeclaration(SMGState pState, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge) throws CPATransferException {

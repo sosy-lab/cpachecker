@@ -148,10 +148,6 @@ public class SMGCPA
     precision = SMGPrecision.createRefineablePrecision(precision);
   }
 
-  public MachineModel getMachineModel() {
-    return machineModel;
-  }
-
   public SMGOptions getOptions() {
     return options;
   }
