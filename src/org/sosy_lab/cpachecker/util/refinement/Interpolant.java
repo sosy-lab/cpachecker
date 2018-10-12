@@ -24,32 +24,27 @@
 package org.sosy_lab.cpachecker.util.refinement;
 
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public interface Interpolant<S extends AbstractState> {
 
-  /**
-   * Reconstructs a valid state from the interpolant.
-   */
+  /** Reconstructs a valid state from the interpolant. */
   S reconstructState();
 
-  /**
-   * Returns the size of the interpolant.
-   */
+  /** Returns the size of the interpolant. */
   int getSize();
 
-  /**
-   * Returns the memory locations this interpolant uses.
-   */
+  /** Returns the memory locations this interpolant uses. */
   Set<MemoryLocation> getMemoryLocations();
 
   boolean isTrue();
 
   boolean isFalse();
 
-  boolean isTrivial();
+  default boolean isTrivial() {
+    return isFalse() || isTrue();
+  }
 
   <T extends Interpolant<S>> T join(T otherInterpolant);
 }

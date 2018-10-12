@@ -44,8 +44,9 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * from memory locations to values, representing a variable assignment.
  */
 public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState> {
+
   /** the variable assignment of the interpolant */
-  private @Nullable PersistentMap<MemoryLocation, ValueAndType> assignment;
+  private final @Nullable PersistentMap<MemoryLocation, ValueAndType> assignment;
 
   /**
    * the interpolant representing "true"
@@ -80,16 +81,13 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
 
   @Override
   public Set<MemoryLocation> getMemoryLocations() {
-    return isFalse()
-        ? Collections.<MemoryLocation>emptySet()
-        : Collections.unmodifiableSet(assignment.keySet());
+    return isFalse() ? Collections.emptySet() : Collections.unmodifiableSet(assignment.keySet());
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public <T extends Interpolant<ValueAnalysisState>> T join(final T pOther) {
     assert pOther instanceof ValueAnalysisInterpolant;
-
     return (T) join0((ValueAnalysisInterpolant) pOther);
   }
 
@@ -168,16 +166,6 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
   }
 
   /**
-   * The method checks if the interpolant is a trivial one, i.e. if it represents either true or false
-   *
-   * @return true, if the interpolant is trivial, else false
-   */
-  @Override
-  public boolean isTrivial() {
-    return isFalse() || isTrue();
-  }
-
-  /**
    * This method serves as factory method to create a value-analysis state from the interpolant
    *
    * @return a value-analysis state that represents the same variable assignment as the interpolant
@@ -186,7 +174,6 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
   public ValueAnalysisState reconstructState() {
     if (assignment == null) {
       throw new IllegalStateException("Can't reconstruct state from FALSE-interpolant");
-
     } else {
       return new ValueAnalysisState(Optional.empty(), assignment);
     }
