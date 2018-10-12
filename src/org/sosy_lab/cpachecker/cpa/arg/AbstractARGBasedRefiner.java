@@ -153,6 +153,10 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
    */
   protected CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
       throws CPAException, InterruptedException {
+
+    // Print all available error traces, if option is enabled
+    argCpa.getARGExporter().exportCounterexampleOnTheFly(pReached.asReachedSet());
+
     return refiner.performRefinementForPath(pReached, pPath);
   }
 

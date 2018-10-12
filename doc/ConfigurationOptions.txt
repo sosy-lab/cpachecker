@@ -808,6 +808,13 @@ counterexample.export.core = "Counterexample.%d.core.txt"
 # export counterexample to file, if one is found
 counterexample.export.enabled = true
 
+# export error paths to files immediately after they were found, including
+# spurious error-paths before executing a refinement. Note that we do not
+# track already exported error-paths and export them at every refinement as
+# long as they are not removed from the reached-set. Most helpful for
+# debugging refinements.
+counterexample.export.exportAllFoundErrorPaths = false
+
 # export counterexample as source file
 counterexample.export.exportAsSource = true
 
