@@ -94,22 +94,8 @@ public class SMGFeasibilityChecker {
       while (iterator.hasNext()) {
         edge = iterator.getOutgoingEdge();
 
-//        int c = 0;
-
-//        for (SMGState state : next) {
-//          SMGDebugTest.dumpPlot("beforeStrongest" + c, state);
-//          c++;
-//        }
-
         Collection<SMGState> successors =
             strongestPostOp.getStrongestPost(next, pPrecision, edge);
-
-//        c = 0;
-//
-//        for (SMGState state : successors) {
-//          SMGDebugTest.dumpPlot("afterStrongest" + c, state);
-//          c++;
-//        }
 
         // no successors => path is infeasible
         if (successors.isEmpty()) {
@@ -202,7 +188,7 @@ public class SMGFeasibilityChecker {
     return isFeasible(pPath, initialState);
   }
 
-  private boolean isFeasible(ARGPath pPath, UnmodifiableSMGState pStartingPoint)
+  boolean isFeasible(ARGPath pPath, UnmodifiableSMGState pStartingPoint)
       throws CPAException, InterruptedException {
     return isFeasible(pPath, pStartingPoint, precision, false);
   }
@@ -280,6 +266,7 @@ public class SMGFeasibilityChecker {
     }
   }
 
+  @Deprecated
   public boolean isFeasible(ARGPath pErrorPath, Collection<SMGState> pStartingPoints)
       throws CPAException, InterruptedException {
     for (UnmodifiableSMGState start : pStartingPoints) {
@@ -290,6 +277,7 @@ public class SMGFeasibilityChecker {
     return true;
   }
 
+  @Deprecated
   public boolean isReachable(ARGPath pErrorPath, UnmodifiableSMGState pInitialState)
       throws CPAException {
 
@@ -318,10 +306,12 @@ public class SMGFeasibilityChecker {
         pAllTargets);
   }
 
+  @Deprecated
   public boolean isReachable(ARGPath pErrorPathPrefix) throws CPAException {
     return isReachable(pErrorPathPrefix, initialState);
   }
 
+  @Deprecated
   public PathPosition getLastReachablePosition(
       ARGPath pErrorPath, List<UnmodifiableSMGState> pStartingPoints) throws CPAException {
 

@@ -341,8 +341,14 @@ public class SMGRefiner implements Refiner {
       return false;
     }
 
-    // for all other cases, check if the path is feasible when using the interpolant as initial state
-    return checker.isFeasible(errorPath, initialItp.reconstructStates());
+    // for all other cases, check if the path is feasible when using the interpolant
+    // (or any of its reconstructed states) as initial state
+    for (UnmodifiableSMGState start : initialItp.reconstructStates()) {
+      if (checker.isFeasible(errorPath, start)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private SMGInterpolationTree createInterpolationTree(List<ARGPath> pTargetPaths) {
