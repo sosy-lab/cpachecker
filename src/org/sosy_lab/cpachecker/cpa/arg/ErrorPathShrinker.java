@@ -27,7 +27,13 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -65,12 +71,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
 import org.sosy_lab.cpachecker.util.Pair;
 
 
@@ -140,7 +140,6 @@ public final class ErrorPathShrinker {
      * the longPath is completely handled.*/
     while (revIterator.hasNext()) {
       handleEdge(revIterator.next(), shortErrorPath, revAssumIterator);
-
     }
 
     // TODO assertion disabled, until we can track all pointers completely
@@ -164,13 +163,16 @@ public final class ErrorPathShrinker {
   }
   */
 
-  private void handleEdge(final CFAEdge cfaEdge, final Deque<Pair<CFAEdgeWithAssumptions, Boolean>> shortErrorPath, Iterator<CFAEdgeWithAssumptions> revAssumIterator) {
+  private void handleEdge(
+      final CFAEdge cfaEdge,
+      final Deque<Pair<CFAEdgeWithAssumptions, Boolean>> shortErrorPath,
+      @Nullable Iterator<CFAEdgeWithAssumptions> revAssumIterator) {
     currentCFAEdge = cfaEdge;
     shortPath = shortErrorPath;
 
     // define all edges as normal with their according assumptions
     currentCFAEdgeWithAssumptions = new CFAEdgeWithAssumptions(currentCFAEdge, assumptions, "");
-    if(revAssumIterator.hasNext()) {
+    if (revAssumIterator != null && revAssumIterator.hasNext()) {
       CFAEdgeWithAssumptions nextRevAssumEdge = revAssumIterator.next();
       assumptions.addAll(nextRevAssumEdge.getExpStmts());
       currentCFAEdgeWithAssumptions =
