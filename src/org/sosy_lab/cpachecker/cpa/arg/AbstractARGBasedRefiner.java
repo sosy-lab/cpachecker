@@ -73,6 +73,13 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
     logger = pLogger;
   }
 
+  /** creates a dummy instance of this refiner, that does nothing but report found error paths. */
+  public static final Refiner create(ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
+    return AbstractARGBasedRefiner.forARGBasedRefiner(
+        (rs, path) -> CounterexampleInfo.feasibleImprecise(path), pCpa);
+  }
+
   /**
    * Create a {@link Refiner} instance from a {@link ARGBasedRefiner} instance.
    */
