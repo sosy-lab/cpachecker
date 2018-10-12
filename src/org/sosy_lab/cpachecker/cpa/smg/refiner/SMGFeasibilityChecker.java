@@ -184,13 +184,18 @@ public class SMGFeasibilityChecker {
     return Iterables.any(strengthenResult, AbstractStates.IS_TARGET_STATE);
   }
 
-  public boolean isFeasible(ARGPath pPath) throws CPAException, InterruptedException {
+  boolean isFeasible(ARGPath pPath) throws CPAException, InterruptedException {
     return isFeasible(pPath, initialState);
   }
 
   boolean isFeasible(ARGPath pPath, UnmodifiableSMGState pStartingPoint)
       throws CPAException, InterruptedException {
     return isFeasible(pPath, pStartingPoint, precision, false);
+  }
+
+  boolean isFeasible(ARGPath pErrorPath, boolean pAllTargets)
+      throws CPAException, InterruptedException {
+    return isFeasible(pErrorPath, initialState, precision, pAllTargets);
   }
 
   private boolean isFeasible(
@@ -252,6 +257,7 @@ public class SMGFeasibilityChecker {
       return lastEdge;
     }
 
+    @SuppressWarnings("unused")
     public PathPosition getLastPosition() {
       return lastPosition;
     }
@@ -264,28 +270,6 @@ public class SMGFeasibilityChecker {
     public static ReachabilityResult isNotReachable(PathPosition pLastPosition) {
       return new ReachabilityResult(pLastPosition);
     }
-  }
-
-  @Deprecated
-  public boolean isFeasible(ARGPath pErrorPath, Collection<SMGState> pStartingPoints)
-      throws CPAException, InterruptedException {
-    for (UnmodifiableSMGState start : pStartingPoints) {
-      if (!isFeasible(pErrorPath, start)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  @Deprecated
-  public boolean isReachable(ARGPath pErrorPath, UnmodifiableSMGState pInitialState)
-      throws CPAException {
-
-    if (pErrorPath.size() == 1) {
-      return true;
-    }
-
-    return isReachable(pErrorPath, pInitialState, precision).isReachable();
   }
 
   public boolean isRemainingPathFeasible(
@@ -304,33 +288,5 @@ public class SMGFeasibilityChecker {
 
     return isTarget(ImmutableSet.of(state), pCurrentEdge, pRemainingErrorPath.getLastState(),
         pAllTargets);
-  }
-
-  @Deprecated
-  public boolean isReachable(ARGPath pErrorPathPrefix) throws CPAException {
-    return isReachable(pErrorPathPrefix, initialState);
-  }
-
-  @Deprecated
-  public PathPosition getLastReachablePosition(
-      ARGPath pErrorPath, List<UnmodifiableSMGState> pStartingPoints) throws CPAException {
-
-    PathPosition result = pErrorPath.fullPathIterator().getPosition();
-
-    for (UnmodifiableSMGState startPoint : pStartingPoints) {
-      ReachabilityResult reachabilityResult = isReachable(pErrorPath, startPoint, precision);
-      PathPosition reachabilityResultPosition = reachabilityResult.getLastPosition();
-
-      if (result.iterator().getIndex() < reachabilityResultPosition.iterator().getIndex()) {
-        result = reachabilityResultPosition;
-      }
-    }
-
-    return result;
-  }
-
-  public boolean isFeasible(ARGPath pErrorPath, boolean pAllTargets)
-      throws CPAException, InterruptedException {
-    return isFeasible(pErrorPath, initialState, precision, pAllTargets);
   }
 }
