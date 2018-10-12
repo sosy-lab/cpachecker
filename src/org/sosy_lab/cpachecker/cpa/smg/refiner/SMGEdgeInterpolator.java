@@ -288,7 +288,7 @@ public class SMGEdgeInterpolator {
 
     SMGState oldState = pInitialState;
 
-    return postOperator.getStrongestPost(oldState, precision, pInitialEdge);
+    return postOperator.getStrongestPost(Collections.singleton(oldState), precision, pInitialEdge);
   }
 
   /**

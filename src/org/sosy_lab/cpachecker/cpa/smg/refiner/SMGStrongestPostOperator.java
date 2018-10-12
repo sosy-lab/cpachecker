@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -37,7 +36,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class SMGStrongestPostOperator {
@@ -58,12 +56,6 @@ public class SMGStrongestPostOperator {
             pKind,
             pSMGPredicateManager,
             pOptions);
-  }
-
-  public Collection<SMGState> getStrongestPost(
-      SMGState pOrigin, Precision pPrecision, CFAEdge pOperation) throws CPAException {
-    Collection<SMGState> start = ImmutableList.of(pOrigin);
-    return getStrongestPost(start, pPrecision, pOperation);
   }
 
   public Collection<SMGState> getStrongestPost(
