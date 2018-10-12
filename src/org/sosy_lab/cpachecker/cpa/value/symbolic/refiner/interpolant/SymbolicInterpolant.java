@@ -38,10 +38,9 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.ForgettingCompositeSta
 import org.sosy_lab.cpachecker.util.refinement.Interpolant;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/**
- * Interpolant for refinement of symbolic value analysis.
- */
-public class SymbolicInterpolant implements Interpolant<ForgettingCompositeState> {
+/** Interpolant for refinement of symbolic value analysis. */
+public class SymbolicInterpolant
+    implements Interpolant<ForgettingCompositeState, SymbolicInterpolant> {
 
   static final SymbolicInterpolant TRUE = new SymbolicInterpolant();
   static final SymbolicInterpolant FALSE =
@@ -104,16 +103,11 @@ public class SymbolicInterpolant implements Interpolant<ForgettingCompositeState
     return equals(FALSE);
   }
 
-  @SuppressWarnings("unchecked")
   @Override
-  public <T extends Interpolant<ForgettingCompositeState>> T join(T pOtherInterpolant) {
-    assert pOtherInterpolant instanceof SymbolicInterpolant;
-    SymbolicInterpolant that = (SymbolicInterpolant) pOtherInterpolant;
-    ValueAnalysisInterpolant newValueInterpolant = valueInterpolant.join(that.valueInterpolant);
-    ConstraintsInformation newConstraintsInfo = joinConstraints(that.constraintsInformation);
-
-    // We have to assume that <T> is of type SymbolicInterpolant.
-    return (T) new SymbolicInterpolant(newValueInterpolant, newConstraintsInfo);
+  public SymbolicInterpolant join(SymbolicInterpolant pOther) {
+    ValueAnalysisInterpolant newValueInterpolant = valueInterpolant.join(pOther.valueInterpolant);
+    ConstraintsInformation newConstraintsInfo = joinConstraints(pOther.constraintsInformation);
+    return new SymbolicInterpolant(newValueInterpolant, newConstraintsInfo);
   }
 
   /**

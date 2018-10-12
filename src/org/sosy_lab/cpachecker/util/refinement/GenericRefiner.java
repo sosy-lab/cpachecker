@@ -63,15 +63,14 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 /**
  * A generic refiner using a {@link VariableTrackingPrecision}.
  *
- * @param <S> the type of the state the {@link StrongestPostOperator} and
- *    {@link Interpolant Interpolants} are based on
+ * @param <S> the type of the state the {@link StrongestPostOperator} and {@link Interpolant
+ *     Interpolants} are based on
  * @param <I> the type of the interpolants used in refinement
- *
  * @see GenericFeasibilityChecker
  * @see GenericPathInterpolator
  */
 @Options(prefix = "cpa.value.refinement")
-public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Interpolant<S>>
+public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Interpolant<S, I>>
     implements ARGBasedRefiner, StatisticsProvider {
 
   @Option(secure = true, description = "when to export the interpolation tree"
@@ -244,7 +243,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     exportTree(interpolationTree, "ALWAYS");
   }
 
-  private boolean isInitialInterpolantTooWeak(ARGState root, Interpolant<S> initialItp, ARGPath errorPath)
+  private boolean isInitialInterpolantTooWeak(ARGState root, I initialItp, ARGPath errorPath)
       throws CPAException, InterruptedException {
 
     // if the first state of the error path is the root, the interpolant cannot be to weak

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.refinement;
 
 import java.util.Map;
-
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -35,7 +34,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  *
  * @param <I> the type of interpolant created by the implementation
  */
-public interface PathInterpolator<I extends Interpolant<?>> extends Statistics {
+public interface PathInterpolator<I extends Interpolant<?, I>> extends Statistics {
 
    Map<ARGState, I> performInterpolation(
       ARGPath errorPath,

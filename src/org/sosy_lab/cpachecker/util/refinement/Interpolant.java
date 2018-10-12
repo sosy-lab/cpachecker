@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.refinement;
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public interface Interpolant<S> {
+public interface Interpolant<S, T> {
 
   /** Reconstructs some valid information, e.g., an abstract state, from the interpolant. */
   S reconstructState();
@@ -48,5 +48,5 @@ public interface Interpolant<S> {
   }
 
   /** Merge two interpolants to get more precise information. */
-  <T extends Interpolant<S>> T join(T otherInterpolant);
+  T join(T otherInterpolant);
 }
