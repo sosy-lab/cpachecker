@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
 import static org.sosy_lab.cpachecker.util.Precisions.extractPrecisionByType;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
@@ -189,9 +190,10 @@ public class SMGRefiner implements Refiner {
     return isSpuriousCEX;
   }
 
-  private CounterexampleInfo performRefinementForPaths(ARGReachedSet pReached,
-      Collection<ARGState> pTargets,
-      List<ARGPath> pTargetPaths) throws CPAException, InterruptedException {
+  private CounterexampleInfo performRefinementForPaths(
+      ARGReachedSet pReached, Collection<ARGState> pTargets, List<ARGPath> pTargetPaths)
+      throws CPAException, InterruptedException {
+    Preconditions.checkState(pTargets.size() == pTargetPaths.size());
     logger.log(Level.FINEST, "performing refinement ...");
     refinementCounter.inc();
     numberOfTargets.setNextValue(pTargets.size());
@@ -207,24 +209,31 @@ public class SMGRefiner implements Refiner {
     return cex;
   }
 
+  private List<ARGPath> getFeasibleErrorPaths(Collection<ARGPath> pErrorPaths)
+      throws CPAException, InterruptedException {
+    List<ARGPath> lst = new ArrayList<>();
+    for (ARGPath currentPath : pErrorPaths) {
+      if (checker.isFeasible(currentPath)) {
+        lst.add(currentPath);
+      }
+    }
+    return lst;
+  }
+
   private CounterexampleInfo isAnyPathFeasible(
       final ARGReachedSet pReached,
       final Collection<ARGPath> pErrorPaths
   ) throws CPAException, InterruptedException {
 
-    ARGPath feasiblePath = null;
-    for (ARGPath currentPath : pErrorPaths) {
-
-      if (isErrorPathFeasible(currentPath)) {
-        if(feasiblePath == null) {
-          feasiblePath = currentPath;
-        }
-
-        pathExtractor.addFeasibleTarget(currentPath.getLastState());
-      }
+    // get all feasible error paths
+    List<ARGPath> feasibleErrorPaths = getFeasibleErrorPaths(pErrorPaths);
+    for (ARGPath feasibleErrorPath : feasibleErrorPaths) {
+      pathExtractor.addFeasibleTarget(feasibleErrorPath.getLastState());
     }
 
-    // remove all other target states, so that only one is left (for CEX-checker)
+    // choose one path and remove all other target states,
+    // so that only one is left (for CEX-checker)
+    ARGPath feasiblePath = Iterables.getFirst(feasibleErrorPaths, null);
     if (feasiblePath != null) {
       for (ARGPath others : pErrorPaths) {
         if (others != feasiblePath) {
@@ -360,11 +369,6 @@ public class SMGRefiner implements Refiner {
     }
 
     return mergedPrecision;
-  }
-
-  private boolean isErrorPathFeasible(ARGPath pErrorPath)
-      throws CPAException, InterruptedException {
-    return checker.isFeasible(pErrorPath);
   }
 
   /** export the interpolation-tree as dot-file, if necessary. */
