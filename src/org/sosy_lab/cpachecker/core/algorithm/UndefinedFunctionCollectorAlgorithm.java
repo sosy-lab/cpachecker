@@ -197,7 +197,7 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
     }
 
     private String assume = "__VERIFIER_assume";
-    private String nondetPrefix = "__VEFIRIER_nondet_";
+    private String nondetPrefix = "__VERIFIER_nondet_";
 
     private void printFunction(String name, AFunctionDeclaration f,
         Writer w) throws IOException {
