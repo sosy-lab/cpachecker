@@ -30,6 +30,7 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -53,8 +54,9 @@ import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 
-public class SMGFeasibilityChecker {
+public class SMGFeasibilityChecker implements FeasibilityChecker<UnmodifiableSMGState> {
 
   private final LogManager logger;
   private final SMGStrongestPostOperator strongestPostOp;
@@ -184,11 +186,13 @@ public class SMGFeasibilityChecker {
     return Iterables.any(strengthenResult, AbstractStates.IS_TARGET_STATE);
   }
 
-  boolean isFeasible(ARGPath pPath) throws CPAException, InterruptedException {
+  @Override
+  public boolean isFeasible(ARGPath pPath) throws CPAException, InterruptedException {
     return isFeasible(pPath, initialState);
   }
 
-  boolean isFeasible(ARGPath pPath, UnmodifiableSMGState pStartingPoint)
+  @Override
+  public boolean isFeasible(ARGPath pPath, UnmodifiableSMGState pStartingPoint)
       throws CPAException, InterruptedException {
     return isFeasible(pPath, pStartingPoint, precision, false);
   }
@@ -288,5 +292,13 @@ public class SMGFeasibilityChecker {
 
     return isTarget(ImmutableSet.of(state), pCurrentEdge, pRemainingErrorPath.getLastState(),
         pAllTargets);
+  }
+
+  @Override
+  public boolean isFeasible(
+      ARGPath pPath, UnmodifiableSMGState pStartingPoint, Deque<UnmodifiableSMGState> pCallstack)
+      throws CPAException, InterruptedException {
+    // TODO Implementation
+    throw new UnsupportedOperationException("method not yet implemented");
   }
 }
