@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.smg.refiner;
 import static org.sosy_lab.cpachecker.util.Precisions.extractPrecisionByType;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -165,7 +164,7 @@ public class SMGEdgeInterpolator {
         && isOnlyVariableRenamingEdge(pCurrentEdge)
         && !currentPrecision.allowsHeapAbstractionOnNode(
             currentEdge.getPredecessor(), blockOperator)) {
-      return Collections.singletonList(interpolantManager.createInterpolant(Iterables.getOnlyElement(successors)));
+      return Collections.singletonList(interpolantManager.createInterpolant(successors));
     }
 
     List<SMGInterpolant> resultingInterpolants = new ArrayList<>(successors.size());
@@ -189,7 +188,8 @@ public class SMGEdgeInterpolator {
                 currentEdge.getPredecessor(), currentEdge, pAllTargets, currentPrecision);
 
         if (heapInterpoaltionResult.isChanged()) {
-          resultingInterpolants.add(interpolantManager.createInterpolant(originalState));
+          resultingInterpolants.add(
+              interpolantManager.createInterpolant(Collections.singleton(originalState)));
           abstractionBlocks = heapInterpoaltionResult.getBlocks();
         }
       }

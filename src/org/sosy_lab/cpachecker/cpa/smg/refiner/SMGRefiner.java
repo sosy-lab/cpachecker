@@ -134,8 +134,7 @@ public class SMGRefiner implements Refiner {
     checker =
         new SMGFeasibilityChecker(strongestPostOpForCEX, logger, cfa, initialState, automatonCpas);
 
-    interpolantManager =
-        new SMGInterpolantManager(cfa.getMachineModel(), logger, cfa, smgCpa.getOptions());
+    interpolantManager = new SMGInterpolantManager(logger, cfa, smgCpa.getOptions());
 
     SMGStrongestPostOperator strongestPostOpForInterpolation =
         new SMGStrongestPostOperator(

@@ -62,12 +62,13 @@ public class SMGInterpolant implements Interpolant<Collection<SMGState>, SMGInte
     smgStates = ImmutableSet.of();
   }
 
-  public SMGInterpolant(Collection<UnmodifiableSMGState> pStates) {
+  public SMGInterpolant(Collection<? extends UnmodifiableSMGState> pStates) {
     this(pStates, Collections.emptySet());
   }
 
   public SMGInterpolant(
-      Collection<UnmodifiableSMGState> pStates, Collection<SMGAbstractionBlock> pAbstractionBlock) {
+      Collection<? extends UnmodifiableSMGState> pStates,
+      Collection<SMGAbstractionBlock> pAbstractionBlock) {
     smgStates = ImmutableSet.copyOf(pStates);
     abstractionBlock = ImmutableSet.copyOf(pAbstractionBlock);
 
