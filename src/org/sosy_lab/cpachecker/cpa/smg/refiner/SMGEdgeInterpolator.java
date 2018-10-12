@@ -110,7 +110,7 @@ public class SMGEdgeInterpolator {
     // create initial state, based on input interpolant, and create initial successor by consuming
     // the next edge
     CFAEdge currentEdge = pCurrentEdge;
-    Set<SMGState> initialStates = pInputInterpolant.reconstructStates();
+    Set<SMGState> initialStates = pInputInterpolant.reconstructState();
 
     if (currentEdge == null) {
       PathIterator it = pOffset.fullPathIterator();

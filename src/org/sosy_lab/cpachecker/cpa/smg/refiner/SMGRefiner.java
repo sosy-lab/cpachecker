@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
+import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
@@ -109,7 +110,7 @@ public class SMGRefiner implements Refiner {
   private String exportInterpolationTree = "NEVER";
 
   private SMGRefiner(SMGCPA pSmgCpa, ARGCPA pArgCpa, Set<ControlAutomatonCPA> automatonCpas)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, SMGInconsistentException {
     pSmgCpa.getConfiguration().inject(this);
 
     argCpa = pArgCpa;
@@ -165,7 +166,7 @@ public class SMGRefiner implements Refiner {
   }
 
   public static final SMGRefiner create(ConfigurableProgramAnalysis pCpa)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, SMGInconsistentException {
 
     ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SMGRefiner.class);
     SMGCPA smgCpa = CPAs.retrieveCPAOrFail(pCpa, SMGCPA.class, SMGRefiner.class);
@@ -316,7 +317,7 @@ public class SMGRefiner implements Refiner {
 
     // for all other cases, check if the path is feasible when using the interpolant
     // (or any of its reconstructed states) as initial state
-    for (UnmodifiableSMGState start : initialItp.reconstructStates()) {
+    for (UnmodifiableSMGState start : initialItp.reconstructState()) {
       if (checker.isFeasible(errorPath, start)) {
         return true;
       }

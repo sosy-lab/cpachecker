@@ -29,6 +29,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
+import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 
@@ -38,10 +39,13 @@ public class SMGInterpolantManager {
   private final MachineModel model;
   private final SMGInterpolant initalInterpolant;
 
-  public SMGInterpolantManager(MachineModel pModel, LogManager pLogger, CFA pCfa, SMGOptions options) {
+  public SMGInterpolantManager(
+      MachineModel pModel, LogManager pLogger, CFA pCfa, SMGOptions options)
+      throws SMGInconsistentException {
     logger = pLogger;
     model = pModel;
-    initalInterpolant = SMGInterpolant.createInitial(logger, model, pCfa.getMainFunction(), options);
+    initalInterpolant =
+        SMGInterpolant.createInitial(logger, model, pCfa.getMainFunction(), options);
   }
 
   public SMGInterpolant createInitialInterpolant() {
