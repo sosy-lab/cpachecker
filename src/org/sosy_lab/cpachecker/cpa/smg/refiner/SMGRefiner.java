@@ -58,16 +58,12 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.refinement.InterpolationTree;
 import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
@@ -91,8 +87,6 @@ public class SMGRefiner implements Refiner {
   private final StatInt numberOfTargets = new StatInt(StatKind.SUM, "Number of targets found");
 
   private final ShutdownNotifier shutdownNotifier;
-
-  private Set<Integer> previousErrorPathIds = Sets.newHashSet();
 
   @Option(secure = true, description = "export interpolation trees to this file template")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -183,47 +177,16 @@ public class SMGRefiner implements Refiner {
   @Override
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
     ARGReachedSet reached = new ARGReachedSet(pReached, argCpa);
-    CounterexampleInfo cexInfo = performRefinement(reached);
+    Collection<ARGState> targets = pathExtractor.getTargetStates(reached);
+    List<ARGPath> targetPaths = pathExtractor.getTargetPaths(targets);
+    CounterexampleInfo cexInfo = performRefinementForPaths(reached, targets, targetPaths);
 
     boolean isSpuriousCEX = cexInfo.isSpurious();
-
     if (isSpuriousCEX) {
+      // just increment counters for exporting SMGs
       smgCpa.nextRefinement();
     }
-
     return isSpuriousCEX;
-  }
-
-  private CounterexampleInfo performRefinement(ARGReachedSet pReached) throws CPAException, InterruptedException {
-
-    Collection<ARGState> targets = pathExtractor.getTargetStates(pReached);
-    List<ARGPath> targetPaths = pathExtractor.getTargetPaths(targets);
-
-    if (!madeProgress(targetPaths.get(0))) {
-      throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPaths.get(0));
-    }
-
-    return performRefinementForPaths(pReached, targets, targetPaths);
-  }
-
-  private boolean madeProgress(ARGPath path) {
-    Integer pathId = obtainErrorPathId(path);
-    boolean progress = (previousErrorPathIds.isEmpty() || !previousErrorPathIds.contains(pathId));
-
-    previousErrorPathIds.add(pathId);
-
-    return progress;
-  }
-
-  private int obtainErrorPathId(ARGPath path) {
-    Set<String> automatonNames =
-        AbstractStates.asIterable(path.getLastState())
-            .filter(AutomatonState.class)
-            .filter(AutomatonState::isTarget)
-            .transform(AutomatonState::getOwningAutomatonName)
-            .toSet();
-    int id = path.toString().hashCode() + automatonNames.hashCode();
-    return id;
   }
 
   private CounterexampleInfo performRefinementForPaths(ARGReachedSet pReached,
