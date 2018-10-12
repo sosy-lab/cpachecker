@@ -44,21 +44,20 @@ public class SMGStrongestPostOperator {
 
   private final SMGTransferRelation transfer;
 
-  private SMGStrongestPostOperator(SMGTransferRelation pTransferRelation) {
-    transfer = pTransferRelation;
-  }
-
-  public static SMGStrongestPostOperator getSMGStrongestPostOperatorForCEX(
-      LogManager pLogger, CFA pCfa, SMGPredicateManager pSMGPredicateManager, SMGOptions pOptions) {
-    SMGTransferRelation transfer =
+  SMGStrongestPostOperator(
+      LogManager pLogger,
+      CFA pCfa,
+      SMGPredicateManager pSMGPredicateManager,
+      SMGOptions pOptions,
+      SMGTransferRelationKind pKind) {
+    transfer =
         new SMGTransferRelation(
             pLogger,
             pCfa.getMachineModel(),
             SMGExportDotOption.getNoExportInstance(),
-            SMGTransferRelationKind.STATIC,
+            pKind,
             pSMGPredicateManager,
             pOptions);
-    return new SMGStrongestPostOperator(transfer);
   }
 
   public Collection<SMGState> getStrongestPost(
@@ -75,18 +74,5 @@ public class SMGStrongestPostOperator {
       result.addAll(transfer.getAbstractSuccessorsForEdge(state, pPrecision, pOperation));
     }
     return result;
-  }
-
-  public static SMGStrongestPostOperator getSMGStrongestPostOperatorForInterpolation(
-      LogManager pLogger, CFA pCfa, SMGPredicateManager pSMGPredicateManager, SMGOptions pOptions) {
-    SMGTransferRelation transferRelation =
-        new SMGTransferRelation(
-            pLogger,
-            pCfa.getMachineModel(),
-            SMGExportDotOption.getNoExportInstance(),
-            SMGTransferRelationKind.REFINEMENT,
-            pSMGPredicateManager,
-            pOptions);
-    return new SMGStrongestPostOperator(transferRelation);
   }
 }

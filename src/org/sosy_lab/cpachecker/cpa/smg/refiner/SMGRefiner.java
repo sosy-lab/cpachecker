@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -128,8 +129,8 @@ public class SMGRefiner implements Refiner {
     SMGPredicateManager predicateManager = smgCpa.getPredicateManager();
 
     SMGStrongestPostOperator strongestPostOpForCEX =
-        SMGStrongestPostOperator.getSMGStrongestPostOperatorForCEX(
-            logger, cfa, predicateManager, smgCpa.getOptions());
+        new SMGStrongestPostOperator(
+            logger, cfa, predicateManager, smgCpa.getOptions(), SMGTransferRelationKind.STATIC);
 
     UnmodifiableSMGState initialState =
         smgCpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
@@ -141,8 +142,8 @@ public class SMGRefiner implements Refiner {
         new SMGInterpolantManager(cfa.getMachineModel(), logger, cfa, smgCpa.getOptions());
 
     SMGStrongestPostOperator strongestPostOpForInterpolation =
-        SMGStrongestPostOperator.getSMGStrongestPostOperatorForInterpolation(
-            logger, cfa, predicateManager, smgCpa.getOptions());
+        new SMGStrongestPostOperator(
+            logger, cfa, predicateManager, smgCpa.getOptions(), SMGTransferRelationKind.REFINEMENT);
 
     SMGFeasibilityChecker checkerForInterpolation =
         new SMGFeasibilityChecker(
