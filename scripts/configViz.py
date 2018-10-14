@@ -88,10 +88,11 @@ def getFilenamesFromLine(line):
   if line[:8]=="#include":
     fname = line.split()[1]
   else:
-    m = re.search("^[a-zA-Z\.]*\.(config|terminatingStatements|checkerConfig)(?:Files|)\s*=\s*(.*)\s*",line)
+    m = re.search("^[a-zA-Z\.]*(config|Config|terminatingStatements)(?:Files|)\s*=\s*(.*)\s*",line)
     if m != None:
       fname = m.group(2)
       typ = EdgeType.SPECIAL
+      if fname in ["true","false"]: fname = None # ignore some options with unusual name
     else:
       m = re.search("^specification\s*=\s*(.*)\s*",line)
       if m != None:
