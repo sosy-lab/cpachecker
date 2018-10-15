@@ -35,7 +35,7 @@
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="26.0-jre" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava" rev="24.1-jre" conf="runtime->default; contrib->sources"/>
 
         <dependency org="org.sosy_lab" name="llvm-j" rev="0.3.1-11-g4c74d18" conf="runtime->runtime; contrib->sources"/>
 
@@ -83,15 +83,11 @@
 
         <!-- Truth
              Library for writing literal assertions. -->
-        <dependency org="com.google.truth" name="truth" rev="0.42" conf="test->default; contrib->sources"/>
-        <dependency org="com.google.truth.extensions" name="truth-java8-extension" rev="0.42" conf="test->default; contrib->sources"/>
-        <!-- Google Truth depends on checker-compat-qual. By default we would download
-             the library for 'test' only. Lets provide the library for 'runtime'.
-             TODO: remove this special handling in the future. -->
-        <dependency org="org.checkerframework" name="checker-compat-qual" rev="2.5.3" conf="runtime->default"/>
+        <dependency org="com.google.truth" name="truth" rev="0.40" conf="test->default; contrib->sources"/>
+        <dependency org="com.google.truth.extensions" name="truth-java8-extension" rev="0.40" conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
-        <dependency org="com.google.guava" name="guava-testlib" rev="26.0-jre" conf="test->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava-testlib" rev="24.1-jre" conf="test->default; contrib->sources"/>
 
         <!-- Eclipse CDT and JDT
              Used for parsing C and Java code. -->
@@ -121,7 +117,7 @@
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="javasmt" rev="2.0.0-alpha-202-g594a92f" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="javasmt" rev="2.0.0-alpha-206-g740388e" conf="runtime->runtime; contrib->sources"/>
 
         <!-- LassoRanker
              Synthesis of ranking functions for termination analysis. -->
