@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -62,7 +61,6 @@ import org.sosy_lab.java_smt.api.SolverException;
  * Transfer relation for symbolic predicate abstraction. First it computes the strongest post for
  * the given CFA edge. Afterwards it optionally computes an abstraction.
  */
-@Options(prefix = "cpa.predicate")
 public final class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
   private final LogManager logger;

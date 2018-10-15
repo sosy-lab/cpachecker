@@ -24,14 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import java.util.HashSet;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-@Options
 public class ARGMergeJoin implements MergeOperator {
 
   private final MergeOperator wrappedMerge;
