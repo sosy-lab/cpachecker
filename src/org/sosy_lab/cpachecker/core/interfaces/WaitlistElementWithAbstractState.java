@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 public interface WaitlistElementWithAbstractState extends WaitlistElement {
 
+  @Override
   public AbstractState getAbstractState();
 
   public Precision getPrecision();

@@ -29,5 +29,7 @@ public interface WaitlistElement {
 
   public boolean contains(AbstractState pState);
 
+  public AbstractState getAbstractState();
+
   public Collection<AbstractState> getAbstractStates();
 }

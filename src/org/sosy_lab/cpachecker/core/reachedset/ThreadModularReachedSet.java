@@ -75,7 +75,7 @@ public class ThreadModularReachedSet extends AbstractReachedSet {
     if (pState instanceof InferenceObject) {
       check = w -> w.getInferenceObject().equals(pState);
     } else {
-      check = w -> w.getState().equals(pState);
+      check = w -> w.getAbstractState().equals(pState);
     }
     while (iterator.hasNext()) {
       ThreadModularWaitlistElement current = (ThreadModularWaitlistElement) iterator.next();

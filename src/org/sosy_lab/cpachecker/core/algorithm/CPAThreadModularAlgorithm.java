@@ -31,7 +31,6 @@ import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -98,7 +97,6 @@ public class CPAThreadModularAlgorithm extends AbstractCPAAlgorithm {
     }
   }
 
-  @Options(prefix = "cpa")
   public static class ThreadModularAlgorithmFactory {
 
     private final ConfigurableProgramAnalysis cpa;
@@ -108,7 +106,6 @@ public class CPAThreadModularAlgorithm extends AbstractCPAAlgorithm {
     public ThreadModularAlgorithmFactory(ConfigurableProgramAnalysis cpa, LogManager logger,
         Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
 
-      config.inject(this);
       this.cpa = cpa;
       this.logger = logger;
       this.shutdownNotifier = pShutdownNotifier;
@@ -197,7 +194,7 @@ public class CPAThreadModularAlgorithm extends AbstractCPAAlgorithm {
 
     Preconditions.checkArgument(pElement instanceof ThreadModularWaitlistElement);
 
-    AbstractState state = ((ThreadModularWaitlistElement) pElement).getState();
+    AbstractState state = ((ThreadModularWaitlistElement) pElement).getAbstractState();
     Precision precision = ((ThreadModularWaitlistElement) pElement).getPrecision();
     InferenceObject object = ((ThreadModularWaitlistElement) pElement).getInferenceObject();
 

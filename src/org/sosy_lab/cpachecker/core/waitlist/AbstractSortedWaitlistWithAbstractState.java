@@ -23,10 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.waitlist;
 
-import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.WaitlistElement;
-import org.sosy_lab.cpachecker.core.interfaces.WaitlistElementWithAbstractState;
 
 public abstract class AbstractSortedWaitlistWithAbstractState<K extends Comparable<K>>
     extends AbstractSortedWaitlist<K> {
@@ -37,8 +35,7 @@ public abstract class AbstractSortedWaitlistWithAbstractState<K extends Comparab
 
   @Override
   protected K getSortKey(WaitlistElement pState) {
-    Preconditions.checkArgument(pState instanceof WaitlistElementWithAbstractState);
-    return getSortKey(((WaitlistElementWithAbstractState) pState).getAbstractState());
+    return getSortKey(pState.getAbstractState());
   }
 
   protected abstract K getSortKey(AbstractState pState);

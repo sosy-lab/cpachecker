@@ -58,7 +58,8 @@ public class ThreadModularWaitlistElement implements WaitlistElement {
     return Collections.singleton(state);
   }
 
-  public AbstractState getState() {
+  @Override
+  public AbstractState getAbstractState() {
     return state;
   }
 
