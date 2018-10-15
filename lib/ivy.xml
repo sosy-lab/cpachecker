@@ -134,6 +134,10 @@
             <exclude org="org.apache.xmlgraphics" module="batik-util"/>
         </dependency>
 
+        <!-- JavaSMT has an erroneous dependency on a newer Guava which causes SpotBugs to fail.
+             Temporarily override to at least get CPAchecker's build to be working again. -->
+        <override org="com.google.guava" module="guava" rev="24.1-jre"/>
+
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
         <override org="com.google.errorprone" module="error_prone_annotations" rev="2.3.1"/>
 
