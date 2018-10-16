@@ -151,6 +151,10 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
 
   private class UndefinedFunctionCollectorAlgorithmStatistics implements Statistics {
 
+    private static final String ASSUME_FUNCTION_NAME = "__VERIFIER_assume";
+    private static final String NONDET_FUNCTION_PREFIX = "__VERIFIER_nondet_";
+    private static final String ASSUME_FUNCTION_DECL = "void " + ASSUME_FUNCTION_NAME + "(int);\n";
+
     UndefinedFunctionCollectorAlgorithmStatistics(
         CFA pCfa, FormulaEncodingOptions pEncodingOptions) {
       cfa = pCfa;
@@ -159,6 +163,8 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
 
     private final CFA cfa;
     private final FormulaEncodingOptions encodingOptions;
+
+    private final String odmFunctionDecl = "void *" + odmAllocFunction + "(void);\n";
 
     public Map<String, AFunctionDeclaration> collectUndefinedFunctionsRecursively() {
       // 1.Step: get all function calls
@@ -192,9 +198,6 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
       //|| encodingOptions.isExternModelFunction(name);
     }
 
-    private String assume = "__VERIFIER_assume";
-    private String nondetPrefix = "__VERIFIER_nondet_";
-
     private void printFunction(String name, AFunctionDeclaration f,
         Writer w) throws IOException {
       if (ignoreFunctions.contains(name)
@@ -211,12 +214,11 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
         boolean couldBeHandled = printType("  ", prepend, buf, (CType) rt);
         if (couldBeHandled) {
           w.write(prepend.toString());
-
-          w.write(getSignature(name, f.getType()) + "{\n");
+          w.write(getSignature(name, f.getType()) + " {\n");
           w.write(buf.toString());
           w.write("}\n\n");
         } else {
-          w.write("// Ignore function: " + name + "\n\n");
+          w.write("// ignored because stub could not be generated\n\n");
         }
       }
     }
@@ -242,9 +244,6 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
       return type.getReturnType().toASTString(res);
     }
 
-    private final String odmFunctionDecl = "void *" + odmAllocFunction + "(void)";
-    private final String assumeFunctionDecl = "void " + assume + "(int)";
-
     private boolean printType(String indent, StringBuilder prepend, StringBuilder buf, CType rt) {
       boolean couldBeHandled = true;
       if (rt instanceof CVoidType) {
@@ -252,22 +251,22 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
         buf.append(indent + "return;\n");
       } else if (rt instanceof CPointerType) {
         buf.append(indent + "// Pointer type\n");
-        prepend.append(odmFunctionDecl + ";\n");
+        prepend.append(odmFunctionDecl);
         buf.append(indent + "return (" + rt.toASTString("") + ")" + odmAllocFunction + "();\n");
       } else if (rt instanceof CSimpleType) {
         CSimpleType ct = (CSimpleType) rt;
         Pair<String, String> pair = convertType(ct);
-        String nondetFunc = nondetPrefix + pair.getSecond();
+        String nondetFunc = NONDET_FUNCTION_PREFIX + pair.getSecond();
         prepend.append(pair.getFirst() + " " + nondetFunc + "(void);\n");
         buf.append(indent + "// Simple type\n");
         buf.append(indent + "return " + nondetFunc + "();\n");
       } else if (rt instanceof CCompositeType) {
         buf.append(indent + "// Composite type\n");
-        prepend.append(odmFunctionDecl + ";\n");
+        prepend.append(odmFunctionDecl);
         buf.append(indent + rt.toASTString("tmp") + " = (" + rt.toASTString("") + ")"
             + odmAllocFunction + "();\n");
-        prepend.append(assumeFunctionDecl + ";\n");
-        buf.append(indent + assume + "(tmp != 0);\n");
+        prepend.append(ASSUME_FUNCTION_DECL);
+        buf.append(indent + ASSUME_FUNCTION_NAME + "(tmp != 0);\n");
         buf.append(indent + "return *tmp;\n");
       } else if (rt instanceof CElaboratedType) {
         CType real = ((CElaboratedType) rt).getRealType();
