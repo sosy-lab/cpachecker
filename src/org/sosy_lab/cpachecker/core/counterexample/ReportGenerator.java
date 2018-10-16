@@ -607,7 +607,7 @@ public class ReportGenerator {
 
   // Build ARG data only if the reached states are ARGStates
   private void buildArgGraphData(UnmodifiableReachedSet reached) {
-    if (reached.getFirstState() instanceof ARGState) {
+    if (!reached.isEmpty() && reached.getFirstState() instanceof ARGState) {
       reached.asCollection().forEach(entry -> {
         int parentStateId = ((ARGState) entry).getStateId();
         for (CFANode node : AbstractStates.extractLocations(entry)) {
