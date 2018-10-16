@@ -3676,20 +3676,17 @@ testcase.values.compress = false
 # Zip file into which all test values files are bundled
 testcase.values.zip = no default value
 
-# export undefined functions as C file
-undefFuncCollectorAlgorithm.file = "env.c"
-
 # Set of functions that should be ignored
-undefFuncCollectorAlgorithm.ignoreFunctions = {"memset", "kfree", "free", "calloc", "malloc"}
+undefinedFunctionsCollector.allowedFunctions = {"memset", "kfree", "free", "calloc", "malloc"}
 
-# On-demand memory allocation function
-undefFuncCollectorAlgorithm.odmAllocFunction = "external_alloc"
+# Regexp matching function names that are allowed to be undefined
+undefinedFunctionsCollector.allowedFunctionsRegexp = "^(__VERIFIER|pthread)_[a-zA-Z0-9_]*"
 
-# Set of functions that are defined by pthread.h and should be ignored
-undefFuncCollectorAlgorithm.pthreadFunctionsRegexp = "^pthread_[a-zA-Z0-9_]*"
+# Memory-allocation function that will be used in stubs
+undefinedFunctionsCollector.externAllocFunction = "external_alloc"
 
-# Set of functions that are defined by SV-COMP rules and should be ignored
-undefFuncCollectorAlgorithm.svcompFunctionsRegexp = "^__VERIFIER_[a-zA-Z0-9_]*"
+# export undefined functions as C file
+undefinedFunctionsCollector.stubsFile = "stubs.c"
 
 # File for exporting the witness automaton in DOT format.
 witness.automatonDumpFile = no default value

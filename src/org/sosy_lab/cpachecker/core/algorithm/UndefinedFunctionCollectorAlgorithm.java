@@ -69,33 +69,25 @@ import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationExc
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 
-@Options(prefix = "undefFuncCollectorAlgorithm")
+@Options(prefix = "undefinedFunctionsCollector")
 public class UndefinedFunctionCollectorAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(secure = true, description = "export undefined functions as C file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path file = Paths.get("env.c");
+  private Path stubsFile = Paths.get("stubs.c");
 
   @Option(secure = true, description = "Set of functions that should be ignored")
-  private Set<String> ignoreFunctions =
+  private Set<String> allowedFunctions =
       ImmutableSet.of("memset", "kfree", "free", "calloc", "malloc");
 
-  @Option(secure = true, description = "On-demand memory allocation function")
-  private String odmAllocFunction = "external_alloc";
+  @Option(secure = true, description = "Memory-allocation function that will be used in stubs")
+  private String externAllocFunction = "external_alloc";
 
   @Option(
       secure = true,
-      description = "Set of functions "
-          + "that are defined by SV-COMP rules and should be ignored")
-  private Pattern svcompFunctionsRegexp = Pattern.compile("^__VERIFIER_[a-zA-Z0-9_]*");
-
-  @Option(
-      secure = true,
-      description = "Set of functions "
-          + "that are defined by pthread.h and should be ignored")
-  private Pattern pthreadFunctionsRegexp = Pattern.compile("^pthread_[a-zA-Z0-9_]*");
+      description = "Regexp matching function names that are allowed to be undefined")
+  private Pattern allowedFunctionsRegexp = Pattern.compile("^(__VERIFIER|pthread)_[a-zA-Z0-9_]*");
 
   private final LogManager logger;
   private final UndefinedFunctionCollectorAlgorithmStatistics stats;
@@ -155,16 +147,13 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
     private static final String NONDET_FUNCTION_PREFIX = "__VERIFIER_nondet_";
     private static final String ASSUME_FUNCTION_DECL = "void " + ASSUME_FUNCTION_NAME + "(int);\n";
 
-    UndefinedFunctionCollectorAlgorithmStatistics(
-        CFA pCfa, FormulaEncodingOptions pEncodingOptions) {
+    UndefinedFunctionCollectorAlgorithmStatistics(CFA pCfa) {
       cfa = pCfa;
-      encodingOptions = pEncodingOptions;
     }
 
     private final CFA cfa;
-    private final FormulaEncodingOptions encodingOptions;
 
-    private final String odmFunctionDecl = "void *" + odmAllocFunction + "(void);\n";
+    private final String odmFunctionDecl = "void *" + externAllocFunction + "(void);\n";
 
     public Map<String, AFunctionDeclaration> collectUndefinedFunctionsRecursively() {
       // 1.Step: get all function calls
@@ -179,8 +168,8 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       Map<String, AFunctionDeclaration> undefFuncs = collectUndefinedFunctionsRecursively();
       pOut.println("Undefined functions count: " + undefFuncs.size());
-      if (file != null) {
-        try (Writer w = IO.openOutputFile(file, Charset.defaultCharset())) {
+      if (stubsFile != null) {
+        try (Writer w = IO.openOutputFile(stubsFile, Charset.defaultCharset())) {
           for (Map.Entry<String, AFunctionDeclaration> k : undefFuncs.entrySet()) {
             printFunction(k.getKey(), k.getValue(), w);
           }
@@ -190,18 +179,13 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
       }
     }
 
-    private boolean isSvcompFunction(String name) {
-      return svcompFunctionsRegexp.matcher(name).matches()
-          || pthreadFunctionsRegexp.matcher(name).matches()
-          //|| encodingOptions.isNondetFunction(name)
-          || encodingOptions.isMemoryAllocationFunction(name);
-      //|| encodingOptions.isExternModelFunction(name);
+    private boolean skipFunction(String name) {
+      return allowedFunctions.contains(name) || allowedFunctionsRegexp.matcher(name).matches();
     }
 
     private void printFunction(String name, AFunctionDeclaration f,
         Writer w) throws IOException {
-      if (ignoreFunctions.contains(name)
-          || isSvcompFunction(name)) {
+      if (skipFunction(name)) {
         logger.log(Level.FINE, " Skip function: " + name);
         w.write("// Skip function: " + name + "\n\n");
       } else {
@@ -252,7 +236,7 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
       } else if (rt instanceof CPointerType) {
         buf.append(indent + "// Pointer type\n");
         prepend.append(odmFunctionDecl);
-        buf.append(indent + "return (" + rt.toASTString("") + ")" + odmAllocFunction + "();\n");
+        buf.append(indent + "return (" + rt.toASTString("") + ")" + externAllocFunction + "();\n");
       } else if (rt instanceof CSimpleType) {
         CSimpleType ct = (CSimpleType) rt;
         Pair<String, String> pair = convertType(ct);
@@ -264,7 +248,7 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
         buf.append(indent + "// Composite type\n");
         prepend.append(odmFunctionDecl);
         buf.append(indent + rt.toASTString("tmp") + " = (" + rt.toASTString("") + ")"
-            + odmAllocFunction + "();\n");
+            + externAllocFunction + "();\n");
         prepend.append(ASSUME_FUNCTION_DECL);
         buf.append(indent + ASSUME_FUNCTION_NAME + "(tmp != 0);\n");
         buf.append(indent + "return *tmp;\n");
@@ -344,8 +328,7 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
       LogManager pLogger)
       throws InvalidConfigurationException {
     config.inject(this);
-    FormulaEncodingOptions enc = new FormulaEncodingOptions(config);
-    this.stats = new UndefinedFunctionCollectorAlgorithmStatistics(pCfa, enc);
+    this.stats = new UndefinedFunctionCollectorAlgorithmStatistics(pCfa);
     this.logger = pLogger;
   }
 
