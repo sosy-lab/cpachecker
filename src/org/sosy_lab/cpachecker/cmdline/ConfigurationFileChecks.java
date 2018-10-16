@@ -119,6 +119,7 @@ public class ConfigurationFileChecks {
           "differential.program",
           // handled by code outside of CPAchecker class
           "output.disable",
+          "statistics.print",
           "limits.time.cpu",
           "limits.time.cpu::required",
           "limits.time.cpu.thread",
