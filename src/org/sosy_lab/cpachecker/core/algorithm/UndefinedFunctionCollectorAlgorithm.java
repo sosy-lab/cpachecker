@@ -172,12 +172,14 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       Map<String, AFunctionDeclaration> undefFuncs = collectUndefinedFunctionsRecursively();
       pOut.println("Undefined functions count: " + undefFuncs.size());
-      try (Writer w = IO.openOutputFile(file, Charset.defaultCharset())) {
-        for (Map.Entry<String, AFunctionDeclaration> k : undefFuncs.entrySet()) {
-          printFunction(k.getKey(), k.getValue(), w);
+      if (file != null) {
+        try (Writer w = IO.openOutputFile(file, Charset.defaultCharset())) {
+          for (Map.Entry<String, AFunctionDeclaration> k : undefFuncs.entrySet()) {
+            printFunction(k.getKey(), k.getValue(), w);
+          }
+        } catch (IOException e) {
+          logger.logUserException(Level.WARNING, e, "Could not write undefined funcs to the file");
         }
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not write undefined funcs to the file");
       }
     }
 
