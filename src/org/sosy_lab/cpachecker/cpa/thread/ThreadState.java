@@ -289,8 +289,8 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
   public boolean isLessOrEqual(ThreadState pOther) throws CPAException, InterruptedException {
     return Objects.equals(removedSet, pOther.removedSet)
         && pOther.threadSet.containsAll(threadSet)
-        && location.equals(pOther.location)
-        && callstack.equals(pOther.callstack);
+        && Objects.equals(location, pOther.location)
+        && Objects.equals(callstack, pOther.callstack);
   }
 
   @Override

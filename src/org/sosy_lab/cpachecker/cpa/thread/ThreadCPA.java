@@ -162,6 +162,6 @@ public class ThreadCPA implements WrapperCPA, ConfigurableProgramAnalysisWithBAM
 
   @Override
   public StopOperator getStopForInferenceObject() {
-    return (s, r, p) -> true;
+    return new ThreadStopIO();
   }
 }
