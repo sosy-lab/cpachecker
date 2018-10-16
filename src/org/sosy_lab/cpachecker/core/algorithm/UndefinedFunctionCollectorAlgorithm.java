@@ -207,8 +207,8 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
         w.write("// with return type: " + rt + "\n");
         StringBuilder buf = new StringBuilder();
         StringBuilder prepend = new StringBuilder();
-        boolean b = printType("  ", prepend, buf, (CType) rt);
-        if (b) {
+        boolean couldBeHandled = printType("  ", prepend, buf, (CType) rt);
+        if (couldBeHandled) {
           w.write(prepend.toString());
 
           w.write(getSignature(name, f.getType()) + "{\n");
@@ -245,7 +245,7 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
     private final String assumeFunctionDecl = "void " + assume + "(int)";
 
     private boolean printType(String indent, StringBuilder prepend, StringBuilder buf, CType rt) {
-      boolean ignore = false;
+      boolean couldBeHandled = true;
       if (rt instanceof CVoidType) {
         buf.append(indent + "// Void type\n");
         buf.append(indent + "return;\n");
@@ -273,11 +273,11 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
         CTypedefType tt = (CTypedefType) rt;
         CType real = tt.getRealType();
         buf.append(indent + "// Real type: " + real + "\n");
-        ignore = !printType(indent, prepend, buf, real);
+        couldBeHandled = printType(indent, prepend, buf, real);
       } else {
-        ignore = true;
+        couldBeHandled = false;
       }
-      return !ignore;
+      return couldBeHandled;
     }
 
     //Copied from SV-COMP rules:
