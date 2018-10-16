@@ -26,12 +26,16 @@ package org.sosy_lab.cpachecker.cfa.model;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
-import org.sosy_lab.common.UniqueIdGenerator;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 
 public class CFANode implements Comparable<CFANode>, Serializable {
 
@@ -51,6 +55,10 @@ public class CFANode implements Comparable<CFANode>, Serializable {
 
   // in which function is that node?
   private final String functionName;
+
+  // set of variables out of scope after this node.
+  // lazy initialization: first null, then final set
+  private Set<CSimpleDeclaration> outOfScopeVariables = null;
 
   // list of summary edges
   private FunctionSummaryEdge leavingSummaryEdge = null;
@@ -257,5 +265,31 @@ public class CFANode implements Comparable<CFANode>, Serializable {
     // leaving and entering edges have to be updated explicitly after reading a node
     leavingEdges = new ArrayList<>(1);
     enteringEdges = new ArrayList<>(1);
+  }
+
+  public void addOutOfScopeVariables(Collection<CSimpleDeclaration> pOutOfScopeVariables) {
+    if (outOfScopeVariables == null) { // lazy
+      outOfScopeVariables = new LinkedHashSet<>();
+    }
+    outOfScopeVariables.addAll(pOutOfScopeVariables);
+  }
+
+  /**
+   * Get a set of variables that were in scope before this node. We do not require them to have been
+   * used in all paths before this node, i.e., we can also go out of scope of an "unused variable".
+   * Variables can also go out of scope several times, i.e., when paths are merging and some paths
+   * already lost a variable. All returned variables are guaranteed to be out of scope after
+   * traversing this node, i.e., an analysis can remove their values from the program stack.
+   * Variables can come into scope again, e.g. when iterating through a loop or calling a function
+   * twice.
+   *
+   * <p>We currently do not return function parameters on function exit. Those can be retrieved
+   * separately via {@link FunctionExitNode#getEntryNode()}.
+   */
+  public Set<CSimpleDeclaration> getOutOfScopeVariables() {
+    if (outOfScopeVariables == null) { // lazy
+      return Collections.emptySet();
+    }
+    return Collections.unmodifiableSet(outOfScopeVariables);
   }
 }
