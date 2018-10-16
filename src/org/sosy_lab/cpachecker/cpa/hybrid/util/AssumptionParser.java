@@ -23,19 +23,34 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid.util;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
+import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils.ParserTools;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
-import ap.parser.ApInput.Absyn.Expression;
 import apron.NotImplementedException;
 
 /**
@@ -44,99 +59,57 @@ import apron.NotImplementedException;
 public class AssumptionParser {
 
     private final String delimiter;
-    private final Set<CSimpleDeclaration> variableDeclarations;
+    private final Scope scope;
+    private final LogManager logger;
+    private final ParserTools parserTools;
+    private final CParser cParser;
+    private final MachineModel machineModel;
     private final FileLocation DUMMY;
 
 
     public AssumptionParser(final String delimiter, 
-                            final Set<CSimpleDeclaration> variableDeclarations) {
+                            final Scope scope,
+                            final Configuration configuration,
+                            final MachineModel machineModel,
+                            final LogManager logger) throws InvalidConfigurationException{
         this.delimiter = delimiter;
-        this.variableDeclarations = variableDeclarations;
+        this.scope = scope;
+        this.logger = logger;
+        this.parserTools = 
+            ParserTools.create(ExpressionTrees.newCachingFactory(), machineModel, logger);
+
+        cParser =
+        CParser.Factory.getParser(
+            LogManager.createNullLogManager(),
+            CParser.Factory.getOptions(configuration),
+            machineModel);
+
+        this.machineModel = machineModel;
+
         DUMMY = FileLocation.DUMMY;
     }
 
     /**
      * Currently the implementation relies on correctnes of the given configuration
+     * 
      * @param assumptions The string containing all defined string encoded assumptions
      * @return A set of parsed CExpressions
      */
-    public Set<CExpression> parseMany(final String assumptions) {
+    public Set<CExpression> parseAssumptions(final String assumptions) throws InvalidAutomatonException {
         if(assumptions.isEmpty()) {
             return Collections.emptySet();
         }
 
-        // set is used to implicitely skip duplicates
-        Set<CExpression> assumptionSet = new HashSet<>();
+        // build set of single statements
+        Set<String> splitAssumptions = Sets.newHashSet(assumptions.split(delimiter));
 
-        // iterate over all assumptions defined in the assumptions-string
-        for(String assumption : assumptions.split(delimiter)) {
-            @Nullable CExpression expression = parseAssumption(assumption);
-            if(expression != null)
-            {
-                assumptionSet.add(parseAssumption(assumption));
-            }
-        }
+        Collection<CStatement> statements = CParserUtils.parseStatements(splitAssumptions, Optional.empty(), cParser, scope, parserTools);  
 
-        return assumptionSet;
-    }
+        // convert statements to CExpressions
+        Collection<CExpression> expressions = CollectionUtils.ofType(
+            CParserUtils.convertStatementsToAssumptions(statements, machineModel, logger),
+            CExpression.class);
 
-    /**
-     * 
-     * @param assumption The string encoded assumption to parse
-     * @return A CExpression containing the assumtion information
-     */
-    public @Nullable CExpression parseAssumption(final String assumption) {
-        final String[] assumptionSplit = assumption.split("=");
-
-        // there can only be a left hand side and a right hand side in an assignment
-        assert(assumptionSplit.length == 2);
-
-        Optional<CSimpleDeclaration> declarationOpt = getDeclaratioForName(assumptionSplit[0]);
-
-        // there is no delcaration available for the variable name
-        if(!declarationOpt.isPresent())
-        {
-            return null;
-        }
-
-        // complex assumption on structs are defined with curly braces
-        if(assumptionSplit[1].contains("{")) {
-            return parseComplex(assumptionSplit);
-        }
-
-        return parseSimple(assumptionSplit);
-    }
-
-    private @Nullable CExpression parseSimple(final String[] assumptionSplit) {
-        // to construct a CIdExpression, we need more information of the variable
-        final String name = assumptionSplit[0];
-        final String value = assumptionSplit[1];
-        Optional<CSimpleDeclaration> declarationOpt = getDeclaratioForName(name);
-
-        
-
-        CSimpleDeclaration declaration = declarationOpt.get();
-        CIdExpression idExp = 
-            new CIdExpression(DUMMY, declaration.getType(), name, declaration);
-        return null;
-    }
-
-    private CExpression parseComplex(final String[] assumptionSplit) {
-        // currently complex assumptions are not supported
-        throw new NotImplementedException();
-    }
-
-    // retrieves 
-    private Optional<CSimpleDeclaration> getDeclaratioForName(String ddeclarationName)
-    {
-        for(CSimpleDeclaration declaration : variableDeclarations)
-        {
-            if(declaration.getOrigName().equals(ddeclarationName))
-            {
-                return Optional.of(declaration);
-            }
-        }
-
-        return Optional.empty();
+        return ImmutableSet.copyOf(expressions);
     }
 }

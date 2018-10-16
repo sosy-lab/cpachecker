@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.hybrid;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.logging.Level;
 import java.util.Optional;
 import java.util.Set;
 
@@ -38,6 +39,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -57,6 +59,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.AssumptionParser;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.CollectionUtils;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.OperatorType;
@@ -68,12 +71,6 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
             name = "initialAssumptions",
             description = "The initial assumptions for a given program.")
     private String initialAssumptionsStringEncoded = "";
-
-    @Option(secure = true,
-            name = "ignnoreInvalidAssumptions",
-            description = "Per default, invalid assumptions (e.g. declared variable does not exist) will be ignored." +
-                          "If set to true, invalid assumptions will cause an error.")
-    private boolean ignoreInvalidAssumptions = true;
 
     @Option(secure = true,
             name = "delimiter",
@@ -100,6 +97,7 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
     private final CFA cfa;
     private final LogManager logger;
     private final @Nullable AssumptionParser assumptionParser;
+    private final CProgramScope scope;
 
     protected HybridAnalysisCPA( 
         CFA cfa, 
@@ -110,7 +108,10 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
         this.abstractDomain = DelegateAbstractDomain.<HybridAnalysisState>getInstance();
         this.cfa = Preconditions.checkNotNull(cfa, cfaErrorMessage);
         this.logger = logger;
-        this.assumptionParser = initAssumptionsParser(cfa);
+        this.scope = new CProgramScope(cfa, logger);
+        this.assumptionParser = 
+            new AssumptionParser(delimiter, scope, configuration, cfa.getMachineModel(), logger);
+        configuration.inject(this);
     }
 
     @Override
@@ -123,7 +124,14 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
             return new HybridAnalysisState();
         }
 
-        return new HybridAnalysisState(assumptionParser.parseMany(initialAssumptionsStringEncoded));
+        try {
+            return new HybridAnalysisState(
+                    assumptionParser.parseAssumptions(initialAssumptionsStringEncoded));
+        } catch (InvalidAutomatonException e) {
+            logger.logException(Level.INFO, e, "Assumption parsing failed.");
+        }
+
+        return new HybridAnalysisState();
     }
 
     @Override
@@ -166,26 +174,4 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
               throw new AssertionError("Unknown stop operator");
         }
     }
-
-    // returns an instance of the class AssumptionParser, if there are love variable, else null
-    private AssumptionParser initAssumptionsParser(CFA cfa)
-    {
-        Optional<LiveVariables> liveVarOpt = cfa.getLiveVariables();
-
-        // first, catch the bad case in order to reduce nested code
-        if(!liveVarOpt.isPresent())
-        {
-           return null;
-        }
-
-        Set<ASimpleDeclaration> simpleDeclarations = liveVarOpt
-            .get()
-            .getAllLiveVariables();
-
-        Collection<CSimpleDeclaration> cDeclarations = CollectionUtils
-            .ofType(simpleDeclarations, CSimpleDeclaration.class);
-            
-        return new AssumptionParser(delimiter, new HashSet<>(cDeclarations));
-    }
-
 }
