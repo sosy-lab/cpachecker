@@ -79,6 +79,4 @@ public class HybridAnalysisState implements
       return ImmutableList.copyOf(assumptions);
     }
 
-
-
 }

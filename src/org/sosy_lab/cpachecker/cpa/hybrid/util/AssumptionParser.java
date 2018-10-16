@@ -23,11 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid.util;
 
-import java.util.Set;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
 
+import javax.annotation.Nullable;
+
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+
+import ap.parser.ApInput.Absyn.Expression;
+import apron.NotImplementedException;
 
 /**
  * This class provides methods for parsing string encoded assumptions into CExpressions
@@ -35,13 +44,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 public class AssumptionParser {
 
     private final String delimiter;
+    private final Set<CSimpleDeclaration> variableDeclarations;
+    private final FileLocation DUMMY;
 
-    public AssumptionParser(final String delimiter) {
+
+    public AssumptionParser(final String delimiter, 
+                            final Set<CSimpleDeclaration> variableDeclarations) {
         this.delimiter = delimiter;
+        this.variableDeclarations = variableDeclarations;
+        DUMMY = FileLocation.DUMMY;
     }
 
     /**
-     * 
+     * Currently the implementation relies on correctnes of the given configuration
      * @param assumptions The string containing all defined string encoded assumptions
      * @return A set of parsed CExpressions
      */
@@ -50,12 +65,16 @@ public class AssumptionParser {
             return Collections.emptySet();
         }
 
-        // set is used to skip duplicates
+        // set is used to implicitely skip duplicates
         Set<CExpression> assumptionSet = new HashSet<>();
 
         // iterate over all assumptions defined in the assumptions-string
         for(String assumption : assumptions.split(delimiter)) {
-            assumptionSet.add(parseAssumption(assumption));
+            @Nullable CExpression expression = parseAssumption(assumption);
+            if(expression != null)
+            {
+                assumptionSet.add(parseAssumption(assumption));
+            }
         }
 
         return assumptionSet;
@@ -66,11 +85,19 @@ public class AssumptionParser {
      * @param assumption The string encoded assumption to parse
      * @return A CExpression containing the assumtion information
      */
-    public CExpression parseAssumption(final String assumption) {
+    public @Nullable CExpression parseAssumption(final String assumption) {
         final String[] assumptionSplit = assumption.split("=");
 
         // there can only be a left hand side and a right hand side in an assignment
         assert(assumptionSplit.length == 2);
+
+        Optional<CSimpleDeclaration> declarationOpt = getDeclaratioForName(assumptionSplit[0]);
+
+        // there is no delcaration available for the variable name
+        if(!declarationOpt.isPresent())
+        {
+            return null;
+        }
 
         // complex assumption on structs are defined with curly braces
         if(assumptionSplit[1].contains("{")) {
@@ -80,12 +107,36 @@ public class AssumptionParser {
         return parseSimple(assumptionSplit);
     }
 
-    private CExpression parseSimple(final String[] assumptionSplit) {
+    private @Nullable CExpression parseSimple(final String[] assumptionSplit) {
         // to construct a CIdExpression, we need more information of the variable
+        final String name = assumptionSplit[0];
+        final String value = assumptionSplit[1];
+        Optional<CSimpleDeclaration> declarationOpt = getDeclaratioForName(name);
+
+        
+
+        CSimpleDeclaration declaration = declarationOpt.get();
+        CIdExpression idExp = 
+            new CIdExpression(DUMMY, declaration.getType(), name, declaration);
         return null;
     }
 
     private CExpression parseComplex(final String[] assumptionSplit) {
-        return null;
+        // currently complex assumptions are not supported
+        throw new NotImplementedException();
+    }
+
+    // retrieves 
+    private Optional<CSimpleDeclaration> getDeclaratioForName(String ddeclarationName)
+    {
+        for(CSimpleDeclaration declaration : variableDeclarations)
+        {
+            if(declaration.getOrigName().equals(ddeclarationName))
+            {
+                return Optional.of(declaration);
+            }
+        }
+
+        return Optional.empty();
     }
 }

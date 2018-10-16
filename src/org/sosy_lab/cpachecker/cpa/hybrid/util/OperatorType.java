@@ -29,7 +29,8 @@ package org.sosy_lab.cpachecker.cpa.hybrid.util;
 public enum OperatorType {
     
     SEP("SEP"),
-    JOIN("JOIN");
+    JOIN("JOIN"),
+    NEVER("NEVER");
 
     private final String rep;
 

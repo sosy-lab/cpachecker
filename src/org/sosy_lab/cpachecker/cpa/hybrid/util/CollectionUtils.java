@@ -42,7 +42,7 @@ public class CollectionUtils
      * @param clazz The class object of type T to 
      */
     @SuppressWarnings("unchecked")
-    public <T> Collection<T>  ofType(Collection<? super T> collection, Class<T> clazz)
+    public static <T> Collection<T>  ofType(Collection<? super T> collection, Class<T> clazz)
     {
         return collection
             .stream()
@@ -50,7 +50,6 @@ public class CollectionUtils
             // the cast is safe due to filter operation
             .map(elem -> (T) elem)
             .collect(Collectors.toList());
-            
     }
 
     /**
@@ -69,15 +68,15 @@ public class CollectionUtils
    * @param pred The predicate to check for
    * @return True, if there is at least one element fulfilling the predicate, else false
    */
-  public <T> boolean appliesToAtLeastOne(Iterable<T> collection, Predicate<T> pred) {
+  public static <T> boolean appliesToAtLeastOne(Iterable<T> collection, Predicate<T> pred) {
         return getApplyingElements(collection, pred).size() >= 1;
     }
 
-    public <T> boolean appliesToAll(Iterable<T> collection, Predicate<T> pred) {
+    public static <T> boolean appliesToAll(Iterable<T> collection, Predicate<T> pred) {
         return getApplyingElements(collection, pred).size() == count(collection);
     }
 
-    public <T> Collection<T> getApplyingElements(Iterable<T> collection, Predicate<T> pred) {
+    public static  <T> Collection<T> getApplyingElements(Iterable<T> collection, Predicate<T> pred) {
         Collection<T> resultCollection = new LinkedList<>();
 
         for(T element : collection) {
@@ -94,7 +93,7 @@ public class CollectionUtils
      * @return The size of the collection
      */
     @SuppressWarnings("unused")
-    public <T> int count(Iterable<T> collection) {
+    public static <T> int count(Iterable<T> collection) {
         int count = 0;
         for(T elem : collection) {
             count++;
@@ -108,7 +107,7 @@ public class CollectionUtils
      * @param collection The respective collection 
      * @return True, if the collection has any elements, else false
      */
-    public <T> boolean any(Iterable<T> collection) {
+    public static <T> boolean any(Iterable<T> collection) {
         return count(collection) > 0;
     } 
 }

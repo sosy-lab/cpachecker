@@ -23,21 +23,44 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import com.google.common.base.Preconditions;
+
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
+import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
+import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
+import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.AssumptionParser;
+import org.sosy_lab.cpachecker.cpa.hybrid.util.CollectionUtils;
+import org.sosy_lab.cpachecker.cpa.hybrid.util.OperatorType;
+import org.sosy_lab.cpachecker.util.LiveVariables;
 
 @Options(prefix = "cpa.hybrid")
 public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
@@ -57,25 +80,50 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
             description = "The delimiter for different assumptions in 'initialAssumptions' (e.g. x = 10.0; y = -5).")
     private String delimiter = ";";
 
+    @Option(secure = true,
+            name = "mergeOperator",
+            description = "The type of merge operator to use.")
+    private OperatorType mergeOperatorType = OperatorType.SEP;
+
+    @Option(secure = true,
+            name = "stopOperator",
+            description = "The type of stop operator to use.")
+    private OperatorType stopOperatorType = OperatorType.SEP;
+
+    public static CPAFactory factory() {
+        return AutomaticCPAFactory.forType(HybridAnalysisCPA.class);
+    }
+    
     private static final String cfaErrorMessage = "CFA must be present for HybridAnalysis";
 
     private final AbstractDomain abstractDomain;
     private final CFA cfa;
     private final LogManager logger;
+    private final @Nullable AssumptionParser assumptionParser;
 
     protected HybridAnalysisCPA( 
         CFA cfa, 
-        LogManager logger) {
-    // HybridAnalysisState implements LatticeAbstractState
-    this.abstractDomain = DelegateAbstractDomain.<HybridAnalysisState>getInstance();
+        LogManager logger,
+        Configuration configuration) throws InvalidConfigurationException {
+            
+        // HybridAnalysisState implements LatticeAbstractState
+        this.abstractDomain = DelegateAbstractDomain.<HybridAnalysisState>getInstance();
         this.cfa = Preconditions.checkNotNull(cfa, cfaErrorMessage);
         this.logger = logger;
+        this.assumptionParser = initAssumptionsParser(cfa);
     }
 
     @Override
     public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
             throws InterruptedException {
-        return new HybridAnalysisState(new AssumptionParser(delimiter).parseMany(initialAssumptionsStringEncoded));
+
+        // there have not been any anitial live variables
+        if(assumptionParser == null)
+        {
+            return new HybridAnalysisState();
+        }
+
+        return new HybridAnalysisState(assumptionParser.parseMany(initialAssumptionsStringEncoded));
     }
 
     @Override
@@ -90,13 +138,54 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
 
     @Override
     public MergeOperator getMergeOperator() {
-        return null;
+        switch (mergeOperatorType) {
+            case SEP:
+              return MergeSepOperator.getInstance();
+      
+            case JOIN:
+              return new MergeJoinOperator(getAbstractDomain());
+      
+            default:
+              throw new AssertionError("Unknown merge operator");
+        }
     }
 
     @Override
     public StopOperator getStopOperator() {
-      return null;
+        switch (stopOperatorType) {
+            case SEP:
+              return new StopSepOperator(getAbstractDomain());
+      
+            case JOIN:
+              return new StopJoinOperator(getAbstractDomain());
+      
+            case NEVER:
+              return new StopNeverOperator();
+      
+            default:
+              throw new AssertionError("Unknown stop operator");
+        }
     }
 
+    // returns an instance of the class AssumptionParser, if there are love variable, else null
+    private AssumptionParser initAssumptionsParser(CFA cfa)
+    {
+        Optional<LiveVariables> liveVarOpt = cfa.getLiveVariables();
+
+        // first, catch the bad case in order to reduce nested code
+        if(!liveVarOpt.isPresent())
+        {
+           return null;
+        }
+
+        Set<ASimpleDeclaration> simpleDeclarations = liveVarOpt
+            .get()
+            .getAllLiveVariables();
+
+        Collection<CSimpleDeclaration> cDeclarations = CollectionUtils
+            .ofType(simpleDeclarations, CSimpleDeclaration.class);
+            
+        return new AssumptionParser(delimiter, new HashSet<>(cDeclarations));
+    }
 
 }
