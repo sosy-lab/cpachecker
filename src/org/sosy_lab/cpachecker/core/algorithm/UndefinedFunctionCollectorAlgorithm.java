@@ -167,7 +167,13 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       Map<String, AFunctionDeclaration> undefFuncs = collectUndefinedFunctionsRecursively();
-      pOut.println("Undefined functions count: " + undefFuncs.size());
+
+      pOut.println("Total undefined functions called:        " + undefFuncs.size());
+      pOut.println(
+          "Non-standard undefined functions called: "
+              + (undefFuncs.size()
+                  - undefFuncs.keySet().stream().filter(this::skipFunction).count()));
+
       if (stubsFile != null) {
         try (Writer w = IO.openOutputFile(stubsFile, Charset.defaultCharset())) {
           for (Map.Entry<String, AFunctionDeclaration> k : undefFuncs.entrySet()) {
