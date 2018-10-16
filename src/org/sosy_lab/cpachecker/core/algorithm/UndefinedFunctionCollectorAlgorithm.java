@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -268,6 +269,13 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
         prepend.append(assumeFunctionDecl + ";\n");
         buf.append(indent + assume + "(tmp != 0);\n");
         buf.append(indent + "return *tmp;\n");
+      } else if (rt instanceof CElaboratedType) {
+        CType real = ((CElaboratedType) rt).getRealType();
+        if (real == null) {
+          couldBeHandled = false;
+        } else {
+          couldBeHandled = printType(indent, prepend, buf, real);
+        }
       } else if (rt instanceof CTypedefType) {
         buf.append(indent + "// Typedef type\n");
         CTypedefType tt = (CTypedefType) rt;
@@ -275,7 +283,8 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
         buf.append(indent + "// Real type: " + real + "\n");
         couldBeHandled = printType(indent, prepend, buf, real);
       } else {
-        couldBeHandled = false;
+        throw new AssertionError(
+            "Unexpected type '" + rt + "' of class " + rt.getClass().getSimpleName());
       }
       return couldBeHandled;
     }
