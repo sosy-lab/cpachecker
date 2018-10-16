@@ -34,6 +34,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
@@ -176,7 +177,7 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
 
       if (stubsFile != null) {
         try (Writer w = IO.openOutputFile(stubsFile, Charset.defaultCharset())) {
-          for (Map.Entry<String, AFunctionDeclaration> k : undefFuncs.entrySet()) {
+          for (Map.Entry<String, AFunctionDeclaration> k : new TreeMap<>(undefFuncs).entrySet()) {
             printFunction(k.getKey(), k.getValue(), w);
           }
         } catch (IOException e) {
