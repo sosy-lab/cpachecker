@@ -29,6 +29,7 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,7 +43,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
-import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -73,12 +73,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEnc
 @Options(prefix = "undefFuncCollectorAlgorithm")
 public class UndefinedFunctionCollectorAlgorithm implements Algorithm, StatisticsProvider {
 
-  @Option(
-      secure = true,
-      name = "file",
-      description = "export undefined functions as C file")
+  @Option(secure = true, description = "export undefined functions as C file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate envPathFile = PathTemplate.ofFormatString("env.c");
+  private Path file = Paths.get("env.c");
 
   @Option(secure = true, description = "Set of functions that should be ignored")
   private Set<String> ignoreFunctions =
@@ -153,17 +150,14 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
 
   private class UndefinedFunctionCollectorAlgorithmStatistics implements Statistics {
 
-    UndefinedFunctionCollectorAlgorithmStatistics(CFA pCfa, Path pFile,
-        FormulaEncodingOptions pEncodingOptions) {
+    UndefinedFunctionCollectorAlgorithmStatistics(
+        CFA pCfa, FormulaEncodingOptions pEncodingOptions) {
       cfa = pCfa;
-      filePath = pFile;
       encodingOptions = pEncodingOptions;
     }
 
     private final CFA cfa;
-    private final Path filePath;
     private final FormulaEncodingOptions encodingOptions;
-
 
     public Map<String, AFunctionDeclaration> collectUndefinedFunctionsRecursively() {
       // 1.Step: get all function calls
@@ -178,8 +172,7 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       Map<String, AFunctionDeclaration> undefFuncs = collectUndefinedFunctionsRecursively();
       pOut.println("Undefined functions count: " + undefFuncs.size());
-      try (Writer w =
-          IO.openOutputFile(filePath, Charset.defaultCharset())) {
+      try (Writer w = IO.openOutputFile(file, Charset.defaultCharset())) {
         for (Map.Entry<String, AFunctionDeclaration> k : undefFuncs.entrySet()) {
           printFunction(k.getKey(), k.getValue(), w);
         }
@@ -342,9 +335,7 @@ public class UndefinedFunctionCollectorAlgorithm implements Algorithm, Statistic
       throws InvalidConfigurationException {
     config.inject(this);
     FormulaEncodingOptions enc = new FormulaEncodingOptions(config);
-    Path file = envPathFile.getPath();
-    this.stats =
-        new UndefinedFunctionCollectorAlgorithmStatistics(pCfa, file, enc);
+    this.stats = new UndefinedFunctionCollectorAlgorithmStatistics(pCfa, enc);
     this.logger = pLogger;
   }
 
