@@ -3682,6 +3682,9 @@ undefinedFunctionsCollector.allowedFunctions = {"memset", "kfree", "free", "call
 # Regexp matching function names that are allowed to be undefined
 undefinedFunctionsCollector.allowedFunctionsRegexp = "^(__VERIFIER|pthread)_[a-zA-Z0-9_]*"
 
+# Regexp matching function names that need not be declared
+undefinedFunctionsCollector.allowedUndeclaredFunctionsRegexp = "^__builtin_[a-zA-Z0-9_]*"
+
 # Memory-allocation function that will be used in stubs
 undefinedFunctionsCollector.externAllocFunction = "external_alloc"
 

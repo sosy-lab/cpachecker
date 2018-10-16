@@ -32,6 +32,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -47,8 +48,10 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -95,11 +98,15 @@ public class UndefinedFunctionCollectorAlgorithm
       description = "Regexp matching function names that are allowed to be undefined")
   private Pattern allowedFunctionsRegexp = Pattern.compile("^(__VERIFIER|pthread)_[a-zA-Z0-9_]*");
 
+  @Option(secure = true, description = "Regexp matching function names that need not be declared")
+  private Pattern allowedUndeclaredFunctionsRegexp = Pattern.compile("^__builtin_[a-zA-Z0-9_]*");
+
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
 
   private final Map<String, AFunctionDeclaration> undefinedfFunctions = new HashMap<>();
+  private final Set<String> undeclaredFunctions = new HashSet<>();
 
   private final String odmFunctionDecl = "void *" + externAllocFunction + "(void);\n";
 
@@ -138,7 +145,15 @@ public class UndefinedFunctionCollectorAlgorithm
   private void collectUndefinedFunction(AFunctionCall call) {
     final AFunctionDeclaration functionDecl = call.getFunctionCallExpression().getDeclaration();
 
-    if (functionDecl != null) {
+    if (functionDecl == null) {
+      AExpression functionName = call.getFunctionCallExpression().getFunctionNameExpression();
+      if (functionName instanceof AIdExpression) {
+        // no declaration, but regular function call (no function pointer)
+        String name = ((AIdExpression) functionName).getName();
+        logger.log(Level.FINE, "Call to undeclared function", name, "found.");
+        undeclaredFunctions.add(name);
+      }
+    } else {
       // a call to an undefined function
       if (!cfa.getAllFunctionNames().contains(functionDecl.getName())) {
         undefinedfFunctions.put(functionDecl.getName(), functionDecl);
@@ -148,11 +163,19 @@ public class UndefinedFunctionCollectorAlgorithm
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-    pOut.println("Total undefined functions called:        " + undefinedfFunctions.size());
+    pOut.println("Total undefined functions called:         " + undefinedfFunctions.size());
     pOut.println(
-        "Non-standard undefined functions called: "
+        "Non-standard undefined functions called:  "
             + (undefinedfFunctions.size()
                 - undefinedfFunctions.keySet().stream().filter(this::skipFunction).count()));
+
+    pOut.println("Total undeclared functions called:        " + undeclaredFunctions.size());
+    pOut.println(
+        "Non-standard undeclared functions called: "
+            + undeclaredFunctions
+                .stream()
+                .filter(name -> !allowedUndeclaredFunctionsRegexp.matcher(name).matches())
+                .count());
   }
 
   @Override
@@ -170,7 +193,9 @@ public class UndefinedFunctionCollectorAlgorithm
   }
 
   private boolean skipFunction(String name) {
-    return allowedFunctions.contains(name) || allowedFunctionsRegexp.matcher(name).matches();
+    return allowedFunctions.contains(name)
+        || allowedFunctionsRegexp.matcher(name).matches()
+        || allowedUndeclaredFunctionsRegexp.matcher(name).matches();
   }
 
   private void printFunction(String name, AFunctionDeclaration f, Writer w) throws IOException {
