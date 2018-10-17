@@ -36,6 +36,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nonnull;
@@ -43,6 +44,7 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -53,7 +55,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithDummyLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateInferenceObject;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
+import org.sosy_lab.cpachecker.cpa.value.ValueInferenceObject;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ARGState extends AbstractSingleWrapperState
     implements Comparable<ARGState>, Graphable, Splitable{
@@ -215,11 +221,32 @@ public class ARGState extends AbstractSingleWrapperState
         if (allEdges.isEmpty() && object != null) {
           //environment
           PredicateInferenceObject pO = AbstractStates.extractStateByType(object, PredicateInferenceObject.class);
-          Set<CAssignment> effects = pO.getAction();
+          if (pO != null) {
+            Set<CAssignment> effects = pO.getAction();
 
-          for (CAssignment a : effects) {
-            CFAEdge dummyEdge = new CStatementEdge("environment: " + a, a, FileLocation.DUMMY, currentLoc, childLoc);
-            allEdges.add(dummyEdge);
+            for (CAssignment a : effects) {
+              CFAEdge dummyEdge =
+                  new CStatementEdge(
+                      "environment: " + a,
+                      a,
+                      FileLocation.DUMMY,
+                      currentLoc,
+                      childLoc);
+              allEdges.add(dummyEdge);
+            }
+          } else {
+            ValueInferenceObject vO = AbstractStates.extractStateByType(object, ValueInferenceObject.class);
+            ValueAnalysisInformation info = vO.getDifference();
+            for (Entry<MemoryLocation, Value> entry : info.getAssignments().entrySet()) {
+              CFAEdge dummyEdge =
+                  new BlankEdge(
+                      "environment: " + entry.getKey() + " = " + entry.getValue(),
+                      FileLocation.DUMMY,
+                      currentLoc,
+                      childLoc,
+                      "environment");
+              allEdges.add(dummyEdge);
+            }
           }
         }
       }

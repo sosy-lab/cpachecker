@@ -65,22 +65,46 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
       rSet = new ArrayList<>(state.removedSet);
     }
 
-    public void handleParentThread(CThreadCreateStatement tCall) throws CPATransferException {
-      createThread(tCall, LabelStatus.PARENT_THREAD);
+    public void handleParentThread(CThreadCreateStatement tCall, boolean supportSelfCreation)
+        throws CPATransferException {
+      createThread(tCall, LabelStatus.PARENT_THREAD, supportSelfCreation);
     }
 
-    public void handleChildThread(CThreadCreateStatement tCall) throws CPATransferException {
-      createThread(tCall, tCall.isSelfParallel() ? LabelStatus.SELF_PARALLEL_THREAD : LabelStatus.CREATED_THREAD);
+    public void handleChildThread(CThreadCreateStatement tCall, boolean supportSelfCreation)
+        throws CPATransferException {
+      createThread(
+          tCall,
+          tCall.isSelfParallel() ? LabelStatus.SELF_PARALLEL_THREAD : LabelStatus.CREATED_THREAD,
+          supportSelfCreation);
     }
 
-    private void createThread(CThreadCreateStatement tCall, LabelStatus pParentThread) throws CPATransferException {
+    private void createThread(
+        CThreadCreateStatement tCall,
+        LabelStatus pParentThread,
+        boolean supportSelfCreation)
+        throws CPATransferException {
       final String pVarName = tCall.getVariableName();
       //Just to info
       final String pFunctionName = tCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
 
-      if (from(tSet)
-          .anyMatch(l -> l.getName().equals(pFunctionName) && l.getVarName().equals(pVarName))) {
-        throw new CPATransferException("Can not create thread " + pFunctionName + ", it was already created");
+      for (ThreadLabel l : tSet) {
+        if (l.getName().equals(pFunctionName)
+            && l.getVarName().equals(pVarName)
+            && pParentThread == LabelStatus.CREATED_THREAD) {
+
+          if (supportSelfCreation) {
+            int i = tSet.indexOf(l);
+            tSet.remove(l);
+            ThreadLabel newL =
+                new ThreadLabel(pFunctionName, pVarName, LabelStatus.SELF_PARALLEL_THREAD);
+            tSet.add(i, newL);
+            return;
+
+          } else {
+            throw new CPATransferException(
+                "Can not create thread " + pFunctionName + ", it was already created");
+          }
+        }
       }
 
       ThreadLabel label = new ThreadLabel(pFunctionName, pVarName, pParentThread);

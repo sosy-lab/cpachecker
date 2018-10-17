@@ -70,6 +70,12 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation implement
       "We may skip or fail in this case.")
   private boolean skipTheSameThread = false;
 
+  @Option(
+    secure = true,
+    description = "The case when the same thread is created several times we do not support."
+        + "We may try to support it with self-parallelizm.")
+  private boolean supportSelfCreation = false;
+
   public ThreadTransferRelation(TransferRelation l,
       TransferRelation c, Configuration pConfiguration) throws InvalidConfigurationException {
     pConfiguration.inject(this);
@@ -101,7 +107,7 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation implement
         } else if (pCfaEdge instanceof CFunctionSummaryStatementEdge) {
           CFunctionCall functionCall = ((CFunctionSummaryStatementEdge)pCfaEdge).getFunctionCall();
           if (isThreadCreateFunction(functionCall)) {
-            builder.handleParentThread((CThreadCreateStatement)functionCall);
+            builder.handleParentThread((CThreadCreateStatement) functionCall, supportSelfCreation);
             resetCallstacksFlag = true;
             callstackTransfer.enableRecursiveContext();
           }
@@ -164,7 +170,7 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation implement
     if (isThreadCreateFunction(fCall)) {
       threadStatistics.threadCreates.inc();
       threadStatistics.createdThreads.add(pCfaEdge.getSuccessor().getFunctionName());
-      builder.handleChildThread((CThreadCreateStatement)fCall);
+      builder.handleChildThread((CThreadCreateStatement) fCall, supportSelfCreation);
       //Just to statistics
       threadStatistics.maxNumberOfThreads.setNextValue(builder.getThreadSize());
     } else if (isThreadJoinFunction(fCall)) {

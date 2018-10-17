@@ -179,6 +179,6 @@ public class ValueInferenceObject implements InferenceObject {
   @Override
   public boolean hasEmptyAction() {
     assert diff.getAssignments().size() > 0;
-    return true;
+    return false;
   }
 }

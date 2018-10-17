@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -40,6 +41,10 @@ public class MergeForInferenceObjects implements MergeOperator {
 
   @Override
   public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision) throws CPAException, InterruptedException {
+
+    if (pState1 == EmptyInferenceObject.getInstance()) {
+      return pState2;
+    }
 
     PredicateInferenceObject object1 = (PredicateInferenceObject) pState1;
     PredicateInferenceObject object2 = (PredicateInferenceObject) pState2;
