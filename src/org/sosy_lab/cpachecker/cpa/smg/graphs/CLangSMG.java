@@ -1083,7 +1083,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     CLangStackFrame frame = getFrame(pMemoryLocation);
     String variableName = pMemoryLocation.getIdentifier();
 
-    if (!frame.containsVariable(variableName)) {
+    if (frame == null || !frame.containsVariable(variableName)) {
       return SMGStateInformation.of();
     }
 
@@ -1098,9 +1098,18 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     return info;
   }
 
-  private CLangStackFrame getFrame(final MemoryLocation pMemoryLocation) {
-    return Iterables.tryFind(stack_objects,
-        frame -> frame.getFunctionDeclaration().getName().equals(pMemoryLocation.getFunctionName())).get();
+  /**
+   * get the stack frame containing the given variable.
+   *
+   * <p>returns <code>Null</code> if variable is not available on the stack.
+   */
+  private @Nullable CLangStackFrame getFrame(final MemoryLocation pMemoryLocation) {
+    for (CLangStackFrame frame : stack_objects) {
+      if (frame.getFunctionDeclaration().getName().equals(pMemoryLocation.getFunctionName())) {
+        return frame;
+      }
+    }
+    return null;
   }
 
   public void remember(MemoryLocation pMemoryLocation, SMGRegion pRegion,
@@ -1127,8 +1136,10 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
     if (pMemoryLocation.isOnFunctionStack()) {
       CLangStackFrame frame = getFrame(pMemoryLocation);
-      stack_objects = stack_objects.replace(
-          f -> f == frame, frame.addStackVariable(pMemoryLocation.getIdentifier(), pRegion));
+      if (frame != null) {
+        stack_objects = stack_objects.replace(
+                f -> f == frame, frame.addStackVariable(pMemoryLocation.getIdentifier(), pRegion));
+      }
     } else {
       global_objects = global_objects.putAndCopy(pRegion.getLabel(), pRegion);
     }
