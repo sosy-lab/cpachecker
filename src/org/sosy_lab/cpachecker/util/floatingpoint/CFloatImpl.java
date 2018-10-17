@@ -77,7 +77,7 @@ public class CFloatImpl extends CFloat {
    * @param pRep the {@link String} literal representing the floating point number
    * @param pType the type of the {@link CFloat} instance
    */
-  public CFloatImpl(String pRep, int pType) {
+  public CFloatImpl(final String pRep, final int pType) {
     this.type = pType;
 
     if (DEFAULT_VALUES.contains(pRep.toLowerCase())) {
@@ -206,7 +206,7 @@ public class CFloatImpl extends CFloat {
     }
   }
 
-  private CFloat makeIntegralPart(String pRep, int pType) {
+  private CFloat makeIntegralPart(final String pRep, final int pType) {
     String rep = null;
 
     if (pRep.startsWith("-")) {
@@ -222,7 +222,7 @@ public class CFloatImpl extends CFloat {
     return result;
   }
 
-  private CFloat fromString(int pType, List<String> pDigits) {
+  private CFloat fromString(final int pType, final List<String> pDigits) {
     int[] decArray = new int[pDigits.size()];
     for (int i = 0; i < decArray.length; i++) {
       decArray[i] = Byte.parseByte(pDigits.get(i));
@@ -306,15 +306,15 @@ public class CFloatImpl extends CFloat {
     return new CFloatImpl(rWrapper, pType);
   }
 
-  private void binaryHalf(int[] pArray) {
+  private void binaryHalf(final int[] pArray) {
     digitwiseHalf(pArray, 2);
   }
 
-  private void decimalHalf(int[] pArray) {
+  private void decimalHalf(final int[] pArray) {
     digitwiseHalf(pArray, 10);
   }
 
-  private void digitwiseHalf(int[] pArray, int pRadix) {
+  private void digitwiseHalf(final int[] pArray, final int pRadix) {
     for (int i = pArray.length - 1; i > 0; i--) {
       if ((pArray[i - 1] % 2) != 0) {
         pArray[i] += pRadix;
@@ -327,15 +327,15 @@ public class CFloatImpl extends CFloat {
     }
   }
 
-  private int[] binaryAdd(int[] pArrayA, int[] pArrayB) {
+  private int[] binaryAdd(final int[] pArrayA, final int[] pArrayB) {
     return digitwiseAdd(pArrayA, pArrayB, 2);
   }
 
-  private int[] decimalAdd(int[] pArrayA, int[] pArrayB) {
+  private int[] decimalAdd(final int[] pArrayA, final int[] pArrayB) {
     return digitwiseAdd(pArrayA, pArrayB, 10);
   }
 
-  private int[] digitwiseAdd(int[] pArrayA, int[] pArrayB, int pRadix) {
+  private int[] digitwiseAdd(final int[] pArrayA, final int[] pArrayB, final int pRadix) {
     int[] rArray =
         new int[((pArrayB.length > pArrayA.length) ? pArrayB.length : pArrayA.length) + 1];
 
@@ -359,7 +359,7 @@ public class CFloatImpl extends CFloat {
     return rArray;
   }
 
-  private boolean decimalEqual(int[] pA, int[] pB) {
+  private boolean decimalEqual(final int[] pA, final int[] pB) {
     int diff = pB.length - pA.length;
 
     if (diff < 0) {
@@ -392,7 +392,7 @@ public class CFloatImpl extends CFloat {
     return true;
   }
 
-  private boolean decimalAGreaterThanB(int[] pA, int[] pB) {
+  private boolean decimalAGreaterThanB(final int[] pA, final int[] pB) {
     int diff = pB.length - pA.length;
 
     if (diff < 0) {
@@ -431,11 +431,11 @@ public class CFloatImpl extends CFloat {
     return false;
   }
 
-  private int[] binaryDouble(int[] pArray) {
+  private int[] binaryDouble(final int[] pArray) {
     return digitwiseDouble(pArray, 2);
   }
 
-  private int[] decimalDouble(int[] pDecimalArray) {
+  private int[] decimalDouble(final int[] pDecimalArray) {
     return digitwiseDouble(pDecimalArray, 10);
   }
 
@@ -462,7 +462,7 @@ public class CFloatImpl extends CFloat {
     return rArray;
   }
 
-  private CFloat makeFractionalPart(String pRep, int pType) {
+  private CFloat makeFractionalPart(final String pRep, final int pType) {
     List<String> digits = Arrays.asList(pRep.split(""));
     CFloat ten = new CFloatImpl("10", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
     CFloat divisor = new CFloatImpl("1", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
@@ -480,7 +480,7 @@ public class CFloatImpl extends CFloat {
   }
 
   @Override
-  public CFloat add(CFloat pSummand) {
+  public CFloat add(final CFloat pSummand) {
     CFloat tSummand = this;
     CFloat oSummand = pSummand;
 
@@ -524,11 +524,11 @@ public class CFloatImpl extends CFloat {
     long rMan = 0;
 
     // extract bit representations for operation
-    long tExp = tSummand.copyWrapper().getExponent() & tSummand.getExponentMask();
-    long tMan = tSummand.copyWrapper().getMantissa();
+    long tExp = tSummand.getExponent() & tSummand.getExponentMask();
+    long tMan = tSummand.getMantissa();
 
-    long oExp = oSummand.copyWrapper().getExponent() & tSummand.getExponentMask();
-    long oMan = oSummand.copyWrapper().getMantissa();
+    long oExp = oSummand.getExponent() & tSummand.getExponentMask();
+    long oMan = oSummand.getMantissa();
 
     boolean negResult = false;
     boolean differentSign = tSummand.isNegative() ^ oSummand.isNegative();
@@ -675,7 +675,7 @@ public class CFloatImpl extends CFloat {
   }
 
   @Override
-  public CFloat multiply(CFloat pFactor) {
+  public CFloat multiply(final CFloat pFactor) {
     CFloat tFactor = this;
     CFloat oFactor = pFactor;
     boolean negativeResult = tFactor.isNegative() ^ oFactor.isNegative();
@@ -722,11 +722,11 @@ public class CFloatImpl extends CFloat {
     long rMan = 0;
     long rOverflow = 0;
 
-    long tMan = tFactor.copyWrapper().getMantissa();
-    long oMan = oFactor.copyWrapper().getMantissa();
+    long tMan = tFactor.getMantissa();
+    long oMan = oFactor.getMantissa();
 
-    long tExp = tFactor.copyWrapper().getExponent() & tFactor.getExponentMask();
-    long oExp = oFactor.copyWrapper().getExponent() & tFactor.getExponentMask();
+    long tExp = tFactor.getExponent() & tFactor.getExponentMask();
+    long oExp = oFactor.getExponent() & tFactor.getExponentMask();
 
     // determine sign of product
     boolean negResult = tFactor.isNegative() ^ oFactor.isNegative();
@@ -818,7 +818,10 @@ public class CFloatImpl extends CFloat {
    * @param bitfield the bitfield to store the multiplication result
    */
   private void multiplyBits(
-      long manyOnesMantissa, long lesserOnesMantissa, int mantissaLength, int[] bitfield) {
+      final long manyOnesMantissa,
+      final long lesserOnesMantissa,
+      final int mantissaLength,
+      final int[] bitfield) {
     for (int i = 0; i < mantissaLength; i++) {
       if ((lesserOnesMantissa & (1L << i)) != 0) {
         for (int j = 0; j < mantissaLength; j++) {
@@ -849,7 +852,7 @@ public class CFloatImpl extends CFloat {
   }
 
   @Override
-  public CFloat subtract(CFloat pSubtrahend) {
+  public CFloat subtract(final CFloat pSubtrahend) {
     CFloat tSubtrahend = this;
     CFloat oSubtrahend = pSubtrahend;
 
@@ -876,17 +879,15 @@ public class CFloatImpl extends CFloat {
       return new CFloatInf(!oSubtrahend.isNegative(), tSubtrahend.getType());
     }
 
-    long tExp = tSubtrahend.copyWrapper().getExponent() & tSubtrahend.getExponentMask();
-    long tMan =
-        tSubtrahend.copyWrapper().getMantissa();
+    long tExp = tSubtrahend.getExponent() & tSubtrahend.getExponentMask();
+    long tMan = tSubtrahend.getMantissa();
 
     if (tExp != 0) {
       tMan |= tSubtrahend.getNormalizationMask();
     }
 
-    long oExp = oSubtrahend.copyWrapper().getExponent() & tSubtrahend.getExponentMask();
-    long oMan =
-        oSubtrahend.copyWrapper().getMantissa();
+    long oExp = oSubtrahend.getExponent() & tSubtrahend.getExponentMask();
+    long oMan = oSubtrahend.getMantissa();
     if (oExp != 0) {
       oMan |= tSubtrahend.getNormalizationMask();
     }
@@ -922,15 +923,14 @@ public class CFloatImpl extends CFloat {
   }
 
   private CFloatWrapper bitwiseSubtraction(
-      boolean pNegResult,
-      long pExpMinuend,
-      long pManMinuend,
-      long pExpSubtrahend,
-      long pManSubtrahend,
-      CFloat pSubtrahend) {
+      final boolean pNegResult,
+      final long pExpMinuend,
+      final long pManMinuend,
+      final long pExpSubtrahend,
+      final long pManSubtrahend,
+      final CFloat pSubtrahend) {
 
-    pManSubtrahend ^= -1L;
-    pManSubtrahend++;
+    long manSubtrahendComplement = (pManSubtrahend ^ -1L) + 1;
 
     long diff = 0;
     long overflow = 0;
@@ -941,12 +941,12 @@ public class CFloatImpl extends CFloat {
       diff = pExpMinuend - pExpSubtrahend;
       rExp = pExpMinuend;
 
-      overflow = (pManSubtrahend << (64 - diff));
+      overflow = (manSubtrahendComplement << (64 - diff));
 
       // for single and double precision the long already pads correctly,
       // which doesn't work for extended double precision, since the mantissa
       // already fills up the whole long-bitfield
-      long complementedSubtrahend = pManSubtrahend;
+      long complementedSubtrahend = manSubtrahendComplement;
       if (pSubtrahend.getType() == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE) {
         if ((complementedSubtrahend & pSubtrahend.getNormalizationMask()) == 0) {
           diff--;
@@ -963,7 +963,7 @@ public class CFloatImpl extends CFloat {
 
       overflow = (pManMinuend << (64 - diff));
 
-      rMan = pManSubtrahend + (pManMinuend >>> diff);
+      rMan = manSubtrahendComplement + (pManMinuend >>> diff);
     }
     if (pNegResult) {
       rMan ^= -1L;
@@ -995,7 +995,7 @@ public class CFloatImpl extends CFloat {
   }
 
   @Override
-  public CFloat divideBy(CFloat pDivisor) {
+  public CFloat divideBy(final CFloat pDivisor) {
     CFloat tDividend = this;
     CFloat oDivisor = pDivisor;
     boolean negativeResult = tDividend.isNegative() ^ oDivisor.isNegative();
@@ -1030,11 +1030,11 @@ public class CFloatImpl extends CFloat {
 
     // TODO: infinities
 
-    long tMan = tDividend.copyWrapper().getMantissa();
-    long oMan = oDivisor.copyWrapper().getMantissa();
+    long tMan = tDividend.getMantissa();
+    long oMan = oDivisor.getMantissa();
 
-    long tExp = tDividend.copyWrapper().getExponent() & tDividend.getExponentMask();
-    long oExp = oDivisor.copyWrapper().getExponent() & tDividend.getExponentMask();
+    long tExp = tDividend.getExponent() & tDividend.getExponentMask();
+    long oExp = oDivisor.getExponent() & tDividend.getExponentMask();
 
     // the only possible shift in exponents is symmetrical,
     // hence insignificant for subtraction
@@ -1101,7 +1101,11 @@ public class CFloatImpl extends CFloat {
    * @return if an offset is necessary to perform the next step of the division
    */
   private boolean divideBits(
-      long pTMan, long pOMan, int pQuotientLength, int[] pBitArray, CFloat pDividend) {
+      final long pTMan,
+      final long pOMan,
+      final int pQuotientLength,
+      final int[] pBitArray,
+      final CFloat pDividend) {
     boolean initialOffsetNeeded = false;
 
     int[] dividArray = new int[pQuotientLength];
@@ -1144,7 +1148,11 @@ public class CFloatImpl extends CFloat {
     return initialOffsetNeeded;
   }
 
-  private int divideStep(int[] pDividend, int[] pDivisor, int[] pDivisorComplement, int pOffset) {
+  private int divideStep(
+      final int[] pDividend,
+      final int[] pDivisor,
+      final int[] pDivisorComplement,
+      final int pOffset) {
     assert pDivisor.length == pDivisorComplement.length;
     assert pDivisor.length < pDividend.length;
 
@@ -1176,31 +1184,33 @@ public class CFloatImpl extends CFloat {
     return count;
   }
 
-  private void offsetBitAddition(int[] pDividend, int[] pDivisorComplement, int pOffset) {
+  private void offsetBitAddition(
+      final int[] pDividend, final int[] pDivisorComplement, final int pOffset) {
     if (pOffset >= pDividend.length) {
       // bits outside our precision
       return;
     }
 
+    int offset = pOffset;
     int ignoreBits = 0;
-    if (pOffset > pDivisorComplement.length) {
-      ignoreBits = pOffset - pDivisorComplement.length;
-      pOffset -= ignoreBits;
+    if (offset > pDivisorComplement.length) {
+      ignoreBits = offset - pDivisorComplement.length;
+      offset -= ignoreBits;
     }
 
     int carry = 0;
     // overflow is ignored
-    for (int i = pDivisorComplement.length - 1; i >= (-1 * pOffset); i--) {
-      pDividend[i + pOffset] +=
+    for (int i = pDivisorComplement.length - 1; i >= (-1 * offset); i--) {
+      pDividend[i + offset] +=
           (i >= ignoreBits)
               ? carry + pDivisorComplement[i - ignoreBits]
               : carry + 1; // consider the two-complement to have padding 1s to the left
-      carry = pDividend[i + pOffset] / 2;
-      pDividend[i + pOffset] %= 2;
+      carry = pDividend[i + offset] / 2;
+      pDividend[i + offset] %= 2;
     }
   }
 
-  private int[] makeTwoComplement(int[] pDivisArray) {
+  private int[] makeTwoComplement(final int[] pDivisArray) {
     int[] complement = new int[pDivisArray.length];
 
     for (int i = 0; i < pDivisArray.length; i++) {
@@ -1219,7 +1229,7 @@ public class CFloatImpl extends CFloat {
     return complement;
   }
 
-  private int[] createDivisorArray(long pOMan) {
+  private int[] createDivisorArray(final long pOMan) {
     int size = 0;
 
     for (int i = 0; i < 64; i++) {
@@ -1248,13 +1258,13 @@ public class CFloatImpl extends CFloat {
   }
 
   @Override
-  public CFloat powTo(CFloat pExponent) {
+  public CFloat powTo(final CFloat pExponent) {
     // TODO Auto-generated method stub
     return null;
   }
 
   @Override
-  public CFloat powToIntegral(int pExponent) {
+  public CFloat powToIntegral(final int pExponent) {
     // TODO Auto-generated method stub
     return null;
   }
@@ -1381,11 +1391,10 @@ public class CFloatImpl extends CFloat {
   }
 
   @Override
-  public CFloat copySignFrom(CFloat pSource) {
-    CFloatWrapper wrap =
-        new CFloatWrapper(this.wrapper.getExponent(), this.wrapper.getMantissa());
+  public CFloat copySignFrom(final CFloat pSource) {
+    CFloatWrapper wrap = copyWrapper();
     long tExp = wrap.getExponent();
-    long oExp = pSource.copyWrapper().getExponent();
+    long oExp = pSource.getExponent();
 
     long tMask = getSignBitMask();
     long oMask = pSource.getSignBitMask();
@@ -1406,7 +1415,7 @@ public class CFloatImpl extends CFloat {
   }
 
   @Override
-  public CFloat castTo(int pToType) {
+  public CFloat castTo(final int pToType) {
     CFloat zero = new CFloatImpl("0", pToType);
     if (isZero()) {
       if (isNegative()) {
@@ -1456,7 +1465,7 @@ public class CFloatImpl extends CFloat {
   }
 
   @Override
-  public Number castToOther(int pToType) {
+  public Number castToOther(final int pToType) {
     // TODO Auto-generated method stub
     return null;
   }
@@ -1472,7 +1481,7 @@ public class CFloatImpl extends CFloat {
   }
 
   @Override
-  public boolean greaterThan(CFloat pFloat) {
+  public boolean greaterThan(final CFloat pFloat) {
     if (pFloat.isNan() || (pFloat.isInfinity() && !pFloat.isNegative())) {
       return false;
     }
@@ -1493,11 +1502,11 @@ public class CFloatImpl extends CFloat {
     boolean tNeg = tFloat.isNegative();
     boolean oNeg = oFloat.isNegative();
 
-    long tExp = tFloat.copyWrapper().getExponent();
-    long tMan = tFloat.copyWrapper().getMantissa();
+    long tExp = tFloat.getExponent();
+    long tMan = tFloat.getMantissa();
 
-    long oExp = oFloat.copyWrapper().getExponent();
-    long oMan = oFloat.copyWrapper().getMantissa();
+    long oExp = oFloat.getExponent();
+    long oMan = oFloat.getMantissa();
 
     if (oNeg) {
       if (tNeg) {
@@ -1578,7 +1587,7 @@ public class CFloatImpl extends CFloat {
     return builder.toString().replaceAll("(\\.[0-9]+?)0*$", "$1");
   }
 
-  private int[] getDecimalArray(long pExp, long pMan) {
+  private int[] getDecimalArray(final long pExp, final long pMan) {
     int[] result = null;
     int[] fracArray = CFloatUtil.getDecimalArray(type, pMan & 1);
     for (int i = 1; i < getMantissaLength(); i++) {
@@ -1637,11 +1646,12 @@ public class CFloatImpl extends CFloat {
     return result;
   }
 
-  private int[] copyAllButFirstCell(int[] pArray) {
-    for (int i = 0; i < pArray.length - 1; i++) {
-      pArray[i] = pArray[i + 1];
-    }
-    pArray = Arrays.copyOf(pArray, pArray.length - 1);
-    return pArray;
+  private int[] copyAllButFirstCell(final int[] pArray) {
+    return Arrays.copyOfRange(pArray, 1, pArray.length);
+  }
+
+  @Override
+  protected CFloatWrapper getWrapper() {
+    return wrapper;
   }
 }
