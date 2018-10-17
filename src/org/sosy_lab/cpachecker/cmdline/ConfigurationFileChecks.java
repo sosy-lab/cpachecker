@@ -126,6 +126,7 @@ public class ConfigurationFileChecks {
           "memorysafety.config",
           "overflow.config",
           "termination.config",
+          "termination.violation.witness",
           "witness.validation.violation.config",
           "witness.validation.correctness.config",
           "pcc.proofgen.doPCC",
