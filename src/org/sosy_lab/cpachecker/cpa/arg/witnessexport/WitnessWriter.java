@@ -1113,6 +1113,10 @@ class WitnessWriter implements EdgeAppender {
       Edge edge = waitlist.pollFirst();
       // If the edge still exists in the graph and is redundant, remove it
       if (leavingEdges.get(edge.source).contains(edge) && isEdgeRedundant.apply(edge)) {
+        if (edge.target.equals(SINK_NODE_ID) && leavingEdges.get(edge.source).size() > 1) {
+          // we can not easily merge sink with other node, which has other edges
+          continue;
+        }
         Iterables.addAll(waitlist, mergeNodes(edge));
         assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
       }
@@ -1455,7 +1459,8 @@ class WitnessWriter implements EdgeAppender {
     }
 
     // Move the entering edges
-    Collection<Edge> enteringEdgesToMove = ImmutableList.copyOf(this.enteringEdges.get(nodeToRemove));
+    Collection<Edge> enteringEdgesToMove =
+        ImmutableList.copyOf(this.enteringEdges.get(nodeToRemove));
     // Create the replacement edges,
     // Add them as entering edges to the source node,
     // Add add them as leaving edges to their source nodes

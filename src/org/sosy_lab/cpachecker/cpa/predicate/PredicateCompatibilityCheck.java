@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.base.Preconditions;
+import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CompatibilityCheck;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
@@ -45,6 +46,10 @@ public class PredicateCompatibilityCheck implements CompatibilityCheck {
 
   @Override
   public boolean compatible(AbstractState pState, InferenceObject pObject) {
+
+    if (pObject == EmptyInferenceObject.getInstance()) {
+      return true;
+    }
     PredicateAbstractState state = (PredicateAbstractState) pState;
     PredicateInferenceObject object = (PredicateInferenceObject) pObject;
 
