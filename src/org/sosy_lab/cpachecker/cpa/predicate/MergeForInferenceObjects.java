@@ -42,7 +42,8 @@ public class MergeForInferenceObjects implements MergeOperator {
   @Override
   public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision) throws CPAException, InterruptedException {
 
-    if (pState1 == EmptyInferenceObject.getInstance()) {
+    if (pState1 == EmptyInferenceObject.getInstance()
+        || pState2 == EmptyInferenceObject.getInstance()) {
       return pState2;
     }
 
