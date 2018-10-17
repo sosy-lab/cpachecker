@@ -55,7 +55,7 @@ class CFloatNativeAPI {
     ULONG(11),
     ULONG_LONG(12);
 
-    private int ordinal;
+    private final int ordinal;
 
     private CNativeType(final int pOrdinal) {
       ordinal = pOrdinal;
