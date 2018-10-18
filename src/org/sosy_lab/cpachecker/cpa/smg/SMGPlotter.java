@@ -318,7 +318,14 @@ public final class SMGPlotter {
   }
 
   private String smgPTEdgeAsDot(SMGEdgePointsTo pEdge) {
-    return "value_" + pEdge.getValue().asDotId() + " -> " + objectIndex.get(pEdge.getObject()).getName() + "[label=\"+" + pEdge.getOffset() + "b, " + pEdge.getTargetSpecifier() + "\"];";
+    String str = "value_" + pEdge.getValue().asDotId() + " -> ";
+    SMGObjectNode oi = objectIndex.get(pEdge.getObject());
+    if (oi != null) {
+      str += oi.getName();
+    } else {
+      str += "\"<invalid object reference>\"";
+    }
+    return str + "[label=\"+" + pEdge.getOffset() + "b, " + pEdge.getTargetSpecifier() + "\"];";
   }
 
   private static String smgValueAsDot(
