@@ -197,7 +197,22 @@ public class SMG implements UnmodifiableSMG {
     removeObject(pObj);
     hv_edges = hv_edges.removeAllEdgesOfObjectAndCopy(pObj);
     pt_edges = pt_edges.removeAllEdgesOfObjectAndCopy(pObj);
+
+    // assert !isObjectReferencedAnywhere(pObj)
+    //     : String.format("removed object <%s> has reference in the SMG", pObj);
   }
+
+//  private boolean isObjectReferencedAnywhere(SMGObject pObj) {
+//    for (SMGEdgeHasValue edge : hv_edges.getHvEdges()) {
+//      if (edge.getValue() instanceof SMGKnownAddressValue) {
+//        SMGKnownAddressValue kav = (SMGKnownAddressValue) edge.getValue();
+//        if (kav.getObject() == pObj) {
+//          return true;
+//        }
+//      }
+//    }
+//    return false;
+//  }
 
   /**
    * Add pObj object to the SMG, with validity set to pValidity.
@@ -412,7 +427,7 @@ public class SMG implements UnmodifiableSMG {
    */
   @Override
   final public boolean isObjectValid(SMGObject pObject) {
-    Preconditions.checkArgument(objects.contains(pObject), "Object [" + pObject + "] not in SMG");
+    // Preconditions.checkArgument(objects.contains(pObject), "Object [" + pObject + "] not in SMG");
     return validObjects.contains(pObject);
   }
 
@@ -422,7 +437,7 @@ public class SMG implements UnmodifiableSMG {
    */
   @Override
   public final boolean isObjectExternallyAllocated(SMGObject pObject) {
-    Preconditions.checkArgument(objects.contains(pObject), "Object [" + pObject + "] not in SMG");
+    // Preconditions.checkArgument(objects.contains(pObject), "Object [" + pObject + "] not in SMG");
     return externalObjectAllocation.contains(pObject);
   }
 
