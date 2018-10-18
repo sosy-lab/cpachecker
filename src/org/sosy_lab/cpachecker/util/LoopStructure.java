@@ -28,6 +28,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.CFAUtils.hasBackWardsEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -974,7 +975,23 @@ public final class LoopStructure implements Serializable {
         nodes = Sets.intersection(backward, forward);
       }
 
-      result.add(new Loop(recHead, nodes));
+      Loop l = new Loop(recHead, nodes);
+
+      // heuristic to add additional loop heads
+      // in mutual recursions to avoid false proofs
+      Predicate<FunctionEntryNode> pred =
+          new Predicate<FunctionEntryNode>() {
+
+            @Override
+            public boolean apply(@Nullable FunctionEntryNode entry) {
+              return entry != null && entry.getNumEnteringEdges() > 1;
+            }
+          };
+      for (FunctionEntryNode entry : from(nodes).filter(FunctionEntryNode.class).filter(pred)) {
+        l.mergeWith((new Loop(entry, nodes)));
+      }
+
+      result.add(l);
     }
 
     return result;
