@@ -283,8 +283,10 @@ public class CFANode implements Comparable<CFANode>, Serializable {
    * Variables can come into scope again, e.g. when iterating through a loop or calling a function
    * twice.
    *
-   * <p>We currently do not return function parameters on function exit. Those can be retrieved
-   * separately via {@link FunctionExitNode#getEntryNode()}.
+   * <p>We currently do not return function parameters for function exit nodes. Additionally we do
+   * not report any analysis-specific variables for encoding the return value of a function. Those
+   * variables can be retrieved separately via {@link FunctionExitNode#getEntryNode()} or directly
+   * in the analysis.
    */
   public Set<CSimpleDeclaration> getOutOfScopeVariables() {
     if (outOfScopeVariables == null) { // lazy

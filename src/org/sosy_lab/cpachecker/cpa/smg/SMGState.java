@@ -2068,6 +2068,12 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return change;
   }
 
+  /**
+   * remove a named variable from the stack (function scope or global). Remove all edges from and to
+   * it.
+   *
+   * <p>Does not prune the SMG for unreachable objects, needs to be done separately.
+   */
   public SMGStateInformation forgetStackVariable(MemoryLocation pMemoryLocation) {
     return heap.forgetStackVariable(pMemoryLocation);
   }
