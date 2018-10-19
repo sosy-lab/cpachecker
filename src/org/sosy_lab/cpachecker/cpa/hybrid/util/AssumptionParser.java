@@ -25,33 +25,24 @@ package org.sosy_lab.cpachecker.cpa.hybrid.util;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-
-import javax.annotation.Nullable;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils;
-import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils.ParserTools;
+import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-
-import apron.NotImplementedException;
 
 /**
  * This class provides methods for parsing string encoded assumptions into CExpressions
@@ -64,10 +55,9 @@ public class AssumptionParser {
     private final ParserTools parserTools;
     private final CParser cParser;
     private final MachineModel machineModel;
-    private final FileLocation DUMMY;
-
-
-    public AssumptionParser(final String delimiter, 
+    
+    public AssumptionParser(
+            final String delimiter,
                             final Scope scope,
                             final Configuration configuration,
                             final MachineModel machineModel,
@@ -85,8 +75,6 @@ public class AssumptionParser {
             machineModel);
 
         this.machineModel = machineModel;
-
-        DUMMY = FileLocation.DUMMY;
     }
 
     /**

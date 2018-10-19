@@ -222,7 +222,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   public int hashCode() {
     // Important: we cannot use vars.hashCode(), because the hash code of a map
     // depends on the hash code of its values, and those may change.
-    return internalState.hashCode();
+    return internalState.hashCode(); // this is a mistake - AutomationInternalState does not override {@link Object#hashCode()}
   }
 
 

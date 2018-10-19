@@ -23,11 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.logging.Level;
-import java.util.Optional;
-import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -40,8 +36,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
@@ -50,7 +44,6 @@ import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -61,9 +54,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.AssumptionParser;
-import org.sosy_lab.cpachecker.cpa.hybrid.util.CollectionUtils;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.OperatorType;
-import org.sosy_lab.cpachecker.util.LiveVariables;
+import org.sosy_lab.cpachecker.cpa.hybrid.visitor.HybridValueProvider;
+import org.sosy_lab.cpachecker.cpa.hybrid.visitor.HybridValueTransformer;
 
 @Options(prefix = "cpa.hybrid")
 public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
@@ -136,7 +129,7 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
 
     @Override
     public TransferRelation getTransferRelation() {
-        return new HybridAnalysisTransferRelation();
+        return new HybridAnalysisTransferRelation(cfa, logger, new HybridValueProvider(), new HybridValueTransformer());
     }
 
     @Override

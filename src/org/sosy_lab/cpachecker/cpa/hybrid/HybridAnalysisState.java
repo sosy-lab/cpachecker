@@ -24,6 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
+
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -40,7 +43,7 @@ public class HybridAnalysisState implements
     LatticeAbstractState<HybridAnalysisState>,
     AbstractStateWithAssumptions {
 
-    private Set<HybridValue> definitiveVars; 
+    // private Set<HybridValue> definitiveVars; 
     private Set<CExpression> assumptions;
 
     public HybridAnalysisState() {
@@ -51,6 +54,17 @@ public class HybridAnalysisState implements
         this.assumptions = assumptions;
     }
 
+    private HybridAnalysisState(Collection<CExpression> assumptions)
+    {
+        this(Sets.newHashSet(assumptions));
+    }
+
+    // creates an exact copy of the given state in terms of assumptions
+    public static HybridAnalysisState copyOf(HybridAnalysisState state)
+    {
+        return new HybridAnalysisState(state.getAssumptions());
+    }
+
     @Override
     public String getCPAName() {
         return HybridAnalysisCPA.class.getSimpleName();
@@ -58,7 +72,7 @@ public class HybridAnalysisState implements
 
     @Override
     public boolean checkProperty(String property) throws InvalidQueryException {
-    // TODO: define dsl for properties or withdraw
+    // TODO: define dsl for properties
     return true;
     }
 
