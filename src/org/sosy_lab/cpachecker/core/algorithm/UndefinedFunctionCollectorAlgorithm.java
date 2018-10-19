@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -257,6 +258,11 @@ public class UndefinedFunctionCollectorAlgorithm
       String nondetFunc = NONDET_FUNCTION_PREFIX + pair.getSecond();
       prepend.append(pair.getFirst() + " " + nondetFunc + "(void);\n");
       buf.append(indent + "// Simple type\n");
+      buf.append(indent + "return " + nondetFunc + "();\n");
+    } else if (rt instanceof CEnumType) {
+      buf.append(indent + "// Enum type\n");
+      String nondetFunc = NONDET_FUNCTION_PREFIX + "int";
+      prepend.append("int " + nondetFunc + "(void);\n");
       buf.append(indent + "return " + nondetFunc + "();\n");
     } else if (rt instanceof CCompositeType) {
       buf.append(indent + "// Composite type\n");
