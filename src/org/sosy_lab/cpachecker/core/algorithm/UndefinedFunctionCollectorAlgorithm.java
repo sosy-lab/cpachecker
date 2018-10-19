@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.StandardFunctions;
 
 @Options(prefix = "undefinedFunctionsCollector")
 public class UndefinedFunctionCollectorAlgorithm
@@ -89,7 +90,22 @@ public class UndefinedFunctionCollectorAlgorithm
 
   @Option(secure = true, description = "Set of functions that should be ignored")
   private Set<String> allowedFunctions =
-      ImmutableSet.of("memset", "kfree", "free", "calloc", "malloc");
+      ImmutableSet.of(
+          // General
+          "__assert_fail",
+          // Float
+          "__finite",
+          "__fpclassify",
+          "__fpclassifyf",
+          "__isinf",
+          "__isinff",
+          "__isnan",
+          "__isnanf",
+          "__signbit",
+          "__signbitf");
+
+  @Option(secure = true, description = "Ignore functions that are defined by C11")
+  private boolean allowC11Functions = true;
 
   @Option(secure = true, description = "Memory-allocation function that will be used in stubs")
   private String externAllocFunction = "external_alloc";
@@ -195,6 +211,7 @@ public class UndefinedFunctionCollectorAlgorithm
 
   private boolean skipFunction(String name) {
     return allowedFunctions.contains(name)
+        || (allowC11Functions && StandardFunctions.C11_ALL_FUNCTIONS.contains(name))
         || allowedFunctionsRegexp.matcher(name).matches()
         || allowedUndeclaredFunctionsRegexp.matcher(name).matches();
   }

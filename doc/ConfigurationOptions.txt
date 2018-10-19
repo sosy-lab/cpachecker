@@ -3676,8 +3676,11 @@ testcase.values.compress = false
 # Zip file into which all test values files are bundled
 testcase.values.zip = no default value
 
+# Ignore functions that are defined by C11
+undefinedFunctionsCollector.allowC11Functions = true
+
 # Set of functions that should be ignored
-undefinedFunctionsCollector.allowedFunctions = {"memset", "kfree", "free", "calloc", "malloc"}
+undefinedFunctionsCollector.allowedFunctions = ImmutableSet.of(
 
 # Regexp matching function names that are allowed to be undefined
 undefinedFunctionsCollector.allowedFunctionsRegexp = "^(__VERIFIER|pthread)_[a-zA-Z0-9_]*"
