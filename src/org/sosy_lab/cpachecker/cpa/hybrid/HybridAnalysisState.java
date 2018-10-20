@@ -24,17 +24,22 @@
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
+import org.sosy_lab.cpachecker.cpa.hybrid.util.*;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
@@ -44,14 +49,15 @@ public class HybridAnalysisState implements
     AbstractStateWithAssumptions {
 
     // private Set<HybridValue> definitiveVars; 
-    private Set<CExpression> assumptions;
+    private ImmutableSet<CBinaryExpression> assumptions;
 
     public HybridAnalysisState() {
         this(Collections.emptySet());
     }
 
     public HybridAnalysisState(Set<CExpression> assumptions) {
-        this.assumptions = assumptions;
+        this.assumptions = ImmutableSet.copyOf(
+            CollectionUtils.ofType(assumptions, CBinaryExpression.class));
     }
 
     private HybridAnalysisState(Collection<CExpression> assumptions)
@@ -79,13 +85,33 @@ public class HybridAnalysisState implements
     @Override
     public HybridAnalysisState join(HybridAnalysisState pOther)
             throws CPAException, InterruptedException {
-        return null;
+        
+        // for now we simply assume, that an assumption for the same variable is more accurate in pOther
+        Set<CBinaryExpression> otherAssumptions = pOther.assumptions;
+        Set<CExpression> combinedAssumptions = Sets.newHashSet(otherAssumptions);
+        
+        for(CBinaryExpression assumption : assumptions)
+        {
+            // first operand for assumptions must always be CIdExpression! -> if the cast fails, something is wrong
+            CIdExpression localVariable = (CIdExpression) assumption.getOperand1();
+
+            // here we calculate the 'intersection'
+            if(!CollectionUtils.appliesToAtLeastOne(otherAssumptions, exp -> localVariable.equals(exp.getOperand1())))
+            {
+                combinedAssumptions.add(assumption);
+            }
+        }
+
+        return new HybridAnalysisState(combinedAssumptions);
     }
 
     @Override
     public boolean isLessOrEqual(HybridAnalysisState pOther)
             throws CPAException, InterruptedException {
-        return false;
+        // TODO: check for TOP/BOTTOM element
+        List<CExpression> otherAssumptions = pOther.getAssumptions();
+        // avoid copying the state inside the lamda 
+        return CollectionUtils.appliesToAll(assumptions, a -> otherAssumptions.contains(a));
     }
 
     @Override

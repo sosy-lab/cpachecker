@@ -32,13 +32,19 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueProvider;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
-public class HybridValueProvider implements CTypeVisitor<HybridValue, NoException> {
+/**
+ * This class provides a random strategy for generating actual values
+ * for simple c types
+ * 
+ * Mind: no support of structs, arrays ...
+ */
+public class SimpleValueProvider extends HybridValueProvider{
 
     @Override
     public HybridValue visit(CArrayType pArrayType) throws NoException {
@@ -83,17 +89,17 @@ public class HybridValueProvider implements CTypeVisitor<HybridValue, NoExceptio
     @Override
     public HybridValue visit(CTypedefType pTypedefType) throws NoException {
         return null;
-  }
+    }
 
-  @Override
-  public HybridValue visit(CVoidType pVoidType) throws NoException {
-    // probably nothing to do here
-    return null;
-  }
+    @Override
+    public HybridValue visit(CVoidType pVoidType) throws NoException {
+        // probably nothing to do here
+        return null;
+    }
 
-  @Override
-  public HybridValue visit(CBitFieldType pCBitFieldType) throws NoException {
-    return null;
-  }
+    @Override
+    public HybridValue visit(CBitFieldType pCBitFieldType) throws NoException {
+        return null;
+    }
 
 }

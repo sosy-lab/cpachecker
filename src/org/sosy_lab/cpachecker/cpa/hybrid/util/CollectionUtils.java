@@ -61,14 +61,14 @@ public class CollectionUtils
         return new ArrayList<>();
     }
 
-  /**
-   * Checks wether a given predicate applies to one or more elements of the collection
-   *
-   * @param collection The respective collection
-   * @param pred The predicate to check for
-   * @return True, if there is at least one element fulfilling the predicate, else false
-   */
-  public static <T> boolean appliesToAtLeastOne(Iterable<T> collection, Predicate<T> pred) {
+    /**
+     * Checks wether a given predicate applies to one or more elements of the collection
+     *
+     * @param collection The respective collection
+     * @param pred The predicate to check for
+     * @return True, if there is at least one element fulfilling the predicate, else false
+     */
+    public static <T> boolean appliesToAtLeastOne(Iterable<T> collection, Predicate<T> pred) {
         return getApplyingElements(collection, pred).size() >= 1;
     }
 

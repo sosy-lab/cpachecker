@@ -44,8 +44,8 @@ import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridStrengthenOperator;
+import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueProvider;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.StrengthenOperatorFactory;
-import org.sosy_lab.cpachecker.cpa.hybrid.visitor.HybridValueProvider;
 import org.sosy_lab.cpachecker.cpa.hybrid.visitor.HybridValueTransformer;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
