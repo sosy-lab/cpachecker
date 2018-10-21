@@ -2913,6 +2913,17 @@ custominstructions.requirementsStateClassName = no default value
 cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
   enum:     [ALL_LOOPS, ONLY_LAST_LOOP]
 
+# Whether to take an assumption edge 'p' as control dependence if edge 'not
+# p' is a control dependence. This creates a larger slice, but may reduce the
+# size of the state space for deterministic programs. This behavior is also
+# closer to the static program slicing based on control-flow graphs (CFGs),
+# where branching is represented by a single assumption (with true- and
+# false-edges)
+dependencegraph.controldeps.considerInverseAssumption = false
+
+# Whether to consider control dependencies.
+dependencegraph.controldeps.use = true
+
 # File to export dependence graph to. If `null`, dependence graph will not be
 # exported as dot.
 dependencegraph.exportDot = "DependenceGraph.dot"
@@ -2924,11 +2935,8 @@ dependencegraph.flowdep.constantPropagation = false
 # definitions.
 dependencegraph.flowdep.constraintIsDef = false
 
-# Whether to consider control dependencies.
-dependencegraph.useControlDeps = true
-
 # Whether to consider (data-)flow dependencies.
-dependencegraph.useFlowDeps = true
+dependencegraph.flowdeps.use = true
 
 # ignore declarations when detecting modifications, be careful when variables
 # are renamed (could be unsound)
