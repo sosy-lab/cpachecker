@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -152,11 +153,12 @@ public class ConstraintsTransferRelation
     return state;
   }
 
-  private ConstraintsState getNewState(ConstraintsState pOldState,
-                                       AExpression pExpression,
-                                       ConstraintFactory pFactory,
-                                       boolean pTruthAssumption)
-      throws UnrecognizedCodeException {
+  private ConstraintsState getNewState(
+      ConstraintsState pOldState,
+      AExpression pExpression,
+      ConstraintFactory pFactory,
+      boolean pTruthAssumption)
+      throws UnrecognizedCodeException, SolverException, InterruptedException {
 
     return computeNewStateByCreatingConstraint(
         pOldState, pExpression, pFactory, pTruthAssumption);
@@ -166,8 +168,8 @@ public class ConstraintsTransferRelation
       final ConstraintsState pOldState,
       final AExpression pExpression,
       final ConstraintFactory pFactory,
-      final boolean pTruthAssumption
-  ) throws UnrecognizedCodeException {
+      final boolean pTruthAssumption)
+      throws UnrecognizedCodeException, SolverException, InterruptedException {
 
     Optional<Constraint> oNewConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
 
@@ -177,13 +179,17 @@ public class ConstraintsTransferRelation
 
       // If a constraint is trivial, its satisfiability is not influenced by other constraints.
       // So to evade more expensive SAT checks, we just check the constraint on its own.
-      newState.add(newConstraint);
-      return newState;
-
-    } else {
-      return pOldState;
+      if (newConstraint.isTrivial()) {
+        if (solver.isUnsat(newConstraint, ImmutableList.of(), functionName)) {
+          return null;
+        }
+      } else {
+        newState.add(newConstraint);
+        return newState;
+      }
     }
 
+    return pOldState;
   }
 
   private Optional<Constraint> createConstraint(AExpression pExpression, ConstraintFactory pFactory,
