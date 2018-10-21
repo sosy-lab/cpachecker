@@ -150,7 +150,7 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
         pCfa.getDependenceGraph()
             .orElseThrow(
                 () -> new InvalidConfigurationException("SlicingCPA requires dependence graph"));
-    slicer = new StaticSlicer(logger, shutdownNotifier, dependenceGraph);
+    slicer = new StaticSlicer(logger, shutdownNotifier, config, dependenceGraph);
   }
 
   @Override
@@ -255,6 +255,10 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
             return SlicingCPA.class.getSimpleName();
           }
         });
+
+    if (slicer instanceof StatisticsProvider) {
+      ((StatisticsProvider) slicer).collectStatistics(pStatsCollection);
+    }
 
     super.collectStatistics(pStatsCollection);
   }

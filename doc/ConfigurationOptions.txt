@@ -3436,6 +3436,10 @@ program.splitter.heuristic = no default value
 # maximal number
 program.splitter.max = 2
 
+# Whether to create slices that are behaviorally equivalent not only to the
+# target location, but also on the paths to that target location.
+programSlice.preserveTargetPaths = false
+
 # Quantifier elimination strategy
 rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP
   enum:     [QE_LIGHT_THEN_DROP, QE, DROP]

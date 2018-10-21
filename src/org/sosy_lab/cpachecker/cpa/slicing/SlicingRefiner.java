@@ -179,6 +179,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
         new StaticSlicer(
             logger,
             shutdownNotifier,
+            config,
             cfa.getDependenceGraph()
                 .orElseThrow(
                     () ->
