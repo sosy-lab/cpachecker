@@ -24,6 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 
@@ -32,9 +35,15 @@ public class ARGInferenceObject extends ARGState implements InferenceObject {
 
   private static final long serialVersionUID = 721626977113066162L;
 
-  public ARGInferenceObject(AbstractState pWrappedState, ARGState pParentElement) {
+  private final Collection<CFAEdge> representedEdges;
+
+  public ARGInferenceObject(
+      AbstractState pWrappedState,
+      ARGState pParentElement,
+      Collection<CFAEdge> pRepresentedEdges) {
     super(pWrappedState, pParentElement);
     Preconditions.checkArgument(pWrappedState instanceof InferenceObject);
+    representedEdges = ImmutableSet.copyOf(pRepresentedEdges);
   }
 
   @Override
@@ -42,4 +51,7 @@ public class ARGInferenceObject extends ARGState implements InferenceObject {
     return ((InferenceObject) getWrappedState()).hasEmptyAction();
   }
 
+  public Collection<CFAEdge> getRepresentedEdges() {
+    return representedEdges;
+  }
 }

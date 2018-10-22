@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import com.google.common.collect.Sets;
+import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -69,7 +72,9 @@ public class ARGMergeForInferenceObjects implements MergeOperator {
       return object2;
     }
 
-    ARGInferenceObject mergedElement = new ARGInferenceObject(retElement, null);
+    Set<CFAEdge> newEdges = Sets.newHashSet(object1.getRepresentedEdges());
+    newEdges.addAll(object2.getRepresentedEdges());
+    ARGInferenceObject mergedElement = new ARGInferenceObject(retElement, null, newEdges);
 
     // now replace argElement2 by mergedElement in ARG
     object2.replaceInARGWith(mergedElement);

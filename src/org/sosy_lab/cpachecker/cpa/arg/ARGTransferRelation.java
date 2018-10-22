@@ -135,7 +135,8 @@ public class ARGTransferRelation implements TransferRelationTM {
       if (wrappedObject == EmptyInferenceObject.getInstance()) {
         inferenceObject = EmptyInferenceObject.getInstance();
       } else {
-        inferenceObject = new ARGInferenceObject(wrappedObject, element);
+        inferenceObject =
+            new ARGInferenceObject(wrappedObject, element, element.getEdgesToChild(successorElem));
       }
       wrappedSuccessors.add(Pair.of(successorElem, inferenceObject));
     }
