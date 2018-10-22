@@ -1647,51 +1647,41 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGEdgeHasValueFilter filterSource = SMGEdgeHasValueFilter.objectFilter(pSource);
     SMGEdgeHasValueFilter filterTarget = SMGEdgeHasValueFilter.objectFilter(pTarget);
 
-    // Remove all Target edges in range
+    // Remove all target edges in range
     for (SMGEdgeHasValue edge : getHVEdges(filterTarget)) {
       if (edge.overlapsWith(pTargetOffset, targetRangeSize, heap.getMachineModel())) {
-        boolean hvEdgeIsZero = edge.getValue() == SMGZeroValue.INSTANCE;
         heap.removeHasValueEdge(edge);
-        if (hvEdgeIsZero) {
+
+        // Shrink overlapping zero edge
+        if (edge.getValue() == SMGZeroValue.INSTANCE) {
           SMGObject object = edge.getObject();
 
-          MachineModel maModel = heap.getMachineModel();
-
-          // Shrink overlapping zero edge
           long zeroEdgeOffset = edge.getOffset();
-
-          long zeroEdgeOffset2 = zeroEdgeOffset + edge.getSizeInBits(maModel);
-
           if (zeroEdgeOffset < pTargetOffset) {
-            SMGEdgeHasValue newZeroEdge =
+            heap.addHasValueEdge(
                 new SMGEdgeHasValue(
                     Math.toIntExact(pTargetOffset - zeroEdgeOffset),
                     zeroEdgeOffset,
                     object,
-                    SMGZeroValue.INSTANCE);
-            heap.addHasValueEdge(newZeroEdge);
+                    SMGZeroValue.INSTANCE));
           }
 
+          long zeroEdgeOffset2 = zeroEdgeOffset + edge.getSizeInBits(heap.getMachineModel());
           if (targetRangeSize < zeroEdgeOffset2) {
-            SMGEdgeHasValue newZeroEdge =
+            heap.addHasValueEdge(
                 new SMGEdgeHasValue(
                     Math.toIntExact(zeroEdgeOffset2 - targetRangeSize),
                     targetRangeSize,
                     object,
-                    SMGZeroValue.INSTANCE);
-            heap.addHasValueEdge(newZeroEdge);
+                    SMGZeroValue.INSTANCE));
           }
         }
       }
     }
 
-    // Copy all Source edges
-    Set<SMGEdgeHasValue> sourceEdges = getHVEdges(filterSource);
-
     // Shift the source edge offset depending on the target range offset
     long copyShift = pTargetOffset - pSourceOffset;
-
-    for (SMGEdgeHasValue edge : sourceEdges) {
+    for (SMGEdgeHasValue edge : getHVEdges(filterSource)) {
       if (edge.overlapsWith(pSourceOffset, pSourceLastCopyBitOffset, heap.getMachineModel())) {
         long offset = edge.getOffset() + copyShift;
         newSMGState = writeValue0(pTarget, offset, edge.getType(), edge.getValue()).getState();
