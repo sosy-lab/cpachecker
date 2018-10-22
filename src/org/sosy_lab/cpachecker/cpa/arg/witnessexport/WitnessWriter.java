@@ -897,19 +897,18 @@ class WitnessWriter implements EdgeAppender {
               KeyDef.CREATETHREAD, createdThreadId);
       result.add(pResult);
       Optional<String> threadInitialFunctionName = Optional.of(idAndName.getSecond());
-      TransitionCondition extraTransition =
-          getSourceCodeGuards(pEdge, pGoesToSink, pIsDefaultCase, threadInitialFunctionName);
-      extraTransition =
-          extraTransition.putAndCopy(KeyDef.THREADID, createdThreadId);
 
-      if (isSpecialThreadCreate(pEdge)) {
+      // if (isSpecialThreadCreate(pEdge)) {
+        TransitionCondition extraTransition =
+            getSourceCodeGuards(pEdge, pGoesToSink, pIsDefaultCase, threadInitialFunctionName);
+        extraTransition = extraTransition.putAndCopy(KeyDef.THREADID, createdThreadId);
         extraTransition =
             extraTransition.putAndCopy(KeyDef.FUNCTIONENTRY, threadInitialFunctionName.get());
-      }
 
-      if (!extraTransition.getMapping().isEmpty()) {
-        result.add(extraTransition);
-      }
+        if (!extraTransition.getMapping().isEmpty()) {
+          result.add(extraTransition);
+        }
+      // }
     } else {
       result.add(pResult);
     }

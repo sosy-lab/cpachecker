@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
@@ -339,6 +340,17 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
       if (isThreadCreateFunction(fCall)) {
         CThreadCreateStatement tCall = (CThreadCreateStatement) fCall;
         return java.util.Optional.of(Pair.of(tCall.getVariableName(), pEdge.getSuccessor().getFunctionName()));
+      }
+    }
+    if (pEdge instanceof CFunctionSummaryStatementEdge) {
+      CFunctionCall functionCall = ((CFunctionSummaryStatementEdge) pEdge).getFunctionCall();
+      if (isThreadCreateFunction(functionCall)) {
+        CThreadCreateStatement tCall = (CThreadCreateStatement) functionCall;
+        return java.util.Optional
+            .of(
+                Pair.of(
+                    tCall.getVariableName(),
+                    ((CFunctionSummaryStatementEdge) pEdge).getFunctionName()));
       }
     }
     return java.util.Optional.empty();
