@@ -24,11 +24,20 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
@@ -41,15 +50,27 @@ public class ValueInferenceObject implements InferenceObject {
 
   private final ValueAnalysisState source;
   private final ValueAnalysisInformation diff;
+  private final Collection<CAssignment> statements;
 
-  private ValueInferenceObject(ValueAnalysisState src, ValueAnalysisInformation pDst) {
+  private ValueInferenceObject(
+      ValueAnalysisState src,
+      ValueAnalysisInformation pDst,
+      Collection<CAssignment> pS) {
     Preconditions.checkNotNull(src);
     Preconditions.checkNotNull(pDst);
     source = src;
     diff = pDst;
+    statements = ImmutableSet.copyOf(pS);
   }
 
-  public static InferenceObject create(ValueAnalysisState src, ValueAnalysisState dst) {
+  public static InferenceObject
+      create(ValueAnalysisState src, ValueAnalysisState dst, CFAEdge pEdge) {
+    if (pEdge instanceof CDeclarationEdge) {
+      return EmptyInferenceObject.getInstance();
+    }
+    if (pEdge instanceof CAssumeEdge) {
+      return EmptyInferenceObject.getInstance();
+    }
     ValueAnalysisState newSrc = ValueAnalysisState.copyOf(src);
     PersistentMap<MemoryLocation, Value> values = PathCopyingPersistentTreeMap.of();
     PersistentMap<MemoryLocation, Type> types = PathCopyingPersistentTreeMap.of();
@@ -82,10 +103,13 @@ public class ValueInferenceObject implements InferenceObject {
     if (values.size() == 0) {
       return EmptyInferenceObject.getInstance();
     } else {
+      assert pEdge instanceof CStatementEdge;
+      CStatement stmnt = ((CStatementEdge) pEdge).getStatement();
+      assert stmnt instanceof CAssignment;
 
       ValueAnalysisInformation info =
           new ValueAnalysisInformation(values, types);
-      return new ValueInferenceObject(newSrc, info);
+      return new ValueInferenceObject(newSrc, info, Collections.singleton((CAssignment) stmnt));
     }
   }
 
@@ -153,15 +177,16 @@ public class ValueInferenceObject implements InferenceObject {
     } else if (newValues.equals(values2) && newSrc.equals(src2)) {
       return pObject;
     } else {
-
+      Set<CAssignment> s = Sets.newHashSet(this.getStatements());
+      s.addAll(pObject.getStatements());
       ValueAnalysisInformation newDiff = new ValueAnalysisInformation(newValues, newTypes);
-      return new ValueInferenceObject(newSrc, newDiff);
+      return new ValueInferenceObject(newSrc, newDiff, s);
     }
   }
 
   @Override
   public ValueInferenceObject clone() {
-    return new ValueInferenceObject(source, diff);
+    return new ValueInferenceObject(source, diff, statements);
   }
 
   public ValueAnalysisInformation getDifference() {
@@ -180,5 +205,9 @@ public class ValueInferenceObject implements InferenceObject {
   public boolean hasEmptyAction() {
     assert diff.getAssignments().size() > 0;
     return false;
+  }
+
+  public Collection<CAssignment> getStatements() {
+    return statements;
   }
 }

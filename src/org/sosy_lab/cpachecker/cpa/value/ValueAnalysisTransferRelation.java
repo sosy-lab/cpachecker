@@ -1696,7 +1696,7 @@ public class ValueAnalysisTransferRelation
 
       Collection<Pair<AbstractState, InferenceObject>> result = new ArrayList<>();
       for (ValueAnalysisState vState : successors) {
-        result.add(Pair.of(vState, ValueInferenceObject.create(predeccessor, vState)));
+        result.add(Pair.of(vState, ValueInferenceObject.create(predeccessor, vState, pCfaEdge)));
       }
       return result;
     } else if (pInferenceObject == EmptyInferenceObject.getInstance()) {

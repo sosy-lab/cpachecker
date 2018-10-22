@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGInferenceObject;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -590,7 +591,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       ARGState refinementRoot, UnmodifiableReachedSet reached) {
     return PredicatePrecision.unionOf(
         Collections2.transform(
-            ARGUtils.getNonCoveredStatesInSubgraph(refinementRoot), reached::getPrecision));
+            Collections2.filter(
+                ARGUtils.getNonCoveredStatesInSubgraph(refinementRoot),
+                s -> !(s instanceof ARGInferenceObject)),
+            reached::getPrecision));
   }
 
   private void dumpNewPredicates() {

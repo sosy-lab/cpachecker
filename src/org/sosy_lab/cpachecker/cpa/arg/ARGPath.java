@@ -1050,11 +1050,14 @@ public class ARGPath extends AbstractAppender {
 
       } else {
 
-        boolean nextPositionHasState = Iterables.contains(
-            extractLocations(getPreviousAbstractState()),
-            fullPath.get(overallOffset-1).getPredecessor());
+        CFAEdge tmpEdge = fullPath.get(overallOffset - 1);
+        boolean nextPositionHasState =
+            Iterables
+                .contains(extractLocations(getPreviousAbstractState()), tmpEdge.getPredecessor());
 
-        if (currentPositionHasState) {
+        boolean isEnvironmentStep = tmpEdge.getPredecessor().equals(tmpEdge.getSuccessor());
+
+        if (currentPositionHasState && !isEnvironmentStep) {
           pos--; // only reduce by one if it was a real node before we are leaving it now
         }
 

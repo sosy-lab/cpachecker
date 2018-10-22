@@ -360,6 +360,7 @@ public class PredicateInferenceObjectManager {
         return new PredicateInferenceObject(Collections.singleton(newAssignement), prepareFormula(a.asFormula()));
       }
     }
+    // TODO Assumptions!
     creationTimer.stop();
     return EmptyInferenceObject.getInstance();
   }
