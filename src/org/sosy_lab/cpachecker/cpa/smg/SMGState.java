@@ -1642,6 +1642,13 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     // If copy range is 0, do nothing
     if (copyRange == 0) { return newSMGState; }
 
+    // If self assignment, do nothing
+    // TODO this check should not be necessary,
+    // there might be a bug in the lines below causing trouble with such cases
+    if (pSource.equals(pTarget) && pSourceOffset == pTargetOffset) {
+      return newSMGState;
+    }
+
     long targetRangeSize = pTargetOffset + copyRange;
 
     SMGEdgeHasValueFilter filterSource = SMGEdgeHasValueFilter.objectFilter(pSource);
