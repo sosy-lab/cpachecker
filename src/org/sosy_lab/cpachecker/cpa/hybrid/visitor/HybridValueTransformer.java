@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid.visitor;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueVisitor;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.ConstantValue;
@@ -31,15 +32,15 @@ import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
 /**
  * This class implements the HybridValueVisitor to build assumptions in the form of CExpressions
  */
-public class HybridValueTransformer implements HybridValueVisitor<CExpression> {
+public class HybridValueTransformer implements HybridValueVisitor<CExpression, CDeclaration> {
 
     @Override
-    public CExpression visit(HybridValue pValue) {
+    public CExpression visit(HybridValue pValue, CDeclaration declaration) {
         return null;
     }
 
     @Override
-    public CExpression visit(ConstantValue pValue) {
+    public CExpression visit(ConstantValue pValue, CDeclaration declaration) {
     return null;
   }
 

@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueProvider;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.StrengthenOperatorFactory;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
 import org.sosy_lab.cpachecker.cpa.hybrid.visitor.HybridValueTransformer;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -111,25 +112,29 @@ public class HybridAnalysisTransferRelation
       throws CPATransferException {
 
     // if the edge introduces a new assumption it will be added to the assumptions of the new state
-    if(!state.getAssumptions().contains(expression))
+    //TODO: check type of assumption, ==, <=, >= ...
+    if(state.getAssumptions().contains(expression))
     {
-      Set<CExpression> assumptions = Sets.newHashSet(state.getAssumptions());
-      assumptions.add(expression);
-
-      return new HybridAnalysisState(assumptions);
+      return HybridAnalysisState.copyOf(state);
     }
 
-    return HybridAnalysisState.copyOf(state);
+    Set<CExpression> assumptions = Sets.newHashSet(state.getAssumptions());
+    assumptions.add(expression);
+
+    return new HybridAnalysisState(assumptions);
   }
 
   @Override
   protected @Nullable HybridAnalysisState handleDeclarationEdge(CDeclarationEdge cfaEdge, CDeclaration decl)
       throws CPATransferException {
     
-    
-    
+    HybridValue value = valueProvider.delegateVisit(decl.getType());
+    CExpression newAssumption = valueTransformer.visit(value, decl);
 
-    return HybridAnalysisState.copyOf(state);
+    Set<CExpression> postDeclarationAssumptions = Sets.newHashSet(state.getAssumptions());
+    postDeclarationAssumptions.add(newAssumption);
+
+    return new HybridAnalysisState(postDeclarationAssumptions);
   }
 
 }

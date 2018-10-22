@@ -21,17 +21,18 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.hybrid.abstraction;
+package org.sosy_lab.cpachecker.cpa.hybrid.test;
 
-import org.sosy_lab.cpachecker.cpa.hybrid.value.*;
+import org.junit.Test;
+import org.sosy_lab.cpachecker.cpa.hybrid.HybridAnalysisState;
 
 /**
- * Simple visitor interface for visiting @see HybridValue
- * @param <T> the type to return on visit
+ * Test class for {@link HybridAnalysisState}
  */
-public interface HybridValueVisitor<T, TDependetObj> {
+public class StateTest {
 
-    T visit(HybridValue value, TDependetObj obj);
+    @Test
+    public void joinTest() {
 
-    T visit(ConstantValue value, TDependetObj obj);
+    }
 }

@@ -29,13 +29,17 @@ import java.util.List;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.CollectionUtils;
 
 public class CollectionUtilsTest{
 
     @Test
-    public void ofTypeTest()
-    {
+    public void ofTypeTest() {
         List<Number> numList = Arrays.asList(
             new Integer(1),
             new Integer(2),
@@ -52,9 +56,21 @@ public class CollectionUtilsTest{
     }
 
     @Test
-    public void countTest()
-    {
+    public void countTest() {
         List<Number> numList = Arrays.asList(1,2,3);
         Assert.assertEquals(3, CollectionUtils.count(numList));
+    }
+
+    @Test
+    public void applyingElementsTest() {
+        CType voidEl = CVoidType.create(true, false);
+        CType intEl = CNumericTypes.INT;
+        CType boolEl = CNumericTypes.BOOL;
+        CType floatEl = CNumericTypes.FLOAT;
+        CType arrayEl = new CArrayType(false, false, CNumericTypes.INT, null);
+        Collection<CType> typeCollection = CollectionUtils.of(voidEl, intEl, boolEl, floatEl, arrayEl);
+
+        Collection<CType> sutResult = CollectionUtils.getApplyingElements(typeCollection, exp -> exp instanceof CSimpleType);
+        Assert.assertTrue(sutResult.size() == 3);
     }
 }
