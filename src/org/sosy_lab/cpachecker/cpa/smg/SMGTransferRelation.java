@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -60,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -625,8 +627,26 @@ public class SMGTransferRelation
       CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
       String calledFunctionName = fileNameExpression.toASTString();
 
-      return handleFunctionCallWithoutBody(
-          state.copyOf(), pCfaEdge, cFCExpression, calledFunctionName);
+      Set<SMGState> states = new LinkedHashSet<>();
+      states.add(state.copyOf());
+
+      // check that we can safely read all args,
+      // to avoid invalid-derefs like   int*p; printf("%d",*p);
+      for (CExpression param : cFCExpression.getParameterExpressions()) {
+        if (param instanceof CPointerExpression) {
+          for (SMGValueAndState valueAndState : readValueToBeAssiged(state, pCfaEdge, param)) {
+            // we are only interested in the errorinfo for invalid reads
+            states.add(valueAndState.getSmgState());
+          }
+        }
+      }
+
+      List<SMGState> result = new ArrayList<>();
+      for (SMGState newState : states) {
+        result.addAll(
+            handleFunctionCallWithoutBody(newState, pCfaEdge, cFCExpression, calledFunctionName));
+      }
+      return result;
     } else {
       return ImmutableList.of(state);
     }
