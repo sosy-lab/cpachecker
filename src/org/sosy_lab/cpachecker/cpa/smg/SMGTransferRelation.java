@@ -625,42 +625,50 @@ public class SMGTransferRelation
       CExpression fileNameExpression = cFCExpression.getFunctionNameExpression();
       String calledFunctionName = fileNameExpression.toASTString();
 
-      if (expressionEvaluator.builtins.isABuiltIn(calledFunctionName)) {
-        SMGState newState = state.copyOf();
-
-        if (expressionEvaluator.builtins.isConfigurableAllocationFunction(calledFunctionName)) {
-          logger.logf(
-              Level.INFO,
-              "%s: Calling '%s' and not using the result, resulting in memory leak.",
-              pCfaEdge.getFileLocation(),
-              calledFunctionName);
-          List<SMGState> newStates =
-              asSMGStateList(
-                  expressionEvaluator.builtins.evaluateConfigurableAllocationFunction(
-                      cFCExpression, newState, pCfaEdge, kind));
-          for (SMGState s : newStates) {
-            s.setMemLeak(
-                "Calling '"
-                    + calledFunctionName
-                    + "' and not using the result, resulting in memory leak.",
-                Collections.emptyList());
-          }
-          return newStates;
-        }
-        if (expressionEvaluator.builtins.isDeallocationFunction(calledFunctionName)) {
-          return expressionEvaluator.builtins.evaluateFree(cFCExpression, newState, pCfaEdge);
-        }
-        return asSMGStateList(
-            expressionEvaluator.builtins.handleBuiltinFunctionCall(
-                pCfaEdge, cFCExpression, calledFunctionName, newState, kind));
-
-      } else {
-        return asSMGStateList(
-            expressionEvaluator.builtins.handleUnknownFunction(
-                pCfaEdge, cFCExpression, calledFunctionName, state));
-      }
+      return handleFunctionCallWithoutBody(
+          state.copyOf(), pCfaEdge, cFCExpression, calledFunctionName);
     } else {
       return ImmutableList.of(state);
+    }
+  }
+
+  private Collection<SMGState> handleFunctionCallWithoutBody(
+      SMGState pState,
+      CStatementEdge pCfaEdge,
+      CFunctionCallExpression cFCExpression,
+      String calledFunctionName)
+      throws CPATransferException, AssertionError {
+    if (expressionEvaluator.builtins.isABuiltIn(calledFunctionName)) {
+      if (expressionEvaluator.builtins.isConfigurableAllocationFunction(calledFunctionName)) {
+        logger.logf(
+            Level.INFO,
+            "%s: Calling '%s' and not using the result, resulting in memory leak.",
+            pCfaEdge.getFileLocation(),
+            calledFunctionName);
+        List<SMGState> newStates =
+            asSMGStateList(
+                expressionEvaluator.builtins.evaluateConfigurableAllocationFunction(
+                    cFCExpression, pState, pCfaEdge, kind));
+        for (SMGState s : newStates) {
+          s.setMemLeak(
+              "Calling '"
+                  + calledFunctionName
+                  + "' and not using the result, resulting in memory leak.",
+              Collections.emptyList());
+        }
+        return newStates;
+      }
+      if (expressionEvaluator.builtins.isDeallocationFunction(calledFunctionName)) {
+        return expressionEvaluator.builtins.evaluateFree(cFCExpression, pState, pCfaEdge);
+      }
+      return asSMGStateList(
+          expressionEvaluator.builtins.handleBuiltinFunctionCall(
+              pCfaEdge, cFCExpression, calledFunctionName, pState, kind));
+
+    } else {
+      return asSMGStateList(
+          expressionEvaluator.builtins.handleUnknownFunction(
+              pCfaEdge, cFCExpression, calledFunctionName, pState));
     }
   }
 
