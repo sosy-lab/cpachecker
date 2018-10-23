@@ -36,7 +36,7 @@ class DefaultReachedSet extends AbstractReachedSet {
   }
 
   @Override
-  public void reAddToWaitlist(AbstractState pState, Precision pPrecision) {
+  public void addToWaitlist(AbstractState pState, Precision pPrecision) {
     DefaultWaitlistElement element = new DefaultWaitlistElement(pState, pPrecision);
     waitlist.add(element);
   }

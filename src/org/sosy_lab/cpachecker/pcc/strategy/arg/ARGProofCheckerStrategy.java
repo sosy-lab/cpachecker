@@ -101,7 +101,7 @@ public class ARGProofCheckerStrategy extends AbstractARGStrategy {
         logger.log(Level.WARNING, "Covering state", e.getCoveringState(), "was not found in reached set");
         return false;
       }
-      pReachedSet.reAddToWaitlist(e);
+      pReachedSet.addToWaitlist(e);
     }
     postponedStates.clear();
     return true;

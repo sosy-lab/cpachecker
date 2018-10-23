@@ -629,7 +629,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     Set<Precision> precisions = Sets.newIdentityHashSet();
     for (ARGState state : ARGUtils.getNonCoveredStatesInSubgraph(refinementRoot)) {
       // covered states are not in reached set
-      precisions.add(reached.getPrecision(state));
+      if (!(state instanceof ARGInferenceObject)) {
+        precisions.add(reached.getPrecision(state));
+      }
     }
 
     for (Precision prec : precisions) {

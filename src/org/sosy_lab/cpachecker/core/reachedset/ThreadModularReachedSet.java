@@ -27,27 +27,32 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.ThreadModularWaitlistElement;
 import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
-import org.sosy_lab.cpachecker.core.defaults.TauInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WaitlistElement;
 import org.sosy_lab.cpachecker.core.waitlist.AbstractSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class ThreadModularReachedSet extends AbstractReachedSet {
 
   protected final InferenceObjectReachedSet reachedInferenceObjects;
+  private final Collection<Pair<AbstractState, Precision>> toAdd;
 
   ThreadModularReachedSet(WaitlistFactory factory, MainNestedReachedSet delegate) {
     super(factory, delegate);
     reachedInferenceObjects = new InferenceObjectReachedSet();
+    toAdd = new HashSet<>();
   }
 
   @Override
@@ -60,9 +65,9 @@ public class ThreadModularReachedSet extends AbstractReachedSet {
   }
 
   @Override
-  public void reAddToWaitlist(AbstractState pState) {
+  public void addToWaitlist(AbstractState pState) {
     Preconditions.checkArgument(!(pState instanceof InferenceObject));
-    super.reAddToWaitlist(pState);
+    super.addToWaitlist(pState);
   }
 
   @Override
@@ -129,19 +134,16 @@ public class ThreadModularReachedSet extends AbstractReachedSet {
   @Override
   public void clear() {
     reachedInferenceObjects.clear();
+    toAdd.clear();
     super.clear();
   }
 
   @Override
-  protected void reAddToWaitlist(AbstractState pState, Precision pPrecision) {
-    if (pState instanceof InferenceObject) {
-      Preconditions.checkArgument(false, "Not supported");
-    } else {
-      reAddToWaitlist(pState, TauInferenceObject.getInstance(), pPrecision);
-    }
+  protected void addToWaitlist(AbstractState pState, Precision pPrecision) {
+    toAdd.add(Pair.of(pState, pPrecision));
   }
 
-  public void reAddToWaitlist(AbstractState pState, InferenceObject object, Precision pPrecision) {
+  public void addToWaitlist(AbstractState pState, InferenceObject object, Precision pPrecision) {
     if (pState instanceof InferenceObject) {
       Preconditions.checkArgument(false, "Not supported");
     } else if (object != EmptyInferenceObject.getInstance()) {
@@ -161,6 +163,18 @@ public class ThreadModularReachedSet extends AbstractReachedSet {
   }
 
   @Override
+  public boolean hasStatesToAdd() {
+    return !toAdd.isEmpty();
+  }
+
+  @Override
+  public Collection<Pair<AbstractState, Precision>> getStatesToAdd() {
+    Set<Pair<AbstractState, Precision>> result = ImmutableSet.copyOf(toAdd);
+    toAdd.clear();
+    return result;
+  }
+
+  @Override
   public void remove(AbstractState state) {
     if (state instanceof InferenceObject) {
       removeOnlyFromWaitlist(state, null);
@@ -174,5 +188,10 @@ public class ThreadModularReachedSet extends AbstractReachedSet {
   public void printStatistics(PrintStream pOut) {
     super.printStatistics(pOut);
     reachedInferenceObjects.printStatistics(pOut);
+  }
+
+  @Override
+  public boolean hasWaitingState() {
+    return super.hasWaitingState() || hasStatesToAdd();
   }
 }

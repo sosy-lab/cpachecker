@@ -215,6 +215,13 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
 
   private AlgorithmStatus run0(final ReachedSet reachedSet)
       throws CPAException, InterruptedException {
+
+    if (reachedSet.hasStatesToAdd()) {
+      for (Pair<AbstractState, Precision> pair : reachedSet.getStatesToAdd()) {
+        frontier(reachedSet, pair.getFirst(), pair.getSecond());
+      }
+    }
+
     while (reachedSet.hasWaitingState()) {
       shutdownNotifier.shutdownIfNecessary();
 
@@ -241,7 +248,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
       } catch (Exception e) {
         // re-add the old state to the waitlist, there might be unhandled successors left
         // that otherwise would be forgotten (which would be unsound)
-        reachedSet.reAddToWaitlist(element);
+        reachedSet.addToWaitlist(element);
         throw e;
       }
 
@@ -349,7 +356,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
           if (it.hasNext()) {
             // re-add the old state to the waitlist, there are unhandled
             // successors left that otherwise would be forgotten
-            reachedSet.reAddToWaitlist(element);
+            reachedSet.addToWaitlist(element);
           }
 
           return true;

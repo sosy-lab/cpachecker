@@ -226,7 +226,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
         pReachedSet.add(e.getFailureCause(), precision);
         // readd parents their may be other siblings in the ARG which are not part of the reached set
         for (ARGState parent : ((ARGState) e.getFailureCause()).getParents()) {
-          pReachedSet.reAddToWaitlist(parent);
+          pReachedSet.addToWaitlist(parent);
         }
       }
 

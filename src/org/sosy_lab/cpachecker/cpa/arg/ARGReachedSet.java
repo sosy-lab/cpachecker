@@ -113,7 +113,7 @@ public class ARGReachedSet {
     Set<ARGState> toWaitlist = removeSubtree0(e);
 
     for (ARGState ae : toWaitlist) {
-      mReached.reAddToWaitlist(ae);
+      mReached.addToWaitlist(ae);
     }
   }
 
@@ -180,7 +180,7 @@ public class ARGReachedSet {
       throws InterruptedException {
     for (ARGState ae : removeSubtree0(e)) {
       mReached.updatePrecision(ae, adaptPrecision(mReached.getPrecision(ae), p, pPrecisionType));
-      mReached.reAddToWaitlist(ae);
+      mReached.addToWaitlist(ae);
     }
   }
 
@@ -223,7 +223,7 @@ public class ARGReachedSet {
       }
 
       mReached.updatePrecision(waitingState, waitingStatePrec);
-      mReached.reAddToWaitlist(waitingState);
+      mReached.addToWaitlist(waitingState);
     }
   }
 
@@ -277,7 +277,7 @@ public class ARGReachedSet {
    */
   public void readdToWaitlist(ARGState state, Precision precision, Predicate<? super Precision> pPrecisionType) {
     mReached.updatePrecision(state, adaptPrecision(mReached.getPrecision(state), precision, pPrecisionType));
-    mReached.reAddToWaitlist(state);
+    mReached.addToWaitlist(state);
   }
 
   public void updatePrecisionForState(ARGState state, Precision precision, Predicate<? super Precision> pPrecisionType) {
@@ -442,7 +442,7 @@ public class ARGReachedSet {
 
       if (!e.wasExpanded()) {
         // its a leaf
-        mReached.reAddToWaitlist(e);
+        mReached.addToWaitlist(e);
       }
     }
   }

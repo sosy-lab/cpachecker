@@ -586,7 +586,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     switch (resetReachedSetStrategy) {
       case REMOVE_TARGET_STATE:
-        pTargetState.getParents().forEach(pReachedSet::reAddToWaitlist);
+        pTargetState.getParents().forEach(pReachedSet::addToWaitlist);
         removeTargetState(pReachedSet, pTargetState);
         break;
 

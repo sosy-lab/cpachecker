@@ -192,7 +192,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       for (final ReachedSet reachedSet : data.getCache().getAllCachedReachedStates()) {
         if (reachedSet.contains(recursionUpdateState)) {
           logger.log(Level.FINEST, "re-adding state", recursionUpdateState);
-          reachedSet.reAddToWaitlist(recursionUpdateState);
+          reachedSet.addToWaitlist(recursionUpdateState);
         }
         // else if (pHeadOfMainFunctionState == recursionUpdateState) {
           // special case: this is the root-state of the whole program, it is in the main-reachedset.

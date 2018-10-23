@@ -302,7 +302,7 @@ public class ExceptionHandlingAlgorithm
 
         } else {
           // let covered state be re-discovered
-          reached.reAddToWaitlist(parentOfCovered);
+          reached.addToWaitlist(parentOfCovered);
         }
       }
       assert !reached.contains(coveredState) : "covered state in reached set";

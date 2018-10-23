@@ -260,7 +260,7 @@ class ReachedSetExecutor {
    */
   private void updateStates(Collection<AbstractState> pStatesToBeAdded) {
     for (AbstractState state : pStatesToBeAdded) {
-      rs.reAddToWaitlist(state);
+      rs.addToWaitlist(state);
       dependsOn.remove(state);
     }
   }

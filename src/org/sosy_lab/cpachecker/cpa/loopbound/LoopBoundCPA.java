@@ -149,7 +149,7 @@ public class LoopBoundCPA extends AbstractCPA
 
     // Add the new waitlist
     for (AbstractState s : waitlist) {
-      pReachedSet.reAddToWaitlist(s);
+      pReachedSet.addToWaitlist(s);
     }
 
     pReachedSet.removeAll(toRemove);

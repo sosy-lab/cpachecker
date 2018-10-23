@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -57,9 +58,12 @@ public interface ReachedSet extends UnmodifiableReachedSet {
 
   public void addAll(Iterable<Pair<AbstractState, Precision>> toAdd);
 
-  public void reAddToWaitlist(WaitlistElement element);
+  public void addToWaitlist(WaitlistElement element);
 
-  public void reAddToWaitlist(AbstractState state);
+  public void addToWaitlist(AbstractState state);
+
+  public void addToReachedSet(AbstractState state, Precision precision)
+      throws IllegalArgumentException;
 
   /**
    * Change the precision of a state that is already in the reached set.
@@ -73,6 +77,10 @@ public interface ReachedSet extends UnmodifiableReachedSet {
   public void removeOnlyFromWaitlist(AbstractState state);
 
   public void clear();
+
+  public boolean hasStatesToAdd();
+
+  public Collection<Pair<AbstractState, Precision>> getStatesToAdd();
 
   public WaitlistElement popFromWaitlist();
 }

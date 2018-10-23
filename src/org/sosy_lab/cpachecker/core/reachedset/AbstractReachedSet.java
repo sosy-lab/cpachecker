@@ -29,6 +29,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -59,15 +60,24 @@ public abstract class AbstractReachedSet implements ReachedSet {
     Preconditions.checkNotNull(precision);
 
     if (reached.add(state, precision)) {
-      reAddToWaitlist(state, precision);
+      addToWaitlist(state, precision);
     }
   }
 
-  protected abstract void reAddToWaitlist(AbstractState pState, Precision pPrecision);
+  @Override
+  public void addToReachedSet(AbstractState state, Precision precision)
+      throws IllegalArgumentException {
+    Preconditions.checkNotNull(state);
+    Preconditions.checkNotNull(precision);
+
+    reached.add(state, precision);
+  }
+
+  protected abstract void addToWaitlist(AbstractState pState, Precision pPrecision);
 
   @Override
-  public void reAddToWaitlist(AbstractState pState) {
-    reAddToWaitlist(pState, getPrecision(pState));
+  public void addToWaitlist(AbstractState pState) {
+    addToWaitlist(pState, getPrecision(pState));
   }
 
   @Override
@@ -78,7 +88,7 @@ public abstract class AbstractReachedSet implements ReachedSet {
   }
 
   @Override
-  public void reAddToWaitlist(WaitlistElement element) {
+  public void addToWaitlist(WaitlistElement element) {
     waitlist.add(element);
   }
 
@@ -225,5 +235,15 @@ public abstract class AbstractReachedSet implements ReachedSet {
   public void printStatistics(PrintStream out) {
     reached.printStatistics(out);
     waitlist.printStatistics(out);
+  }
+
+  @Override
+  public boolean hasStatesToAdd() {
+    return false;
+  }
+
+  @Override
+  public Collection<Pair<AbstractState, Precision>> getStatesToAdd() {
+    return Collections.emptySet();
   }
 }

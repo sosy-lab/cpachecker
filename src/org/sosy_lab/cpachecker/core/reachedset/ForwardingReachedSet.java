@@ -142,8 +142,8 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
   }
 
   @Override
-  public void reAddToWaitlist(WaitlistElement e) {
-    delegate.reAddToWaitlist(e);
+  public void addToWaitlist(WaitlistElement e) {
+    delegate.addToWaitlist(e);
   }
 
   @Override
@@ -189,8 +189,8 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
   }
 
   @Override
-  public void reAddToWaitlist(AbstractState pState) {
-    delegate.reAddToWaitlist(pState);
+  public void addToWaitlist(AbstractState pState) {
+    delegate.addToWaitlist(pState);
   }
 
   @Override
@@ -201,5 +201,15 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
   @Override
   public int getWaitlistSize() {
     return delegate.getWaitlistSize();
+  }
+
+  @Override
+  public boolean hasStatesToAdd() {
+    return delegate.hasStatesToAdd();
+  }
+
+  @Override
+  public Collection<Pair<AbstractState, Precision>> getStatesToAdd() {
+    return delegate.getStatesToAdd();
   }
 }

@@ -148,7 +148,7 @@ public class CPAThreadModularAlgorithm extends AbstractCPAAlgorithm {
         if (compatibleCheck.compatible(state, (InferenceObject) pSuccessor)) {
           stats.compatiblePairs++;
           Precision itsPrecision = pReached.getPrecision(state);
-          pReached.reAddToWaitlist(new ThreadModularWaitlistElement(state, (InferenceObject) pSuccessor, itsPrecision));
+          pReached.addToWaitlist(new ThreadModularWaitlistElement(state, (InferenceObject) pSuccessor, itsPrecision));
         } else {
           stats.incompatiblePairs++;
         }
@@ -161,14 +161,19 @@ public class CPAThreadModularAlgorithm extends AbstractCPAAlgorithm {
       for (InferenceObject object : objects) {
         if (compatibleCheck.compatible(pSuccessor, object)) {
           stats.compatiblePairs++;
-          pReached.reAddToWaitlist(new ThreadModularWaitlistElement(pSuccessor, object, pPrecision));
+          pReached.addToWaitlist(new ThreadModularWaitlistElement(pSuccessor, object, pPrecision));
         } else {
           stats.incompatiblePairs++;
         }
       }
       stats.inferenceObjectsAdd.stop();
+      pReached.addToWaitlist(
+          new ThreadModularWaitlistElement(
+              pSuccessor,
+              TauInferenceObject.getInstance(),
+              pPrecision));
     }
-    pReached.add(pSuccessor, pPrecision);
+    pReached.addToReachedSet(pSuccessor, pPrecision);
   }
 
   @Override
