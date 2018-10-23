@@ -30,7 +30,14 @@ import static com.google.common.collect.Collections2.filter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
@@ -67,15 +74,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class UseDefRelation {
 
@@ -208,7 +206,18 @@ public class UseDefRelation {
   }
 
   private void updateRelation(ARGState state, CFAEdge edge, Set<ASimpleDeclaration> defs, Set<ASimpleDeclaration> uses) {
-    assert(!relation.containsKey(Pair.of(state, edge))) : "There is already a use-def entry for this pair of state, edge";
+    if (relation.containsKey(Pair.of(state, edge))) {
+      Pair<Set<ASimpleDeclaration>, Set<ASimpleDeclaration>> value =
+          relation.get(Pair.of(state, edge));
+      if (!value.equals(Pair.of(defs, uses))) {
+        // CFAEdges are compared only by nodes
+        // Environment edges are equal
+        Set<ASimpleDeclaration> newDefs = Sets.union(value.getFirst(), defs);
+        Set<ASimpleDeclaration> newUses = Sets.union(value.getSecond(), uses);
+        relation.put(Pair.of(state, edge), Pair.of(newDefs, newUses));
+        return;
+      }
+    }
 
     relation.put(Pair.of(state, edge), Pair.of(defs, uses));
     unresolvedUses.removeAll(defs);

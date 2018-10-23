@@ -240,10 +240,10 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
 
       pathInterpolants.put(pathIterator.getAbstractState(), pInterpolant);
 
-      if (!pathIterator.hasNext()) {
-        assert pInterpolant.isFalse()
-            : "final interpolant is not false: " + pInterpolant;
-      }
+      /*
+       * if (!pathIterator.hasNext()) { assert pInterpolant.isFalse() :
+       * "final interpolant is not false: " + pInterpolant; }
+       */
     }
 
     return pathInterpolants;
