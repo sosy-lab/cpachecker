@@ -276,7 +276,8 @@ public class CPAMain {
       Sets.immutableEnumSet(
           CommonPropertyType.VALID_DEREF,
           CommonPropertyType.VALID_FREE,
-          CommonPropertyType.VALID_MEMTRACK);
+          CommonPropertyType.VALID_MEMTRACK,
+          CommonPropertyType.VALID_MEMCLEANUP);
 
   /**
    * Parse the command line, read the configuration file, and setup the program-wide base paths.
@@ -414,6 +415,7 @@ public class CPAMain {
           .put(CommonPropertyType.VALID_FREE, "sv-comp-memorysafety")
           .put(CommonPropertyType.VALID_DEREF, "sv-comp-memorysafety")
           .put(CommonPropertyType.VALID_MEMTRACK, "sv-comp-memorysafety")
+          .put(CommonPropertyType.VALID_MEMCLEANUP, "sv-comp-memorysafety")
           .put(CommonPropertyType.OVERFLOW, "sv-comp-overflow")
           .put(CommonPropertyType.DEADLOCK, "deadlock")
           // .put(CommonPropertyType.TERMINATION, "none needed")
