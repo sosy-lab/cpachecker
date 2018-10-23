@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import org.sosy_lab.cpachecker.core.defaults.EmptyInferenceObject;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CompatibilityCheck;
 import org.sosy_lab.cpachecker.core.interfaces.InferenceObject;
@@ -37,7 +38,8 @@ public class ValueCompatibleCheck implements CompatibilityCheck {
     if (pObject instanceof ValueInferenceObject) {
       return ((ValueAnalysisState) pState).compatibleWith(((ValueInferenceObject) pObject).getSource());
     } else {
-      return false;
+      assert pObject == EmptyInferenceObject.getInstance();
+      return true;
     }
   }
 

@@ -33,6 +33,10 @@ import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -68,9 +72,6 @@ public class ValueInferenceObject implements InferenceObject {
     if (pEdge instanceof CDeclarationEdge) {
       return EmptyInferenceObject.getInstance();
     }
-    if (pEdge instanceof CAssumeEdge) {
-      return EmptyInferenceObject.getInstance();
-    }
     ValueAnalysisState newSrc = ValueAnalysisState.copyOf(src);
     PersistentMap<MemoryLocation, Value> values = PathCopyingPersistentTreeMap.of();
     PersistentMap<MemoryLocation, Type> types = PathCopyingPersistentTreeMap.of();
@@ -96,6 +97,14 @@ public class ValueInferenceObject implements InferenceObject {
           types = types.putAndCopy(mem, newSrc.getTypeForMemoryLocation(mem));
         }
       } else {
+        Value newVal = dst.getValueFor(mem);
+        values = values.putAndCopy(mem, newVal);
+        types = types.putAndCopy(mem, dst.getTypeForMemoryLocation(mem));
+      }
+    }
+
+    for (MemoryLocation mem : newSrc.getTrackedMemoryLocations()) {
+      if (!dst.contains(mem)) {
         values = values.putAndCopy(mem, UnknownValue.getInstance());
       }
     }
@@ -103,13 +112,22 @@ public class ValueInferenceObject implements InferenceObject {
     if (values.size() == 0) {
       return EmptyInferenceObject.getInstance();
     } else {
-      assert pEdge instanceof CStatementEdge;
-      CStatement stmnt = ((CStatementEdge) pEdge).getStatement();
-      assert stmnt instanceof CAssignment;
+      CAssignment asgn;
+      if (pEdge instanceof CStatementEdge) {
+        CStatement stmnt = ((CStatementEdge) pEdge).getStatement();
+        assert stmnt instanceof CAssignment;
+        asgn = (CAssignment) stmnt;
 
+      } else {
+        assert pEdge instanceof CAssumeEdge;
+        CExpression expr = ((CAssumeEdge)pEdge).getExpression();
+        assert expr instanceof CBinaryExpression;
+        CBinaryExpression bexpr = (CBinaryExpression) expr;
+        asgn = new CExpressionAssignmentStatement(expr.getFileLocation(), (CLeftHandSide) bexpr.getOperand1(), bexpr.getOperand2());
+      }
       ValueAnalysisInformation info =
           new ValueAnalysisInformation(values, types);
-      return new ValueInferenceObject(newSrc, info, Collections.singleton((CAssignment) stmnt));
+      return new ValueInferenceObject(newSrc, info, Collections.singleton(asgn));
     }
   }
 

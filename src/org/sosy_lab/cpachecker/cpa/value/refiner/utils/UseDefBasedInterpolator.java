@@ -115,7 +115,8 @@ public class UseDefBasedInterpolator {
 
       Collection<ASimpleDeclaration> uses = useDefSequence.get(state);
 
-      ValueAnalysisInterpolant interpolant = uses.isEmpty()
+      ValueAnalysisInterpolant interpolant =
+          uses == null || uses.isEmpty()
           ? trivialItp
           : createInterpolant(uses);
 
