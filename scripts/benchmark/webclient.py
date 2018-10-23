@@ -784,13 +784,13 @@ class WebInterface:
                     result_future.set_result(downloaded_result.result())
 
             else:
-                logging.info('Could not get result of run %s: %s', run_id, downloaded_result.exception())
+                attempts = self._download_attempts.pop(run_id, 1);
+                logging.info('Could not get result of run %s on attempt %d: %s', run_id, attempts, downloaded_result.exception())
 
                 # client error
                 if type(exception) is HTTPError and exception.response and  \
                     400 <= exception.response.status_code and exception.response.status_code <= 499:
 
-                    attempts = self._download_attempts.pop(run_id, 1);
                     if attempts < 10:
                         self._download_attempts[run_id] = attempts + 1;
                         self._download_result_async(run_id)
