@@ -147,7 +147,7 @@ public class AppliedCustomInstructionParser {
       String ciString = ci.getFakeSMTDescription().getSecond();
       int index = ciString.indexOf("a");
       if (index == -1 || ciString.charAt(index - 1) != '(') {
-        index = ciString.indexOf(ciString.indexOf("B"), 1);
+        index = ciString.indexOf("(", ciString.indexOf("B"));
       } else {
         index--; // also write ( in front of first a
       }
