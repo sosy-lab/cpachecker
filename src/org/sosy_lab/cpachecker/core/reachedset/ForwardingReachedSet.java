@@ -212,4 +212,11 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
   public Collection<Pair<AbstractState, Precision>> getStatesToAdd() {
     return delegate.getStatesToAdd();
   }
+
+  @Override
+  public void addToReachedSet(AbstractState pState, Precision pPrecision)
+      throws IllegalArgumentException {
+    delegate.addToReachedSet(pState, pPrecision);
+
+  }
 }

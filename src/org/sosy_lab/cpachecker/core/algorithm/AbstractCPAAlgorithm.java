@@ -351,7 +351,7 @@ public abstract class AbstractCPAAlgorithm implements Algorithm, StatisticsProvi
           logger.log(Level.FINER, "Break signalled, CPAAlgorithm will stop.");
 
           // add the new state
-          reachedSet.add(successor, successorPrecision);
+          reachedSet.addToReachedSet(successor, successorPrecision);
 
           if (it.hasNext()) {
             // re-add the old state to the waitlist, there are unhandled

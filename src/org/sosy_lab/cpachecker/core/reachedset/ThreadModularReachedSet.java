@@ -194,4 +194,14 @@ public class ThreadModularReachedSet extends AbstractReachedSet {
   public boolean hasWaitingState() {
     return super.hasWaitingState() || hasStatesToAdd();
   }
+
+  @Override
+  public void addToReachedSet(AbstractState state, Precision precision)
+      throws IllegalArgumentException {
+    if (state instanceof InferenceObject) {
+      reachedInferenceObjects.add((InferenceObject) state);
+    } else {
+      super.addToReachedSet(state, precision);
+    }
+  }
 }
