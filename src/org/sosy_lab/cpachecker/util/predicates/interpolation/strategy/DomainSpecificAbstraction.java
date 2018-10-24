@@ -111,6 +111,8 @@ public class DomainSpecificAbstraction<T> {
         (InterpolatingProverEnvironment<BooleanFormula>) myInterpolator
             .newEnvironment(); */
     //logger.log(Level.WARNING, "Entering domainSpecificAbstractionsCheck: ");
+    ProverEnvironment prover = mySolver
+        .newProverEnvironment(ProverOptions.GENERATE_MODELS);
     List<BooleanFormula> interpolants = Lists.newArrayListWithExpectedSize(oldFormulas.size()
         - 1);
     // running the algorithm for every formula with its successor
@@ -1644,7 +1646,7 @@ public class DomainSpecificAbstraction<T> {
             BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
             feasibilityCheckTimer.start();
             try {
-              abstractionFeasible = prove(toCheckFormulaBlocked, mySolver);
+              abstractionFeasible = prove(toCheckFormulaBlocked, prover);
             } finally {
               feasibilityCheckTimer.stop();
             }
@@ -1831,10 +1833,9 @@ public class DomainSpecificAbstraction<T> {
   }
 
   @SuppressWarnings("rawtypes")
-  private Boolean prove(BlockFormulas toCheckFormulaBlocked, Solver mySolver){
+  private Boolean prove(BlockFormulas toCheckFormulaBlocked, ProverEnvironment prover){
     Boolean abstractionFeasible = false;
-    try (ProverEnvironment prover = mySolver
-        .newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+    try  {
       for (BooleanFormula block : toCheckFormulaBlocked.getFormulas()) {
         prover.push(block);
       }
@@ -1842,10 +1843,16 @@ public class DomainSpecificAbstraction<T> {
 
 
         abstractionFeasible = false;
+        for (BooleanFormula block : toCheckFormulaBlocked.getFormulas()) {
+          prover.pop();
+        }
 
       } else {
 
         abstractionFeasible = true;
+        for (BooleanFormula block : toCheckFormulaBlocked.getFormulas()) {
+          prover.pop();
+        }
       }
     } catch (InterruptedException pE) {
       logger.log(Level.WARNING, "Interrupted Exception!");
@@ -1863,8 +1870,8 @@ public class DomainSpecificAbstraction<T> {
                                                                relationAbstraction2Formula,
                                   /*boolean[][] lattice, */
                                                            String[]
-      /*fullLatticeNames, */ latticeNames, /*int placeinlattice, */ String latticenames_h, Solver
-                                                               mySolver){
+      /*fullLatticeNames, */ latticeNames, /*int placeinlattice, */ String latticenames_h, ProverEnvironment
+                                                               prover){
 
     //String[] middleElement = new String[fullLatticeNames.length];
     String[] middleElement = new String[latticeNames.length];
@@ -1918,7 +1925,7 @@ public class DomainSpecificAbstraction<T> {
             Lists.newArrayListWithExpectedSize(formulas.size() - 1);
         toCheckFormulaList.add(toCheckFormula);
         BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
-        isFeasible = prove(toCheckFormulaBlocked, mySolver);
+        isFeasible = prove(toCheckFormulaBlocked, prover);
         //if abstraction is feasible:
          /* if (isFeasible) {
             hasFeasibleSuccessor = true;
@@ -2010,7 +2017,7 @@ public class DomainSpecificAbstraction<T> {
           Lists.newArrayListWithExpectedSize(formulas.size() - 1);
       toCheckFormulaList.add(toCheckFormula);
       BlockFormulas toCheckFormulaBlocked = new BlockFormulas(toCheckFormulaList);
-      middleElemFeasible = prove(toCheckFormulaBlocked, mySolver);
+      middleElemFeasible = prove(toCheckFormulaBlocked, prover);
       if (middleElemFeasible) {
         List<FormulaType> formulaTypes2 = Lists.newArrayListWithExpectedSize(latticeNamesTypes
             .size()
