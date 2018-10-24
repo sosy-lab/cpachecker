@@ -30,8 +30,10 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadJoinStatement;
@@ -123,18 +125,18 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, AbstractS
 
     public boolean joinThread(CThreadJoinStatement jCall) {
       String pVarName = jCall.getVariableName();
-      ThreadLabel result = null;
+      Set<ThreadLabel> result = new HashSet<>();
       for (ThreadLabel tmpLabel : tSet) {
         if (tmpLabel.getVarName().equals(pVarName)) {
-          assert result == null : "Found several threads with the same variable";
+          // assert result == null : "Found several threads with the same variable";
           assert tmpLabel.isParentThread() : "Try to self-join";
-          result = tmpLabel;
+          result.add(tmpLabel);
         }
       }
-      if (result == null) {
+      if (result.isEmpty()) {
         return false;
       } else {
-        return tSet.remove(result);
+        return tSet.removeAll(result);
       }
     }
 
