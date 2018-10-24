@@ -34,6 +34,7 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -123,7 +124,15 @@ public class ValueInferenceObject implements InferenceObject {
         CExpression expr = ((CAssumeEdge)pEdge).getExpression();
         assert expr instanceof CBinaryExpression;
         CBinaryExpression bexpr = (CBinaryExpression) expr;
-        asgn = new CExpressionAssignmentStatement(expr.getFileLocation(), (CLeftHandSide) bexpr.getOperand1(), bexpr.getOperand2());
+        CExpression left = bexpr.getOperand1();
+        if (left instanceof CCastExpression) {
+          left = ((CCastExpression) left).getOperand();
+        }
+        asgn =
+            new CExpressionAssignmentStatement(
+                expr.getFileLocation(),
+                (CLeftHandSide) left,
+                bexpr.getOperand2());
       }
       ValueAnalysisInformation info =
           new ValueAnalysisInformation(values, types);
