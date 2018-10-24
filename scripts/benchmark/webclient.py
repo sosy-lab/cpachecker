@@ -785,21 +785,21 @@ class WebInterface:
 
             else:
                 attempts = self._download_attempts.pop(run_id, 1);
-                logging.info('Could not get result of run %s on attempt %d: %s', run_id, attempts, downloaded_result.exception())
+                logging.info('Could not get result of run %s on attempt %d: %s', run_id, attempts, exception)
 
                 # client error
-                if type(exception) is HTTPError and exception.response and  \
-                    400 <= exception.response.status_code and exception.response.status_code <= 499:
+                #if type(exception) is HTTPError and exception.response and  \
+                #    400 <= exception.response.status_code and exception.response.status_code <= 499:
 
-                    if attempts < 10:
-                        self._download_attempts[run_id] = attempts + 1;
-                        self._download_result_async(run_id)
-                    else:
-                        self._run_failed(run_id)
-
-                else:
-                    # retry it
+                if attempts < 10:
+                    self._download_attempts[run_id] = attempts + 1;
                     self._download_result_async(run_id)
+                else:
+                    self._run_failed(run_id)
+
+                #else:
+                #    # retry t
+                #    self._download_result_async(run_id)
 
         if run_id not in self._downloading_result_futures.values():  # result is not downloaded
             future = self._executor.submit(self._download_result, run_id)
