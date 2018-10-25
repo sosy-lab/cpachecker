@@ -32,7 +32,7 @@
     <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
   </tasks>
   <tasks name="MemSafety-MemCleanup">
-    <includesfile>../sv-benchmarks/c/MemSafety-MemCleanup.set</includesfile>
-    <propertyfile>../sv-benchmarks/c/MemSafety-MemCleanup.prp</propertyfile>
+    <includesfile>../programs/benchmarks/MemSafety-MemCleanup.set</includesfile>
+    <propertyfile>../programs/benchmarks/MemSafety-MemCleanup.prp</propertyfile>
   </tasks>
 </benchmark>
