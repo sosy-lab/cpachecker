@@ -23,13 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
-import org.hamcrest.CoreMatchers;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
@@ -41,8 +40,6 @@ public class ASTConverterTest {
       new ASTLiteralConverter(MachineModel.LINUX32, ParseContext.dummy());
   private final ASTLiteralConverter converter64 =
       new ASTLiteralConverter(MachineModel.LINUX64, ParseContext.dummy());
-
-  @Rule public ExpectedException exception = ExpectedException.none();
 
   @Test
   public final void testCharacterExpression() {
@@ -117,6 +114,7 @@ public class ASTConverterTest {
 
   @Test
   public final void testInvalidIntegerExpressions() {
+    ImmutableList<ASTLiteralConverter> converters = ImmutableList.of(converter32, converter64);
     ImmutableList<String> invalidValues =
         ImmutableList.<String>of(
             "18446744073709551617u",
@@ -124,14 +122,17 @@ public class ASTConverterTest {
             "36893488147419103232u",
             "100020003000400050006000700080009000u");
 
-    exception.expect(CFAGenerationRuntimeException.class);
-    exception.expectMessage(
-        CoreMatchers.containsString(
-            "Integer value is too large to be represented by the highest possible type (unsigned long long int):"));
-
-    for (String s : invalidValues) {
-      converter32.parseIntegerLiteral(FileLocation.DUMMY, s, null);
-      converter64.parseIntegerLiteral(FileLocation.DUMMY, s, null);
+    for (ASTLiteralConverter c : converters) {
+      for (String s : invalidValues) {
+        try {
+          c.parseIntegerLiteral(FileLocation.DUMMY, s, null);
+          fail();
+        } catch (CFAGenerationRuntimeException e) {
+          assertThat(e.getMessage())
+              .contains(
+                  "Integer value is too large to be represented by the highest possible type (unsigned long long int):");
+        }
+      }
     }
   }
 
