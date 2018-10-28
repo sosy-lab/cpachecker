@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.js;
 
+import com.google.common.base.Joiner;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
@@ -32,9 +34,12 @@ public final class JSObjectLiteralExpression extends ALiteralExpression
     implements JSLiteralExpression {
 
   private static final long serialVersionUID = 1443097940197858933L;
+  private final List<JSObjectLiteralField> fields;
 
-  public JSObjectLiteralExpression(final FileLocation pFileLocation) {
+  public JSObjectLiteralExpression(
+      final FileLocation pFileLocation, final List<JSObjectLiteralField> pFields) {
     super(pFileLocation, JSAnyType.ANY);
+    fields = pFields;
   }
 
   @Override
@@ -44,7 +49,7 @@ public final class JSObjectLiteralExpression extends ALiteralExpression
 
   @Override
   public String toASTString() {
-    return "{}";
+    return "{" + Joiner.on(", ").join(fields) + "}";
   }
 
   @Override
@@ -57,4 +62,7 @@ public final class JSObjectLiteralExpression extends ALiteralExpression
     return this;
   }
 
+  public List<JSObjectLiteralField> getFields() {
+    return fields;
+  }
 }

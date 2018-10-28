@@ -23,15 +23,37 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import com.google.common.collect.Streams;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.eclipse.wst.jsdt.core.dom.ObjectLiteral;
+import org.eclipse.wst.jsdt.core.dom.ObjectLiteralField;
+import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSObjectLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSObjectLiteralField;
 
 class ObjectLiteralCFABuilder implements ObjectLiteralAppendable {
 
+  @SuppressWarnings("unchecked")
   @Override
   public JSExpression append(
       final JavaScriptCFABuilder pBuilder, final ObjectLiteral pObjectLiteral) {
-    return new JSObjectLiteralExpression(pBuilder.getFileLocation(pObjectLiteral));
+    final List<ObjectLiteralField> fields = pObjectLiteral.fields();
+    final List<JSObjectLiteralField> fieldInitializers =
+        Streams.zip(
+                fields.stream().map(field -> ((SimpleName) field.getFieldName()).getIdentifier()),
+                pBuilder
+                    .append(
+                        fields
+                            .stream()
+                            .map(ObjectLiteralField::getInitializer)
+                            .collect(Collectors.toList()))
+                    .stream(),
+                (final String fieldName, final JSExpression initializer) ->
+                    new JSObjectLiteralField(fieldName, initializer))
+            .collect(Collectors.toList());
+    return new JSObjectLiteralExpression(
+        pBuilder.getFileLocation(pObjectLiteral), fieldInitializers);
   }
 }
