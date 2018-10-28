@@ -107,9 +107,7 @@ public class ExpressionListCFABuilderTest extends CFABuilderTestBase {
     final JSDeclarationEdge tmpAssignmentEdge = (JSDeclarationEdge) entryNode.getLeavingEdge(0);
     final JSVariableDeclaration tmpVariableDeclaration =
         (JSVariableDeclaration) tmpAssignmentEdge.getDeclaration();
-    Truth.assertThat(
-            ((JSInitializerExpression) tmpVariableDeclaration.getInitializer()).getExpression())
-        .isEqualTo(x);
+    Truth.assertThat(getAssignedExpression(tmpVariableDeclaration)).isEqualTo(x);
 
     Truth.assertThat(tmpAssignmentEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(1);
     final CFAEdge sideEffectEdge = tmpAssignmentEdge.getSuccessor().getLeavingEdge(0);
@@ -183,9 +181,7 @@ public class ExpressionListCFABuilderTest extends CFABuilderTestBase {
     Truth.assertThat(tmpAssignmentEdge.getDeclaration()).isInstanceOf(JSVariableDeclaration.class);
     final JSVariableDeclaration tmpVariableDeclaration =
         (JSVariableDeclaration) tmpAssignmentEdge.getDeclaration();
-    Truth.assertThat(
-            ((JSInitializerExpression) tmpVariableDeclaration.getInitializer()).getExpression())
-        .isEqualTo(firstResult);
+    Truth.assertThat(getAssignedExpression(tmpVariableDeclaration)).isEqualTo(firstResult);
 
     Truth.assertThat(tmpAssignmentEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(1);
     final CFAEdge sideEffectEdge = tmpAssignmentEdge.getSuccessor().getLeavingEdge(0);
@@ -201,5 +197,11 @@ public class ExpressionListCFABuilderTest extends CFABuilderTestBase {
                 new JSIdExpression(FileLocation.DUMMY, tmpVariableDeclaration),
                 secondResult,
                 thirdResult));
+  }
+
+  private static JSExpression getAssignedExpression(
+      final JSVariableDeclaration pTmpVariableDeclarationOfFirstExpr) {
+    return ((JSInitializerExpression) pTmpVariableDeclarationOfFirstExpr.getInitializer())
+        .getExpression();
   }
 }
