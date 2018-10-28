@@ -41,6 +41,9 @@ public class ExpressionListCFABuilder implements ExpressionListAppendable {
       final JavaScriptCFABuilder pBuilder, final List<Expression> pExpressions) {
     // TODO more than 2 expressions
     // TODO consider side effects in expressions
+    if (pExpressions.size() == 1) {
+      return ImmutableList.of(pBuilder.append(pExpressions.get(0)));
+    }
     if (!hasSideEffects(pExpressions.get(1))) {
       assert pExpressions.size() == 2;
       return ImmutableList.of(
