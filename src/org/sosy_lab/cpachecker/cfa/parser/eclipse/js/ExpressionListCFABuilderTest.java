@@ -33,6 +33,8 @@ import org.eclipse.wst.jsdt.core.dom.PrefixExpression;
 import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
@@ -149,4 +151,55 @@ public class ExpressionListCFABuilderTest extends CFABuilderTestBase {
     Truth.assertThat(builder.getExitNode()).isEqualTo(entryNode);
   }
 
+  @Test
+  public final void testNonLastExpressionHasSideEffect() {
+    // single expression should be appended without temporary assignment
+    final Expression first = parseExpression(SimpleName.class, "x");
+    final Expression second = parseExpression(PrefixExpression.class, "++x");
+    final Expression third = parseExpression(PrefixExpression.class, "x + 1");
+    final JSExpression firstResult = mock(JSIdExpression.class, "x");
+    final JSExpression secondResult = mock(JSIdExpression.class, "x");
+    final JSExpression thirdResult = mock(JSBinaryExpression.class, "x + 1");
+    builder.setExpressionAppendable(
+        (pBuilder, pExpression) -> {
+          if (pExpression == first) {
+            return firstResult;
+          } else if (pExpression == second) {
+            appendSideEffectEdge(pBuilder);
+            return secondResult;
+          } else if (pExpression == third) {
+            return thirdResult;
+          } else {
+            throw new RuntimeException("unexpected expression");
+          }
+        });
+
+    final List<JSExpression> result =
+        new ExpressionListCFABuilder().append(builder, ImmutableList.of(first, second, third));
+
+    Truth.assertThat(entryNode.getNumLeavingEdges()).isEqualTo(1);
+    Truth.assertThat(entryNode.getLeavingEdge(0)).isInstanceOf(JSDeclarationEdge.class);
+    final JSDeclarationEdge tmpAssignmentEdge = (JSDeclarationEdge) entryNode.getLeavingEdge(0);
+    Truth.assertThat(tmpAssignmentEdge.getDeclaration()).isInstanceOf(JSVariableDeclaration.class);
+    final JSVariableDeclaration tmpVariableDeclaration =
+        (JSVariableDeclaration) tmpAssignmentEdge.getDeclaration();
+    Truth.assertThat(
+            ((JSInitializerExpression) tmpVariableDeclaration.getInitializer()).getExpression())
+        .isEqualTo(firstResult);
+
+    Truth.assertThat(tmpAssignmentEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(1);
+    final CFAEdge sideEffectEdge = tmpAssignmentEdge.getSuccessor().getLeavingEdge(0);
+    Truth.assertThat(sideEffectEdgeCaptor.getValues()).contains(sideEffectEdge);
+    // no temporary variable assignment is required for the last expression.
+    // That's why there should be no further (declaration) edge.
+    Truth.assertThat(sideEffectEdge.getSuccessor()).isEqualTo(builder.getExitNode());
+
+    // check result
+    Truth.assertThat(result)
+        .isEqualTo(
+            ImmutableList.of(
+                new JSIdExpression(FileLocation.DUMMY, tmpVariableDeclaration),
+                secondResult,
+                thirdResult));
+  }
 }
