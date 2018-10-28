@@ -69,10 +69,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.defaults.MultiStatistics;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -457,7 +454,7 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
 
     algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
 
-    reached = createInitialReachedSetForRestart(cpa, mainFunction, coreComponents, singleLogger);
+    reached = RestartAlgorithm.createInitialReachedSetForRestart(cpa, mainFunction, coreComponents, singleLogger);
 
     if (cpa instanceof StatisticsProvider) {
       ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());
@@ -467,24 +464,6 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     return Triple.of(algorithm, cpa, reached);
-  }
-
-  private ReachedSet createInitialReachedSetForRestart(
-      ConfigurableProgramAnalysis cpa,
-      CFANode mainFunction,
-      CoreComponentsFactory pFactory,
-      LogManager singleLogger)
-      throws InterruptedException {
-    singleLogger.log(Level.FINE, "Creating initial reached set");
-
-    AbstractState initialState =
-        cpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition());
-    Precision initialPrecision =
-        cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition());
-
-    ReachedSet reached = pFactory.createReachedSet();
-    reached.add(initialState, initialPrecision);
-    return reached;
   }
 
   @Override

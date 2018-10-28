@@ -553,11 +553,12 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
     return Triple.of(algorithm, cpa, reached);
   }
 
-  private ReachedSet createInitialReachedSetForRestart(
+  static ReachedSet createInitialReachedSetForRestart(
       ConfigurableProgramAnalysis cpa,
       CFANode mainFunction,
       CoreComponentsFactory pFactory,
-      LogManager singleLogger) throws InterruptedException {
+      LogManager singleLogger)
+      throws InterruptedException {
     singleLogger.log(Level.FINE, "Creating initial reached set");
 
     AbstractState initialState = cpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition());
