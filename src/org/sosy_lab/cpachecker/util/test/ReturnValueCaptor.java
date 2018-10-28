@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.test;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -76,6 +77,10 @@ public final class ReturnValueCaptor<R> {
    */
   public R getReturnValue(final int pTimeCalled) {
     return returnValues.get(pTimeCalled);
+  }
+
+  public List<R> getValues() {
+    return ImmutableList.copyOf(returnValues);
   }
 
   public int getTimesCalled() {
