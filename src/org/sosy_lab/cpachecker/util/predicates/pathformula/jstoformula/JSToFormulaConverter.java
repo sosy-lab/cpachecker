@@ -109,6 +109,7 @@ import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
@@ -1302,8 +1303,12 @@ public class JSToFormulaConverter {
       final String variableName, final int oldIndex, final int newIndex) {
     checkArgument(oldIndex > 0 && newIndex > oldIndex);
 
-    final Formula oldVariable = fmgr.makeVariable(Types.VARIABLE_TYPE, variableName, oldIndex);
-    final Formula newVariable = fmgr.makeVariable(Types.VARIABLE_TYPE, variableName, newIndex);
+    final FormulaType<?> variableType =
+        variableName.equals(OBJECT_FIELDS_VARIABLE_NAME)
+            ? Types.OBJECT_FIELDS_VARIABLE_TYPE
+            : Types.VARIABLE_TYPE;
+    final Formula oldVariable = fmgr.makeVariable(variableType, variableName, oldIndex);
+    final Formula newVariable = fmgr.makeVariable(variableType, variableName, newIndex);
 
     return fmgr.assignment(newVariable, oldVariable);
   }
