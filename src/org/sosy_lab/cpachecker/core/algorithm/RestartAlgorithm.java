@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.PartialARGsCombiner;
+import org.sosy_lab.cpachecker.core.defaults.MultiStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -87,31 +88,24 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
-import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 @Options(prefix="restartAlgorithm")
 public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedSetUpdater {
 
-  private static class RestartAlgorithmStatistics implements Statistics {
+  private static class RestartAlgorithmStatistics extends MultiStatistics {
 
-    private final LogManager logger;
     private final int noOfAlgorithms;
-    private final Collection<Statistics> subStats;
     private int noOfAlgorithmsUsed = 0;
     private Timer totalTime = new Timer();
 
     public RestartAlgorithmStatistics(int pNoOfAlgorithms, LogManager pLogger) {
+      super(pLogger);
       noOfAlgorithms = pNoOfAlgorithms;
-      subStats = new ArrayList<>();
-      logger = checkNotNull(pLogger);
     }
 
-    public Collection<Statistics> getSubStatistics() {
-      return subStats;
-    }
-
+    @Override
     public void resetSubStatistics() {
-      subStats.clear();
+      super.resetSubStatistics();
       totalTime = new Timer();
     }
 
@@ -144,17 +138,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
     private void printSubStatistics(
         PrintStream out, Result result, UnmodifiableReachedSet reached) {
       out.println("Total time for algorithm " + noOfAlgorithmsUsed + ": " + totalTime);
-
-      for (Statistics s : subStats) {
-        StatisticsUtils.printStatistics(s, out, logger, result, reached);
-      }
-    }
-
-    @Override
-    public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
-      for (Statistics s : subStats) {
-        StatisticsUtils.writeOutputFiles(s, logger, pResult, pReached);
-      }
+      super.printStatistics(out, result, reached);
     }
   }
 
