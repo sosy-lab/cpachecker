@@ -24,8 +24,9 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.Iterables;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
@@ -64,35 +65,16 @@ public class ExpressionListCFABuilder implements ExpressionListAppendable {
     //     x = x + 1
     //     result = tmp + x;
     //
-    return pExpressions
-        .stream()
-        .map(
-            pExpression -> {
-              final String tmpVariableName = pBuilder.generateVariableName();
-              final JSVariableDeclaration tmpVariableDeclaration =
-                  new JSVariableDeclaration(
-                      FileLocation.DUMMY,
-                      ScopeConverter.toCFAScope(pBuilder.getScope()),
-                      tmpVariableName,
-                      tmpVariableName,
-                      pBuilder.getScope().qualifiedVariableNameOf(tmpVariableName),
-                      new JSInitializerExpression(
-                          FileLocation.DUMMY, pBuilder.append(pExpression)));
-              pBuilder.appendEdge(
-                  (pPredecessor, pSuccessor) ->
-                      new JSDeclarationEdge(
-                          tmpVariableDeclaration.toASTString(),
-                          FileLocation.DUMMY,
-                          pPredecessor,
-                          pSuccessor,
-                          tmpVariableDeclaration));
-              return new JSIdExpression(
-                  FileLocation.DUMMY, tmpVariableName, tmpVariableDeclaration);
-            })
-        .collect(Collectors.toList());
+    final Builder<JSExpression> resultBuilder = ImmutableList.builder();
+    for (final Expression e : pExpressions.subList(0, pExpressions.size() - 1)) {
+      final JSVariableDeclaration tmpVariableDeclaration =
+          pBuilder.declareVariable(
+              new JSInitializerExpression(FileLocation.DUMMY, pBuilder.append(e)));
+      pBuilder.appendEdge(JSDeclarationEdge.of(tmpVariableDeclaration));
+      resultBuilder.add(new JSIdExpression(FileLocation.DUMMY, tmpVariableDeclaration));
+    }
+    resultBuilder.add(pBuilder.append(Iterables.getLast(pExpressions)));
+    return resultBuilder.build();
   }
 
-  private boolean hasSideEffects(final Expression pExpression) {
-    return true; // TODO
-  }
 }
