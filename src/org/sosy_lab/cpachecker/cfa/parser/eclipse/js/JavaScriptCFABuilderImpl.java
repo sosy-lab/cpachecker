@@ -115,8 +115,8 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
   }
 
   @Override
-  public List<JSExpression> append(final Expression pFirst, final Expression pSecond) {
-    return expressionListAppendable.append(this, ImmutableList.of(pFirst, pSecond));
+  public List<JSExpression> append(List<Expression> pExpressions) {
+    return expressionListAppendable.append(this, pExpressions);
   }
 
   @Override

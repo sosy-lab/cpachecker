@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import static org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge.assume;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import org.eclipse.wst.jsdt.core.dom.InfixExpression;
@@ -131,7 +132,7 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
       final InfixExpression pInfixExpression,
       final BinaryOperator pOperator) {
     final List<JSExpression> operands =
-        pBuilder.append(pInfixExpression.getLeftOperand(), pInfixExpression.getRightOperand());
+        pBuilder.append(ImmutableList.of(pInfixExpression.getLeftOperand(), pInfixExpression.getRightOperand()));
     return new JSBinaryExpression(FileLocation.DUMMY, operands.get(0), operands.get(1), pOperator);
   }
 

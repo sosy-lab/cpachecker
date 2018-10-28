@@ -70,7 +70,7 @@ interface JavaScriptCFABuilder
 
   JSExpression append(Expression pExpression);
 
-  List<JSExpression> append(Expression pFirst, Expression pSecond);
+  List<JSExpression> append(List<Expression> pExpressions);
 
   JSVariableDeclaration append(VariableDeclarationFragment pVariableDeclarationFragment);
 
