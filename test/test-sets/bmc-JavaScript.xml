@@ -13,6 +13,7 @@
     <tasks>
         <option name="-setprop">solver.solver=z3</option>
         <include>../programs/javascript/**.js</include>
+        <include>../programs/javascript/expressions/**.js</include>
         <include>../programs/javascript/objects/**.js</include>
         <exclude>../programs/javascript/binary-expressions_true_assert.js</exclude>
         <excludesfile>unimplemented-features-JavaScript.set</excludesfile>
