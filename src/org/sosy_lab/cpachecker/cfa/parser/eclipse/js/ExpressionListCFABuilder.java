@@ -104,7 +104,8 @@ public class ExpressionListCFABuilder implements ExpressionListAppendable {
         final JSExpression appendedExpression = pBuilder.append(e);
         resultBuilder.add(appendedExpression);
         // The resulting expression of appending itself is side effect free.
-        // It might have to be appended using a temporary assignment later.
+        // Nevertheless, it might have to be appended using a temporary assignment later,
+        // in case a following expression in the expressions-list has a side effect.
         //
         // For example:
         //   The expressions `x, ++x, ++x` have two side effects `x = x + 1`, whereas the second
