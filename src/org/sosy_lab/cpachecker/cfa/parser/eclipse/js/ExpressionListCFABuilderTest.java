@@ -23,33 +23,55 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.truth.Truth;
 import java.util.List;
 import org.eclipse.wst.jsdt.core.dom.Expression;
-import org.eclipse.wst.jsdt.core.dom.SimpleName;
+import org.eclipse.wst.jsdt.core.dom.PrefixExpression;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.util.test.ReturnValueCaptor;
 
 public class ExpressionListCFABuilderTest extends CFABuilderTestBase {
+
+  private ReturnValueCaptor<CFAEdge> sideEffectEdgeCaptor;
+
+  @Override
+  public void init() throws InvalidConfigurationException {
+    super.init();
+    sideEffectEdgeCaptor = new ReturnValueCaptor<>();
+  }
+
+  @SuppressWarnings("ResultOfMethodCallIgnored")
+  private void appendSideEffectEdge(final JavaScriptCFABuilder pBuilder) {
+    pBuilder.appendEdge(
+        sideEffectEdgeCaptor.captureReturn(
+            DummyEdge.withDescription("side effect " + sideEffectEdgeCaptor.getTimesCalled())));
+  }
+
   @Test
   public final void testSingleExpression() {
     // single expression should be appended without temporary assignment
-    final Expression expression = parseExpression(SimpleName.class, "x");
+    final Expression expression = parseExpression(PrefixExpression.class, "++x");
     final JSIdExpression x = mock(JSIdExpression.class, "x");
-    final ExpressionAppendable expressionAppendable = mock(ExpressionAppendable.class);
-    when(expressionAppendable.append(any(), any(SimpleName.class))).thenReturn(x);
-    builder.setExpressionAppendable(expressionAppendable);
+    builder.setExpressionAppendable(
+        (pBuilder, pExpression) -> {
+          appendSideEffectEdge(pBuilder);
+          return x;
+        });
 
     final List<JSExpression> result =
         new ExpressionListCFABuilder().append(builder, ImmutableList.of(expression));
 
     Truth.assertThat(result).isEqualTo(ImmutableList.of(x));
-    Truth.assertThat(builder.getExitNode()).isEqualTo(entryNode);
+    Truth.assertThat(sideEffectEdgeCaptor.getTimesCalled()).isEqualTo(1);
+    Truth.assertThat(entryNode.getNumLeavingEdges()).isEqualTo(1);
+    Truth.assertThat(entryNode.getLeavingEdge(0)).isEqualTo(sideEffectEdgeCaptor.getReturnValue(0));
+    Truth.assertThat(entryNode.getLeavingEdge(0).getSuccessor()).isEqualTo(builder.getExitNode());
   }
 }
