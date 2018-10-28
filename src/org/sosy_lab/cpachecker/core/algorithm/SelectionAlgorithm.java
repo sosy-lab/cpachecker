@@ -434,10 +434,14 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     ConfigurationBuilder singleConfigBuilder = Configuration.builder();
     singleConfigBuilder.copyFrom(globalConfig);
     singleConfigBuilder.clearOption("analysis.selectAnalysisHeuristically");
+
+    // TODO next line overrides existing options with options loaded from file.
+    // Perhaps we want to keep some global options like 'specification'?
     singleConfigBuilder.loadFromFile(singleConfigFileName);
 
     Configuration singleConfig = singleConfigBuilder.build();
     LogManager singleLogger = logger.withComponentName("Analysis " + singleConfigFileName);
+    RestartAlgorithm.checkConfigs(globalConfig, singleConfig, singleConfigFileName, logger);
 
     ResourceLimitChecker singleLimits =
         ResourceLimitChecker.fromConfiguration(singleConfig, singleLogger, singleShutdownManager);

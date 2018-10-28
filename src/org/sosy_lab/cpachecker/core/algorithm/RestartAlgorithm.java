@@ -43,7 +43,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
@@ -515,10 +518,14 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
     singleConfigBuilder.copyFrom(globalConfig);
     singleConfigBuilder.clearOption("restartAlgorithm.configFiles");
     singleConfigBuilder.clearOption("analysis.restartAfterUnknown");
+
+    // TODO next line overrides existing options with options loaded from file.
+    // Perhaps we want to keep some global options like 'specification'?
     singleConfigBuilder.loadFromFile(singleConfigFileName);
 
     Configuration singleConfig = singleConfigBuilder.build();
     LogManager singleLogger = logger.withComponentName("Analysis" + (stats.noOfAlgorithmsUsed + 1));
+    RestartAlgorithm.checkConfigs(globalConfig, singleConfig, singleConfigFileName, logger);
 
     ResourceLimitChecker singleLimits = ResourceLimitChecker.fromConfiguration(singleConfig, singleLogger, singleShutdownManager);
     singleLimits.start();
@@ -567,6 +574,40 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
     ReachedSet reached = pFactory.createReachedSet();
     reached.add(initialState, initialPrecision);
     return reached;
+  }
+
+  static void checkConfigs(
+      Configuration pGlobalConfig,
+      Configuration pSingleConfig,
+      Path pSingleConfigFileName,
+      LogManager pLogger) {
+    Map<String, String> global = configToMap(pGlobalConfig);
+    Map<String, String> single = configToMap(pSingleConfig);
+    for (Entry<String, String> entry : global.entrySet()) {
+      String key = entry.getKey();
+      String value = entry.getValue();
+      if (single.containsKey(key) && !value.equals(single.get(key))) {
+        pLogger.logf(
+            Level.INFO,
+            "Mismatch of configuration options when loading from '%s': '%s' has two values '%s' and '%s'. Using '%s'.",
+            pSingleConfigFileName,
+            key,
+            value,
+            single.get(key),
+            single.get(key));
+      }
+    }
+  }
+
+  /** get an iterable data structure from configuration options. Sadly there is no nicer way. */
+  private static Map<String, String> configToMap(Configuration config) {
+    Map<String, String> mp = new LinkedHashMap<>();
+    for (String option : config.asPropertiesString().split("\n")) {
+      String[] split = option.split(" = ");
+      Preconditions.checkArgument(split.length == 2);
+      mp.put(split[0], split[1]);
+    }
+    return mp;
   }
 
   @Override
