@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.defaults.MultiStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -168,7 +169,7 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private static class SelectionAlgorithmStatistics implements Statistics {
+  private static class SelectionAlgorithmStatistics extends MultiStatistics {
 
     private String chosenConfig = "";
     private int onlyRelevantBools = 0;
@@ -182,6 +183,10 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     private int requiresCompositeTypeHandling = 0;
     private int requiresArrayHandling = 0;
     private int requiresFloatHandling = 0;
+
+    SelectionAlgorithmStatistics(LogManager pLogger) {
+      super(pLogger);
+    }
 
     @Override
     public String getName() {
@@ -207,6 +212,8 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
           "Program containing external functions:         " + containsExternalFunctionCalls);
       out.println("Number of all righthand side functions:        " + numberOfAllRightFunctions);
       out.println();
+
+      super.printStatistics(out, result, reached);
     }
   }
 
@@ -276,7 +283,7 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     specification = Objects.requireNonNull(pSpecification);
     logger = Objects.requireNonNull(pLogger);
 
-    stats = new SelectionAlgorithmStatistics();
+    stats = new SelectionAlgorithmStatistics(logger);
   }
 
   @SuppressWarnings({"resource", "null"})
@@ -452,6 +459,13 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
 
     reached = createInitialReachedSetForRestart(cpa, mainFunction, coreComponents, singleLogger);
 
+    if (cpa instanceof StatisticsProvider) {
+      ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());
+    }
+    if (algorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider) algorithm).collectStatistics(stats.getSubStatistics());
+    }
+
     return Triple.of(algorithm, cpa, reached);
   }
 
@@ -475,9 +489,6 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (chosenAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) chosenAlgorithm).collectStatistics(pStatsCollection);
-    }
     pStatsCollection.add(stats);
   }
 }
