@@ -1133,7 +1133,11 @@ public class JSToFormulaConverter {
   }
 
   IntegerFormula getStringFormula(final String pValue) {
-    return fmgr.makeNumber(Types.STRING_TYPE, stringIds.get(pValue));
+    final int id = stringIds.get(pValue);
+    if (id > maxFieldNameCount) {
+      throw new RuntimeException("Reached cpa.predicate.js.maxFieldNameCount");
+    }
+    return fmgr.makeNumber(Types.STRING_TYPE, id);
   }
 
   BooleanFormula toBoolean(final TypedValue pValue) {
