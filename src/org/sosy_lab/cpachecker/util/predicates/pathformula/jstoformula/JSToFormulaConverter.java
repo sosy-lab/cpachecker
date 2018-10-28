@@ -919,7 +919,7 @@ public class JSToFormulaConverter {
     final IntegerFormula objectId =
         typedValues.objectValue(scopedVariable(pLhsFunction, objectDeclaration, pSsa));
     final String fieldName = pLhs.getFieldName();
-    final IntegerFormula field = makeFreshVariable("field_" + fieldName, pSsa);
+    final IntegerFormula field = makeFieldVariable(fieldName, pSsa);
     // Mark field as set
     pConstraints.addConstraint(bfmgr.not(fmgr.makeEqual(field, objectFieldNotSet)));
     setObjectFields(
@@ -933,6 +933,11 @@ public class JSToFormulaConverter {
       updateIndicesOfOtherScopeVariables(objectDeclaration, pLhsFunction, pSsa, pConstraints);
     }
     return makeAssignment(field, pRhsValue);
+  }
+
+  @Nonnull
+  IntegerFormula makeFieldVariable(final String pFieldName, final SSAMapBuilder pSsa) {
+    return makeFreshVariable("field_" + pFieldName, pSsa);
   }
 
   JSSimpleDeclaration getObjectDeclarationOfFieldAccess(
@@ -1023,7 +1028,7 @@ public class JSToFormulaConverter {
   }
 
   @Nonnull
-  private BooleanFormula makeAssignment(final IntegerFormula pLeft, final TypedValue pRight) {
+  BooleanFormula makeAssignment(final IntegerFormula pLeft, final TypedValue pRight) {
     final IntegerFormula rType = pRight.getType();
     if (rType.equals(typeTags.BOOLEAN)) {
       return bfmgr.and(

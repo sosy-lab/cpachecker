@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
+import static java.util.stream.Collectors.toMap;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.OBJECT_FIELDS_TYPE;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
@@ -38,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSObjectLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSObjectLiteralField;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSStringLiteralExpression;
@@ -242,7 +246,8 @@ public class ExpressionToFormulaVisitor
       throws UnrecognizedCodeException {
     final TypedValue objectValue = conv.tvmgr.createObjectValue(conv.createObjectId());
     final IntegerFormula ovv = (IntegerFormula) objectValue.getValue();
-    conv.setObjectFields(ovv, getEmptyObjectFields(), ssa, constraints);
+    conv.setObjectFields(
+        ovv, getObjectFields(pObjectLiteralExpression.getFields()), ssa, constraints);
     return objectValue;
   }
 
@@ -327,14 +332,30 @@ public class ExpressionToFormulaVisitor
     }
   }
 
-  private ArrayFormula<IntegerFormula, IntegerFormula> getEmptyObjectFields() {
-    ArrayFormula<IntegerFormula, IntegerFormula> emptyObjectFields =
+  private ArrayFormula<IntegerFormula, IntegerFormula> getObjectFields(
+      final List<JSObjectLiteralField> pFields) throws UnrecognizedCodeException {
+    final Map<IntegerFormula, JSObjectLiteralField> fieldById =
+        pFields
+            .stream()
+            .collect(toMap(field -> conv.getStringFormula(field.getFieldName()), field -> field));
+    ArrayFormula<IntegerFormula, IntegerFormula> objectFields =
         conv.afmgr.makeArray("emptyObjectFields", OBJECT_FIELDS_TYPE);
     for (int stringId = 1; stringId <= conv.maxFieldNameCount; stringId++) {
-      emptyObjectFields =
-          conv.afmgr.store(
-              emptyObjectFields, conv.ifmgr.makeNumber(stringId), conv.objectFieldNotSet);
+      final IntegerFormula idFormula = conv.ifmgr.makeNumber(stringId);
+      final IntegerFormula fieldValue;
+      if (fieldById.containsKey(idFormula)) {
+        final JSObjectLiteralField field = fieldById.get(idFormula);
+        final IntegerFormula fieldFormula = conv.makeFieldVariable(field.getFieldName(), ssa);
+        // Mark field as set
+        constraints.addConstraint(
+            conv.bfmgr.not(mgr.makeEqual(fieldFormula, conv.objectFieldNotSet)));
+        constraints.addConstraint(conv.makeAssignment(fieldFormula, visit(field.getInitializer())));
+        fieldValue = fieldFormula;
+      } else {
+        fieldValue = conv.objectFieldNotSet;
+      }
+      objectFields = conv.afmgr.store(objectFields, idFormula, fieldValue);
     }
-    return emptyObjectFields;
+    return objectFields;
   }
 }
