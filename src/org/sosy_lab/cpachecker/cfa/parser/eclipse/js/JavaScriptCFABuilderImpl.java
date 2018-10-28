@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import com.google.common.collect.ImmutableList;
+import java.util.List;
 import org.eclipse.wst.jsdt.core.dom.ASTNode;
 import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
@@ -114,7 +115,7 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
   }
 
   @Override
-  public ImmutableList<JSExpression> append(final Expression pFirst, final Expression pSecond) {
+  public List<JSExpression> append(final Expression pFirst, final Expression pSecond) {
     return expressionListAppendable.append(this, ImmutableList.of(pFirst, pSecond));
   }
 

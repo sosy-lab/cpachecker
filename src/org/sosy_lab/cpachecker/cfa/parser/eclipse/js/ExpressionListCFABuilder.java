@@ -24,12 +24,13 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import com.google.common.collect.ImmutableList;
+import java.util.List;
 import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 
 public class ExpressionListCFABuilder implements ExpressionListAppendable {
   @Override
-  public ImmutableList<JSExpression> append(
+  public List<JSExpression> append(
       final JavaScriptCFABuilder pBuilder, final ImmutableList<Expression> pExpressions) {
     // TODO more than 2 expressions
     // TODO consider side effects in expressions

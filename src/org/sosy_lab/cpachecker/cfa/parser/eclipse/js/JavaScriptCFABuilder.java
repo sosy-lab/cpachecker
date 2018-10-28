@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import com.google.common.collect.ImmutableList;
+import java.util.List;
 import java.util.function.BiFunction;
 import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
@@ -70,7 +70,7 @@ interface JavaScriptCFABuilder
 
   JSExpression append(Expression pExpression);
 
-  ImmutableList<JSExpression> append(Expression pFirst, Expression pSecond);
+  List<JSExpression> append(Expression pFirst, Expression pSecond);
 
   JSVariableDeclaration append(VariableDeclarationFragment pVariableDeclarationFragment);
 
