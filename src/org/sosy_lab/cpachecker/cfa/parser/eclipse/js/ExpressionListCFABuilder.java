@@ -25,14 +25,17 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
-import com.google.common.collect.Iterables;
+import java.util.ArrayList;
 import java.util.List;
 import org.eclipse.wst.jsdt.core.dom.Expression;
+import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 
 public class ExpressionListCFABuilder implements ExpressionListAppendable {
@@ -65,15 +68,69 @@ public class ExpressionListCFABuilder implements ExpressionListAppendable {
     //     x = x + 1
     //     result = tmp + x;
     //
+    // A side effect in an expression might change the result of any previous expression in the
+    // expression-list. Therefore, every expression previous to an expression with a side effect
+    // is assigned to a temporary variable.
     final Builder<JSExpression> resultBuilder = ImmutableList.builder();
-    for (final Expression e : pExpressions.subList(0, pExpressions.size() - 1)) {
-      final JSVariableDeclaration tmpVariableDeclaration =
-          pBuilder.declareVariable(
-              new JSInitializerExpression(FileLocation.DUMMY, pBuilder.append(e)));
-      pBuilder.appendEdge(JSDeclarationEdge.of(tmpVariableDeclaration));
-      resultBuilder.add(new JSIdExpression(FileLocation.DUMMY, tmpVariableDeclaration));
+    final List<JSExpression> sideEffectFreeExpressions = new ArrayList<>();
+    for (final Expression e : pExpressions) {
+      // An expression has a side effect if an edge is added to the CFA.
+      // A copy of the builder is used to check if the expression has a side effect.
+      // If a side effect has occurred then it is undone by removing the added edges.
+      // Thereby, the exit node of the builder gets invalid (removed).
+      // A copy of the builder is used to be able to continue from the old exit node after the
+      // side effect has been undone.
+      final JavaScriptCFABuilder forwardLookingBuilder = pBuilder.copy();
+      final CFANode oldExitNode = pBuilder.getExitNode();
+      assert oldExitNode.getNumLeavingEdges() == 0 : "unexpected leaving edges on an exit node";
+      final JSExpression jsExpression = forwardLookingBuilder.append(e);
+      if (oldExitNode.getNumLeavingEdges() > 0) {
+        // undo side effect
+        while (oldExitNode.getNumLeavingEdges() > 0) {
+          final CFAEdge sideEffectEdge = oldExitNode.getLeavingEdge(0);
+          CFACreationUtils.removeEdgeFromNodes(sideEffectEdge);
+          CFACreationUtils.removeChainOfNodesFromCFA(sideEffectEdge.getSuccessor());
+        }
+        // Append temporary assignments of previous (side effect free) expressions.
+        for (final JSExpression sideEffectFreeExpression : sideEffectFreeExpressions) {
+          final JSVariableDeclaration tmpVariableDeclaration =
+              pBuilder.declareVariable(
+                  new JSInitializerExpression(FileLocation.DUMMY, sideEffectFreeExpression));
+          pBuilder.appendEdge(JSDeclarationEdge.of(tmpVariableDeclaration));
+          resultBuilder.add(new JSIdExpression(FileLocation.DUMMY, tmpVariableDeclaration));
+        }
+        sideEffectFreeExpressions.clear();
+        // Redo side effect.
+        final JSExpression appendedExpression = pBuilder.append(e);
+        resultBuilder.add(appendedExpression);
+        // The resulting expression of appending itself is side effect free.
+        // It might have to be appended using a temporary assignment later.
+        //
+        // For example:
+        //   The expressions `x, ++x, ++x` have two side effects `x = x + 1`, whereas the second
+        //   `++x` influences the resulting expression `x` of the first `++x`.
+        //   If `x` is `0` before the elevation of the expressions `x, ++x, ++x` then the expected
+        //   result is `0, 1, 2`.
+        //   The resulting expression `x` of the first `++x` has to be assigned to a temporary
+        //   variable (`tmp1` in the following example) to store the value of `x` before the second
+        //   incrementation:
+        //
+        //     var tmp0 = x;
+        //     x = x + 1;
+        //     var tmp1 = x;
+        //     x = x + 1;
+        //
+        //   The result is `tmp0, tmp1, x` which evaluates to the expected result `0, 1, 2`.
+        //   Without `tmp1` the result would be `tmp0, x, x` which evaluates to the false result
+        //   `0, 2, 2`.
+        //
+        sideEffectFreeExpressions.add(appendedExpression);
+      } else {
+        pBuilder.append(forwardLookingBuilder);
+        sideEffectFreeExpressions.add(jsExpression);
+        resultBuilder.add(jsExpression);
+      }
     }
-    resultBuilder.add(pBuilder.append(Iterables.getLast(pExpressions)));
     return resultBuilder.build();
   }
 

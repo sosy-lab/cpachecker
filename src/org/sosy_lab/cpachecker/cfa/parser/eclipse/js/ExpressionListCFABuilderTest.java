@@ -73,9 +73,8 @@ public class ExpressionListCFABuilderTest extends CFABuilderTestBase {
         new ExpressionListCFABuilder().append(builder, ImmutableList.of(expression));
 
     Truth.assertThat(result).isEqualTo(ImmutableList.of(x));
-    Truth.assertThat(sideEffectEdgeCaptor.getTimesCalled()).isEqualTo(1);
     Truth.assertThat(entryNode.getNumLeavingEdges()).isEqualTo(1);
-    Truth.assertThat(entryNode.getLeavingEdge(0)).isEqualTo(sideEffectEdgeCaptor.getReturnValue(0));
+    Truth.assertThat(sideEffectEdgeCaptor.getValues()).contains(entryNode.getLeavingEdge(0));
     Truth.assertThat(entryNode.getLeavingEdge(0).getSuccessor()).isEqualTo(builder.getExitNode());
   }
 
@@ -116,7 +115,7 @@ public class ExpressionListCFABuilderTest extends CFABuilderTestBase {
 
     Truth.assertThat(tmpAssignmentEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(1);
     final CFAEdge sideEffectEdge = tmpAssignmentEdge.getSuccessor().getLeavingEdge(0);
-    Truth.assertThat(sideEffectEdge).isEqualTo(sideEffectEdgeCaptor.getReturnValue(0));
+    Truth.assertThat(sideEffectEdgeCaptor.getValues()).contains(sideEffectEdge);
     // no temporary variable assignment is required for the last expression.
     // That's why there should be no further (declaration) edge.
     Truth.assertThat(sideEffectEdge.getSuccessor()).isEqualTo(builder.getExitNode());
