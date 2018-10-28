@@ -68,10 +68,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.defaults.MultiStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -168,7 +166,7 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private static class SelectionAlgorithmStatistics implements Statistics {
+  private static class SelectionAlgorithmStatistics extends MultiStatistics {
 
     private String chosenConfig = "";
     private int onlyRelevantBools = 0;
@@ -182,6 +180,10 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     private int requiresCompositeTypeHandling = 0;
     private int requiresArrayHandling = 0;
     private int requiresFloatHandling = 0;
+
+    SelectionAlgorithmStatistics(LogManager pLogger) {
+      super(pLogger);
+    }
 
     @Override
     public String getName() {
@@ -207,6 +209,8 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
           "Program containing external functions:         " + containsExternalFunctionCalls);
       out.println("Number of all righthand side functions:        " + numberOfAllRightFunctions);
       out.println();
+
+      super.printStatistics(out, result, reached);
     }
   }
 
@@ -276,7 +280,7 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     specification = Objects.requireNonNull(pSpecification);
     logger = Objects.requireNonNull(pLogger);
 
-    stats = new SelectionAlgorithmStatistics();
+    stats = new SelectionAlgorithmStatistics(logger);
   }
 
   @SuppressWarnings({"resource", "null"})
@@ -430,10 +434,14 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     ConfigurationBuilder singleConfigBuilder = Configuration.builder();
     singleConfigBuilder.copyFrom(globalConfig);
     singleConfigBuilder.clearOption("analysis.selectAnalysisHeuristically");
+
+    // TODO next line overrides existing options with options loaded from file.
+    // Perhaps we want to keep some global options like 'specification'?
     singleConfigBuilder.loadFromFile(singleConfigFileName);
 
     Configuration singleConfig = singleConfigBuilder.build();
     LogManager singleLogger = logger.withComponentName("Analysis " + singleConfigFileName);
+    RestartAlgorithm.checkConfigs(globalConfig, singleConfig, singleConfigFileName, logger);
 
     ResourceLimitChecker singleLimits =
         ResourceLimitChecker.fromConfiguration(singleConfig, singleLogger, singleShutdownManager);
@@ -450,34 +458,20 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
 
     algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
 
-    reached = createInitialReachedSetForRestart(cpa, mainFunction, coreComponents, singleLogger);
+    reached = RestartAlgorithm.createInitialReachedSetForRestart(cpa, mainFunction, coreComponents, singleLogger);
+
+    if (cpa instanceof StatisticsProvider) {
+      ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());
+    }
+    if (algorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider) algorithm).collectStatistics(stats.getSubStatistics());
+    }
 
     return Triple.of(algorithm, cpa, reached);
   }
 
-  private ReachedSet createInitialReachedSetForRestart(
-      ConfigurableProgramAnalysis cpa,
-      CFANode mainFunction,
-      CoreComponentsFactory pFactory,
-      LogManager singleLogger)
-      throws InterruptedException {
-    singleLogger.log(Level.FINE, "Creating initial reached set");
-
-    AbstractState initialState =
-        cpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition());
-    Precision initialPrecision =
-        cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition());
-
-    ReachedSet reached = pFactory.createReachedSet();
-    reached.add(initialState, initialPrecision);
-    return reached;
-  }
-
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (chosenAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) chosenAlgorithm).collectStatistics(pStatsCollection);
-    }
     pStatsCollection.add(stats);
   }
 }

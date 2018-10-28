@@ -296,7 +296,7 @@ class ProverEnvironmentWithFallback
   }
 
   @Override
-  public BooleanFormula getInterpolant(List<Object> pArg0)
+  public BooleanFormula getInterpolant(Collection<Object> pArg0)
       throws SolverException, InterruptedException {
     return getInterpolant((Iterable<Object>) pArg0);
   }

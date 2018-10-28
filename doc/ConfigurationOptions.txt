@@ -808,6 +808,13 @@ counterexample.export.core = "Counterexample.%d.core.txt"
 # export counterexample to file, if one is found
 counterexample.export.enabled = true
 
+# export error paths to files immediately after they were found, including
+# spurious error-paths before executing a refinement. Note that we do not
+# track already exported error-paths and export them at every refinement as
+# long as they are not removed from the reached-set. Most helpful for
+# debugging refinements.
+counterexample.export.exportAllFoundErrorPaths = false
+
 # export counterexample as source file
 counterexample.export.exportAsSource = true
 
@@ -2091,23 +2098,23 @@ cpa.predicate.refinement.maxPrefixLength = 1024
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
 
-# Activate fallback to interpolation. Typically in case of a repeated
-# counterexample.
-cpa.predicate.refinement.newtonrefinement.fallbackToInterpolation = false
-
 # sets the level of the pathformulas to use for abstraction. 
 #   EDGE : Based on Pathformulas of every edge in ARGPath
 #   BLOCK: Based on Pathformulas at Abstractionstates
-cpa.predicate.refinement.newtonrefinement.pathFormulaAbstractionLevel = BLOCK
+cpa.predicate.refinement.newtonrefinement.abstractionLevel = BLOCK
   enum:     [BLOCK, EDGE]
 
-# use live variables in order to abstract the predicates produced while
-# NewtonRefinement
-cpa.predicate.refinement.newtonrefinement.useLiveVariables = true
+# Activate fallback to interpolation. Typically in case of a repeated
+# counterexample.
+cpa.predicate.refinement.newtonrefinement.fallback = false
 
 # use unsatisfiable Core in order to abstract the predicates produced while
 # NewtonRefinement
-cpa.predicate.refinement.newtonrefinement.useUnsatCore = true
+cpa.predicate.refinement.newtonrefinement.infeasibleCore = true
+
+# use live variables in order to abstract the predicates produced while
+# NewtonRefinement
+cpa.predicate.refinement.newtonrefinement.liveVariables = true
 
 # use heuristic to extract predicates from the CFA statically on first
 # refinement
@@ -2448,7 +2455,7 @@ cpa.smg.handleUnknownFunctions = STRICT
   enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
 
 # Memory allocation functions
-cpa.smg.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc"}
+cpa.smg.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc", "realloc"}
 
 # Size parameter of memory allocation functions
 cpa.smg.memoryAllocationFunctionsSizeParameter = 0
@@ -2478,7 +2485,7 @@ cpa.smg.refinement.exportInterpolationTree = "NEVER"
   allowed values: [NEVER, FINAL, ALWAYS]
 
 # export interpolant smgs for every path interpolation to this path template
-cpa.smg.refinement.exportRefinmentSMGs = "smg/refinment-%d/smg-%s"
+cpa.smg.refinement.exportRefinementSMGs = "smg/refinement-%d/smg-%s"
 
 # export interpolation trees to this file template
 cpa.smg.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
@@ -2914,6 +2921,17 @@ custominstructions.requirementsStateClassName = no default value
 cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
   enum:     [ALL_LOOPS, ONLY_LAST_LOOP]
 
+# Whether to take an assumption edge 'p' as control dependence if edge 'not
+# p' is a control dependence. This creates a larger slice, but may reduce the
+# size of the state space for deterministic programs. This behavior is also
+# closer to the static program slicing based on control-flow graphs (CFGs),
+# where branching is represented by a single assumption (with true- and
+# false-edges)
+dependencegraph.controldeps.considerInverseAssumption = false
+
+# Whether to consider control dependencies.
+dependencegraph.controldeps.use = true
+
 # File to export dependence graph to. If `null`, dependence graph will not be
 # exported as dot.
 dependencegraph.exportDot = "DependenceGraph.dot"
@@ -2925,11 +2943,8 @@ dependencegraph.flowdep.constantPropagation = false
 # definitions.
 dependencegraph.flowdep.constraintIsDef = false
 
-# Whether to consider control dependencies.
-dependencegraph.useControlDeps = true
-
 # Whether to consider (data-)flow dependencies.
-dependencegraph.useFlowDeps = true
+dependencegraph.flowdeps.use = true
 
 # ignore declarations when detecting modifications, be careful when variables
 # are renamed (could be unsound)
@@ -3437,6 +3452,10 @@ program.splitter.heuristic = no default value
 # maximal number
 program.splitter.max = 2
 
+# Whether to create slices that are behaviorally equivalent not only to the
+# target location, but also on the paths to that target location.
+programSlice.preserveTargetPaths = false
+
 # Quantifier elimination strategy
 rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP
   enum:     [QE_LIGHT_THEN_DROP, QE, DROP]
@@ -3677,20 +3696,23 @@ testcase.values.compress = false
 # Zip file into which all test values files are bundled
 testcase.values.zip = no default value
 
-# export undefined functions as C file
-undefFuncCollectorAlgorithm.file = "env.c"
+# Ignore functions that are defined by C11
+undefinedFunctionsCollector.allowC11Functions = true
 
 # Set of functions that should be ignored
-undefFuncCollectorAlgorithm.ignoreFunctions = {"memset", "kfree", "free", "calloc", "malloc"}
+undefinedFunctionsCollector.allowedFunctions = ImmutableSet.of(
 
-# On-demand memory allocation function
-undefFuncCollectorAlgorithm.odmAllocFunction = "external_alloc"
+# Regexp matching function names that are allowed to be undefined
+undefinedFunctionsCollector.allowedFunctionsRegexp = "^(__VERIFIER|pthread)_[a-zA-Z0-9_]*"
 
-# Set of functions that are defined by pthread.h and should be ignored
-undefFuncCollectorAlgorithm.pthreadFunctionsRegexp = "^pthread_[a-zA-Z0-9_]*"
+# Regexp matching function names that need not be declared
+undefinedFunctionsCollector.allowedUndeclaredFunctionsRegexp = "^__builtin_[a-zA-Z0-9_]*"
 
-# Set of functions that are defined by SV-COMP rules and should be ignored
-undefFuncCollectorAlgorithm.svcompFunctionsRegexp = "^__VERIFIER_[a-zA-Z0-9_]*"
+# Memory-allocation function that will be used in stubs
+undefinedFunctionsCollector.externAllocFunction = "external_alloc"
+
+# export undefined functions as C file
+undefinedFunctionsCollector.stubsFile = "stubs.c"
 
 # File for exporting the witness automaton in DOT format.
 witness.automatonDumpFile = no default value

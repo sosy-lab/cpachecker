@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -52,7 +54,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -63,13 +64,13 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
@@ -104,28 +105,34 @@ public class PredicateCPA
   @Option(secure=true, description="Direction of the analysis?")
   private AnalysisDirection direction = AnalysisDirection.FORWARD;
 
+  @Option(
+      secure = true,
+      description =
+          "whether to include the symbolic path formula in the "
+              + "coverage checks or do only the fast abstract checks")
+  private boolean symbolicCoverageCheck = false;
 
   protected final Configuration config;
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
 
-  private final PredicateAbstractDomain domain;
-  private final PredicateTransferRelation transfer;
-  private final MergeOperator merge;
-  private final PredicatePrecisionAdjustment prec;
-  private final StopOperator stop;
   private final PredicatePrecision initialPrecision;
   private final PathFormulaManager pathFormulaManager;
   private final Solver solver;
   private final PredicateAbstractionManager predicateManager;
   private final PredicateCPAStatistics stats;
-  private final PredicateAbstractState topState;
   private final PredicatePrecisionBootstrapper precisionBootstraper;
   private final CFA cfa;
   private final AbstractionManager abstractionManager;
-  private final PrefixProvider prefixProvider;
   private final PredicateCPAInvariantsManager invariantsManager;
   private final BlockOperator blk;
+  private final PredicateStatistics statistics;
+  private final PredicateProvider predicateProvider;
+  private final FormulaManagerView formulaManager;
+  private final PredicateCpaOptions options;
+
+  // path formulas for PCC
+  private final Map<PredicateAbstractState, PathFormula> computedPathFormulaePcc = new HashMap<>();
 
   protected PredicateCPA(
       Configuration config,
@@ -152,7 +159,7 @@ public class PredicateCPA
     blk.setCFA(cfa);
 
     solver = Solver.create(config, logger, pShutdownNotifier);
-    FormulaManagerView formulaManager = solver.getFormulaManager();
+    formulaManager = solver.getFormulaManager();
     String libraries = solver.getVersion();
 
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger, shutdownNotifier, cfa, direction);
@@ -174,7 +181,6 @@ public class PredicateCPA
 
     abstractionManager = new AbstractionManager(regionManager, config, logger, solver);
 
-    prefixProvider = new PredicateBasedPrefixProvider(config, logger, solver, pathFormulaManager, shutdownNotifier);
     invariantsManager =
         new PredicateCPAInvariantsManager(
             config, logger, pShutdownNotifier, pCfa, specification, pAggregatedReachedSets);
@@ -191,47 +197,14 @@ public class PredicateCPA
                 ? invariantsManager
                 : TrivialInvariantSupplier.INSTANCE);
 
-    transfer =
-        new PredicateTransferRelation(
-            config, logger, direction, formulaManager, pfMgr, blk, predicateManager);
-
-    topState = PredicateAbstractState.mkAbstractionState(
-        pathFormulaManager.makeEmptyPathFormula(),
-        predicateManager.makeTrueAbstractionFormula(null),
-        PathCopyingPersistentTreeMap.<CFANode, Integer>of());
-    domain = new PredicateAbstractDomain(config, predicateManager);
-
-    if (mergeType.equals("SEP")) {
-      merge = MergeSepOperator.getInstance();
-    } else if (mergeType.equals("ABE")) {
-      merge = new PredicateMergeOperator(logger, pfMgr);
-    } else {
-      throw new InternalError("Update list of allowed merge operators");
-    }
-
+    statistics = new PredicateStatistics();
+    options = new PredicateCpaOptions(config);
     precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, abstractionManager, formulaManager);
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
-    PredicateProvider predicateProvider = new PredicateProvider(config, pCfa, logger, formulaManager, predicateManager);
-
-    prec =
-        new PredicatePrecisionAdjustment(
-            logger,
-            formulaManager,
-            pfMgr,
-            blk,
-            predicateManager,
-            invariantsManager,
-            predicateProvider);
-
-    if (stopType.equals("SEP")) {
-      stop = new PredicateStopOperator(domain);
-    } else if (stopType.equals("SEPPCC")) {
-      stop = new PredicatePCCStopOperator(pfMgr, predicateManager);
-    } else {
-      throw new InternalError("Update list of allowed stop operators");
-    }
+    predicateProvider =
+        new PredicateProvider(config, pCfa, logger, formulaManager, predicateManager);
 
     stats =
         new PredicateCPAStatistics(
@@ -239,35 +212,54 @@ public class PredicateCPA
             logger,
             pCfa,
             solver,
-            pfMgr,
+            pathFormulaManager,
             blk,
             regionManager,
             abstractionManager,
             predicateManager,
-            domain,
-            merge,
-            transfer,
-            prec);
+            statistics);
   }
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return domain;
+    return new PredicateAbstractDomain(predicateManager, symbolicCoverageCheck, statistics);
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
-    return transfer;
+  public PredicateTransferRelation getTransferRelation() {
+    return new PredicateTransferRelation(
+        logger,
+        direction,
+        formulaManager,
+        pathFormulaManager,
+        blk,
+        predicateManager,
+        statistics,
+        options);
   }
 
   @Override
   public MergeOperator getMergeOperator() {
-    return merge;
+    switch (mergeType) {
+      case "SEP":
+        return MergeSepOperator.getInstance();
+      case "ABE":
+        return new PredicateMergeOperator(logger, pathFormulaManager, statistics);
+      default:
+        throw new InternalError("Update list of allowed merge operators");
+    }
   }
 
   @Override
   public StopOperator getStopOperator() {
-    return stop;
+    switch (stopType) {
+      case "SEP":
+        return new PredicateStopOperator(getAbstractDomain());
+      case "SEPPCC":
+        return new PredicatePCCStopOperator(pathFormulaManager, predicateManager);
+      default:
+        throw new InternalError("Update list of allowed stop operators");
+    }
   }
 
   public PredicateAbstractionManager getPredicateManager() {
@@ -294,13 +286,12 @@ public class PredicateCPA
     return shutdownNotifier;
   }
 
-  public PrefixProvider getPrefixProvider() {
-    return prefixProvider;
-  }
-
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition pPartition) {
-    return topState;
+    return PredicateAbstractState.mkAbstractionState(
+        pathFormulaManager.makeEmptyPathFormula(),
+        predicateManager.makeTrueAbstractionFormula(null),
+        PathCopyingPersistentTreeMap.of());
   }
 
   @Override
@@ -310,7 +301,15 @@ public class PredicateCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return prec;
+    return new PredicatePrecisionAdjustment(
+        logger,
+        formulaManager,
+        pathFormulaManager,
+        blk,
+        predicateManager,
+        invariantsManager,
+        predicateProvider,
+        statistics);
   }
 
   @Override
@@ -328,7 +327,8 @@ public class PredicateCPA
   @Override
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     try {
-      return transfer.areAbstractSuccessors(pElement, pCfaEdge, pSuccessors);
+      return getTransferRelation()
+          .areAbstractSuccessors(pElement, pCfaEdge, pSuccessors, computedPathFormulaePcc);
     } catch (SolverException e) {
       throw new CPATransferException("Solver failed during abstract-successor check", e);
     }

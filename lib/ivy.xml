@@ -101,23 +101,23 @@
 
         <!-- Eclipse JDT Compiler
              For additional compiler warnings. -->
-        <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.7" conf="build->default"/>
+        <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.8" conf="build->default"/>
 
         <!-- google-java-format
              A source-code formatter for Java -->
         <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.6" conf="format-source->default"/>
 
         <!-- SpotBugs -->
-        <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="3.1.2" conf="spotbugs->default"/>
+        <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="3.1.5" conf="spotbugs->default"/>
         <!-- JAR with annotations needs to be present at runtime because we use Nullable.class -->
-        <dependency org="com.github.spotbugs" name="spotbugs-annotations" rev="3.1.2" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.github.spotbugs" name="spotbugs-annotations" rev="3.1.5" conf="runtime->default; contrib->sources"/>
         <dependency org="com.google.code.findbugs" name="jsr305" rev="3.0.2" conf="runtime->default; contrib->sources"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="javasmt" rev="2.0.0-alpha-141-g361c359" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="javasmt" rev="2.0.0-alpha-206-g740388e" conf="runtime->runtime; contrib->sources"/>
 
         <!-- LassoRanker
              Synthesis of ranking functions for termination analysis. -->
@@ -133,6 +133,10 @@
             <exclude org="org.apache.xmlgraphics" module="batik-css"/>
             <exclude org="org.apache.xmlgraphics" module="batik-util"/>
         </dependency>
+
+        <!-- JavaSMT has an erroneous dependency on a newer Guava which causes SpotBugs to fail.
+             Temporarily override to at least get CPAchecker's build to be working again. -->
+        <override org="com.google.guava" module="guava" rev="24.1-jre"/>
 
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
         <override org="com.google.errorprone" module="error_prone_annotations" rev="2.3.1"/>

@@ -285,13 +285,17 @@ with considerably less effort */
 			}
 			return values;
 		};
-
+		// initialize array that stores the important edges. Index counts only, when edges appear in the report.
+                var importantEdges = [];
+                var importantIndex = -1;
 		if (errorPath !== undefined) {
 			var indentationlevel = 0;
 			for (var i = 0; i < errorPath.length; i++) {
 				var errPathElem = errorPath[i];
+
 				// do not show start, return and blank edges
 				if (errPathElem.desc.indexOf("Return edge from") === -1 && errPathElem.desc != "Function start dummy edge" && errPathElem.desc != "") {
+					importantIndex += 1;
 					var previousValueDictionary = {};
 					errPathElem["valDict"] = {};
 					errPathElem["valString"] = "";
@@ -317,7 +321,25 @@ with considerably less effort */
 				} else if (errPathElem.desc.indexOf("Function start dummy") !== -1) {
 					indentationlevel += 1;
 				}
+
+				// store the important edges
+                                if(errPathElem.importance == 1){
+                                      importantEdges.push(importantIndex);
+                                   }
 			}
+
+                        // this function puts the important edges into a CSS class that highlights them
+			function highlightEdges(impEdges){
+			    for (var j = 0; j < impEdges.length; j++){
+			        d3.selectAll("#errpath-" + impEdges[j] + " td pre").classed("important", true);
+			    }
+                        };
+
+                        // timeout is needed for the color to appear on the report.
+			setTimeout(function() {
+                            highlightEdges(importantEdges);
+                        }, 2000);
+
 		}
 
 		$scope.errPathPrevClicked = function ($event) {

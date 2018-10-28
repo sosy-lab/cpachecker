@@ -75,7 +75,6 @@ import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
-import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 
 /**
  * Implements a handler for assignments.
@@ -855,21 +854,12 @@ class AssignmentHandler {
         for (CCompositeTypeMemberDeclaration innerMember :
             ((CCompositeType) memberType).getMembers()) {
 
-          // calculate right indices. GCC orders fields in structs the other way around!
-          // C11 6.7.2.1 (11) allows for arbitrary ordering, but we will stick to GCC behavior
           int fieldOffset =
               (int) typeHandler.getBitOffset(((CCompositeType) memberType), innerMember);
           int fieldSize = typeHandler.getBitSizeof(innerMember.getType());
           assert fieldSize > 0;
-          int structSize = ((BitvectorType) conv.getFormulaTypeFromCType(memberType)).getSize();
-          boolean invertMemberOrdering = true; // for GCC-like behavior this has to be set to true
           int startIndex = fieldOffset;
           int endIndex = fieldOffset + fieldSize - 1;
-          if (invertMemberOrdering) {
-            int tmp = startIndex;
-            startIndex = structSize - 1 - endIndex;
-            endIndex = structSize - 1 - tmp;
-          }
 
           // "treatAsMemberType"
           Formula rhsFormula = getValueFormula(rhsType, rhsExpression).get();

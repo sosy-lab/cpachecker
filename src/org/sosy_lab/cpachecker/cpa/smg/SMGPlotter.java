@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.GenericAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.optional.SMGOptionalObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
@@ -317,7 +318,14 @@ public final class SMGPlotter {
   }
 
   private String smgPTEdgeAsDot(SMGEdgePointsTo pEdge) {
-    return "value_" + pEdge.getValue().asDotId() + " -> " + objectIndex.get(pEdge.getObject()).getName() + "[label=\"+" + pEdge.getOffset() + "b, " + pEdge.getTargetSpecifier() + "\"];";
+    String str = "value_" + pEdge.getValue().asDotId() + " -> ";
+    SMGObjectNode oi = objectIndex.get(pEdge.getObject());
+    if (oi != null) {
+      str += oi.getName();
+    } else {
+      str += "\"<invalid object reference>\"";
+    }
+    return str + "[label=\"+" + pEdge.getOffset() + "b, " + pEdge.getTargetSpecifier() + "\"];";
   }
 
   private static String smgValueAsDot(
@@ -326,7 +334,13 @@ public final class SMGPlotter {
     if (explicitValues.containsKey(value)) {
       explicitValue = " : " + String.valueOf(explicitValues.get(value).getAsLong());
     }
-    return "value_" + value.asDotId() + "[label=\"#" + value.asDotId() + explicitValue + "\"];";
+    String prefix = "value_" + value.asDotId() + "[label=\"#" + value.asDotId() + explicitValue;
+    if (value instanceof SMGKnownAddressValue) {
+      SMGKnownAddressValue kav = (SMGKnownAddressValue) value;
+      return prefix + "\\n" + kav.getObject() + "\"];";
+    } else {
+      return prefix + "\"];";
+    }
   }
 
   private static String neqRelationAsDot(SMGValue v1, SMGValue v2) {

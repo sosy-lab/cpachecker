@@ -36,16 +36,19 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGEdgeInterpolator.SMGHeapAbstractionInterpoaltionResult;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
 public class SMGEdgeHeapAbstractionInterpolator {
 
   private final LogManager logger;
   private final SMGFeasibilityChecker checker;
+  private final BlockOperator blockOperator;
 
-  public SMGEdgeHeapAbstractionInterpolator(LogManager pLogger, SMGFeasibilityChecker pChecker) {
-    super();
+  public SMGEdgeHeapAbstractionInterpolator(
+      LogManager pLogger, SMGFeasibilityChecker pChecker, BlockOperator pBlockOperator) {
     logger = pLogger;
     checker = pChecker;
+    blockOperator = pBlockOperator;
   }
 
   /**
@@ -70,7 +73,7 @@ public class SMGEdgeHeapAbstractionInterpolator {
 
     SMGState state = pState;
 
-    if (!pPrecision.allowsHeapAbstractionOnNode(pStateLocation)) {
+    if (!pPrecision.allowsHeapAbstractionOnNode(pStateLocation, blockOperator)) {
       return SMGHeapAbstractionInterpoaltionResult.emptyAndUnchanged();
     }
 

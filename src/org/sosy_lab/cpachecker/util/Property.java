@@ -32,6 +32,8 @@ public interface Property {
 
     VALID_MEMTRACK("G valid-memtrack"),
 
+    VALID_MEMCLEANUP("G valid-memcleanup"),
+
     OVERFLOW("G ! overflow"),
 
     DEADLOCK("G ! deadlock"),

@@ -28,12 +28,14 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.CFAUtils.hasBackWardsEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import java.io.Serializable;
 import java.util.ArrayDeque;
@@ -46,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -115,7 +118,7 @@ public final class LoopStructure implements Serializable {
    * In such cases, both loops are considered only one loop
    * (which is legal according to the definition above).
    */
-  public static class Loop implements Serializable {
+  public static class Loop implements Serializable, Comparable<Loop> {
 
     private static final long serialVersionUID = 1L;
 
@@ -278,6 +281,31 @@ public final class LoopStructure implements Serializable {
            + "  incoming: " + incomingEdges + "\n"
            + "  outgoing: " + outgoingEdges + "\n"
            + "  nodes:    " + nodes;
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (this == pObj) {
+        return true;
+      }
+      if (pObj instanceof Loop) {
+        Loop other = (Loop) pObj;
+        return loopHeads.equals(other.loopHeads) && nodes.equals(other.nodes);
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(loopHeads);
+    }
+
+    @Override
+    public int compareTo(Loop pOther) {
+      return ComparisonChain.start()
+          .compare(nodes.size(), pOther.nodes.size())
+          .compare(nodes, pOther.nodes, Ordering.natural().lexicographical())
+          .result();
     }
   }
 
@@ -946,7 +974,18 @@ public final class LoopStructure implements Serializable {
         nodes = Sets.intersection(backward, forward);
       }
 
-      result.add(new Loop(recHead, nodes));
+      Loop l = new Loop(recHead, nodes);
+
+      // heuristic to add additional loop heads
+      // in mutual recursions to avoid false proofs
+      for (FunctionEntryNode entry :
+          from(nodes)
+              .filter(FunctionEntryNode.class)
+              .filter(entry -> entry.getNumEnteringEdges() > 1)) {
+        l.mergeWith((new Loop(entry, nodes)));
+      }
+
+      result.add(l);
     }
 
     return result;

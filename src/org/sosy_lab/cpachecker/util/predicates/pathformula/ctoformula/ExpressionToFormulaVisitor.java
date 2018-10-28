@@ -348,12 +348,14 @@ public class ExpressionToFormulaVisitor
     if (exp.getOperand2() instanceof CIntegerLiteralExpression) {
       // We use a BigInteger because it can always be made positive, this is not true for type long!
       BigInteger modulo = ((CIntegerLiteralExpression) exp.getOperand2()).getValue();
-      // modular congruence expects a positive modulo. If our divisor b in a%b is negative, we
-      // actually want to generate a modular congruence condition mod (-b):
-      modulo = modulo.abs();
-      BooleanFormula modularCongruence = mgr.makeModularCongruence(ret, f1, modulo, signed);
-      if (!bfmgr.isTrue(modularCongruence)) {
-        constraints.addConstraint(modularCongruence);
+      if (!modulo.equals(BigInteger.ZERO)) {
+        // modular congruence expects a positive modulo. If our divisor b in a%b is negative, we
+        // actually want to generate a modular congruence condition mod (-b):
+        modulo = modulo.abs();
+        BooleanFormula modularCongruence = mgr.makeModularCongruence(ret, f1, modulo, signed);
+        if (!bfmgr.isTrue(modularCongruence)) {
+          constraints.addConstraint(modularCongruence);
+        }
       }
     }
 
@@ -379,8 +381,13 @@ public class ExpressionToFormulaVisitor
         mgr.makeLessThan(f2, ret, signed)
     );
 
-    constraints.addConstraint(signAndNumBound);
-    constraints.addConstraint(denomBound);
+    BooleanFormula newConstraints =
+        bfmgr.ifThenElse(
+            mgr.makeEqual(f2, zero),
+            bfmgr.makeTrue(), // if divisor is zero, make no constraint
+            bfmgr.and(signAndNumBound, denomBound));
+
+    constraints.addConstraint(newConstraints);
   }
 
   @Override

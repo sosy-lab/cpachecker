@@ -237,4 +237,9 @@ public class CFloatInf extends CFloat {
     }
     return !this.isNegative();
   }
+
+  @Override
+  protected CFloatWrapper getWrapper() {
+    return copyWrapper();
+  }
 }

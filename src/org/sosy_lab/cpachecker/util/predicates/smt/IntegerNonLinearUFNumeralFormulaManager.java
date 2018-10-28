@@ -35,6 +35,7 @@ class IntegerNonLinearUFNumeralFormulaManager
 
   private final IntegerFormulaManager integerFormulaManager;
 
+  @Deprecated // unused?
   IntegerNonLinearUFNumeralFormulaManager(
       FormulaWrappingHandler pWrappingHandler, IntegerFormulaManager numeralFormulaManager) {
     super(pWrappingHandler, numeralFormulaManager);
@@ -46,9 +47,15 @@ class IntegerNonLinearUFNumeralFormulaManager
       IntegerFormula number1, IntegerFormula number2, long n) {
     return integerFormulaManager.modularCongruence(number1, number2, n);
   }
+
   @Override
   public BooleanFormula modularCongruence(
       IntegerFormula number1, IntegerFormula number2, BigInteger n) {
     return integerFormulaManager.modularCongruence(number1, number2, n);
+  }
+
+  @Override
+  public IntegerFormula modulo(IntegerFormula pNumber1, IntegerFormula pNumber2) {
+    return integerFormulaManager.modulo(pNumber1, pNumber2);
   }
 }

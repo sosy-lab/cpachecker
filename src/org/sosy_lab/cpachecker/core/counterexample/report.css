@@ -257,6 +257,11 @@ input:checked+.slider:before {
 	outline: #df80ff solid 2px;
 }
 
+.important {
+        background-color: #ffc107;
+        outline: #ffc107 solid 2px;
+}
+
 .marked-source-line {
 	background-color: #df80ff !important;
 }
@@ -643,3 +648,4 @@ text {
 .bold {
 	font-weight: bold;
 }
+

@@ -62,33 +62,41 @@ public interface FeasibilityChecker<S extends AbstractState> {
   /**
    * Returns whether the given path is feasible, starting at the initial state.
    *
-   * For this method, a given path is feasible, if the end is reachable,
-   * and it is a target of a given control automaton. This way, a more precise
-   * set of concrete path can be specified to be tested.
+   * <p>For this method, a given path is feasible, if the end is reachable, and it is a target of a
+   * given control automaton. This way, a more precise set of concrete path can be specified to be
+   * tested.
    *
-   * This method's precision depends on the implementation.
+   * <p>This method's precision depends on the implementation.
    *
    * @param path the path to investigate
    * @param automatons these automatons specify the concrete target states of the given path
-   * @return <code>true</code> if the given path is feasible,
-   *    <code>false</code> otherwise
+   * @return <code>true</code> if the given path is feasible, <code>false</code> otherwise
    */
-  boolean isFeasible(final ARGPath path, Set<ControlAutomatonCPA> automatons) throws CPAException, InterruptedException;
+  @SuppressWarnings("unused")
+  @Deprecated // unused
+  default boolean isFeasible(final ARGPath path, Set<ControlAutomatonCPA> automatons)
+      throws CPAException, InterruptedException {
+    throw new UnsupportedOperationException();
+  }
 
   /**
-   * Returns whether the given path is feasible, starting at the given state.
-   * This method's precision depends on the implementation.
+   * Returns whether the given path is feasible, starting at the given state. This method's
+   * precision depends on the implementation.
    *
-   * For this method, a given path is feasible, if the end is reachable,
-   * and it is a target of a given control automaton. This way, a more precise
-   * set of concrete path can be specified to be tested.
+   * <p>For this method, a given path is feasible, if the end is reachable, and it is a target of a
+   * given control automaton. This way, a more precise set of concrete path can be specified to be
+   * tested.
    *
    * @param path the path to investigate
    * @param startingPoint the state to start at
    * @param automatons these automatons specify the concrete target states of the given path
-   * @return <code>true</code> if the given path is feasible,
-   *    <code>false</code> otherwise
+   * @return <code>true</code> if the given path is feasible, <code>false</code> otherwise
    */
-  boolean isFeasible(final ARGPath path, S startingPoint, Set<ControlAutomatonCPA> automatons) throws CPAException, InterruptedException;
-
+  @SuppressWarnings("unused")
+  @Deprecated // unused
+  default boolean isFeasible(
+      final ARGPath path, S startingPoint, Set<ControlAutomatonCPA> automatons)
+      throws CPAException, InterruptedException {
+    throw new UnsupportedOperationException();
+  }
 }

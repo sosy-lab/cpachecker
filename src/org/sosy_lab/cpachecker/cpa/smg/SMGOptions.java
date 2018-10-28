@@ -80,12 +80,11 @@ public class SMGOptions {
   private boolean guessSizeOfUnknownMemorySize = false;
 
   @Option(
-    secure = true,
-    name = "memoryAllocationFunctions",
-    description = "Memory allocation functions"
-  )
+      secure = true,
+      name = "memoryAllocationFunctions",
+      description = "Memory allocation functions")
   private ImmutableSet<String> memoryAllocationFunctions =
-      ImmutableSet.of("malloc", "__kmalloc", "kmalloc");
+      ImmutableSet.of("malloc", "__kmalloc", "kmalloc", "realloc");
 
   @Option(
     secure = true,

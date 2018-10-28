@@ -29,7 +29,7 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ForwardingTable;
 import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import java.io.IOException;
@@ -133,15 +133,26 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
   @Option(
       secure = true,
-      name = "useControlDeps",
+      name = "controldeps.use",
       description = "Whether to consider control dependencies.")
   private boolean considerControlDeps = true;
 
   @Option(
       secure = true,
-      name = "useFlowDeps",
+      name = "flowdeps.use",
       description = "Whether to consider (data-)flow dependencies.")
   private boolean considerFlowDeps = true;
+
+  @Option(
+      secure = true,
+      name = "controldeps.considerInverseAssumption",
+      description =
+          "Whether to take an assumption edge 'p' as control dependence if edge 'not p' "
+              + "is a control dependence. This creates a larger slice, but may reduce the size of the "
+              + "state space for deterministic programs. This behavior is also closer to the static "
+              + "program slicing based on control-flow graphs (CFGs), where branching is "
+              + "represented by a single assumption (with true- and false-edges)")
+  private boolean controlDepsTakeBothAssumptions = false;
 
   public DependenceGraphBuilder(
       final MutableCFA pCfa,
@@ -236,10 +247,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       FluentIterable<CFAEdge> assumeEdges = CFAUtils.leavingEdges(branch);
       assert assumeEdges.size() == 2;
       for (CFAEdge g : assumeEdges) {
-        DGNode nodeDependentOn = getDGNode(g, Optional.empty());
         int controlDepCount = 0;
-        assert getDGNodes(g).size() == 1
-            : "Only using one DG node, but multiple would exist: " + nodeDependentOn;
         List<CFANode> nodesOnPath = new ArrayList<>();
         Queue<CFAEdge> waitlist = new ArrayDeque<>(8);
         Set<CFAEdge> reached = new HashSet<>();
@@ -264,7 +272,18 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               if (isPostDomOfAll(precessorNode, nodesOnPath, postDoms)) {
                 Collection<DGNode> nodesDepending = getDGNodes(current);
                 for (DGNode nodeDepending : nodesDepending) {
-                  addDependence(nodeDependentOn, nodeDepending, DependenceType.CONTROL);
+                  Iterable<CFAEdge> edgesDependingOn;
+                  if (controlDepsTakeBothAssumptions) {
+                    edgesDependingOn = assumeEdges;
+                  } else {
+                    edgesDependingOn = ImmutableList.of(g);
+                  }
+                  for (CFAEdge assumes : edgesDependingOn) {
+                    DGNode nodeDependentOn = getDGNode(assumes, Optional.empty());
+                    assert getDGNodes(assumes).size() == 1
+                        : "Only using one DG node, but multiple would exist: " + nodeDependentOn;
+                    addDependence(nodeDependentOn, nodeDepending, DependenceType.CONTROL);
+                  }
                   controlDepCount++;
                 }
                 nodesOnPath.add(precessorNode);
@@ -289,7 +308,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         for (CFAEdge e : CFAUtils.leavingEdges(n)) {
           Collection<DGNode> candidates = getDGNodes(e);
           for (DGNode dgN : candidates) {
-            if (adjacencyMatrix.column(dgN).values().contains(DependenceType.CONTROL)) {
+            if (!adjacencyMatrix.column(dgN).values().contains(DependenceType.CONTROL)) {
               for (DGNode nodeDependentOn : functionCalls) {
                 addDependence(nodeDependentOn, dgN, DependenceType.CONTROL);
                 depCount++;
@@ -319,9 +338,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       throws InvalidConfigurationException, InterruptedException, CPAException {
     FlowDependences flowDependences =
         FlowDependences.create(cfa, varClassification, config, logger, shutdownNotifier);
-
     for (Cell<CFAEdge, Optional<MemoryLocation>, FlowDependence> c : flowDependences.cellSet()) {
-
       CFAEdge edgeDepending = checkNotNull(c.getRowKey());
       Optional<MemoryLocation> specificDefAtEdge = checkNotNull(c.getColumnKey());
       FlowDependence uses = checkNotNull(c.getValue());
@@ -338,14 +355,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         flowDepCount++;
       } else {
         for (Entry<MemoryLocation, CFAEdge> useAndDef : uses.entries()) {
-          MemoryLocation use = checkNotNull(useAndDef.getKey());
-          DGNode dependency;
-          Collection<DGNode> nodeCandidates = getDGNodes(useAndDef.getValue());
-          if (nodeCandidates.size() > 1) {
-            dependency = getDGNode(useAndDef.getValue(), Optional.of(use));
-          } else {
-            dependency = Iterables.getLast(nodeCandidates);
-          }
+          DGNode dependency = getDGNode(useAndDef.getValue(), Optional.of(useAndDef.getKey()));
           addDependence(dependency, nodeDepending, DependenceType.FLOW);
           flowDepCount++;
         }
