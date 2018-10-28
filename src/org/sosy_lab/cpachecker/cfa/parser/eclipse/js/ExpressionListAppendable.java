@@ -23,11 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 
 interface ExpressionListAppendable {
-  List<JSExpression> append(JavaScriptCFABuilder pBuilder, ImmutableList<Expression> pExpressions);
+  List<JSExpression> append(JavaScriptCFABuilder pBuilder, List<Expression> pExpressions);
 }

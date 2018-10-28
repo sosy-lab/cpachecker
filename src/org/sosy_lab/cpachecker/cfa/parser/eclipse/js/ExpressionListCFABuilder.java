@@ -38,7 +38,7 @@ public class ExpressionListCFABuilder implements ExpressionListAppendable {
   @SuppressWarnings("ResultOfMethodCallIgnored")
   @Override
   public List<JSExpression> append(
-      final JavaScriptCFABuilder pBuilder, final ImmutableList<Expression> pExpressions) {
+      final JavaScriptCFABuilder pBuilder, final List<Expression> pExpressions) {
     // TODO more than 2 expressions
     // TODO consider side effects in expressions
     assert pExpressions.size() == 2;
