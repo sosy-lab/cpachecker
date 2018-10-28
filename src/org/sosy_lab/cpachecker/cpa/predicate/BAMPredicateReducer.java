@@ -42,6 +42,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -461,7 +462,7 @@ public class BAMPredicateReducer implements Reducer {
 
       // Depending on the scope of vars, set either only the lastUsedIndex or the default index.
       // var was used and maybe overridden inside the block
-      final CType type = (CType) expandedSSA.getType(var);
+      final Type type = expandedSSA.getType(var);
       if (var.contains("::") && !isReturnVar(var, functionExitNode)) { // var is scoped -> not global
 
         if (!rootSSA.containsVariable(var)) {
