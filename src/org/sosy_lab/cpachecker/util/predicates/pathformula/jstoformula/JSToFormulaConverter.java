@@ -113,7 +113,7 @@ import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
-/** Class containing all the code that converts C code into a formula. */
+/** Class containing all the code that converts JS code into a formula. */
 @SuppressWarnings({"DeprecatedIsStillUsed", "deprecation"})
 @Options(prefix = "cpa.predicate.js")
 public class JSToFormulaConverter {
