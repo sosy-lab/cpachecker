@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Ty
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
@@ -325,6 +326,10 @@ public class ExpressionToFormulaVisitor
       case "Infinity":
         return conv.tvmgr.createNumberValue(conv.fpfmgr.makePlusInfinity(Types.NUMBER_TYPE));
       case "NaN":
+        if (!useNaN) {
+          conv.logger.log(Level.WARNING, "NaN is used in "
+              + pIdExpression.getFileLocation() + " even though cpa.predicate.js.useNaN=false");
+        }
         return conv.tvmgr.createNumberValue(conv.fpfmgr.makeNaN(Types.NUMBER_TYPE));
       default:
         throw new UnrecognizedCodeException(
