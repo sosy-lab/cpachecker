@@ -102,7 +102,6 @@ public class ExpressionListCFABuilder implements ExpressionListAppendable {
         sideEffectFreeExpressions.clear();
         // Redo side effect.
         final JSExpression appendedExpression = pBuilder.append(e);
-        resultBuilder.add(appendedExpression);
         // The resulting expression of appending itself is side effect free.
         // Nevertheless, it might have to be appended using a temporary assignment later,
         // in case a following expression in the expressions-list has a side effect.
@@ -129,8 +128,13 @@ public class ExpressionListCFABuilder implements ExpressionListAppendable {
       } else {
         pBuilder.append(forwardLookingBuilder);
         sideEffectFreeExpressions.add(jsExpression);
-        resultBuilder.add(jsExpression);
+        // Add side effect free expressions not to result until expression with side effect occurs
+        // or all expressions are appended.
       }
+    }
+    // Add side effect free expressions that did not have to be assigned to a temporary variable.
+    for (final JSExpression jsExpression : sideEffectFreeExpressions) {
+      resultBuilder.add(jsExpression);
     }
     return resultBuilder.build();
   }
