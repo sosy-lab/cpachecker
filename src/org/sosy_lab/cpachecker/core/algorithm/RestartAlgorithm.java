@@ -29,6 +29,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -602,10 +603,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
   /** get an iterable data structure from configuration options. Sadly there is no nicer way. */
   private static Map<String, String> configToMap(Configuration config) {
     Map<String, String> mp = new LinkedHashMap<>();
-    for (String option : config.asPropertiesString().split("\n")) {
-      String[] split = option.split(" = ");
-      Preconditions.checkArgument(split.length == 2);
-      mp.put(split[0], split[1]);
+    for (String option : Splitter.on("\n").omitEmptyStrings().split(config.asPropertiesString())) {
+      List<String> split = Splitter.on(" = ").splitToList(option);
+      Preconditions.checkArgument(split.size() == 2, option);
+      mp.put(split.get(0), split.get(1));
     }
     return mp;
   }
