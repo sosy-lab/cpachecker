@@ -5,6 +5,7 @@
 
     <option name="-noout"/>
     <option name="-heap">150M</option>
+    <option name="-setprop">cpa.predicate.js.maxFieldNameCount=10</option>
 
     <rundefinition>
         <option name="-bmc-JavaScript"/>
