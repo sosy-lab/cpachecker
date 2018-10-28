@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import com.google.common.collect.ImmutableList;
 import org.eclipse.wst.jsdt.core.dom.ASTNode;
 import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
@@ -46,6 +47,7 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
   // When another appendable field is added, it has to be set in copyWith(CFABuilder) and
   // JavaScriptCFABuilderFactory.withAllFeatures
   private ExpressionAppendable expressionAppendable;
+  private ExpressionListAppendable expressionListAppendable;
   private FunctionDeclarationAppendable functionDeclarationAppendable;
   private JavaScriptUnitAppendable javaScriptUnitAppendable;
   private StatementAppendable statementAppendable;
@@ -98,6 +100,7 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
     final JavaScriptCFABuilderImpl duplicate =
         new JavaScriptCFABuilderImpl(pBuilder, variableNameGenerator, pFunctionEntryNode);
     duplicate.setExpressionAppendable(expressionAppendable);
+    duplicate.setExpressionListAppendable(expressionListAppendable);
     duplicate.setFunctionDeclarationAppendable(functionDeclarationAppendable);
     duplicate.setJavaScriptUnitAppendable(javaScriptUnitAppendable);
     duplicate.setStatementAppendable(statementAppendable);
@@ -108,6 +111,11 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
   @Override
   public JSExpression append(final Expression pExpression) {
     return expressionAppendable.append(this, pExpression);
+  }
+
+  @Override
+  public ImmutableList<JSExpression> append(final Expression pFirst, final Expression pSecond) {
+    return expressionListAppendable.append(this, ImmutableList.of(pFirst, pSecond));
   }
 
   @Override
@@ -140,6 +148,12 @@ final class JavaScriptCFABuilderImpl implements ConfigurableJavaScriptCFABuilder
   @Override
   public void setExpressionAppendable(final ExpressionAppendable pExpressionAppendable) {
     expressionAppendable = pExpressionAppendable;
+  }
+
+  @Override
+  public void setExpressionListAppendable(
+      final ExpressionListAppendable pExpressionListAppendable) {
+    expressionListAppendable = pExpressionListAppendable;
   }
 
   @Override

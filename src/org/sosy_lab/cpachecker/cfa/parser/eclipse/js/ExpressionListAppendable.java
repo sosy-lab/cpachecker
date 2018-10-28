@@ -1,8 +1,8 @@
 /*
- * CPAchecker is a tool for configurable software verification.
+ *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2017  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,19 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-interface ConfigurableJavaScriptCFABuilder extends JavaScriptCFABuilder {
+import com.google.common.collect.ImmutableList;
+import org.eclipse.wst.jsdt.core.dom.Expression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 
-  void setStatementAppendable(StatementAppendable pStatementAppendable);
-
-  void setExpressionAppendable(ExpressionAppendable pExpressionAppendable);
-
-  void setExpressionListAppendable(ExpressionListAppendable pExpressionListAppendable);
-
-  void setFunctionDeclarationAppendable(
-      FunctionDeclarationAppendable pFunctionDeclarationAppendable);
-
-  void setJavaScriptUnitAppendable(JavaScriptUnitAppendable pJavaScriptUnitAppendable);
-
-  void setVariableDeclarationFragmentAppendable(
-      VariableDeclarationFragmentAppendable pVariableDeclarationFragmentAppendable);
+interface ExpressionListAppendable {
+  ImmutableList<JSExpression> append(
+      JavaScriptCFABuilder pBuilder, ImmutableList<Expression> pExpressions);
 }

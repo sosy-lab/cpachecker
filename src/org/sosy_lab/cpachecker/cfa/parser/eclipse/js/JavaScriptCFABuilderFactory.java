@@ -40,6 +40,7 @@ final class JavaScriptCFABuilderFactory {
     builder.setExpressionAppendable(
         ExpressionAppendableFactory.withAllFeatures(
             unknownFunctionCallerDeclarationBuilder.getUnknownFunctionCallerDeclaration()));
+    builder.setExpressionListAppendable(new ExpressionListCFABuilder());
     builder.setFunctionDeclarationAppendable(unknownFunctionCallerDeclarationBuilder);
     builder.setJavaScriptUnitAppendable(fileBuilder);
     builder.setStatementAppendable(StatementAppendableFactory.withAllFeatures());
