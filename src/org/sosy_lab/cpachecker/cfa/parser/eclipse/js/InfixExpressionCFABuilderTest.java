@@ -28,6 +28,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.truth.Truth;
 import org.eclipse.wst.jsdt.core.dom.InfixExpression;
 import org.eclipse.wst.jsdt.core.dom.SimpleName;
@@ -38,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -363,9 +363,10 @@ public class InfixExpressionCFABuilderTest extends CFABuilderTestBase {
 
     final JSExpression left = mock(JSExpression.class);
     final JSExpression right = mock(JSExpression.class);
-    final ExpressionAppendable expressionAppendable = mock(ExpressionAppendable.class);
-    when(expressionAppendable.append(eq(builder), any())).thenReturn(left, right);
-    builder.setExpressionAppendable(expressionAppendable);
+    final ExpressionListAppendable expressionListAppendable = mock(ExpressionListAppendable.class);
+    when(expressionListAppendable.append(eq(builder), any()))
+        .thenReturn(ImmutableList.of(left, right));
+    builder.setExpressionListAppendable(expressionListAppendable);
 
     final JSBinaryExpression result =
         (JSBinaryExpression) new InfixExpressionCFABuilder().append(builder, infixExpression);
@@ -376,4 +377,5 @@ public class InfixExpressionCFABuilderTest extends CFABuilderTestBase {
     Truth.assertThat(result.getOperator()).isEqualTo(pExpectedOperator);
     Truth.assertThat(entryNode.getNumLeavingEdges()).isEqualTo(0);
   }
+
 }

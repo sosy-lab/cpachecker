@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import static org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge.assume;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.eclipse.wst.jsdt.core.dom.InfixExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -80,6 +81,7 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
       final JavaScriptCFABuilder pBuilder,
       final InfixExpression pInfixExpression,
       final BinaryOperator pOperator) {
+    // TODO append operands considering side effects
     assert ImmutableSet.of(BinaryOperator.CONDITIONAL_AND, BinaryOperator.CONDITIONAL_OR)
         .contains(pOperator);
     final JSVariableDeclaration resultVariableDeclaration = pBuilder.declareVariable();
@@ -128,11 +130,9 @@ class InfixExpressionCFABuilder implements InfixExpressionAppendable {
       final JavaScriptCFABuilder pBuilder,
       final InfixExpression pInfixExpression,
       final BinaryOperator pOperator) {
-    return new JSBinaryExpression(
-        FileLocation.DUMMY,
-        pBuilder.append(pInfixExpression.getLeftOperand()),
-        pBuilder.append(pInfixExpression.getRightOperand()),
-        pOperator);
+    final ImmutableList<JSExpression> operands =
+        pBuilder.append(pInfixExpression.getLeftOperand(), pInfixExpression.getRightOperand());
+    return new JSBinaryExpression(FileLocation.DUMMY, operands.get(0), operands.get(1), pOperator);
   }
 
   public BinaryOperator convert(final InfixExpression.Operator pOperator) {
