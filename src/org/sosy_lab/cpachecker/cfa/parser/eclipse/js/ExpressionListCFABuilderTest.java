@@ -79,7 +79,7 @@ public class ExpressionListCFABuilderTest extends CFABuilderTestBase {
   }
 
   @Test
-  public final void testSecondExpressionHasSideEffect() {
+  public final void testLastExpressionHasSideEffect() {
     // single expression should be appended without temporary assignment
     final Expression first = parseExpression(SimpleName.class, "x");
     final Expression second = parseExpression(PrefixExpression.class, "++x");
