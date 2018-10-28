@@ -88,9 +88,6 @@ class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
       final JavaScriptCFABuilder pBuilder,
       final FunctionInvocation pNode,
       final List<JSExpression> pArguments) {
-    ((List<Expression>) pNode.arguments())
-        .stream()
-        .map(argument -> pBuilder.append(argument))
-        .forEachOrdered(pArguments::add);
+    pArguments.addAll(pBuilder.append((List<Expression>) pNode.arguments()));
   }
 }

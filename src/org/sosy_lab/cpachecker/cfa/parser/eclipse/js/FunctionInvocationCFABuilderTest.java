@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.truth.Truth;
 import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
 import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
@@ -59,8 +60,11 @@ public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
     final JSIdExpression e1 = new JSIdExpression(FileLocation.DUMMY, "e1", null);
     final JSIdExpression e2 = new JSIdExpression(FileLocation.DUMMY, "e2", null);
     final ExpressionAppendable expressionAppendable = mock(ExpressionAppendable.class);
-    when(expressionAppendable.append(any(), any(SimpleName.class))).thenReturn(functionId, e1, e2);
+    when(expressionAppendable.append(any(), any(SimpleName.class))).thenReturn(functionId);
     builder.setExpressionAppendable(expressionAppendable);
+    final ExpressionListAppendable expressionListAppendable = mock(ExpressionListAppendable.class);
+    when(expressionListAppendable.append(any(), any())).thenReturn(ImmutableList.of(e1, e2));
+    builder.setExpressionListAppendable(expressionListAppendable);
 
     // TODO check return value
     new FunctionInvocationCFABuilder(unknownFunctionCallerDeclaration)
@@ -97,8 +101,11 @@ public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
     final JSIdExpression e1 = new JSIdExpression(FileLocation.DUMMY, "e1", null);
     final JSIdExpression e2 = new JSIdExpression(FileLocation.DUMMY, "e2", null);
     final ExpressionAppendable expressionAppendable = mock(ExpressionAppendable.class);
-    when(expressionAppendable.append(any(), any())).thenReturn(functionId, e1, e2);
+    when(expressionAppendable.append(any(), any())).thenReturn(functionId);
     builder.setExpressionAppendable(expressionAppendable);
+    final ExpressionListAppendable expressionListAppendable = mock(ExpressionListAppendable.class);
+    when(expressionListAppendable.append(any(), any())).thenReturn(ImmutableList.of(e1, e2));
+    builder.setExpressionListAppendable(expressionListAppendable);
 
     // TODO check return value
     new FunctionInvocationCFABuilder(unknownFunctionCallerDeclaration)
