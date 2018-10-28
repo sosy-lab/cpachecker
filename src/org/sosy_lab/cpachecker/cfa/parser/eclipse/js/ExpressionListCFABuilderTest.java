@@ -101,9 +101,6 @@ public class ExpressionListCFABuilderTest extends CFABuilderTestBase {
     final List<JSExpression> result =
         new ExpressionListCFABuilder().append(builder, ImmutableList.of(first, second));
 
-    // TODO check result
-    //    Truth.assertThat(result).isEqualTo(ImmutableList.of(x, x));
-
     Truth.assertThat(sideEffectEdgeCaptor.getTimesCalled()).isGreaterThan(0);
 
     Truth.assertThat(entryNode.getNumLeavingEdges()).isEqualTo(1);
@@ -121,6 +118,11 @@ public class ExpressionListCFABuilderTest extends CFABuilderTestBase {
     // no temporary variable assignment is required for the last expression.
     // That's why there should be no further (declaration) edge.
     Truth.assertThat(sideEffectEdge.getSuccessor()).isEqualTo(builder.getExitNode());
+
+    // check result
+    Truth.assertThat(result)
+        .isEqualTo(
+            ImmutableList.of(new JSIdExpression(FileLocation.DUMMY, tmpVariableDeclaration), x));
   }
 
   @Test
