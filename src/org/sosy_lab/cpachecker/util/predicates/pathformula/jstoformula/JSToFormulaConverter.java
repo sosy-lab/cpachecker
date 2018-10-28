@@ -927,11 +927,6 @@ public class JSToFormulaConverter {
         afmgr.store(getObjectFields(objectId, pSsa), getStringFormula(fieldName), field),
         pSsa,
         pConstraints);
-    // only update indices if object is a variable (not a temporary variable introduced by
-    // getObjectDeclarationOfFieldAccess)
-    if (pLhs.getObject() instanceof JSIdExpression) {
-      updateIndicesOfOtherScopeVariables(objectDeclaration, pLhsFunction, pSsa, pConstraints);
-    }
     return makeAssignment(field, pRhsValue);
   }
 
