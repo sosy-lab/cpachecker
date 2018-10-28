@@ -120,4 +120,33 @@ public class ExpressionListCFABuilderTest extends CFABuilderTestBase {
     // That's why there should be no further (declaration) edge.
     Truth.assertThat(sideEffectEdge.getSuccessor()).isEqualTo(builder.getExitNode());
   }
+
+  @Test
+  public final void testExpressionsWithoutSideEffectAreNotTemporaryAssigned() {
+    final Expression first = parseExpression(SimpleName.class, "x");
+    final Expression second = parseExpression(SimpleName.class, "y");
+    final Expression third = parseExpression(SimpleName.class, "z");
+    final JSExpression firstResult = mock(JSIdExpression.class, "x");
+    final JSExpression secondResult = mock(JSIdExpression.class, "y");
+    final JSExpression thirdResult = mock(JSIdExpression.class, "z");
+    builder.setExpressionAppendable(
+        (pBuilder, pExpression) -> {
+          if (pExpression == first) {
+            return firstResult;
+          } else if (pExpression == second) {
+            return secondResult;
+          } else if (pExpression == third) {
+            return thirdResult;
+          } else {
+            throw new RuntimeException("unexpected expression");
+          }
+        });
+
+    final List<JSExpression> result =
+        new ExpressionListCFABuilder().append(builder, ImmutableList.of(first, second, third));
+
+    Truth.assertThat(result).isEqualTo(ImmutableList.of(firstResult, secondResult, thirdResult));
+    Truth.assertThat(builder.getExitNode()).isEqualTo(entryNode);
+  }
+
 }
