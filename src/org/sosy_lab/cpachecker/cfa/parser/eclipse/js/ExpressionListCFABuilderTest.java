@@ -82,7 +82,6 @@ public class ExpressionListCFABuilderTest extends CFABuilderTestBase {
 
   @Test
   public final void testLastExpressionHasSideEffect() {
-    // single expression should be appended without temporary assignment
     final Expression first = parseExpression(SimpleName.class, "x");
     final Expression second = parseExpression(PrefixExpression.class, "++x");
     final JSIdExpression x = mock(JSIdExpression.class, "x");
@@ -155,7 +154,6 @@ public class ExpressionListCFABuilderTest extends CFABuilderTestBase {
 
   @Test
   public final void testNonLastExpressionHasSideEffect() {
-    // single expression should be appended without temporary assignment
     final Expression first = parseExpression(SimpleName.class, "x");
     final Expression second = parseExpression(PrefixExpression.class, "++x");
     final Expression third = parseExpression(PrefixExpression.class, "x + 1");
