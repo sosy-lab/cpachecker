@@ -43,4 +43,9 @@ class Ids<T> {
     ids.put(pValue, currentId);
     return currentId;
   }
+
+  @Override
+  public String toString() {
+    return "Ids{" + "ids=" + ids + '}';
+  }
 }
