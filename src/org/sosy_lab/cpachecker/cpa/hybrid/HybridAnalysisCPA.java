@@ -83,8 +83,6 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
     public static CPAFactory factory() {
         return AutomaticCPAFactory.forType(HybridAnalysisCPA.class);
     }
-    
-    private static final String cfaErrorMessage = "CFA must be present for HybridAnalysis";
 
     private final AbstractDomain abstractDomain;
     private final CFA cfa;
@@ -99,7 +97,7 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
             
         // HybridAnalysisState implements LatticeAbstractState
         this.abstractDomain = DelegateAbstractDomain.<HybridAnalysisState>getInstance();
-        this.cfa = Preconditions.checkNotNull(cfa, cfaErrorMessage);
+        this.cfa = Preconditions.checkNotNull(cfa, "CFA must be present for HybridAnalysis");
         this.logger = logger;
         this.scope = new CProgramScope(cfa, logger);
         this.assumptionParser = 
@@ -121,7 +119,7 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
             return new HybridAnalysisState(
                     assumptionParser.parseAssumptions(initialAssumptionsStringEncoded));
         } catch (InvalidAutomatonException e) {
-            logger.logException(Level.INFO, e, "Assumption parsing failed.");
+            logger.logException(Level.WARNING, e, "Assumption parsing failed.");
         }
 
         return new HybridAnalysisState();

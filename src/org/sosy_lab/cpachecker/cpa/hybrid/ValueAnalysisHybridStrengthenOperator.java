@@ -39,10 +39,13 @@ public class ValueAnalysisHybridStrengthenOperator
             HybridAnalysisState pStateToStrengthen,
             AbstractState pStrengtheningInformationState,
             CFAEdge pEdge) {
-        // instantiation shall only be done by factory
+
+        // operator only excepts ValueAnalysisStates
         assert pStrengtheningInformationState instanceof ValueAnalysisState;
 
         ValueAnalysisState strengtheningState = (ValueAnalysisState) pStrengtheningInformationState;
+
+        
 
         return pStateToStrengthen;
     }

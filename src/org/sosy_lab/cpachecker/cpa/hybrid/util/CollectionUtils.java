@@ -26,9 +26,12 @@ package org.sosy_lab.cpachecker.cpa.hybrid.util;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
 
 public final class CollectionUtils
 {
@@ -111,6 +114,36 @@ public final class CollectionUtils
         }
 
         return count;
+    }
+
+    /**
+     * Gets the first element of a collection
+     * @param collection The respective collection
+     * @return The first element of the collection, or null, if the collection is empty
+     */
+    @Nullable
+    public static <T> T first(Iterable<T> collection) {
+        T first = null;
+        for(T elem : collection) {
+            first = elem;
+            break;
+        }
+        return first;
+    }
+
+    /**
+     * Gets the last element of a collection
+     * @param collection The respective collection
+     * @return The last element of a collection, or null, if the collection is empty
+     */
+    @Nullable
+    public static <T> T last(Iterable<T> collection) {
+        T last = null;
+        for(T elem : collection) {
+            last = elem;
+        }
+
+        return last;
     }
 
     /**

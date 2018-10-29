@@ -54,5 +54,4 @@ public interface HybridStrengthenOperator {
         CFAEdge edge) {
         return stateToStrengthen; // examine, if this method is sensible in some cases
     }
-    
 }

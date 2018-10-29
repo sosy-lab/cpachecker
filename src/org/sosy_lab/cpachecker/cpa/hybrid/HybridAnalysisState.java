@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
-import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.*;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -50,6 +49,8 @@ public class HybridAnalysisState implements
 
     // private Set<HybridValue> definitiveVars; 
     private ImmutableSet<CBinaryExpression> assumptions;
+
+    // TODO: define varibale cache 
 
     public HybridAnalysisState() {
         this(Collections.emptySet());
@@ -117,6 +118,14 @@ public class HybridAnalysisState implements
     @Override
     public List<CExpression> getAssumptions() {
       return ImmutableList.copyOf(assumptions);
+    }
+
+    /**
+     * Creates a copy of the assumptions held by this state
+     * @return the assumptions with explicit expression type
+     */
+    public ImmutableSet<CBinaryExpression> getExplicitAssumptions() {
+        return ImmutableSet.copyOf(assumptions);
     }
 
 }

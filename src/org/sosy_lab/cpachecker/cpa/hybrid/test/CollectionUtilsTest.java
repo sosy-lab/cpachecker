@@ -73,4 +73,14 @@ public class CollectionUtilsTest{
         Collection<CType> sutResult = CollectionUtils.getApplyingElements(typeCollection, exp -> exp instanceof CSimpleType);
         Assert.assertTrue(sutResult.size() == 3);
     }
+
+    @Test
+    public void firstLastTest() {
+        List<Number> list = Arrays.asList(1,2,3,4);
+        List<Number> singleton = Arrays.asList(1);
+        
+        Assert.assertEquals(CollectionUtils.last(list), 4);
+        Assert.assertEquals(CollectionUtils.first(list), 1);
+        Assert.assertEquals(CollectionUtils.first(singleton), CollectionUtils.last(singleton));
+    }
 }
