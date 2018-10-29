@@ -185,14 +185,12 @@ class ASTLiteralConverter {
     Suffix actualRequiredSuffix =
         getLeastRepresentedTypeForValue(integerValue, machine, suffixCandiates, pExp);
 
+    // Assure that the bits of the expression fit into the computed type
+    // by comparing them against a mask whose lowest bits are set to one (e.g. 2^32-1 or 2^64-1)
     int bits = machine.getSizeof(actualRequiredSuffix.getType()) * machine.getSizeofCharInBits();
-
-    // Assure that the bits fit into the type
-    // a BigInteger with the lowest "bits" set to one (e.g. 2^32-1 or 2^64-1)
     BigInteger mask = BigInteger.ZERO.setBit(bits).subtract(BigInteger.ONE);
     assert integerValue.and(mask).bitLength() <= bits;
 
-    integerValue = computeTwosComplementIfNecessary(actualRequiredSuffix, integerValue, bits);
     return new CIntegerLiteralExpression(pFileLoc, actualRequiredSuffix.getType(), integerValue);
   }
 
@@ -298,20 +296,6 @@ class ASTLiteralConverter {
     check(result.compareTo(BigInteger.ZERO) >= 0, "invalid number", e);
 
     return result;
-  }
-
-  private BigInteger computeTwosComplementIfNecessary(
-      Suffix pActualSuffix, BigInteger pIntegerValue, int pBits) {
-    if (pActualSuffix.isSigned() && pIntegerValue.testBit(pBits - 1)) {
-      // highest bit is set
-      pIntegerValue = pIntegerValue.clearBit(pBits - 1);
-
-      // a BigInteger for -2^(bits-1) (e.g. -2^-31 or -2^-63)
-      final BigInteger minValue = BigInteger.ZERO.setBit(pBits - 1).negate();
-
-      pIntegerValue = minValue.add(pIntegerValue);
-    }
-    return pIntegerValue;
   }
 
   private Suffix extractDenotedSuffix(String pIntegerLiteral, IASTNode pExpression) {
