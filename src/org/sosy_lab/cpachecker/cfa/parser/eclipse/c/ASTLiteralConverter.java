@@ -185,9 +185,16 @@ class ASTLiteralConverter {
     Suffix actualRequiredSuffix =
         getLeastRepresentedTypeForValue(integerValue, machine, suffixCandiates, pExp);
 
+    int bits = machine.getSizeof(actualRequiredSuffix.getType()) * machine.getSizeofCharInBits();
+    if (actualRequiredSuffix.isSigned() && integerValue.testBit(bits - 1)) {
+      throw new CFAGenerationRuntimeException(
+          String.format(
+              "Type must not be signed and simultaneously has its most significant bit set: %s",
+              pExp));
+    }
+
     // Assure that the bits of the expression fit into the computed type
     // by comparing them against a mask whose lowest bits are set to one (e.g. 2^32-1 or 2^64-1)
-    int bits = machine.getSizeof(actualRequiredSuffix.getType()) * machine.getSizeofCharInBits();
     BigInteger mask = BigInteger.ZERO.setBit(bits).subtract(BigInteger.ONE);
     assert integerValue.and(mask).bitLength() <= bits;
 
