@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CounterexampleStoreAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.HybridExecutionAlgorithm.HybridExecutionAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.InterleavedAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ProgramSplitAlgorithm;
@@ -142,6 +143,10 @@ public class CoreComponentsFactory {
   @Option(secure=true, name="restartAfterUnknown",
       description="restart the analysis using a different configuration after unknown result")
   private boolean useRestartingAlgorithm = false;
+
+  @Option(secure=true, name="algorithm.HybridExecution",
+      description="use the hybrid execution algorithm to explore the state space with artificially introduced variable values")
+  private boolean useHybridExecutionAlgorithm = false;
 
   @Option(
     secure = true,
@@ -394,6 +399,10 @@ public class CoreComponentsFactory {
 
       if (useCEGAR) {
         algorithm = new CEGARAlgorithmFactory(algorithm, cpa, logger, config).newInstance();
+      }
+
+      if(useHybridExecutionAlgorithm) {
+        algorithm = new HybridExecutionAlgorithmFactory(algorithm, logger, config).newInstance();
       }
 
       if (usePDR) {
