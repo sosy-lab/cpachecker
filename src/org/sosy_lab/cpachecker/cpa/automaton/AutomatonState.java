@@ -220,9 +220,6 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     } else if (!assumptions.equals(otherState.assumptions)) {
       return false;
     }
-    if (!assumptions.equals(otherState.assumptions)) {
-      return false;
-    }
     if (vars == null) {
       if (otherState.vars != null) {
         return false;
@@ -230,17 +227,11 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     } else if (!vars.equals(otherState.vars)) {
       return false;
     }
-    if (!vars.equals(otherState.vars)) {
-      return false;
-    }
     if (internalState == null) {
       if (otherState.internalState != null) {
         return false;
       }
     } else if (!internalState.equals(otherState.internalState)) {
-      return false;
-    }
-    if (!internalState.equals(otherState.internalState)) {
       return false;
     }
     return true;
