@@ -112,8 +112,6 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
@@ -131,9 +129,8 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -141,8 +138,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
 public class ValueAnalysisTransferRelation
-    extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisState, VariableTrackingPrecision>
-    implements StatisticsProvider {
+    extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisState, VariableTrackingPrecision> {
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
   private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
@@ -158,15 +154,6 @@ public class ValueAnalysisTransferRelation
               + "when the true-branch is handled."
     )
     private boolean initAssumptionVars = false;
-
-    @Option(
-      secure = true,
-      description =
-          "Whether to replace symbolic values with a concrete value"
-              + " when only one value is possible for an assumption to be true"
-              + " (e.g. for (x == 1) set x to 1, even if x is a symbolic expression)."
-    )
-    private boolean assignSymbolicAssumptionVars = false;
 
     @Option(
       secure = true,
@@ -186,6 +173,9 @@ public class ValueAnalysisTransferRelation
     @Option(secure=true, description="Track or not function pointer values")
     private boolean ignoreFunctionValue = true;
 
+    @Option(secure = true, description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
+    private boolean assignEqualityAssumptions = true;
+
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
@@ -194,8 +184,8 @@ public class ValueAnalysisTransferRelation
       return initAssumptionVars;
     }
 
-    boolean isAssignSymbolicAssumptionVars() {
-      return assignSymbolicAssumptionVars;
+    boolean isAssignEqualityAssumptions() {
+      return assignEqualityAssumptions;
     }
 
     boolean isOptimizeBooleanVariables() {
@@ -304,7 +294,7 @@ public class ValueAnalysisTransferRelation
   @Override
   protected ValueAnalysisState handleFunctionCallEdge(FunctionCallEdge callEdge,
       List<? extends AExpression> arguments, List<? extends AParameterDeclaration> parameters,
-      String calledFunctionName) throws UnrecognizedCCodeException {
+      String calledFunctionName) throws UnrecognizedCodeException {
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
 
     assert (parameters.size() == arguments.size())
@@ -363,7 +353,7 @@ public class ValueAnalysisTransferRelation
 
   @Override
   protected ValueAnalysisState handleReturnStatementEdge(AReturnStatementEdge returnEdge)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     // visitor must use the initial (previous) state, because there we have all information about variables
     ExpressionValueVisitor evv = getVisitor();
@@ -507,8 +497,8 @@ public class ValueAnalysisTransferRelation
   private Optional<MemoryLocation> getMemoryLocation(
       final CLeftHandSide pExpression,
       final Value pRightHandSideValue,
-      final ExpressionValueVisitor pValueVisitor
-  ) throws UnrecognizedCCodeException {
+      final ExpressionValueVisitor pValueVisitor)
+      throws UnrecognizedCodeException {
 
     MemoryLocation assignedVarName = pValueVisitor.evaluateMemoryLocation(pExpression);
 
@@ -563,13 +553,14 @@ public class ValueAnalysisTransferRelation
   }
 
   @Override
-  protected ValueAnalysisState handleAssumption(AssumeEdge cfaEdge, AExpression expression, boolean truthValue)
-    throws UnrecognizedCCodeException {
+  protected ValueAnalysisState handleAssumption(
+      AssumeEdge cfaEdge, AExpression expression, boolean truthValue)
+      throws UnrecognizedCodeException {
     return handleAssumption(expression, truthValue);
   }
 
   private ValueAnalysisState handleAssumption(AExpression expression, boolean truthValue)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     if (stats != null) {
       stats.incrementAssumptions();
@@ -669,10 +660,9 @@ public class ValueAnalysisTransferRelation
     }
   }
 
-
   @Override
-  protected ValueAnalysisState handleDeclarationEdge(ADeclarationEdge declarationEdge, ADeclaration declaration)
-      throws UnrecognizedCCodeException {
+  protected ValueAnalysisState handleDeclarationEdge(
+      ADeclarationEdge declarationEdge, ADeclaration declaration) throws UnrecognizedCodeException {
 
     if (!(declaration instanceof AVariableDeclaration) || !isTrackedType(declaration.getType())) {
       // nothing interesting to see here, please move along
@@ -803,7 +793,7 @@ public class ValueAnalysisTransferRelation
       if (fn instanceof CIdExpression) {
         String func = ((CIdExpression)fn).getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
-          throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
+          throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
 
         } else if (func.equals("free")) {
           return handleCallToFree(functionCall);
@@ -834,8 +824,7 @@ public class ValueAnalysisTransferRelation
   }
 
   private ValueAnalysisState handleFunctionAssignment(
-      CFunctionCallAssignmentStatement pFunctionCallAssignment)
-      throws UnrecognizedCCodeException {
+      CFunctionCallAssignmentStatement pFunctionCallAssignment) throws UnrecognizedCodeException {
 
     final CFunctionCallExpression functionCallExp = pFunctionCallAssignment.getFunctionCallExpression();
     final CLeftHandSide leftSide = pFunctionCallAssignment.getLeftHandSide();
@@ -980,7 +969,7 @@ public class ValueAnalysisTransferRelation
    * The method returns a new state, that contains (a copy of) the old state and the new assignment. */
   private ValueAnalysisState handleAssignmentToVariable(
       MemoryLocation assignedVar, final Type lType, ARightHandSide exp, ExpressionValueVisitor visitor)
-          throws UnrecognizedCCodeException {
+          throws UnrecognizedCodeException {
     // here we clone the state, because we get new information or must forget it.
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
     handleAssignmentToVariable(newElement, assignedVar, lType, exp, visitor);
@@ -992,7 +981,7 @@ public class ValueAnalysisTransferRelation
    */
   private void handleAssignmentToVariable(ValueAnalysisState newElement,
       MemoryLocation assignedVar, final Type lType, ARightHandSide exp, ExpressionValueVisitor visitor)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     // c structs have to be handled seperatly, because we do not have a value object representing structs
     if (lType instanceof CType) {
@@ -1066,7 +1055,7 @@ public class ValueAnalysisTransferRelation
   private void handleAssignmentToStruct(ValueAnalysisState pNewElement,
       MemoryLocation pAssignedVar,
       CCompositeType pLType, CExpression pExp,
-      ExpressionValueVisitor pVisitor) throws UnrecognizedCCodeException {
+      ExpressionValueVisitor pVisitor) throws UnrecognizedCodeException {
 
     int offset = 0;
     for (CCompositeType.CCompositeTypeMemberDeclaration memberType : pLType.getMembers()) {
@@ -1193,11 +1182,6 @@ public class ValueAnalysisTransferRelation
     }
   }
 
-  @Override
-  public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.add(constraintsStrengthenOperator);
-  }
-
   private class  FieldAccessExpressionValueVisitor extends ExpressionValueVisitor {
     private final RTTState jortState;
 
@@ -1238,8 +1222,9 @@ public class ValueAnalysisTransferRelation
     }
   }
 
-  private Value getExpressionValue(AExpression expression, final Type type, ExpressionValueVisitor evv)
-      throws UnrecognizedCCodeException {
+  private Value getExpressionValue(
+      AExpression expression, final Type type, ExpressionValueVisitor evv)
+      throws UnrecognizedCodeException {
     if (!isTrackedType(type)) {
       return UnknownValue.getInstance();
     }
@@ -1369,11 +1354,11 @@ public class ValueAnalysisTransferRelation
    * @param pPointerState the current pointer-alias information.
    * @param pState the state to strengthen.
    * @return the strengthened state.
-   * @throws UnrecognizedCCodeException if the C code involved is not recognized.
+   * @throws UnrecognizedCodeException if the C code involved is not recognized.
    */
   private ValueAnalysisState handleModf(
       ARightHandSide pRightHandSide, PointerState pPointerState, ValueAnalysisState pState)
-      throws UnrecognizedCCodeException, AssertionError {
+      throws UnrecognizedCodeException, AssertionError {
     ValueAnalysisState newState = pState;
     if (pRightHandSide instanceof AFunctionCallExpression) {
       AFunctionCallExpression functionCallExpression = (AFunctionCallExpression) pRightHandSide;
@@ -1447,7 +1432,7 @@ public class ValueAnalysisTransferRelation
       ALeftHandSide pLeftHandSide,
       String pLeftHandVariable,
       Value pValue)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     ValueAnalysisState newState = pValueState;
 

@@ -23,14 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.modifications;
 
+import com.google.common.collect.FluentIterable;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class ModificationsState implements AbstractState, AvoidanceReportingState {
+public class ModificationsState implements AvoidanceReportingState, AbstractQueryableState,
+                                           Graphable {
 
   private boolean hasModification;
   private CFANode locationInGivenCfa;
@@ -90,5 +96,44 @@ public class ModificationsState implements AbstractState, AvoidanceReportingStat
       return pMgr.getBooleanFormulaManager().makeFalse();
     }
     return pMgr.getBooleanFormulaManager().makeTrue();
+  }
+
+  @Override
+  public String getCPAName() {
+    return ModificationsCPA.class.getSimpleName();
+  }
+
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    switch (pProperty) {
+      case "is_modified":
+        return hasModification;
+      default:
+        throw new InvalidQueryException(
+            "Unknown query to " + getClass().getSimpleName() + ": " + pProperty);
+    }
+  }
+
+  @Override
+  public String toDOTLabel() {
+    StringBuilder sb = new StringBuilder();
+    if (hasModification) {
+      sb.append("Misfit: ");
+      FluentIterable<CFAEdge> edgesInOrig = CFAUtils.enteringEdges(locationInOriginalCfa);
+      sb.append("{");
+      for (CFAEdge e : edgesInOrig) {
+        sb.append(e);
+        sb.append(", ");
+      }
+      sb.append("}");
+    } else {
+      sb.append("No modification");
+    }
+    return sb.toString();
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return hasModification;
   }
 }

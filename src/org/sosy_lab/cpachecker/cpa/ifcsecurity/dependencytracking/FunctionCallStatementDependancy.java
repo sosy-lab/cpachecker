@@ -26,12 +26,13 @@ package org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 /**
  * VisitorClass to determine all variables and and a functioncalls that occur in a given expression.
  */
-public class FunctionCallStatementDependancy extends VariableDependancy implements CRightHandSideVisitor<Void, UnsupportedCCodeException> {
+public class FunctionCallStatementDependancy extends VariableDependancy
+    implements CRightHandSideVisitor<Void, UnsupportedCodeException> {
 
     /**
      * Internal variable: Function that is called
@@ -53,9 +54,8 @@ public class FunctionCallStatementDependancy extends VariableDependancy implemen
       return functionname;
     }
 
-
-    @Override
-    public Void visit(CFunctionCallExpression pExpr) throws UnsupportedCCodeException {
+  @Override
+  public Void visit(CFunctionCallExpression pExpr) throws UnsupportedCodeException {
       functionname=new Variable(pExpr.getFunctionNameExpression().toASTString());
       for(CExpression param:pExpr.getParameterExpressions()){
         param.accept(this);

@@ -31,6 +31,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
+import com.google.common.io.ByteStreams;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -267,13 +268,17 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
 
+  public enum INTERMEDIATESTATSOPT {
+    EXECUTE, NONE, PRINT
+  }
+
   @Option(
     secure = true,
     description =
         "print the statistics of each component of the interleaved algorithm"
             + " directly after the component's computation is finished"
   )
-  private boolean printIntermediateStatistics = false;
+  private  INTERMEDIATESTATSOPT intermediateStatistics = INTERMEDIATESTATSOPT.NONE;
 
   @Option(
     secure = true,
@@ -434,11 +439,6 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
           }
           fReached.setDelegate(currentContext.reached);
 
-          if (currentContext.algorithm instanceof StatisticsProvider) {
-            ((StatisticsProvider) currentContext.algorithm)
-                .collectStatistics(stats.getSubStatistics());
-          }
-
           shutdownNotifier.shutdownIfNecessary();
 
           logger.logf(Level.INFO, "Starting analysis %d ...", stats.noOfCurrentAlgorithm);
@@ -450,13 +450,13 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
           }
           if (!status.isSound()) {
             logger.logf(
-                Level.INFO,
+                Level.FINE,
                 "Analysis %d terminated, but result is unsound.",
                 stats.noOfCurrentAlgorithm);
 
           } else if (currentContext.reached.hasWaitingState()) {
             logger.logf(
-                Level.INFO,
+                Level.FINE,
                 "Analysis %d terminated but did not finish: There are still states to be processed.",
                 stats.noOfCurrentAlgorithm);
 
@@ -469,13 +469,6 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
 
           shutdownNotifier.shutdownIfNecessary();
 
-          if (printIntermediateStatistics) {
-            stats.printIntermediateStatistics(System.out, Result.UNKNOWN, currentContext.reached);
-          }
-          if (writeIntermediateOutputFiles) {
-            stats.writeOutputFiles(Result.UNKNOWN, pReached);
-          }
-
         } catch (CPAException e) {
           if (e instanceof CounterexampleAnalysisFailed || e instanceof RefinementFailedException) {
             status = status.withPrecise(false);
@@ -486,7 +479,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
 
         } catch (InterruptedException e) {
           logger.logUserException(
-              Level.WARNING, e, "Analysis " + stats.noOfCurrentAlgorithm + " stopped.");
+              Level.FINE, e, "Analysis " + stats.noOfCurrentAlgorithm + " stopped.");
 
           shutdownNotifier.shutdownIfNecessary();
 
@@ -498,6 +491,25 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
             if (!analysisFinishedWithResult
                 && !shutdownNotifier.shouldShutdown()
                 && algorithmContextCycle.hasNext()) {
+
+              switch (intermediateStatistics) {
+                case PRINT:
+                  stats.printIntermediateStatistics(
+                      System.out, Result.UNKNOWN, currentContext.reached);
+                  break;
+                case EXECUTE:
+                  stats.printIntermediateStatistics(
+                      new PrintStream(ByteStreams.nullOutputStream()),
+                      Result.UNKNOWN,
+                      currentContext.reached);
+                  break;
+                default: // do nothing
+              }
+
+              if (writeIntermediateOutputFiles) {
+                stats.writeOutputFiles(Result.UNKNOWN, pReached);
+              }
+
               stats.resetSubStatistics();
 
               if (!currentContext.reuseCPA() && currentContext.cpa != null) {
@@ -513,7 +525,10 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       for (AlgorithmContext context : algorithmContexts) {
-        if (context != currentContext && context != null && context.cpa != null) {
+        if (context != currentContext
+            && context != null
+            && context.cpa != null
+            && context.reuseCPA()) {
           CPAs.closeCpaIfPossible(context.cpa, logger);
         }
       }
@@ -616,13 +631,22 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
       }
     } else {
       // do not reuse cpa, and, thus reached set
-      pContext.cpa = localCoreComponents.createCPA(cfa, specification);
+      try {
+        pContext.cpa = localCoreComponents.createCPA(cfa, specification);
+      } catch (InvalidConfigurationException e) {
+        pContext.cpa = null;
+        throw e;
+      }
       pContext.reached =
           createInitialReachedSet(pContext.cpa, pMainFunction, localCoreComponents, null);
     }
 
     // always create algorithm with new "local" shutdown manager
     pContext.algorithm = localCoreComponents.createAlgorithm(pContext.cpa, cfa, specification);
+
+    if (pContext.algorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider) pContext.algorithm).collectStatistics(stats.getSubStatistics());
+    }
 
     if (pContext.cpa instanceof StatisticsProvider) {
       ((StatisticsProvider) pContext.cpa).collectStatistics(stats.getSubStatistics());

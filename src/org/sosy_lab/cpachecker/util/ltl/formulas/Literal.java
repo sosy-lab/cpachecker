@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.ltl.formulas;
 
 import static java.util.Objects.requireNonNull;
 
+import org.sosy_lab.cpachecker.util.ltl.LtlFormulaVisitor;
+
 public final class Literal implements LtlFormula {
 
   private final String atom;
@@ -99,6 +101,11 @@ public final class Literal implements LtlFormula {
   @Override
   public Literal not() {
     return negation;
+  }
+
+  @Override
+  public String accept(LtlFormulaVisitor v) {
+    return v.visit(this);
   }
 
   @Override

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.ltl.formulas;
 
+import org.sosy_lab.cpachecker.util.ltl.LtlFormulaVisitor;
+
 public final class BooleanConstant implements LtlFormula {
 
   public static final BooleanConstant FALSE = new BooleanConstant(false);
@@ -41,6 +43,11 @@ public final class BooleanConstant implements LtlFormula {
   @Override
   public BooleanConstant not() {
     return value ? FALSE : TRUE;
+  }
+
+  @Override
+  public String accept(LtlFormulaVisitor v) {
+    return v.visit(this);
   }
 
   @Override

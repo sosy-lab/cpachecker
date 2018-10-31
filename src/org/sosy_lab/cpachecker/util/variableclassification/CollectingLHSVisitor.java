@@ -36,12 +36,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableAndFieldRelevancyComputer.VarFieldDependencies;
 
 final class CollectingLHSVisitor
     extends DefaultCExpressionVisitor<
-        Pair<VariableOrField, VarFieldDependencies>, RuntimeException> {
+        Pair<VariableOrField, VarFieldDependencies>, NoException> {
 
   private final CFA cfa;
 

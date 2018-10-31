@@ -33,8 +33,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -157,10 +157,8 @@ public interface PathFormulaManager {
    * @param edge Reference edge, used for log messages only.
    * @return Created formula.
    */
-  Formula expressionToFormula(
-      PathFormula pFormula,
-      CIdExpression expr,
-      CFAEdge edge) throws UnrecognizedCCodeException;
+  Formula expressionToFormula(PathFormula pFormula, CIdExpression expr, CFAEdge edge)
+      throws UnrecognizedCodeException;
 
   /**
    * Builds test for PCC that pF1 is covered by more abstract path formula pF2.
@@ -193,5 +191,5 @@ public interface PathFormulaManager {
    * @return Created precondition
    */
   BooleanFormula buildWeakestPrecondition(CFAEdge pEdge, BooleanFormula pPostcond)
-      throws UnrecognizedCFAEdgeException, UnrecognizedCCodeException, InterruptedException;
+      throws UnrecognizedCFAEdgeException, UnrecognizedCodeException, InterruptedException;
 }

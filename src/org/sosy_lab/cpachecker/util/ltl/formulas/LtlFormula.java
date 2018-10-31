@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.ltl.formulas;
 
+import org.sosy_lab.cpachecker.util.ltl.LtlFormulaVisitor;
+
 public interface LtlFormula {
 
   /**
@@ -31,6 +33,8 @@ public interface LtlFormula {
    * @return The negation of this formula in NNF.
    */
   LtlFormula not();
+
+  String accept(LtlFormulaVisitor v);
 
   @Override
   int hashCode();

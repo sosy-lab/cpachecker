@@ -191,7 +191,7 @@ class MainCPAStatistics implements Statistics {
     /*
      * Google App Engine does not allow to use classes from the package java.lang.management.
      * Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
-     * CPAChecker from crashing in this case we catch the error and log the event.
+     * CPAchecker from crashing in this case we catch the error and log the event.
      */
     catch (NoClassDefFoundError e) {
       logger.logDebugException(e, "Querying cpu time failed");
@@ -228,7 +228,7 @@ class MainCPAStatistics implements Statistics {
     /*
      * Google App Engine does not allow to use classes from the package java.lang.management.
      * Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
-     * CPAChecker from crashing in this case we catch the error and log the event.
+     * CPAchecker from crashing in this case we catch the error and log the event.
      */
     catch (NoClassDefFoundError e) {
       logger.logDebugException(e, "Querying cpu time failed");
@@ -258,7 +258,7 @@ class MainCPAStatistics implements Statistics {
     /*
      * Google App Engine does not allow to use classes from the package java.lang.management.
      * Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
-     * CPAChecker from crashing in this case we catch the error and log the event.
+     * CPAchecker from crashing in this case we catch the error and log the event.
      */
     catch (NoClassDefFoundError e) {
       logger.logDebugException(e, "Querying cpu time failed");
@@ -436,7 +436,7 @@ class MainCPAStatistics implements Statistics {
       }
 
       if (reached.hasWaitingState()) {
-        out.println("  Size of final wait list        " + reached.getWaitlist().size());
+        out.println("  Size of final wait list:       " + reached.getWaitlist().size());
       }
     }
   }

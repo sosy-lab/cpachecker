@@ -89,14 +89,15 @@ public class DependenceGraph implements Serializable {
     shutdownNotifier = pShutdownNotifier;
   }
 
-  public static DGBuilder builder(
+  public static DependenceGraphBuilder builder(
       final MutableCFA pCfa,
       final Optional<VariableClassification> pVarClassification,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    return new DGBuilder(pCfa, pVarClassification, pConfig, pLogger, pShutdownNotifier);
+    return new DependenceGraphBuilder(
+        pCfa, pVarClassification, pConfig, pLogger, pShutdownNotifier);
   }
 
   Table<DGNode, DGNode, DependenceType> getMatrix() {

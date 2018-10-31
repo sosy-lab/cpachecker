@@ -55,7 +55,7 @@ public class SymbolicInterpolantManager implements InterpolantManager<Forgetting
     final ConstraintsState constraints = state.getConstraintsState();
 
     return new SymbolicInterpolant(values.getInformation(),
-                                   new ConstraintsInformation(constraints, constraints.getDefiniteAssignment()));
+                                   new ConstraintsInformation(constraints));
   }
 
   @Override

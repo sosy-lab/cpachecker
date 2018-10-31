@@ -39,6 +39,14 @@ public class SMGEdgeHasValue extends SMGEdge {
 
   final private CType type;
 
+  /**
+   * @param pType type of the object's memory starting at offset.
+   * @param pOffset the offset relative to the start of the source object, i.e. ZERO represents an
+   *     direct access, a positive number accessed within or after the object and is used for
+   *     array-element or struct-member access.
+   * @param pObject the target object pointed to.
+   * @param pValue the value that points to some object.
+   */
   public SMGEdgeHasValue(CType pType, long pOffset, SMGObject pObject, SMGValue pValue) {
     super(pValue, pObject, pOffset);
     type = pType;

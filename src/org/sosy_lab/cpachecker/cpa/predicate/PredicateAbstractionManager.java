@@ -91,6 +91,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment.AllSatCallback;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.predicate")
@@ -758,7 +759,8 @@ public class PredicateAbstractionManager {
       throws SolverException, InterruptedException {
     Region abs = rmgr.makeTrue();
 
-    try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
+    try (ProverEnvironment thmProver =
+        solver.newProverEnvironment(ProverOptions.GENERATE_ALL_SAT)) {
       thmProver.push(f);
 
       if (remainingPredicates.isEmpty()) {

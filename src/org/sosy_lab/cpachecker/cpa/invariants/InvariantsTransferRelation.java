@@ -86,7 +86,7 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -179,7 +179,8 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (!allowOverapproximationOfUnsupportedFeatures && state.overapproximatesUnsupportedFeature()) {
-      throw new UnsupportedCCodeException("Over-approximation of unsupported features is switched off", pEdge);
+      throw new UnsupportedCodeException(
+          "Over-approximation of unsupported features is switched off", pEdge);
     }
 
     return Collections.singleton(state);
@@ -348,7 +349,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       if (fn instanceof CIdExpression) {
         String func = ((CIdExpression)fn).getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
-          throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), pEdge, fn);
+          throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), pEdge, fn);
         }
       }
     }

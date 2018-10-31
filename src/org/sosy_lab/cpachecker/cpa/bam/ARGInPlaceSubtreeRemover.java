@@ -366,7 +366,7 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
     }
 
     // now only the initial elements should be on the stacks
-    assert Iterables.getOnlyElement(needsNewPrecisionEntries) == false;
+    assert !Iterables.getOnlyElement(needsNewPrecisionEntries);
     assert rootStates.getLast() == pPath.getFirstState();
   }
 

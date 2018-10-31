@@ -214,6 +214,11 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
     CompoundInterval leftValue = evaluate(pLessThan.getOperand1());
     CompoundInterval rightValue = evaluate(pLessThan.getOperand2());
 
+    // If either operand is contradictory itself, the whole formula is contradictory
+    if (leftValue.isBottom() || rightValue.isBottom()) {
+      return false;
+    }
+
     if (leftValue instanceof CompoundIntegralInterval
         && rightValue instanceof CompoundIntegralInterval) {
 

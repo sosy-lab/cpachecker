@@ -61,7 +61,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -179,7 +179,7 @@ public class ValueAnalysisState
                 BigInteger.valueOf(pValue.asNumericValue().longValue()));
         try {
           typedValue = pValueVisitor.evaluate(valueAsExpression, memLocType);
-        } catch (UnrecognizedCCodeException pE) {
+        } catch (UnrecognizedCodeException pE) {
           throw new AssertionError(pE);
         }
       }

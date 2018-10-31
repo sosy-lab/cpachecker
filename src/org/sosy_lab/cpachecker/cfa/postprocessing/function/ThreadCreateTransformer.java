@@ -66,7 +66,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
@@ -299,7 +299,7 @@ public class ThreadCreateTransformer {
     try {
       return bBuilder.buildBinaryExpression(
           left, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
-    } catch (UnrecognizedCCodeException e) {
+    } catch (UnrecognizedCodeException e) {
       throw new UnsupportedOperationException("Cannot proceed: ", e);
     }
   }

@@ -46,7 +46,7 @@ public class UFCheckingInterpolatingProverEnvironment<T> extends UFCheckingBasic
   }
 
   @Override
-  public BooleanFormula getInterpolant(List<T> formulasOfA)
+  public BooleanFormula getInterpolant(Collection<T> formulasOfA)
       throws SolverException, InterruptedException {
     return delegate.getInterpolant(formulasOfA);
   }

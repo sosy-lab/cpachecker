@@ -94,7 +94,7 @@ public class ConfigurationFileChecks {
 
   private static final Pattern INDICATES_MISSING_INPUT_FILE =
       Pattern.compile(
-          ".*File .* does not exist.*|.*Witness file is missing in specification.*",
+          ".*File .* does not exist.*|.*Witness file is missing in specification.*|.*Could not read precision from file.*",
           Pattern.DOTALL);
 
   private static final Pattern ALLOWED_WARNINGS =
@@ -119,12 +119,14 @@ public class ConfigurationFileChecks {
           "differential.program",
           // handled by code outside of CPAchecker class
           "output.disable",
+          "statistics.print",
           "limits.time.cpu",
           "limits.time.cpu::required",
           "limits.time.cpu.thread",
           "memorysafety.config",
           "overflow.config",
           "termination.config",
+          "termination.violation.witness",
           "witness.validation.violation.config",
           "witness.validation.correctness.config",
           "pcc.proofgen.doPCC",
@@ -343,6 +345,26 @@ public class ConfigurationFileChecks {
                 StandardCharsets.UTF_8)) {
       CharStreams.copy(r, w);
     }
+    try (Reader r =
+            Files.newBufferedReader(Paths.get("config/specification/modifications-present.spc"));
+        Writer w =
+            IO.openOutputFile(
+                Paths.get(
+                    tempFolder.getRoot().getAbsolutePath()
+                        + "/config/specification/modifications-present.spc"),
+                StandardCharsets.UTF_8)) {
+      CharStreams.copy(r, w);
+    }
+    try (Reader r =
+            Files.newBufferedReader(Paths.get("config/specification/sv-comp-reachability.spc"));
+        Writer w =
+            IO.openOutputFile(
+                Paths.get(
+                    tempFolder.getRoot().getAbsolutePath()
+                        + "/config/specification/sv-comp-reachability.spc"),
+                StandardCharsets.UTF_8)) {
+      CharStreams.copy(r, w);
+    }
     try (Reader r = Files.newBufferedReader(Paths.get("config/specification/TargetState.spc"));
         Writer w =
             IO.openOutputFile(
@@ -369,6 +391,7 @@ public class ConfigurationFileChecks {
     final String cpas = firstNonNull(config.getProperty("CompositeCPA.cpas"), "");
     final boolean isSvcompConfig = basePath.toString().contains("svcomp");
     final boolean isTestGenerationConfig = basePath.toString().contains("testCaseGeneration");
+    final boolean isDifferentialConfig = basePath.toString().contains("differentialAutomaton");
 
     if (options.language == Language.JAVA) {
       assertThat(spec).endsWith("specification/JavaAssertion.spc");
@@ -404,6 +427,8 @@ public class ConfigurationFileChecks {
       }
     } else if (isTestGenerationConfig) {
       assertThat(spec).isAnyOf(null, "");
+    } else if (isDifferentialConfig) {
+      assertThat(spec).isAnyOf(null, "", "specification/modifications-present.spc");
     } else if (spec != null) {
       // TODO should we somehow restrict which configs may specify "no specification"?
       assertThat(spec).endsWith("specification/default.spc");

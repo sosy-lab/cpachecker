@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
  * <p>This is an immutable class.
  */
 public final class CLangStackFrame {
-  static final String RETVAL_LABEL = "___cpa_temp_result_var_";
+  public static final String RETVAL_LABEL = "___cpa_temp_result_var_";
 
   /**
    * Function to which this stack frame belongs

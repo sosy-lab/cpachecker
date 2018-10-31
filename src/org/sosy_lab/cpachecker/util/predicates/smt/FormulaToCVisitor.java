@@ -108,6 +108,8 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
         default:
           builder.append(value);
       }
+    } else if (pValue instanceof Boolean) {
+      builder.append(((boolean) pValue) ? "1" : "0");
     } else {
       builder.append(value);
     }

@@ -86,6 +86,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -615,16 +616,17 @@ public class CProgramScope implements Scope {
   }
 
   private static Iterable<? extends AAstNode> getAstNodesFromCfaEdge(CFAEdge pEdge) {
+    Iterable<? extends AAstNode> nodes =
+        FluentIterable.from(CFAUtils.getAstNodesFromCfaEdge(pEdge))
+            .transformAndConcat(CFAUtils::traverseRecursively);
     if (pEdge instanceof ADeclarationEdge) {
       ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
       ADeclaration declaration = declarationEdge.getDeclaration();
       if (declaration instanceof AFunctionDeclaration) {
-        return Iterables.concat(
-            CFAUtils.getAstNodesFromCfaEdge(pEdge),
-            ((AFunctionDeclaration) declaration).getParameters());
+        nodes = Iterables.concat(nodes, ((AFunctionDeclaration) declaration).getParameters());
       }
     }
-    return CFAUtils.getAstNodesFromCfaEdge(pEdge);
+    return nodes;
   }
 
   private static Multimap<CAstNode, FileLocation> extractVarUseLocations(Collection<CFANode> pNodes) {
@@ -718,7 +720,7 @@ public class CProgramScope implements Scope {
     return null;
   }
 
-  private static class TypeCollector extends DefaultCTypeVisitor<Void, RuntimeException> {
+  private static class TypeCollector extends DefaultCTypeVisitor<Void, NoException> {
 
     private final Set<CType> collectedTypes;
 
@@ -798,7 +800,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public @Nullable Void visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+    public @Nullable Void visit(CBitFieldType pCBitFieldType) {
       if (collectedTypes.add(pCBitFieldType)) {
         pCBitFieldType.getType().accept(this);
       }

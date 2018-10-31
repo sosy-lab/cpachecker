@@ -51,8 +51,7 @@ public class CanonicalTypeTest {
     assertThat(CNumericTypes.UNSIGNED_INT.getCanonicalType()).isEqualTo(CNumericTypes.UNSIGNED_INT);
 
     CType longType = new CSimpleType(false, false, CBasicType.UNSPECIFIED, true, false, false, false, false, false, false);
-    CType signedLongIntType = new CSimpleType(false, false, CBasicType.INT, true, false, true, false, false, false, false);
-    assertThat(longType.getCanonicalType()).isEqualTo(signedLongIntType);
+    assertThat(longType.getCanonicalType()).isEqualTo(CNumericTypes.SIGNED_LONG_INT);
   }
 
   @Test

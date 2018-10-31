@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
  * This class contains smg utilities, for example filters.
@@ -94,7 +95,7 @@ public final class SMGUtils {
     return pType.getCanonicalType().equals(typeAtOffset.getCanonicalType());
   }
 
-  private static class CFieldTypeVisitor implements CTypeVisitor<CType, RuntimeException> {
+  private static class CFieldTypeVisitor implements CTypeVisitor<CType, NoException> {
 
     private final long fieldOffset;
     private final MachineModel model;
@@ -180,7 +181,7 @@ public final class SMGUtils {
     }
 
     @Override
-    public CType visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+    public CType visit(CBitFieldType pCBitFieldType) {
       return pCBitFieldType.getType().accept(this);
     }
   }

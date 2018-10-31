@@ -6,7 +6,7 @@
 
     <target name="determine-version-revision">
         <!-- Determine full CPAchecker version including SVN revision. -->
-        <exec executable="python"
+        <exec executable="python3"
             outputProperty="version.revision"
             failifexecutionfails="false"
             logError="true">

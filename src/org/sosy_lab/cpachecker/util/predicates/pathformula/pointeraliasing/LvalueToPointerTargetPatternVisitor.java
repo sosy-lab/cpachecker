@@ -40,12 +40,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetPattern.PointerTargetPatternBuilder;
 
-
 class LvalueToPointerTargetPatternVisitor
-    extends DefaultCExpressionVisitor<PointerTargetPatternBuilder, UnrecognizedCCodeException> {
+    extends DefaultCExpressionVisitor<PointerTargetPatternBuilder, UnrecognizedCodeException> {
 
   private final TypeHandlerWithPointerAliasing typeHandler;
   private final PointerTargetSetBuilder pts;
@@ -61,17 +60,17 @@ class LvalueToPointerTargetPatternVisitor
   }
 
   private class PointerTargetEvaluatingVisitor
-      extends DefaultCExpressionVisitor<PointerTargetPatternBuilder, UnrecognizedCCodeException> {
+      extends DefaultCExpressionVisitor<PointerTargetPatternBuilder, UnrecognizedCodeException> {
 
     @Override
     protected PointerTargetPatternBuilder visitDefault(final CExpression e)
-        throws UnrecognizedCCodeException {
+        throws UnrecognizedCodeException {
       return null;
     }
 
     @Override
     public PointerTargetPatternBuilder visit(final CBinaryExpression e)
-        throws UnrecognizedCCodeException {
+        throws UnrecognizedCodeException {
       final CExpression operand1 = e.getOperand1();
       final CExpression operand2 = e.getOperand2();
 
@@ -132,19 +131,19 @@ class LvalueToPointerTargetPatternVisitor
       }
 
       default:
-        throw new UnrecognizedCCodeException("Unhandled binary operator", cfaEdge, e);
+          throw new UnrecognizedCodeException("Unhandled binary operator", cfaEdge, e);
       }
     }
 
     @Override
     public PointerTargetPatternBuilder visit(final CCastExpression e)
-        throws UnrecognizedCCodeException {
+        throws UnrecognizedCodeException {
       return e.getOperand().accept(this);
     }
 
     @Override
     public PointerTargetPatternBuilder visit(final CIdExpression e)
-        throws UnrecognizedCCodeException {
+        throws UnrecognizedCodeException {
       final CType expressionType = typeHandler.getSimplifiedType(e);
       final String name = e.getDeclaration().getQualifiedName();
       if (!pts.isBase(name, expressionType)
@@ -157,7 +156,7 @@ class LvalueToPointerTargetPatternVisitor
 
     @Override
     public PointerTargetPatternBuilder visit(final CUnaryExpression e)
-        throws UnrecognizedCCodeException {
+        throws UnrecognizedCodeException {
       final CExpression operand = e.getOperand();
       switch (e.getOperator()) {
       case AMPER:
@@ -166,28 +165,28 @@ class LvalueToPointerTargetPatternVisitor
       case TILDE:
         return null;
       case SIZEOF:
-        throw new UnrecognizedCCodeException("Illegal unary operator", cfaEdge, e);
+          throw new UnrecognizedCodeException("Illegal unary operator", cfaEdge, e);
       default:
-        throw new UnrecognizedCCodeException("Unrecognized unary operator", cfaEdge, e);
+          throw new UnrecognizedCodeException("Unrecognized unary operator", cfaEdge, e);
       }
     }
 
     @Override
     public PointerTargetPatternBuilder visit(final CPointerExpression e)
-        throws UnrecognizedCCodeException {
+        throws UnrecognizedCodeException {
       return null;
     }
   }
 
   @Override
   protected PointerTargetPatternBuilder visitDefault(final CExpression e)
-      throws UnrecognizedCCodeException {
-    throw new UnrecognizedCCodeException("Illegal expression in lhs", cfaEdge, e);
+      throws UnrecognizedCodeException {
+    throw new UnrecognizedCodeException("Illegal expression in lhs", cfaEdge, e);
   }
 
   @Override
   public PointerTargetPatternBuilder visit(final CArraySubscriptExpression e)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     final CExpression arrayExpression = e.getArrayExpression();
     PointerTargetPatternBuilder result =
         arrayExpression.accept(new PointerTargetEvaluatingVisitor());
@@ -213,18 +212,18 @@ class LvalueToPointerTargetPatternVisitor
       }
       return result;
     } else {
-      throw new UnrecognizedCCodeException("Array expression has incompatible type", cfaEdge, e);
+      throw new UnrecognizedCodeException("Array expression has incompatible type", cfaEdge, e);
     }
   }
 
   @Override
   public PointerTargetPatternBuilder visit(final CCastExpression e)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     return e.getOperand().accept(this);
   }
 
   @Override
-  public PointerTargetPatternBuilder visit(CFieldReference e) throws UnrecognizedCCodeException {
+  public PointerTargetPatternBuilder visit(CFieldReference e) throws UnrecognizedCodeException {
     e = e.withExplicitPointerDereference();
 
     final CExpression ownerExpression = e.getFieldOwner();
@@ -237,7 +236,8 @@ class LvalueToPointerTargetPatternVisitor
             containerType, typeHandler.getBitOffset((CCompositeType) containerType, e.getFieldName()));
         return result;
       } else {
-        throw new UnrecognizedCCodeException("Field owner expression has incompatible type", cfaEdge, e);
+        throw new UnrecognizedCodeException(
+            "Field owner expression has incompatible type", cfaEdge, e);
       }
     } else {
       return null;
@@ -245,8 +245,7 @@ class LvalueToPointerTargetPatternVisitor
   }
 
   @Override
-  public PointerTargetPatternBuilder visit(final CIdExpression e)
-      throws UnrecognizedCCodeException {
+  public PointerTargetPatternBuilder visit(final CIdExpression e) throws UnrecognizedCodeException {
     final CType expressionType = typeHandler.getSimplifiedType(e);
     final String name = e.getDeclaration().getQualifiedName();
     if (!pts.isActualBase(name) && !CTypeUtils.containsArray(expressionType, e.getDeclaration())) {
@@ -258,21 +257,21 @@ class LvalueToPointerTargetPatternVisitor
 
   @Override
   public PointerTargetPatternBuilder visit(final CUnaryExpression e)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     switch (e.getOperator()) {
     case AMPER:
     case MINUS:
     case SIZEOF:
     case TILDE:
-      throw new UnrecognizedCCodeException("Illegal unary operator", cfaEdge, e);
+        throw new UnrecognizedCodeException("Illegal unary operator", cfaEdge, e);
     default:
-      throw new UnrecognizedCCodeException("Unhandled unary operator", cfaEdge, e);
+        throw new UnrecognizedCodeException("Unhandled unary operator", cfaEdge, e);
     }
   }
 
   @Override
   public PointerTargetPatternBuilder visit(final CPointerExpression e)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     final CExpression operand = e.getOperand();
     final CType type = typeHandler.getSimplifiedType(operand);
     final PointerTargetPatternBuilder result =
@@ -292,7 +291,7 @@ class LvalueToPointerTargetPatternVisitor
         return PointerTargetPatternBuilder.any();
       }
     } else {
-      throw new UnrecognizedCCodeException("Dereferencing non-pointer expression", cfaEdge, e);
+      throw new UnrecognizedCodeException("Dereferencing non-pointer expression", cfaEdge, e);
     }
   }
 

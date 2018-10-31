@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.DefinitionPoint;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.ProgramDefinitionPoint;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils.VariableExtractor;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -115,7 +115,7 @@ public class SingleDefinitionChecker implements PropertyChecker {
           MemoryLocation var;
           try {
             var = left.accept(extractor);
-          } catch (UnsupportedCCodeException e) {
+          } catch (UnsupportedCodeException e) {
             var = null;
           }
           if (var != null && var.equals(varDefName)) {

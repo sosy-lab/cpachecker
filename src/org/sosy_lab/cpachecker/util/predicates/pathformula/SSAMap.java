@@ -137,7 +137,7 @@ public class SSAMap implements Serializable {
       type = type.getCanonicalType();
       CType oldType = varTypes.get(name);
       if (oldType != null) {
-        TYPE_CONFLICT_CHECKER.resolveConflict(name, type, oldType);
+        TYPE_CONFLICT_CHECKER.resolveConflict(name, oldType, type);
       } else {
         varTypes = varTypes.putAndCopy(name, type);
       }

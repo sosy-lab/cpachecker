@@ -36,7 +36,6 @@ import java.io.PrintStream;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -86,8 +85,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -198,33 +196,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   /**
-   * Returns the SMT symbol name for encoding a pointer access for a C type.
-   *
-   * @param type The type to get the symbol name for.
-   * @return The symbol name for the type.
-   */
-  public static String getPointerAccessNameForType(final CType type) {
-    String result = pointerNameCache.get(type);
-    if (result != null) {
-      return result;
-    } else {
-      result = POINTER_NAME_PREFIX + CTypeUtils.typeToString(type).replace(' ', '_');
-      pointerNameCache.put(type, result);
-      return result;
-    }
-  }
-
-  /**
-   * Checks, whether a symbol is a pointer access encoded in SMT.
-   *
-   * @param symbol The name of the symbol.
-   * @return Whether the symbol is a pointer access or not.
-   */
-  private static boolean isPointerAccessSymbol(final String symbol) {
-    return symbol.startsWith(POINTER_NAME_PREFIX);
-  }
-
-  /**
    * Creates a formula for the base address of a term.
    *
    * @param address The formula to create a base address for.
@@ -278,9 +249,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       throws InterruptedException {
     checkArgument(oldIndex > 0 && newIndex > oldIndex);
 
-    if (isPointerAccessSymbol(symbolName)) {
+    if (TypeHandlerWithPointerAliasing.isPointerAccessSymbol(symbolName)) {
       if(!options.useMemoryRegions()) {
-        assert symbolName.equals(getPointerAccessNameForType(symbolType));
+        assert symbolName.equals(typeHandler.getPointerAccessNameForType(symbolType));
       } else {
         //TODO: find a better assertion for the memory regions case
       }
@@ -438,7 +409,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final PointerTargetSetBuilder pts,
       final Constraints constraints,
       final ErrorConditions errorConditions)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     assert declaration.getType().equals(originalDeclaration.getType());
     CType type = typeHandler.getSimplifiedType(declaration);
     CType decayedType = typeHandler.getSimplifiedType(originalDeclaration);
@@ -499,7 +470,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final Formula address,
       final String baseName,
       final CType baseType,
-      final List<Pair<CCompositeType, String>> fields,
+      final List<CompositeField> fields,
       final SSAMapBuilder ssa,
       final Constraints constraints,
       @Nullable final MemoryRegion region) {
@@ -511,12 +482,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CCompositeType compositeType = (CCompositeType) baseType;
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        final String memberName = memberDeclaration.getName();
-        final long offset = typeHandler.getBitOffset(compositeType, memberName);
+        final long offset = typeHandler.getBitOffset(compositeType, memberDeclaration);
         final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
         final String newBaseName = getFieldAccessName(baseName, memberDeclaration);
-        if (isRelevantField(compositeType, memberName)) {
-          fields.add(Pair.of(compositeType, memberName));
+        if (isRelevantField(compositeType, memberDeclaration)) {
+          fields.add(CompositeField.of(compositeType, memberDeclaration));
           MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
           addValueImportConstraints(
               fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset)),
@@ -591,11 +561,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    *
    * @param assignments The list of assignments.
    * @return An assignment statement.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   private static List<CExpressionAssignmentStatement> expandStringLiterals(
-                                                 final List<CExpressionAssignmentStatement> assignments)
-  throws UnrecognizedCCodeException {
+      final List<CExpressionAssignmentStatement> assignments) throws UnrecognizedCodeException {
     final List<CExpressionAssignmentStatement> result = new ArrayList<>();
     for (CExpressionAssignmentStatement assignment : assignments) {
       final CExpression rhs = assignment.getRightHandSide();
@@ -608,7 +577,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         } else if (lhsType instanceof CPointerType) {
           lhsArrayType = new CArrayType(false, false, ((CPointerType) lhsType).getType(), null);
         } else {
-          throw new UnrecognizedCCodeException("Assigning string literal to " + lhsType.toString(), assignment);
+          throw new UnrecognizedCodeException(
+              "Assigning string literal to " + lhsType.toString(), assignment);
         }
 
         List<CCharLiteralExpression> chars = expandStringLiteral((CStringLiteralExpression) rhs, lhsArrayType);
@@ -712,6 +682,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       }
     } else {
       assert isSimpleType(type);
+      if (type.equals(CPointerType.POINTER_TO_CHAR)
+          && alreadyAssigned.contains(lhs.toString() + "[0]")) {
+        // A string constant has been assigned to this char pointer
+        return;
+      }
       CExpression initExp = ((CInitializerExpression)CDefaults.forType(type, lhs.getFileLocation())).getExpression();
       defaultAssignments.add(new CExpressionAssignmentStatement(lhs.getFileLocation(), lhs, initExp));
     }
@@ -755,10 +730,13 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @return A visitor for right hand side expressions.
    */
   @Override
-  protected CRightHandSideVisitor<Formula, UnrecognizedCCodeException> createCRightHandSideVisitor(
-      CFAEdge pEdge, String pFunction,
-      SSAMapBuilder pSsa, PointerTargetSetBuilder pPts,
-      Constraints pConstraints, ErrorConditions pErrorConditions) {
+  protected CRightHandSideVisitor<Formula, UnrecognizedCodeException> createCRightHandSideVisitor(
+      CFAEdge pEdge,
+      String pFunction,
+      SSAMapBuilder pSsa,
+      PointerTargetSetBuilder pPts,
+      Constraints pConstraints,
+      ErrorConditions pErrorConditions) {
 
     CExpressionVisitorWithPointerAliasing rhsVisitor = new CExpressionVisitorWithPointerAliasing(this, pEdge, pFunction, pSsa, pConstraints, pErrorConditions, pPts, regionMgr);
     return rhsVisitor.asFormulaVisitor();
@@ -775,18 +753,19 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @param constraints Additional constraints.
    * @param errorConditions Additional error conditions.
    * @return A formula for a return statement.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
   @Override
-  protected BooleanFormula makeReturn(final com.google.common.base.Optional<CAssignment> assignment,
-                                      final CReturnStatementEdge returnEdge,
-                                      final String function,
-                                      final SSAMapBuilder ssa,
-                                      final PointerTargetSetBuilder pts,
-                                      final Constraints constraints,
-                                      final ErrorConditions errorConditions)
-  throws UnrecognizedCCodeException, InterruptedException {
+  protected BooleanFormula makeReturn(
+      final com.google.common.base.Optional<CAssignment> assignment,
+      final CReturnStatementEdge returnEdge,
+      final String function,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
+      final Constraints constraints,
+      final ErrorConditions errorConditions)
+      throws UnrecognizedCodeException, InterruptedException {
     BooleanFormula result = super.makeReturn(assignment, returnEdge, function, ssa, pts, constraints, errorConditions);
 
     if (assignment.isPresent()) {
@@ -809,11 +788,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   /**
    * Creates a formula for an assignment.
    *
-   * @param lhs  the left-hand-side of the assignment
-   * @param lhsForChecking a left-hand-side of the assignment
-   *      (for most cases: {@code lhs == lhsForChecking}),
-   *      that is used to check if the assignment is important.
-   *      If the assignment is not important, we return TRUE.
+   * @param lhs the left-hand-side of the assignment
+   * @param lhsForChecking a left-hand-side of the assignment (for most cases: {@code lhs ==
+   *     lhsForChecking}), that is used to check if the assignment is important. If the assignment
+   *     is not important, we return TRUE.
    * @param rhs the right-hand-side of the assignment
    * @param edge The current edge in the CFA.
    * @param function The name of the current function.
@@ -822,16 +800,21 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @param constraints Additional constraints.
    * @param errorConditions Additional error conditions.
    * @return A formula for the assignment.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
   @Override
   protected BooleanFormula makeAssignment(
-      final CLeftHandSide lhs, final CLeftHandSide lhsForChecking, CRightHandSide rhs,
-      final CFAEdge edge, final String function,
-      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
-      final Constraints constraints, final ErrorConditions errorConditions)
-          throws UnrecognizedCCodeException, InterruptedException {
+      final CLeftHandSide lhs,
+      final CLeftHandSide lhsForChecking,
+      CRightHandSide rhs,
+      final CFAEdge edge,
+      final String function,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
+      final Constraints constraints,
+      final ErrorConditions errorConditions)
+      throws UnrecognizedCodeException, InterruptedException {
 
     // This corresponds to an argument passed as function parameter of array type
     // (this is the only case when arrays can be "assigned" explicitly, not as structure members)
@@ -911,15 +894,18 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @param constraints Additional constraints.
    * @param errorConditions Additional error conditions.
    * @return A formula for a declaration in C code.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
   @Override
   protected BooleanFormula makeDeclaration(
-      final CDeclarationEdge declarationEdge, final String function,
-      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
-      final Constraints constraints, final ErrorConditions errorConditions)
-          throws UnrecognizedCCodeException, InterruptedException {
+      final CDeclarationEdge declarationEdge,
+      final String function,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
+      final Constraints constraints,
+      final ErrorConditions errorConditions)
+      throws UnrecognizedCodeException, InterruptedException {
 
     // TODO merge with super-class method
 
@@ -1041,7 +1027,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       result = assignmentHandler.handleInitializationAssignments(lhs, declarationType, assignments);
 
     } else {
-      throw new UnrecognizedCCodeException("Unrecognized initializer", declarationEdge, initializer);
+      throw new UnrecognizedCodeException("Unrecognized initializer", declarationEdge, initializer);
     }
 
     return result;
@@ -1059,15 +1045,20 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @param constraints Additional constraints.
    * @param errorConditions Additional error conditions.
    * @return A predicate formula for an expression and its truth assumption.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
   @Override
-  protected BooleanFormula makePredicate(final CExpression e, final boolean truthAssumption,
-      final CFAEdge edge, final String function,
-      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
-      final Constraints constraints, final ErrorConditions errorConditions)
-          throws UnrecognizedCCodeException, InterruptedException {
+  protected BooleanFormula makePredicate(
+      final CExpression e,
+      final boolean truthAssumption,
+      final CFAEdge edge,
+      final String function,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
+      final Constraints constraints,
+      final ErrorConditions errorConditions)
+      throws UnrecognizedCodeException, InterruptedException {
     final CType expressionType = typeHandler.getSimplifiedType(e);
     CExpressionVisitorWithPointerAliasing ev = new CExpressionVisitorWithPointerAliasing(this, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
     BooleanFormula result = toBooleanFormula(ev.asValueFormula(e.accept(ev), expressionType));
@@ -1102,15 +1093,18 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @param constraints Additional constraints.
    * @param errorConditions Additional error conditions.
    * @return A formula representing the function call.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
   @Override
   protected BooleanFormula makeFunctionCall(
-      final CFunctionCallEdge edge, final String callerFunction,
-      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
-      final Constraints constraints, final ErrorConditions errorConditions)
-          throws UnrecognizedCCodeException, InterruptedException {
+      final CFunctionCallEdge edge,
+      final String callerFunction,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
+      final Constraints constraints,
+      final ErrorConditions errorConditions)
+      throws UnrecognizedCodeException, InterruptedException {
 
     final CFunctionEntryNode entryNode = edge.getSuccessor();
 
@@ -1152,15 +1146,18 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @param constraints Additional constraints.
    * @param errorConditions Additional error conditions.
    * @return A formula for the function exit.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
   @Override
   protected BooleanFormula makeExitFunction(
-      final CFunctionSummaryEdge summaryEdge, final String calledFunction,
-      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
-      final Constraints constraints, final ErrorConditions errorConditions)
-          throws UnrecognizedCCodeException, InterruptedException {
+      final CFunctionSummaryEdge summaryEdge,
+      final String calledFunction,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
+      final Constraints constraints,
+      final ErrorConditions errorConditions)
+      throws UnrecognizedCodeException, InterruptedException {
 
     final BooleanFormula result = super.makeExitFunction(summaryEdge, calledFunction, ssa, pts, constraints, errorConditions);
 
@@ -1175,12 +1172,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   private final Optional<VariableClassification> variableClassification;
 
-  private static final String POINTER_NAME_PREFIX = "*";
-
   private static final String FIELD_NAME_SEPARATOR = "$";
-
-  private static final Map<CType, String> pointerNameCache = new IdentityHashMap<>();
-
 
   // Overrides just for visibility in other classes of this package
 
@@ -1190,10 +1182,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @param pFuncCallExp The function call expression.
    * @param pEdge The edge in the CFA.
    * @return The type of the function call.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   @Override
-  protected CType getReturnType(CFunctionCallExpression pFuncCallExp, CFAEdge pEdge) throws UnrecognizedCCodeException {
+  protected CType getReturnType(CFunctionCallExpression pFuncCallExp, CFAEdge pEdge)
+      throws UnrecognizedCodeException {
     return typeHandler.simplifyType(super.getReturnType(pFuncCallExp, pEdge));
   }
 
@@ -1210,12 +1203,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return super.makeCastFromArrayToPointerIfNecessary(pExp, pTargetType);
   }
 
-  /**
-   * {@inheritDoc}
-   */
+  /** {@inheritDoc} */
   @Override
-  protected Formula makeCast(CType pFromType, CType pToType, Formula pFormula, Constraints constraints, CFAEdge pEdge)
-      throws UnrecognizedCCodeException {
+  protected Formula makeCast(
+      CType pFromType, CType pToType, Formula pFormula, Constraints constraints, CFAEdge pEdge)
+      throws UnrecognizedCodeException {
     return super.makeCast(pFromType, pToType, pFormula, constraints, pEdge);
   }
 
@@ -1305,7 +1297,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       PointerTargetSetBuilder pPts,
       Constraints pConstraints,
       ErrorConditions pErrorConditions)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     return super.buildTerm(pExp, pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions);
   }
 
@@ -1322,6 +1314,12 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    */
   @Override
   protected int getIndex(String pName, CType pType, SSAMapBuilder pSsa) {
+    if (TypeHandlerWithPointerAliasing.isPointerAccessSymbol(pName)) {
+      // Types of pointer-target variables in SSAMap need special treatment
+      // (signed and unsigned types need to be treated as equal).
+      // SSAMap requires canonical types, which will add a signed modifier, but that is irrelevant.
+      pType = typeHandler.simplifyTypeForPointerAccess(pType).getCanonicalType();
+    }
     return super.getIndex(pName, pType, pSsa);
   }
 
@@ -1330,12 +1328,20 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    */
   @Override
   protected int getFreshIndex(String pName, CType pType, SSAMapBuilder pSsa) {
+    if (TypeHandlerWithPointerAliasing.isPointerAccessSymbol(pName)) {
+      // Types of pointer-target variables in SSAMap need special treatment (cf. above).
+      pType = typeHandler.simplifyTypeForPointerAccess(pType).getCanonicalType();
+    }
     return super.getFreshIndex(pName, pType, pSsa);
   }
 
   /** {@inheritDoc} */
   @Override
   protected int makeFreshIndex(String pName, CType pType, SSAMapBuilder pSsa) {
+    if (TypeHandlerWithPointerAliasing.isPointerAccessSymbol(pName)) {
+      // Types of pointer-target variables in SSAMap need special treatment (cf. above).
+      pType = typeHandler.simplifyTypeForPointerAccess(pType).getCanonicalType();
+    }
     return super.makeFreshIndex(pName, pType, pSsa);
   }
 
@@ -1362,10 +1368,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return super.isRelevantLeftHandSide(pLhs);
   }
 
-  /** {@inheritDoc} */
-  @Override
-  protected boolean isRelevantField(CCompositeType pCompositeType, String pFieldName) {
-    return super.isRelevantField(pCompositeType, pFieldName);
+  protected boolean isRelevantField(
+      CCompositeType pCompositeType, CCompositeTypeMemberDeclaration pField) {
+    return super.isRelevantField(pCompositeType, pField.getName());
   }
 
   /** {@inheritDoc} */

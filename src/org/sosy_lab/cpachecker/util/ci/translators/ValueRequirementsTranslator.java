@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.ci.translators;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -52,20 +53,35 @@ public class ValueRequirementsTranslator extends CartesianRequirementsTranslator
   }
 
   @Override
-  protected List<String> getListOfIndependentRequirements(final ValueAnalysisState pRequirement,
-      final SSAMap pIndices, final @Nullable Collection<String> pRequiredVars) {
+  protected List<String> getListOfIndependentRequirements(
+      final ValueAnalysisState pRequirement,
+      final SSAMap pIndices,
+      final @Nullable Collection<String> pRequiredVars) {
     List<String> list = new ArrayList<>();
     for (Entry<MemoryLocation, ValueAndType> e : pRequirement.getConstants()) {
       MemoryLocation memLoc = e.getKey();
       Value integerValue = e.getValue().getValue();
-        if (!integerValue.isNumericValue() || !(integerValue.asNumericValue().getNumber() instanceof Integer)) {
-          logger.log(Level.SEVERE, "The value " + integerValue + " of the MemoryLocation " + memLoc + " is not an Integer.");
-        } else {
-          if (pRequiredVars == null || pRequiredVars.contains(memLoc.getAsSimpleString())) {
-            list.add("(= " + getVarWithIndex(memLoc.getAsSimpleString(), pIndices) + " "
-                + integerValue.asNumericValue().getNumber() + ")");
-          }
+      if (!integerValue.isNumericValue()
+          || !((integerValue.asNumericValue().getNumber() instanceof Integer
+              || integerValue.asNumericValue().getNumber() instanceof Long
+              || integerValue.asNumericValue().getNumber() instanceof BigInteger))) {
+        logger.log(
+            Level.SEVERE,
+            "The value "
+                + integerValue
+                + " of the MemoryLocation "
+                + memLoc
+                + " is not an Integer.");
+      } else {
+        if (pRequiredVars == null || pRequiredVars.contains(memLoc.getAsSimpleString())) {
+          list.add(
+              "(= "
+                  + getVarWithIndex(memLoc.getAsSimpleString(), pIndices)
+                  + " "
+                  + integerValue.asNumericValue().getNumber()
+                  + ")");
         }
+      }
     }
     // TODO getRequirement(..) hinzufuegen
     return list;

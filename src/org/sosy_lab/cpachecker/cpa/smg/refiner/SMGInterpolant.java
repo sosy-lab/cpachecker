@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +32,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -44,9 +43,10 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGIntersectStates.SMGIntersectionResult;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
+import org.sosy_lab.cpachecker.util.refinement.Interpolant;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class SMGInterpolant {
+public class SMGInterpolant implements Interpolant<Collection<SMGState>, SMGInterpolant> {
 
   private static final SMGInterpolant FALSE = new SMGInterpolant();
 
@@ -62,12 +62,13 @@ public class SMGInterpolant {
     smgStates = ImmutableSet.of();
   }
 
-  public SMGInterpolant(Collection<UnmodifiableSMGState> pStates) {
+  public SMGInterpolant(Collection<? extends UnmodifiableSMGState> pStates) {
     this(pStates, Collections.emptySet());
   }
 
   public SMGInterpolant(
-      Collection<UnmodifiableSMGState> pStates, Collection<SMGAbstractionBlock> pAbstractionBlock) {
+      Collection<? extends UnmodifiableSMGState> pStates,
+      Collection<SMGAbstractionBlock> pAbstractionBlock) {
     smgStates = ImmutableSet.copyOf(pStates);
     abstractionBlock = ImmutableSet.copyOf(pAbstractionBlock);
 
@@ -83,7 +84,8 @@ public class SMGInterpolant {
   }
 
   /** return a new instance of each state from the interpolant, if possible. */
-  public Set<SMGState> reconstructStates() {
+  @Override
+  public Set<SMGState> reconstructState() {
     if (isFalse()) {
       throw new IllegalStateException("Can't reconstruct state from FALSE-interpolant");
     } else {
@@ -91,10 +93,16 @@ public class SMGInterpolant {
     }
   }
 
-  public Set<SMGMemoryPath> getMemoryLocations() {
+  @Override
+  public Set<MemoryLocation> getMemoryLocations() {
+    return trackedStackVariables;
+  }
+
+  Set<SMGMemoryPath> getMemoryPaths() {
     return trackedMemoryPaths;
   }
 
+  @Override
   public boolean isTrue() {
     /* No heap abstraction can be performed without hv-edges, thats
      * why every interpolant without hv-edges and stack variables is true.
@@ -102,14 +110,17 @@ public class SMGInterpolant {
     return !isFalse() && trackedMemoryPaths.isEmpty() && trackedStackVariables.isEmpty();
   }
 
+  @Override
   public boolean isFalse() {
     return this == FALSE;
   }
 
+  @Override
   public boolean isTrivial() {
     return isTrue() || isFalse();
   }
 
+  @Override
   public SMGInterpolant join(SMGInterpolant pOtherInterpolant) {
     if (isFalse() || pOtherInterpolant.isFalse()) {
       return SMGInterpolant.FALSE;
@@ -144,16 +155,15 @@ public class SMGInterpolant {
     return new SMGInterpolant(joinResult, jointAbstractionBlock);
   }
 
-  public static SMGInterpolant createInitial(LogManager logger, MachineModel model,
-      FunctionEntryNode pMainFunctionNode, SMGOptions options) {
+  public static SMGInterpolant createInitial(
+      LogManager logger,
+      MachineModel model,
+      FunctionEntryNode pMainFunctionNode,
+      SMGOptions options)
+      throws SMGInconsistentException {
     SMGState initState = new SMGState(logger, model, options);
     CFunctionEntryNode functionNode = (CFunctionEntryNode) pMainFunctionNode;
-    try {
-      initState.addStackFrame(functionNode.getFunctionDefinition());
-    } catch (SMGInconsistentException exc) {
-      logger.log(Level.SEVERE, exc.getMessage());
-    }
-
+    initState.addStackFrame(functionNode.getFunctionDefinition());
     return new SMGInterpolant(ImmutableSet.of(initState));
   }
 
@@ -194,6 +204,12 @@ public class SMGInterpolant {
 
   public SMGPrecisionIncrement getPrecisionIncrement() {
     return new SMGPrecisionIncrement(trackedMemoryPaths, abstractionBlock, trackedStackVariables);
+  }
+
+  @Override
+  public int getSize() {
+    // just for statistics, not really useful
+    return trackedStackVariables.size();
   }
 
   public static class SMGPrecisionIncrement {

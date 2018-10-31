@@ -58,11 +58,13 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
@@ -139,10 +141,13 @@ public class ValueAnalysisRefiner
   private final StatCounter rootRelocations = new StatCounter("Number of root relocations");
   private final StatCounter repeatedRefinements = new StatCounter("Number of similar, repeated refinements");
 
-  public static ValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
+  public static Refiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
+    return AbstractARGBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa);
+  }
 
-    final ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, ValueAnalysisRefiner.class);
+  public static ARGBasedRefiner create0(final ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
     final ValueAnalysisCPA valueAnalysisCpa =
         CPAs.retrieveCPAOrFail(pCpa, ValueAnalysisCPA.class, ValueAnalysisRefiner.class);
 
@@ -162,8 +167,7 @@ public class ValueAnalysisRefiner
         new ValueAnalysisPrefixProvider(
             logger, cfa, config, valueAnalysisCpa.getShutdownNotifier());
 
-    return new ValueAnalysisRefiner(argCpa,
-        checker,
+    return new ValueAnalysisRefiner(checker,
         strongestPostOp,
         new PathExtractor(logger, config),
         prefixProvider,
@@ -173,7 +177,7 @@ public class ValueAnalysisRefiner
         cfa);
   }
 
-  ValueAnalysisRefiner(final ARGCPA pArgCPA,
+  ValueAnalysisRefiner(
       final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
       final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
       final PathExtractor pPathExtractor,
@@ -182,8 +186,7 @@ public class ValueAnalysisRefiner
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
       throws InvalidConfigurationException {
 
-    super(pArgCPA,
-        pFeasibilityChecker,
+    super(pFeasibilityChecker,
         new ValueAnalysisPathInterpolator(pFeasibilityChecker,
             pStrongestPostOperator,
             pPrefixProvider,

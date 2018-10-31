@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -76,11 +76,11 @@ public class SMGJoinTargetObjectsTest {
     smg2.addPointsToEdge(pt2);
 
     SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0,0, 0, false, null, null);
-    Assert.assertSame(jto.getMapping1().get(obj1), jto.getMapping2().get(obj2));
+    Assert.assertSame(jto.mapping1.get(obj1), jto.mapping2.get(obj2));
     // TODO investigate why they should not be the same, regions are immutable
-    // Assert.assertNotSame(jto.getMapping1().get(obj1), obj1);
-    Assert.assertEquals(jto.getMapping1().get(obj1).getLabel(), obj1.getLabel());
-    Assert.assertEquals(jto.getMapping1().get(obj1).getSize(), obj1.getSize());
+    // Assert.assertNotSame(jto.mapping1.get(obj1), obj1);
+    Assert.assertEquals(jto.mapping1.get(obj1).getLabel(), obj1.getLabel());
+    Assert.assertEquals(jto.mapping1.get(obj1).getSize(), obj1.getSize());
   }
 
   @Test
@@ -158,8 +158,8 @@ public class SMGJoinTargetObjectsTest {
     Assert.assertSame(smg1, jto.getInputSMG1());
     Assert.assertSame(smg2, jto.getInputSMG2());
     Assert.assertEquals(mta.getSMG(), jto.getDestinationSMG());
-    Assert.assertEquals(mta.getMapping1(), jto.getMapping1());
-    Assert.assertEquals(mta.getMapping2(), jto.getMapping2());
+    Assert.assertEquals(mta.mapping1, jto.mapping1);
+    Assert.assertEquals(mta.mapping2, jto.mapping2);
     Assert.assertEquals(mta.getValue(), jto.getValue());
   }
 
@@ -189,12 +189,12 @@ public class SMGJoinTargetObjectsTest {
     Assert.assertSame(smg2, jto.getInputSMG2());
     // TODO: Not equal, but isomorphic (newly created values differ in mta and jto)
     //       But we currently do not have isomorphism
-    //Assert.assertEquals(mta.getSMG(), jto.getDestinationSMG());
+    // Assert.assertEquals(mta.getSMG(), jto.getDestinationSMG());
 
-    Assert.assertTrue(jto.getMapping1().containsKey(value1));
-    Assert.assertEquals(jto.getMapping1().get(value1), jto.getValue());
+    Assert.assertTrue(jto.mapping1.containsKey(value1));
+    Assert.assertEquals(jto.mapping1.get(value1), jto.getValue());
 
-    Assert.assertTrue(jto.getMapping2().containsKey(value2));
-    Assert.assertEquals(jto.getMapping2().get(value2), jto.getValue());
+    Assert.assertTrue(jto.mapping2.containsKey(value2));
+    Assert.assertEquals(jto.mapping2.get(value2), jto.getValue());
   }
 }

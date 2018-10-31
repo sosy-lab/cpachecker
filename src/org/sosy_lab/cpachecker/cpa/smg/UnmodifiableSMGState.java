@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -158,7 +158,7 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
    * @return Address of the given field, or NULL, if such an address does not yet exist in the SMG.
    */
   @Nullable
-  public SMGSymbolicValue getAddress(SMGObject memory, long offset, SMGTargetSpecifier tg);
+  SMGSymbolicValue getAddress(SMGObject memory, long offset, SMGTargetSpecifier tg);
 
   Collection<Object> getInvalidChain();
 

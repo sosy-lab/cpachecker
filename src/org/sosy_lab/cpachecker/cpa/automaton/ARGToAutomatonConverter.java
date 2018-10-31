@@ -29,9 +29,12 @@ import static com.google.common.collect.ImmutableList.of;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -84,7 +87,12 @@ public class ARGToAutomatonConverter {
     /** export all leaf nodes of the ARG, very precise, no redundant paths are exported. */
     LEAFS,
     /** export some intermediate nodes, sound due to export of siblings if needed. */
-    WEIGHTED
+    WEIGHTED,
+    /**
+     * export top nodes according to BFS, but skip the first N internal nodes, e.g. export the
+     * frontier nodes after analyzing N nodes.
+     */
+    FIRST_BFS
   }
 
   @Option(
@@ -104,8 +112,15 @@ public class ARGToAutomatonConverter {
 
   @Option(
       secure = true,
-      description = "minimum ratio of siblings suchthat one of them will be exported")
+      description = "minimum ratio of siblings such that one of them will be exported")
   private double siblingRatio = 0.4;
+
+  @Option(
+      secure = true,
+      description =
+          "when using FIRST_BFS, how many nodes should be skipped? "
+              + "ZERO will only export the root itself, MAX_INT will export only LEAFS.")
+  private int skipFirstNum = 10;
 
   public ARGToAutomatonConverter(@Nullable Configuration config)
       throws InvalidConfigurationException {
@@ -207,8 +222,8 @@ public class ARGToAutomatonConverter {
     if (locationQueries.isEmpty()) {
       return AutomatonBoolExpr.TRUE;
     }
-    AutomatonBoolExpr otherwise = AutomatonBoolExpr.TRUE;
-    for (AutomatonBoolExpr expr : locationQueries) {
+    AutomatonBoolExpr otherwise = locationQueries.get(0);
+    for (AutomatonBoolExpr expr : Iterables.skip(locationQueries, 1)) {
       otherwise = new AutomatonBoolExpr.And(otherwise, expr);
     }
     return new AutomatonBoolExpr.Negation(otherwise);
@@ -257,7 +272,8 @@ public class ARGToAutomatonConverter {
             .transformAndConcat(entry -> entry.getValue().getIgnoreStates())
             .transform(ignores -> getAutomatonForStates(root, ignores.asSet()));
 
-      case LEAFS: // ALL_PATHS, export all leaf-nodes, sub-graphs cover the whole graph
+      case LEAFS: // ALL_PATHS, export all leaf-nodes, sub-graphs cover the whole graph.
+        // no redundant paths expected, if leafs are reached via different paths.
         return FluentIterable.from(pDependencies.entrySet())
             // end-states do not have outgoing edges, and thus no next states.
             .filter(entry -> entry.getValue().getNextStates().isEmpty())
@@ -267,22 +283,106 @@ public class ARGToAutomatonConverter {
       case WEIGHTED: // export all nodes, where children are heavier than a given limit
         return getWeightedAutomata(root, pDependencies);
 
+      case FIRST_BFS:
+        return getFirstBFSAutomata(root, pDependencies);
+
       default:
         throw new AssertionError("unexpected export strategy");
     }
   }
 
+  private Iterable<Automaton> getFirstBFSAutomata(
+      ARGState pRoot, Map<ARGState, BranchingInfo> pDependencies) {
+    Set<ARGState> statesForExport = getTopStatesForAutomata(pRoot, pDependencies);
+
+    // remove redundant paths, e.g. do not export paths already covered by other paths
+    Multimap<Integer, PersistentSet<ARGState>> sortedPaths = HashMultimap.create();
+    for (ARGState state : statesForExport) {
+      for (PersistentSet<ARGState> ignores : pDependencies.get(state).getIgnoreStates()) {
+        sortedPaths.put(ignores.size(), ignores);
+      }
+    }
+    List<PersistentSet<ARGState>> paths = new ArrayList<>();
+    for (PersistentSet<ARGState> path : sortedPaths.values()) {
+      if (!isCovered(path, sortedPaths)) {
+        paths.add(path);
+      }
+    }
+
+    return FluentIterable.from(paths)
+        .transform(ignores -> getAutomatonForStates(pRoot, ignores.asSet()));
+  }
+
+  /**
+   * returns whether another path already includes the current path, i.e., the ignored states of the
+   * current path are a super-set of any other set.
+   */
+  private boolean isCovered(
+      PersistentSet<ARGState> path, Multimap<Integer, PersistentSet<ARGState>> sortedPaths) {
+    for (int size : sortedPaths.keySet()) {
+      if (size < path.size()) {
+        for (PersistentSet<ARGState> shorterPath : sortedPaths.get(size)) {
+          if (path.asSet().containsAll(shorterPath.asSet())) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  /** return the frontier states after skipping N states */
+  private Set<ARGState> getTopStatesForAutomata(
+      ARGState root, Map<ARGState, BranchingInfo> pDependencies) {
+    Set<ARGState> alwaysExport = new LinkedHashSet<>();
+    Collection<ARGState> finished = new LinkedHashSet<>();
+    Deque<ARGState> waitlist = new ArrayDeque<>();
+    waitlist.add(root);
+    while (!waitlist.isEmpty()) {
+      if (finished.size() > skipFirstNum) {
+        // we have skipped the first N states, return the frontier.
+        // TODO exclude exit-states when counting skipN?
+        // This might avoid to export simple paths at program-start.
+        alwaysExport.addAll(waitlist);
+        break;
+      }
+      ARGState s = waitlist.pop();
+      if (!finished.add(s)) {
+        continue;
+      }
+      BranchingInfo bi = pDependencies.get(s);
+      Set<ARGState> children = bi.getNextStates();
+      if (children.isEmpty()) {
+        // end of ARG reached, export paths to state directly
+        alwaysExport.add(s);
+      }
+      for (ARGState child : children) {
+         if (!finished.contains(child)) {
+           waitlist.add(child);
+         }
+       }
+    }
+    return alwaysExport;
+  }
+
   private Iterable<Automaton> getWeightedAutomata(
       ARGState root, Map<ARGState, BranchingInfo> pDependencies) {
+
+    // collect all end-states, i.e., states that have no succeeding next-state.
     Set<ARGState> endStates = new HashSet<>();
     for (Entry<ARGState, BranchingInfo> entry : pDependencies.entrySet()) {
       if (entry.getValue().getNextStates().isEmpty()) {
         endStates.add(entry.getKey());
       }
     }
+
+    // tracks visited states with a flag whether all of their children are handled completely.
+    // If not all children are handled completely (but finished),
+    // the parent must be exported including paths to the non-exported children.
+    Map<ARGState, Boolean> finished = new HashMap<>();
+
     List<Automaton> automata = new ArrayList<>();
     Deque<ARGState> waitlist = new ArrayDeque<>(endStates);
-    Map<ARGState, Boolean> finished = new HashMap<>();
     while (!waitlist.isEmpty()) {
       ARGState s = waitlist.pop();
       if (finished.containsKey(s)) {
@@ -291,39 +391,50 @@ public class ARGToAutomatonConverter {
       BranchingInfo bi = pDependencies.get(s);
       Set<ARGState> children = bi.getNextStates();
       if (!finished.keySet().containsAll(children)) {
-        waitlist.add(s); // re-schedule until all children are finished
+        // re-schedule until all children are finished.
+        // does not imply that all children are exported!
+        waitlist.add(s);
         continue;
       }
-      final boolean finishedExport;
+      final boolean completeExportOfState;
       Set<ARGState> finishedChildren = from(children).filter(c -> finished.get(c)).toSet();
       if (!children.isEmpty() && children.equals(finishedChildren)) {
         // all children exported, finished
-        finishedExport = true;
+        completeExportOfState = true;
       } else if (!finishedChildren.isEmpty()) {
         // only some children are exported -> export all siblings as one automaton.
+        // TODO we currently only support look-ahead for one step.
+        // This might lead to redundant traces in the exported automata.
+        // Should we add a deeper analysis that also looks for (non-)exported grand-children?
         for (PersistentSet<ARGState> ignores : bi.getIgnoreStates()) {
           automata.add(getAutomatonForStates(root, Sets.union(ignores.asSet(), finishedChildren)));
         }
-        finishedExport = true;
+        completeExportOfState = true;
       } else {
         // no children are exported -> export current node or skip and export parent
         if (shouldExportAutomatonFor(root, s, pDependencies)) {
           for (PersistentSet<ARGState> ignores : bi.getIgnoreStates()) {
             automata.add(getAutomatonForStates(root, ignores.asSet()));
           }
-          finishedExport = true;
+          completeExportOfState = true;
         } else {
-          finishedExport = false;
+          // we do not export this automaton, but export the parent.
+          completeExportOfState = false;
         }
       }
-      finished.put(s, finishedExport);
-      if (!finishedExport) {
+      finished.put(s, completeExportOfState);
+      if (!completeExportOfState) {
         waitlist.addAll(bi.getParents());
       }
     }
     return automata;
   }
 
+  /**
+   * determine whether the automaton starting at root going via state s should be exported.
+   *
+   * <p>We can check whether the branch below s is large enough compared to the overall
+   */
   private boolean shouldExportAutomatonFor(
       ARGState root, ARGState s, Map<ARGState, BranchingInfo> pDependencies) {
     if (s == root) { // if no other automaton is exported, then export the whole ARG via root
@@ -347,9 +458,16 @@ public class ARGToAutomatonConverter {
     return false;
   }
 
-  /** returns the number of states in the current branch until the end-states. */
-  // TODO speedup with caching or similar.
+  /** cache to speedup the computation of subtree-sizes. */
+  private final Map<ARGState, Integer> sizeCache = new HashMap<>();
+
+  /** simple caching for {@link #sizeOfBranch0}. */
   private int sizeOfBranch(ARGState state) {
+    return sizeCache.computeIfAbsent(state, this::sizeOfBranch0);
+  }
+
+  /** returns the number of states in the current branch until the end-states. */
+  private int sizeOfBranch0(ARGState state) {
     Set<ARGState> reachable = new HashSet<>();
     Deque<ARGState> waitlist = new ArrayDeque<>();
     waitlist.add(state);
@@ -601,6 +719,18 @@ public class ARGToAutomatonConverter {
     return Iterables.transform(states, ARGToAutomatonConverter::id);
   }
 
+  private static Iterable<String> ids(
+      final Iterable<? extends Iterable<ARGState>> iterableOfStates) {
+    return Iterables.transform(iterableOfStates, states -> id(states).toString());
+  }
+
+  private static String id(ImmutableMultimap<ARGState, ARGState> children) {
+    return "{"
+        + Joiner.on(", ")
+            .join(Iterables.transform(children.keys(), s -> id(s) + "->" + id(children.get(s))))
+        + "}";
+  }
+
   private static final class BranchingInfo {
     private final ARGState current;
 
@@ -612,8 +742,8 @@ public class ARGToAutomatonConverter {
     private boolean isPartOfLoop = false; // lazy
 
     /**
-     * current state can be reached via several paths. ignoreStates cut off all other branches for
-     * each of those paths.
+     * current state can be reached via several paths. Ignored states cut off all other branches for
+     * each of those paths. Each set represents a single path with its cut-off-states.
      */
     private Set<PersistentSet<ARGState>> ignoreStates = new LinkedHashSet<>();
 
@@ -651,6 +781,13 @@ public class ARGToAutomatonConverter {
 
     private Set<ARGState> getParents() {
       return parents;
+    }
+
+    @Override
+    public String toString() {
+      return String.format(
+          "BranchingInfo {parents=%s, children=%s, ignore=%s, loop=%s}",
+          id(parents), id(children), ids(ignoreStates), isPartOfLoop);
     }
   }
 }

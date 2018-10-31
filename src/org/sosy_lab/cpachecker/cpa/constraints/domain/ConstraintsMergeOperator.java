@@ -23,28 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
-import java.io.PrintStream;
-import javax.annotation.Nullable;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalNotExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 
 /**
- * Merge operator for {@link ConstraintsCPA}.
- * Removes the last added constraint <code>c</code> of the second state
- * if <code>!c</code> is the last added constraint of the first state.
+ * Merge operator for {@link ConstraintsCPA}. Removes the last added constraint <code>c</code> of
+ * the second state if <code>!c</code> is the last added constraint of the first state.
  */
-public class ConstraintsMergeOperator implements MergeOperator, Statistics {
+public class ConstraintsMergeOperator implements MergeOperator {
 
-  // Statistics
-  private int removedConstraints = 0;
+  private final ConstraintsStatistics stats;
+
+  public ConstraintsMergeOperator(ConstraintsStatistics pStats) {
+    stats = pStats;
+  }
 
   /**
    * Merges the two given states. Weakens the second state with information of the first state.
@@ -87,7 +85,7 @@ public class ConstraintsMergeOperator implements MergeOperator, Statistics {
 
       if (lastConstraintOfState1.equals(lastConstraintOfState2)) {
         weakenedState.remove(lastConstraintOfState2);
-        removedConstraints++;
+        stats.constraintsRemovedInMerge.inc();
       }
 
     } else if (lastConstraintOfState2 instanceof LogicalNotExpression) {
@@ -95,7 +93,7 @@ public class ConstraintsMergeOperator implements MergeOperator, Statistics {
 
       if (lastConstraintOfState1.equals(innerExpression)) {
         weakenedState.remove(lastConstraintOfState2);
-        removedConstraints++;
+        stats.constraintsRemovedInMerge.inc();
       }
     }
 
@@ -104,17 +102,5 @@ public class ConstraintsMergeOperator implements MergeOperator, Statistics {
     } else {
       return weakenedState;
     }
-  }
-
-  @Override
-  public void printStatistics(
-      final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
-    pOut.println("Number of constraints removed in merge: " + removedConstraints);
-  }
-
-  @Nullable
-  @Override
-  public String getName() {
-    return ConstraintsMergeOperator.class.getSimpleName();
   }
 }

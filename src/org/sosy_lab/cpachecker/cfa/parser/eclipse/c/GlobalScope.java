@@ -27,7 +27,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
-
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.eclipse.cdt.core.dom.ast.IType;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -45,11 +48,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Implementation of {@link Scope} for the global scope
@@ -279,7 +277,7 @@ class GlobalScope extends AbstractScope {
       // type this may only be if the objects are identical (FillInBindingsVisitor
       // sets the realtype in some cases before the complete type is registered
       if (!(oldType.getCanonicalType() instanceof CElaboratedType)
-          && ((CElaboratedType)oldType).getRealType() != type) {
+          && oldType.getCanonicalType() != type) {
         throw new CFAGenerationRuntimeException("Redeclaring " + name
             + " in " + declaration.getFileLocation()
             + ", originally declared in " + oldDeclaration.getFileLocation());

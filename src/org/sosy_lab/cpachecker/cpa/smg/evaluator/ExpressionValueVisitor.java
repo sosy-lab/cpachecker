@@ -68,7 +68,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * This class evaluates expressions that evaluate not to a pointer, array, struct or union type. The
@@ -207,17 +207,21 @@ public class ExpressionValueVisitor
       SMGObject variableObject =
           smgState.getHeap().getObjectForVisibleVariable(idExpression.getName());
 
-      smgState.addElementToCurrentChain(variableObject);
-      SMGValueAndState result =
-          smgExpressionEvaluator.readValue(
-              smgState,
-              variableObject,
-              SMGZeroValue.INSTANCE,
-              TypeUtils.getRealExpressionType(idExpression),
-              cfaEdge);
-      result.getSmgState().addElementToCurrentChain(result.getObject());
+      if (variableObject != null) {
+        // Witness validation cannot compute an assignment for some cases.
+        // Then the variableObject can be NULL. TODO when exactly does this happen?
+        smgState.addElementToCurrentChain(variableObject);
+        SMGValueAndState result =
+            smgExpressionEvaluator.readValue(
+                smgState,
+                variableObject,
+                SMGZeroValue.INSTANCE,
+                TypeUtils.getRealExpressionType(idExpression),
+                cfaEdge);
+        result.getSmgState().addElementToCurrentChain(result.getObject());
 
-      return singletonList(result);
+        return singletonList(result);
+      }
     }
 
     return singletonList(SMGValueAndState.of(getInitialSmgState()));
@@ -233,8 +237,8 @@ public class ExpressionValueVisitor
     switch (unaryOperator) {
 
     case AMPER:
-      throw new UnrecognizedCCodeException("Can't use & of expression " + unaryOperand.toASTString(), cfaEdge,
-          unaryExpression);
+        throw new UnrecognizedCodeException(
+            "Can't use & of expression " + unaryOperand.toASTString(), cfaEdge, unaryExpression);
 
     case MINUS:
 
@@ -282,13 +286,13 @@ public class ExpressionValueVisitor
     } else if (operandType instanceof CArrayType) {
       return dereferenceArray(operand, expType);
     } else {
-      throw new UnrecognizedCCodeException("on pointer expression", cfaEdge, pointerExpression);
+      throw new UnrecognizedCodeException("on pointer expression", cfaEdge, pointerExpression);
     }
   }
 
   @Override
   public List<? extends SMGValueAndState> visit(CTypeIdExpression typeIdExp)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     TypeIdOperator typeOperator = typeIdExp.getOperator();
     CType type = typeIdExp.getType();

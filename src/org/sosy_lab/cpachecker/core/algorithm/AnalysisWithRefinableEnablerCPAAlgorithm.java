@@ -446,9 +446,8 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       // use first element as one possible reason for failure path
       return nextFakeStateResult.iterator().next();
     default:
-      assert (false); // case should never happen
+        throw new AssertionError("case should never happen");
     }
-    return pFakeEnablerState;
   }
 
   private CFANode createFakeEdge(final CExpression pAssumeExpr, final CFANode pPredecessor) {

@@ -69,4 +69,9 @@ public class SMGKnownSymValue extends SMGKnownValue implements SMGKnownSymbolicV
   public String asDotId() {
     return "Sym" + getValue();
   }
+
+  @Override
+  public BigInteger getId() {
+    return getValue();
+  }
 }

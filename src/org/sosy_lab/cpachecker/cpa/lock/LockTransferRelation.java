@@ -71,7 +71,7 @@ import org.sosy_lab.cpachecker.cpa.lock.effects.RestoreAllLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.RestoreLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.SaveStateLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.SetLockEffect;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -125,7 +125,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
   @Override
   public Collection<AbstractLockState> getAbstractSuccessorsForEdge(
       AbstractState element, Precision pPrecision, CFAEdge cfaEdge)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     AbstractLockState lockStatisticsElement = (AbstractLockState) element;
 
@@ -160,14 +160,14 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
   private FluentIterable<LockEffect> getLockEffects(CFAEdge cfaEdge) {
     try {
       return from(determineOperations(cfaEdge)).filter(LockEffect.class);
-    } catch (UnrecognizedCCodeException e) {
+    } catch (UnrecognizedCodeException e) {
       logger.log(Level.WARNING, "The code " + cfaEdge + " is not recognized");
       return FluentIterable.of();
     }
   }
 
   private List<AbstractLockEffect> determineOperations(CFAEdge cfaEdge)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     switch (cfaEdge.getEdgeType()) {
       case FunctionCallEdge:
@@ -189,7 +189,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
         break;
 
       default:
-        throw new UnrecognizedCCodeException("Unknown edge type", cfaEdge);
+        throw new UnrecognizedCodeException("Unknown edge type", cfaEdge);
     }
     return Collections.emptyList();
   }

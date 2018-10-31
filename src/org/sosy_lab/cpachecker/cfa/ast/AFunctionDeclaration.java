@@ -57,11 +57,7 @@ public abstract class AFunctionDeclaration extends AbstractDeclaration {
 
   @Override
   public int hashCode() {
-    int prime = 31;
-    int result = 7;
-    result = prime * result + Objects.hashCode(parameters);
-    result = prime * result + super.hashCode();
-    return result;
+    return 31 * Objects.hashCode(parameters) + super.hashCode();
   }
 
   @Override

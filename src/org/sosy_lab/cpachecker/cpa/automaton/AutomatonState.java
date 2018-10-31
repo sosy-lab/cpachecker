@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -212,16 +213,39 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
       return false;
     }
     AutomatonState otherState = (AutomatonState) pObj;
-
-    return this.internalState.equals(otherState.internalState)
-        && this.vars.equals(otherState.vars);
+    if (assumptions == null) {
+      if (otherState.assumptions != null) {
+        return false;
+      }
+    } else if (!assumptions.equals(otherState.assumptions)) {
+      return false;
+    }
+    if (vars == null) {
+      if (otherState.vars != null) {
+        return false;
+      }
+    } else if (!vars.equals(otherState.vars)) {
+      return false;
+    }
+    if (internalState == null) {
+      if (otherState.internalState != null) {
+        return false;
+      }
+    } else if (!internalState.equals(otherState.internalState)) {
+      return false;
+    }
+    return true;
   }
 
   @Override
   public int hashCode() {
     // Important: we cannot use vars.hashCode(), because the hash code of a map
     // depends on the hash code of its values, and those may change.
-    return internalState.hashCode();
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((assumptions == null) ? 0 : assumptions.hashCode());
+    result = prime * result + ((internalState == null) ? 0 : internalState.hashCode());
+    return result;
   }
 
 
@@ -276,8 +300,8 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
           pPreviousState.getVars(),
           pPreviousState.getInternalState(),
           pPreviousState.automatonCPA,
-          pPreviousState.getAssumptions(),
-          pPreviousState.getCandidateInvariants(),
+          ImmutableList.of(),
+          ExpressionTrees.getTrue(),
           -1,
           -1,
           null);
@@ -365,11 +389,25 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
       String right = parts.get(1);
       AutomatonVariable var = this.vars.get(left);
       if (var != null) {
-        try {
-          int val = Integer.parseInt(right);
-          var.setValue(val);
-        } catch (NumberFormatException e) {
-          throw new InvalidQueryException("The Query \"" + pModification + "\" is invalid. Could not parse the int \"" + right + "\".");
+        if (var instanceof AutomatonIntVariable) {
+          try {
+            int val = Integer.parseInt(right);
+            ((AutomatonIntVariable) var).setValue(val);
+          } catch (NumberFormatException e) {
+            throw new InvalidQueryException(
+                "The Query \""
+                    + pModification
+                    + "\" is invalid. Could not parse the int \""
+                    + right
+                    + "\".");
+          }
+        } else {
+          throw new InvalidQueryException(
+              "Automaton variable '"
+                  + var.getName()
+                  + "' is not supported in query '"
+                  + pModification
+                  + "'");
         }
       } else {
         throw new InvalidQueryException("Could not modify the variable \"" + left + "\" (Variable not found)");

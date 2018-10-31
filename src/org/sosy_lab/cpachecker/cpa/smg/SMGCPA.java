@@ -92,8 +92,6 @@ public class SMGCPA
       description="which merge operator to use for the SMGCPA")
   private String mergeType = "SEP";
 
-  private final SMGTransferRelation transferRelation;
-
   private final SMGPredicateManager smgPredicateManager;
   private final BlockOperator blockOperator;
   private final MachineModel machineModel;
@@ -107,6 +105,9 @@ public class SMGCPA
   private final SMGOptions options;
   private final SMGExportDotOption exportOptions;
   private final SMGStatistics stats = new SMGStatistics();
+
+  // flag whether we perform CEGAR or static analysis.
+  private SMGTransferRelationKind kind = SMGTransferRelationKind.STATIC;
 
   private SMGPrecision precision;
 
@@ -130,27 +131,21 @@ public class SMGCPA
     pConfig.inject(blockOperator);
     blockOperator.setCFA(cfa);
 
-    precision =
-        SMGPrecision.createStaticPrecision(options.isHeapAbstractionEnabled(), blockOperator);
+    precision = SMGPrecision.createStaticPrecision(options.isHeapAbstractionEnabled());
 
     smgPredicateManager = new SMGPredicateManager(config, logger, pShutdownNotifier);
-    transferRelation =
-        SMGTransferRelation.createTransferRelation(logger, machineModel,
-            exportOptions, smgPredicateManager, blockOperator, options);
   }
 
-  public void setTransferRelationToRefinment(PathTemplate pNewPathTemplate) {
-    transferRelation.changeKindToRefinment();
-    exportOptions.changeToRefinment(pNewPathTemplate);
-  }
-
-  public void injectRefinablePrecision() {
+  /**
+   * Switch analysis to CEGAR instead of static approach.
+   *
+   * <p>This method should only be called once before starting the analysis.
+   */
+  public void enableRefinement(PathTemplate pNewPathTemplate) {
+    exportOptions.changeToRefinement(pNewPathTemplate);
+    kind = SMGTransferRelationKind.REFINEMENT;
     // replace the full precision with an empty, refinable precision
     precision = SMGPrecision.createRefineablePrecision(precision);
-  }
-
-  public MachineModel getMachineModel() {
-    return machineModel;
   }
 
   public SMGOptions getOptions() {
@@ -164,7 +159,8 @@ public class SMGCPA
 
   @Override
   public TransferRelation getTransferRelation() {
-    return transferRelation;
+    return new SMGTransferRelation(
+        logger, machineModel, exportOptions, kind, smgPredicateManager, options);
   }
 
   @Override
@@ -195,7 +191,7 @@ public class SMGCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return new SMGPrecisionAdjustment(logger, exportOptions);
+    return new SMGPrecisionAdjustment(logger, exportOptions, blockOperator);
   }
 
   @Override
@@ -255,8 +251,8 @@ public class SMGCPA
     return blockOperator;
   }
 
-  public void nextRefinment() {
-    exportOptions.nextRefinment();
+  public void nextRefinement() {
+    exportOptions.nextRefinement();
   }
 
   @Override

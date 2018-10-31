@@ -24,34 +24,25 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import java.util.HashSet;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-@Options
 public class ARGMergeJoin implements MergeOperator {
 
   private final MergeOperator wrappedMerge;
   private final AbstractDomain wrappedDomain;
+  private final boolean mergeOnWrappedSubsumption;
 
-  @Option(
-      secure = true,
-      name = "cpa.arg.mergeOnWrappedSubsumption",
-      description = "If this option is enabled, ARG states will also be merged if the first wrapped state is \n"
-          + " subsumed by the second wrapped state (and the parents are not yet subsumed).")
-  private boolean mergeOnWrappedSubsumption = false;
-
-  public ARGMergeJoin(MergeOperator pWrappedMerge, AbstractDomain pWrappedDomain, Configuration config)
-      throws InvalidConfigurationException {
+  public ARGMergeJoin(
+      MergeOperator pWrappedMerge,
+      AbstractDomain pWrappedDomain,
+      boolean pMergeOnWrappedSubsumption) {
     wrappedMerge = pWrappedMerge;
     wrappedDomain = pWrappedDomain;
-    config.inject(this);
+    mergeOnWrappedSubsumption = pMergeOnWrappedSubsumption;
   }
 
   @Override

@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm.CEGARAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CounterexampleStoreAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
@@ -77,6 +78,7 @@ import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
@@ -162,6 +164,14 @@ public class CoreComponentsFactory {
     name = "algorithm.termination",
     description = "Use termination algorithm to prove (non-)termination.")
   private boolean useTerminationAlgorithm = false;
+
+  @Option(
+      secure = true,
+      name = "alwaysStoreCounterexamples",
+      description = "If not already done by the analysis,"
+          + " store a found counterexample in the ARG for later re-use. Does nothing"
+          + " if no ARGCPA is used")
+  private boolean forceCexStore = false;
 
   @Option(
     secure = true,
@@ -312,8 +322,7 @@ public class CoreComponentsFactory {
 
     if (useUndefinedFunctionCollector) {
       logger.log(Level.INFO, "Using undefined function collector");
-      algorithm =
-          new UndefinedFunctionCollectorAlgorithm(cfa, config, logger);
+      algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
     } else if (useNonTerminationWitnessValidation) {
       logger.log(Level.INFO, "Using validator for violation witnesses for termination");
       algorithm =
@@ -441,7 +450,7 @@ public class CoreComponentsFactory {
       }
 
       if (collectAssumptions) {
-        algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger);
+        algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger, cfa);
       }
 
       if (useAdjustableConditions) {
@@ -490,6 +499,10 @@ public class CoreComponentsFactory {
             specification,
             algorithm,
             cpa);
+      }
+
+      if (cpa instanceof ARGCPA && forceCexStore) {
+        algorithm = new CounterexampleStoreAlgorithm(algorithm, cpa, config, logger, cfa.getMachineModel());
       }
     }
 
@@ -559,4 +572,5 @@ public class CoreComponentsFactory {
 
     return terminationSpecification;
   }
+
 }

@@ -36,6 +36,7 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -266,26 +267,15 @@ public class ARGPath extends AbstractAppender {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((edges == null) ? 0 : edges.hashCode());
-    return result;
+    return Objects.hash(edges);
   }
 
   @Override
   public boolean equals(Object pOther) {
     if (this == pOther) { return true; }
     if (!(pOther instanceof ARGPath)) { return false; }
-
-    ARGPath other = (ARGPath) pOther;
-
-    if (edges == null) {
-      if (other.edges != null) { return false; }
-    } else if (!edges.equals(other.edges)) { return false; }
-
     // We do not compare the states because they are different from iteration to iteration!
-
-    return true;
+    return Objects.equals(edges, ((ARGPath) pOther).edges);
   }
 
   @Override

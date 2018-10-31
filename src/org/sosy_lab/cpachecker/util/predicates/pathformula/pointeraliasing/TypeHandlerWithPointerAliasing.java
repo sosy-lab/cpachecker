@@ -29,6 +29,7 @@ import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multiset;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -45,10 +46,18 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 
 public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
 
+  private static final String POINTER_NAME_PREFIX = "*";
+
   private final MachineModel model;
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final CachingCanonizingCTypeVisitor canonizingVisitor =
-      new CachingCanonizingCTypeVisitor(true, true);
+      new CachingCanonizingCTypeVisitor(
+          /*ignoreConst=*/ true, /*ignoreVolatile=*/ true, /*ignoreSignedness=*/ false);
+  private final CachingCanonizingCTypeVisitor canonizingVisitorWithoutSignedness =
+      new CachingCanonizingCTypeVisitor(
+          /*ignoreConst=*/ true, /*ignoreVolatile=*/ true, /*ignoreSignedness=*/ true);
+
+  private final Map<CType, String> pointerNameCache = new IdentityHashMap<>();
 
   /*
    * Use Multiset<String> instead of Map<String, Integer> because it is more
@@ -144,6 +153,50 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
    */
   CType getSimplifiedType(final CCompositeTypeMemberDeclaration field) {
     return simplifyType(field.getType());
+  }
+
+  /**
+   * Get a simplified type that is suited for identifying a target region on the heap. This means
+   * that two types which are compatible (i.e., where pointer aliasing may occur) need to have the
+   * same type returned by this method.
+   *
+   * <p>This is different from {@link #simplifyType(CType)}, which just canonicalizes types.
+   */
+  CType simplifyTypeForPointerAccess(final CType type) {
+    return type.accept(canonizingVisitorWithoutSignedness);
+  }
+
+  /**
+   * Checks, whether a symbol is a pointer access encoded in SMT.
+   *
+   * @param symbol The name of the symbol.
+   * @return Whether the symbol is a pointer access or not.
+   */
+  static boolean isPointerAccessSymbol(final String symbol) {
+    return symbol.startsWith(POINTER_NAME_PREFIX);
+  }
+
+  /**
+   * Returns the SMT symbol name for encoding a pointer access for a C type.
+   *
+   * @param type The type to get the symbol name for.
+   * @return The symbol name for the type.
+   */
+  public String getPointerAccessNameForType(final CType type) {
+    String result = pointerNameCache.get(type);
+    if (result != null) {
+      return result;
+    } else {
+      result =
+          POINTER_NAME_PREFIX + simplifyTypeForPointerAccess(type).toString().replace(' ', '_');
+      pointerNameCache.put(type, result);
+      return result;
+    }
+  }
+
+  /** @see #getBitOffset(CCompositeType, String) */
+  long getBitOffset(CCompositeType compositeType, final CCompositeTypeMemberDeclaration member) {
+    return getBitOffset(compositeType, member.getName());
   }
 
   /**

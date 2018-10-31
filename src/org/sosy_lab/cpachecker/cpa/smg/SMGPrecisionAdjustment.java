@@ -27,7 +27,6 @@ import com.google.common.base.Function;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Optional;
-import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -40,13 +39,11 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions.SMGExportLevel;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
@@ -60,12 +57,14 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
   private final Statistics statistics;
   private final LogManager logger;
   private final SMGExportDotOption exportOptions;
+  private final BlockOperator blockOperator;
 
-
-  public SMGPrecisionAdjustment(LogManager pLogger, SMGExportDotOption pExportOptions) {
+  public SMGPrecisionAdjustment(
+      LogManager pLogger, SMGExportDotOption pExportOptions, BlockOperator pBlockOperator) {
 
     logger = pLogger;
     exportOptions = pExportOptions;
+    blockOperator = pBlockOperator;
 
     statistics = new Statistics() {
       @Override
@@ -89,20 +88,19 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
       UnmodifiableReachedSet pStates, Function<AbstractState, AbstractState> pStateProjection, AbstractState pFullState)
           throws CPAException, InterruptedException {
 
-    return prec(
-        (UnmodifiableSMGState) pState,
-        (SMGPrecision) pPrecision,
-        AbstractStates.extractStateByType(pFullState, LocationState.class));
+    CFANode node = AbstractStates.extractLocation(pFullState);
+    UnmodifiableSMGState state = (UnmodifiableSMGState) pState;
+    state = state.copyWithBlockEnd(blockOperator.isBlockEnd(node, 0));
+
+    return prec(state, (SMGPrecision) pPrecision, node);
   }
 
   private Optional<PrecisionAdjustmentResult> prec(
-      UnmodifiableSMGState pState, SMGPrecision pPrecision, LocationState location)
-      throws CPAException {
+      UnmodifiableSMGState pState, SMGPrecision pPrecision, CFANode node) throws CPAException {
 
-    boolean allowsFieldAbstraction = pPrecision.allowsFieldAbstraction();
-    boolean allowsHeapAbstraction =
-        pPrecision.allowsHeapAbstractionOnNode(location.getLocationNode());
-    boolean allowsStackAbstraction = pPrecision.allowsStackAbstraction();
+    boolean allowsFieldAbstraction = pPrecision.getAbstractionOptions().allowsFieldAbstraction();
+    boolean allowsHeapAbstraction = pPrecision.allowsHeapAbstractionOnNode(node, blockOperator);
+    boolean allowsStackAbstraction = pPrecision.getAbstractionOptions().allowsStackAbstraction();
 
     if (!allowsFieldAbstraction && !allowsHeapAbstraction && !allowsStackAbstraction) {
       return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE));
@@ -112,11 +110,10 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
 
     UnmodifiableSMGState result = pState;
     SMGState newState = pState.copyOf();
-    CFANode node = location.getLocationNode();
 
     if (allowsStackAbstraction) {
-      Set<MemoryLocation> stackVariables = pPrecision.getTrackedStackVariablesOnNode(node);
-      boolean stackAbstractionChange = newState.forgetNonTrackedStackVariables(stackVariables);
+      boolean stackAbstractionChange =
+          newState.forgetNonTrackedStackVariables(pPrecision.getTrackedStackVariablesOnNode(node));
 
       if (stackAbstractionChange) {
         String name =
@@ -132,8 +129,8 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
 
     if (allowsFieldAbstraction) {
 
-      Set<SMGMemoryPath> mempaths = pPrecision.getTrackedMemoryPathsOnNode(node);
-      boolean fieldAbstractionChange = newState.forgetNonTrackedHve(mempaths);
+      boolean fieldAbstractionChange =
+          newState.forgetNonTrackedHve(pPrecision.getTrackedMemoryPathsOnNode(node));
 
       if (fieldAbstractionChange) {
         String name = String.format("%03d-%03d-after-field-abstraction", result.getId(), newState.getId());
@@ -149,9 +146,8 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
 
     if (allowsHeapAbstraction) {
 
-      boolean refineablePrecision = pPrecision.usesHeapInterpolation();
       boolean heapAbstractionChange =
-          newState.executeHeapAbstraction(pPrecision.getAbstractionBlocks(node), refineablePrecision);
+          newState.executeHeapAbstraction(pPrecision.getAbstractionBlocks(node));
 
       if (heapAbstractionChange) {
         String name = String.format("%03d-before-heap-abstraction", result.getId());

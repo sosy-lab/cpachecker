@@ -40,6 +40,12 @@ public class SMGEdgePointsTo extends SMGEdge {
 
   private final SMGTargetSpecifier tg;
 
+  /**
+   * @param pValue the value that points to some object.
+   * @param pObject the target object pointed to.
+   * @param pOffset the offset relative to the start of the target object, i.e. ZERO represents a
+   *     direct pointer, a positive number points into or after the object.
+   */
   public SMGEdgePointsTo(SMGValue pValue, SMGObject pObject, long pOffset) {
     this(
         pValue,

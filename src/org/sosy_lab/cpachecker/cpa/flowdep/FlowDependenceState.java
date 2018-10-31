@@ -78,15 +78,15 @@ public class FlowDependenceState implements AbstractState, AbstractWrapperState,
     reachDefState = pReachDefState;
   }
 
-  public Set<CFAEdge> getDependees() {
+  public Set<CFAEdge> getAllEdgesWithDependencies() {
     return usedDefs.rowKeySet();
   }
 
-  public Set<Optional<MemoryLocation>> getDefinitions(final CFAEdge pForEdge) {
+  public Set<Optional<MemoryLocation>> getNewDefinitionsByEdge(final CFAEdge pForEdge) {
     return usedDefs.row(pForEdge).keySet();
   }
 
-  public FlowDependence getDefsDependingOn(
+  public FlowDependence getDependenciesOfDefinitionAtEdge(
       final CFAEdge pEdge, final Optional<MemoryLocation> pDefinition) {
     return usedDefs.get(pEdge, pDefinition);
   }
@@ -97,6 +97,10 @@ public class FlowDependenceState implements AbstractState, AbstractWrapperState,
    */
   public void addDependence(
       CFAEdge pEdge, Optional<MemoryLocation> pDefines, FlowDependence pUses) {
+
+    checkNotNull(pEdge);
+    checkNotNull(pDefines);
+    checkNotNull(pUses);
 
     if (usedDefs.contains(pEdge, pDefines)) {
       usedDefs.put(pEdge, pDefines, usedDefs.get(pEdge, pDefines).union(pUses));

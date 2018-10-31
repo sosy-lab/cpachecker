@@ -69,8 +69,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  * @param <S> the state type to create interpolants for
  * @param <I> the type of the interpolants created by this class
  */
-@Options(prefix="cpa.value.refinement")
-public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Interpolant<S>>
+@Options(prefix = "cpa.value.refinement")
+public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Interpolant<S, I>>
     implements PathInterpolator<I> {
 
   @Option(secure=true, description="whether or not to perform path slicing before interpolation")

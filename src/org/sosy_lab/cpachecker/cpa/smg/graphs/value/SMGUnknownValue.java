@@ -115,5 +115,10 @@ public final class SMGUnknownValue implements SMGSymbolicValue, SMGExplicitValue
   public String asDotId() {
     return "UNKNOWN";
   }
+
+  @Override
+  public BigInteger getId() {
+    throw new IllegalStateException("Can't get Value of an Unknown Value.");
+  }
 }
 

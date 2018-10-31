@@ -24,44 +24,53 @@
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
+import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
+import org.sosy_lab.cpachecker.util.refinement.InterpolantManager;
 
-public class SMGInterpolantManager {
+public class SMGInterpolantManager
+    implements InterpolantManager<Collection<SMGState>, SMGInterpolant> {
 
-  private final LogManager logger;
-  private final MachineModel model;
   private final SMGInterpolant initalInterpolant;
 
-  public SMGInterpolantManager(MachineModel pModel, LogManager pLogger, CFA pCfa, SMGOptions options) {
-    logger = pLogger;
-    model = pModel;
-    initalInterpolant = SMGInterpolant.createInitial(logger, model, pCfa.getMainFunction(), options);
+  public SMGInterpolantManager(LogManager pLogger, CFA pCfa, SMGOptions options)
+      throws SMGInconsistentException {
+    initalInterpolant =
+        SMGInterpolant.createInitial(
+            pLogger, pCfa.getMachineModel(), pCfa.getMainFunction(), options);
   }
 
+  @Override
   public SMGInterpolant createInitialInterpolant() {
     return initalInterpolant;
   }
 
-  public SMGInterpolant createInterpolant(UnmodifiableSMGState pState) {
-    return new SMGInterpolant(ImmutableSet.of(pState));
+  @Override
+  public SMGInterpolant createInterpolant(Collection<SMGState> pStates) {
+    return new SMGInterpolant(pStates);
   }
 
+  @Override
+  public SMGInterpolant getTrueInterpolant() {
+    return new SMGInterpolant(Collections.emptySet());
+  }
+
+  @Override
   public SMGInterpolant getFalseInterpolant() {
     return SMGInterpolant.getFalseInterpolant();
-  }
-
-  public SMGInterpolant getTrueInterpolant(SMGInterpolant pTemplate) {
-    return SMGInterpolant.getTrueInterpolant(pTemplate);
   }
 
   public SMGInterpolant createInterpolant(
       UnmodifiableSMGState pState, Set<SMGAbstractionBlock> pAbstractionBlocks) {
     return new SMGInterpolant(ImmutableSet.of(pState), pAbstractionBlocks);
   }
+
 }

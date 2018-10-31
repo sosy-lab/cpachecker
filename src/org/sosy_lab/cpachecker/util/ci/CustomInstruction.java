@@ -78,7 +78,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -191,10 +191,10 @@ public class CustomInstruction{
   }
 
   /**
-   * Returns the (fake!) SMT description which is a
-   * conjunctions of output variables and predicates (IVj = 0) for each input variable j.
-   * Note that this is prefix notation!
-   * @return (define-fun aci Bool((and (= IV1 0) (and (= IV2 0) (and OV1 OV2))))
+   * Returns the (fake!) SMT description which is a conjunctions of output variables and predicates
+   * (IVj = 0) for each input variable j. Note that this is prefix notation!
+   *
+   * @return (define-fun ci Bool((and (= IV1 0) (and (= IV2 0) (and OV1 OV2))))
    */
   public Pair<List<String>, String> getFakeSMTDescription() {
     if (inputVariables.size() == 0 && outputVariables.size() == 0) {
@@ -239,7 +239,7 @@ public class CustomInstruction{
       }
     }
 
-    for (int i=0; i<BracketCounter+1; i++) { // +1 because of the Bracket of define-fun ci Bool(...)
+    for (int i=0; i<BracketCounter+1; i++) { // +1 because of the Bracket of (define-fun ci Bool ...)
       sb.append(")");
     }
 
@@ -355,7 +355,7 @@ public class CustomInstruction{
 
     SSAMapBuilder ssaMapBuilder = SSAMap.emptySSAMap().builder();
     for (String var : outVariables) {
-      ssaMapBuilder.setIndex(var,new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false), 1);
+      ssaMapBuilder.setIndex(var, CNumericTypes.INT, 1);
     }
 
     List<String> inVars = getVariablesOrdered(mapping, inputVariables);

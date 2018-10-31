@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.Partition;
@@ -55,7 +55,7 @@ public class BDDPointerCompressExpressionVisitor extends BDDCompressExpressionVi
     ExplicitLocationSet explicitSet = null;
     try {
       explicitSet = BDDTransferRelation.getLocationsForLhs(pointerInfo, e);
-    } catch (UnrecognizedCCodeException exception) {
+    } catch (UnrecognizedCodeException exception) {
       throw new AssertionError(exception);
     }
 

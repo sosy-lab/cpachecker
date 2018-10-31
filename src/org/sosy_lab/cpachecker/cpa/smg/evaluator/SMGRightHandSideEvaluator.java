@@ -37,11 +37,13 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smg.SMGBuiltins;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
+import org.sosy_lab.cpachecker.cpa.smg.SMGExportDotOption;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
@@ -57,7 +59,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * The class {@link SMGExpressionEvaluator} is meant to evaluate
@@ -70,19 +72,24 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
  */
 public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
-  final SMGTransferRelation smgTransferRelation;
   private final SMGOptions options;
+  private final SMGTransferRelationKind kind;
+  public final SMGBuiltins builtins;
 
-  public SMGRightHandSideEvaluator(SMGTransferRelation pSmgTransferRelation,
-      LogManagerWithoutDuplicates pLogger, MachineModel pMachineModel, SMGOptions pOptions) {
+  public SMGRightHandSideEvaluator(
+      LogManagerWithoutDuplicates pLogger,
+      MachineModel pMachineModel,
+      SMGOptions pOptions,
+      SMGTransferRelationKind pKind,
+      SMGExportDotOption exportSMGOptions) {
     super(pLogger, pMachineModel);
-    smgTransferRelation = pSmgTransferRelation;
     options = pOptions;
+    kind = pKind;
+    builtins = new SMGBuiltins(this, options, exportSMGOptions, machineModel, logger);
   }
 
-  public SMGExplicitValueAndState forceExplicitValue(SMGState smgState,
-      CFAEdge pCfaEdge, CRightHandSide rVal)
-      throws UnrecognizedCCodeException {
+  public SMGExplicitValueAndState forceExplicitValue(
+      SMGState smgState, CFAEdge pCfaEdge, CRightHandSide rVal) throws UnrecognizedCodeException {
 
     ForceExplicitValueVisitor v =
         new ForceExplicitValueVisitor(
@@ -107,9 +114,9 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
   }
 
   @Override
-  public SMGValueAndState readValue(SMGState pSmgState, SMGObject pObject,
-      SMGExplicitValue pOffset, CType pType, CFAEdge pEdge)
-      throws SMGInconsistentException, UnrecognizedCCodeException {
+  public SMGValueAndState readValue(
+      SMGState pSmgState, SMGObject pObject, SMGExplicitValue pOffset, CType pType, CFAEdge pEdge)
+      throws SMGInconsistentException, UnrecognizedCodeException {
 
     if (pOffset.isUnknown() || pObject == null) {
       SMGState errState =
@@ -173,7 +180,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       CType pRValueType,
       SMGSymbolicValue pValue,
       CFAEdge pEdge)
-      throws SMGInconsistentException, UnrecognizedCCodeException {
+      throws SMGInconsistentException, UnrecognizedCodeException {
 
     // FIXME Does not work with variable array length.
     // TODO: write value with bit precise size
@@ -230,7 +237,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       long fieldOffset,
       SMGSymbolicValue value,
       CType rValueType)
-      throws UnrecognizedCCodeException, SMGInconsistentException {
+      throws UnrecognizedCodeException, SMGInconsistentException {
 
     int sizeOfField = getBitSizeof(cfaEdge, rValueType, newState);
 
@@ -262,7 +269,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       CType pRValueType,
       SMGSymbolicValue pValue,
       CFAEdge pCfaEdge)
-      throws SMGInconsistentException, UnrecognizedCCodeException {
+      throws SMGInconsistentException, UnrecognizedCodeException {
 
     if (pValue instanceof SMGKnownAddressValue) {
       SMGKnownAddressValue structAddress = (SMGKnownAddressValue) pValue;
@@ -326,12 +333,12 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
   @Override
   PointerVisitor getPointerVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
-    return new RHSPointerAddressVisitor(this, pCfaEdge, pNewState);
+    return new RHSPointerAddressVisitor(this, pCfaEdge, pNewState, kind);
   }
 
   @Override
   ExpressionValueVisitor getExpressionValueVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
-    return new RHSExpressionValueVisitor(this, smgTransferRelation.builtins, pCfaEdge, pNewState);
+    return new RHSExpressionValueVisitor(this, builtins, pCfaEdge, pNewState, kind);
   }
 
   @Override
@@ -342,7 +349,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
   @Override
   RHSCSizeOfVisitor getSizeOfVisitor(
       CFAEdge pEdge, SMGState pState, Optional<CExpression> pExpression) {
-    return new RHSCSizeOfVisitor(this, smgTransferRelation, pEdge, pState, pExpression);
+    return new RHSCSizeOfVisitor(this, pEdge, pState, pExpression, kind);
   }
 
   @Override

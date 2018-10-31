@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import java.util.HashSet;
 import java.util.List;
@@ -42,7 +43,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGGenericAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
 
 final class SMGJoinTargetObjects {
   private SMGJoinStatus status;
@@ -52,57 +52,53 @@ final class SMGJoinTargetObjects {
   private final UnmodifiableSMG inputSMG2;
   private SMG destSMG;
   private SMGValue value;
-  private SMGNodeMapping mapping1;
-  private SMGNodeMapping mapping2;
+  @VisibleForTesting final SMGNodeMapping mapping1;
+  @VisibleForTesting final SMGNodeMapping mapping2;
 
   private List<SMGGenericAbstractionCandidate> abstractionCandidates;
 
-  private static boolean matchOffsets(SMGJoinTargetObjects pJto, SMGEdgePointsTo pt1, SMGEdgePointsTo pt2) {
+  private boolean matchOffsets(SMGEdgePointsTo pt1, SMGEdgePointsTo pt2) {
     if (pt1.getOffset() != pt2.getOffset()) {
-      pJto.defined = false;
-      pJto.recoverable = true;
+      defined = false;
+      recoverable = true;
       return true;
     }
 
     return false;
   }
 
-  private static boolean checkAlreadyJoined(
-      SMGJoinTargetObjects pJto,
-      SMGObject pObj1,
-      SMGObject pObj2,
-      SMGValue pAddress1,
-      SMGValue pAddress2) {
+  private boolean checkAlreadyJoined(
+      SMGObject pObj1, SMGObject pObj2, SMGValue pAddress1, SMGValue pAddress2) {
     if ((pObj1 == SMGNullObject.INSTANCE && pObj2 == SMGNullObject.INSTANCE)
-        || (pJto.mapping1.containsKey(pObj1)
-            && pJto.mapping2.containsKey(pObj2)
-            && pJto.mapping1.get(pObj1) == pJto.mapping2.get(pObj2))) {
-      SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(pJto.inputSMG1, pJto.inputSMG2, pJto.destSMG, pJto.mapping1,
-                                                        pJto.mapping2, pAddress1,
-                                                        pAddress2);
-      pJto.defined = true;
-      pJto.destSMG = mta.getSMG();
-      pJto.mapping1 = mta.getMapping1();
-      pJto.mapping2 = mta.getMapping2();
-      pJto.value = mta.getValue();
+        || (mapping1.containsKey(pObj1)
+            && mapping2.containsKey(pObj2)
+            && mapping1.get(pObj1) == mapping2.get(pObj2))) {
+      SMGJoinMapTargetAddress mta =
+          new SMGJoinMapTargetAddress(
+              inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pAddress1, pAddress2);
+      defined = true;
+      destSMG = mta.getSMG();
+      value = mta.getValue();
       return true;
     }
 
     return false;
   }
 
-  private static boolean checkObjectMatch(SMGJoinTargetObjects pJto, SMGObject pObj1, SMGObject pObj2) {
-    SMGJoinMatchObjects mo = new SMGJoinMatchObjects(pJto.status, pJto.inputSMG1, pJto.inputSMG2, pJto.mapping1, pJto.mapping2, pObj1, pObj2);
+  private boolean checkObjectMatch(SMGObject pObj1, SMGObject pObj2) {
+    SMGJoinMatchObjects mo =
+        new SMGJoinMatchObjects(status, inputSMG1, inputSMG2, mapping1, mapping2, pObj1, pObj2);
     if (! mo.isDefined()) {
-      pJto.defined = false;
-      pJto.recoverable = true;
+      defined = false;
+      recoverable = true;
       return true;
     }
 
-    pJto.status = mo.getStatus();
+    status = mo.getStatus();
     return false;
   }
 
+  /** Algorithm 6 from FIT-TR-2012-04 */
   public SMGJoinTargetObjects(
       SMGJoinStatus pStatus,
       UnmodifiableSMG pSMG1,
@@ -131,13 +127,15 @@ final class SMGJoinTargetObjects {
     SMGEdgePointsTo pt1 = inputSMG1.getPointer(pAddress1);
     SMGEdgePointsTo pt2 = inputSMG2.getPointer(pAddress2);
 
-    if(pLevel1 - pLevel2 != ldiff) {
+    // Algorithm 6 from FIT-TR-2012-04, line 1
+    if (pLevel1 - pLevel2 != ldiff) {
       defined = false;
       recoverable = true;
       return;
     }
 
-    if (SMGJoinTargetObjects.matchOffsets(this, pt1, pt2)) {
+    // Algorithm 6 from FIT-TR-2012-04, line 1
+    if (matchOffsets(pt1, pt2)) {
       abstractionCandidates = ImmutableList.of();
       return;
     }
@@ -145,12 +143,15 @@ final class SMGJoinTargetObjects {
     SMGObject target1 = pt1.getObject();
     SMGObject target2 = pt2.getObject();
 
-    if (SMGJoinTargetObjects.checkAlreadyJoined(this, target1, target2, pAddress1, pAddress2)) {
+    // Algorithm 6 from FIT-TR-2012-04, line 2
+    if (checkAlreadyJoined(target1, target2, pAddress1, pAddress2)) {
       abstractionCandidates = ImmutableList.of();
       return;
     }
 
-    if (target1.getKind() != target2.getKind() && mapping1.containsKey(target1)
+    // Algorithm 6 from FIT-TR-2012-04, line 5
+    if (target1.getKind() != target2.getKind()
+        && mapping1.containsKey(target1)
         && mapping2.containsKey(target2)
         && !mapping1.get(target1).equals(mapping2.get(target2))) {
       recoverable = true;
@@ -158,6 +159,7 @@ final class SMGJoinTargetObjects {
       return;
     }
 
+    // Algorithm 6 from FIT-TR-2012-04, line 4
     if (target1.getKind() == target2.getKind()
         && pt1.getTargetSpecifier() != pt2.getTargetSpecifier()) {
       recoverable = true;
@@ -165,12 +167,15 @@ final class SMGJoinTargetObjects {
       return;
     }
 
-    if (SMGJoinTargetObjects.checkObjectMatch(this, target1, target2)) {
+    // Algorithm 6 from FIT-TR-2012-04, line 6
+    if (checkObjectMatch(target1, target2)) {
       abstractionCandidates = ImmutableList.of();
       return;
     }
 
-    SMGObject newObject = target1.join(target2, pLevelMapping.get(SMGJoinLevel.valueOf(pLevel1, pLevel2)));
+    // Algorithm 6 from FIT-TR-2012-04, line 7
+    SMGObject newObject =
+        target1.join(target2, pLevelMapping.get(SMGJoinLevel.valueOf(pLevel1, pLevel2)));
 
     if (destSMG instanceof CLangSMG) {
       ((CLangSMG)destSMG).addHeapObject(newObject);
@@ -180,17 +185,19 @@ final class SMGJoinTargetObjects {
 
     destSMG.setValidity(newObject, inputSMG1.isObjectValid(target1));
 
+    // Algorithm 6 from FIT-TR-2012-04, line 11
     delayedJoin(target1, target2, newObject);
 
+    // Algorithm 6 from FIT-TR-2012-04, line 12
     mapping1.map(target1, newObject);
     mapping2.map(target2, newObject);
 
+    // Algorithm 6 from FIT-TR-2012-04, line 13
     SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pAddress1, pAddress2);
     destSMG = mta.getSMG();
-    mapping1 = mta.getMapping1();
-    mapping2 = mta.getMapping2();
     value = mta.getValue();
 
+    // Algorithm 6 from FIT-TR-2012-04, line 14
     SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, inputSMG1, inputSMG2, destSMG,
         mapping1, mapping2, pLevelMapping,
         target1, target2, newObject, ldiff, identicalInputSmgs, pSmgState1, pSmgState2);
@@ -260,9 +267,8 @@ final class SMGJoinTargetObjects {
 
     for (SMGEdgeHasValue hve : hves) {
       SMGValue val = hve.getValue();
-
-      // FIXME: require to identify why offsets are mixed with values
-      if (!restricted.contains(val.getAsLong()) && !val.isZero()) {
+      // TODO what does this code? why do we have restricted offsets?
+      if (!restricted.contains(hve.getOffset()) && !val.isZero()) {
 
         if (destSMG.isPointer(val)) {
           SMGObject reachedObject = destSMG.getPointer(val).getObject();
@@ -333,10 +339,6 @@ final class SMGJoinTargetObjects {
     return destSMG;
   }
 
-  public SMGNodeMapping getMapping1() {
-    return mapping1;
-  }
-
   public SMGValue getValue() {
     return value;
   }
@@ -347,10 +349,6 @@ final class SMGJoinTargetObjects {
 
   public UnmodifiableSMG getInputSMG2() {
     return inputSMG2;
-  }
-
-  public SMGNodeMapping getMapping2() {
-    return mapping2;
   }
 
   public List<SMGGenericAbstractionCandidate> getAbstractionCandidates() {

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.value.symbolic;
 
 import java.util.Optional;
-
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -51,7 +50,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -261,7 +259,7 @@ public class CExpressionTransformer extends ExpressionTransformer
   }
 
   private SymbolicExpression evaluateToValue(final CExpression pExpression)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     ExpressionValueVisitor valueVisitor = getValueVisitor(valueState);
     MemoryLocation memLoc = valueVisitor.evaluateMemoryLocation(pExpression);

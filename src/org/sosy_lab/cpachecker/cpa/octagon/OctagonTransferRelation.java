@@ -102,8 +102,8 @@ import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonDoubleValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonIntValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonNumericValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -241,7 +241,8 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
       return handleAssumption(cfaEdge, ((CCastExpression) expression).getOperand(), truthAssumption);
 
     } else {
-      throw new UnrecognizedCCodeException("Unknown expression type in assumption", cfaEdge, expression);
+      throw new UnrecognizedCodeException(
+          "Unknown expression type in assumption", cfaEdge, expression);
     }
   }
 
@@ -899,7 +900,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
     } else if (exprOnSummary instanceof CFunctionCallStatement) {
 
     } else {
-      throw new UnrecognizedCCodeException("on function return", cfaEdge, exprOnSummary);
+      throw new UnrecognizedCodeException("on function return", cfaEdge, exprOnSummary);
     }
 
     return Collections.singleton(state.removeLocalVars(calledFunctionName));
@@ -987,7 +988,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
       if (fn instanceof CIdExpression) {
         String func = ((CIdExpression)fn).getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
-          throw new UnsupportedCCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
+          throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
         }
       }
     }
@@ -1035,7 +1036,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
 
     }
 
-    throw new UnrecognizedCCodeException("unknown statement", cfaEdge, statement);
+    throw new UnrecognizedCodeException("unknown statement", cfaEdge, statement);
   }
 
   private MemoryLocation buildVarName(CLeftHandSide left, String pFunctionName) {

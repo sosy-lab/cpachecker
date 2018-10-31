@@ -36,15 +36,18 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import java.io.Serializable;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public final class ExpressionTrees {
 
@@ -140,9 +143,9 @@ public final class ExpressionTrees {
 
   public static <LeafType> boolean isConstant(ExpressionTree<LeafType> pExpressionTree) {
     @SuppressWarnings("unchecked")
-    ExpressionTreeVisitor<LeafType, Boolean, RuntimeException> visitor =
-        (ExpressionTreeVisitor<LeafType, Boolean, RuntimeException>)
-            new DefaultExpressionTreeVisitor<Object, Boolean, RuntimeException>() {
+    ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
+        (ExpressionTreeVisitor<LeafType, Boolean, NoException>)
+            new DefaultExpressionTreeVisitor<Object, Boolean, NoException>() {
 
               @Override
               protected Boolean visitDefault(ExpressionTree<Object> pExprTree) {
@@ -164,9 +167,9 @@ public final class ExpressionTrees {
 
   public static <LeafType> boolean isLeaf(ExpressionTree<LeafType> pExpressionTree) {
     @SuppressWarnings("unchecked")
-    ExpressionTreeVisitor<LeafType, Boolean, RuntimeException> visitor =
-        (ExpressionTreeVisitor<LeafType, Boolean, RuntimeException>)
-            new DefaultExpressionTreeVisitor<Object, Boolean, RuntimeException>() {
+    ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
+        (ExpressionTreeVisitor<LeafType, Boolean, NoException>)
+            new DefaultExpressionTreeVisitor<Object, Boolean, NoException>() {
 
               @Override
               protected Boolean visitDefault(ExpressionTree<Object> pExprTree) {
@@ -193,9 +196,9 @@ public final class ExpressionTrees {
 
   public static <LeafType> boolean isOr(ExpressionTree<LeafType> pExpressionTree) {
     @SuppressWarnings("unchecked")
-    ExpressionTreeVisitor<LeafType, Boolean, RuntimeException> visitor =
-        (ExpressionTreeVisitor<LeafType, Boolean, RuntimeException>)
-            new DefaultExpressionTreeVisitor<Object, Boolean, RuntimeException>() {
+    ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
+        (ExpressionTreeVisitor<LeafType, Boolean, NoException>)
+            new DefaultExpressionTreeVisitor<Object, Boolean, NoException>() {
 
               @Override
               protected Boolean visitDefault(ExpressionTree<Object> pExprTree) {
@@ -212,9 +215,9 @@ public final class ExpressionTrees {
 
   public static <LeafType> boolean isAnd(ExpressionTree<LeafType> pExpressionTree) {
     @SuppressWarnings("unchecked")
-    ExpressionTreeVisitor<LeafType, Boolean, RuntimeException> visitor =
-        (ExpressionTreeVisitor<LeafType, Boolean, RuntimeException>)
-            new DefaultExpressionTreeVisitor<Object, Boolean, RuntimeException>() {
+    ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
+        (ExpressionTreeVisitor<LeafType, Boolean, NoException>)
+            new DefaultExpressionTreeVisitor<Object, Boolean, NoException>() {
 
               @Override
               protected Boolean visitDefault(ExpressionTree<Object> pExprTree) {
@@ -229,11 +232,44 @@ public final class ExpressionTrees {
     return pExpressionTree.accept(visitor);
   }
 
+  public static <LeafType> Iterable<ExpressionTree<LeafType>> traverseRecursively(
+      ExpressionTree<LeafType> pExpressionTree) {
+    return new Iterable<ExpressionTree<LeafType>>() {
+
+      @Override
+      public Iterator<ExpressionTree<LeafType>> iterator() {
+
+        return new Iterator<ExpressionTree<LeafType>>() {
+
+          private final Deque<ExpressionTree<LeafType>> stack = new ArrayDeque<>();
+
+          {
+            stack.push(pExpressionTree);
+          }
+
+          @Override
+          public boolean hasNext() {
+            return !stack.isEmpty();
+          }
+
+          @Override
+          public ExpressionTree<LeafType> next() {
+            ExpressionTree<LeafType> next = stack.pop();
+            for (ExpressionTree<LeafType> child : getChildren(next)) {
+              stack.push(child);
+            }
+            return next;
+          }
+        };
+      }
+    };
+  }
+
   public static <LeafType> boolean isInCNF(ExpressionTree<LeafType> pExpressionTree) {
     @SuppressWarnings("unchecked")
-    ExpressionTreeVisitor<LeafType, Boolean, RuntimeException> visitor =
-        (ExpressionTreeVisitor<LeafType, Boolean, RuntimeException>)
-            new ExpressionTreeVisitor<Object, Boolean, RuntimeException>() {
+    ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
+        (ExpressionTreeVisitor<LeafType, Boolean, NoException>)
+            new ExpressionTreeVisitor<Object, Boolean, NoException>() {
 
               @Override
               public Boolean visit(And<Object> pAnd) {
@@ -279,9 +315,9 @@ public final class ExpressionTrees {
 
   public static <LeafType> boolean isInDNF(ExpressionTree<LeafType> pExpressionTree) {
     @SuppressWarnings("unchecked")
-    ExpressionTreeVisitor<LeafType, Boolean, RuntimeException> visitor =
-        (ExpressionTreeVisitor<LeafType, Boolean, RuntimeException>)
-            new ExpressionTreeVisitor<Object, Boolean, RuntimeException>() {
+    ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
+        (ExpressionTreeVisitor<LeafType, Boolean, NoException>)
+            new ExpressionTreeVisitor<Object, Boolean, NoException>() {
 
               @Override
               public Boolean visit(And<Object> pAnd) {
@@ -441,7 +477,7 @@ public final class ExpressionTrees {
     return FluentIterable.from(
         pExpressionTree.accept(
             new DefaultExpressionTreeVisitor<
-                LeafType, Iterable<ExpressionTree<LeafType>>, RuntimeException>() {
+                LeafType, Iterable<ExpressionTree<LeafType>>, NoException>() {
 
               @Override
               protected Iterable<ExpressionTree<LeafType>> visitDefault(
@@ -471,7 +507,7 @@ public final class ExpressionTrees {
 
       private final Map<
               Set<ExpressionTree<LeafType>>,
-              ExpressionTreeVisitor<LeafType, ExpressionTree<LeafType>, RuntimeException>>
+              ExpressionTreeVisitor<LeafType, ExpressionTree<LeafType>, NoException>>
           simplificationVisitors = Maps.newHashMap();
 
       @Override
@@ -497,7 +533,7 @@ public final class ExpressionTrees {
       final Set<ExpressionTree<LeafType>> pExternalKnowledge,
       final Map<
               Set<ExpressionTree<LeafType>>,
-              ExpressionTreeVisitor<LeafType, ExpressionTree<LeafType>, RuntimeException>>
+              ExpressionTreeVisitor<LeafType, ExpressionTree<LeafType>, NoException>>
           pVisitors,
       final ExpressionTreeFactory<LeafType> pFactory,
       final boolean pThorough) {
@@ -514,15 +550,14 @@ public final class ExpressionTrees {
         return getFalse();
       }
     }
-    ExpressionTreeVisitor<LeafType, ExpressionTree<LeafType>, RuntimeException> visitor =
+    ExpressionTreeVisitor<LeafType, ExpressionTree<LeafType>, NoException> visitor =
         pVisitors.get(pExternalKnowledge);
     if (visitor == null) {
       visitor =
-          new CachingVisitor<LeafType, ExpressionTree<LeafType>, RuntimeException>() {
+          new CachingVisitor<LeafType, ExpressionTree<LeafType>, NoException>() {
 
             @Override
-            public ExpressionTree<LeafType> cacheMissAnd(And<LeafType> pAnd)
-                throws RuntimeException {
+            public ExpressionTree<LeafType> cacheMissAnd(And<LeafType> pAnd) {
               List<ExpressionTree<LeafType>> operands = Lists.newLinkedList(pAnd);
               boolean changedGlobally = false;
               boolean changed = false;
@@ -595,7 +630,7 @@ public final class ExpressionTrees {
             }
 
             @Override
-            public ExpressionTree<LeafType> cacheMissOr(Or<LeafType> pOr) throws RuntimeException {
+            public ExpressionTree<LeafType> cacheMissOr(Or<LeafType> pOr) {
 
               Iterator<ExpressionTree<LeafType>> opIt = pOr.iterator();
               if (opIt.hasNext()) {
@@ -736,18 +771,18 @@ public final class ExpressionTrees {
             }
 
             @Override
-            public ExpressionTree<LeafType> cacheMissLeaf(LeafExpression<LeafType> pLeafExpression)
-                throws RuntimeException {
+            public ExpressionTree<LeafType> cacheMissLeaf(
+                LeafExpression<LeafType> pLeafExpression) {
               return pLeafExpression;
             }
 
             @Override
-            public ExpressionTree<LeafType> cacheMissTrue() throws RuntimeException {
+            public ExpressionTree<LeafType> cacheMissTrue() {
               return getTrue();
             }
 
             @Override
-            public ExpressionTree<LeafType> cacheMissFalse() throws RuntimeException {
+            public ExpressionTree<LeafType> cacheMissFalse() {
               return getFalse();
             }
           };
@@ -766,8 +801,8 @@ public final class ExpressionTrees {
             return convert(pTree, pLeafConverter);
           }
         };
-    ExpressionTreeVisitor<S, ExpressionTree<T>, RuntimeException> converter =
-        new CachingVisitor<S, ExpressionTree<T>, RuntimeException>() {
+    ExpressionTreeVisitor<S, ExpressionTree<T>, NoException> converter =
+        new CachingVisitor<S, ExpressionTree<T>, NoException>() {
 
           @Override
           public ExpressionTree<T> cacheMissAnd(And<S> pAnd) {
@@ -940,16 +975,16 @@ public final class ExpressionTrees {
       @SuppressWarnings("unchecked")
       int typeOrder1 =
           pO1.accept(
-              (ExpressionTreeVisitor<LeafType, Integer, RuntimeException>) TYPE_ORDER_VISITOR);
+              (ExpressionTreeVisitor<LeafType, Integer, NoException>) TYPE_ORDER_VISITOR);
       @SuppressWarnings("unchecked")
       int typeOrder2 =
           pO2.accept(
-              (ExpressionTreeVisitor<LeafType, Integer, RuntimeException>) TYPE_ORDER_VISITOR);
+              (ExpressionTreeVisitor<LeafType, Integer, NoException>) TYPE_ORDER_VISITOR);
       final int typeOrderComp = Integer.compare(typeOrder1, typeOrder2);
       final Ordering<Iterable<ExpressionTree<LeafType>>> lexicographicalOrdering =
           Ordering.from(this).lexicographical();
       return pO1.accept(
-          new CachingVisitor<LeafType, Integer, RuntimeException>() {
+          new CachingVisitor<LeafType, Integer, NoException>() {
 
             @Override
             protected Integer cacheMissAnd(And<LeafType> pAnd) {
@@ -1004,8 +1039,8 @@ public final class ExpressionTrees {
 
   }
 
-  private static final ExpressionTreeVisitor<Object, Integer, RuntimeException> TYPE_ORDER_VISITOR =
-      new ExpressionTreeVisitor<Object, Integer, RuntimeException>() {
+  private static final ExpressionTreeVisitor<Object, Integer, NoException> TYPE_ORDER_VISITOR =
+      new ExpressionTreeVisitor<Object, Integer, NoException>() {
 
         @Override
         public Integer visitFalse() {

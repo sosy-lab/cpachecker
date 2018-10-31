@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.value;
 
-import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
@@ -34,12 +33,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
  * represent 0 in all possible types as well as the address of the {@link SMGNullObject}.
  */
 public interface SMGValue extends Comparable<SMGValue> {
-
-  BigInteger getValue();
-
-  int getAsInt();
-
-  long getAsLong();
 
   /**
    * For efficiency and performance we define an ordering on SMGValues. The ordering is as follows:
@@ -77,8 +70,7 @@ public interface SMGValue extends Comparable<SMGValue> {
       if (other.isUnknown() || other.isZero()) {
         return 1;
       } else if (other instanceof SMGExplicitValue) {
-        return Integer.compare(
-            ((SMGExplicitValue) this).getAsInt(), ((SMGExplicitValue) other).getAsInt());
+        return ((SMGExplicitValue) this).getValue().compareTo(((SMGExplicitValue) other).getValue());
       } else {
         return -1;
       }
@@ -89,8 +81,7 @@ public interface SMGValue extends Comparable<SMGValue> {
       if (other.isUnknown() || other.isZero() || !(other instanceof SMGSymbolicValue)) {
         return 1;
       } else {
-        return Integer.compare(
-            ((SMGSymbolicValue) this).getAsInt(), ((SMGSymbolicValue) other).getAsInt());
+        return ((SMGSymbolicValue) this).getId().compareTo(((SMGSymbolicValue) other).getId());
       }
     }
 
@@ -109,6 +100,6 @@ public interface SMGValue extends Comparable<SMGValue> {
     return SMGUnknownValue.INSTANCE == this;
   }
 
-  /** returns a unique identifier that can be used as dot-identifier for graphviw. */
+  /** returns a unique identifier that can be used as dot-identifier for graphvis. */
   String asDotId();
 }

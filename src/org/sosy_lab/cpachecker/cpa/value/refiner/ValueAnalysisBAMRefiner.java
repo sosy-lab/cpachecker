@@ -32,8 +32,7 @@ public abstract class ValueAnalysisBAMRefiner implements Refiner {
 
   public static Refiner create(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    return BAMBasedRefiner.forARGBasedRefiner(
-        ValueAnalysisRefiner.create(pCpa).asARGBasedRefiner(), pCpa);
+    return BAMBasedRefiner.forARGBasedRefiner(ValueAnalysisRefiner.create0(pCpa), pCpa);
   }
 
 }
