@@ -31,6 +31,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -47,10 +48,10 @@ public class HybridAnalysisState implements
     LatticeAbstractState<HybridAnalysisState>,
     AbstractStateWithAssumptions {
 
-    // private Set<HybridValue> definitiveVars; 
     private ImmutableSet<CBinaryExpression> assumptions;
 
-    // TODO: define varibale cache 
+    // varibale cache 
+    private ImmutableSet<CIdExpression> trackedVariables;
 
     public HybridAnalysisState() {
         this(Collections.emptySet());
@@ -59,6 +60,12 @@ public class HybridAnalysisState implements
     public HybridAnalysisState(Set<CExpression> assumptions) {
         this.assumptions = ImmutableSet.copyOf(
             CollectionUtils.ofType(assumptions, CBinaryExpression.class));
+        
+        trackedVariables = ImmutableSet.copyOf(
+            this.assumptions
+                .stream()
+                .map(expression -> (CIdExpression) expression.getOperand1())
+                .collect(Collectors.toSet()));
     }
 
     private HybridAnalysisState(Collection<CExpression> assumptions)

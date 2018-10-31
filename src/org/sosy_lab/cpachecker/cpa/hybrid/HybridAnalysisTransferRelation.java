@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.hybrid;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -124,7 +123,6 @@ public class HybridAnalysisTransferRelation
       return HybridAnalysisState.copyOf(state);
     }
 
-    //TODO: use ImmutableSet.builder
     Set<CBinaryExpression> assumptions = Sets.newHashSet(state.getExplicitAssumptions());
     CBinaryExpression binaryExpression = (CBinaryExpression) expression;
     CExpression firstOperand = binaryExpression.getOperand1();
