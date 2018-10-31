@@ -35,4 +35,9 @@ public class StateTest {
     public void joinTest() {
 
     }
+
+    @Test
+    public void equalsTest() {
+        
+    }
 }

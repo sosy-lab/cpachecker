@@ -90,6 +90,12 @@ public final class CollectionUtils
         return getApplyingElements(collection, pred).size() == count(collection);
     }
 
+    /**
+     * Gets all elements of the specified collection, that fulfill the predicate
+     * @param collection The respective collection of elements
+     * @param pred The respective predicate to check ech element for
+     * @return A collection containing all elements that the predicate applies for
+     */
     public static  <T> Collection<T> getApplyingElements(Iterable<T> collection, Predicate<T> pred) {
         Collection<T> resultCollection = new LinkedList<>();
 

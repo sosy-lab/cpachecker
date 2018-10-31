@@ -128,4 +128,23 @@ public class HybridAnalysisState implements
         return ImmutableSet.copyOf(assumptions);
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if(obj == null || !(obj instanceof HybridAnalysisState)) {
+            return false;
+        }
+
+        if(obj == this) {
+            return true;
+        }
+
+        HybridAnalysisState other = (HybridAnalysisState) obj;
+        return this.assumptions.equals(other.assumptions);
+    }
+
+    @Override
+    public int hashCode() {
+        return assumptions.hashCode();
+    }
+
 }

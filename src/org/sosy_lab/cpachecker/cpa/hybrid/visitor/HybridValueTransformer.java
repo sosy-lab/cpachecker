@@ -36,6 +36,11 @@ public class HybridValueTransformer implements HybridValueVisitor<CExpression, C
 
     @Override
     public CExpression visit(HybridValue pValue, CDeclaration declaration) {
+        
+        if(pValue instanceof ConstantValue) {
+            return visit((ConstantValue) pValue, declaration);
+        }
+
         return null;
     }
 

@@ -24,7 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.hybrid.value;
 
 import com.google.errorprone.annotations.Immutable;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
+
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 
 /** This class represents a hybrid value that will never change over the complete program flow. */
 @Immutable
@@ -32,21 +34,19 @@ public final class ConstantValue extends HybridValue {
 
     private static final long serialVersionUID = 1L;
 
-    public ConstantValue(Value value)
-    {
-        super(value);
-    }
-
     @Override
-    public boolean isUnknown()
-    {
+    public boolean isNumericValue() {
         return false;
     }
 
     @Override
-    public boolean isExplicitlyKnown() 
-    {
-        return true;
+    public NumericValue asNumericValue() {
+        return null;
+    }
+
+    @Override
+    public Long asLong(CType pType) {
+      return null;
     }
 
 }

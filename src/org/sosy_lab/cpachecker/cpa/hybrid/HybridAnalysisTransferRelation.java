@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.hybrid;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -47,8 +48,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueProvider;
-import org.sosy_lab.cpachecker.cpa.hybrid.exception.InvalidAssumptionException;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.CollectionUtils;
+import org.sosy_lab.cpachecker.cpa.hybrid.util.ExpressionUtils;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.StrengthenOperatorFactory;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
 import org.sosy_lab.cpachecker.cpa.hybrid.visitor.HybridValueTransformer;
@@ -56,7 +57,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class HybridAnalysisTransferRelation
     extends ForwardingTransferRelation<HybridAnalysisState, HybridAnalysisState, VariableTrackingPrecision> {
-    
 
   private final CFA cfa;
   private final LogManager logger;
@@ -124,6 +124,7 @@ public class HybridAnalysisTransferRelation
       return HybridAnalysisState.copyOf(state);
     }
 
+    //TODO: use ImmutableSet.builder
     Set<CBinaryExpression> assumptions = Sets.newHashSet(state.getExplicitAssumptions());
     CBinaryExpression binaryExpression = (CBinaryExpression) expression;
     CExpression firstOperand = binaryExpression.getOperand1();
@@ -144,7 +145,8 @@ public class HybridAnalysisTransferRelation
       assumptions.remove(existingAssumption);
     } 
 
-    assumptions.add(binaryExpression);
+    // possible inversion of logical operation
+    assumptions.add(ExpressionUtils.getASTWithTruthAssumption(cfaEdge, binaryExpression));
 
     return new HybridAnalysisState(ImmutableSet.copyOf(assumptions));
   }

@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid.util;
 
-import java.util.Optional;
-
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -41,22 +39,17 @@ public final class ExpressionUtils {
 
     /**
      * Calculate the Expression including the truthAssumption
-     * @param edge The respective AssumptionEdge of the cfa
+     * @param cfaEdge The respective AssumptionEdge of the cfa
+     * @param expression The already casted expression contained withing the edge
      * @return the (possibly inverted Expression), if the Expression provided by the edge is of type CBinaryExpression,
      *         else an empty Optional
      */
-    public static Optional<CBinaryExpression> getASTWithTruthAssumption(AssumeEdge edge) {
-        // expression is of the wrong type
-        if(!(edge.getExpression() instanceof CBinaryExpression)) {
-            return Optional.empty();
-        }
+    public static CBinaryExpression getASTWithTruthAssumption(AssumeEdge cfaEdge, CBinaryExpression expression) {
 
-        CBinaryExpression expression = (CBinaryExpression) edge.getExpression();
-
-        if(!edge.getTruthAssumption()) {
+        if(!cfaEdge.getTruthAssumption()) {
 
             // operator inversion is needed
-            BinaryOperator newOperator = invertOperator(expression.getOperator());
+            BinaryOperator newOperator = expression.getOperator().getOppositLogicalOperator();
 
             expression = new CBinaryExpression(
                 expression.getFileLocation(), 
@@ -67,7 +60,7 @@ public final class ExpressionUtils {
                 newOperator);
         }
 
-        return Optional.of(expression);
+        return expression;
     }
 
     /**
@@ -75,26 +68,17 @@ public final class ExpressionUtils {
      * @param operator The respective operator
      * @return The inverted operator, if a logical operator is given, else null
      */
+    @Deprecated
     public static @Nullable BinaryOperator invertOperator(BinaryOperator operator) {
 
-        // arithmetic operators cannot be inverted
         switch(operator) {
-            case MULTIPLY      : // fall-through
-            case DIVIDE        :
-            case MODULO        :
-            case PLUS          :
-            case MINUS         :
-            case SHIFT_LEFT    :
-            case SHIFT_RIGHT   :
-            case BINARY_AND    :
-            case BINARY_OR     :
-            case BINARY_XOR    : return null;
             case LESS_THAN     : return BinaryOperator.GREATER_EQUAL;
             case GREATER_THAN  : return BinaryOperator.LESS_EQUAL;
             case LESS_EQUAL    : return BinaryOperator.GREATER_THAN;
             case GREATER_EQUAL : return BinaryOperator.LESS_THAN;
             case EQUALS        : return BinaryOperator.NOT_EQUALS;
             case NOT_EQUALS    : return BinaryOperator.EQUALS;
+            // arithmetic operators cannot be inverted
             default            : return null;
         }
     }
@@ -104,6 +88,7 @@ public final class ExpressionUtils {
      * @param operator The respective operator
      * @return true if the operator is a logical operator, else false
      */
+    @Deprecated
     public static boolean isLogicalOperator(BinaryOperator operator) {
         return operator == BinaryOperator.GREATER_EQUAL
             || operator == BinaryOperator.LESS_EQUAL

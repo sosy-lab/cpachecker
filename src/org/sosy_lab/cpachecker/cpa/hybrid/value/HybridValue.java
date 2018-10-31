@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid.value;
 
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.ValueVisitor;
 
@@ -33,46 +31,18 @@ public abstract class HybridValue implements Value {
 
     private static final long serialVersionUID = 1L;
 
-    protected final Value value;
-
-    public HybridValue(Value value)
-    {
-        this.value = value;
-    }
-
-    @Override
-    public boolean isNumericValue() {
-        return value.isNumericValue();
-    }
-
     @Override
     public boolean isUnknown() {
-        return value.isUnknown();
+        return false;
     }
 
     @Override
     public boolean isExplicitlyKnown() {
-        return value.isExplicitlyKnown();
-    }
-
-    @Override
-    public NumericValue asNumericValue() {
-        return value.asNumericValue();
-    }
-
-    @Override
-    public Long asLong(CType pType) {
-        return value.asLong(pType);
+        return true;
     }
 
     @Override
     public <T> T accept(ValueVisitor<T> pVisitor) {
         return pVisitor.visit(this);
     }
-
-    public Value getInnerValue()
-    {
-        return value;
-    }
-
 }
