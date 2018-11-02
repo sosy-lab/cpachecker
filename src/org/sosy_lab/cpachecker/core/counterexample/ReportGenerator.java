@@ -54,6 +54,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.JSON;
@@ -74,6 +75,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -626,29 +628,30 @@ public class ReportGenerator {
 
   /** Build ARG data for all ARG states in the reached set. */
   private void buildArgGraphData(UnmodifiableReachedSet reached) {
-      reached.asCollection().forEach(entry -> {
-        int parentStateId = ((ARGState) entry).getStateId();
-        for (CFANode node : AbstractStates.extractLocations(entry)) {
-          if (!argNodes.containsKey(parentStateId)) {
-            createArgNode(parentStateId, node, (ARGState) entry, false);
-          }
-          if (!((ARGState) entry).getChildren().isEmpty()) {
-            for (ARGState child : ((ARGState) entry).getChildren()) {
-              int childStateId = child.getStateId();
-              // Covered state is not contained in the reached set
-              if (child.isCovered()) {
-                String label =
-                    child.toDOTLabel().length() > 2
-                        ? child.toDOTLabel().substring(0, child.toDOTLabel().length() - 2)
-                        : "";
-                createCoveredArgNode(childStateId, child, label);
-                createCoveredArgEdge(childStateId, child.getCoveringState().getStateId());
-              }
-              createArgEdge(parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child), false);
+    for (AbstractState entry : reached.asCollection()) {
+      int parentStateId = ((ARGState) entry).getStateId();
+      for (CFANode node : AbstractStates.extractLocations(entry)) {
+        if (!argNodes.containsKey(parentStateId)) {
+          argNodes.put(parentStateId, createArgNode(parentStateId, node, (ARGState) entry));
+        }
+        if (!((ARGState) entry).getChildren().isEmpty()) {
+          for (ARGState child : ((ARGState) entry).getChildren()) {
+            int childStateId = child.getStateId();
+            // Covered state is not contained in the reached set
+            if (child.isCovered()) {
+              String label = child.toDOTLabel();
+              label = label.length() > 2 ? label.substring(0, label.length() - 2) : "";
+              createCoveredArgNode(childStateId, child, label);
+              createCoveredArgEdge(childStateId, child.getCoveringState().getStateId());
             }
+            argEdges.put(
+                parentStateId + "->" + childStateId,
+                createArgEdge(
+                    parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child)));
           }
         }
-      });
+      }
+    }
   }
 
   /** Build ARG data for all relevant/important ARG states in the reached set. */
@@ -657,28 +660,31 @@ public class ReportGenerator {
         ARGUtils.projectARG(
             (ARGState) reached.getFirstState(), ARGState::getChildren, ARGUtils.RELEVANT_STATE);
 
-      relevantSetMultimap.asMap().entrySet().forEach(entry -> {
-        ARGState parent = entry.getKey();
-        Collection<ARGState> children = entry.getValue();
-        for (CFANode node : AbstractStates.extractLocations(parent)) {
-          if (!argRelevantNodes.containsKey(parent.getStateId())) {
-            createArgNode(parent.getStateId(), node, parent, true);
-          }
+    for (Entry<ARGState, Collection<ARGState>> entry : relevantSetMultimap.asMap().entrySet()) {
+      ARGState parent = entry.getKey();
+      Collection<ARGState> children = entry.getValue();
+      int parentStateId = parent.getStateId();
+      for (CFANode node : AbstractStates.extractLocations(parent)) {
+        if (!argRelevantNodes.containsKey(parentStateId)) {
+          argRelevantNodes.put(parentStateId, createArgNode(parentStateId, node, parent));
         }
+      }
 
-        for(ARGState child : children){
-          int childStateId = child.getStateId();
-          for (CFANode node : AbstractStates.extractLocations(child)) {
-            if (!argRelevantNodes.containsKey(childStateId)) {
-              createArgNode(childStateId, node, child, true);
-            }
-            createArgEdge(parent.getStateId(), childStateId, child.getEdgesToChild(child), true);
+      for (ARGState child : children) {
+        int childStateId = child.getStateId();
+        for (CFANode node : AbstractStates.extractLocations(child)) {
+          if (!argRelevantNodes.containsKey(childStateId)) {
+            argRelevantNodes.put(childStateId, createArgNode(childStateId, node, child));
           }
+          argRelevantEdges.put(
+              parentStateId + "->" + childStateId,
+              createArgEdge(parentStateId, childStateId, parent.getEdgesToChild(child)));
         }
-      });
+      }
+    }
   }
 
-  private void createArgNode(int parentStateId, CFANode node, ARGState argState, boolean relevant) {
+  private Map<String, Object> createArgNode(int parentStateId, CFANode node, ARGState argState) {
     String dotLabel =
         argState.toDOTLabel().length() > 2
             ? argState.toDOTLabel().substring(0, argState.toDOTLabel().length() - 2)
@@ -690,18 +696,14 @@ public class ReportGenerator {
         "label",
         parentStateId
             + " @ "
-            + node.toString()
+            + node
             + "\n"
             + node.getFunctionName()
             + nodeTypeInNodeLabel(node)
             + "\n"
             + dotLabel);
     argNode.put("type", determineNodeType(argState));
-    if(relevant){
-      argRelevantNodes.put(parentStateId, argNode);
-    } else {
-      argNodes.put(parentStateId, argNode);
-    }
+    return argNode;
   }
 
   private String determineNodeType(ARGState argState) {
@@ -727,7 +729,7 @@ public class ReportGenerator {
             "label",
             childStateId
                 + " @ "
-                + coveredNode.toString()
+                + coveredNode
                 + "\n"
                 + coveredNode.getFunctionName()
                 + nodeTypeInNodeLabel(coveredNode)
@@ -747,7 +749,8 @@ public class ReportGenerator {
     argEdges.put("" + coveringStateId + "->" + parentStateId, coveredEdge);
   }
 
-  private void createArgEdge(int parentStateId, int childStateId, List<CFAEdge> edges, boolean relevant) {
+  private Map<String, Object> createArgEdge(
+      int parentStateId, int childStateId, List<CFAEdge> edges) {
     Map<String, Object> argEdge = new HashMap<>();
     argEdge.put("source", parentStateId);
     argEdge.put("target", childStateId);
@@ -787,11 +790,7 @@ public class ReportGenerator {
       argEdge.put("file", edges.get(0).getFileLocation().getFileName());
     }
     argEdge.put("label", edgeLabel.toString());
-    if(relevant){
-      argRelevantEdges.put("" + parentStateId + "->" + childStateId, argEdge);
-    } else {
-      argEdges.put("" + parentStateId + "->" + childStateId, argEdge);
-    }
+    return argEdge;
   }
 
   // Add the node type (if it is entry or exit) to the node label
