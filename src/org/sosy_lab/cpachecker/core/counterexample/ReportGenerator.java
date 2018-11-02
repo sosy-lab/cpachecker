@@ -156,12 +156,11 @@ public class ReportGenerator {
       return;
     }
 
-    buildArgGraphData(pReached);
-
-    SetMultimap<ARGState, ARGState> simplifiedSuccessorRelation =
-        ARGUtils.projectARG((ARGState) pReached.getFirstState(), ARGState::getChildren,ARGUtils.RELEVANT_STATE);
-    buildRelevantArgGraphData(simplifiedSuccessorRelation);
-
+    // we cannot export the graph for some special analyses, e.g., termination analysis
+    if (!pReached.isEmpty() && pReached.getFirstState() instanceof ARGState) {
+      buildArgGraphData(pReached);
+      buildRelevantArgGraphData(pReached);
+    }
 
     DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
     PrintStream console = System.out;
@@ -625,9 +624,8 @@ public class ReportGenerator {
     }
   }
 
-  // Build ARG data only if the reached states are ARGStates
+  /** Build ARG data for all ARG states in the reached set. */
   private void buildArgGraphData(UnmodifiableReachedSet reached) {
-    if (!reached.isEmpty() && reached.getFirstState() instanceof ARGState) {
       reached.asCollection().forEach(entry -> {
         int parentStateId = ((ARGState) entry).getStateId();
         for (CFANode node : AbstractStates.extractLocations(entry)) {
@@ -651,11 +649,14 @@ public class ReportGenerator {
           }
         }
       });
-    }
   }
 
-  // Build ARG data only if the reached states are ARGStates
-  private void buildRelevantArgGraphData(SetMultimap<ARGState, ARGState> relevantSetMultimap) {
+  /** Build ARG data for all relevant/important ARG states in the reached set. */
+  private void buildRelevantArgGraphData(UnmodifiableReachedSet reached) {
+    SetMultimap<ARGState, ARGState> relevantSetMultimap =
+        ARGUtils.projectARG(
+            (ARGState) reached.getFirstState(), ARGState::getChildren, ARGUtils.RELEVANT_STATE);
+
       relevantSetMultimap.asMap().entrySet().forEach(entry -> {
         ARGState parent = entry.getKey();
         Collection<ARGState> children = entry.getValue();
