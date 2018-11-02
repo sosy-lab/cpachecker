@@ -656,7 +656,6 @@ public class ReportGenerator {
 
   // Build ARG data only if the reached states are ARGStates
   private void buildRelevantArgGraphData(SetMultimap<ARGState, ARGState> relevantSetMultimap) {
-    if (relevantSetMultimap.values().iterator().next() instanceof ARGState) {
       relevantSetMultimap.asMap().entrySet().forEach(entry -> {
         ARGState parent = entry.getKey();
         Collection<ARGState> children = entry.getValue();
@@ -676,7 +675,6 @@ public class ReportGenerator {
           }
         }
       });
-    }
   }
 
   private void createArgNode(int parentStateId, CFANode node, ARGState argState, boolean relevant) {
