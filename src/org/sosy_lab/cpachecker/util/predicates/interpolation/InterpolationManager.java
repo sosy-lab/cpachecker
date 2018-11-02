@@ -859,8 +859,39 @@ public final class InterpolationManager {
       // which formulas need to be removed from the solver stack,
       // and which formulas need to be added to the solver stack
       ListIterator<Triple<BooleanFormula, AbstractState, Integer>> todoIterator = traceFormulas.listIterator();
-      ListIterator<Triple<BooleanFormula, AbstractState, T>> assertedIterator = currentlyAssertedFormulas.listIterator();
+      int firstBadIndex =
+          getIndexOfFirstNonReusableFormula(formulasWithStatesAndGroupdIds, todoIterator);
 
+      // now remove the formulas from the solver stack where necessary
+      cleanupSolverStack(firstBadIndex);
+
+      // push new formulas onto the solver stack
+      addNewFormulasToStack(formulasWithStatesAndGroupdIds, todoIterator);
+
+      assert Iterables.elementsEqual(
+          from(traceFormulas).transform(Triple::getFirst),
+          from(currentlyAssertedFormulas).transform(Triple::getFirst));
+
+      // we have to do the sat check every time, as it could be that also
+      // with incremental checking it was missing (when the path is infeasible
+      // and formulas get pushed afterwards)
+      return itpProver.isUnsat();
+    }
+
+    /**
+     * For optimization we try to share the solver stack between different solver calls. Before
+     * pushing a new set of formulas, we need to determine all old formulas that need to be popped
+     * from the solver stack.
+     *
+     * @param formulasWithStatesAndGroupdIds the new sorted collection of formulas, with indizes
+     * @param todoIterator iterator from the new collection of formulas, is the new starting point
+     */
+    private int getIndexOfFirstNonReusableFormula(
+        final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
+        ListIterator<Triple<BooleanFormula, AbstractState, Integer>> todoIterator) {
+
+      ListIterator<Triple<BooleanFormula, AbstractState, T>> assertedIterator =
+          currentlyAssertedFormulas.listIterator();
       int firstBadIndex = -1; // index of first mis-matching formula in both lists
 
       while (assertedIterator.hasNext()) {
@@ -884,8 +915,15 @@ public final class InterpolationManager {
           break;
         }
       }
+      return firstBadIndex;
+    }
 
-      // now remove the formulas from the solver stack where necessary
+    /**
+     * Remove some old formulas from the solvers stack.
+     *
+     * @param firstBadIndex index of level from where to remove all old formulas
+     */
+    private void cleanupSolverStack(int firstBadIndex) {
       if (firstBadIndex == -1) {
         // solver stack was already empty, nothing do to
 
@@ -901,8 +939,7 @@ public final class InterpolationManager {
         // list with all formulas on solver stack that we need to remove
         // (= remaining formulas in currentlyAssertedFormulas list)
         List<Triple<BooleanFormula, AbstractState, T>> toDeleteFormulas =
-            currentlyAssertedFormulas.subList(firstBadIndex,
-                                              currentlyAssertedFormulas.size());
+            currentlyAssertedFormulas.subList(firstBadIndex, currentlyAssertedFormulas.size());
 
         // remove formulas from solver stack
         for (int i = 0; i < toDeleteFormulas.size(); i++) {
@@ -912,7 +949,19 @@ public final class InterpolationManager {
 
         reusedFormulasOnSolverStack += currentlyAssertedFormulas.size();
       }
+    }
 
+    /**
+     * Push all new formulas onto the solver stack. If some of them were already pushed earlier,
+     * ignore them.
+     *
+     * @param formulasWithStatesAndGroupdIds the new sorted collection of formulas, with indizes
+     * @param todoIterator iterator from the new collection of formulas, is the new starting point
+     */
+    private void addNewFormulasToStack(
+        final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
+        ListIterator<Triple<BooleanFormula, AbstractState, Integer>> todoIterator)
+        throws SolverException, InterruptedException {
       boolean isStillFeasible = true;
 
       // we do only need this unsat call here if we are using the incremental
@@ -930,10 +979,10 @@ public final class InterpolationManager {
 
         assert formulasWithStatesAndGroupdIds.get(index) == null;
         T itpGroupId = itpProver.push(f);
-        final Triple<BooleanFormula, AbstractState, T> assertedFormula = Triple.of(f, state, itpGroupId);
+        final Triple<BooleanFormula, AbstractState, T> assertedFormula =
+            Triple.of(f, state, itpGroupId);
         formulasWithStatesAndGroupdIds.set(index, assertedFormula);
         currentlyAssertedFormulas.add(assertedFormula);
-
 
         // We need to iterate through the full loop
         // to add all formulas, but this prevents us from doing further sat checks.
@@ -941,15 +990,6 @@ public final class InterpolationManager {
           isStillFeasible = !itpProver.isUnsat();
         }
       }
-
-      assert Iterables.elementsEqual(
-          from(traceFormulas).transform(Triple::getFirst),
-          from(currentlyAssertedFormulas).transform(Triple::getFirst));
-
-      // we have to do the sat check every time, as it could be that also
-      // with incremental checking it was missing (when the path is infeasible
-      // and formulas get pushed afterwards)
-      return itpProver.isUnsat();
     }
 
     private void close() {
