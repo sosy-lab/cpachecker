@@ -35,6 +35,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
 import java.io.BufferedReader;
@@ -48,6 +49,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -74,6 +76,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 @Options
@@ -114,6 +117,8 @@ public class ReportGenerator {
   private final ImmutableList<String> sourceFiles;
   private final Map<Integer, Object> argNodes;
   private final Map<String, Object> argEdges;
+  private final Map<String, Object> argRelevantEdges;
+  private final Map<Integer, Object> argRelevantNodes;
 
   public ReportGenerator(
       Configuration pConfig,
@@ -128,6 +133,8 @@ public class ReportGenerator {
     sourceFiles = pSourceFiles;
     argNodes = new HashMap<>();
     argEdges = new HashMap<>();
+    argRelevantEdges = new HashMap<>();
+    argRelevantNodes = new HashMap<>();
   }
 
   public void generate(CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
@@ -150,6 +157,12 @@ public class ReportGenerator {
     }
 
     buildArgGraphData(pReached);
+
+    SetMultimap<ARGState, ARGState> simplifiedSuccessorRelation =
+        ARGUtils.projectARG((ARGState) pReached.getFirstState(), ARGState::getChildren,ARGUtils.RELEVANT_STATE);
+    buildRelevantArgGraphData(simplifiedSuccessorRelation);
+
+
     DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
     PrintStream console = System.out;
     if (counterExamples.isEmpty()) {
@@ -287,6 +300,13 @@ public class ReportGenerator {
         JSON.writeJSONString(argNodes.values(), writer);
         writer.write(",\n\"edges\":");
         JSON.writeJSONString(argEdges.values(), writer);
+        writer.write("\n");
+      }
+      if(!argRelevantEdges.isEmpty() && !argRelevantNodes.isEmpty()){
+        writer.write(",\n\"relevantnodes\":");
+        JSON.writeJSONString(argRelevantNodes.values(), writer);
+        writer.write(",\n\"relevantedges\":");
+        JSON.writeJSONString(argRelevantEdges.values(), writer);
         writer.write("\n");
       }
       writer.write("}\n");
@@ -612,7 +632,7 @@ public class ReportGenerator {
         int parentStateId = ((ARGState) entry).getStateId();
         for (CFANode node : AbstractStates.extractLocations(entry)) {
           if (!argNodes.containsKey(parentStateId)) {
-            createArgNode(parentStateId, node, (ARGState) entry);
+            createArgNode(parentStateId, node, (ARGState) entry, false);
           }
           if (!((ARGState) entry).getChildren().isEmpty()) {
             for (ARGState child : ((ARGState) entry).getChildren()) {
@@ -626,7 +646,7 @@ public class ReportGenerator {
                 createCoveredArgNode(childStateId, child, label);
                 createCoveredArgEdge(childStateId, child.getCoveringState().getStateId());
               }
-              createArgEdge(parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child));
+              createArgEdge(parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child), false);
             }
           }
         }
@@ -634,7 +654,32 @@ public class ReportGenerator {
     }
   }
 
-  private void createArgNode(int parentStateId, CFANode node, ARGState argState) {
+  // Build ARG data only if the reached states are ARGStates
+  private void buildRelevantArgGraphData(SetMultimap<ARGState, ARGState> relevantSetMultimap) {
+    if (relevantSetMultimap.values().iterator().next() instanceof ARGState) {
+      relevantSetMultimap.asMap().entrySet().forEach(entry -> {
+        ARGState parent = entry.getKey();
+        Collection<ARGState> children = entry.getValue();
+        for (CFANode node : AbstractStates.extractLocations(parent)) {
+          if (!argRelevantNodes.containsKey(parent.getStateId())) {
+            createArgNode(parent.getStateId(), node, parent, true);
+          }
+        }
+
+        for(ARGState child : children){
+          int childStateId = child.getStateId();
+          for (CFANode node : AbstractStates.extractLocations(child)) {
+            if (!argRelevantNodes.containsKey(childStateId)) {
+              createArgNode(childStateId, node, child, true);
+            }
+            createArgEdge(parent.getStateId(), childStateId, child.getEdgesToChild(child), true);
+          }
+        }
+      });
+    }
+  }
+
+  private void createArgNode(int parentStateId, CFANode node, ARGState argState, boolean relevant) {
     String dotLabel =
         argState.toDOTLabel().length() > 2
             ? argState.toDOTLabel().substring(0, argState.toDOTLabel().length() - 2)
@@ -653,7 +698,11 @@ public class ReportGenerator {
             + "\n"
             + dotLabel);
     argNode.put("type", determineNodeType(argState));
-    argNodes.put(parentStateId, argNode);
+    if(relevant){
+      argRelevantNodes.put(parentStateId, argNode);
+    } else {
+      argNodes.put(parentStateId, argNode);
+    }
   }
 
   private String determineNodeType(ARGState argState) {
@@ -699,7 +748,7 @@ public class ReportGenerator {
     argEdges.put("" + coveringStateId + "->" + parentStateId, coveredEdge);
   }
 
-  private void createArgEdge(int parentStateId, int childStateId, List<CFAEdge> edges) {
+  private void createArgEdge(int parentStateId, int childStateId, List<CFAEdge> edges, boolean relevant) {
     Map<String, Object> argEdge = new HashMap<>();
     argEdge.put("source", parentStateId);
     argEdge.put("target", childStateId);
@@ -739,7 +788,11 @@ public class ReportGenerator {
       argEdge.put("file", edges.get(0).getFileLocation().getFileName());
     }
     argEdge.put("label", edgeLabel.toString());
-    argEdges.put("" + parentStateId + "->" + childStateId, argEdge);
+    if(relevant){
+      argRelevantEdges.put("" + parentStateId + "->" + childStateId, argEdge);
+    } else {
+      argEdges.put("" + parentStateId + "->" + childStateId, argEdge);
+    }
   }
 
   // Add the node type (if it is entry or exit) to the node label
