@@ -60,6 +60,7 @@ public class LockReducer extends GenericReducer<AbstractLockState, SingletonPrec
     } else if (aggressiveReduction) {
       builder.reduceLockCounters(new HashSet<>());
       AbstractLockState reducedState = builder.build();
+      builder.expand(pExpandedElement);
       builder.expandLockCounters(pExpandedElement, new HashSet<>());
       assert builder.build().equals(pExpandedElement);
       return reducedState;
