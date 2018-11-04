@@ -71,7 +71,6 @@ public class DomainSpecificAbstraction<T> {
   private final Timer feasibilityCheckTimer;
   private final Timer maximisationTimer;
   LogManager logger;
-  private HashMap<String, List<FormulaType>> fullLatticeNamesTypes = new HashMap<>();
   private HashMap<String, FormulaType> latticeNamesTypes = new HashMap<>();
 
   public DomainSpecificAbstraction(/*ShutdownNotifier pShutdownNotifier, */
@@ -1575,7 +1574,7 @@ public class DomainSpecificAbstraction<T> {
       boolean isIncomparable = false;
       helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
-      String latticenames_h = new String();
+      String latticenames_h = null;
       //int latticeindex = latticeNames.length + 1;
 
       /*logger.log(Level.WARNING, "Showing LatticeNames: ");
@@ -1945,7 +1944,7 @@ public class DomainSpecificAbstraction<T> {
         if (isFeasible){
           hasFeasibleSuccessor = true;
           for (int m = 0; m < latticeNames.length; m++){
-            if (!latticenames_h.isEmpty() && !(latticenames_h == null) &&!latticenames_h.contains
+            if (!latticenames_h.isEmpty()  &&!latticenames_h.contains
                 (latticeNames[m])){
               middleElement[middleElemIndex] = latticenames_h + " ," + latticeNames[m];
               latticenames_h = middleElement[middleElemIndex];
@@ -1976,12 +1975,12 @@ public class DomainSpecificAbstraction<T> {
             formulas */);
 
       }
-      else {
+     /* else {
         maximumFeasibleAbstraction = StringtoIntegerFormulaList
             (/*fullLatticeNames[placeinlattice], fullLatticeNamesTypes.get
-                    (fullLatticeNames[placeinlattice]) */ latticenames_h, formulaTypes
-                /*, formulas */);
-      }
+                    (fullLatticeNames[placeinlattice]) */ /*latticenames_h, formulaTypes */
+                /*, formulas */ /*);
+      } */
 
     } else {
       int counter = 0;
@@ -2068,7 +2067,7 @@ public class DomainSpecificAbstraction<T> {
     if (input.equals("root")){
       return Collections.emptyList();
     }
-    if (input == null || input.isEmpty()){
+    if (input.isEmpty()){
       return Collections.emptyList();
     }
     String[] helperArray = new String[2];
