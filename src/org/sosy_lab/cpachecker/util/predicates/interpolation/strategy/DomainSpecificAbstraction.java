@@ -25,12 +25,10 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
-import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import java.util.ArrayList;
 import java.util.logging.Level;
@@ -38,7 +36,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointRoundingModeFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -52,7 +49,6 @@ import org.sosy_lab.java_smt.api.SolverException;
 import com.google.common.base.Splitter;
 import java.util.Map;
 import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 
 

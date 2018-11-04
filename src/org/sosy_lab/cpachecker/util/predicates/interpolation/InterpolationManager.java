@@ -728,7 +728,7 @@ public final class InterpolationManager {
 
             my_solver.close();
             //return my_interpolants;
-            if (interpolantList != null && !(interpolantList.isEmpty())) {
+            if (!(interpolantList.isEmpty())) {
               // logger.log(Level.WARNING, "InterpolantList in InterpolationManager:", interpolantList
               //     .toString
               //     ());
