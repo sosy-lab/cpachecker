@@ -1266,14 +1266,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   /** {@inheritDoc} */
   @Override
   public Formula makeFormulaForVariable(
-      SSAMap pContextSSA,
-      PointerTargetSet pContextPTS,
-      String pVarName,
-      CType pType,
-      boolean forcePointerDereference) {
+      SSAMap pContextSSA, PointerTargetSet pContextPTS, String pVarName, CType pType) {
     Preconditions.checkArgument(!(pType instanceof CFunctionType));
 
-    Expression e = makeFormulaForVariable(pVarName, pType, pContextPTS, forcePointerDereference);
+    Expression e = makeFormulaForVariable(pVarName, pType, pContextPTS, false);
 
     SSAMapBuilder ssa = pContextSSA.builder();
     Formula formula;

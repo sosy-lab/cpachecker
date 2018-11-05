@@ -496,15 +496,10 @@ public class CtoFormulaConverter {
    * @param pContextPTS the PointerTargetSet which should be used for formula generation
    * @param pVarName the name of the variable
    * @param pType the type of the variable
-   * @param forcePointerDereference (only used in CToFormulaConverterWithPointerAliasing)
    * @return the created formula
    */
   public Formula makeFormulaForVariable(
-      SSAMap pContextSSA,
-      PointerTargetSet pContextPTS,
-      String pVarName,
-      CType pType,
-      boolean forcePointerDereference) {
+      SSAMap pContextSSA, PointerTargetSet pContextPTS, String pVarName, CType pType) {
     Preconditions.checkArgument(!(pType instanceof CEnumType));
 
     SSAMapBuilder ssa = pContextSSA.builder();

@@ -83,20 +83,18 @@ public interface PathFormulaManager {
   PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException;
 
   /**
-   * Takes a variable name and its type to create the corresponding formula out of it. The
-   * <code>pContext</code> is used to supply this method with the necessary {@link SSAMap}
-   * and (if necessary) the {@link PointerTargetSet}. The variable is assumed not to be a
-   * function parameter, i.e. array won't be treated as pointer variable, but as a constant representing
+   * Takes a variable name and its type to create the corresponding formula out of it. The <code>
+   * pContext</code> is used to supply this method with the necessary {@link SSAMap} and (if
+   * necessary) the {@link PointerTargetSet}. The variable is assumed not to be a function
+   * parameter, i.e. array won't be treated as pointer variable, but as a constant representing
    * starting address of the array.
    *
    * @param pContext the context in which the variable should be created
    * @param pVarName the name of the variable
    * @param pType the type of the variable
-   * @param forcePointerDereference force the formula to make a pointer dereference (e.g. *UF main:x)
    * @return the created formula, which is always <b>instantiated</b>
    */
-  Formula makeFormulaForVariable(
-      PathFormula pContext, String pVarName, CType pType, boolean forcePointerDereference);
+  Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType);
 
   /**
    * Takes a variable name and its type to create the corresponding formula out of it, without
