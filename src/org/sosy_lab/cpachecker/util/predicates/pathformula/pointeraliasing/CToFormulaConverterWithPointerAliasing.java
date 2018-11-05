@@ -1233,9 +1233,37 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return super.makeVariable(pName, pType, pSsa);
   }
 
-  /**
-   * {@inheritDoc}
-   */
+  /** {@inheritDoc} */
+  @Override
+  public Formula makeFormulaForUninstantiatedVariable(
+      String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
+    Preconditions.checkArgument(!(pType instanceof CFunctionType));
+
+    Expression e = makeFormulaForVariable(pVarName, pType, pContextPTS, forcePointerDereference);
+
+    Formula formula;
+
+    if (e.isValue()) {
+      formula = e.asValue().getValue();
+    } else if (e.isAliasedLocation()) {
+      MemoryRegion region = e.asAliasedLocation().getMemoryRegion();
+      if (region == null) {
+        region = regionMgr.makeMemoryRegion(pType);
+      }
+      checkIsSimplified(pType);
+      final String ufName = regionMgr.getPointerAccessName(region);
+      final FormulaType<?> returnType = getFormulaTypeFromCType(pType);
+      formula =
+          ptsMgr.makePointerDereference(ufName, returnType, e.asAliasedLocation().getAddress());
+
+    } else {
+      formula = makeConstant(e.asUnaliasedLocation().getVariableName(), pType);
+    }
+
+    return formula;
+  }
+
+  /** {@inheritDoc} */
   @Override
   public Formula makeFormulaForVariable(
       SSAMap pContextSSA,

@@ -155,6 +155,16 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
+  public Formula makeFormulaForUninstantiatedVariable(
+      String pVarName,
+      CType pType,
+      PointerTargetSet pContextPTS,
+      boolean pForcePointerDereference) {
+    return delegate.makeFormulaForUninstantiatedVariable(
+        pVarName, pType, pContextPTS, pForcePointerDereference);
+  }
+
+  @Override
   public PathFormula makeAnd(PathFormula pPathFormula, BooleanFormula pOtherFormula) {
     return delegate.makeAnd(pPathFormula, pOtherFormula);
   }

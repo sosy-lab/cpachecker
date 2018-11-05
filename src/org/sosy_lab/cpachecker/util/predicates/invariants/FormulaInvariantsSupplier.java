@@ -107,13 +107,11 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
   private static class AddPointerInformationVisitor extends FormulaTransformationVisitor {
 
     private final PathFormula context;
-    private final FormulaManagerView fmgr;
     private final PathFormulaManager pfgmr;
 
     protected AddPointerInformationVisitor(
         FormulaManagerView pFmgr, PathFormula pContext, PathFormulaManager pPfmgr) {
       super(pFmgr);
-      fmgr = pFmgr;
       pfgmr = pPfmgr;
       context = pContext;
     }
@@ -121,9 +119,11 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
     @Override
     public Formula visitFreeVariable(Formula atom, String varName) {
       if (context.getPointerTargetSet().isActualBase(varName)) {
-        return fmgr.uninstantiate(
-            pfgmr.makeFormulaForVariable(
-                context, varName, context.getPointerTargetSet().getBases().get(varName), false));
+        return pfgmr.makeFormulaForUninstantiatedVariable(
+            varName,
+            context.getPointerTargetSet().getBases().get(varName),
+            context.getPointerTargetSet(),
+            false);
       } else {
         SSAMap ssa = context.getSsa();
 
@@ -137,8 +137,8 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
             CType type = ((CPointerType) ssa.getType(unwrappedVarName)).getType();
             atom =
-                fmgr.uninstantiate(
-                    pfgmr.makeFormulaForVariable(context, unwrappedVarName, type, true));
+                pfgmr.makeFormulaForUninstantiatedVariable(
+                    unwrappedVarName, type, context.getPointerTargetSet(), true);
             return atom;
           }
           // Variable needs to be eliminated later

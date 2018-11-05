@@ -373,7 +373,13 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         forcePointerDereference);
   }
 
-
+  /** {@inheritDoc} */
+  @Override
+  public Formula makeFormulaForUninstantiatedVariable(
+      String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
+    return converter.makeFormulaForUninstantiatedVariable(
+        pVarName, pType, pContextPTS, forcePointerDereference);
+  }
 
   /**
    * Build a formula containing a predicate for all branching situations in the

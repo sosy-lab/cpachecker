@@ -191,14 +191,17 @@ public class PredicatePrecisionManager {
         }
 
         BitvectorFormula var1 =
-            (BitvectorFormula) pPfmgr.makeFormulaForVariable(unprimedContext, name1, type1, false);
+            (BitvectorFormula)
+                pPfmgr.makeFormulaForUninstantiatedVariable(
+                    name1, type1, unprimedContext.getPointerTargetSet(), false);
         BitvectorFormula var2 =
-            (BitvectorFormula) pPfmgr.makeFormulaForVariable(unprimedContext, name2, type2, false);
+            (BitvectorFormula)
+                pPfmgr.makeFormulaForUninstantiatedVariable(
+                    name2, type2, unprimedContext.getPointerTargetSet(), false);
 
         // Variables are both signed or both unsigned.
         boolean areVarsSigned = pCFA.getMachineModel().isSigned((CSimpleType) type1);
-        BooleanFormula var1LessThanVar2 =
-            fmgr.uninstantiate(bvfmgr.lessThan(var1, var2, areVarsSigned));
+        BooleanFormula var1LessThanVar2 = bvfmgr.lessThan(var1, var2, areVarsSigned);
         AbstractionPredicate newPredicate = pamgr.getPredicateFor(var1LessThanVar2);
         stats.numberOfInitialPredicates++;
         addPredicate(newPredicate);

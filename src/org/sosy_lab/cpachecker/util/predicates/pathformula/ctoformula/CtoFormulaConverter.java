@@ -471,9 +471,26 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * Takes a variable name and its type and create the corresponding formula out of it. The
-   * <code>pContextSSA</code> is used to supply this method with the necessary {@link SSAMap}
-   * and (if necessary) the {@link PointerTargetSet} can be supplied via <code>pContextPTS</code>.
+   * Takes a variable name and its type and create the corresponding formula out of it, without
+   * adding SSA indices.
+   *
+   * @param pVarName the name of the variable
+   * @param pType the type of the variable
+   * @param pContextPTS the PointerTargetSet which should be used for formula generation
+   * @param forcePointerDereference (only used in CToFormulaConverterWithPointerAliasing)
+   * @return the created formula
+   */
+  public Formula makeFormulaForUninstantiatedVariable(
+      String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
+    Preconditions.checkArgument(!(pType instanceof CEnumType));
+
+    return makeConstant(pVarName, pType);
+  }
+
+  /**
+   * Takes a variable name and its type and create the corresponding formula out of it. The <code>
+   * pContextSSA</code> is used to supply this method with the necessary {@link SSAMap} and (if
+   * necessary) the {@link PointerTargetSet} can be supplied via <code>pContextPTS</code>.
    *
    * @param pContextSSA the SSAMap indices from which the variable should be created
    * @param pContextPTS the PointerTargetSet which should be used for formula generation
