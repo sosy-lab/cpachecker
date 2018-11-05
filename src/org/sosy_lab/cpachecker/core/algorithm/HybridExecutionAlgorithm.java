@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -51,6 +52,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+
+import apron.NotImplementedException;
 
 /**
  * This class implements a CPA algorithm based on the idea of concolic execution
@@ -69,6 +72,9 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
 
     @Option(secure=true, name="useValueSets", description="Wether to use multiple values on a state")
     private boolean useValueSets = false;
+
+    @Option(secure=true, name="useBFS", description="Wether to use bfs as search strategy rather than dfs")
+    private boolean useBFS = false;
 
     private final Algorithm algorithm;
     private final ARGCPA argCPA;
@@ -106,7 +112,8 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
             notifier,
             unbounded,
             dfsMaxDepth,
-            useValueSets);
+            useValueSets,
+            useBFS);
       } catch (InvalidConfigurationException e) {
         // this is a bad place to catch an exception
         logger.log(Level.SEVERE, e.getMessage());
@@ -130,8 +137,45 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
 
   private final boolean unbounded;
   private int dfsMaxDepth;
+
+  // we could run the search with several values satisfying certain conditions to achieve a broader coverage
+  // this must be experimental validated (in theory it is very easy to find several variable values for a specific state that will later on lead to different executions)
+  /*
+   * here we might have the precondition, that y is never less than 1 (meaning, there is no path through the code that might lead to y being smaller than 1)
+   * int calc(int x, int y) {
+   *  int result = 0;
+   *  if(x <= 0) {
+   *    return 0; // we want the calculated value to never be smaller than 0
+   *  }
+   *  
+   *  result = x * y; 
+   *  if(result > x) {
+   *    // at this point, we know that y must have been greater than 1
+   *    return result; 
+   *  }
+   * 
+   *  return x * predefinedConstant; // so if y was actually 1, we multiply x with a predefined constant value (for some reasons ;) )
+   *  
+   * }
+   * 
+   * multiple value assignments for this example:
+   * (1) x = 3, y = 1 -> this leads to 3* predefinedConstant
+   * (2) x = 3, y = 2 -> this leads to 6
+   * we could probably use some sort of negation heuristic for existing assignments like this
+   * negateOrMinimize(assigments(1)):
+   * (3) x = -3, y = 1 -> leads to 0
+   * here y is not negated, because of precondition being y >= 1
+   * 
+   * with these 3 assigments we catch every path through the method
+   * 
+   * thus, without any further investigation (and runs of the cpa algorithm), we might be able to reach many different states 
+   * by simply executing the search strategy for all those assignments (maybe even in parallel ...)
+   * 
+   */
   private boolean useValueSets;
   private final List<ReachedSetUpdateListener> reachedSetUpdateListeners;
+
+  private final SearchStrategy searchStrategy;
 
   private HybridExecutionAlgorithm(
     Algorithm algorithm,
@@ -142,7 +186,8 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     ShutdownNotifier notifier,
     boolean unbounded, 
     int dfsMaxDepth,
-    boolean useValueSets)
+    boolean useValueSets, 
+    boolean useBFS)
       throws InvalidConfigurationException {
 
       this.algorithm = algorithm;
@@ -165,6 +210,11 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
         logger, 
         cfa.getMachineModel(), 
         configuration);
+
+      // configurable search stragety
+      this.searchStrategy = 
+        useBFS ? (pState, pReachedSet) -> runBFS(pState, pReachedSet)
+               : (pState, pReachedSet) -> runDFS(pState, pReachedSet); 
   }
 
   @Override
@@ -187,6 +237,19 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
 
     // ARGCPA is needed for hybrid execution
 
+    /*
+     *  algorithm idea:
+     *  first we run the cpa algorihtm
+     *  next up we extract an arg-state from the reached set 
+     *  then, we search from that state on in its children
+     *  the search strategy returns an arg-state fro which we retrieve a path through the arg
+     *  we build a BooleanFormula for this path
+     *  then we check sat for this formula
+     *  we choose a state upwards (before or at fork) and retrieve assignments for the variables
+     *  decide wether to take this assignments or create new ones (e.g. if useValueSets is true)
+     * 
+    */
+
     // start with good status
     AlgorithmStatus currentStatus = AlgorithmStatus.SOUND_AND_PRECISE;
 
@@ -199,18 +262,16 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
       // retrieve the last state that was added to the reached set
       AbstractState lastState = pReachedSet.getLastState();
 
+      // TODO: handle empty state (get another state, exit ?)
+
       // extract ARGState
 
-      // get initial arg state
-      // ARGUtils.
-      // AbstractStates.
+      ARGState argState = AbstractStates.extractStateByType(lastState, ARGState.class);
 
       // dfs over children
+      ARGState searchEndState = searchStrategy.runStrategy(argState, pReachedSet);
 
-      // check for reached set updates and notify
-      // if(>>updated<<) {
-      //   notifyListeners(pReachedSet);
-      // }
+      ARGUtils.getOnePathTo(searchEndState);
 
       // check for continuation
       running = checkContinue(pReachedSet);
@@ -241,6 +302,24 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     reachedSetUpdateListeners.remove(pReachedSetUpdateListener);
   }
 
+  // traverses the childer of the given state in depth first manner
+  private ARGState runDFS(ARGState pState, ReachedSet pReachedSet) {
+
+
+
+      // check for reached set updates and notify
+      // if(>>updated<<) {
+      //   notifyListeners(pReachedSet);
+      // }
+      return null;
+  }
+
+  // currently this will not be implemented
+  private ARGState runBFS(ARGState pState, ReachedSet pReachedSet) {
+
+    throw new NotImplementedException();
+  }
+
   // notify listeners on update of the reached set
   private void notifyListeners(ReachedSet pReachedSet) {
     reachedSetUpdateListeners.forEach(listener -> listener.updated(pReachedSet));
@@ -256,5 +335,11 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     check = check && pReachedSet.hasWaitingState();
     return check;
   }
+
+  @FunctionalInterface
+  private interface SearchStrategy {
+
+    ARGState runStrategy(ARGState pState, ReachedSet pReachedSet);
+  } 
 
 }
