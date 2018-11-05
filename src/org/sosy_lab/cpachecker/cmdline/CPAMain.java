@@ -362,7 +362,7 @@ public class CPAMain {
     Set<Property> properties =
         pProperties.stream().map(p -> p.getProperty()).collect(ImmutableSet.toImmutableSet());
 
-    Path alternateConfigFile = null;
+    final Path alternateConfigFile;
 
     if (!Collections.disjoint(properties, MEMSAFETY_PROPERTY_TYPES)) {
       if (!MEMSAFETY_PROPERTY_TYPES.containsAll(properties)) {
@@ -370,46 +370,30 @@ public class CPAMain {
         throw new InvalidConfigurationException(
             "Unsupported combination of properties: " + properties);
       }
-      if (options.memsafetyConfig == null) {
-        throw new InvalidConfigurationException("Verifying memory safety is not supported if option memorysafety.config is not specified.");
-      }
-      alternateConfigFile = options.memsafetyConfig;
-    }
-    if (properties.contains(CommonPropertyType.VALID_MEMCLEANUP)) {
+      alternateConfigFile = check(options.memsafetyConfig, "memory safety", "memorysafety.config");
+    } else if (properties.contains(CommonPropertyType.VALID_MEMCLEANUP)) {
       if (properties.size() != 1) {
         // MemCleanup property cannot be checked with others in combination
         throw new InvalidConfigurationException(
             "Unsupported combination of properties: " + properties);
       }
-      if (options.memcleanupConfig == null) {
-        throw new InvalidConfigurationException(
-            "Verifying memory cleanup is not supported if option memcleanup.config is not specified.");
-      }
-      alternateConfigFile = options.memcleanupConfig;
-    }
-    if (properties.contains(CommonPropertyType.OVERFLOW)) {
+      alternateConfigFile = check(options.memcleanupConfig, "memory cleanup", "memorycleanup.config");
+    } else if (properties.contains(CommonPropertyType.OVERFLOW)) {
       if (properties.size() != 1) {
         // Overflow property cannot be checked with others in combination
         throw new InvalidConfigurationException(
             "Unsupported combination of properties: " + properties);
       }
-      if (options.overflowConfig == null) {
-
-        throw new InvalidConfigurationException("Verifying overflows is not supported if option overflow.config is not specified.");
-      }
-      alternateConfigFile = options.overflowConfig;
-    }
-    if (properties.contains(CommonPropertyType.TERMINATION)) {
+      alternateConfigFile = check(options.overflowConfig, "overflows", "overflow.config");
+    } else if (properties.contains(CommonPropertyType.TERMINATION)) {
       // Termination property cannot be checked with others in combination
       if (properties.size() != 1) {
         throw new InvalidConfigurationException(
             "Unsupported combination of properties: " + properties);
       }
-      if (options.terminationConfig == null) {
-        throw new InvalidConfigurationException(
-            "Verifying termination is not supported if option termination.config is not specified.");
-      }
-      alternateConfigFile = options.terminationConfig;
+      alternateConfigFile = check(options.terminationConfig, "termination", "termination.config");
+    } else {
+      alternateConfigFile = null;
     }
 
     if (alternateConfigFile != null) {
@@ -425,6 +409,17 @@ public class CPAMain {
           .clearOption("rootDirectory")
           .clearOption("witness.validation.file")
           .build();
+    }
+    return config;
+  }
+
+  private static Path check(Path config, String verificationTarget, String optionName)
+      throws InvalidConfigurationException {
+    if (config == null) {
+      throw new InvalidConfigurationException(
+          String.format(
+              "Verifying %s is not supported if option %s is not specified.",
+              verificationTarget, optionName));
     }
     return config;
   }
