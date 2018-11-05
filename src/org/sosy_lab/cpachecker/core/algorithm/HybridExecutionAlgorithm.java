@@ -28,18 +28,27 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 /**
  * This class implements a CPA algorithm based on the idea of concolic execution
@@ -60,44 +69,92 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     private boolean useValueSets = false;
 
     private final Algorithm algorithm;
+    private final CFA cfa;
     private final LogManager logger;
+    private final Configuration configuration;
+    private final ShutdownNotifier notifier;
 
     public HybridExecutionAlgorithmFactory(
       Algorithm algorithm, 
+      CFA cfa,
       LogManager logger, 
-      Configuration configuration) throws InvalidConfigurationException {
+      Configuration configuration,
+      ShutdownNotifier notifier) throws InvalidConfigurationException {
         configuration.inject(this);
         this.algorithm = algorithm;
+        this.cfa = cfa;
         this.logger = logger;
+        this.configuration = configuration;
+        this.notifier = notifier;
       }
 
     @Override
     public Algorithm newInstance() {
-      return new HybridExecutionAlgorithm(algorithm, logger, unbounded, dfsMaxDepth, useValueSets);
+      try {
+        return new HybridExecutionAlgorithm(
+            algorithm,
+            cfa,
+            logger,
+            configuration,
+            notifier,
+            unbounded,
+            dfsMaxDepth,
+            useValueSets);
+      } catch (InvalidConfigurationException e) {
+        // this is a bad place to catch an exception
+        logger.log(Level.SEVERE, e.getMessage());
+      }
+      // meh...
+      return null;
     }
 
   }
 
   private final Algorithm algorithm;
+  private final CFA cfa;
+  private final Configuration configuration;
   private final LogManager logger;
+  private final ShutdownNotifier notifier;
+  
+  private final Solver solver;
+  private final FormulaManagerView formulaManagerView;
+  private final FormulaConverter formulaConverter;
+
   private final boolean unbounded;
   private int dfsMaxDepth;
   private boolean useValueSets;
   private final List<ReachedSetUpdateListener> reachedSetUpdateListeners;
 
   private HybridExecutionAlgorithm(
-    Algorithm algorithm, 
+    Algorithm algorithm,
+    CFA cfa, 
     LogManager logger,
+    Configuration configuration,
+    ShutdownNotifier notifier,
     boolean unbounded, 
     int dfsMaxDepth,
-    boolean useValueSets) {
+    boolean useValueSets)
+      throws InvalidConfigurationException {
 
       this.algorithm = algorithm;
+      this.cfa = cfa;
       this.logger = logger;
+      this.configuration = configuration;
+      this.notifier = notifier;
       this.unbounded = unbounded;
       this.dfsMaxDepth = dfsMaxDepth;
       this.useValueSets = useValueSets;
       this.reachedSetUpdateListeners = new LinkedList<>();
+
+      this.solver = Solver.create(configuration, logger, notifier);
+      this.formulaManagerView = solver.getFormulaManager();
+      
+      this.formulaConverter = new FormulaConverter(
+        formulaManagerView, 
+        new CProgramScope(cfa, logger), 
+        logger, 
+        cfa.getMachineModel(), 
+        configuration);
   }
 
   @Override
@@ -127,8 +184,13 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     while(running) {
 
 
-      // get the next state from the waitlist
-      AbstractState currentState = pReachedSet.popFromWaitlist();
+      currentStatus = algorithm.run(pReachedSet);
+
+      // get initial arg state
+      // ARGUtils.
+      // AbstractStates.
+
+      // dfs over children
 
       // check for reached set updates and notify
       // if(>>updated<<) {
@@ -136,7 +198,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
       // }
 
       // check for continuation
-      running = checkContinue(pReachedSet, currentState);
+      running = checkContinue(pReachedSet);
 
       // update status on arbitrary conditions
     }
@@ -170,7 +232,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
   }
 
   // check if the algorithm should continue 
-  private boolean checkContinue(ReachedSet pReachedSet, AbstractState currentState) {
+  private boolean checkContinue(ReachedSet pReachedSet) {
 
     boolean check = true;
     // some checks for the state

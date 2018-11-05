@@ -36,24 +36,75 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import java.util.Collection;
+import java.util.Optional;
+
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
+import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils.ParserTools;
+import org.sosy_lab.cpachecker.cpa.hybrid.util.CollectionUtils;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class FormulaConverter {
 
     private final FormulaManagerView formulaManagerView;
+    private final FormulaToCVisitor toCVisitor;
+    private final CParser parser;
+    private final Scope scope;
+    private final ParserTools parserTools;
+    private final MachineModel machineModel;
+    private final LogManager logger;
 
-    public FormulaConverter(FormulaManagerView formulaManagerView) {
+    public FormulaConverter(
+        FormulaManagerView formulaManagerView,
+        Scope scope,
+        LogManager logger,
+        MachineModel machineModel,
+        Configuration configuration)
+            throws InvalidConfigurationException {
+
         this.formulaManagerView = formulaManagerView;
+        this.toCVisitor = new FormulaToCVisitor(formulaManagerView);
+
+        this.parser = CParser.Factory.getParser(
+            LogManager.createNullLogManager(),
+            CParser.Factory.getOptions(configuration),
+            machineModel);
+
+        this.scope = scope;
+        this.logger = logger;
+
+        this.parserTools = 
+            ParserTools.create(ExpressionTrees.newCachingFactory(), machineModel, logger);
+        this.machineModel = machineModel;
     }
 
-    public CExpression convertFormulaToCExpression(BooleanFormula formula)
-                    throws InterruptedException {
+    public Collection<CExpression> convertFormulaToCExpression(BooleanFormula formula)
+                    throws InvalidAutomatonException {
 
-        // this doesn't do what is needed
-        // String cCodeString = new FormulaToCExpressionConverter(formulaManagerView).formulaToCExpression(formula);
+        // convert Formula to C-String
+        Boolean isValid = formulaManagerView.visit(formula, toCVisitor); // don't know if we need the output
+        final String cCodeString = toCVisitor.getString();
 
         // parse c code to expression
-        return null;
+        Collection<CStatement> statements = CParserUtils.parseAsCStatements(
+            cCodeString, 
+            Optional.empty(), 
+            parser, 
+            scope, 
+            parserTools);
+
+        return CollectionUtils.ofType( 
+            CParserUtils.convertStatementsToAssumptions(statements, machineModel, logger),
+            CExpression.class);
     }
 }

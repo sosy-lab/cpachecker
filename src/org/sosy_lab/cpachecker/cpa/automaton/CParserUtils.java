@@ -239,7 +239,7 @@ public class CParserUtils {
     return Collections.emptySet();
   }
 
-  private static Collection<CStatement> parseAsCStatements(
+  public static Collection<CStatement> parseAsCStatements(
       String pCode, Optional<String> pResultFunction, CParser pCParser, Scope pScope,
       ParserTools pParserTools)
       throws InvalidAutomatonException {
