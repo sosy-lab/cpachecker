@@ -2979,6 +2979,15 @@ heuristicSelection.loopFreeConfig = no default value
 # Configuration for programs containing only relevant bool vars.
 heuristicSelection.onlyBoolConfig = no default value
 
+# Configuration for preliminary algorithm.
+heuristicSelection.preAnalysisAlgorithmConfig = no default value
+
+# Configuration for programs containing recursion.
+heuristicSelection.recursionConfig = no default value
+
+# Usage of an preliminary algorithm analysis.
+heuristicSelection.usePreAnalysisAlgorithm = false
+
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
 
