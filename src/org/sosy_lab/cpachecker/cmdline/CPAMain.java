@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -210,6 +210,15 @@ public class CPAMain {
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path memsafetyConfig = null;
 
+    @Option(
+        secure = true,
+        name = "memorycleanup.config",
+        description =
+            "When checking for memory cleanup properties, "
+                + "use this configuration file instead of the current one.")
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path memcleanupConfig = null;
+
     @Option(secure=true, name="overflow.config",
         description="When checking for the overflow property, "
             + "use this configuration file instead of the current one.")
@@ -276,8 +285,7 @@ public class CPAMain {
       Sets.immutableEnumSet(
           CommonPropertyType.VALID_DEREF,
           CommonPropertyType.VALID_FREE,
-          CommonPropertyType.VALID_MEMTRACK,
-          CommonPropertyType.VALID_MEMCLEANUP);
+          CommonPropertyType.VALID_MEMTRACK);
 
   /**
    * Parse the command line, read the configuration file, and setup the program-wide base paths.
@@ -367,6 +375,18 @@ public class CPAMain {
       }
       alternateConfigFile = options.memsafetyConfig;
     }
+    if (properties.contains(CommonPropertyType.VALID_MEMCLEANUP)) {
+      if (properties.size() != 1) {
+        // MemCleanup property cannot be checked with others in combination
+        throw new InvalidConfigurationException(
+            "Unsupported combination of properties: " + properties);
+      }
+      if (options.memcleanupConfig == null) {
+        throw new InvalidConfigurationException(
+            "Verifying memory cleanup is not supported if option memcleanup.config is not specified.");
+      }
+      alternateConfigFile = options.memcleanupConfig;
+    }
     if (properties.contains(CommonPropertyType.OVERFLOW)) {
       if (properties.size() != 1) {
         // Overflow property cannot be checked with others in combination
@@ -397,6 +417,7 @@ public class CPAMain {
           .loadFromFile(alternateConfigFile)
           .setOptions(cmdLineOptions)
           .clearOption("memorysafety.config")
+          .clearOption("memorycleanup.config")
           .clearOption("overflow.config")
           .clearOption("termination.config")
           .clearOption("output.disable")
@@ -415,7 +436,7 @@ public class CPAMain {
           .put(CommonPropertyType.VALID_FREE, "sv-comp-memorysafety")
           .put(CommonPropertyType.VALID_DEREF, "sv-comp-memorysafety")
           .put(CommonPropertyType.VALID_MEMTRACK, "sv-comp-memorysafety")
-          .put(CommonPropertyType.VALID_MEMCLEANUP, "sv-comp-memorysafety")
+          .put(CommonPropertyType.VALID_MEMCLEANUP, "sv-comp-memorycleanup")
           .put(CommonPropertyType.OVERFLOW, "sv-comp-overflow")
           .put(CommonPropertyType.DEADLOCK, "deadlock")
           // .put(CommonPropertyType.TERMINATION, "none needed")

@@ -3103,6 +3103,10 @@ locmapper.dumpTokenizedProgramToFile = no default value
 # all used options are printed
 log.usedOptions.export = false
 
+# When checking for memory cleanup properties, use this configuration file
+# instead of the current one.
+memorycleanup.config = no default value
+
 # When checking for memory safety properties, use this configuration file
 # instead of the current one.
 memorysafety.config = no default value
