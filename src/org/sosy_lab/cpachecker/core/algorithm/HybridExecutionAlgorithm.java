@@ -26,6 +26,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
@@ -38,6 +39,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -46,12 +49,18 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.SolverException;
 
 import apron.NotImplementedException;
 
@@ -134,6 +143,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
   private final Solver solver;
   private final FormulaManagerView formulaManagerView;
   private final FormulaConverter formulaConverter;
+  private final PathFormulaManager pathFormulaManager;
 
   private final boolean unbounded;
   private int dfsMaxDepth;
@@ -211,6 +221,14 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
         cfa.getMachineModel(), 
         configuration);
 
+      this.pathFormulaManager = new PathFormulaManagerImpl(
+        formulaManagerView, 
+        configuration, 
+        logger, 
+        notifier, 
+        cfa, 
+        AnalysisDirection.FORWARD);
+
       // configurable search stragety
       this.searchStrategy = 
         useBFS ? (pState, pReachedSet) -> runBFS(pState, pReachedSet)
@@ -271,12 +289,23 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
       // dfs over children
       ARGState searchEndState = searchStrategy.runStrategy(argState, pReachedSet);
 
-      ARGUtils.getOnePathTo(searchEndState);
+      // bottom up path search
+      ARGPath pathToFoundState = ARGUtils.getOnePathTo(searchEndState);
+
+      // build path formula
+      PathFormula pathFormula = buildPathFormula(pathToFoundState.getFullPath());
+
+      boolean satisfiable = false;
+
+      try {
+        satisfiable = solver.isUnsat(pathFormula.getFormula());
+      } catch(SolverException sException) {
+        throw new CPAException("Exception in SMT-Solver occurred.", sException);
+      }
+
 
       // check for continuation
       running = checkContinue(pReachedSet);
-
-      // update status on arbitrary conditions
     }
     
     return currentStatus;
@@ -318,6 +347,17 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
   private ARGState runBFS(ARGState pState, ReachedSet pReachedSet) {
 
     throw new NotImplementedException();
+  }
+
+  // builds the complete path formula for a path through the application denoted by the set of edges
+  private PathFormula buildPathFormula(Collection<CFAEdge> pEdges) 
+    throws CPATransferException, InterruptedException {
+    PathFormula formula = pathFormulaManager.makeEmptyPathFormula();
+    for(CFAEdge edge : pEdges) {
+      formula = pathFormulaManager.makeAnd(formula, edge);
+    }
+
+    return formula;
   }
 
   // notify listeners on update of the reached set
