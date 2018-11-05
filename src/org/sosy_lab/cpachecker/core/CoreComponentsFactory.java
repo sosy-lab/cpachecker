@@ -402,7 +402,7 @@ public class CoreComponentsFactory {
       }
 
       if(useHybridExecutionAlgorithm) {
-        algorithm = new HybridExecutionAlgorithmFactory(algorithm, cfa, logger, config, shutdownNotifier).newInstance();
+        algorithm = new HybridExecutionAlgorithmFactory(algorithm, cpa, cfa, logger, config, shutdownNotifier).newInstance();
       }
 
       if (usePDR) {

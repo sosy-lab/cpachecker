@@ -41,7 +41,9 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -69,6 +71,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     private boolean useValueSets = false;
 
     private final Algorithm algorithm;
+    private final ARGCPA argCPA;
     private final CFA cfa;
     private final LogManager logger;
     private final Configuration configuration;
@@ -76,12 +79,15 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
 
     public HybridExecutionAlgorithmFactory(
       Algorithm algorithm, 
+      ConfigurableProgramAnalysis argCPA,
       CFA cfa,
       LogManager logger, 
       Configuration configuration,
       ShutdownNotifier notifier) throws InvalidConfigurationException {
         configuration.inject(this);
         this.algorithm = algorithm;
+        // hybrid execution relies on arg cpa
+        this.argCPA = (ARGCPA) argCPA;
         this.cfa = cfa;
         this.logger = logger;
         this.configuration = configuration;
@@ -93,6 +99,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
       try {
         return new HybridExecutionAlgorithm(
             algorithm,
+            argCPA,
             cfa,
             logger,
             configuration,
@@ -111,6 +118,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
   }
 
   private final Algorithm algorithm;
+  private final ARGCPA argCPA;
   private final CFA cfa;
   private final Configuration configuration;
   private final LogManager logger;
@@ -127,6 +135,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
 
   private HybridExecutionAlgorithm(
     Algorithm algorithm,
+    ARGCPA argCPA,
     CFA cfa, 
     LogManager logger,
     Configuration configuration,
@@ -137,6 +146,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
       throws InvalidConfigurationException {
 
       this.algorithm = algorithm;
+      this.argCPA = argCPA;
       this.cfa = cfa;
       this.logger = logger;
       this.configuration = configuration;
@@ -185,6 +195,11 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
 
 
       currentStatus = algorithm.run(pReachedSet);
+
+      // retrieve the last state that was added to the reached set
+      AbstractState lastState = pReachedSet.getLastState();
+
+      // extract ARGState
 
       // get initial arg state
       // ARGUtils.
