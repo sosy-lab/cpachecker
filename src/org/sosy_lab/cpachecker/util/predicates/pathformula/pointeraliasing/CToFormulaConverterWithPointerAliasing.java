@@ -93,8 +93,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeRes
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -1239,28 +1237,24 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
     Preconditions.checkArgument(!(pType instanceof CFunctionType));
 
-    Expression e = makeFormulaForVariable(pVarName, pType, pContextPTS, forcePointerDereference);
+    final Formula address;
 
-    Formula formula;
+    if (forcePointerDereference) {
+      address = makeConstant(pVarName, CTypeUtils.getBaseType(pType));
 
-    if (e.isValue()) {
-      formula = e.asValue().getValue();
-    } else if (e.isAliasedLocation()) {
-      MemoryRegion region = e.asAliasedLocation().getMemoryRegion();
-      if (region == null) {
-        region = regionMgr.makeMemoryRegion(pType);
-      }
-      checkIsSimplified(pType);
-      final String ufName = regionMgr.getPointerAccessName(region);
-      final FormulaType<?> returnType = getFormulaTypeFromCType(pType);
-      formula =
-          ptsMgr.makePointerDereference(ufName, returnType, e.asAliasedLocation().getAddress());
+    } else if (pContextPTS.isActualBase(pVarName)
+        || CTypeUtils.containsArrayOutsideFunctionParameter(pType)) {
+      address = makeBaseAddress(pVarName, pType);
 
     } else {
-      formula = makeConstant(e.asUnaliasedLocation().getVariableName(), pType);
+      return makeConstant(pVarName, pType);
     }
 
-    return formula;
+    checkIsSimplified(pType);
+    final MemoryRegion region = regionMgr.makeMemoryRegion(pType);
+    final String ufName = regionMgr.getPointerAccessName(region);
+    final FormulaType<?> returnType = getFormulaTypeFromCType(pType);
+    return ptsMgr.makePointerDereference(ufName, returnType, address);
   }
 
   /** {@inheritDoc} */
@@ -1268,22 +1262,18 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   public Formula makeFormulaForVariable(
       SSAMap pContextSSA, PointerTargetSet pContextPTS, String pVarName, CType pType) {
     Preconditions.checkArgument(!(pType instanceof CFunctionType));
+    final Formula formula;
+    final SSAMapBuilder ssa = pContextSSA.builder();
 
-    Expression e = makeFormulaForVariable(pVarName, pType, pContextPTS, false);
+    if (pContextPTS.isActualBase(pVarName)
+        || CTypeUtils.containsArrayOutsideFunctionParameter(pType)) {
 
-    SSAMapBuilder ssa = pContextSSA.builder();
-    Formula formula;
+      final Formula address = makeBaseAddress(pVarName, pType);
+      final MemoryRegion region = regionMgr.makeMemoryRegion(pType);
+      formula = makeSafeDereference(pType, address, ssa, region);
 
-    if (e.isValue()) {
-      formula = e.asValue().getValue();
-    } else if (e.isAliasedLocation()) {
-      MemoryRegion region = e.asAliasedLocation().getMemoryRegion();
-      if(region==null) {
-        region = regionMgr.makeMemoryRegion(pType);
-      }
-      formula = makeSafeDereference(pType, e.asAliasedLocation().getAddress(), ssa, region);
     } else {
-      formula = makeVariable(e.asUnaliasedLocation().getVariableName(), pType, ssa);
+      formula = makeVariable(pVarName, pType, ssa);
     }
 
     if (!ssa.build().equals(pContextSSA)) {
@@ -1296,20 +1286,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
 
     return formula;
-  }
-
-  private Expression makeFormulaForVariable(
-      String pVarName, CType pType, PointerTargetSet pts, boolean forceDereference) {
-    if (forceDereference) {
-      final Formula address = makeConstant(pVarName, CTypeUtils.getBaseType(pType));
-      return AliasedLocation.ofAddress(address);
-    } else if (!pts.isActualBase(pVarName)
-        && !CTypeUtils.containsArrayOutsideFunctionParameter(pType)) {
-      return UnaliasedLocation.ofVariableName(pVarName);
-    } else {
-      final Formula address = makeBaseAddress(pVarName, pType);
-      return AliasedLocation.ofAddress(address);
-    }
   }
 
   /** {@inheritDoc} */
