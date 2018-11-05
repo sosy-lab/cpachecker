@@ -44,15 +44,15 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * Generic {@link EdgeInterpolator} that creates interpolants based on
- * {@link MemoryLocation MemoryLocations}. A {@link VariableTrackingPrecision} is used as precision.
+ * Generic {@link EdgeInterpolator} that creates interpolants based on {@link MemoryLocation
+ * MemoryLocations}. A {@link VariableTrackingPrecision} is used as precision.
  *
  * @param <S> the abstract state to create interpolants based on
  * @param <T> the type the abstract state uses for returning forgotten information
  * @param <I> the type of interpolants that are used and will be created
  */
-@Options(prefix="cpa.value.interpolation")
-public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends Interpolant<S>>
+@Options(prefix = "cpa.value.interpolation")
+public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends Interpolant<S, I>>
     implements EdgeInterpolator<S, I> {
 
   @Option(secure=true, description="apply optimizations based on equality of input interpolant and candidate interpolant")

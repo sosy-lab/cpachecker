@@ -74,7 +74,7 @@ public interface BAMCache extends Statistics {
    *  then there is a way to clear all caches and to restore ARG completely. */
   void clear();
 
-  public class BAMCacheEntry {
+  class BAMCacheEntry {
     private final ReachedSet rs;
     private Collection<AbstractState> exitStates;
     private ARGState rootOfBlock;

@@ -104,6 +104,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -178,7 +179,7 @@ public class HarnessExporter {
       Set<AFunctionDeclaration> externalFunctions = getExternalFunctions();
 
       CodeAppender codeAppender = new CodeAppender(pTarget);
-      
+
       codeAppender.appendln("struct _IO_FILE;");
       codeAppender.appendln("typedef struct _IO_FILE FILE;");
       codeAppender.appendln("extern struct _IO_FILE *stderr;");
@@ -612,7 +613,8 @@ public class HarnessExporter {
         if (argState
             .getEdgesToChild(candidate)
             .stream()
-            .allMatch(AutomatonGraphmlCommon::handleAsEpsilonEdge)) {
+            .allMatch(
+                e -> e instanceof AssumeEdge || AutomatonGraphmlCommon.handleAsEpsilonEdge(e))) {
           argState = candidate;
           continue;
         }

@@ -29,6 +29,7 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ForwardingTable;
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import java.io.IOException;
@@ -52,6 +53,7 @@ import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -101,8 +103,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /** Factory for creating a {@link DependenceGraph} from a {@link CFA}. */
-@Options(prefix = "dependenceGraph")
-public class DGBuilder implements StatisticsProvider {
+@Options(prefix = "dependencegraph")
+public class DependenceGraphBuilder implements StatisticsProvider {
 
   private final MutableCFA cfa;
   private final Optional<VariableClassification> varClassification;
@@ -129,7 +131,30 @@ public class DGBuilder implements StatisticsProvider {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportDot = Paths.get("DependenceGraph.dot");
 
-  public DGBuilder(
+  @Option(
+      secure = true,
+      name = "controldeps.use",
+      description = "Whether to consider control dependencies.")
+  private boolean considerControlDeps = true;
+
+  @Option(
+      secure = true,
+      name = "flowdeps.use",
+      description = "Whether to consider (data-)flow dependencies.")
+  private boolean considerFlowDeps = true;
+
+  @Option(
+      secure = true,
+      name = "controldeps.considerInverseAssumption",
+      description =
+          "Whether to take an assumption edge 'p' as control dependence if edge 'not p' "
+              + "is a control dependence. This creates a larger slice, but may reduce the size of the "
+              + "state space for deterministic programs. This behavior is also closer to the static "
+              + "program slicing based on control-flow graphs (CFGs), where branching is "
+              + "represented by a single assumption (with true- and false-edges)")
+  private boolean controlDepsTakeBothAssumptions = false;
+
+  public DependenceGraphBuilder(
       final MutableCFA pCfa,
       final Optional<VariableClassification> pVarClassification,
       final Configuration pConfig,
@@ -149,17 +174,31 @@ public class DGBuilder implements StatisticsProvider {
     dependenceGraphConstructionTimer.start();
     nodes = new NodeMap();
     adjacencyMatrix = HashBasedTable.create();
-    flowDependenceTimer.start();
-    try {
-      addFlowDependences();
-    } finally {
-      flowDependenceTimer.stop();
+
+    // If you add additional types of dependencies, they should probably be added to this check,
+    // as well
+    if (!considerFlowDeps && !considerControlDeps) {
+      throw new InvalidConfigurationException(
+          "At least one kind of dependency is required"
+              + " to build a meaningful dependence graph");
     }
-    controlDependenceTimer.start();
-    try {
-      addControlDependences();
-    } finally {
-      controlDependenceTimer.stop();
+
+    if (considerFlowDeps) {
+      flowDependenceTimer.start();
+      try {
+        addFlowDependences();
+      } finally {
+        flowDependenceTimer.stop();
+      }
+    }
+
+    if (considerControlDeps) {
+      controlDependenceTimer.start();
+      try {
+        addControlDependences();
+      } finally {
+        controlDependenceTimer.stop();
+      }
     }
     addMissingNodes();
 
@@ -208,10 +247,7 @@ public class DGBuilder implements StatisticsProvider {
       FluentIterable<CFAEdge> assumeEdges = CFAUtils.leavingEdges(branch);
       assert assumeEdges.size() == 2;
       for (CFAEdge g : assumeEdges) {
-        DGNode nodeDependentOn = getDGNode(g, Optional.empty());
         int controlDepCount = 0;
-        assert getDGNodes(g).size() == 1
-            : "Only using one DG node, but multiple would exist: " + nodeDependentOn;
         List<CFANode> nodesOnPath = new ArrayList<>();
         Queue<CFAEdge> waitlist = new ArrayDeque<>(8);
         Set<CFAEdge> reached = new HashSet<>();
@@ -236,7 +272,18 @@ public class DGBuilder implements StatisticsProvider {
               if (isPostDomOfAll(precessorNode, nodesOnPath, postDoms)) {
                 Collection<DGNode> nodesDepending = getDGNodes(current);
                 for (DGNode nodeDepending : nodesDepending) {
-                  addDependence(nodeDependentOn, nodeDepending, DependenceType.CONTROL);
+                  Iterable<CFAEdge> edgesDependingOn;
+                  if (controlDepsTakeBothAssumptions) {
+                    edgesDependingOn = assumeEdges;
+                  } else {
+                    edgesDependingOn = ImmutableList.of(g);
+                  }
+                  for (CFAEdge assumes : edgesDependingOn) {
+                    DGNode nodeDependentOn = getDGNode(assumes, Optional.empty());
+                    assert getDGNodes(assumes).size() == 1
+                        : "Only using one DG node, but multiple would exist: " + nodeDependentOn;
+                    addDependence(nodeDependentOn, nodeDepending, DependenceType.CONTROL);
+                  }
                   controlDepCount++;
                 }
                 nodesOnPath.add(precessorNode);
@@ -261,7 +308,7 @@ public class DGBuilder implements StatisticsProvider {
         for (CFAEdge e : CFAUtils.leavingEdges(n)) {
           Collection<DGNode> candidates = getDGNodes(e);
           for (DGNode dgN : candidates) {
-            if (adjacencyMatrix.column(dgN).values().contains(DependenceType.CONTROL)) {
+            if (!adjacencyMatrix.column(dgN).values().contains(DependenceType.CONTROL)) {
               for (DGNode nodeDependentOn : functionCalls) {
                 addDependence(nodeDependentOn, dgN, DependenceType.CONTROL);
                 depCount++;
@@ -291,15 +338,13 @@ public class DGBuilder implements StatisticsProvider {
       throws InvalidConfigurationException, InterruptedException, CPAException {
     FlowDependences flowDependences =
         FlowDependences.create(cfa, varClassification, config, logger, shutdownNotifier);
-
     for (Cell<CFAEdge, Optional<MemoryLocation>, FlowDependence> c : flowDependences.cellSet()) {
-
       CFAEdge edgeDepending = checkNotNull(c.getRowKey());
-      Optional<MemoryLocation> defOfEdge = checkNotNull(c.getColumnKey());
+      Optional<MemoryLocation> specificDefAtEdge = checkNotNull(c.getColumnKey());
       FlowDependence uses = checkNotNull(c.getValue());
       DGNode nodeDepending;
-      if (defOfEdge.isPresent()) {
-        nodeDepending = getDGNode(edgeDepending, defOfEdge);
+      if (specificDefAtEdge.isPresent()) {
+        nodeDepending = getDGNode(edgeDepending, specificDefAtEdge);
       } else {
         nodeDepending = getDGNode(edgeDepending, Optional.empty());
       }
@@ -310,8 +355,7 @@ public class DGBuilder implements StatisticsProvider {
         flowDepCount++;
       } else {
         for (Entry<MemoryLocation, CFAEdge> useAndDef : uses.entries()) {
-          MemoryLocation use = checkNotNull(useAndDef.getKey());
-          DGNode dependency = getDGNode(useAndDef.getValue(), Optional.of(use));
+          DGNode dependency = getDGNode(useAndDef.getValue(), Optional.of(useAndDef.getKey()));
           addDependence(dependency, nodeDepending, DependenceType.FLOW);
           flowDepCount++;
         }
@@ -421,6 +465,18 @@ public class DGBuilder implements StatisticsProvider {
       @Option(secure = true, description = "Run flow dependence analysis with constant propagation")
       boolean constantPropagation = false;
 
+      @Option(
+          secure = true,
+          name = "constraintIsDef",
+          description =
+              "Whether to consider constraints on program variables (e.g., x > 10)"
+                  + " as definitions.")
+      // Note that, currently, flow dependences can only be 'control' OR 'flow'.
+      // That means, that if one node is both flow and control dependent on another,
+      // only the one added later will be added to the dependence graph. This is not a problem
+      // for most use-cases, but if the type of dependences matter, this must be changed
+      private boolean considerConstraintAsDef = false;
+
       FlowDependenceConfig(final Configuration pConfig) throws InvalidConfigurationException {
         pConfig.inject(this);
       }
@@ -468,8 +524,15 @@ public class DGBuilder implements StatisticsProvider {
         configFile = "flowDependences.properties";
       }
 
-      Configuration config =
-          Configuration.builder().loadFromResource(FlowDependences.class, configFile).build();
+      ConfigurationBuilder configBuilder =
+          Configuration.builder().loadFromResource(FlowDependences.class, configFile);
+
+      if (options.considerConstraintAsDef) {
+        configBuilder.setOption("cpa.reachdef.constraintIsDef", "true");
+      }
+
+      Configuration config = configBuilder.build();
+
       ReachedSetFactory reachedFactory = new ReachedSetFactory(config, pLogger);
       ConfigurableProgramAnalysis cpa =
           new CPABuilder(config, pLogger, pShutdownNotifier, reachedFactory)
@@ -496,10 +559,11 @@ public class DGBuilder implements StatisticsProvider {
         ARGState wrappingState = (ARGState) s;
         FlowDependenceState flowDepState = getState(wrappingState, FlowDependenceState.class);
 
-        for (CFAEdge g : flowDepState.getDependees()) {
-          Set<Optional<MemoryLocation>> defs = flowDepState.getDefinitions(g);
+        for (CFAEdge g : flowDepState.getAllEdgesWithDependencies()) {
+          Set<Optional<MemoryLocation>> defs = flowDepState.getNewDefinitionsByEdge(g);
           for (Optional<MemoryLocation> d : defs) {
-            FlowDependence memLocUsedAndDefiner = flowDepState.getDefsDependingOn(g, d);
+            FlowDependence memLocUsedAndDefiner =
+                flowDepState.getDependenciesOfDefinitionAtEdge(g, d);
             if (dependencyMap.contains(g, d)) {
               memLocUsedAndDefiner = dependencyMap.get(g, d).union(memLocUsedAndDefiner);
             }

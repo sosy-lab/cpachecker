@@ -44,6 +44,7 @@ public class RefinementFailedException extends CPAException {
     RepeatedPathPrefix("Error path prefix could not be ruled out and was used again"),
     TooMuchUnrolling("Too much unrolling"),
     InfeasibleCounterexample("External tool verified counterexample as infeasible"),
+    SequenceOfAssertionsToWeak("Sequence of assertions is too weak to cover error trace"),
     TIMEOUT("SMT-solver timed out");
 
     private final String humanReableReason;

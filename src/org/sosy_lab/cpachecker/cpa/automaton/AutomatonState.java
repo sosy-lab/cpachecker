@@ -213,16 +213,39 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
       return false;
     }
     AutomatonState otherState = (AutomatonState) pObj;
-
-    return this.internalState.equals(otherState.internalState)
-        && this.vars.equals(otherState.vars);
+    if (assumptions == null) {
+      if (otherState.assumptions != null) {
+        return false;
+      }
+    } else if (!assumptions.equals(otherState.assumptions)) {
+      return false;
+    }
+    if (vars == null) {
+      if (otherState.vars != null) {
+        return false;
+      }
+    } else if (!vars.equals(otherState.vars)) {
+      return false;
+    }
+    if (internalState == null) {
+      if (otherState.internalState != null) {
+        return false;
+      }
+    } else if (!internalState.equals(otherState.internalState)) {
+      return false;
+    }
+    return true;
   }
 
   @Override
   public int hashCode() {
     // Important: we cannot use vars.hashCode(), because the hash code of a map
     // depends on the hash code of its values, and those may change.
-    return internalState.hashCode();
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((assumptions == null) ? 0 : assumptions.hashCode());
+    result = prime * result + ((internalState == null) ? 0 : internalState.hashCode());
+    return result;
   }
 
 

@@ -47,7 +47,9 @@ import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
  */
 public abstract class ValueAnalysisDelegatingRefiner implements Refiner {
 
-  public static Refiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
+  @SuppressWarnings("resource")
+  public static Refiner create(ConfigurableProgramAnalysis cpa)
+      throws InvalidConfigurationException {
     ValueAnalysisCPA valueCpa =
         CPAs.retrieveCPAOrFail(cpa, ValueAnalysisCPA.class, ValueAnalysisDelegatingRefiner.class);
     PredicateCPA predicateCpa =

@@ -191,10 +191,10 @@ public class CustomInstruction{
   }
 
   /**
-   * Returns the (fake!) SMT description which is a
-   * conjunctions of output variables and predicates (IVj = 0) for each input variable j.
-   * Note that this is prefix notation!
-   * @return (define-fun aci Bool((and (= IV1 0) (and (= IV2 0) (and OV1 OV2))))
+   * Returns the (fake!) SMT description which is a conjunctions of output variables and predicates
+   * (IVj = 0) for each input variable j. Note that this is prefix notation!
+   *
+   * @return (define-fun ci Bool((and (= IV1 0) (and (= IV2 0) (and OV1 OV2))))
    */
   public Pair<List<String>, String> getFakeSMTDescription() {
     if (inputVariables.size() == 0 && outputVariables.size() == 0) {
@@ -239,7 +239,7 @@ public class CustomInstruction{
       }
     }
 
-    for (int i=0; i<BracketCounter+1; i++) { // +1 because of the Bracket of define-fun ci Bool(...)
+    for (int i=0; i<BracketCounter+1; i++) { // +1 because of the Bracket of (define-fun ci Bool ...)
       sb.append(")");
     }
 

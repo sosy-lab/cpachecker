@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionTransformer;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -70,16 +69,8 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
   public BooleanFormula createFormula(final Constraint pConstraint)
       throws UnrecognizedCodeException, InterruptedException {
 
-    return createFormula(pConstraint, IdentifierAssignment.empty());
-  }
-
-  @Override
-  public BooleanFormula createFormula(
-      final Constraint pConstraint, final IdentifierAssignment pDefiniteAssignment)
-      throws UnrecognizedCodeException, InterruptedException {
-
     final SymbolicExpressionTransformer toExpressionTransformer =
-        new SymbolicExpressionTransformer(pDefiniteAssignment);
+        new SymbolicExpressionTransformer();
 
     CExpression constraintExpression = pConstraint.accept(toExpressionTransformer);
 

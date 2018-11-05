@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -79,8 +81,8 @@ public class CFAEdgeWithAssumptions {
     expressionStmts = result;
   }
 
-  public Collection<AExpressionStatement> getExpStmts() {
-    return expressionStmts;
+  public ImmutableCollection<AExpressionStatement> getExpStmts() {
+    return ImmutableList.copyOf(expressionStmts);
   }
 
   public CFAEdge getCFAEdge() {
@@ -165,7 +167,11 @@ public class CFAEdgeWithAssumptions {
 
   @Override
   public String toString() {
-    return edge + " " + expressionStmts;
+      StringBuilder assumption = new StringBuilder();
+      for (AExpressionStatement assum : expressionStmts) {
+          assumption.append('\n' + "\t\t" + assum);
+      }
+      return edge + " " + assumption;
   }
 
   @Nullable

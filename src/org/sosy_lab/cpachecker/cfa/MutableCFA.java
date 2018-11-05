@@ -52,7 +52,6 @@ public class MutableCFA implements CFA {
   private final Language language;
   private Optional<LoopStructure> loopStructure = Optional.empty();
   private Optional<LiveVariables> liveVariables = Optional.empty();
-  private Optional<DependenceGraph> dependenceGraph = Optional.empty();
 
   public MutableCFA(
       MachineModel pMachineModel,
@@ -191,7 +190,7 @@ public class MutableCFA implements CFA {
 
   @Override
   public Optional<DependenceGraph> getDependenceGraph() {
-    return dependenceGraph;
+    return Optional.empty();
   }
 
   @Override

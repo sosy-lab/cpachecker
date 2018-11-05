@@ -161,7 +161,17 @@ public class SignCExpressionVisitor
     case EQUALS:
       result = evaluateEqualOperator(pLeft, pRight);
       break;
-    default:
+      case NOT_EQUALS:
+        result = evaluateUnequalOperator(pLeft, pRight);
+        break;
+      case SHIFT_LEFT:
+        result = evaluateLeftShiftOperator(pLeft, pRight);
+        break;
+      case SHIFT_RIGHT:
+        result = evaluateRightShiftOperator(pLeft, pRight);
+        break;
+
+      default:
         throw new UnsupportedCodeException("Not supported", edgeOfExpr);
     }
     return result;
@@ -440,6 +450,48 @@ public class SignCExpressionVisitor
     }
     if(pLeft==SIGN.ZERO && pRight == SIGN.ZERO) {
       return SIGN.PLUSMINUS;
+    }
+    return SIGN.ALL;
+  }
+
+  private SIGN evaluateUnequalOperator(SIGN pLeft, SIGN pRight) {
+    if (pLeft == SIGN.EMPTY || pRight == SIGN.EMPTY) {
+      return SIGN.EMPTY;
+    }
+
+    if (pLeft == SIGN.PLUS) {
+      if (pRight == SIGN.ZERO || pRight == SIGN.MINUS) {
+        return SIGN.PLUSMINUS;
+      }
+    } else if (pLeft == SIGN.ZERO) {
+      if (pRight == SIGN.PLUS || pRight == SIGN.MINUS) {
+        return SIGN.PLUSMINUS;
+      }
+    } else if (pLeft == SIGN.MINUS) {
+      if (pRight == SIGN.ZERO || pRight == SIGN.PLUS) {
+        return SIGN.PLUSMINUS;
+      }
+    }
+
+    return SIGN.ALL;
+  }
+
+  private SIGN evaluateRightShiftOperator(SIGN pLeft, SIGN pRight) {
+    if (pRight == SIGN.ZERO) {
+      return pLeft;
+    }
+    if (pRight == SIGN.PLUS) {
+      if (pLeft == SIGN.PLUS) {
+        return SIGN.PLUS0;
+      }
+      return pLeft;
+    }
+    return SIGN.ALL;
+  }
+
+  private SIGN evaluateLeftShiftOperator(SIGN pLeft, SIGN pRight) {
+    if (pRight == SIGN.ZERO) {
+      return pLeft;
     }
     return SIGN.ALL;
   }

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -33,7 +34,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -52,10 +52,6 @@ public class EdgeFormulaNegation extends SingleLocationFormulaInvariant
     this.edge = pEdge;
   }
 
-  private AssumeEdge getNegatedAssumeEdge() {
-    return CFAUtils.getComplimentaryAssumeEdge(edge);
-  }
-
   @Override
   public BooleanFormula getFormula(
       FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
@@ -72,19 +68,21 @@ public class EdgeFormulaNegation extends SingleLocationFormulaInvariant
     }
     if (pO instanceof EdgeFormulaNegation) {
       EdgeFormulaNegation other = (EdgeFormulaNegation) pO;
-      return edge.equals(other.edge);
+      return getLocation().equals(other.getLocation())
+          && edge.getTruthAssumption() == other.edge.getTruthAssumption()
+          && edge.getExpression().equals(other.edge.getExpression());
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return edge.hashCode();
+    return Objects.hash(getLocation(), edge.getTruthAssumption(), edge.getExpression());
   }
 
   @Override
   public String toString() {
-    return getNegatedAssumeEdge().toString();
+    return asExpressionTree().toString();
   }
 
   @Override
@@ -100,7 +98,6 @@ public class EdgeFormulaNegation extends SingleLocationFormulaInvariant
 
   @Override
   public ExpressionTree<Object> asExpressionTree() {
-    return LeafExpression.of(
-        getNegatedAssumeEdge().getExpression(), getNegatedAssumeEdge().getTruthAssumption());
+    return LeafExpression.of(edge.getExpression(), !edge.getTruthAssumption());
   }
 }

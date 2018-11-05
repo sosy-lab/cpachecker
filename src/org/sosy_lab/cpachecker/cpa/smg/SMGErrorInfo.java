@@ -166,7 +166,7 @@ class SMGErrorInfo {
     return withInvalidObjects(Collections.singleton(pSmgObject));
   }
 
-  public SMGErrorInfo withInvalidObjects(Collection<? extends Object> pObjects) {
+  public SMGErrorInfo withInvalidObjects(Collection<?> pObjects) {
     return new SMGErrorInfo(
         invalidWrite,
         invalidRead,

@@ -126,6 +126,8 @@ public class AutomatonGraphmlParser {
   private static final GraphMLTransition.GraphMLThread DEFAULT_THREAD =
       GraphMLTransition.createThread(0, "__CPAchecker_default_thread");
 
+  private static final String THREAD_ID_VAR_NAME = KeyDef.THREADID.toString().toUpperCase();
+
   private static final String TOO_MANY_GRAPHS_ERROR_MESSAGE =
       "The witness file must describe exactly one witness automaton.";
 
@@ -732,7 +734,9 @@ public class AutomatonGraphmlParser {
   private ExpressionTree<AExpression> logAndRemoveUnknown(ExpressionTree<AExpression> invariant) {
     FluentIterable<AExpression> expressions =
         FluentIterable.from(ExpressionTrees.traverseRecursively(invariant))
-            .filter(ExpressionTrees::isLeaf)
+            .filter(
+                Predicates.and(
+                    ExpressionTrees::isLeaf, Predicates.not(ExpressionTrees::isConstant)))
             .transform(leaf -> ((LeafExpression<AExpression>) leaf).getExpression());
     Multimap<AExpression, AIdExpression> invalid = LinkedHashMultimap.create();
     for (AExpression assumption : expressions) {
@@ -998,8 +1002,8 @@ public class AutomatonGraphmlParser {
       state
           .getAutomatonVariables()
           .put(
-              KeyDef.THREADNAME.name(),
-              AutomatonVariable.createAutomatonVariable("int", KeyDef.THREADNAME.name()));
+              THREAD_ID_VAR_NAME,
+              AutomatonVariable.createAutomatonVariable("int", THREAD_ID_VAR_NAME));
     }
 
     return state;
@@ -1052,9 +1056,11 @@ public class AutomatonGraphmlParser {
   }
 
   private static AutomatonBoolExpr getFunctionExitMatcher(String pExitedFunction) {
-    AutomatonBoolExpr functionExitMatcher = or(
-        new AutomatonBoolExpr.MatchFunctionExit(pExitedFunction),
-        new AutomatonBoolExpr.MatchFunctionCallStatement(pExitedFunction));
+    AutomatonBoolExpr functionExitMatcher =
+        or(
+            AutomatonBoolExpr.EpsilonMatch.forwardEpsilonMatch(
+                new AutomatonBoolExpr.MatchFunctionExit(pExitedFunction), false),
+            new AutomatonBoolExpr.MatchFunctionCallStatement(pExitedFunction));
     return functionExitMatcher;
   }
 
@@ -1282,7 +1288,7 @@ public class AutomatonGraphmlParser {
    */
   private static AutomatonAction getThreadIdAssignment(int pThreadId) {
     AutomatonIntExpr expr = new AutomatonIntExpr.Constant(pThreadId);
-    return new AutomatonAction.Assignment(KeyDef.THREADID.name(), expr);
+    return new AutomatonAction.Assignment(THREAD_ID_VAR_NAME, expr);
   }
 
   /**

@@ -37,11 +37,13 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smg.SMGBuiltins;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
+import org.sosy_lab.cpachecker.cpa.smg.SMGExportDotOption;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
@@ -70,14 +72,20 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
-  final SMGTransferRelation smgTransferRelation;
   private final SMGOptions options;
+  private final SMGTransferRelationKind kind;
+  public final SMGBuiltins builtins;
 
-  public SMGRightHandSideEvaluator(SMGTransferRelation pSmgTransferRelation,
-      LogManagerWithoutDuplicates pLogger, MachineModel pMachineModel, SMGOptions pOptions) {
+  public SMGRightHandSideEvaluator(
+      LogManagerWithoutDuplicates pLogger,
+      MachineModel pMachineModel,
+      SMGOptions pOptions,
+      SMGTransferRelationKind pKind,
+      SMGExportDotOption exportSMGOptions) {
     super(pLogger, pMachineModel);
-    smgTransferRelation = pSmgTransferRelation;
     options = pOptions;
+    kind = pKind;
+    builtins = new SMGBuiltins(this, options, exportSMGOptions, machineModel, logger);
   }
 
   public SMGExplicitValueAndState forceExplicitValue(
@@ -325,12 +333,12 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
   @Override
   PointerVisitor getPointerVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
-    return new RHSPointerAddressVisitor(this, pCfaEdge, pNewState);
+    return new RHSPointerAddressVisitor(this, pCfaEdge, pNewState, kind);
   }
 
   @Override
   ExpressionValueVisitor getExpressionValueVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
-    return new RHSExpressionValueVisitor(this, smgTransferRelation.builtins, pCfaEdge, pNewState);
+    return new RHSExpressionValueVisitor(this, builtins, pCfaEdge, pNewState, kind);
   }
 
   @Override
@@ -341,7 +349,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
   @Override
   RHSCSizeOfVisitor getSizeOfVisitor(
       CFAEdge pEdge, SMGState pState, Optional<CExpression> pExpression) {
-    return new RHSCSizeOfVisitor(this, smgTransferRelation, pEdge, pState, pExpression);
+    return new RHSCSizeOfVisitor(this, pEdge, pState, pExpression, kind);
   }
 
   @Override

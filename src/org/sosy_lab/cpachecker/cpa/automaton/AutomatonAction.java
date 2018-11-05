@@ -24,8 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Sets;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -62,7 +64,7 @@ abstract class AutomatonAction {
    * Logs a String when executed.
    */
   static class Print extends AutomatonAction {
-    private List<AutomatonExpression<?>> toPrint;
+    protected final List<AutomatonExpression<?>> toPrint;
 
     public Print(List<AutomatonExpression<?>> pArgs) {
       toPrint = pArgs;
@@ -91,8 +93,12 @@ abstract class AutomatonAction {
           sb.append(res.getValue().toString());
         }
       }
-      pArgs.appendToLogMessage(sb.toString());
+      print(pArgs, sb.toString());
       return defaultResultValue;
+    }
+
+    protected void print(AutomatonExpressionArguments pArgs, String s) {
+      pArgs.appendToLogMessage(s);
     }
 
     @Override
@@ -101,6 +107,26 @@ abstract class AutomatonAction {
     }
   }
 
+  /** Logs a String when executed. Prints each String only once. */
+  static class PrintOnce extends Print {
+    private final Set<String> alreadyPrintedMessages = Sets.newConcurrentHashSet();
+
+    public PrintOnce(List<AutomatonExpression<?>> pArgs) {
+      super(pArgs);
+    }
+
+    @Override
+    protected void print(AutomatonExpressionArguments pArgs, String s) {
+      if (alreadyPrintedMessages.add(s)) {
+        pArgs.appendToLogMessage(s);
+      }
+    }
+
+    @Override
+    public String toString() {
+      return "PRINTONCE \"" + Joiner.on("\" \"").join(toPrint) + "\"";
+    }
+  }
 
   /** Assigns the value of a AutomatonIntExpr to a AutomatonVariable determined by its name.
    */

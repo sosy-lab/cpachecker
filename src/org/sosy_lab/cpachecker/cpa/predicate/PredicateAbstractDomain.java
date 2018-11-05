@@ -23,40 +23,30 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix="cpa.predicate")
 public class PredicateAbstractDomain implements AbstractDomain {
 
-  @Option(secure=true, description="whether to include the symbolic path formula in the "
-    + "coverage checks or do only the fast abstract checks")
-  private boolean symbolicCoverageCheck = false;
-
-  // statistics
-  public final Timer coverageCheckTimer = new Timer();
-  public final Timer bddCoverageCheckTimer = new Timer();
-  public final Timer symbolicCoverageCheckTimer = new Timer();
-
   private final PredicateAbstractionManager mgr;
+  private final boolean symbolicCoverageCheck;
+  private final PredicateStatistics statistics;
 
-  public PredicateAbstractDomain(Configuration config, PredicateAbstractionManager pPredAbsManager)
-      throws InvalidConfigurationException {
-    config.inject(this, PredicateAbstractDomain.class);
+  public PredicateAbstractDomain(
+      PredicateAbstractionManager pPredAbsManager,
+      boolean pSymbolicCoverageCheck,
+      PredicateStatistics pStatistics) {
     mgr = pPredAbsManager;
+    symbolicCoverageCheck = pSymbolicCoverageCheck;
+    statistics = pStatistics;
   }
 
   @Override
   public boolean isLessOrEqual(AbstractState element1,
                                        AbstractState element2) throws CPAException, InterruptedException {
-    coverageCheckTimer.start();
+    statistics.coverageCheckTimer.start();
     try {
 
     PredicateAbstractState e1 = (PredicateAbstractState)element1;
@@ -74,21 +64,21 @@ public class PredicateAbstractDomain implements AbstractDomain {
      */
 
     if (e1.isAbstractionState() && e2.isAbstractionState()) {
-      bddCoverageCheckTimer.start();
+        statistics.bddCoverageCheckTimer.start();
 
       // if e1's predicate abstraction entails e2's pred. abst.
       boolean result = mgr.checkCoverage(e1.getAbstractionFormula(), e2.getAbstractionFormula());
 
-      bddCoverageCheckTimer.stop();
+        statistics.bddCoverageCheckTimer.stop();
       return result;
 
     } else if (e2.isAbstractionState()) {
       if (symbolicCoverageCheck) {
-        symbolicCoverageCheckTimer.start();
+          statistics.symbolicCoverageCheckTimer.start();
 
         boolean result = mgr.checkCoverage(e1.getAbstractionFormula(), e1.getPathFormula(), e2.getAbstractionFormula());
 
-        symbolicCoverageCheckTimer.stop();
+          statistics.symbolicCoverageCheckTimer.stop();
         return result;
 
       } else {
@@ -110,7 +100,7 @@ public class PredicateAbstractDomain implements AbstractDomain {
     } catch (SolverException e) {
       throw new CPAException("Solver Exception", e);
     } finally {
-      coverageCheckTimer.stop();
+      statistics.coverageCheckTimer.stop();
     }
   }
 

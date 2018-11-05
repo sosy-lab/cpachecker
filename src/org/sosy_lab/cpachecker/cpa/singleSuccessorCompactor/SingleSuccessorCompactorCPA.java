@@ -68,7 +68,7 @@ public class SingleSuccessorCompactorCPA extends AbstractSingleWrapperCPA
 
   private final LogManager logger;
 
-  public SingleSuccessorCompactorCPA(
+  private SingleSuccessorCompactorCPA(
       ConfigurableProgramAnalysis pCpa, LogManager pLogger, Configuration config)
       throws InvalidConfigurationException {
     super(pCpa);

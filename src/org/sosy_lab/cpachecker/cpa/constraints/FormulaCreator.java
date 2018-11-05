@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.constraints;
 
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
@@ -41,17 +40,4 @@ public interface FormulaCreator {
    * @return a <code>Formula</code> representing the given constraint
    */
   BooleanFormula createFormula(Constraint pConstraint) throws UnrecognizedCodeException, InterruptedException;
-
-  /**
-   * Creates a {@link BooleanFormula} representing the given {@link Constraint}.
-   * Symbolic Identifiers in constraints are replaced by their known definite assignments, if
-   * one exists.
-   *
-   * @param pConstraint the constraint to create a formula of
-   * @param pDefiniteAssignment the known definite assignments of symbolic identifiers
-   *
-   * @return a <code>Formula</code> representing the given constraint
-   */
-  BooleanFormula createFormula(Constraint pConstraint, IdentifierAssignment pDefiniteAssignment)
-      throws UnrecognizedCodeException, InterruptedException;
 }

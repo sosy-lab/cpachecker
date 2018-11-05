@@ -177,7 +177,7 @@ parser code {:
 terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS,
     CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE,
     ERROR, STOP, EXIT, ENTRY, BREAK, ASSERT, ASSUME, MATCH, LABEL, CHECK, EVAL,
-    MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS,
+    MODIFY, DO, PRINT, PRINTONCE, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS,
     MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST,
     TARGET, IS_TARGET_STATE, COVERS_LINES, OPEN_ANGLE_BRACKETS, CLOSE_ANGLE_BRACKETS ;
 non terminal List<Automaton> initial ;  
@@ -303,7 +303,8 @@ Action    ::= DO  IDENTIFIER:var EQ InnerInt:i   {: RESULT = new AutomatonAction
                         // InnerInt in this position allows for x = EVAL(..) Statements
             | DO IDENTIFIER:var SQUAREEXPR:expr EQ SetValue:val {: RESULT = new AutomatonAction.SetAssignment(var.toString(), expr.toString(), val); :}
             | PRINT PrintArguments:args {: RESULT = new AutomatonAction.Print(args); :}
-/*next statement is deprecated*/            
+            | PRINTONCE PrintArguments:args {: RESULT = new AutomatonAction.PrintOnce(args); :}
+/*next statement is deprecated*/
             | MODIFY OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
               {: RESULT = new AutomatonAction.CPAModification(cpa.toString(), query.toString()); :}
             | MODIFY OPEN_BRACKETS IDENTIFIER:cpa COMMA STRING_LITERAL:query CLOSE_BRACKETS

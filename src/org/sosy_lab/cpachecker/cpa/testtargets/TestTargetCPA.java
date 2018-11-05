@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.testtargets;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
@@ -32,20 +36,32 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
+@Options(prefix="testcase")
 public class TestTargetCPA extends AbstractCPA {
 
   private final TestTargetPrecisionAdjustment precisionAdjustment;
   private final TransferRelation transferRelation;
 
+  @Option(
+    secure = true,
+    name = "generate.parallel",
+    description = "set to true if run multiple test case generation instances in parallel"
+  )
+  private boolean runParallel = false;
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(TestTargetCPA.class);
   }
 
-  public TestTargetCPA(final CFA pCfa) {
+  public TestTargetCPA(final CFA pCfa, final Configuration pConfig)
+      throws InvalidConfigurationException {
     super("sep", "sep", null);
 
+    pConfig.inject(this);
+
     precisionAdjustment = new TestTargetPrecisionAdjustment();
-    transferRelation = new TestTargetTransferRelation(TestTargetProvider.getTestTargets(pCfa));
+    transferRelation =
+        new TestTargetTransferRelation(TestTargetProvider.getTestTargets(pCfa, runParallel));
   }
 
   @Override

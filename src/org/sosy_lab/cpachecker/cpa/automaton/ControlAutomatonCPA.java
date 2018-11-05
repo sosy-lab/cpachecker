@@ -240,7 +240,7 @@ public class ControlAutomatonCPA
 
   @Override
   public StopOperator getStopOperator() {
-    return new StopSepOperator(getAbstractDomain());
+      return new StopSepOperator(getAbstractDomain());
   }
 
   @Override

@@ -288,9 +288,15 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
         @Override
         public TraversalProcess visitNode(CFANode pNode) {
-          return continueAtBranching || pNode.getNumEnteringEdges() < 2
-              ? TraversalProcess.CONTINUE
-              : TraversalProcess.SKIP;
+          if (continueAtBranching) {
+            return TraversalProcess.CONTINUE;
+          }
+          if (forward && pNode.getNumLeavingEdges() < 2) {
+            return TraversalProcess.CONTINUE;
+          } else if (!forward && pNode.getNumEnteringEdges() < 2) {
+            return TraversalProcess.CONTINUE;
+          }
+          return TraversalProcess.SKIP;
         }
       }
       EpsilonMatchVisitor epsilonMatchVisitor = new EpsilonMatchVisitor(eval);
@@ -788,13 +794,18 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      if (pArgs.getCfaEdge() instanceof AssumeEdge) {
+      CFAEdge edge = pArgs.getCfaEdge();
+      if (edge instanceof AssumeEdge) {
         AssumeEdge a = (AssumeEdge) pArgs.getCfaEdge();
         boolean actualBranchInSource = a.getTruthAssumption() != a.isSwapped();
         if (matchPositiveCase == actualBranchInSource) {
           return CONST_TRUE;
         }
       }
+      if (matchPositiveCase && AutomatonGraphmlCommon.treatAsWhileTrue(edge)) {
+        return CONST_TRUE;
+      }
+
       return CONST_FALSE;
     }
 

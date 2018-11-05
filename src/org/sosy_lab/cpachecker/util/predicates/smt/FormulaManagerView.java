@@ -555,8 +555,6 @@ public class FormulaManagerView {
     Formula t;
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.modulo((IntegerFormula) pF1, (IntegerFormula) pF2);
-    } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
-      t = getRationalFormulaManager().modulo((NumeralFormula) pF1, (NumeralFormula) pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.modulo((BitvectorFormula) pF1, (BitvectorFormula) pF2, pSigned);
     } else {
@@ -568,6 +566,11 @@ public class FormulaManagerView {
 
   public <T extends Formula> BooleanFormula makeModularCongruence(
       T pF1, T pF2, long pModulo, boolean pSigned) {
+    return makeModularCongruence(pF1, pF2, BigInteger.valueOf(pModulo), pSigned);
+  }
+
+  public <T extends Formula> BooleanFormula makeModularCongruence(
+      T pF1, T pF2, BigInteger pModulo, boolean pSigned) {
     BooleanFormula t;
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.modularCongruence((IntegerFormula) pF1, (IntegerFormula) pF2, pModulo);
