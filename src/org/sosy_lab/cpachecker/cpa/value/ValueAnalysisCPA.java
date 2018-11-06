@@ -88,6 +88,16 @@ public class ValueAnalysisCPA
       description="which merge operator to use for ValueAnalysisCPA")
   private String mergeType = "SEP";
 
+  @Option(
+    secure = true,
+    toUppercase = true,
+    values = {"SEP", "JOIN"},
+    description = "which merge operator to use for ValueAnalysisCPA")
+  private String mergeTypeForInferenceObjects = "SEP";
+
+  @Option(secure = true, description = "use abstraction merge")
+  private boolean abstractionMerge = false;
+
   @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"},
       description="which stop operator to use for ValueAnalysisCPA")
   private String stopType = "SEP";
@@ -313,8 +323,17 @@ public class ValueAnalysisCPA
 
   @Override
   public MergeOperator getMergeForInferenceObject() {
-    return MergeSepOperator.getInstance();
-    //return new ValueMergeForInferenceObjects();
+
+    switch (mergeTypeForInferenceObjects) {
+      case "SEP":
+        return MergeSepOperator.getInstance();
+
+      case "JOIN":
+        return new ValueMergeForInferenceObjects(abstractionMerge);
+
+      default:
+        throw new AssertionError("unknown merge operator");
+    }
   }
 
   @Override

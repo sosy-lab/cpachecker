@@ -262,7 +262,6 @@ public class ThreadCreateTransformer {
 
   private CStatement prepareRandomAssignment(CFunctionCallAssignmentStatement stmnt) {
     FileLocation pFileLocation = stmnt.getFileLocation();
-    CFunctionCallExpression fCall = stmnt.getFunctionCallExpression();
     CLeftHandSide left = stmnt.getLeftHandSide();
 
     CFunctionDeclaration tmpDecl =

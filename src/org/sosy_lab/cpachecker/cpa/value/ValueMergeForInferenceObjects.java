@@ -32,6 +32,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class ValueMergeForInferenceObjects implements MergeOperator {
 
+  public final boolean abstractionMerge;
+
+  public ValueMergeForInferenceObjects(boolean pFlag) {
+    abstractionMerge = pFlag;
+  }
+
   @Override
   public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision) throws CPAException, InterruptedException {
     if (pState1 == EmptyInferenceObject.getInstance() || pState2 == EmptyInferenceObject.getInstance()) {
@@ -41,6 +47,13 @@ public class ValueMergeForInferenceObjects implements MergeOperator {
     ValueInferenceObject object1 = (ValueInferenceObject) pState1;
     ValueInferenceObject object2 = (ValueInferenceObject) pState2;
 
+    if (abstractionMerge) {
+      ValueAnalysisState state1 = object1.getSource();
+      ValueAnalysisState state2 = object2.getSource();
+      if (!state1.equals(state2)) {
+        return pState2;
+      }
+    }
     ValueInferenceObject result = object1.merge(object2);
 
     if (result.equals(object2)) {
