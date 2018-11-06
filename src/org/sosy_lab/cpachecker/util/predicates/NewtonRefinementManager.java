@@ -102,14 +102,14 @@ public class NewtonRefinementManager implements StatisticsProvider {
     description =
         "use unsatisfiable Core in order to abstract the predicates produced while NewtonRefinement"
   )
-  private boolean useUnsatCore = true;
+  private boolean infeasibleCore = true;
 
   @Option(
     secure = true,
     description =
         "use live variables in order to abstract the predicates produced while NewtonRefinement"
   )
-  private boolean useLiveVariables = true;
+  private boolean liveVariables = true;
 
   @Option(
     secure = true,
@@ -118,7 +118,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
             + "  EDGE : Based on Pathformulas of every edge in ARGPath\n"
             + "  BLOCK: Based on Pathformulas at Abstractionstates"
   )
-  private PathFormulaAbstractionLevel pathFormulaAbstractionLevel =
+  private PathFormulaAbstractionLevel abstractionLevel =
       PathFormulaAbstractionLevel.BLOCK;
 
   public enum PathFormulaAbstractionLevel {
@@ -132,7 +132,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     description =
         "Activate fallback to interpolation. Typically in case of a repeated counterexample."
   )
-  private boolean fallbackToInterpolation = false;
+  private boolean fallback = false;
 
   public NewtonRefinementManager(
       LogManager pLogger, Solver pSolver, PathFormulaManager pPfmgr, Configuration config)
@@ -172,7 +172,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
       } else {
         // Create infeasible Counterexample
         List<BooleanFormula> predicates;
-        switch (pathFormulaAbstractionLevel) {
+        switch (abstractionLevel) {
           case EDGE:
             predicates = createPredicatesEdgeLevel(pAllStatesTrace, pFormulas, pathLocations);
             break;
@@ -184,12 +184,21 @@ public class NewtonRefinementManager implements StatisticsProvider {
                 "The selected PathFormulaAbstractionLevel is not implemented.");
         }
 
-        // Apply Live Variable filtering if configured
-        if (useLiveVariables) {
-          predicates = filterFutureLiveVariables(pathLocations, predicates);
+        // Test if the predicate of the error state is unsatisfiable
+        try {
+          if (!solver.isUnsat(predicates.get(predicates.size() - 1))) {
+            throw new RefinementFailedException(Reason.SequenceOfAssertionsToWeak, pAllStatesTrace);
+          }
+        } catch (SolverException e) {
+          throw new RefinementFailedException(Reason.NewtonRefinementFailed, pAllStatesTrace, e);
         }
 
-        return CounterexampleTraceInfo.infeasible(predicates);
+        // Apply Live Variable filtering if configured
+        if (liveVariables) {
+          predicates = filterFutureLiveVariables(pathLocations, predicates);
+        }
+        // Drop last predicate as it should always be false.
+        return CounterexampleTraceInfo.infeasible(predicates.subList(0, predicates.size() - 1));
       }
     } finally {
       stats.totalTimer.stop();
@@ -202,7 +211,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * @return true if active
    */
   public boolean fallbackToInterpolation() {
-    return fallbackToInterpolation;
+    return fallback;
   }
 
   /**
@@ -213,14 +222,13 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * @param pFormulas The BlockFormulas
    * @param pathLocations Aggregates information to each path location
    * @return A list of Formulas, each Formula represents an assertion at the corresponding
-   *     abstraction state
+   *     abstraction state, the last formula should be unsatisfiable(representing Error state)
    * @throws InterruptedException if interrupted
    * @throws RefinementFailedException if the refinement failed
    */
   private List<BooleanFormula> createPredicatesEdgeLevel(
       ARGPath pPath, BlockFormulas pFormulas, List<PathLocation> pathLocations)
       throws RefinementFailedException, InterruptedException {
-    List<BooleanFormula> predicates;
 
     // Create the list of path
     List<BooleanFormula> pathFormulas =
@@ -233,15 +241,14 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
     // Compute the unsatisfiable core if configured, else create empty Optional
     Optional<List<BooleanFormula>> unsatCore;
-    if (useUnsatCore) {
+    if (infeasibleCore) {
       unsatCore = Optional.of(computeUnsatCore(pathFormulas, pPath));
     } else {
       unsatCore = Optional.empty();
     }
 
     // Calculate Strongest Post Condition of all pathLocations
-    predicates = this.calculateStrongestPostCondition(pathLocations, unsatCore, pPath);
-    return predicates;
+    return calculateStrongestPostCondition(pathLocations, unsatCore, pPath);
   }
 
   /**
@@ -252,7 +259,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * @param pFormulas The BlockFormulas
    * @param pPathLocations List of location on error trace
    * @return A list of Formulas, each Formula represents an assertion at the corresponding
-   *     abstraction state
+   *     abstraction state, the last formula should be unsatisfiable(representing Error state)
    * @throws InterruptedException if interrupted
    * @throws RefinementFailedException if the refinement failed
    */
@@ -284,7 +291,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
       predicates.add(pred);
     }
 
-    return predicates.subList(0, predicates.size() - 1);
+    return ImmutableList.copyOf(predicates);
   }
 
   /**
@@ -294,7 +301,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * @param pUnsatCore An optional holding the unsatisfiable core in the form of a list of Formulas.
    *     If no list of formulas is applied it computes the regular postCondition
    * @param pPath The path to the Error(Needed for RefinementFailedException)
-   * @return A list of BooleanFormulas holding the strongest postcondition at each abstraction state
+   * @return A list of Formulas, each Formula represents an assertion at the corresponding
+   *     abstraction state, the last formula should be unsatisfiable(representing Error state)
    * @throws InterruptedException In case of interruption
    * @throws RefinementFailedException In case an exception in the solver.
    */
@@ -322,7 +330,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
         List<BooleanFormula> requiredPart = new ArrayList<>();
         if (pUnsatCore.isPresent()) {
           Set<BooleanFormula> pathFormulaElements =
-              bfmgr.toConjunctionArgs(pathFormula.getFormula(), false);
+              bfmgr.toConjunctionArgs(pathFormula.getFormula(), true);
           for (BooleanFormula pathFormulaElement : pathFormulaElements) {
             if (pUnsatCore.get().contains(pathFormulaElement)) {
               requiredPart.add(pathFormulaElement);
@@ -337,7 +345,9 @@ public class NewtonRefinementManager implements StatisticsProvider {
         switch (edge.getEdgeType()) {
           case AssumeEdge:
             if (!requiredPart.isEmpty()) {
-              postCondition = bfmgr.and(preCondition, bfmgr.and(requiredPart));
+              postCondition =
+                  eliminateIntermediateVariables(
+                      pathFormula, bfmgr.and(preCondition, bfmgr.and(requiredPart)));
             }
             // Else no additional assertions
             else {
@@ -378,19 +388,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
         preCondition = postCondition;
       }
 
-      // Log an error message if the last predicate is satisfiable
-      try {
-        if (!solver.isUnsat(predicates.get(predicates.size() - 1))) {
-          logger.log(
-              Level.SEVERE,
-              "Created last predicate is not unsatisfiable. The refinement failed to find a sequence of assertions ruling out counterexample.");
-        }
-      } catch (SolverException e) {
-        throw new RefinementFailedException(Reason.NewtonRefinementFailed, pPath, e);
-      }
-
       // Remove the last predicate as it is should be false
-      return ImmutableList.copyOf(predicates.subList(0, predicates.size() - 1));
+      return ImmutableList.copyOf(predicates);
     } finally {
       stats.postConditionTimer.stop();
     }
@@ -749,11 +748,11 @@ public class NewtonRefinementManager implements StatisticsProvider {
       pOut.println("  Total Time spent                          : " + totalTimer.getSumTime());
       pOut.println(
           "  Time spent for strongest postcondition    : " + postConditionTimer.getSumTime());
-      if (useUnsatCore) {
+      if (infeasibleCore) {
         pOut.println(
             "  Time spent for unsat Core                 : " + unsatCoreTimer.getSumTime());
       }
-      if (useLiveVariables) {
+      if (liveVariables) {
         pOut.println(
             "  Time spent for Live Variable projection   : " + futureLivesTimer.getSumTime());
         pOut.println("  Number of quantified Future Live variables: " + noOfQuantifiedFutureLives);

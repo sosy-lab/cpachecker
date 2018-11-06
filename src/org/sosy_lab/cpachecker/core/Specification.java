@@ -28,7 +28,6 @@ import static java.util.stream.Collectors.joining;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -46,8 +45,8 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
+import org.sosy_lab.cpachecker.util.Property;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
-import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 
 /**
  * Class that encapsulates the specification that should be used for an analysis.
@@ -92,10 +91,8 @@ public final class Specification {
         break;
     }
 
-    Set<PropertyType> propertyTypes = Sets.newHashSetWithExpectedSize(pProperties.size());
-    for (SpecificationProperty property : pProperties) {
-      propertyTypes.add(property.getPropertyType());
-    }
+    Set<Property> properties =
+        pProperties.stream().map(p -> p.getProperty()).collect(ImmutableSet.toImmutableSet());
 
     List<Automaton> allAutomata = new ArrayList<>();
 
@@ -114,7 +111,7 @@ public final class Specification {
       if (AutomatonGraphmlParser.isGraphmlAutomatonFromConfiguration(specFile)) {
         AutomatonGraphmlParser graphmlParser =
             new AutomatonGraphmlParser(config, logger, cfa, scope);
-        automata = graphmlParser.parseAutomatonFile(specFile, propertyTypes);
+        automata = graphmlParser.parseAutomatonFile(specFile, properties);
 
       } else {
         automata =

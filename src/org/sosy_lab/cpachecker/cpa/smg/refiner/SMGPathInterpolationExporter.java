@@ -103,7 +103,7 @@ public class SMGPathInterpolationExporter {
       return;
     }
 
-    Collection<SMGState> states = pFirstInterpolant.reconstructStates();
+    Collection<SMGState> states = pFirstInterpolant.reconstructState();
 
     int counter = 1;
     for (SMGState state : states) {
@@ -125,7 +125,7 @@ public class SMGPathInterpolationExporter {
       return;
     }
 
-    Collection<SMGState> states = pCurrentInterpolant.reconstructStates();
+    Collection<SMGState> states = pCurrentInterpolant.reconstructState();
 
     int counter = 1;
     for (SMGState state : states) {

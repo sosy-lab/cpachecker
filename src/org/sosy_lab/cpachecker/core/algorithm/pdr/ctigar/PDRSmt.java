@@ -747,8 +747,7 @@ public class PDRSmt {
       // Make variable
       CType type = unprimedContext.getSsa().getType(variableName);
       BitvectorFormula unprimedVar =
-          (BitvectorFormula)
-              pfmgr.makeFormulaForVariable(unprimedContext, variableName, type, false);
+          (BitvectorFormula) pfmgr.makeFormulaForVariable(unprimedContext, variableName, type);
 
       // Make value
       BigInteger val = pModel.evaluate(unprimedVar);
@@ -762,8 +761,7 @@ public class PDRSmt {
       if (val == null) {
         BitvectorFormula primedVar =
             (BitvectorFormula)
-                pfmgr.makeFormulaForVariable(
-                    transition.getPrimedContext(), variableName, type, false);
+                pfmgr.makeFormulaForVariable(transition.getPrimedContext(), variableName, type);
         val = pModel.evaluate(primedVar);
       }
 

@@ -487,14 +487,15 @@ class WitnessWriter implements EdgeAppender {
     }
 
     if (witnessOptions.exportFunctionCallsAndReturns()) {
-      Optional<String> functionName = pAlternativeFunctionEntry;
-      if (pEdge.getSuccessor() instanceof FunctionEntryNode
-          || AutomatonGraphmlCommon.isMainFunctionEntry(pEdge)) {
-        functionName = Optional.of(pEdge.getSuccessor().getFunctionName());
+      String functionName = pAlternativeFunctionEntry.orElse(null);
+      CFANode succ = pEdge.getSuccessor();
+      if (succ instanceof FunctionEntryNode) {
+        functionName = ((FunctionEntryNode) succ).getFunctionDefinition().getOrigName();
+      } else if (AutomatonGraphmlCommon.isMainFunctionEntry(pEdge)) {
+        functionName = succ.getFunctionName();
       }
-      if (functionName.isPresent()) {
-        result =
-            result.putAndCopy(KeyDef.FUNCTIONENTRY, getOriginalFunctionName(functionName.get()));
+      if (functionName != null) {
+        result = result.putAndCopy(KeyDef.FUNCTIONENTRY, getOriginalFunctionName(functionName));
       }
     }
 
@@ -804,6 +805,8 @@ class WitnessWriter implements EdgeAppender {
         if (witnessOptions.revertThreadFunctionRenaming()) {
           functionName = CFACloner.extractFunctionName(functionName);
         }
+        // TODO we cannot access the original function name here and only export the
+        // CPAchecker-specific name. This works for tasks with a single source file.
         result = result.putAndCopy(KeyDef.ASSUMPTIONSCOPE, functionName);
       }
       if (resultFunction.isPresent()) {

@@ -1,0 +1,3 @@
+
+struct a {};
+struct a {};

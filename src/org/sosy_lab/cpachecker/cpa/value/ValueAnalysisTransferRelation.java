@@ -112,8 +112,6 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
@@ -140,8 +138,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
 public class ValueAnalysisTransferRelation
-    extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisState, VariableTrackingPrecision>
-    implements StatisticsProvider {
+    extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisState, VariableTrackingPrecision> {
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
   private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
@@ -157,15 +154,6 @@ public class ValueAnalysisTransferRelation
               + "when the true-branch is handled."
     )
     private boolean initAssumptionVars = false;
-
-    @Option(
-      secure = true,
-      description =
-          "Whether to replace symbolic values with a concrete value"
-              + " when only one value is possible for an assumption to be true"
-              + " (e.g. for (x == 1) set x to 1, even if x is a symbolic expression)."
-    )
-    private boolean assignSymbolicAssumptionVars = false;
 
     @Option(
       secure = true,
@@ -185,6 +173,9 @@ public class ValueAnalysisTransferRelation
     @Option(secure=true, description="Track or not function pointer values")
     private boolean ignoreFunctionValue = true;
 
+    @Option(secure = true, description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
+    private boolean assignEqualityAssumptions = true;
+
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
@@ -193,8 +184,8 @@ public class ValueAnalysisTransferRelation
       return initAssumptionVars;
     }
 
-    boolean isAssignSymbolicAssumptionVars() {
-      return assignSymbolicAssumptionVars;
+    boolean isAssignEqualityAssumptions() {
+      return assignEqualityAssumptions;
     }
 
     boolean isOptimizeBooleanVariables() {
@@ -1189,11 +1180,6 @@ public class ValueAnalysisTransferRelation
         assignUnknownValueToEnclosingInstanceOfArray(enclosingSubscriptExpression);
       }
     }
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.add(constraintsStrengthenOperator);
   }
 
   private class  FieldAccessExpressionValueVisitor extends ExpressionValueVisitor {

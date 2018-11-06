@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 import static org.sosy_lab.cpachecker.util.BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -170,7 +171,12 @@ public class ExpressionToFormulaVisitor
 
     final boolean signed;
     if (calculationType instanceof CSimpleType) {
+      // this only gives the right value for "signed" because calculationType was determined using
+      // getCanonicalType, which e.g. converts a CNumericType.INT into a CNumericType.SIGNED_INT:
       signed = conv.machineModel.isSigned((CSimpleType)calculationType);
+    } else if (calculationType instanceof CPointerType) {
+      // pointers can also be signed if the machine model represents them using a signed type:
+      signed = conv.machineModel.getPointerEquivalentSimpleType().getCanonicalType().isSigned();
     } else {
       signed = false;
     }
@@ -340,10 +346,16 @@ public class ExpressionToFormulaVisitor
     BooleanFormulaManagerView bfmgr = mgr.getBooleanFormulaManager();
 
     if (exp.getOperand2() instanceof CIntegerLiteralExpression) {
-      long modulo = ((CIntegerLiteralExpression)exp.getOperand2()).asLong();
-      BooleanFormula modularCongruence = mgr.makeModularCongruence(ret, f1, modulo, signed);
-      if (!bfmgr.isTrue(modularCongruence)) {
-        constraints.addConstraint(modularCongruence);
+      // We use a BigInteger because it can always be made positive, this is not true for type long!
+      BigInteger modulo = ((CIntegerLiteralExpression) exp.getOperand2()).getValue();
+      if (!modulo.equals(BigInteger.ZERO)) {
+        // modular congruence expects a positive modulo. If our divisor b in a%b is negative, we
+        // actually want to generate a modular congruence condition mod (-b):
+        modulo = modulo.abs();
+        BooleanFormula modularCongruence = mgr.makeModularCongruence(ret, f1, modulo, signed);
+        if (!bfmgr.isTrue(modularCongruence)) {
+          constraints.addConstraint(modularCongruence);
+        }
       }
     }
 
@@ -369,8 +381,13 @@ public class ExpressionToFormulaVisitor
         mgr.makeLessThan(f2, ret, signed)
     );
 
-    constraints.addConstraint(signAndNumBound);
-    constraints.addConstraint(denomBound);
+    BooleanFormula newConstraints =
+        bfmgr.ifThenElse(
+            mgr.makeEqual(f2, zero),
+            bfmgr.makeTrue(), // if divisor is zero, make no constraint
+            bfmgr.and(signAndNumBound, denomBound));
+
+    constraints.addConstraint(newConstraints);
   }
 
   @Override

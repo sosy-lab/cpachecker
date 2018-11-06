@@ -100,6 +100,6 @@ public interface SMGValue extends Comparable<SMGValue> {
     return SMGUnknownValue.INSTANCE == this;
   }
 
-  /** returns a unique identifier that can be used as dot-identifier for graphviw. */
+  /** returns a unique identifier that can be used as dot-identifier for graphvis. */
   String asDotId();
 }

@@ -81,6 +81,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions.GenericAssumptionBuilder;
@@ -109,6 +110,9 @@ public final class ArithmeticOverflowAssumptionBuilder implements
 
   @Option(description = "Track overflows in division(/ or %) operations.")
   private boolean trackDivisions = true;
+
+  @Option(description = "Track overflows in binary expressions involving pointers.")
+  private boolean trackPointers = false;
 
   private final Map<CType, CLiteralExpression> upperBounds;
   private final Map<CType, CLiteralExpression> lowerBounds;
@@ -231,8 +235,6 @@ public final class ArithmeticOverflowAssumptionBuilder implements
    */
   private void addAssumptionOnBounds(CExpression exp, Set<CExpression> result, CFANode node)
       throws UnrecognizedCodeException {
-    CType typ = exp.getExpressionType();
-
     if (useLiveness) {
       Set<CSimpleDeclaration> referencedDeclarations =
           CFAUtils.getIdExpressionsOfExpression(exp)
@@ -247,45 +249,68 @@ public final class ArithmeticOverflowAssumptionBuilder implements
       }
     }
 
-    if (exp instanceof CBinaryExpression) {
+    if (isBinaryExpressionThatMayOverflow(exp)) {
       CBinaryExpression binexp = (CBinaryExpression) exp;
       BinaryOperator binop = binexp.getOperator();
+      CType calculationType = binexp.getCalculationType();
       CExpression op1 = binexp.getOperand1();
       CExpression op2 = binexp.getOperand2();
       if (trackAdditiveOperations
           && (binop.equals(BinaryOperator.PLUS) || binop.equals(BinaryOperator.MINUS))) {
-        if (lowerBounds.get(typ) != null) {
-          result.add(getLowerAssumption(op1, op2, binop, lowerBounds.get(typ)));
+        if (lowerBounds.get(calculationType) != null) {
+          result.add(getLowerAssumption(op1, op2, binop, lowerBounds.get(calculationType)));
         }
-        if (upperBounds.get(typ) != null) {
-          result.add(getUpperAssumption(op1, op2, binop, upperBounds.get(typ)));
+        if (upperBounds.get(calculationType) != null) {
+          result.add(getUpperAssumption(op1, op2, binop, upperBounds.get(calculationType)));
         }
       } else if (trackMultiplications && binop.equals(BinaryOperator.MULTIPLY)) {
-        if (lowerBounds.get(typ) != null && upperBounds.get(typ) != null) {
-          addMultiplicationAssumptions(op1, op2, lowerBounds.get(typ), upperBounds.get(typ),
-              result);
+        if (lowerBounds.get(calculationType) != null && upperBounds.get(calculationType) != null) {
+          addMultiplicationAssumptions(
+              op1, op2, lowerBounds.get(calculationType), upperBounds.get(calculationType), result);
         }
       } else if (trackDivisions
           && (binop.equals(BinaryOperator.DIVIDE) || binop.equals(BinaryOperator.MODULO))) {
-        if (lowerBounds.get(typ) != null) {
-          addDivisionAssumption(op1, op2, lowerBounds.get(typ), result);
+        if (lowerBounds.get(calculationType) != null) {
+          addDivisionAssumption(op1, op2, lowerBounds.get(calculationType), result);
         }
       } else if (trackLeftShifts && binop.equals(BinaryOperator.SHIFT_LEFT)) {
-        if (upperBounds.get(typ) != null && width.get(typ) != null) {
-          addLeftShiftAssumptions(op1, op2, upperBounds.get(typ), width.get(typ), result);
+        if (upperBounds.get(calculationType) != null && width.get(calculationType) != null) {
+          addLeftShiftAssumptions(
+              op1, op2, upperBounds.get(calculationType), width.get(calculationType), result);
         }
       }
     } else if (exp instanceof CUnaryExpression) {
-      if (lowerBounds.get(typ) != null) {
+      CType calculationType = ((CUnaryExpression) exp).getExpressionType();
+      if (lowerBounds.get(calculationType) != null) {
         CUnaryExpression unaryexp = (CUnaryExpression) exp;
         CExpression operand = unaryexp.getOperand();
-        result.add(cBinaryExpressionBuilder.buildBinaryExpression(operand, lowerBounds.get(typ),
-            BinaryOperator.NOT_EQUALS));
+        result.add(
+            cBinaryExpressionBuilder.buildBinaryExpression(
+                operand, lowerBounds.get(calculationType), BinaryOperator.NOT_EQUALS));
       }
     } else {
       // TODO: check out and implement in case this happens
     }
 
+  }
+
+  private boolean isBinaryExpressionThatMayOverflow(CExpression pExp) {
+    if (pExp instanceof CBinaryExpression) {
+      CBinaryExpression binexp = (CBinaryExpression) pExp;
+      CExpression op1 = binexp.getOperand1();
+      CExpression op2 = binexp.getOperand2();
+      if (op1.getExpressionType() instanceof CPointerType
+          || op2.getExpressionType() instanceof CPointerType) {
+        // There are no classical arithmetic overflows in binary operations involving pointers,
+        // since pointer types are not necessarily signed integer types as far as ISO/IEC 9899:2018
+        // (C17) is concerned. So we do not track this by default, but make it configurable:
+        return trackPointers;
+      } else {
+        return true;
+      }
+    } else {
+      return false;
+    }
   }
 
   /**

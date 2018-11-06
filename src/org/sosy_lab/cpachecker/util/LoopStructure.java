@@ -28,24 +28,33 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.CFAUtils.hasBackWardsEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 import java.io.Serializable;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Function;
 import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -56,9 +65,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -107,7 +118,7 @@ public final class LoopStructure implements Serializable {
    * In such cases, both loops are considered only one loop
    * (which is legal according to the definition above).
    */
-  public static class Loop implements Serializable {
+  public static class Loop implements Serializable, Comparable<Loop> {
 
     private static final long serialVersionUID = 1L;
 
@@ -270,6 +281,31 @@ public final class LoopStructure implements Serializable {
            + "  incoming: " + incomingEdges + "\n"
            + "  outgoing: " + outgoingEdges + "\n"
            + "  nodes:    " + nodes;
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (this == pObj) {
+        return true;
+      }
+      if (pObj instanceof Loop) {
+        Loop other = (Loop) pObj;
+        return loopHeads.equals(other.loopHeads) && nodes.equals(other.nodes);
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(loopHeads);
+    }
+
+    @Override
+    public int compareTo(Loop pOther) {
+      return ComparisonChain.start()
+          .compare(nodes.size(), pOther.nodes.size())
+          .compare(nodes, pOther.nodes, Ordering.natural().lexicographical())
+          .result();
     }
   }
 
@@ -856,5 +892,102 @@ public final class LoopStructure implements Serializable {
       }
     }
     return successor;
+  }
+
+  public static Collection<Loop> getRecursions(final CFA cfa) {
+    FunctionEntryNode initialLocation = cfa.getMainFunction();
+
+    Map<String, FunctionEntryNode> funNameToEntry =
+        Maps.newHashMapWithExpectedSize(cfa.getAllFunctionHeads().size());
+    for (FunctionEntryNode funNode : cfa.getAllFunctionHeads()) {
+      funNameToEntry.put(funNode.getFunctionName(), funNode);
+    }
+
+    // build call graph
+    Map<FunctionEntryNode, ARGState> callGraph =
+        Maps.newHashMapWithExpectedSize(cfa.getAllFunctionHeads().size());
+    FunctionEntryNode callee;
+    ARGState successor;
+
+    for (FunctionEntryNode funNode : cfa.getAllFunctionHeads()) {
+      if (!callGraph.containsKey(funNode)) {
+        callGraph.put(funNode, new ARGState(null, null));
+      }
+      successor = callGraph.get(funNode);
+
+      for (CFANode pred : CFAUtils.predecessorsOf(funNode)) {
+        callee = funNameToEntry.get(pred.getFunctionName());
+        if (!callGraph.containsKey(callee)) {
+          callGraph.put(callee, new ARGState(null, null));
+        }
+
+        successor.addParent(callGraph.get(callee));
+      }
+    }
+
+    // detect recursion (loops in call graphs)
+    Set<String> seen = new HashSet<>();
+    Set<ARGState> recHeadsCallGraph = new HashSet<>();
+    Deque<Pair<ARGState, String>> waitlist = new ArrayDeque<>();
+    waitlist.add(
+        Pair.of(
+            callGraph.get(initialLocation),
+            "," + callGraph.get(initialLocation).getStateId() + ","));
+    ARGState parent;
+    String path;
+    String childSuffix;
+    while (!waitlist.isEmpty()) {
+      parent = waitlist.getFirst().getFirst();
+      path = waitlist.removeFirst().getSecond();
+      for (ARGState child : parent.getChildren()) {
+        childSuffix = child.getStateId() + ",";
+        if (path.contains("," + childSuffix)) {
+          recHeadsCallGraph.add(child);
+          continue;
+        }
+        if (seen.add(path + childSuffix)) {
+          waitlist.addLast(Pair.of(child, path + childSuffix));
+        }
+      }
+    }
+
+    List<FunctionEntryNode> recHeads = new ArrayList<>(recHeadsCallGraph.size());
+    for (Entry<FunctionEntryNode, ARGState> mapEntry : callGraph.entrySet()) {
+      if (recHeadsCallGraph.contains(mapEntry.getValue())) {
+        recHeads.add(mapEntry.getKey());
+      }
+    }
+
+    // detect nodes in recursion
+    Set<CFANode> forward, backward, nodes;
+    Collection<Loop> result = new ArrayList<>(recHeads.size());
+    for (FunctionEntryNode recHead : recHeads) {
+      forward =
+          CFATraversal.dfs()
+              .ignoreEdgeType(CFAEdgeType.FunctionReturnEdge)
+              .collectNodesReachableFrom(recHead);
+      backward = CFATraversal.dfs().backwards().collectNodesReachableFrom(recHead);
+
+      if (forward.size() <= backward.size()) {
+        nodes = Sets.intersection(forward, backward);
+      } else {
+        nodes = Sets.intersection(backward, forward);
+      }
+
+      Loop l = new Loop(recHead, nodes);
+
+      // heuristic to add additional loop heads
+      // in mutual recursions to avoid false proofs
+      for (FunctionEntryNode entry :
+          from(nodes)
+              .filter(FunctionEntryNode.class)
+              .filter(entry -> entry.getNumEnteringEdges() > 1)) {
+        l.mergeWith((new Loop(entry, nodes)));
+      }
+
+      result.add(l);
+    }
+
+    return result;
   }
 }

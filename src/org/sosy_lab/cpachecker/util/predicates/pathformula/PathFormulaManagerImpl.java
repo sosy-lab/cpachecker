@@ -358,22 +358,20 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return pathFormula;
   }
 
-
-  /**
-   * {@inheritDoc}
-   */
+  /** {@inheritDoc} */
   @Override
-  public Formula makeFormulaForVariable(
-      PathFormula pContext, String pVarName, CType pType, boolean forcePointerDereference) {
+  public Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType) {
     return converter.makeFormulaForVariable(
-        pContext.getSsa(),
-        pContext.getPointerTargetSet(),
-        pVarName,
-        pType,
-        forcePointerDereference);
+        pContext.getSsa(), pContext.getPointerTargetSet(), pVarName, pType);
   }
 
-
+  /** {@inheritDoc} */
+  @Override
+  public Formula makeFormulaForUninstantiatedVariable(
+      String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
+    return converter.makeFormulaForUninstantiatedVariable(
+        pVarName, pType, pContextPTS, forcePointerDereference);
+  }
 
   /**
    * Build a formula containing a predicate for all branching situations in the

@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicIn
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolantManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.EdgeInterpolator;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.GenericEdgeInterpolator;
@@ -104,10 +103,9 @@ public class SymbolicDelegatingRefiner implements ARGBasedRefiner, StatisticsPro
     final CFA cfa = valueAnalysisCpa.getCFA();
     final ShutdownNotifier shutdownNotifier = valueAnalysisCpa.getShutdownNotifier();
 
-    final Solver solver = Solver.create(config, logger, shutdownNotifier);
-
     final SymbolicStrongestPostOperator symbolicStrongestPost =
-        new ValueTransferBasedStrongestPostOperator(solver, logger, config, cfa, shutdownNotifier);
+        new ValueTransferBasedStrongestPostOperator(constraintsCpa.getSolver(), logger, config,
+            cfa);
 
     final SymbolicFeasibilityChecker feasibilityChecker =
         new SymbolicValueAnalysisFeasibilityChecker(symbolicStrongestPost,
@@ -251,6 +249,8 @@ public class SymbolicDelegatingRefiner implements ARGBasedRefiner, StatisticsPro
         return SymbolicDelegatingRefiner.class.getSimpleName();
       }
     });
+
+    symbolicRefiner.collectStatistics(statsCollection);
   }
 
   @Override

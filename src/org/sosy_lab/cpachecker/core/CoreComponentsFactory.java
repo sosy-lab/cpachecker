@@ -322,8 +322,7 @@ public class CoreComponentsFactory {
 
     if (useUndefinedFunctionCollector) {
       logger.log(Level.INFO, "Using undefined function collector");
-      algorithm =
-          new UndefinedFunctionCollectorAlgorithm(cfa, config, logger);
+      algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
     } else if (useNonTerminationWitnessValidation) {
       logger.log(Level.INFO, "Using validator for violation witnesses for termination");
       algorithm =
@@ -451,7 +450,7 @@ public class CoreComponentsFactory {
       }
 
       if (collectAssumptions) {
-        algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger);
+        algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger, cfa);
       }
 
       if (useAdjustableConditions) {

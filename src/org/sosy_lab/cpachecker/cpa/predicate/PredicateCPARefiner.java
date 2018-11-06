@@ -65,6 +65,8 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -364,6 +366,12 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
         abstractionStatesTrace.size() <= allStatesTrace.size(),
         "each abstraction state should have a state in the counterexample trace");
 
+    // Set the atomic Predicates configuration in the RefinementStrategy
+    if (strategy instanceof PredicateAbstractionRefinementStrategy) {
+      ((PredicateAbstractionRefinementStrategy) strategy)
+          .setUseAtomicPredicates(atomicInterpolants);
+    }
+
     if (!repeatedCounterexample && (invariantsManager.addToPrecision() || usePathInvariants)) {
       // Compute invariants if desired, and if the counterexample is not a repeated one
       // (otherwise invariants for the same location didn't help before, so they won't help now).
@@ -371,16 +379,27 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
     } else if (useNewtonRefinement) {
       assert newtonManager.isPresent();
-      if (repeatedCounterexample && newtonManager.get().fallbackToInterpolation()) {
+      if (!repeatedCounterexample) {
+        try {
+          logger.log(Level.FINEST, "Starting Newton-based refinement");
+          return performNewtonRefinement(allStatesTrace, formulas);
+        } catch (RefinementFailedException e) {
+          if (e.getReason() == Reason.SequenceOfAssertionsToWeak
+              && newtonManager.get().fallbackToInterpolation()) {
+            logger.log(
+                Level.FINEST,
+                "Fallback from Newton-based refinement to interpolation-based refinement");
+            return performInterpolatingRefinement(abstractionStatesTrace, formulas);
+          } else {
+            throw e;
+          }
+        }
+      } else {
         logger.log(
             Level.FINEST,
             "Fallback from Newton-based refinement to interpolation-based refinement");
         return performInterpolatingRefinement(abstractionStatesTrace, formulas);
-      } else {
-        logger.log(Level.FINEST, "Starting Newton-based refinement");
-        return performNewtonRefinement(allStatesTrace, formulas);
       }
-
     } else if (useUCBRefinement) {
       logger.log(Level.FINEST, "Starting unsat-core-based refinement");
       return performUCBRefinement(abstractionStatesTrace, formulas);
@@ -396,14 +415,8 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       final BlockFormulas formulas)
       throws CPAException, InterruptedException {
 
-    if (strategy instanceof PredicateAbstractionRefinementStrategy) {
-      ((PredicateAbstractionRefinementStrategy) strategy)
-          .setUseAtomicPredicates(atomicInterpolants);
-    }
-
     return interpolationManager.buildCounterexampleTrace(
-        formulas,
-        Lists.<AbstractState>newArrayList(abstractionStatesTrace));
+        formulas, Lists.<AbstractState>newArrayList(abstractionStatesTrace));
   }
 
   private CounterexampleTraceInfo performInvariantsRefinement(
@@ -438,10 +451,6 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
         return performInterpolatingRefinement(abstractionStatesTrace, formulas);
 
       } else {
-        if (strategy instanceof PredicateAbstractionRefinementStrategy) {
-          ((PredicateAbstractionRefinementStrategy) strategy)
-              .setUseAtomicPredicates(atomicInvariants);
-        }
         wereInvariantsusedInCurrentRefinement = true;
         return CounterexampleTraceInfo.infeasible(precisionIncrement);
       }
@@ -451,9 +460,9 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     }
   }
 
-  private CounterexampleTraceInfo
-      performNewtonRefinement(final ARGPath pAllStatesTrace, final BlockFormulas pFormulas)
-          throws CPAException, InterruptedException {
+  private CounterexampleTraceInfo performNewtonRefinement(
+      final ARGPath pAllStatesTrace, final BlockFormulas pFormulas)
+      throws CPAException, InterruptedException {
     // Delegate the refinement task to the NewtonManager
     return newtonManager.get().buildCounterexampleTrace(pAllStatesTrace, pFormulas);
   }

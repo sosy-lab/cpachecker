@@ -125,7 +125,7 @@ public class BAMCacheImpl implements BAMCache {
     return entry;
   }
 
-  protected BAMCacheEntry get0(
+  private BAMCacheEntry get0(
       final AbstractState stateKey, final Precision precisionKey, final Block context) {
 
     AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);

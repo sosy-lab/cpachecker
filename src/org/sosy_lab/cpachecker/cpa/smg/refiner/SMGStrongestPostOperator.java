@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -31,35 +30,32 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.smg.SMGExportDotOption;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-
 
 public class SMGStrongestPostOperator {
 
   private final SMGTransferRelation transfer;
 
-  private SMGStrongestPostOperator(SMGTransferRelation pTransferRelation) {
-    transfer = pTransferRelation;
-  }
-
-  public static SMGStrongestPostOperator getSMGStrongestPostOperatorForCEX(LogManager pLogger,
-      CFA pCfa, SMGPredicateManager pSMGPredicateManager, BlockOperator pBlockOperator, SMGOptions pOptions) {
-    SMGTransferRelation transfer =
-        SMGTransferRelation.createTransferRelationForCEX(pLogger, pCfa.getMachineModel(),
-            pSMGPredicateManager, pBlockOperator, pOptions);
-    return new SMGStrongestPostOperator(transfer);
-  }
-
-  public Collection<SMGState> getStrongestPost(
-      SMGState pOrigin, Precision pPrecision, CFAEdge pOperation) throws CPAException {
-    Collection<SMGState> start = ImmutableList.of(pOrigin);
-    return getStrongestPost(start, pPrecision, pOperation);
+  SMGStrongestPostOperator(
+      LogManager pLogger,
+      CFA pCfa,
+      SMGPredicateManager pSMGPredicateManager,
+      SMGOptions pOptions,
+      SMGTransferRelationKind pKind) {
+    transfer =
+        new SMGTransferRelation(
+            pLogger,
+            pCfa.getMachineModel(),
+            SMGExportDotOption.getNoExportInstance(),
+            pKind,
+            pSMGPredicateManager,
+            pOptions);
   }
 
   public Collection<SMGState> getStrongestPost(
@@ -70,15 +66,5 @@ public class SMGStrongestPostOperator {
       result.addAll(transfer.getAbstractSuccessorsForEdge(state, pPrecision, pOperation));
     }
     return result;
-  }
-
-  public static SMGStrongestPostOperator getSMGStrongestPostOperatorForInterpolation(
-      LogManager pLogger, CFA pCfa, SMGPredicateManager pSMGPredicateManager,
-      BlockOperator pBlockOperator, SMGOptions pOptions) {
-
-    SMGTransferRelation transferRelation = SMGTransferRelation
-        .createTransferRelationForInterpolation(pLogger, pCfa.getMachineModel(),
-            pSMGPredicateManager, pBlockOperator, pOptions);
-    return new SMGStrongestPostOperator(transferRelation);
   }
 }

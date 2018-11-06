@@ -19,10 +19,13 @@
  */
 package org.sosy_lab.cpachecker.util.ltl.formulas;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import org.sosy_lab.cpachecker.util.Property;
 
-public class LabelledFormula {
+public class LabelledFormula implements Property {
 
   public static LabelledFormula of(LtlFormula pFormula, List<Literal> pList) {
     return new LabelledFormula(pFormula, pList);
@@ -32,8 +35,8 @@ public class LabelledFormula {
   private final ImmutableList<Literal> atomicPropositions;
 
   private LabelledFormula(LtlFormula pFormula, List<Literal> pList) {
-    formula = pFormula;
-    atomicPropositions = ImmutableList.copyOf(pList);
+    formula = checkNotNull(pFormula);
+    atomicPropositions = ImmutableList.copyOf(checkNotNull(pList));
   }
 
   public LabelledFormula not() {
@@ -46,5 +49,48 @@ public class LabelledFormula {
 
   public ImmutableList<Literal> getAPs() {
     return atomicPropositions;
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((atomicPropositions == null) ? 0 : atomicPropositions.hashCode());
+    result = prime * result + ((formula == null) ? 0 : formula.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    LabelledFormula other = (LabelledFormula) obj;
+    if (atomicPropositions == null) {
+      if (other.atomicPropositions != null) {
+        return false;
+      }
+    } else if (!atomicPropositions.equals(other.atomicPropositions)) {
+      return false;
+    }
+    if (formula == null) {
+      if (other.formula != null) {
+        return false;
+      }
+    } else if (!formula.equals(other.formula)) {
+      return false;
+    }
+    return true;
+  }
+
+  @Override
+  public String toString() {
+    return getFormula().toString();
   }
 }

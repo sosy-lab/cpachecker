@@ -33,6 +33,11 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 /**
  * A class to represent a value which points to an address. This class is mainly used to store value
  * information.
+ *
+ * <p>TODO I do not like this class. We should avoid instances of this class as part of an SMGState,
+ * because it references an SMGObject that might be updated/deleted via another reference in the
+ * SMG, and this class remains outdated and leads to invalid behaviour. The information about which
+ * value points to which object in the SMG should already be available as SMGEdgePointsTo.
  */
 public final class SMGKnownAddressValue extends SMGKnownSymValue implements SMGAddressValue {
 
@@ -75,7 +80,7 @@ public final class SMGKnownAddressValue extends SMGKnownSymValue implements SMGA
 
   @Override
   public String toString() {
-    return "Value: " + super.toString() + " " + address;
+    return super.toString() + " with address <" + address + ">";
   }
 
   @Override

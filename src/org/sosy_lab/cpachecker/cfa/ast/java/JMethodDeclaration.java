@@ -92,7 +92,7 @@ public class JMethodDeclaration extends AFunctionDeclaration implements JDeclara
       final boolean pIsAbstract, final boolean pIsStatic,
       final boolean pIsNative, final boolean pIsSynchronized,
       final boolean pIsStrictfp, JClassOrInterfaceType pDeclaringClass) {
-    super(pFileLocation, pType, pName, pParameterDeclarations);
+    super(pFileLocation, pType, pName, pName, pParameterDeclarations);
 
     visibility = pVisibility;
     isFinal = pIsFinal;

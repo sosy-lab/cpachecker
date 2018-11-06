@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.smg.SMGBuiltins;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
@@ -40,10 +41,16 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 class RHSPointerAddressVisitor extends PointerVisitor {
 
   private final SMGRightHandSideEvaluator smgRightHandSideEvaluator;
+  private final SMGTransferRelationKind kind;
 
-  public RHSPointerAddressVisitor(SMGRightHandSideEvaluator pSmgRightHandSideEvaluator, CFAEdge pEdge, SMGState pSmgState) {
+  public RHSPointerAddressVisitor(
+      SMGRightHandSideEvaluator pSmgRightHandSideEvaluator,
+      CFAEdge pEdge,
+      SMGState pSmgState,
+      SMGTransferRelationKind pKind) {
     super(pSmgRightHandSideEvaluator, pEdge, pSmgState);
     smgRightHandSideEvaluator = pSmgRightHandSideEvaluator;
+    kind = pKind;
   }
 
   @Override
@@ -67,14 +74,14 @@ class RHSPointerAddressVisitor extends PointerVisitor {
     CExpression fileNameExpression = pIastFunctionCallExpression.getFunctionNameExpression();
     String functionName = fileNameExpression.toASTString();
 
-    SMGBuiltins builtins = smgRightHandSideEvaluator.smgTransferRelation.builtins;
+    SMGBuiltins builtins = smgRightHandSideEvaluator.builtins;
     if (builtins.isABuiltIn(functionName)) {
       if (builtins.isConfigurableAllocationFunction(functionName)) {
         return builtins.evaluateConfigurableAllocationFunction(
-            pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
+            pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge(), kind);
       }
       return builtins.handleBuiltinFunctionCall(
-          getCfaEdge(), pIastFunctionCallExpression, functionName, getInitialSmgState());
+          getCfaEdge(), pIastFunctionCallExpression, functionName, getInitialSmgState(), kind);
     } else {
       return builtins.handleUnknownFunction(
           getCfaEdge(), pIastFunctionCallExpression, functionName, getInitialSmgState());

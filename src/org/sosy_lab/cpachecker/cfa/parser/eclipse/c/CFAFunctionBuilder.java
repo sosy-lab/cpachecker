@@ -33,6 +33,7 @@ import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -102,6 +103,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -493,6 +495,8 @@ class CFAFunctionBuilder extends ASTVisitor {
         BlankEdge blankEdge = new BlankEdge("",
             FileLocation.DUMMY, lastNode, cfa.getExitNode(), "default return");
         addToCFA(blankEdge);
+      } else {
+        cfa.getExitNode().addOutOfScopeVariables(lastNode.getOutOfScopeVariables());
       }
 
       if (!gotoLabelNeeded.isEmpty()) {
@@ -806,6 +810,11 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFANode prevNode = locStack.pop();
     FunctionExitNode functionExitNode = cfa.getExitNode();
 
+    // a return statement leaves all available scopes at once.
+    for (Collection<CSimpleDeclaration> vars : scope.getVariablesOfMostLocalScopes()) {
+      functionExitNode.addOutOfScopeVariables(vars);
+    }
+
     CReturnStatement returnstmt = astCreator.convert(returnStatement);
     prevNode = handleAllSideEffects(prevNode, fileloc, returnStatement.getRawSignature(), true);
 
@@ -864,6 +873,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         return PROCESS_SKIP;
       }
 
+      locStack.peek().addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
       scope.leaveBlock();
 
     } else if (statement instanceof IASTWhileStatement
@@ -1414,6 +1424,10 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFANode prevNode = locStack.pop();
     CFANode postLoopNode = loopNextStack.peek();
 
+    // on "return" we add the OOSVars after the return edge, because the return can access all vars.
+    // on "break" we add the OOSVars before the break edge, because nothing happens along the edge.
+    prevNode.addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
+
     BlankEdge blankEdge = new BlankEdge(breakStatement.getRawSignature(),
         fileloc, prevNode, postLoopNode, "break");
     addToCFA(blankEdge);
@@ -1513,6 +1527,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       assert loopEnd == loopStart;
     }
 
+    postLoopNode.addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
     scope.leaveBlock();
 
     // skip visiting children of loop, because loopbody was handled before
@@ -1994,6 +2009,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     // If we do not need a return value, last statement is also easy.
     if (tempVar == null) {
       lastStatement.accept(this);
+      locStack.peek().addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
       scope.leaveBlock();
       return locStack.pop();
     }
@@ -2041,6 +2057,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         createIASTExpressionStatementEdges(
             stmt.toASTString(), stmt.getFileLocation(), middleNode, stmt);
 
+    lastNode.addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
     scope.leaveBlock();
     return lastNode;
   }

@@ -29,6 +29,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -43,7 +44,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
@@ -68,6 +72,7 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.PartialARGsCombiner;
+import org.sosy_lab.cpachecker.core.defaults.MultiStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -87,31 +92,24 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
-import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 @Options(prefix="restartAlgorithm")
 public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedSetUpdater {
 
-  private static class RestartAlgorithmStatistics implements Statistics {
+  private static class RestartAlgorithmStatistics extends MultiStatistics {
 
-    private final LogManager logger;
     private final int noOfAlgorithms;
-    private final Collection<Statistics> subStats;
     private int noOfAlgorithmsUsed = 0;
     private Timer totalTime = new Timer();
 
     public RestartAlgorithmStatistics(int pNoOfAlgorithms, LogManager pLogger) {
+      super(pLogger);
       noOfAlgorithms = pNoOfAlgorithms;
-      subStats = new ArrayList<>();
-      logger = checkNotNull(pLogger);
     }
 
-    public Collection<Statistics> getSubStatistics() {
-      return subStats;
-    }
-
+    @Override
     public void resetSubStatistics() {
-      subStats.clear();
+      super.resetSubStatistics();
       totalTime = new Timer();
     }
 
@@ -144,17 +142,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
     private void printSubStatistics(
         PrintStream out, Result result, UnmodifiableReachedSet reached) {
       out.println("Total time for algorithm " + noOfAlgorithmsUsed + ": " + totalTime);
-
-      for (Statistics s : subStats) {
-        StatisticsUtils.printStatistics(s, out, logger, result, reached);
-      }
-    }
-
-    @Override
-    public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
-      for (Statistics s : subStats) {
-        StatisticsUtils.writeOutputFiles(s, logger, pResult, pReached);
-      }
+      super.printStatistics(out, result, reached);
     }
   }
 
@@ -531,10 +519,14 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
     singleConfigBuilder.copyFrom(globalConfig);
     singleConfigBuilder.clearOption("restartAlgorithm.configFiles");
     singleConfigBuilder.clearOption("analysis.restartAfterUnknown");
+
+    // TODO next line overrides existing options with options loaded from file.
+    // Perhaps we want to keep some global options like 'specification'?
     singleConfigBuilder.loadFromFile(singleConfigFileName);
 
     Configuration singleConfig = singleConfigBuilder.build();
     LogManager singleLogger = logger.withComponentName("Analysis" + (stats.noOfAlgorithmsUsed + 1));
+    RestartAlgorithm.checkConfigs(globalConfig, singleConfig, singleConfigFileName, logger);
 
     ResourceLimitChecker singleLimits = ResourceLimitChecker.fromConfiguration(singleConfig, singleLogger, singleShutdownManager);
     singleLimits.start();
@@ -569,11 +561,12 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
     return Triple.of(algorithm, cpa, reached);
   }
 
-  private ReachedSet createInitialReachedSetForRestart(
+  static ReachedSet createInitialReachedSetForRestart(
       ConfigurableProgramAnalysis cpa,
       CFANode mainFunction,
       CoreComponentsFactory pFactory,
-      LogManager singleLogger) throws InterruptedException {
+      LogManager singleLogger)
+      throws InterruptedException {
     singleLogger.log(Level.FINE, "Creating initial reached set");
 
     AbstractState initialState = cpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition());
@@ -582,6 +575,40 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
     ReachedSet reached = pFactory.createReachedSet();
     reached.add(initialState, initialPrecision);
     return reached;
+  }
+
+  static void checkConfigs(
+      Configuration pGlobalConfig,
+      Configuration pSingleConfig,
+      Path pSingleConfigFileName,
+      LogManager pLogger) {
+    Map<String, String> global = configToMap(pGlobalConfig);
+    Map<String, String> single = configToMap(pSingleConfig);
+    for (Entry<String, String> entry : global.entrySet()) {
+      String key = entry.getKey();
+      String value = entry.getValue();
+      if (single.containsKey(key) && !value.equals(single.get(key))) {
+        pLogger.logf(
+            Level.INFO,
+            "Mismatch of configuration options when loading from '%s': '%s' has two values '%s' and '%s'. Using '%s'.",
+            pSingleConfigFileName,
+            key,
+            value,
+            single.get(key),
+            single.get(key));
+      }
+    }
+  }
+
+  /** get an iterable data structure from configuration options. Sadly there is no nicer way. */
+  private static Map<String, String> configToMap(Configuration config) {
+    Map<String, String> mp = new LinkedHashMap<>();
+    for (String option : Splitter.on("\n").omitEmptyStrings().split(config.asPropertiesString())) {
+      List<String> split = Splitter.on(" = ").splitToList(option);
+      Preconditions.checkArgument(split.size() == 2, option);
+      mp.put(split.get(0), split.get(1));
+    }
+    return mp;
   }
 
   @Override

@@ -63,7 +63,7 @@ class PseudoExistFormula {
     List<BooleanFormula> tmpWithoutQuantifiedVars = new ArrayList<>();
     List<BooleanFormula> tmpWithQuantifiedVars = new ArrayList<>();
     for (BooleanFormula conjunct :
-        pFmgr.getBooleanFormulaManager().toConjunctionArgs(quantifiedFormula, false)) {
+        pFmgr.getBooleanFormulaManager().toConjunctionArgs(quantifiedFormula, true)) {
       if (Sets.intersection(pFmgr.extractVariableNames(conjunct), quantifiedVars.keySet())
           .isEmpty()) {
         tmpWithoutQuantifiedVars.add(conjunct);

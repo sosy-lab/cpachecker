@@ -39,19 +39,16 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public abstract class SMGPrecision implements Precision {
 
   private final SMGPrecisionAbstractionOptions options;
-  private final BlockOperator blockOperator;
   private final int threshold = 0;
 
-  public SMGPrecision(SMGPrecisionAbstractionOptions pOptions, BlockOperator pBlockOperator) {
+  public SMGPrecision(SMGPrecisionAbstractionOptions pOptions) {
     options = pOptions;
-    blockOperator = pBlockOperator;
   }
 
-  public static SMGPrecision createStaticPrecision(
-      boolean pEnableHeapAbstraction, BlockOperator pBlockOperator) {
+  public static SMGPrecision createStaticPrecision(boolean pEnableHeapAbstraction) {
     SMGPrecisionAbstractionOptions options =
         new SMGPrecisionAbstractionOptions(pEnableHeapAbstraction, false, false);
-    return new SMGStaticPrecision(options, pBlockOperator);
+    return new SMGStaticPrecision(options);
   }
 
   public abstract Precision withIncrement(Map<CFANode, SMGPrecisionIncrement> pPrecisionIncrement);
@@ -59,16 +56,11 @@ public abstract class SMGPrecision implements Precision {
   public abstract SMGPrecision join(SMGPrecision pPrecision);
 
   public static SMGPrecision createRefineablePrecision(SMGPrecision pPrecision) {
-    PersistentMultimap<CFANode, SMGMemoryPath> emptyMemoryPaths = PersistentMultimap.of();
-    PersistentMultimap<CFANode, SMGAbstractionBlock> emptyAbstractionBlocks = PersistentMultimap.of();
-    PersistentMultimap<CFANode, MemoryLocation> emptyStackVariable = PersistentMultimap.of();
-
     return new SMGRefineablePrecision(
-        new SMGPrecisionAbstractionOptions(pPrecision.allowsHeapAbstraction(), true, true),
-        pPrecision.getBlockOperator(),
-        emptyMemoryPaths,
-        emptyAbstractionBlocks,
-        emptyStackVariable);
+        new SMGPrecisionAbstractionOptions(pPrecision.options.allowsHeapAbstraction(), true, true),
+        PersistentMultimap.of(),
+        PersistentMultimap.of(),
+        PersistentMultimap.of());
   }
 
   public abstract boolean isTracked(SMGMemoryPath pPath, CFANode pCfaNode);
@@ -77,30 +69,12 @@ public abstract class SMGPrecision implements Precision {
 
   public abstract Set<MemoryLocation> getTrackedStackVariablesOnNode(CFANode pCfaNode);
 
-  public abstract boolean usesHeapInterpolation();
-
-  public boolean allowsHeapAbstractionOnNode(CFANode pCfaNode) {
-    return options.allowsHeapAbstraction() && blockOperator.isBlockEnd(pCfaNode, threshold);
+  public boolean allowsHeapAbstractionOnNode(CFANode pCfaNode, BlockOperator pBlockOperator) {
+    return options.allowsHeapAbstraction() && pBlockOperator.isBlockEnd(pCfaNode, threshold);
   }
 
-  public final boolean allowsHeapAbstraction() {
-    return options.allowsHeapAbstraction();
-  }
-
-  public final boolean allowsFieldAbstraction() {
-    return options.allowsFieldAbstraction();
-  }
-
-  public final boolean allowsStackAbstraction() {
-    return options.allowsStackAbstraction();
-  }
-
-  protected SMGPrecisionAbstractionOptions getAbstractionOptions() {
+  public SMGPrecisionAbstractionOptions getAbstractionOptions() {
     return options;
-  }
-
-  public BlockOperator getBlockOperator() {
-    return blockOperator;
   }
 
   public abstract Set<SMGAbstractionBlock> getAbstractionBlocks(CFANode location);
@@ -113,19 +87,13 @@ public abstract class SMGPrecision implements Precision {
 
     private SMGRefineablePrecision(
         SMGPrecisionAbstractionOptions pOptions,
-        BlockOperator pBlockOperator,
         PersistentMultimap<CFANode, SMGMemoryPath> pTrackedMemoryPaths,
         PersistentMultimap<CFANode, SMGAbstractionBlock> pAbstractionBlocks,
         PersistentMultimap<CFANode, MemoryLocation> pTrackedStackVariables) {
-      super(pOptions, pBlockOperator);
+      super(pOptions);
       trackedMemoryPaths = pTrackedMemoryPaths;
       abstractionBlocks = pAbstractionBlocks;
       trackedStackVariables = pTrackedStackVariables;
-    }
-
-    @Override
-    public boolean usesHeapInterpolation() {
-      return allowsHeapAbstraction();
     }
 
     @Override
@@ -155,7 +123,6 @@ public abstract class SMGPrecision implements Precision {
 
       return new SMGRefineablePrecision(
           getAbstractionOptions(),
-          getBlockOperator(),
           resultMemoryPaths,
           resultAbstractionBlocks,
           resultStackVariables);
@@ -173,7 +140,6 @@ public abstract class SMGPrecision implements Precision {
 
       return new SMGRefineablePrecision(
           getAbstractionOptions(),
-          getBlockOperator(),
           trackedMemoryPaths.putAllAndCopy(other.trackedMemoryPaths),
           abstractionBlocks.putAllAndCopy(other.abstractionBlocks),
           trackedStackVariables.putAllAndCopy(other.trackedStackVariables));
@@ -199,14 +165,8 @@ public abstract class SMGPrecision implements Precision {
 
   private static class SMGStaticPrecision extends SMGPrecision {
 
-    private SMGStaticPrecision(
-        SMGPrecisionAbstractionOptions pAllowsHeapAbstraction, BlockOperator pBlockOperator) {
-      super(pAllowsHeapAbstraction, pBlockOperator);
-    }
-
-    @Override
-    public boolean usesHeapInterpolation() {
-      return false;
+    private SMGStaticPrecision(SMGPrecisionAbstractionOptions pAllowsHeapAbstraction) {
+      super(pAllowsHeapAbstraction);
     }
 
     @Override
@@ -245,7 +205,7 @@ public abstract class SMGPrecision implements Precision {
     }
   }
 
-  private static final class SMGPrecisionAbstractionOptions {
+  public static final class SMGPrecisionAbstractionOptions {
 
     private final boolean heapAbstraction;
     private final boolean fieldAbstraction;

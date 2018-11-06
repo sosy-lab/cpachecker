@@ -272,10 +272,12 @@ public class PartialTransitionRelation implements Comparable<PartialTransitionRe
                       .filter(name -> !name.startsWith("*"))
                       .map(
                           name -> {
-                            return pmgr.makeFormulaForVariable(
-                                pathFormula, name, ssaMap.getType(name), false);
-                          })
-                      .map(fmgr::uninstantiate);
+                            return pmgr.makeFormulaForUninstantiatedVariable(
+                                name,
+                                ssaMap.getType(name),
+                                pathFormula.getPointerTargetSet(),
+                                false);
+                          });
                 })
             .distinct()
             .collect(

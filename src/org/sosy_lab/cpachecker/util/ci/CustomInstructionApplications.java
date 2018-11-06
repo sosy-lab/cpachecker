@@ -307,8 +307,13 @@ public class CustomInstructionApplications {
         throws UnrecognizedCodeException, AppliedCustomInstructionParsingFailedException,
             IOException, InterruptedException {
       CustomInstructionApplications cia = findSimpleCustomInstructionApplications();
-      logger.log(Level.INFO, "Found ", cia.getMapping().size(), " applications of binary operatior",
-          binaryOperatorForSimpleCustomInstruction, " in code.");
+      logger.log(
+          Level.INFO,
+          "Found ",
+          cia.getMapping().size(),
+          " applications of binary operator",
+          binaryOperatorForSimpleCustomInstruction,
+          " in code.");
       return cia;
     }
   }

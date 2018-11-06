@@ -439,11 +439,6 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
           }
           fReached.setDelegate(currentContext.reached);
 
-          if (currentContext.algorithm instanceof StatisticsProvider) {
-            ((StatisticsProvider) currentContext.algorithm)
-                .collectStatistics(stats.getSubStatistics());
-          }
-
           shutdownNotifier.shutdownIfNecessary();
 
           logger.logf(Level.INFO, "Starting analysis %d ...", stats.noOfCurrentAlgorithm);
@@ -455,13 +450,13 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
           }
           if (!status.isSound()) {
             logger.logf(
-                Level.INFO,
+                Level.FINE,
                 "Analysis %d terminated, but result is unsound.",
                 stats.noOfCurrentAlgorithm);
 
           } else if (currentContext.reached.hasWaitingState()) {
             logger.logf(
-                Level.INFO,
+                Level.FINE,
                 "Analysis %d terminated but did not finish: There are still states to be processed.",
                 stats.noOfCurrentAlgorithm);
 
@@ -484,7 +479,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
 
         } catch (InterruptedException e) {
           logger.logUserException(
-              Level.WARNING, e, "Analysis " + stats.noOfCurrentAlgorithm + " stopped.");
+              Level.FINE, e, "Analysis " + stats.noOfCurrentAlgorithm + " stopped.");
 
           shutdownNotifier.shutdownIfNecessary();
 
@@ -648,6 +643,10 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
 
     // always create algorithm with new "local" shutdown manager
     pContext.algorithm = localCoreComponents.createAlgorithm(pContext.cpa, cfa, specification);
+
+    if (pContext.algorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider) pContext.algorithm).collectStatistics(stats.getSubStatistics());
+    }
 
     if (pContext.cpa instanceof StatisticsProvider) {
       ((StatisticsProvider) pContext.cpa).collectStatistics(stats.getSubStatistics());

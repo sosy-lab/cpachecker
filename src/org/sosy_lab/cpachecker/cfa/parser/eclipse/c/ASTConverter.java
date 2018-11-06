@@ -655,14 +655,24 @@ class ASTConverter {
 
   private CAstNode convert(IASTBinaryExpression e) {
 
-    switch (e.getOperator()) {
-    case IASTBinaryExpression.op_logicalAnd:
-    case IASTBinaryExpression.op_logicalOr:
-      CIdExpression tmp = createTemporaryVariable(e);
-      sideAssignmentStack.addConditionalExpression(e, tmp);
-      return tmp;
-    default:
-      // nothing to do here
+    int eop = e.getOperator();
+    if (eop == IASTBinaryExpression.op_logicalOr
+        || eop == IASTBinaryExpression.op_logicalAnd) {
+      CONDITION o1 = getConditionKind(e.getOperand1());
+      CONDITION o2 = getConditionKind(e.getOperand2());
+
+      if (o1 == CONDITION.NORMAL || o2 == CONDITION.NORMAL) {
+        CIdExpression tmp = createTemporaryVariable(e);
+        sideAssignmentStack.addConditionalExpression(e, tmp);
+        return tmp;
+      }
+
+      if ((eop == IASTBinaryExpression.op_logicalAnd
+          && (o1 == CONDITION.ALWAYS_FALSE || o2 == CONDITION.ALWAYS_FALSE))
+          || (o1 == CONDITION.ALWAYS_FALSE && o2 == CONDITION.ALWAYS_FALSE)) {
+        return CIntegerLiteralExpression.ZERO;
+      }
+      return CIntegerLiteralExpression.ONE;
     }
 
     Pair<BinaryOperator, Boolean> opPair = operatorConverter.convertBinaryOperator(e);
@@ -1453,7 +1463,8 @@ class ASTConverter {
     final FileLocation loc = getLocation(s);
     final Optional<CExpression> returnExp =
         Optional.fromNullable(convertExpressionWithoutSideEffects(s.getReturnValue()));
-    final Optional<CVariableDeclaration> returnVariableDeclaration = ((FunctionScope)scope).getReturnVariable();
+    final Optional<CVariableDeclaration> returnVariableDeclaration =
+((FunctionScope)scope).getReturnVariable();
 
     final Optional<CAssignment> returnAssignment;
     if (returnVariableDeclaration.isPresent()) {
@@ -1512,7 +1523,12 @@ class ASTConverter {
 
     CFunctionTypeWithNames declSpec = (CFunctionTypeWithNames)declarator.getFirst();
 
-    return new CFunctionDeclaration(getLocation(f), declSpec, declarator.getThird(), declSpec.getParameterDeclarations());
+    return new CFunctionDeclaration(
+        getLocation(f),
+        declSpec,
+        declSpec.getName(),
+        declarator.getThird(),
+        declSpec.getParameterDeclarations());
   }
 
   public List<CDeclaration> convert(final IASTSimpleDeclaration d) {
@@ -2022,32 +2038,33 @@ class ASTConverter {
         new CFunctionTypeWithNames(returnType, paramsList, sd.takesVarArgs());
     CType type = fType;
 
-    String name;
+    String origname;
     if (d.getNestedDeclarator() != null) {
 
-      Triple<? extends CType, IASTInitializer, String> nestedDeclarator = convert(d.getNestedDeclarator(), type);
-
+      Triple<? extends CType, IASTInitializer, String> nestedDeclarator =
+          convert(d.getNestedDeclarator(), type);
 
       assert d.getName().getRawSignature().isEmpty() : d;
       assert nestedDeclarator.getSecond() == null;
 
       type = nestedDeclarator.getFirst();
-      name = nestedDeclarator.getThird();
+      origname = nestedDeclarator.getThird();
 
     } else {
-      name = convert(d.getName());
+      origname = convert(d.getName());
     }
 
+    String qualifiedName = origname;
     if (isStaticFunction) {
-      name = staticVariablePrefix + name;
+      qualifiedName = staticVariablePrefix + origname;
     }
 
-    fType.setName(name);
+    fType.setName(qualifiedName);
     for (CParameterDeclaration param : paramsList) {
-      param.setQualifiedName(FunctionScope.createQualifiedName(name, param.getName()));
+      param.setQualifiedName(FunctionScope.createQualifiedName(qualifiedName, param.getName()));
     }
 
-    return Triple.of(type, d.getInitializer(), name);
+    return Triple.of(type, d.getInitializer(), origname);
   }
 
 

@@ -7,22 +7,27 @@ Former Maintainers:
 
 Developers/Contributors:
   Pavel Andrianov (since 2014), ISP RAS, Russia
+  Moritz Buhl (since 2018), LMU Munich, Germany
+  Thomas Bunk (since 2018), LMU Munich, Germany
   Johannes Bürdek (since 2014), University of Darmstadt, Germany
   Rodrigo Castaño (since 2017), University of Buenos Aires, Argentina
   Matthias Dangl (since 2012), LMU Munich, Germany
   Karlheinz Friedberger (since 2011), LMU Munich, Germany
   Matthias Gerlach (since 2017), LMU Munich, Germany
-  Dejan Ivanov (since 2017), LMU Munich, Germany
   Marie-Christine Jakobs (since 2012), LMU Munich, Germany
+  Johannes Knaut (since 2018), LMU Munich, Germany
   Alexander Koos (since 2017), LMU Munich, Germany
+  Michal Kotoun (since 2018), Brno University of Technology, Czech Republic
   Thomas Lemberger (since 2014), LMU Munich, Germany
   Michael Maier (since 2017), LMU Munich, Germany
   Mikhail Mandrykin (since 2013), ISP RAS, Russia
   Grigory Markin (since 2017), University of Lübeck, Germany
   Vitaly Mordan (since 2014), ISP RAS, Russia
   Vadim Mutilin (since 2012), ISP RAS, Russia
+  Lokesh Nandanwar (since 2018), National Institute of Technology Durgapur, India
   Martin Spießl (since 2017), LMU Munich, Germany
   Manuel Töws (since 2016), University of Paderborn, Germany
+  Mirjam Trapp (since 2018), LMU Munich, Germany
   Anton Vasilyev (since 2015), ISP RAS, Russia
   Anton Volkov (since 2015), ISP RAS, Russia
   Ilja Zakharov (since 2016), ISP RAS, Russia
@@ -44,6 +49,7 @@ Former Developers/Contributors:
   Barbara Eckl (2016), University of Passau, Germany
   Gregor Endler (2009 - 2010), University of Passau, Germany
   Alexander Esch (2012), University of Passau, Germany
+  Flutura Estler (2018), LMU Munich, Germany
   Ashgan Fararooy (2009), Simon Fraser University, Canada
   Tobias Friedl (2013 - 2014), University of Passau, Germany
   Alberto Griggio (2008 - 2009), Simon Fraser University, Canada / University of Trento, Italy
@@ -51,6 +57,7 @@ Former Developers/Contributors:
   Peter Häring (2011 - 2014), University of Passau, Germany
   Julian Heydebrand (2015), University of Passau, Germany
   Andreas Holzer (2008 - 2015), University of Darmstadt, Germany / TU Vienna, Austria
+  Dejan Ivanov (2017), LMU Munich, Germany
   George Karpenkov (2014 - 2017), Verimag, Grenoble
   Michael Käufl (2011), University of Passau, Germany
   Steven Kieffer (2011 - 2012), Simon Fraser University, Canada

@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathPosition;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
@@ -317,11 +316,9 @@ public class ElementTestingSymbolicEdgeInterpolator
     }
 
     private ForgettingCompositeState removeAllConstraints(final ForgettingCompositeState pState) {
-      IdentifierAssignment definiteAssignments =
-          pState.getConstraintsState().getDefiniteAssignment();
-
       return new ForgettingCompositeState(
-          pState.getValueState(), new ConstraintsState(new HashSet<>(), definiteAssignments));
+          pState.getValueState(),
+          new ConstraintsState(new HashSet<>()));
     }
   }
 }

@@ -21,6 +21,7 @@
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
     <exclude>../programs/benchmarks/floats-cdfpl/*</exclude> <!-- mostly timeouts or close to timeout -->
+    <exclude>../programs/benchmarks/floats-cbmc-regression/float-no-simp2_true-unreach-call.i</exclude> <!-- flapping timeout / unknown -->
     <exclude>../programs/benchmarks/float-benchs/sqrt*true-unreach*</exclude> <!-- mostly timeouts or close to timeout -->
     <exclude>../programs/benchmarks/float-benchs/zonotope*</exclude> <!-- mostly timeouts or close to timeout -->
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
@@ -65,6 +66,7 @@
   <tasks>
     <includesfile>integration-DeviceDriversLinux64.set</includesfile>
     <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-*false-unreach-call*</exclude> <!-- timeouts -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_false-unreach-call_ok_linux-43_1a-drivers--scsi--megaraid--megaraid_mm_true-termination.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude> <!-- flapping timeout / unknown -->
     <propertyfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.prp</propertyfile>
     <option name="-skipRecursion"/>
     <option name="-64"/>

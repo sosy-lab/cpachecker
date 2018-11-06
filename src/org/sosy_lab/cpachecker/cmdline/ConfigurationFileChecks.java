@@ -119,12 +119,15 @@ public class ConfigurationFileChecks {
           "differential.program",
           // handled by code outside of CPAchecker class
           "output.disable",
+          "statistics.print",
           "limits.time.cpu",
           "limits.time.cpu::required",
           "limits.time.cpu.thread",
           "memorysafety.config",
+          "memorycleanup.config",
           "overflow.config",
           "termination.config",
+          "termination.violation.witness",
           "witness.validation.violation.config",
           "witness.validation.correctness.config",
           "pcc.proofgen.doPCC",
@@ -411,7 +414,10 @@ public class ConfigurationFileChecks {
       assertThat(spec).endsWith("specification/UninitializedVariables.spc");
     } else if (cpas.contains("cpa.smg.SMGCPA")) {
       if (isSvcompConfig) {
-        assertThat(spec).contains("specification/sv-comp-memorysafety.spc");
+        assertThat(spec)
+            .isAnyOf(
+                "specification/sv-comp-memorysafety.spc",
+                "specification/sv-comp-memorycleanup.spc");
       } else {
         assertThat(spec).contains("specification/memorysafety.spc");
       }

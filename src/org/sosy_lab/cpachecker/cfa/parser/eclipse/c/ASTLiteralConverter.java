@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,8 +25,12 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static java.lang.Character.isDigit;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Arrays;
 import org.eclipse.cdt.core.dom.ast.IASTLiteralExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -41,9 +45,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-/** This Class contains functions,
-/** This Class contains functions,
- * that convert literals (chars, numbers) from C-source into CPAchecker-format. */
+/**
+ * This Class contains functions, that convert literals (chars, numbers) from C-source into
+ * CPAchecker-format.
+ */
 class ASTLiteralConverter {
 
   private final MachineModel machine;
@@ -78,10 +83,7 @@ class ASTLiteralConverter {
       return new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, e));
 
     case IASTLiteralExpression.lk_integer_constant:
-      Suffix suffix = determineSuffix(valueStr, e);
-      BigInteger integerValue = parseIntegerLiteral(suffix, valueStr.substring(0, valueStr.length() - suffix.getLength()), e);
-      CSimpleType actualType = suffix.getTypeForValue(integerValue, machine);
-      return new CIntegerLiteralExpression(fileLoc, actualType, integerValue);
+        return parseIntegerLiteral(fileLoc, valueStr, e);
 
     case IASTLiteralExpression.lk_float_constant:
       BigDecimal value;
@@ -127,12 +129,9 @@ class ASTLiteralConverter {
 
 
     case IASTLiteralExpression.lk_integer_constant:
-      Suffix suffix = determineSuffix(valueStr, exp);
-      BigInteger integerValue = parseIntegerLiteral(suffix, valueStr.substring(0, valueStr.length() - suffix.getLength()), exp);
-      CSimpleType actualType = suffix.getTypeForValue(integerValue, machine);
-      return new CImaginaryLiteralExpression(fileLoc,
-                                             actualType,
-                                             new CIntegerLiteralExpression(fileLoc, actualType, integerValue)) ;
+        CLiteralExpression cLiteralExp = parseIntegerLiteral(fileLoc, valueStr, exp);
+        return new CImaginaryLiteralExpression(
+            fileLoc, cLiteralExp.getExpressionType(), cLiteralExp);
 
     case IASTLiteralExpression.lk_float_constant:
       BigDecimal val;
@@ -165,6 +164,44 @@ class ASTLiteralConverter {
     }
   }
 
+  @VisibleForTesting
+  CLiteralExpression parseIntegerLiteral(
+      FileLocation pFileLoc, String pValueStr, IASTLiteralExpression pExp) {
+
+    // Get the suffix that is specified in the literal
+    Suffix denotedSuffix = extractDenotedSuffix(pValueStr, pExp);
+    BigInteger integerValue =
+        parseRawIntegerValue(
+            pValueStr.substring(0, pValueStr.length() - denotedSuffix.getLength()), pExp);
+
+    // Compute the integer type that is at least required to fully represent the integer value.
+    // According to section 6.4.4.1 "Integer constants" of the C standard, the
+    // type must not be lower than what is specified in the code (i.e., what is stored in param
+    // 'denotedSuffix' here)
+    ImmutableList<Suffix> suffixCandiates =
+        Arrays.stream(Suffix.values())
+            .filter(x -> x.compareTo(denotedSuffix) >= 0)
+            .collect(ImmutableList.toImmutableList());
+    Suffix actualRequiredSuffix =
+        getLeastRepresentedTypeForValue(integerValue, machine, suffixCandiates, pExp);
+
+    int bits = machine.getSizeof(actualRequiredSuffix.getType()) * machine.getSizeofCharInBits();
+    if (actualRequiredSuffix.isSigned() && integerValue.testBit(bits - 1)) {
+      throw new CFAGenerationRuntimeException(
+          String.format(
+              "Type must not be signed and simultaneously has its most significant bit set: %s",
+              pExp));
+    }
+
+    // Assure that the bits of the expression fit into the computed type
+    // by comparing them against a mask whose lowest bits are set to one (e.g. 2^32-1 or 2^64-1)
+    BigInteger mask = BigInteger.ZERO.setBit(bits).subtract(BigInteger.ONE);
+    assert integerValue.and(mask).bitLength() <= bits;
+
+    return new CIntegerLiteralExpression(pFileLoc, actualRequiredSuffix.getType(), integerValue);
+  }
+
+  @VisibleForTesting
   char parseCharacterLiteral(String s, final IASTNode e) {
     check(s.length() >= 3, "invalid character literal (too short)", e);
     check(s.charAt(0) == '\'' && s.charAt(s.length() - 1) == '\'',
@@ -246,7 +283,7 @@ class ASTLiteralConverter {
     return result;
   }
 
-  BigInteger parseIntegerLiteral(Suffix pSuffix, String s, final IASTNode e) {
+  private BigInteger parseRawIntegerValue(String s, final IASTNode e) {
     BigInteger result;
     try {
       if (s.startsWith("0x") || s.startsWith("0X")) {
@@ -265,29 +302,10 @@ class ASTLiteralConverter {
     }
     check(result.compareTo(BigInteger.ZERO) >= 0, "invalid number", e);
 
-    int bits = pSuffix.getNumberOfBits(machine, result);
-
-    // clear the bits that don't fit in the type
-    // a BigInteger with the lowest "bits" bits set to one (e. 2^32-1 or 2^64-1)
-    BigInteger mask = BigInteger.ZERO.setBit(bits).subtract(BigInteger.ONE);
-    result = result.and(mask);
-    assert result.bitLength() <= bits;
-
-    // compute twos complement if necessary
-    if (pSuffix.isSigned() && result.testBit(bits - 1)) {
-      // highest bit is set
-      result = result.clearBit(bits - 1);
-
-      // a BigInteger for -2^(bits-1) (e.g. -2^-31 or -2^-63)
-      final BigInteger minValue = BigInteger.ZERO.setBit(bits - 1).negate();
-
-      result = minValue.add(result);
-    }
-
     return result;
   }
 
-  Suffix determineSuffix(String pIntegerLiteral, IASTNode pExpression) {
+  private Suffix extractDenotedSuffix(String pIntegerLiteral, IASTNode pExpression) {
     Suffix suffix = Suffix.NONE;
     int last = pIntegerLiteral.length() - 1;
 
@@ -316,7 +334,47 @@ class ASTLiteralConverter {
     return suffix;
   }
 
-  enum Suffix {
+  /**
+   * Implement section 6.4.4.1 "Integer constants" of the C standard:
+   *
+   * <p>For each kind of literal suffix (including no suffix), there is an ordered list of potential
+   * types, and the first matching type of the list should be selected.
+   *
+   * @param pMachineModel the machine model.
+   * @param pValue the literal value.
+   * @param pExp the ASTLiteralExpression containing the literal.
+   * @return the size that will be used to represent the value.
+   */
+  private Suffix getLeastRepresentedTypeForValue(
+      BigInteger pValue,
+      MachineModel pMachineModel,
+      ImmutableList<Suffix> pSuffixes,
+      IASTLiteralExpression pExp) {
+    Preconditions.checkState(!pSuffixes.isEmpty(), "List with possible suffixes must not be empty");
+
+    int numberOfBits = pValue.bitLength();
+    int actualCandidateBitSize = -1;
+    for (Suffix suffix : pSuffixes) {
+      CSimpleType candidate = suffix.getType();
+      int candidateBitSize =
+          pMachineModel.getSizeof(candidate) * pMachineModel.getSizeofCharInBits();
+      actualCandidateBitSize = suffix.isSigned() ? candidateBitSize - 1 : candidateBitSize;
+      if (actualCandidateBitSize >= numberOfBits) {
+        return suffix;
+      }
+    }
+
+    // TODO: Value is too large to be represented by an unsigned long long int.
+    // Thus, it is either an extended integer type (such as _int128), or the integer constant has no
+    // type, meaning it is ill-formed. This is not yet handled here however.
+    assert actualCandidateBitSize > 0 && numberOfBits > actualCandidateBitSize;
+    throw new CFAGenerationRuntimeException(
+        String.format(
+            "Integer value is too large to be represented by the highest possible type (unsigned long long int): %s.",
+            pExp));
+  }
+
+  private enum Suffix {
     NONE {
 
       @Override
@@ -325,12 +383,8 @@ class ASTLiteralConverter {
       }
 
       @Override
-      public CSimpleType getTypeForValue(BigInteger pValue, MachineModel pMachineModel) {
-        return getType(pValue,
-            pMachineModel,
-            CNumericTypes.INT,
-            CNumericTypes.LONG_INT,
-            CNumericTypes.LONG_LONG_INT);
+      public CSimpleType getType() {
+        return CNumericTypes.INT;
       }
 
       @Override
@@ -348,12 +402,8 @@ class ASTLiteralConverter {
       }
 
       @Override
-      public CSimpleType getTypeForValue(BigInteger pValue, MachineModel pMachineModel) {
-        return getType(pValue,
-            pMachineModel,
-            CNumericTypes.UNSIGNED_INT,
-            CNumericTypes.UNSIGNED_LONG_INT,
-            CNumericTypes.UNSIGNED_LONG_LONG_INT);
+      public CSimpleType getType() {
+        return CNumericTypes.UNSIGNED_INT;
       }
 
       @Override
@@ -371,11 +421,8 @@ class ASTLiteralConverter {
       }
 
       @Override
-      public CSimpleType getTypeForValue(BigInteger pValue, MachineModel pMachineModel) {
-        return getType(pValue,
-            pMachineModel,
-            CNumericTypes.LONG_INT,
-            CNumericTypes.LONG_LONG_INT);
+      public CSimpleType getType() {
+        return CNumericTypes.LONG_INT;
       }
 
       @Override
@@ -393,11 +440,8 @@ class ASTLiteralConverter {
       }
 
       @Override
-      public CSimpleType getTypeForValue(BigInteger pValue, MachineModel pMachineModel) {
-        return getType(pValue,
-            pMachineModel,
-            CNumericTypes.UNSIGNED_LONG_INT,
-            CNumericTypes.UNSIGNED_LONG_LONG_INT);
+      public CSimpleType getType() {
+        return CNumericTypes.UNSIGNED_LONG_INT;
       }
 
       @Override
@@ -415,10 +459,8 @@ class ASTLiteralConverter {
       }
 
       @Override
-      public CSimpleType getTypeForValue(BigInteger pValue, MachineModel pMachineModel) {
-        return getType(pValue,
-            pMachineModel,
-            CNumericTypes.LONG_LONG_INT);
+      public CSimpleType getType() {
+        return CNumericTypes.LONG_LONG_INT;
       }
 
       @Override
@@ -436,10 +478,8 @@ class ASTLiteralConverter {
       }
 
       @Override
-      public CSimpleType getTypeForValue(BigInteger pValue, MachineModel pMachineModel) {
-        return getType(pValue,
-            pMachineModel,
-            CNumericTypes.UNSIGNED_LONG_LONG_INT);
+      public CSimpleType getType() {
+        return CNumericTypes.UNSIGNED_LONG_LONG_INT;
       }
 
       @Override
@@ -451,43 +491,9 @@ class ASTLiteralConverter {
 
     public abstract boolean isSigned();
 
+    public abstract CSimpleType getType();
+
     public abstract int getLength();
-
-    /**
-     * Implement section 6.4.4.1 "Integer constants" of the C standard:
-     *
-     * For each kind of literal suffix (including no suffix),
-     * there is an ordered list of potential types,
-     * and the first matching type of the list should be selected.
-     *
-     * @param pMachineModel the machine model.
-     * @param pValue the literal value.
-     *
-     * @return the size that will be used to represent the value.
-     */
-    public int getNumberOfBits(MachineModel pMachineModel, BigInteger pValue) {
-      CSimpleType type = getTypeForValue(pValue, pMachineModel);
-      if (type != null) {
-        return pMachineModel.getSizeof(type) * pMachineModel.getSizeofCharInBits();
-      }
-      return pValue.bitLength();
-    }
-
-    public abstract CSimpleType getTypeForValue(BigInteger pValue, MachineModel pMachineModel);
-
-    protected CSimpleType getType(BigInteger pValue, MachineModel pMachineModel, CSimpleType... pCandidates) {
-      int numberOfBits = pValue.bitLength();
-      CSimpleType bestCandidate = null;
-      for (CSimpleType candidate : pCandidates) {
-        int candidateBitSize = pMachineModel.getSizeof(candidate) * pMachineModel.getSizeofCharInBits();
-        int actualCandidateBitSize = isSigned() ? candidateBitSize - 1 : candidateBitSize;
-        if (actualCandidateBitSize >= numberOfBits) {
-          return candidate;
-        }
-        bestCandidate = candidate;
-      }
-      return bestCandidate;
-    }
 
   }
 }

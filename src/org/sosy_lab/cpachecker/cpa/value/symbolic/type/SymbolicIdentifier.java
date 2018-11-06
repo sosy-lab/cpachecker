@@ -190,12 +190,19 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
      * @param pIdentifierInformation a <code>String</code> encoding of a
      * <code>SymbolicIdentifier</code>
      * @return the <code>SymbolicIdentifier</code> representing the given encoding
+     *
+     * @throws IllegalArgumentException if given String does not match the expected String encoding
      */
     public SymbolicIdentifier convertToIdentifier(
-        String pIdentifierInformation) {
+        String pIdentifierInformation) throws IllegalArgumentException {
 
       final String variableName = FormulaManagerView.parseName(pIdentifierInformation).getFirst();
       final int idStart = variableName.indexOf("#");
+
+      if (idStart < 0) {
+        throw new IllegalArgumentException("Invalid encoding: " + pIdentifierInformation);
+      }
+
       final String memLocName = variableName.substring(0, idStart);
       final String identifierIdOnly = variableName.substring(idStart + 1);
       final long id = Long.parseLong(identifierIdOnly);

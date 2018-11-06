@@ -28,28 +28,60 @@ import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
 
-public class CFloatImpl implements CFloat {
+/**
+ * This class implements {@link CFloat} to propose a bit-precise representation of different
+ * floating point number formats, which are used in C, and operations on them.
+ *
+ * <p>The implementation is oriented at the descriptions of the IEEE-754 Standard as well as various
+ * observations and experiments performed using the GNU gcc compiler in version 5.4.0.
+ */
+public class CFloatImpl extends CFloat {
 
+  /**
+   * Those default values are used to handle some cases with a good performance and can be used to
+   * easily compose other values, e.g., <code>-35 = (3 * 10 + 5) * -1</code>
+   */
   private static final ImmutableList<String> DEFAULT_VALUES =
-      ImmutableList
-          .copyOf(
-              new String[] {"-0.0", "-0", "-1", "0", "0.0", "1", "2", "3", "4", "5", "6", "7", "8",
-                  "9", "10",
-                  "nan",
-                  "-nan", "inf", "-inf"});
-  private CFloatWrapper wrapper;
-  private int type;
+      ImmutableList.copyOf(
+          new String[] {
+            "-0.0", "-0", "-1", "0", "0.0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
+            "nan", "-nan", "inf", "-inf"
+          });
 
+  /** The wrapper contains the exponent and significant (mantissa) of the {@link CFloat} instance */
+  private final CFloatWrapper wrapper;
+
+  /** The type of the represented floating point number, e.g., <code>double</code> */
+  private final int type;
+
+  /**
+   * A simple constructor to create an instance of {@link CFloat} given a bit representation and a
+   * type.
+   *
+   * @param pWrapper the {@link CFloatWrapper} instance containing the bit representation
+   * @param pType the type of the {@link CFloat} instance - be careful to choose a type that
+   *     actually corresponds to the given {@link CFloatWrapper}
+   */
   public CFloatImpl(CFloatWrapper pWrapper, int pType) {
     this.wrapper = pWrapper;
     this.type = pType;
   }
 
-  public CFloatImpl(String pRep, int pType) {
+  /**
+   * A more complex constructor to create a {@link CFloat} instance from a {@link String}
+   * representation and a given type.
+   *
+   * <p>Note that there are literals that may not necessarily have a precise representation in a
+   * finite binary floating point format.
+   *
+   * @param pRep the {@link String} literal representing the floating point number
+   * @param pType the type of the {@link CFloat} instance
+   */
+  public CFloatImpl(final String pRep, final int pType) {
     this.type = pType;
-    this.wrapper = new CFloatWrapper();
 
     if (DEFAULT_VALUES.contains(pRep.toLowerCase())) {
+      this.wrapper = new CFloatWrapper();
       long exp = 0;
       long man = 0;
 
@@ -58,94 +90,82 @@ public class CFloatImpl implements CFloat {
         case "0":
           break;
         case "1":
-          exp = CFloatUtil.getBias(pType);
-          man =
-              CFloatUtil.getNormalizationMask(pType) & CFloatUtil.getNormalizedMantissaMask(pType);
+          exp = getBias();
+          man = getNormalizationMask() & getNormalizedMantissaMask();
           break;
         case "2":
-          exp = CFloatUtil.getBias(pType) + 1L;
-          man =
-              CFloatUtil.getNormalizationMask(pType) & CFloatUtil.getNormalizedMantissaMask(pType);
+          exp = getBias() + 1L;
+          man = getNormalizationMask() & getNormalizedMantissaMask();
           break;
         case "3":
-          exp = CFloatUtil.getBias(pType) + 1L;
+          exp = getBias() + 1L;
           man =
-              ((CFloatUtil.getNormalizationMask(pType) >>> 1)
-                  + CFloatUtil.getNormalizationMask(pType))
-                  & CFloatUtil.getNormalizedMantissaMask(pType);
+              ((getNormalizationMask() >>> 1) + getNormalizationMask())
+                  & getNormalizedMantissaMask();
           break;
         case "4":
-          exp = CFloatUtil.getBias(pType) + 2L;
-          man =
-              CFloatUtil.getNormalizationMask(pType) & CFloatUtil.getNormalizedMantissaMask(pType);
+          exp = getBias() + 2L;
+          man = getNormalizationMask() & getNormalizedMantissaMask();
           break;
         case "5":
-          exp = CFloatUtil.getBias(pType) + 2L;
+          exp = getBias() + 2L;
           man =
-              ((CFloatUtil.getNormalizationMask(pType) >>> 2)
-                  + CFloatUtil.getNormalizationMask(pType))
-                  & CFloatUtil.getNormalizedMantissaMask(pType);
+              ((getNormalizationMask() >>> 2) + getNormalizationMask())
+                  & getNormalizedMantissaMask();
           break;
         case "6":
-          exp = CFloatUtil.getBias(pType) + 2L;
+          exp = getBias() + 2L;
           man =
-              ((CFloatUtil.getNormalizationMask(pType) >>> 1)
-                  + CFloatUtil.getNormalizationMask(pType))
-                  & CFloatUtil.getNormalizedMantissaMask(pType);
+              ((getNormalizationMask() >>> 1) + getNormalizationMask())
+                  & getNormalizedMantissaMask();
           break;
         case "7":
-          exp = CFloatUtil.getBias(pType) + 2L;
+          exp = getBias() + 2L;
           man =
-              ((CFloatUtil.getNormalizationMask(pType) >>> 2)
-                  + (CFloatUtil.getNormalizationMask(pType) >>> 1)
-                      + CFloatUtil.getNormalizationMask(pType))
-                  & CFloatUtil.getNormalizedMantissaMask(pType);
+              ((getNormalizationMask() >>> 2)
+                      + (getNormalizationMask() >>> 1)
+                      + getNormalizationMask())
+                  & getNormalizedMantissaMask();
           break;
         case "8":
-          exp = CFloatUtil.getBias(pType) + 3L;
-          man =
-              CFloatUtil.getNormalizationMask(pType) & CFloatUtil.getNormalizedMantissaMask(pType);
+          exp = getBias() + 3L;
+          man = getNormalizationMask() & getNormalizedMantissaMask();
           break;
         case "9":
-          exp = CFloatUtil.getBias(pType) + 3L;
+          exp = getBias() + 3L;
           man =
-              ((CFloatUtil.getNormalizationMask(pType) >>> 3)
-                  + CFloatUtil.getNormalizationMask(pType))
-                  & CFloatUtil.getNormalizedMantissaMask(pType);
+              ((getNormalizationMask() >>> 3) + getNormalizationMask())
+                  & getNormalizedMantissaMask();
           break;
         case "10":
-          exp = CFloatUtil.getBias(pType) + 3L;
+          exp = getBias() + 3L;
           man =
-              ((CFloatUtil.getNormalizationMask(pType) >>> 2)
-                  + CFloatUtil.getNormalizationMask(pType))
-                  & CFloatUtil.getNormalizedMantissaMask(pType);
+              ((getNormalizationMask() >>> 2) + getNormalizationMask())
+                  & getNormalizedMantissaMask();
           break;
         case "-1":
-          exp = CFloatUtil.getSignBitMask(pType) + (CFloatUtil.getBias(pType));
-          man =
-              (pType == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE
-                  ? CFloatUtil.getNormalizationMask(pType)
-                  : 0L);
+          exp = getSignBitMask() + (getBias());
+          man = (pType == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE ? getNormalizationMask() : 0L);
           break;
         case "nan":
           exp = 1L;
           man = 0L;
           break;
         case "-nan":
-          exp = CFloatUtil.getSignBitMask(pType) + 1L;
+          exp = getSignBitMask() + 1L;
           man = 0L;
           break;
         case "inf":
-          exp = CFloatUtil.getExponentMask(pType);
+          exp = getExponentMask();
           man = 1L;
           break;
         case "-inf":
-          exp = CFloatUtil.getExponentMask(pType) + CFloatUtil.getSignBitMask(pType);
+          exp = getExponentMask() + getSignBitMask();
           man = 1L;
           break;
         case "-0.0":
         case "-0":
-          exp = CFloatUtil.getSignBitMask(pType);
+          exp = getSignBitMask();
           man = 0L;
           break;
         default:
@@ -186,7 +206,7 @@ public class CFloatImpl implements CFloat {
     }
   }
 
-  private CFloat makeIntegralPart(String pRep, int pType) {
+  private CFloat makeIntegralPart(final String pRep, final int pType) {
     String rep = null;
 
     if (pRep.startsWith("-")) {
@@ -202,16 +222,15 @@ public class CFloatImpl implements CFloat {
     return result;
   }
 
-  private CFloat fromString(int pType, List<String> pDigits) {
+  private CFloat fromString(final int pType, final List<String> pDigits) {
     int[] decArray = new int[pDigits.size()];
     for (int i = 0; i < decArray.length; i++) {
-      decArray[i] = Integer.parseInt(pDigits.get(i));
+      decArray[i] = Byte.parseByte(pDigits.get(i));
     }
 
     int[] auxArray = new int[decArray.length];
     int[] bitArray =
-        new int[CFloatUtil.getMantissaLength(pType) * 2
-            + (pType == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE ? 0 : 2)];
+        new int[getMantissaLength() * 2 + (pType == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE ? 0 : 2)];
 
     int effectiveExponent = 0;
 
@@ -220,7 +239,7 @@ public class CFloatImpl implements CFloat {
       // be caught by default, but for completeness consider
       // it anyway
       // TODO initialize better default-objects
-      return new CFloatImpl(CFloatNativeAPI.ZERO_SINGLE, pType);
+      return CFloatNativeAPI.ZERO_SINGLE;
     }
 
     boolean incrementExponent = true;
@@ -279,24 +298,23 @@ public class CFloatImpl implements CFloat {
       overflow ^= ((long) bitArray[i + bitArray.length / 2]) << (63 - i);
     }
 
-    CFloatWrapper rWrapper =
-        new CFloatWrapper(effectiveExponent + CFloatUtil.getBias(pType), mantissa);
+    CFloatWrapper rWrapper = new CFloatWrapper(effectiveExponent + getBias(), mantissa);
 
-    CFloatUtil.round(rWrapper, overflow, pType);
-    rWrapper.setMantissa(rWrapper.getMantissa() & CFloatUtil.getNormalizedMantissaMask(pType));
+    rWrapper = round(rWrapper, overflow);
+    rWrapper.setMantissa(rWrapper.getMantissa() & getNormalizedMantissaMask());
 
     return new CFloatImpl(rWrapper, pType);
   }
 
-  private void binaryHalf(int[] pArray) {
+  private void binaryHalf(final int[] pArray) {
     digitwiseHalf(pArray, 2);
   }
 
-  private void decimalHalf(int[] pArray) {
+  private void decimalHalf(final int[] pArray) {
     digitwiseHalf(pArray, 10);
   }
 
-  private void digitwiseHalf(int[] pArray, int pRadix) {
+  private void digitwiseHalf(final int[] pArray, final int pRadix) {
     for (int i = pArray.length - 1; i > 0; i--) {
       if ((pArray[i - 1] % 2) != 0) {
         pArray[i] += pRadix;
@@ -309,15 +327,15 @@ public class CFloatImpl implements CFloat {
     }
   }
 
-  private int[] binaryAdd(int[] pArrayA, int[] pArrayB) {
+  private int[] binaryAdd(final int[] pArrayA, final int[] pArrayB) {
     return digitwiseAdd(pArrayA, pArrayB, 2);
   }
 
-  private int[] decimalAdd(int[] pArrayA, int[] pArrayB) {
+  private int[] decimalAdd(final int[] pArrayA, final int[] pArrayB) {
     return digitwiseAdd(pArrayA, pArrayB, 10);
   }
 
-  private int[] digitwiseAdd(int[] pArrayA, int[] pArrayB, int pRadix) {
+  private int[] digitwiseAdd(final int[] pArrayA, final int[] pArrayB, final int pRadix) {
     int[] rArray =
         new int[((pArrayB.length > pArrayA.length) ? pArrayB.length : pArrayA.length) + 1];
 
@@ -341,7 +359,7 @@ public class CFloatImpl implements CFloat {
     return rArray;
   }
 
-  private boolean decimalEqual(int[] pA, int[] pB) {
+  private boolean decimalEqual(final int[] pA, final int[] pB) {
     int diff = pB.length - pA.length;
 
     if (diff < 0) {
@@ -374,7 +392,7 @@ public class CFloatImpl implements CFloat {
     return true;
   }
 
-  private boolean decimalAGreaterThanB(int[] pA, int[] pB) {
+  private boolean decimalAGreaterThanB(final int[] pA, final int[] pB) {
     int diff = pB.length - pA.length;
 
     if (diff < 0) {
@@ -413,11 +431,11 @@ public class CFloatImpl implements CFloat {
     return false;
   }
 
-  private int[] binaryDouble(int[] pArray) {
+  private int[] binaryDouble(final int[] pArray) {
     return digitwiseDouble(pArray, 2);
   }
 
-  private int[] decimalDouble(int[] pDecimalArray) {
+  private int[] decimalDouble(final int[] pDecimalArray) {
     return digitwiseDouble(pDecimalArray, 10);
   }
 
@@ -427,7 +445,7 @@ public class CFloatImpl implements CFloat {
     for (int i = 1; i < rArray.length; i++) {
       // Overflow case can be ignored, just caught to avoid array out of bounds for meaningless
       // input
-      rArray[i] = pArray[i - 1] * 2;
+      rArray[i] = (byte) (pArray[i - 1] * 2);
       if (rArray[i] > (pRadix - 1)) {
         rArray[i - 1] += rArray[i] / pRadix;
         rArray[i] %= pRadix;
@@ -444,7 +462,7 @@ public class CFloatImpl implements CFloat {
     return rArray;
   }
 
-  private CFloat makeFractionalPart(String pRep, int pType) {
+  private CFloat makeFractionalPart(final String pRep, final int pType) {
     List<String> digits = Arrays.asList(pRep.split(""));
     CFloat ten = new CFloatImpl("10", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
     CFloat divisor = new CFloatImpl("1", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
@@ -462,10 +480,11 @@ public class CFloatImpl implements CFloat {
   }
 
   @Override
-  public CFloat add(CFloat pSummand) {
+  public CFloat add(final CFloat pSummand) {
     CFloat tSummand = this;
     CFloat oSummand = pSummand;
 
+    // cast to equal types to simplify operations
     if (tSummand.getType() != oSummand.getType()) {
       if (tSummand.getType() > oSummand.getType()) {
         oSummand = oSummand.castTo(tSummand.getType());
@@ -474,10 +493,16 @@ public class CFloatImpl implements CFloat {
       }
     }
 
+    // if at least one operand is nan, the result is too
     if (tSummand.isNan() || oSummand.isNan()) {
       return new CFloatNaN(tSummand.isNegative(), tSummand.getType());
     }
 
+    // handle infinities separately:
+    // > x + inf = inf
+    // > x - inf = -inf
+    // > inf + inf = inf
+    // > inf - inf = -nan
     if (tSummand.isInfinity()) {
       if (oSummand.isInfinity() && (tSummand.isNegative() != oSummand.isNegative())) {
         return new CFloatNaN(true, tSummand.getType());
@@ -487,6 +512,7 @@ public class CFloatImpl implements CFloat {
       return new CFloatInf(oSummand.isNegative(), tSummand.getType());
     }
 
+    // if one of the operands is zero, the result has the value of the other one
     if (tSummand.isZero()) {
       return new CFloatImpl(oSummand.copyWrapper(), oSummand.getType());
     }
@@ -497,26 +523,27 @@ public class CFloatImpl implements CFloat {
     long rExp = 0;
     long rMan = 0;
 
-    long tExp =
-        tSummand.copyWrapper().getExponent()
-            & CFloatUtil.getExponentMask(tSummand.getType());
-    long tMan = tSummand.copyWrapper().getMantissa();
+    // extract bit representations for operation
+    long tExp = tSummand.getExponent() & tSummand.getExponentMask();
+    long tMan = tSummand.getMantissa();
 
-    long oExp =
-        oSummand.copyWrapper().getExponent()
-            & CFloatUtil.getExponentMask(tSummand.getType());
-    long oMan = oSummand.copyWrapper().getMantissa();
+    long oExp = oSummand.getExponent() & tSummand.getExponentMask();
+    long oMan = oSummand.getMantissa();
 
     boolean negResult = false;
     boolean differentSign = tSummand.isNegative() ^ oSummand.isNegative();
     boolean tGTO = tSummand.greaterThan(oSummand);
 
+    // if the signs differ, instead of addition subtract the absolute value of the smaller operand
+    // from the greater operand
     if (differentSign) {
       return tGTO
           ? tSummand.subtract(new CFloatImpl(new CFloatWrapper(oExp, oMan), tSummand.getType()))
           : oSummand.subtract(new CFloatImpl(new CFloatWrapper(tExp, tMan), tSummand.getType()));
     }
 
+    // if this is reached, the signs of the operands are the same. if one is negative, both are and
+    // so is the result
     if (tSummand.isNegative()) {
       negResult = true;
     }
@@ -525,25 +552,25 @@ public class CFloatImpl implements CFloat {
     long overflow = 0;
     // TODO: implement normal/subnormal number distinction
     if (tSummand.getType() != CFloatNativeAPI.FP_TYPE_LONG_DOUBLE && !tSummand.isZero()) {
-      tMan ^= CFloatUtil.getNormalizationMask(tSummand.getType());
+      tMan ^= tSummand.getNormalizationMask();
     }
     if (tSummand.getType() != CFloatNativeAPI.FP_TYPE_LONG_DOUBLE && !oSummand.isZero()) {
-      oMan ^= CFloatUtil.getNormalizationMask(tSummand.getType());
+      oMan ^= tSummand.getNormalizationMask();
     }
 
     if (tExp > oExp) {
       diff = tExp - oExp;
       rExp = tExp;
 
-      if ((diff > 2 * CFloatUtil.getMantissaLength(tSummand.getType()))
-          || (diff == 2 * CFloatUtil.getMantissaLength(tSummand.getType())
+      if ((diff > 2 * tSummand.getMantissaLength())
+          || (diff == 2 * tSummand.getMantissaLength()
               && tSummand.getType() == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE)) {
         oMan = 0;
       } else {
 
-        if ((diff <= CFloatUtil.getMantissaLength(tSummand.getType())
-            && tSummand.getType() != CFloatNativeAPI.FP_TYPE_LONG_DOUBLE)
-            || (diff < CFloatUtil.getMantissaLength(tSummand.getType()))) {
+        if ((diff <= tSummand.getMantissaLength()
+                && tSummand.getType() != CFloatNativeAPI.FP_TYPE_LONG_DOUBLE)
+            || (diff < tSummand.getMantissaLength())) {
           if (tSummand.getType() != CFloatNativeAPI.FP_TYPE_LONG_DOUBLE) {
             overflow = oMan << (63 - diff);
           } else {
@@ -553,14 +580,13 @@ public class CFloatImpl implements CFloat {
 
         } else {
           if (tSummand.getType() != CFloatNativeAPI.FP_TYPE_LONG_DOUBLE) {
-            overflow = oMan << (63 - CFloatUtil.getMantissaLength(tSummand.getType()));
-            overflow >>>= (diff - CFloatUtil.getMantissaLength(tSummand.getType()) - 1);
+            overflow = oMan << (63 - tSummand.getMantissaLength());
+            overflow >>>= (diff - tSummand.getMantissaLength() - 1);
           } else {
-            overflow = oMan << (64 - CFloatUtil.getMantissaLength(tSummand.getType()));
-            overflow >>>= (diff - CFloatUtil.getMantissaLength(tSummand.getType()));
-
+            overflow = oMan << (64 - tSummand.getMantissaLength());
+            overflow >>>= (diff - tSummand.getMantissaLength());
           }
-          overflow &= CFloatUtil.getOverflowHighBitsMask(tSummand.getType());
+          overflow &= tSummand.getOverflowHighBitsMask();
 
           oMan = 0;
         }
@@ -569,15 +595,15 @@ public class CFloatImpl implements CFloat {
       diff = oExp - tExp;
       rExp = oExp;
 
-      if ((diff > 2 * CFloatUtil.getMantissaLength(tSummand.getType()))
-          || (diff == 2 * CFloatUtil.getMantissaLength(tSummand.getType())
+      if ((diff > 2 * tSummand.getMantissaLength())
+          || (diff == 2 * tSummand.getMantissaLength()
               && tSummand.getType() == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE)) {
         tMan = 0;
       } else {
 
-        if ((diff <= CFloatUtil.getMantissaLength(tSummand.getType())
-            && tSummand.getType() != CFloatNativeAPI.FP_TYPE_LONG_DOUBLE)
-            || (diff < CFloatUtil.getMantissaLength(tSummand.getType()))) {
+        if ((diff <= tSummand.getMantissaLength()
+                && tSummand.getType() != CFloatNativeAPI.FP_TYPE_LONG_DOUBLE)
+            || (diff < tSummand.getMantissaLength())) {
           if (tSummand.getType() != CFloatNativeAPI.FP_TYPE_LONG_DOUBLE) {
             overflow = tMan << (63 - diff);
           } else {
@@ -586,13 +612,13 @@ public class CFloatImpl implements CFloat {
           tMan >>>= diff;
         } else {
           if (tSummand.getType() != CFloatNativeAPI.FP_TYPE_LONG_DOUBLE) {
-            overflow = tMan << (63 - CFloatUtil.getMantissaLength(tSummand.getType()));
-            overflow >>>= (diff - CFloatUtil.getMantissaLength(tSummand.getType()) - 1);
+            overflow = tMan << (63 - tSummand.getMantissaLength());
+            overflow >>>= (diff - tSummand.getMantissaLength() - 1);
           } else {
-            overflow = tMan << (64 - CFloatUtil.getMantissaLength(tSummand.getType()));
-            overflow >>>= (diff - CFloatUtil.getMantissaLength(tSummand.getType()));
+            overflow = tMan << (64 - tSummand.getMantissaLength());
+            overflow >>>= (diff - tSummand.getMantissaLength());
           }
-          overflow &= CFloatUtil.getOverflowHighBitsMask(tSummand.getType());
+          overflow &= tSummand.getOverflowHighBitsMask();
 
           tMan = 0;
         }
@@ -602,18 +628,16 @@ public class CFloatImpl implements CFloat {
 
     switch (tSummand.getType()) {
       case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        if ((rMan & CFloatUtil.getNormalizationMask(tSummand.getType())) == 0) {
+        if ((rMan & tSummand.getNormalizationMask()) == 0) {
           rMan >>>= 1;
-          rMan |=
-              CFloatUtil.getNormalizationMask(tSummand.getType())
-                  & CFloatUtil.getNormalizedMantissaMask(tSummand.getType());
+          rMan |= tSummand.getNormalizationMask() & tSummand.getNormalizedMantissaMask();
           rExp++;
           overflow <<= 1;
         }
         break;
       case CFloatNativeAPI.FP_TYPE_DOUBLE:
       case CFloatNativeAPI.FP_TYPE_SINGLE:
-        if ((rMan & (CFloatUtil.getNormalizationMask(tSummand.getType()) << 1)) != 0) {
+        if ((rMan & (tSummand.getNormalizationMask() << 1)) != 0) {
           rMan >>>= 1;
           rExp++;
           overflow <<= 1;
@@ -624,19 +648,16 @@ public class CFloatImpl implements CFloat {
             "Unimplemented floating-point-type: " + tSummand.getType());
     }
 
-    rMan &= CFloatUtil.getNormalizedMantissaMask(tSummand.getType());
-    CFloatWrapper rWrapper =
-        CFloatUtil.round(new CFloatWrapper(rExp, rMan), overflow, tSummand.getType());
+    rMan &= tSummand.getNormalizedMantissaMask();
+    CFloatWrapper rWrapper = tSummand.round(new CFloatWrapper(rExp, rMan), overflow);
 
-    if (((rExp
-        & CFloatUtil.getExponentMask(tSummand.getType())) == CFloatUtil
-            .getExponentMask(tSummand.getType()))
-        || rExp >= (CFloatUtil.getSignBitMask(tSummand.getType()) * 2)) {
+    if (((rExp & tSummand.getExponentMask()) == tSummand.getExponentMask())
+        || rExp >= (tSummand.getSignBitMask() * 2)) {
       return new CFloatInf(negResult, tSummand.getType());
     }
 
     if (negResult) {
-      rWrapper.setExponent(rWrapper.getExponent() ^ CFloatUtil.getSignBitMask(tSummand.getType()));
+      rWrapper.setExponent(rWrapper.getExponent() ^ tSummand.getSignBitMask());
     }
 
     return new CFloatImpl(rWrapper, tSummand.getType());
@@ -654,7 +675,7 @@ public class CFloatImpl implements CFloat {
   }
 
   @Override
-  public CFloat multiply(CFloat pFactor) {
+  public CFloat multiply(final CFloat pFactor) {
     CFloat tFactor = this;
     CFloat oFactor = pFactor;
     boolean negativeResult = tFactor.isNegative() ^ oFactor.isNegative();
@@ -687,43 +708,39 @@ public class CFloatImpl implements CFloat {
       }
     }
 
-    long signBit = negativeResult ? CFloatUtil.getSignBitMask(tFactor.getType()) : 0L;
+    long signBit = negativeResult ? tFactor.getSignBitMask() : 0L;
     if (oFactor.isOne()) {
       CFloatWrapper rWrapper = tFactor.copyWrapper();
-      rWrapper.setExponent(
-          (rWrapper.getExponent() & CFloatUtil.getExponentMask(tFactor.getType())) ^ signBit);
+      rWrapper.setExponent((rWrapper.getExponent() & tFactor.getExponentMask()) ^ signBit);
       return new CFloatImpl(rWrapper, tFactor.getType());
     } else if (tFactor.isOne()) {
       CFloatWrapper rWrapper = oFactor.copyWrapper();
-      rWrapper.setExponent(
-          (rWrapper.getExponent() & CFloatUtil.getExponentMask(tFactor.getType())) ^ signBit);
+      rWrapper.setExponent((rWrapper.getExponent() & tFactor.getExponentMask()) ^ signBit);
       return new CFloatImpl(rWrapper, tFactor.getType());
     }
 
     long rMan = 0;
     long rOverflow = 0;
 
-    long tMan = tFactor.copyWrapper().getMantissa();
-    long oMan = oFactor.copyWrapper().getMantissa();
+    long tMan = tFactor.getMantissa();
+    long oMan = oFactor.getMantissa();
 
-    long tExp = tFactor.copyWrapper().getExponent() & CFloatUtil.getExponentMask(tFactor.getType());
-    long oExp = oFactor.copyWrapper().getExponent() & CFloatUtil.getExponentMask(tFactor.getType());
-
+    long tExp = tFactor.getExponent() & tFactor.getExponentMask();
+    long oExp = oFactor.getExponent() & tFactor.getExponentMask();
 
     // determine sign of product
     boolean negResult = tFactor.isNegative() ^ oFactor.isNegative();
 
-
     // determine multiplied mantissa and overflow value of product
-    int mantissaLength = CFloatUtil.getMantissaLength(tFactor.getType());
+    int mantissaLength = tFactor.getMantissaLength();
 
     if (tFactor.getType() != CFloatNativeAPI.FP_TYPE_LONG_DOUBLE) {
       mantissaLength++;
       if (tExp > 0) {
-        tMan ^= CFloatUtil.getNormalizationMask(tFactor.getType());
+        tMan ^= tFactor.getNormalizationMask();
       }
       if (oExp > 0) {
-        oMan ^= CFloatUtil.getNormalizationMask(tFactor.getType());
+        oMan ^= tFactor.getNormalizationMask();
       }
     }
 
@@ -748,10 +765,8 @@ public class CFloatImpl implements CFloat {
       }
     }
 
-
     // determine exponent of product
-    long rExp = tExp + oExp - CFloatUtil.getBias(tFactor.getType()) + cExp;
-
+    long rExp = tExp + oExp - tFactor.getBias() + cExp;
 
     // if product too small
     while (rExp < 0 && rMan != 0) {
@@ -761,26 +776,22 @@ public class CFloatImpl implements CFloat {
       rExp++;
     }
 
-
     // if number denormalized due to denormal factor, renormalize as far as possible
-    while ((rMan & CFloatUtil.getNormalizationMask(tFactor.getType())) == 0 && rExp > 0) {
+    while ((rMan & tFactor.getNormalizationMask()) == 0 && rExp > 0) {
       rMan <<= 1;
       rMan |= (rOverflow >>> 63);
       rOverflow <<= 1;
       rExp--;
     }
 
-    rMan &= CFloatUtil.getNormalizedMantissaMask(tFactor.getType());
-
+    rMan &= tFactor.getNormalizedMantissaMask();
 
     // round according to overflown bits
-    CFloatWrapper rWrapper =
-        CFloatUtil.round(new CFloatWrapper(rExp, rMan), rOverflow, tFactor.getType());
-
+    CFloatWrapper rWrapper = tFactor.round(new CFloatWrapper(rExp, rMan), rOverflow);
 
     // set sign
     if (negResult) {
-      rWrapper.setExponent(rWrapper.getExponent() ^ CFloatUtil.getSignBitMask(tFactor.getType()));
+      rWrapper.setExponent(rWrapper.getExponent() ^ tFactor.getSignBitMask());
     }
 
     CFloat result = new CFloatImpl(rWrapper, tFactor.getType());
@@ -797,7 +808,20 @@ public class CFloatImpl implements CFloat {
     return result;
   }
 
-  private void multiplyBits(long manyOnesMantissa, long lesserOnesMantissa, int mantissaLength, int[] bitfield) {
+  /**
+   * Implement bit multiplication to keep track of the overflowing (underflowing respectively) bits
+   * for correct rounding.
+   *
+   * @param manyOnesMantissa the mantissa containing more bits set to one
+   * @param lesserOnesMantissa the mantissa containing less bits set to one
+   * @param mantissaLength the length of the mantissas
+   * @param bitfield the bitfield to store the multiplication result
+   */
+  private void multiplyBits(
+      final long manyOnesMantissa,
+      final long lesserOnesMantissa,
+      final int mantissaLength,
+      final int[] bitfield) {
     for (int i = 0; i < mantissaLength; i++) {
       if ((lesserOnesMantissa & (1L << i)) != 0) {
         for (int j = 0; j < mantissaLength; j++) {
@@ -828,7 +852,7 @@ public class CFloatImpl implements CFloat {
   }
 
   @Override
-  public CFloat subtract(CFloat pSubtrahend) {
+  public CFloat subtract(final CFloat pSubtrahend) {
     CFloat tSubtrahend = this;
     CFloat oSubtrahend = pSubtrahend;
 
@@ -855,21 +879,17 @@ public class CFloatImpl implements CFloat {
       return new CFloatInf(!oSubtrahend.isNegative(), tSubtrahend.getType());
     }
 
-    long tExp =
-        tSubtrahend.copyWrapper().getExponent() & CFloatUtil.getExponentMask(tSubtrahend.getType());
-    long tMan =
-        tSubtrahend.copyWrapper().getMantissa();
+    long tExp = tSubtrahend.getExponent() & tSubtrahend.getExponentMask();
+    long tMan = tSubtrahend.getMantissa();
 
     if (tExp != 0) {
-      tMan |= CFloatUtil.getNormalizationMask(tSubtrahend.getType());
+      tMan |= tSubtrahend.getNormalizationMask();
     }
 
-    long oExp =
-        oSubtrahend.copyWrapper().getExponent() & CFloatUtil.getExponentMask(tSubtrahend.getType());
-    long oMan =
-        oSubtrahend.copyWrapper().getMantissa();
+    long oExp = oSubtrahend.getExponent() & tSubtrahend.getExponentMask();
+    long oMan = oSubtrahend.getMantissa();
     if (oExp != 0) {
-      oMan |= CFloatUtil.getNormalizationMask(tSubtrahend.getType());
+      oMan |= tSubtrahend.getNormalizationMask();
     }
 
     boolean differentSign = tSubtrahend.isNegative() ^ oSubtrahend.isNegative();
@@ -880,10 +900,10 @@ public class CFloatImpl implements CFloat {
 
     if (differentSign) {
       if (tSubtrahend.isNegative()) {
-        tExp ^= CFloatUtil.getSignBitMask(tSubtrahend.getType());
+        tExp ^= tSubtrahend.getSignBitMask();
       }
       if (!oSubtrahend.isNegative()) {
-        oExp ^= CFloatUtil.getSignBitMask(tSubtrahend.getType());
+        oExp ^= tSubtrahend.getSignBitMask();
       }
 
       CFloat summandA = new CFloatImpl(new CFloatWrapper(tExp, tMan), tSubtrahend.getType());
@@ -894,24 +914,23 @@ public class CFloatImpl implements CFloat {
 
     CFloatWrapper resultWrapper = null;
     if (tSubtrahend.isNegative()) {
-      resultWrapper = bitwiseSubtraction(negResult, oExp, oMan, tExp, tMan, tSubtrahend.getType());
+      resultWrapper = bitwiseSubtraction(negResult, oExp, oMan, tExp, tMan, tSubtrahend);
     } else {
-      resultWrapper = bitwiseSubtraction(negResult, tExp, tMan, oExp, oMan, tSubtrahend.getType());
+      resultWrapper = bitwiseSubtraction(negResult, tExp, tMan, oExp, oMan, tSubtrahend);
     }
 
     return new CFloatImpl(resultWrapper, tSubtrahend.getType());
   }
 
   private CFloatWrapper bitwiseSubtraction(
-      boolean pNegResult,
-      long pExpMinuend,
-      long pManMinuend,
-      long pExpSubtrahend,
-      long pManSubtrahend,
-      int pType) {
+      final boolean pNegResult,
+      final long pExpMinuend,
+      final long pManMinuend,
+      final long pExpSubtrahend,
+      final long pManSubtrahend,
+      final CFloat pSubtrahend) {
 
-    pManSubtrahend ^= -1L;
-    pManSubtrahend++;
+    long manSubtrahendComplement = (pManSubtrahend ^ -1L) + 1;
 
     long diff = 0;
     long overflow = 0;
@@ -922,17 +941,17 @@ public class CFloatImpl implements CFloat {
       diff = pExpMinuend - pExpSubtrahend;
       rExp = pExpMinuend;
 
-      overflow = (pManSubtrahend << (64 - diff));
+      overflow = (manSubtrahendComplement << (64 - diff));
 
       // for single and double precision the long already pads correctly,
       // which doesn't work for extended double precision, since the mantissa
       // already fills up the whole long-bitfield
-      long complementedSubtrahend = pManSubtrahend;
-      if (pType == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE) {
-        if ((complementedSubtrahend & CFloatUtil.getNormalizationMask(pType)) == 0) {
+      long complementedSubtrahend = manSubtrahendComplement;
+      if (pSubtrahend.getType() == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE) {
+        if ((complementedSubtrahend & pSubtrahend.getNormalizationMask()) == 0) {
           diff--;
           complementedSubtrahend >>= 1;
-          complementedSubtrahend |= CFloatUtil.getNormalizationMask(pType);
+          complementedSubtrahend |= pSubtrahend.getNormalizationMask();
         }
       }
       complementedSubtrahend >>= diff;
@@ -944,7 +963,7 @@ public class CFloatImpl implements CFloat {
 
       overflow = (pManMinuend << (64 - diff));
 
-      rMan = pManSubtrahend + (pManMinuend >>> diff);
+      rMan = manSubtrahendComplement + (pManMinuend >>> diff);
     }
     if (pNegResult) {
       rMan ^= -1L;
@@ -957,29 +976,26 @@ public class CFloatImpl implements CFloat {
       }
     }
 
-    while (((rMan & CFloatUtil.getNormalizationMask(pType)) == 0)
+    while (((rMan & pSubtrahend.getNormalizationMask()) == 0)
         && rExp > 0
-        && (rMan & CFloatUtil.getMantissaMask(pType)) != 0) {
+        && (rMan & pSubtrahend.getMantissaMask()) != 0) {
       rMan <<= 1;
-      rMan +=
-          ((overflow & CFloatUtil.getNormalizationMask(CFloatNativeAPI.FP_TYPE_LONG_DOUBLE)) != 0)
-              ? 1
-              : 0;
+      rMan += ((overflow & CFloatNativeAPI.ONE_LONG_DOUBLE.getNormalizationMask()) != 0) ? 1 : 0;
       overflow <<= 1;
       rExp--;
     }
 
-    rMan &= CFloatUtil.getNormalizedMantissaMask(pType);
+    rMan &= pSubtrahend.getNormalizedMantissaMask();
     if (pNegResult) {
-      rExp ^= CFloatUtil.getSignBitMask(pType);
+      rExp ^= pSubtrahend.getSignBitMask();
     }
 
     CFloatWrapper result = new CFloatWrapper(rExp, rMan);
-    return CFloatUtil.round(result, overflow, pType);
+    return pSubtrahend.round(result, overflow);
   }
 
   @Override
-  public CFloat divideBy(CFloat pDivisor) {
+  public CFloat divideBy(final CFloat pDivisor) {
     CFloat tDividend = this;
     CFloat oDivisor = pDivisor;
     boolean negativeResult = tDividend.isNegative() ^ oDivisor.isNegative();
@@ -1007,45 +1023,40 @@ public class CFloatImpl implements CFloat {
 
     if (tDividend.isZero()) {
       CFloatWrapper rWrapper = tDividend.copyWrapper();
-      final long signBit = negativeResult ? CFloatUtil.getSignBitMask(tDividend.getType()) : 0L;
-      rWrapper.setExponent(
-          (rWrapper.getExponent() & CFloatUtil.getExponentMask(tDividend.getType())) ^ signBit);
+      final long signBit = negativeResult ? tDividend.getSignBitMask() : 0L;
+      rWrapper.setExponent((rWrapper.getExponent() & tDividend.getExponentMask()) ^ signBit);
       return new CFloatImpl(rWrapper, tDividend.getType());
     }
 
     // TODO: infinities
 
-    long tMan = tDividend.copyWrapper().getMantissa();
-    long oMan = oDivisor.copyWrapper().getMantissa();
+    long tMan = tDividend.getMantissa();
+    long oMan = oDivisor.getMantissa();
 
-    long tExp =
-        tDividend.copyWrapper().getExponent() & CFloatUtil.getExponentMask(tDividend.getType());
-    long oExp =
-        oDivisor.copyWrapper().getExponent() & CFloatUtil.getExponentMask(tDividend.getType());
+    long tExp = tDividend.getExponent() & tDividend.getExponentMask();
+    long oExp = oDivisor.getExponent() & tDividend.getExponentMask();
 
     // the only possible shift in exponents is symmetrical,
     // hence insignificant for subtraction
-    long bias = CFloatUtil.getBias(tDividend.getType());
-    long rExp =
-        (tExp - oExp + bias)
-            ^ (negativeResult ? CFloatUtil.getSignBitMask(tDividend.getType()) : 0);
+    long bias = tDividend.getBias();
+    long rExp = (tExp - oExp + bias) ^ (negativeResult ? tDividend.getSignBitMask() : 0);
 
-    int quotientLength = CFloatUtil.getMantissaLength(tDividend.getType()) * 2;
+    int quotientLength = tDividend.getMantissaLength() * 2;
 
     if (tDividend.getType() != CFloatNativeAPI.FP_TYPE_LONG_DOUBLE) {
       quotientLength += 2;
 
       if (tExp != 0) {
-        tMan ^= CFloatUtil.getNormalizationMask(tDividend.getType());
+        tMan ^= tDividend.getNormalizationMask();
       }
       if (oExp != 0) {
-        oMan ^= CFloatUtil.getNormalizationMask(tDividend.getType());
+        oMan ^= tDividend.getNormalizationMask();
       }
     }
 
     int[] bitArray = new int[quotientLength];
 
-    boolean adjustExp = divideBits(tMan, oMan, quotientLength, bitArray, tDividend.getType());
+    boolean adjustExp = divideBits(tMan, oMan, quotientLength, bitArray, tDividend);
 
     long rMan = 0;
     long overflow = 0;
@@ -1066,28 +1077,39 @@ public class CFloatImpl implements CFloat {
       }
     }
 
-    rMan &= CFloatUtil.getNormalizedMantissaMask(tDividend.getType());
+    rMan &= tDividend.getNormalizedMantissaMask();
 
     if (adjustExp) {
       rExp--;
     }
 
     CFloatWrapper rWrapper = new CFloatWrapper(rExp, rMan);
-    rWrapper = CFloatUtil.round(rWrapper, overflow, tDividend.getType());
+    rWrapper = tDividend.round(rWrapper, overflow);
 
     return new CFloatImpl(rWrapper, tDividend.getType());
   }
 
+  /**
+   * Implement bitwise division to keep track of overflowing (underflowing respectively) bits for
+   * rounding.
+   *
+   * @param pTMan the mantissa of the {@link CFloat} that is divided
+   * @param pOMan the mantissa of the {@link CFloat} with which is divided
+   * @param pQuotientLength the length of the results mantissa
+   * @param pBitArray the bitarray in which the division result is stored
+   * @param pDividend the dividend of the division
+   * @return if an offset is necessary to perform the next step of the division
+   */
   private boolean divideBits(
-      long pTMan,
-      long pOMan,
-      int pQuotientLength,
-      int[] pBitArray,
-      int pType) {
+      final long pTMan,
+      final long pOMan,
+      final int pQuotientLength,
+      final int[] pBitArray,
+      final CFloat pDividend) {
     boolean initialOffsetNeeded = false;
 
     int[] dividArray = new int[pQuotientLength];
-    int mantissaLength = CFloatUtil.getNormalizedMantissaLength(pType);
+    int mantissaLength = pDividend.getNormalizedMantissaLength();
 
     long tMan = pTMan;
     long oMan = pOMan;
@@ -1101,7 +1123,7 @@ public class CFloatImpl implements CFloat {
         dividArray[i] = 1;
       }
 
-      if ((oMan & CFloatUtil.getMantissaMask(pType)) != 0) {
+      if ((oMan & pDividend.getMantissaMask()) != 0) {
         oMan <<= 1L;
       }
     }
@@ -1126,7 +1148,11 @@ public class CFloatImpl implements CFloat {
     return initialOffsetNeeded;
   }
 
-  private int divideStep(int[] pDividend, int[] pDivisor, int[] pDivisorComplement, int pOffset) {
+  private int divideStep(
+      final int[] pDividend,
+      final int[] pDivisor,
+      final int[] pDivisorComplement,
+      final int pOffset) {
     assert pDivisor.length == pDivisorComplement.length;
     assert pDivisor.length < pDividend.length;
 
@@ -1158,31 +1184,33 @@ public class CFloatImpl implements CFloat {
     return count;
   }
 
-  private void offsetBitAddition(int[] pDividend, int[] pDivisorComplement, int pOffset) {
+  private void offsetBitAddition(
+      final int[] pDividend, final int[] pDivisorComplement, final int pOffset) {
     if (pOffset >= pDividend.length) {
       // bits outside our precision
       return;
     }
 
+    int offset = pOffset;
     int ignoreBits = 0;
-    if (pOffset > pDivisorComplement.length) {
-      ignoreBits = pOffset - pDivisorComplement.length;
-      pOffset -= ignoreBits;
+    if (offset > pDivisorComplement.length) {
+      ignoreBits = offset - pDivisorComplement.length;
+      offset -= ignoreBits;
     }
 
     int carry = 0;
     // overflow is ignored
-    for (int i = pDivisorComplement.length - 1; i >= (-1 * pOffset); i--) {
-      pDividend[i + pOffset] +=
+    for (int i = pDivisorComplement.length - 1; i >= (-1 * offset); i--) {
+      pDividend[i + offset] +=
           (i >= ignoreBits)
               ? carry + pDivisorComplement[i - ignoreBits]
               : carry + 1; // consider the two-complement to have padding 1s to the left
-      carry = pDividend[i + pOffset] / 2;
-      pDividend[i + pOffset] %= 2;
+      carry = pDividend[i + offset] / 2;
+      pDividend[i + offset] %= 2;
     }
   }
 
-  private int[] makeTwoComplement(int[] pDivisArray) {
+  private int[] makeTwoComplement(final int[] pDivisArray) {
     int[] complement = new int[pDivisArray.length];
 
     for (int i = 0; i < pDivisArray.length; i++) {
@@ -1201,7 +1229,7 @@ public class CFloatImpl implements CFloat {
     return complement;
   }
 
-  private int[] createDivisorArray(long pOMan) {
+  private int[] createDivisorArray(final long pOMan) {
     int size = 0;
 
     for (int i = 0; i < 64; i++) {
@@ -1230,13 +1258,13 @@ public class CFloatImpl implements CFloat {
   }
 
   @Override
-  public CFloat powTo(CFloat pExponent) {
+  public CFloat powTo(final CFloat pExponent) {
     // TODO Auto-generated method stub
     return null;
   }
 
   @Override
-  public CFloat powToIntegral(int pExponent) {
+  public CFloat powToIntegral(final int pExponent) {
     // TODO Auto-generated method stub
     return null;
   }
@@ -1249,16 +1277,14 @@ public class CFloatImpl implements CFloat {
 
   @Override
   public CFloat round() {
-    long exp = wrapper.getExponent() & CFloatUtil.getExponentMask(type);
+    long exp = wrapper.getExponent() & getExponentMask();
     long man = wrapper.getMantissa();
-    long sign = isNegative() ? CFloatUtil.getSignBitMask(type) : 0L;
-    int diff = (int) (exp - CFloatUtil.getBias(type));
+    long sign = isNegative() ? getSignBitMask() : 0L;
+    int diff = (int) (exp - getBias());
 
-    if (diff >= 0 && diff < CFloatUtil.getMantissaLength(type)) {
+    if (diff >= 0 && diff < getMantissaLength()) {
       long intMask = 0L;
-      for (int i = (CFloatUtil.getMantissaLength(type) - diff);
-          i < CFloatUtil.getMantissaLength(type);
-          i++) {
+      for (int i = (getMantissaLength() - diff); i < getMantissaLength(); i++) {
         intMask ^= (1L << i);
       }
       long fracMask = ~intMask;
@@ -1288,23 +1314,21 @@ public class CFloatImpl implements CFloat {
     // if none of the above conditions is matched, the number is completely integral already and
     // nothing has to be done
 
-    exp &= CFloatUtil.getExponentMask(type);
-    man &= CFloatUtil.getNormalizedMantissaMask(type);
+    exp &= getExponentMask();
+    man &= getNormalizedMantissaMask();
     return new CFloatImpl(new CFloatWrapper(exp ^ sign, man), type);
   }
 
   @Override
   public CFloat trunc() {
-    long exp = wrapper.getExponent() & CFloatUtil.getExponentMask(type);
+    long exp = wrapper.getExponent() & getExponentMask();
     long man = wrapper.getMantissa();
-    long sign = isNegative() ? CFloatUtil.getSignBitMask(type) : 0L;
-    int diff = (int) (exp - CFloatUtil.getBias(type));
+    long sign = isNegative() ? getSignBitMask() : 0L;
+    int diff = (int) (exp - getBias());
 
-    if (diff >= 0 && diff < CFloatUtil.getMantissaLength(type)) {
+    if (diff >= 0 && diff < getMantissaLength()) {
       long intMask = 0L;
-      for (int i = (CFloatUtil.getMantissaLength(type) - diff);
-          i < CFloatUtil.getMantissaLength(type);
-          i++) {
+      for (int i = (getMantissaLength() - diff); i < getMantissaLength(); i++) {
         intMask ^= (1L << i);
       }
 
@@ -1342,41 +1366,38 @@ public class CFloatImpl implements CFloat {
   @Override
   public CFloat abs() {
     CFloatWrapper wrap = copyWrapper();
-    wrap.setExponent(wrap.getExponent() & CFloatUtil.getExponentMask(type));
+    wrap.setExponent(wrap.getExponent() & getExponentMask());
 
     return new CFloatImpl(wrap, type);
   }
 
   @Override
   public boolean isZero() {
-    boolean mantissaZero =
-        (CFloatUtil.getNormalizedMantissaMask(type) & wrapper.getMantissa()) == 0;
-    boolean exponentZero = (wrapper.getExponent() & CFloatUtil.getExponentMask(type)) == 0;
+    boolean mantissaZero = (getNormalizedMantissaMask() & wrapper.getMantissa()) == 0;
+    boolean exponentZero = (wrapper.getExponent() & getExponentMask()) == 0;
 
     return mantissaZero && (exponentZero || type == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
   }
 
   @Override
   public boolean isOne() {
-    return ((CFloatUtil.getBias(type) ^ wrapper.getExponent()) == 0)
-        && ((wrapper.getMantissa() ^ CFloatUtil.getNormalizedMantissaMask(type)) == CFloatUtil
-            .getMantissaMask(type));
+    return ((getBias() ^ wrapper.getExponent()) == 0)
+        && ((wrapper.getMantissa() ^ getNormalizedMantissaMask()) == getMantissaMask());
   }
 
   @Override
   public boolean isNegative() {
-    return (wrapper.getExponent() & CFloatUtil.getSignBitMask(type)) != 0;
+    return (wrapper.getExponent() & getSignBitMask()) != 0;
   }
 
   @Override
-  public CFloat copySignFrom(CFloat pSource) {
-    CFloatWrapper wrap =
-        new CFloatWrapper(this.wrapper.getExponent(), this.wrapper.getMantissa());
+  public CFloat copySignFrom(final CFloat pSource) {
+    CFloatWrapper wrap = copyWrapper();
     long tExp = wrap.getExponent();
-    long oExp = pSource.copyWrapper().getExponent();
+    long oExp = pSource.getExponent();
 
-    long tMask = CFloatUtil.getSignBitMask(type);
-    long oMask = CFloatUtil.getSignBitMask(pSource.getType());
+    long tMask = getSignBitMask();
+    long oMask = pSource.getSignBitMask();
 
     if ((oExp & oMask) == 0) {
       if ((tExp & tMask) != 0) {
@@ -1394,12 +1415,13 @@ public class CFloatImpl implements CFloat {
   }
 
   @Override
-  public CFloat castTo(int pToType) {
+  public CFloat castTo(final int pToType) {
+    CFloat zero = new CFloatImpl("0", pToType);
     if (isZero()) {
       if (isNegative()) {
         return new CFloatImpl("-0", pToType);
       } else {
-        return new CFloatImpl("0", pToType);
+        return zero;
       }
     }
 
@@ -1407,25 +1429,25 @@ public class CFloatImpl implements CFloat {
     long rMan = wrapper.getMantissa();
     long overflow = 0L;
 
-    boolean signed = (rExp & CFloatUtil.getSignBitMask(type)) != 0;
-    long expDiff = (rExp & CFloatUtil.getExponentMask(type)) - CFloatUtil.getBias(type);
-    int manDiff = CFloatUtil.getMantissaLength(type) - CFloatUtil.getMantissaLength(pToType);
+    boolean signed = (rExp & getSignBitMask()) != 0;
+    long expDiff = (rExp & getExponentMask()) - getBias();
+    int manDiff = getMantissaLength() - zero.getMantissaLength();
     manDiff *= manDiff < 0 ? -1 : 1;
 
     if (type == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE
         && pToType != CFloatNativeAPI.FP_TYPE_LONG_DOUBLE) {
-      rMan &= CFloatUtil.getMantissaMask(type);
+      rMan &= getMantissaMask();
       manDiff--;
     } else if (type != CFloatNativeAPI.FP_TYPE_LONG_DOUBLE
         && pToType == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE) {
-      rMan |= CFloatUtil.getNormalizationMask(type);
+      rMan |= getNormalizationMask();
       manDiff--;
     }
 
-    rExp = CFloatUtil.getBias(pToType) + expDiff;
+    rExp = zero.getBias() + expDiff;
 
     if (signed) {
-      rExp ^= CFloatUtil.getSignBitMask(pToType);
+      rExp ^= zero.getSignBitMask();
     }
 
     if (type > pToType) {
@@ -1437,13 +1459,13 @@ public class CFloatImpl implements CFloat {
     }
 
     CFloatWrapper rWrapper = new CFloatWrapper(rExp, rMan);
-    rWrapper = CFloatUtil.round(rWrapper, overflow, pToType);
+    rWrapper = zero.round(rWrapper, overflow);
 
     return new CFloatImpl(rWrapper, pToType);
   }
 
   @Override
-  public Number castToOther(int pToType) {
+  public Number castToOther(final int pToType) {
     // TODO Auto-generated method stub
     return null;
   }
@@ -1459,7 +1481,7 @@ public class CFloatImpl implements CFloat {
   }
 
   @Override
-  public boolean greaterThan(CFloat pFloat) {
+  public boolean greaterThan(final CFloat pFloat) {
     if (pFloat.isNan() || (pFloat.isInfinity() && !pFloat.isNegative())) {
       return false;
     }
@@ -1473,32 +1495,33 @@ public class CFloatImpl implements CFloat {
       oFloat = oFloat.castTo(tFloat.getType());
     }
 
-    int type = oFloat.getType();
+    int oType = oFloat.getType();
 
     boolean greater = false;
 
     boolean tNeg = tFloat.isNegative();
     boolean oNeg = oFloat.isNegative();
 
-    long tExp = tFloat.copyWrapper().getExponent();
-    long tMan = tFloat.copyWrapper().getMantissa();
+    long tExp = tFloat.getExponent();
+    long tMan = tFloat.getMantissa();
 
-    long oExp = oFloat.copyWrapper().getExponent();
-    long oMan = oFloat.copyWrapper().getMantissa();
+    long oExp = oFloat.getExponent();
+    long oMan = oFloat.getMantissa();
 
     if (oNeg) {
       if (tNeg) {
         if (tExp < oExp) {
           greater = true;
         } else if (tExp == oExp) {
-          if (type == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE) {
-            if (((tMan & CFloatUtil.getNormalizationMask(type)) == 0) && ((oMan & CFloatUtil.getNormalizationMask(type)) != 0)) {
+          if (oType == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE) {
+            if (((tMan & tFloat.getNormalizationMask()) == 0)
+                && ((oMan & tFloat.getNormalizationMask()) != 0)) {
               greater = true;
-            } else if ((((tMan & CFloatUtil.getNormalizationMask(type)) != 0)
-                    && ((oMan & CFloatUtil.getNormalizationMask(type)) != 0))
-                || (((tMan & CFloatUtil.getNormalizationMask(type)) == 0)
-                    && ((oMan & CFloatUtil.getNormalizationMask(type)) == 0))) {
-              if ((tMan & CFloatUtil.getMantissaMask(type)) < (oMan & CFloatUtil.getMantissaMask(type))) {
+            } else if ((((tMan & tFloat.getNormalizationMask()) != 0)
+                    && ((oMan & tFloat.getNormalizationMask()) != 0))
+                || (((tMan & tFloat.getNormalizationMask()) == 0)
+                    && ((oMan & tFloat.getNormalizationMask()) == 0))) {
+              if ((tMan & tFloat.getMantissaMask()) < (oMan & tFloat.getMantissaMask())) {
                 greater = true;
               }
             }
@@ -1514,14 +1537,15 @@ public class CFloatImpl implements CFloat {
         if (tExp > oExp) {
           greater = true;
         } else if (tExp == oExp) {
-          if (type == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE) {
-            if (((tMan & CFloatUtil.getNormalizationMask(type)) != 0) && ((oMan & CFloatUtil.getNormalizationMask(type)) == 0)) {
+          if (oType == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE) {
+            if (((tMan & tFloat.getNormalizationMask()) != 0)
+                && ((oMan & tFloat.getNormalizationMask()) == 0)) {
               greater = true;
-            } else if ((((tMan & CFloatUtil.getNormalizationMask(type)) != 0)
-                    && ((oMan & CFloatUtil.getNormalizationMask(type)) != 0))
-                || (((tMan & CFloatUtil.getNormalizationMask(type)) == 0)
-                    && ((oMan & CFloatUtil.getNormalizationMask(type)) == 0))) {
-              if ((tMan & CFloatUtil.getMantissaMask(type)) > (oMan & CFloatUtil.getMantissaMask(type))) {
+            } else if ((((tMan & tFloat.getNormalizationMask()) != 0)
+                    && ((oMan & tFloat.getNormalizationMask()) != 0))
+                || (((tMan & tFloat.getNormalizationMask()) == 0)
+                    && ((oMan & tFloat.getNormalizationMask()) == 0))) {
+              if ((tMan & tFloat.getMantissaMask()) > (oMan & tFloat.getMantissaMask())) {
                 greater = true;
               }
             }
@@ -1541,11 +1565,11 @@ public class CFloatImpl implements CFloat {
     long man = wrapper.getMantissa();
     StringBuilder builder = new StringBuilder();
 
-    if ((exp & CFloatUtil.getSignBitMask(type)) != 0) {
+    if ((exp & getSignBitMask()) != 0) {
       builder.append("-");
     }
 
-    int[] decArray = getDecimalArray((exp & CFloatUtil.getExponentMask(type)), man);
+    int[] decArray = getDecimalArray((exp & getExponentMask()), man);
     boolean started = false;
     for (int i : decArray) {
       if (i < 0) {
@@ -1563,21 +1587,21 @@ public class CFloatImpl implements CFloat {
     return builder.toString().replaceAll("(\\.[0-9]+?)0*$", "$1");
   }
 
-  private int[] getDecimalArray(long pExp, long pMan) {
+  private int[] getDecimalArray(final long pExp, final long pMan) {
     int[] result = null;
     int[] fracArray = CFloatUtil.getDecimalArray(type, pMan & 1);
-    for (int i = 1; i < CFloatUtil.getMantissaLength(type); i++) {
+    for (int i = 1; i < getMantissaLength(); i++) {
       fracArray = decimalAdd(fracArray, CFloatUtil.getDecimalArray(type, pMan & (1L << i)));
     }
 
     int[] integralArray = new int[1];
     if ((type != CFloatNativeAPI.FP_TYPE_LONG_DOUBLE && pExp != 0)
         || (type == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE
-            && ((pMan & CFloatUtil.getNormalizationMask(type)) != 0))) {
+            && ((pMan & getNormalizationMask()) != 0))) {
       integralArray[0] = 1;
     }
 
-    long exp = pExp - CFloatUtil.getBias(type);
+    long exp = pExp - getBias();
     if (exp > 0) {
       int startLength = fracArray.length;
       for (int i = 0; i < exp; i++) {
@@ -1588,25 +1612,21 @@ public class CFloatImpl implements CFloat {
           integralArray[iAL - 1] += fracArray[0];
           fracArray = copyAllButFirstCell(fracArray);
           if (integralArray[iAL - 1] > 9) {
-            integralArray[iAL - 2] = integralArray[iAL - 1] / 10;
-            integralArray[iAL - 1] = integralArray[iAL - 1] % 10;
+            integralArray[iAL - 2] = (integralArray[iAL - 1] / 10);
+            integralArray[iAL - 1] = (integralArray[iAL - 1] % 10);
           }
         }
       }
     } else {
       for (int i = 0; i < -exp; i++) {
         if (integralArray.length > 1 || integralArray[integralArray.length - 1] > 0) {
-          if (integralArray[integralArray.length - 1] % 2 == 1) {
-            fracArray[0] += 10;
-          }
-          decimalHalf(integralArray);
-          if (integralArray[0] == 0 && integralArray.length > 1) {
+          if (integralArray[integralArray.length - 1] % 2 != 0) {
             integralArray = copyAllButFirstCell(integralArray);
           }
         }
         int last = fracArray[fracArray.length - 1];
         decimalHalf(fracArray);
-        if (last % 2 == 1) {
+        if (last % 2 != 0) {
           fracArray = Arrays.copyOf(fracArray, fracArray.length + 1);
           fracArray[fracArray.length - 1] = 5;
         }
@@ -1626,11 +1646,12 @@ public class CFloatImpl implements CFloat {
     return result;
   }
 
-  private int[] copyAllButFirstCell(int[] pArray) {
-    for (int i = 0; i < pArray.length - 1; i++) {
-      pArray[i] = pArray[i + 1];
-    }
-    pArray = Arrays.copyOf(pArray, pArray.length - 1);
-    return pArray;
+  private int[] copyAllButFirstCell(final int[] pArray) {
+    return Arrays.copyOfRange(pArray, 1, pArray.length);
+  }
+
+  @Override
+  protected CFloatWrapper getWrapper() {
+    return wrapper;
   }
 }

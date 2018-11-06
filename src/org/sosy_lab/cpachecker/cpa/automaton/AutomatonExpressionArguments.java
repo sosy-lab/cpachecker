@@ -307,16 +307,16 @@ class AutomatonExpressionArguments {
     return null;
   }
 
-  public ImmutableList<AExpression> instantiateAssumptions(ImmutableList<AExpression> pAssumptions)
-      throws AutomatonTransferException {
+  public ImmutableList<AExpression> instantiateAssumptions(
+      ImmutableList<AExpression> pAssumptions) {
     ImmutableList.Builder<AExpression> builder = ImmutableList.builder();
     SubstitutingCAstNodeVisitor visitor = new SubstitutingCAstNodeVisitor(this::findSubstitute);
     for (AExpression expr : pAssumptions) {
       if ((expr instanceof CExpression)) {
         CExpression substitutedExpr = (CExpression) ((CExpression) expr).accept(visitor);
-
         if (substitutedExpr.getExpressionType() instanceof CProblemType) {
-          throw new AutomatonTransferException(
+          logger.log(
+              Level.WARNING,
               "Type of automaton assumption '" + substitutedExpr + "' cannot be evaluated");
         }
         builder.add(substitutedExpr);

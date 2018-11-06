@@ -147,12 +147,14 @@
     <option name="-setprop">analysis.checkCounterexamples=true</option>
     <option name="-setprop">counterexample.checker=CBMC</option>
     <includesfile>integration-DeviceDriversLinux64.set</includesfile>
-    <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_false-unreach-call.cil.out.i.pp.i</exclude>
-    <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_true-unreach-call.cil.out.i.pp.i</exclude>
     <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-scsi-dc395x.ko_true-unreach-call.cil.out.i.pp.i</exclude>
     <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-net-wan-farsync.ko_false-unreach-call.cil.out.i.pp.i</exclude>
     <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-input-misc-keyspan_remote.ko_false-unreach-call.cil.out.i.pp.i</exclude>
-    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--usb--serial--mos7840_false-termination.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude> <!-- flapping timeout -->
+    <!-- exclude some files that are nearly identical in complexity and runtime, some of them are timeout -->
+    <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--input--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--media--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--usb--*</exclude>
   </tasks>
 
 </benchmark>

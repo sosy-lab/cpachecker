@@ -30,11 +30,11 @@ import static com.google.common.primitives.Ints.max;
  * <code>-inf</code> are special numbers, some operations including them or performed on them,
  * evaluate in a specific manner that, generally, can be computed much easier than the usual
  * floating point operations and therefore terminate some operations faster.
- * <p>
- * Also, the usual check for infinity uses some computations which can be saved by a default return
- * of <code>true</code> when the object already is known to be an infinity.
+ *
+ * <p>Also, the usual check for infinity uses some computations which can be saved by a default
+ * return of <code>true</code> when the object already is known to be an infinity.
  */
-public class CFloatInf implements CFloat {
+public class CFloatInf extends CFloat {
 
   private boolean negative;
   private final int type;
@@ -202,14 +202,12 @@ public class CFloatInf implements CFloat {
     switch (type) {
       case CFloatNativeAPI.FP_TYPE_SINGLE:
       case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        result = new CFloatWrapper(CFloatUtil.getExponentMask(type) ^ (negative ? CFloatUtil.getSignBitMask(type) : 0L), 0L);
+        result = new CFloatWrapper(getExponentMask() ^ (negative ? getSignBitMask() : 0L), 0L);
         break;
       case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
         result =
             new CFloatWrapper(
-                CFloatUtil.getExponentMask(type)
-                    ^ (negative ? CFloatUtil.getSignBitMask(type) : 0L),
-                CFloatUtil.getNormalizationMask(type));
+                getExponentMask() ^ (negative ? getSignBitMask() : 0L), getNormalizationMask());
         break;
       default:
         throw new RuntimeException("Unimplemented floating point type: " + type);
@@ -238,5 +236,10 @@ public class CFloatInf implements CFloat {
       return false;
     }
     return !this.isNegative();
+  }
+
+  @Override
+  protected CFloatWrapper getWrapper() {
+    return copyWrapper();
   }
 }

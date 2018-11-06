@@ -199,7 +199,9 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   /**
-   * This method calculates the exact result for a binary operation.
+   * This method calculates the exact result for a binary operation. If the value can not be
+   * determined, we return an {@link UnknownValue}. If an arithmetic exception happens (e.g.,
+   * division by zero), we log a warning and also return {@link UnknownValue}.
    *
    * @param lVal evaluated first operand of binaryExpr
    * @param rVal evaluated second operand of binaryExpr
@@ -565,6 +567,7 @@ public abstract class AbstractExpressionValueVisitor
       return Value.UnknownValue.getInstance();
     }
 
+    try {
     switch (type.getType()) {
       case INT: {
         // Both l and r must be of the same type, which in this case is INT, so we can cast to long.
@@ -589,6 +592,16 @@ public abstract class AbstractExpressionValueVisitor
         logger.logf(Level.FINE, "unsupported type for result of binary operation %s", type.toString());
         return Value.UnknownValue.getInstance();
       }
+    }
+    } catch (ArithmeticException ae) { // log warning and ignore expression
+      logger.logf(
+          Level.WARNING,
+          "expression causes arithmetic exception (%s): %s %s %s",
+          ae.getMessage(),
+          lNum.bigDecimalValue(),
+          op.getOperator(),
+          rNum.bigDecimalValue());
+      return Value.UnknownValue.getInstance();
     }
   }
 

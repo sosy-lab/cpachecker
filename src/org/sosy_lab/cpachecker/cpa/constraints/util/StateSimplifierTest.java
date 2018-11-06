@@ -30,6 +30,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -89,8 +90,7 @@ public class StateSimplifierTest {
     Configuration config = Configuration.builder()
         .setOption("cpa.constraints.removeTrivial", "true")
         .build();
-    simplifier =
-        new StateSimplifier(config);
+    simplifier = new StateSimplifier(config, new ConstraintsStatistics());
     SymbolicValues.initialize();
   }
 

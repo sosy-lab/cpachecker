@@ -315,13 +315,13 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
      * TODO: Perhaps introduce a SubSMG class which would be a SMG tied
      * to a certain (Clang)SMG and guaranteed to be a subset of it?
      */
-    Set<SMGObject> stray_objects = new HashSet<>(Sets.difference(getObjects(), seen));
+    Set<SMGObject> stray_objects = new HashSet<>(Sets.difference(getObjects().asSet(), seen));
 
     // Mark all reachable from ExternallyAllocated objects as safe for remove
     markExternallyAllocatedObjects(stray_objects);
 
     Set<SMGObject> unreachableObjects = removeObjects(stray_objects);
-    removeValues(Sets.difference(getValues(), seen_values));
+    removeValues(Sets.difference(getValues().asSet(), seen_values));
 
     if (CLangSMG.performChecks()) {
       CLangSMGConsistencyVerifier.verifyCLangSMG(CLangSMG.logger, this);
@@ -592,15 +592,12 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   }
 
   private Set<SMGEdgeHasValue> getHVEdgeFromMemoryLocation(MemoryLocation pLocation) {
-
     SMGObject objectAtLocation = getObjectFromMemoryLocation(pLocation);
-
-    if(objectAtLocation == null) {
+    if (objectAtLocation == null) {
       return Collections.emptySet();
     }
 
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(objectAtLocation);
-
     if (pLocation.isReference()) {
       filter.filterAtOffset(pLocation.getOffset());
     }
@@ -626,7 +623,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
         return null;
       }
 
-      if(locId.equals("___cpa_temp_result_var_")) {
+      if (locId.equals(CLangStackFrame.RETVAL_LABEL)) {
         return frame.getReturnObject();
       }
 
@@ -648,77 +645,58 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   public Optional<SMGEdgeHasValue> getHVEdgeFromMemoryLocation(SMGMemoryPath pLocation) {
 
     Optional<SMGObject> initialRegion = getInitialRegion(pLocation);
-
     if (!initialRegion.isPresent()) {
       return Optional.empty();
     }
 
     SMGObject object = initialRegion.get();
     List<Long> offsets = pLocation.getPathOffset();
-    SMGEdgeHasValue hve;
     Iterator<Long> it = offsets.iterator();
 
     while (it.hasNext()) {
-
       long offset = it.next();
+
       Set<SMGEdgeHasValue> hves =
           getHVEdges(SMGEdgeHasValueFilter.objectFilter(object).filterAtOffset(offset));
-
       if (hves.isEmpty()) {
         return Optional.empty();
       }
 
-      hve = Iterables.getOnlyElement(hves);
-
-      SMGValue value = hve.getValue();
-
+      SMGEdgeHasValue hve = Iterables.getOnlyElement(hves);
       if (!it.hasNext()) {
         return Optional.of(hve);
       }
 
+      SMGValue value = hve.getValue();
       if (!isPointer(value)) {
         return Optional.empty();
       }
 
-      SMGEdgePointsTo ptE = getPointer(value);
-      object = ptE.getObject();
+      object = getPointer(value).getObject();
     }
 
     throw new AssertionError();
   }
 
+  /**
+   * return the object (function or global scope) for a memory-path, i.e., a variable with matching
+   * the given name, function name, and stack depth.
+   */
   private Optional<SMGObject> getInitialRegion(SMGMemoryPath pLocation) {
-
     String initalVarName = pLocation.getVariableName();
-
     if (pLocation.startsWithGlobalVariable()) {
-      if (global_objects.containsKey(initalVarName)) {
-        SMGObject initialRegion = global_objects.get(initalVarName);
-        return Optional.of(initialRegion);
-      } else {
-        return Optional.empty();
-      }
+      return Optional.ofNullable(global_objects.get(initalVarName));
     } else {
-
       String functionName = pLocation.getFunctionName();
       int locationOnStack = pLocation.getLocationOnStack();
-
       if (stack_objects.size() <= locationOnStack) {
         return Optional.empty();
       }
       CLangStackFrame frame = Iterables.get(stack_objects, locationOnStack);
-
-      if (!frame.getFunctionDeclaration().getName()
-          .equals(functionName)) {
+      if (!frame.getFunctionDeclaration().getName().equals(functionName)) {
         return Optional.empty();
       }
-
-      if (frame.containsVariable(initalVarName)) {
-        SMGObject initialObject = frame.getVariable(initalVarName);
-        return Optional.of(initialObject);
-      } else {
-        return Optional.empty();
-      }
+      return Optional.ofNullable(frame.getVariable(initalVarName));
     }
   }
 
@@ -1010,15 +988,11 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   }
 
   public void removeGlobalVariableAndEdges(String pVariable) {
-
-    if (!global_objects.containsKey(pVariable)) {
-      return;
-    }
-
     SMGObject obj = global_objects.get(pVariable);
-    global_objects = global_objects.removeAndCopy(pVariable);
-
-    removeObjectAndEdges(obj);
+    if (obj != null) {
+      global_objects = global_objects.removeAndCopy(pVariable);
+      removeObjectAndEdges(obj);
+    }
   }
 
   public Optional<SMGEdgeHasValue> forget(SMGMemoryPath pLocation) {
@@ -1044,17 +1018,11 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   }
 
   private SMGStateInformation forgetGlobalVariable(MemoryLocation pMemoryLocation) {
-
     String varName = pMemoryLocation.getIdentifier();
-
     if (!global_objects.containsKey(varName)) {
       return SMGStateInformation.of();
     }
-
-    SMGObject globalObject = global_objects.get(varName);
-
-    SMGStateInformation info = createStateInfo(globalObject);
-
+    SMGStateInformation info = createStateInfo(global_objects.get(varName));
     removeGlobalVariableAndEdges(varName);
     return info;
   }
@@ -1083,7 +1051,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     CLangStackFrame frame = getFrame(pMemoryLocation);
     String variableName = pMemoryLocation.getIdentifier();
 
-    if (!frame.containsVariable(variableName)) {
+    if (frame == null || !frame.containsVariable(variableName)) {
       return SMGStateInformation.of();
     }
 
@@ -1098,9 +1066,18 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     return info;
   }
 
-  private CLangStackFrame getFrame(final MemoryLocation pMemoryLocation) {
-    return Iterables.tryFind(stack_objects,
-        frame -> frame.getFunctionDeclaration().getName().equals(pMemoryLocation.getFunctionName())).get();
+  /**
+   * get the stack frame containing the given variable.
+   *
+   * <p>returns <code>Null</code> if variable is not available on the stack.
+   */
+  private @Nullable CLangStackFrame getFrame(final MemoryLocation pMemoryLocation) {
+    for (CLangStackFrame frame : stack_objects) {
+      if (frame.getFunctionDeclaration().getName().equals(pMemoryLocation.getFunctionName())) {
+        return frame;
+      }
+    }
+    return null;
   }
 
   public void remember(MemoryLocation pMemoryLocation, SMGRegion pRegion,
@@ -1127,8 +1104,10 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
     if (pMemoryLocation.isOnFunctionStack()) {
       CLangStackFrame frame = getFrame(pMemoryLocation);
-      stack_objects = stack_objects.replace(
-          f -> f == frame, frame.addStackVariable(pMemoryLocation.getIdentifier(), pRegion));
+      if (frame != null) {
+        stack_objects = stack_objects.replace(
+                f -> f == frame, frame.addStackVariable(pMemoryLocation.getIdentifier(), pRegion));
+      }
     } else {
       global_objects = global_objects.putAndCopy(pRegion.getLabel(), pRegion);
     }

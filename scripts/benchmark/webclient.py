@@ -52,6 +52,7 @@ import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 from concurrent.futures import Future
+from benchexec.util import get_files
 
 try:
     import sseclient  # @UnresolvedImport
@@ -508,7 +509,7 @@ class WebInterface:
             norm_path = self._normalize_path_for_cloud(programPath)
             params.append(('programTextHash', (norm_path, self._get_sha256_hash(programPath))))
 
-        for required_file in required_files:
+        for required_file in get_files(required_files):
             norm_path = self._normalize_path_for_cloud(required_file)
             params.append(('requiredFileHash', (norm_path, self._get_sha256_hash(required_file))))
 
@@ -660,6 +661,10 @@ class WebInterface:
                         params.append(("option", "parser.usePreprocessor=true"))
                     elif option == "-generateReport":
                         params.append(('generateReport', 'true'))
+                    elif option == "-sourcepath":
+                        params.append(("option", "java.sourcepath=" + next(i)))
+                    elif option in ["-cp", "-classpath"]:
+                        params.append(("option", "java.classpath=" + next(i)))
 
                     elif option == "-spec":
                         spec_path = next(i)
@@ -776,22 +781,22 @@ class WebInterface:
                     result_future.set_result(downloaded_result.result())
 
             else:
-                logging.info('Could not get result of run %s: %s', run_id, downloaded_result.exception())
+                attempts = self._download_attempts.pop(run_id, 1);
+                logging.info('Could not get result of run %s on attempt %d: %s', run_id, attempts, exception)
 
                 # client error
-                if type(exception) is HTTPError and exception.response and  \
-                    400 <= exception.response.status_code and exception.response.status_code <= 499:
+                #if type(exception) is HTTPError and exception.response and  \
+                #    400 <= exception.response.status_code and exception.response.status_code <= 499:
 
-                    attempts = self._download_attempts.pop(run_id, 1);
-                    if attempts < 10:
-                        self._download_attempts[run_id] = attempts + 1;
-                        self._download_result_async(run_id)
-                    else:
-                        self._run_failed(run_id)
-
-                else:
-                    # retry it
+                if attempts < 10:
+                    self._download_attempts[run_id] = attempts + 1;
                     self._download_result_async(run_id)
+                else:
+                    self._run_failed(run_id)
+
+                #else:
+                #    # retry t
+                #    self._download_result_async(run_id)
 
         if run_id not in self._downloading_result_futures.values():  # result is not downloaded
             future = self._executor.submit(self._download_result, run_id)

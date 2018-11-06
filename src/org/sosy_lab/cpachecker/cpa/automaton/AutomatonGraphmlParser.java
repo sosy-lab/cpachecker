@@ -32,6 +32,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -48,6 +49,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.EnumSet;
@@ -82,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
@@ -90,16 +93,20 @@ import org.sosy_lab.cpachecker.cpa.automaton.GraphMLTransition.GraphMLThread;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OffsetMatcher;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.NumericIdProvider;
-import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
+import org.sosy_lab.cpachecker.util.Property;
+import org.sosy_lab.cpachecker.util.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMLTag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
+import org.sosy_lab.cpachecker.util.expressions.DefaultExpressionTreeVisitor;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
@@ -119,6 +126,8 @@ public class AutomatonGraphmlParser {
   private static final GraphMLTransition.GraphMLThread DEFAULT_THREAD =
       GraphMLTransition.createThread(0, "__CPAchecker_default_thread");
 
+  private static final String THREAD_ID_VAR_NAME = KeyDef.THREADID.toString().toUpperCase();
+
   private static final String TOO_MANY_GRAPHS_ERROR_MESSAGE =
       "The witness file must describe exactly one witness automaton.";
 
@@ -126,6 +135,9 @@ public class AutomatonGraphmlParser {
 
   private static final String INVALID_AUTOMATON_ERROR_MESSAGE =
       "The witness automaton provided is invalid!";
+
+  private static final String UNKNOWN_VARIABLE_WARNING_MESSAGE =
+      "Expression <%s> contains unknown variables: %s";
 
   /** The name of the variable that stores the distance of each automaton state to the nearest violation state. */
   private static final String DISTANCE_TO_VIOLATION = "__DISTANCE_TO_VIOLATION";
@@ -190,30 +202,29 @@ public class AutomatonGraphmlParser {
    * Parses a witness specification from a file and returns the Automata found in the file.
    *
    * @param pInputFile the path to the input file to parse the witness from.
-   * @param pPropertyTypes which are assumed to be witnessed.
+   * @param pProperties which are assumed to be witnessed.
    * @throws InvalidConfigurationException if the configuration is invalid.
    * @return the automata representing the witnesses found in the file.
    */
-  public List<Automaton> parseAutomatonFile(Path pInputFile, Set<PropertyType> pPropertyTypes)
+  public List<Automaton> parseAutomatonFile(Path pInputFile, Set<Property> pProperties)
       throws InvalidConfigurationException {
-    return parseAutomatonFile(MoreFiles.asByteSource(pInputFile), pPropertyTypes);
+    return parseAutomatonFile(MoreFiles.asByteSource(pInputFile), pProperties);
   }
 
   /**
    * Parses a witness specification from a ByteSource and returns the Automata found in the source.
    *
    * @param pInputSource the ByteSource to parse the witness from.
-   * @param pPropertyTypes which are assumed to be witnessed.
+   * @param pProperties which are assumed to be witnessed.
    * @throws InvalidConfigurationException if the configuration is invalid.
    * @return the automata representing the witnesses found in the source.
    */
-  private List<Automaton> parseAutomatonFile(
-      ByteSource pInputSource, Set<PropertyType> pPropertyTypes)
+  private List<Automaton> parseAutomatonFile(ByteSource pInputSource, Set<Property> pProperties)
       throws InvalidConfigurationException {
     return AutomatonGraphmlParser
         .<List<Automaton>, InvalidConfigurationException>handlePotentiallyGZippedInput(
             pInputSource,
-            inputStream -> parseAutomatonFile(inputStream, pPropertyTypes),
+            inputStream -> parseAutomatonFile(inputStream, pProperties),
             e -> new WitnessParseException(e));
   }
 
@@ -221,13 +232,12 @@ public class AutomatonGraphmlParser {
    * Parses a specification from an InputStream and returns the Automata found in the file.
    *
    * @param pInputStream the input stream to parse the witness from.
-   * @param pPropertyTypes which are assumed to be witnessed.
+   * @param pProperties which are assumed to be witnessed.
    * @throws InvalidConfigurationException if the configuration is invalid.
    * @throws IOException if there occurs an IOException while reading from the stream.
    * @return the automata representing the witnesses found in the stream.
    */
-  private List<Automaton> parseAutomatonFile(
-      InputStream pInputStream, Set<PropertyType> pPropertyTypes)
+  private List<Automaton> parseAutomatonFile(InputStream pInputStream, Set<Property> pProperties)
       throws InvalidConfigurationException, IOException {
     final CParser cparser =
         CParser.Factory.getParser(
@@ -241,8 +251,7 @@ public class AutomatonGraphmlParser {
             CParser.Factory.getOptions(config),
             cfa.getMachineModel());
 
-    AutomatonGraphmlParserState graphMLParserState =
-        setupGraphMLParser(pInputStream, pPropertyTypes);
+    AutomatonGraphmlParserState graphMLParserState = setupGraphMLParser(pInputStream, pProperties);
 
     // Parse the transitions
     parseTransitions(cparser, graphMLParserState);
@@ -430,7 +439,7 @@ public class AutomatonGraphmlParser {
     // Check that there are no invariants in a violation witness
     if (!ExpressionTrees.getTrue().equals(candidateInvariants)
         && pGraphMLParserState.getWitnessType() == WitnessType.VIOLATION_WITNESS
-        && !pGraphMLParserState.getSpecificationTypes().contains(PropertyType.TERMINATION)) {
+        && !pGraphMLParserState.getSpecificationTypes().contains(CommonPropertyType.TERMINATION)) {
       throw new WitnessParseException(
           "Invariants are not allowed for violation witnesses.");
     }
@@ -630,12 +639,15 @@ public class AutomatonGraphmlParser {
               pGraphMLParserState, thread, pTransition.getExplicitAssumptionResultFunction());
       Optional<String> resultFunction =
           determineResultFunction(explicitAssumptionResultFunction, scope);
-      return CParserUtils.parseStatementsAsExpressionTree(
-          pTransition.getTarget().getInvariants(),
-          resultFunction,
-          pCParser,
-          candidateScope,
-          parserTools);
+      ExpressionTree<AExpression> invariant =
+          CParserUtils.parseStatementsAsExpressionTree(
+              pTransition.getTarget().getInvariants(),
+              resultFunction,
+              pCParser,
+              candidateScope,
+              parserTools);
+      invariant = logAndRemoveUnknown(invariant);
+      return invariant;
     }
     return ExpressionTrees.getTrue();
   }
@@ -669,15 +681,17 @@ public class AutomatonGraphmlParser {
       Optional<String> assumptionResultFunction =
           determineResultFunction(explicitAssumptionResultFunction, assumptionScope);
       try {
-        return CParserUtils.convertStatementsToAssumptions(
-            CParserUtils.parseStatements(
-                pTransition.getAssumptions(),
-                assumptionResultFunction,
-                pCParser,
-                assumptionScope,
-                parserTools),
-            cfa.getMachineModel(),
-            logger);
+        List<AExpression> assumptions =
+            CParserUtils.convertStatementsToAssumptions(
+                CParserUtils.parseStatements(
+                    pTransition.getAssumptions(),
+                    assumptionResultFunction,
+                    pCParser,
+                    assumptionScope,
+                    parserTools),
+                cfa.getMachineModel(),
+                logger);
+        return logAndRemoveUnknown(assumptions);
       } catch (InvalidAutomatonException e) {
         String reason = e.getMessage();
         if (e.getCause() instanceof ParserException) {
@@ -688,6 +702,87 @@ public class AutomatonGraphmlParser {
       }
     }
     return Collections.emptyList();
+  }
+
+  private List<AExpression> logAndRemoveUnknown(List<AExpression> pAssumptions) {
+    Multimap<AExpression, AIdExpression> invalid = null;
+    for (AExpression assumption : pAssumptions) {
+      Set<AIdExpression> unknown = getUnknownVariables(assumption);
+      if (!unknown.isEmpty()) {
+        if (invalid == null) {
+          invalid = LinkedHashMultimap.create();
+        }
+        invalid.putAll(assumption, unknown);
+      }
+    }
+    if (invalid != null && !invalid.isEmpty()) {
+      for (Map.Entry<AExpression, Collection<AIdExpression>> invalidExpression :
+          invalid.asMap().entrySet()) {
+        logger.log(
+            Level.WARNING,
+            String.format(
+                UNKNOWN_VARIABLE_WARNING_MESSAGE,
+                invalidExpression.getKey(), invalidExpression.getValue()));
+      }
+      return FluentIterable.from(pAssumptions)
+          .filter(Predicates.not(Predicates.in(invalid.keySet())))
+          .toList();
+    }
+    return pAssumptions;
+  }
+
+  private ExpressionTree<AExpression> logAndRemoveUnknown(ExpressionTree<AExpression> invariant) {
+    FluentIterable<AExpression> expressions =
+        FluentIterable.from(ExpressionTrees.traverseRecursively(invariant))
+            .filter(
+                Predicates.and(
+                    ExpressionTrees::isLeaf, Predicates.not(ExpressionTrees::isConstant)))
+            .transform(leaf -> ((LeafExpression<AExpression>) leaf).getExpression());
+    Multimap<AExpression, AIdExpression> invalid = LinkedHashMultimap.create();
+    for (AExpression assumption : expressions) {
+      Set<AIdExpression> unknown = getUnknownVariables(assumption);
+      if (!unknown.isEmpty()) {
+        invalid.putAll(assumption, unknown);
+      }
+    }
+    if (!invalid.isEmpty()) {
+      for (Map.Entry<AExpression, Collection<AIdExpression>> invalidExpression :
+          invalid.asMap().entrySet()) {
+        logger.log(
+            Level.WARNING,
+            String.format(
+                UNKNOWN_VARIABLE_WARNING_MESSAGE,
+                invalidExpression.getKey(),
+                invalidExpression.getValue()));
+      }
+      invariant =
+          invariant.accept(
+              new DefaultExpressionTreeVisitor<
+                  AExpression, ExpressionTree<AExpression>, RuntimeException>() {
+
+                @Override
+                public ExpressionTree<AExpression> visit(
+                    LeafExpression<AExpression> pLeafExpression) throws RuntimeException {
+                  return invalid.containsKey(pLeafExpression.getExpression())
+                      ? ExpressionTrees.getTrue()
+                      : pLeafExpression;
+                }
+
+                @Override
+                protected ExpressionTree<AExpression> visitDefault(
+                    ExpressionTree<AExpression> pExpressionTree) throws RuntimeException {
+                  return pExpressionTree;
+                }
+              });
+    }
+    return invariant;
+  }
+
+  private Set<AIdExpression> getUnknownVariables(AExpression pExpression) {
+    return CFAUtils.traverseRecursively(pExpression)
+        .filter(AIdExpression.class)
+        .filter(id -> id.getDeclaration() == null)
+        .toSet();
   }
 
   private Optional<String> getFunction(
@@ -832,14 +927,14 @@ public class AutomatonGraphmlParser {
    * into an intermediate representation.
    *
    * @param pInputStream the input stream to read from.
-   * @param pPropertyTypes which are assumed to be witnessed.
+   * @param pProperties which are assumed to be witnessed.
    * @return the initialized parser state.
    * @throws IOException if reading from the input stream fails.
    * @throws WitnessParseException if the initial validity checks for conformity with the witness
    *     format fail.
    */
   private AutomatonGraphmlParserState setupGraphMLParser(
-      InputStream pInputStream, Set<PropertyType> pPropertyTypes)
+      InputStream pInputStream, Set<Property> pProperties)
       throws IOException, WitnessParseException {
 
     GraphMLDocumentData docDat = parseXML(pInputStream);
@@ -882,7 +977,7 @@ public class AutomatonGraphmlParser {
         AutomatonGraphmlParserState.initialize(
             automatonName,
             graphType,
-            pPropertyTypes,
+            pProperties,
             states.values(),
             enteringTransitions,
             leavingTransitions,
@@ -907,8 +1002,8 @@ public class AutomatonGraphmlParser {
       state
           .getAutomatonVariables()
           .put(
-              KeyDef.THREADNAME.name(),
-              AutomatonVariable.createAutomatonVariable("int", KeyDef.THREADNAME.name()));
+              THREAD_ID_VAR_NAME,
+              AutomatonVariable.createAutomatonVariable("int", THREAD_ID_VAR_NAME));
     }
 
     return state;
@@ -961,9 +1056,11 @@ public class AutomatonGraphmlParser {
   }
 
   private static AutomatonBoolExpr getFunctionExitMatcher(String pExitedFunction) {
-    AutomatonBoolExpr functionExitMatcher = or(
-        new AutomatonBoolExpr.MatchFunctionExit(pExitedFunction),
-        new AutomatonBoolExpr.MatchFunctionCallStatement(pExitedFunction));
+    AutomatonBoolExpr functionExitMatcher =
+        or(
+            AutomatonBoolExpr.EpsilonMatch.forwardEpsilonMatch(
+                new AutomatonBoolExpr.MatchFunctionExit(pExitedFunction), false),
+            new AutomatonBoolExpr.MatchFunctionCallStatement(pExitedFunction));
     return functionExitMatcher;
   }
 
@@ -1191,7 +1288,7 @@ public class AutomatonGraphmlParser {
    */
   private static AutomatonAction getThreadIdAssignment(int pThreadId) {
     AutomatonIntExpr expr = new AutomatonIntExpr.Constant(pThreadId);
-    return new AutomatonAction.Assignment(KeyDef.THREADID.name(), expr);
+    return new AutomatonAction.Assignment(THREAD_ID_VAR_NAME, expr);
   }
 
   /**

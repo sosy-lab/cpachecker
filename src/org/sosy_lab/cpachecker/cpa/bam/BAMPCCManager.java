@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -179,8 +181,10 @@ public final class BAMPCCManager {
       //no call node, check if successors can be constructed with help of CFA edges
       for (CFAEdge leavingEdge : CFAUtils.leavingEdges(node)) {
         // edge leads to node in inner block
-        @SuppressWarnings("deprecation")
-        Block currentNodeBlock = partitioning.getBlockForReturnNode(node);
+        Collection<Block> blocks = partitioning.getBlocksForReturnNode(node);
+        Preconditions.checkState(
+            blocks.size() <= 1, "PCC does not expect more blocks for a single return node");
+        Block currentNodeBlock = Iterables.getFirst(blocks, null);
         if (currentNodeBlock != null
             && !pBlock.equals(currentNodeBlock)
             && currentNodeBlock.getNodes().contains(leavingEdge.getSuccessor())) {
