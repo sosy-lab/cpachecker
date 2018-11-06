@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import com.google.common.collect.Lists;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -52,20 +52,17 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadJoinStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -195,7 +192,7 @@ public class ThreadCreateTransformer {
         CStatement stmnt = ((CStatementEdge) edge).getStatement();
         if (stmnt instanceof CFunctionCallAssignmentStatement) {
           /* We should replace r = pthread_create(f) into
-           *   - r = TMP;
+           *   - r = __VERIFIER_nondet_int();
            *   - [r == 0]
            *   - f()
            */
@@ -263,23 +260,32 @@ public class ThreadCreateTransformer {
 
   }
 
-  private int tmpVarCounter = 0;
-
   private CStatement prepareRandomAssignment(CFunctionCallAssignmentStatement stmnt) {
     FileLocation pFileLocation = stmnt.getFileLocation();
     CFunctionCallExpression fCall = stmnt.getFunctionCallExpression();
     CLeftHandSide left = stmnt.getLeftHandSide();
 
-    String tmpName = "CPA_TMP_" + tmpVarCounter++;
-    CType retType = fCall.getDeclaration().getType().getReturnType();
-    CSimpleDeclaration decl = new CVariableDeclaration(pFileLocation, false, CStorageClass.AUTO,
-        retType, tmpName, tmpName, tmpName, null);
-    CIdExpression tmp = new CIdExpression(pFileLocation, decl);
+    CFunctionDeclaration tmpDecl =
+        new CFunctionDeclaration(
+            pFileLocation,
+            new CFunctionType(left.getExpressionType(), Collections.emptyList(), false),
+            "__VERIFIER_nondet_int",
+            Collections.emptyList());
+    CIdExpression tmpFuncName = new CIdExpression(pFileLocation, tmpDecl);
 
-    return new CExpressionAssignmentStatement(pFileLocation, left, tmp);
+    CFunctionCallExpression nondetFunc =
+        new CFunctionCallExpression(
+            pFileLocation,
+            left.getExpressionType(),
+            tmpFuncName,
+            Collections.emptyList(),
+            tmpDecl);
+
+    return new CFunctionCallAssignmentStatement(pFileLocation, left, nondetFunc);
   }
 
-  private CExpression prepareAssumption(CFunctionCallAssignmentStatement stmnt, CFA cfa) throws InvalidConfigurationException {
+  private CExpression prepareAssumption(CFunctionCallAssignmentStatement stmnt, CFA cfa)
+      throws InvalidConfigurationException {
     CLeftHandSide left = stmnt.getLeftHandSide();
 
     CBinaryExpressionBuilder bBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);

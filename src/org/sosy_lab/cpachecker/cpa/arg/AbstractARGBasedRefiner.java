@@ -29,7 +29,9 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.errorprone.annotations.ForOverride;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -46,6 +48,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * Base implementation for {@link Refiner}s that provides access to ARG utilities
@@ -147,6 +150,24 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
     return counterexample.isSpurious();
   }
 
+  public ARGPath addInferenceObject(ARGPath pPath) {
+    List<ARGState> states = new ArrayList<>();
+    List<CFAEdge> edges = new ArrayList<>();
+
+    for (Pair<ARGState, ARGState> pair : pPath.getStatePairs()) {
+      ARGState firstState = pair.getFirst();
+      if (firstState.getAppliedEffect() != null) {
+        ARGPath ioPath = ARGUtils.getOnePathTo(firstState.getAppliedEffect());
+        states.addAll(ioPath.asStatesList());
+        edges.addAll(ioPath.getInnerEdges());
+        edges.addAll(firstState.getAppliedEffect().getRepresentedEdges());
+      } else {
+        states.add(firstState);
+        edges.addAll(firstState.getEdgesToChild(pair.getSecond()));
+      }
+    }
+    return new ARGPath(states, edges);
+  }
 
   /**
    * Perform refinement.
