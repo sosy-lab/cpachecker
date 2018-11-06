@@ -276,6 +276,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
 
 
       currentStatus = algorithm.run(pReachedSet);
+      notifyListeners(pReachedSet);
 
       // retrieve the last state that was added to the reached set
       AbstractState lastState = pReachedSet.getLastState();
@@ -298,11 +299,14 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
       boolean satisfiable = false;
 
       try {
-        satisfiable = solver.isUnsat(pathFormula.getFormula());
+        satisfiable = !solver.isUnsat(pathFormula.getFormula());
       } catch(SolverException sException) {
-        throw new CPAException("Exception in SMT-Solver occurred.", sException);
+        throw new CPAException("Exception occurred in SMT-Solver.", sException);
       }
 
+      // choose a state further up in the path 
+      // get the model assigment 
+      // push to waitlist
 
       // check for continuation
       running = checkContinue(pReachedSet);
@@ -334,12 +338,27 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
   // traverses the childer of the given state in depth first manner
   private ARGState runDFS(ARGState pState, ReachedSet pReachedSet) {
 
+      // iterate over the children and check for existence within the reached set
+      Collection<ARGState> children = pState.getChildren();
 
+      // bottom reached
+      if(children.isEmpty()) {
+        return pState;
+      }
 
-      // check for reached set updates and notify
-      // if(>>updated<<) {
-      //   notifyListeners(pReachedSet);
-      // }
+      for(ARGState childState : children) {
+        
+        // we need another way to determine which state to use (i.e. which path to go)
+        if(!pReachedSet.contains(childState)) {
+
+          // update reached set 
+          // pReachedSet.add(childState, pReachedSet.getPrecision(pState));
+          // notifyListeners(pReachedSet);
+
+          return runDFS(childState, pReachedSet);
+        }
+      }
+
       return null;
   }
 
