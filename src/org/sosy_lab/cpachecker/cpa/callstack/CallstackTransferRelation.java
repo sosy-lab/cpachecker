@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -113,9 +114,8 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
         AExpression functionNameExp = ((AFunctionCall)edge.getStatement()).getFunctionCallExpression().getFunctionNameExpression();
         if (functionNameExp instanceof AIdExpression) {
           String functionName = ((AIdExpression)functionNameExp).getName();
-          if (unsupportedFunctions.contains(functionName)) {
-            throw new UnsupportedCodeException(functionName,
-                edge, edge.getStatement());
+          if (unsupportedFunctions.contains(CFACloner.extractFunctionName(functionName))) {
+            throw new UnsupportedCodeException(functionName, edge, edge.getStatement());
           }
         }
       }
@@ -134,7 +134,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
         final String calledFunction = succ.getFunctionName();
         final CFANode callerNode = pred;
 
-          if (unsupportedFunctions.contains(calledFunction)) {
+          if (unsupportedFunctions.contains(CFACloner.extractFunctionName(calledFunction))) {
             throw new UnsupportedCodeException(calledFunction, pEdge);
           }
 
