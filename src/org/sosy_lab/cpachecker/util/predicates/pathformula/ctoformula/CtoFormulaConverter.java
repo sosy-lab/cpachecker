@@ -484,7 +484,9 @@ public class CtoFormulaConverter {
       String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
     Preconditions.checkArgument(!(pType instanceof CEnumType));
 
-    return makeConstant(pVarName, pType);
+    // Need to call fmgr.makeVariable directly instead of makeConstant,
+    // because otherwise the variable gets marked as "never needs an SSA index"
+    return fmgr.makeVariable(getFormulaTypeFromCType(pType), pVarName);
   }
 
   /**

@@ -1240,14 +1240,15 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     final Formula address;
 
     if (forcePointerDereference) {
-      address = makeConstant(pVarName, CTypeUtils.getBaseType(pType));
+      address = fmgr.makeVariable(getFormulaTypeFromCType(CTypeUtils.getBaseType(pType)), pVarName);
 
     } else if (pContextPTS.isActualBase(pVarName)
         || CTypeUtils.containsArrayOutsideFunctionParameter(pType)) {
       address = makeBaseAddress(pVarName, pType);
 
     } else {
-      return makeConstant(pVarName, pType);
+      return super.makeFormulaForUninstantiatedVariable(
+          pVarName, pType, pContextPTS, forcePointerDereference);
     }
 
     checkIsSimplified(pType);
