@@ -414,8 +414,8 @@ class WebInterface:
             return self._hash_code_cache[(path, mTime)]
 
         else:
-            with open(path, 'rb') as file:
-                hashValue = hashlib.sha256(file.read()).hexdigest()
+            with open(path, 'rb') as opened_file:
+                hashValue = hashlib.sha256(opened_file.read()).hexdigest()
                 self._hash_code_cache[(path, mTime)] = hashValue
                 return hashValue
 
@@ -517,8 +517,8 @@ class WebInterface:
         params.append(('revision', svn_revision or self._svn_revision))
 
         if run.propertyfile:
-            file = self._add_file_to_params(params, 'propertyText', run.propertyfile)
-            opened_files.append(file)
+            property_file = self._add_file_to_params(params, 'propertyText', run.propertyfile)
+            opened_files.append(property_file)
 
         if MEMLIMIT in limits:
             params.append(('memoryLimitation', str(limits[MEMLIMIT])))
@@ -668,8 +668,8 @@ class WebInterface:
 
                     elif option == "-spec":
                         spec_path = next(i)
-                        file = self._add_file_to_params(params, "specificationText", spec_path)
-                        opened_files.append(file)
+                        spec_file = self._add_file_to_params(params, "specificationText", spec_path)
+                        opened_files.append(spec_file)
 
                     elif option == "-config":
                         configPath = next(i)
@@ -707,9 +707,9 @@ class WebInterface:
 
     def _add_file_to_params(self, params, name, path):
         norm_path = self._normalize_path_for_cloud(path)
-        file = open(path, 'rb')
-        params.append((name, (norm_path, file)))
-        return file
+        opened_file = open(path, 'rb')
+        params.append((name, (norm_path, opened_file)))
+        return opened_file
 
     def _normalize_path_for_cloud(self, path):
         norm_path = os.path.normpath(path)
@@ -924,9 +924,9 @@ def _handle_host_info(values):
 
 def _handle_special_files(result_zip_file, files, output_path):
     logging.info("Results are written to %s", output_path)
-    for file in SPECIAL_RESULT_FILES:
-        if file in files and file != RESULT_FILE_LOG:
-            result_zip_file.extract(file, output_path)
+    for special_file in SPECIAL_RESULT_FILES:
+        if special_file in files and special_file != RESULT_FILE_LOG:
+            result_zip_file.extract(special_file, output_path)
 
 
 def handle_result(zip_content, output_path, run_identifier, result_files_pattern=None,
@@ -1012,14 +1012,14 @@ def _handle_result(resultZipFile, output_path,
 
     return return_value
 
-def _parse_cloud_file(file):
+def _parse_cloud_file(info_file):
     """
     Parses a file containing key value pairs in each line.
     @return:  a dict of the parsed key value pairs.
     """
     values = {}
 
-    for line in file:
+    for line in info_file:
         (key, value) = line.decode('utf-8').split("=", 1)
         value = value.strip()
         values[key] = value

@@ -143,6 +143,9 @@ analysis.algorithm.CBMC = false
 # Currently all refiner require the use of the ARGCPA.
 analysis.algorithm.CEGAR = false
 
+# use MPV algorithm for checking multiple properties
+analysis.algorithm.MPV = false
+
 # use a analysis which proves if the program satisfies a specified property
 # with the help of an enabler CPA to separate differnt program paths
 analysis.algorithm.analysisWithEnabler = false
@@ -1084,6 +1087,13 @@ cpa.automaton.dotExportFile = "%s.dot"
 # found, despite the limitgiven as cpa.automaton.breakOnTargetState is not
 # yet reached
 cpa.automaton.extraIterationsLimit = -1
+
+# Initial precision for automaton CPA.
+# - DEFAULT: empty precision.
+# - SWITCH: automaton precision, which allows to turn on and off the
+# automata.
+cpa.automaton.initPrecision = DEFAULT
+  enum:     [DEFAULT, SWITCH]
 
 # file with automaton specification for ObserverAutomatonCPA and
 # ControlAutomatonCPA
@@ -3118,6 +3128,58 @@ memorysafety.config = no default value
 # which merge operator to use for LiveVariablesCPA
 merge = "JOIN"
   allowed values: [SEP, JOIN]
+
+# Collect statistics for all inner algorithms on each iteration.
+mpv.collectAllStatistics = false
+
+# Find all violations of each checked property.
+mpv.findAllViolations = false
+
+# Adjust resource limitations during the analysis.
+# - NONE: do not adjust resource limitations (default).
+# - DISTRIBUTE_REMAINING: distribute resources, which were allocated for some
+# already checked property, but were not fully spent, between other
+# properties, which are still checking.
+# - DISTRIBUTE_BY_PROPERTY: scale resources for each property in accordance
+# with the given ratio in the property distribution file.
+mpv.limits.adjustmentStrategy = NONE
+  enum:     [NONE, DISTRIBUTE_REMAINING, DISTRIBUTE_BY_PROPERTY]
+
+# Set CPU time limit per each property in multi-property verification (use
+# seconds or specify a unit; -1 to disable)
+mpv.limits.cpuTimePerProperty = -1ns
+
+# Change resource limitations for the first partition by the given ratio.
+# This option will be ignored if NONE limits adjustment strategy is used.
+mpv.limits.firstPartitionRatio = 1.0
+
+# The ratio of CPU time limit in the first phase of Joint partitioning
+# operator to CPU time limit per each property.
+mpv.limits.joint.firstPhaseRatio = 1.3
+
+# Get a resource limitation distribution per property from file. This option
+# should be used only together with DISTRIBUTE_BY_PROPERTY limits adjustment
+# strategy. The following format should be used in the file:
+# '<property name>':<ratio>
+mpv.limits.propertyDistributionFile = no default value
+
+# The ratio of CPU time limit in the first phase of Relevance partitioning
+# operator to CPU time limit per each property.
+mpv.limits.relevance.firstPhaseRatio = 0.2
+
+# The ratio of CPU time limit in the second phase of Relevance partitioning
+# operator to CPU time limit per each property.
+mpv.limits.relevance.secondPhaseRatio = 1.3
+
+# Partitioning operator for multi-property verification.
+mpv.partitionOperator = SeparatePartitioningOperator.class
+
+# Specifies how to separate a single property.
+# - FILE: each .spc file represent a single property (i.e., property is
+# represented by several automata).
+# - AUTOMATON: each automaton represent a single property.
+mpv.propertySeparator = FILE
+  enum:     [FILE, AUTOMATON]
 
 # When checking for the overflow property, use this configuration file
 # instead of the current one.

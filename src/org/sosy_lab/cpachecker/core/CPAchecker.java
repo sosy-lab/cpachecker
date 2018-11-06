@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -84,6 +85,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ResultProviderReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -344,6 +346,14 @@ public class CPAchecker {
 
           algorithm = factory.createAlgorithm(cpa, cfa, specification);
 
+          if (algorithm instanceof MPVAlgorithm && !stopAfterError) {
+            // sanity check
+            throw new InvalidConfigurationException(
+                "Cannot use option 'analysis.stopAfterError' along with "
+                    + "multi-property verification algorithm. "
+                    + "Please use option 'mpv.findAllViolations' instead");
+          }
+
           if (algorithm instanceof StatisticsProvider) {
             ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
           }
@@ -534,6 +544,9 @@ public class CPAchecker {
   }
 
   private Result analyzeResult(final ReachedSet reached, boolean isSound) {
+    if (reached instanceof ResultProviderReachedSet) {
+      return ((ResultProviderReachedSet) reached).getOverallResult();
+    }
     if (reached.hasWaitingState()) {
       logger.log(Level.WARNING, "Analysis not completed: there are still states to be processed.");
       return Result.UNKNOWN;
