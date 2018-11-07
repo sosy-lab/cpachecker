@@ -16,7 +16,7 @@ with considerably less effort */
 		$(document).on('shown.bs.tooltip', function (e) {
 			setTimeout(function () {
 				$(e.target).tooltip('hide');
-			}, 3000);
+			}, 5000);
 		});
 
 		//Statistics table initialization
