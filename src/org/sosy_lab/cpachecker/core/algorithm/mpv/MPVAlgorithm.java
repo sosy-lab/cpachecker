@@ -30,8 +30,6 @@ import com.google.common.collect.Lists;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -220,8 +218,9 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
       description = "Partitioning operator for multi-property verification.")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.mpv.partition")
   @Nonnull
-  private Class<? extends PartitioningOperator> partitioningOperatorClass =
-      SeparatePartitioningOperator.class;
+  private PartitioningOperator.Factory partitioningOperatorFactory =
+      (pConfig, pLogger, pShutdownNotifier, pProperties, pCpuTimePerProperty) ->
+          new SeparatePartitioningOperator(pProperties, pCpuTimePerProperty);
 
   @Option(
       secure = true,
@@ -242,6 +241,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
   private final ShutdownNotifier shutdownNotifier;
   private final Specification specification;
   private final CFA cfa;
+  private final PartitioningOperator partitioningOperator;
 
   public MPVAlgorithm(
       ConfigurableProgramAnalysis pCpa,
@@ -265,6 +265,9 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
 
     stats = new MPVStatistics(multipleProperties);
     propertyDistribution = initializePropertyDistribution();
+    partitioningOperator =
+        partitioningOperatorFactory.create(
+            config, logger, shutdownNotifier, stats.multipleProperties, cpuTimePerProperty);
   }
 
   private Map<AbstractSingleProperty, Double> initializePropertyDistribution() {
@@ -342,7 +345,6 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
 
     Iterable<CFANode> initialNodes = AbstractStates.extractLocations(reached.getFirstState());
     CFANode mainFunction = Iterables.getOnlyElement(initialNodes);
-    PartitioningOperator partitioningOperator = createPartitioningOperator();
 
     try {
       do {
@@ -460,27 +462,6 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
       if (pAlgorithm instanceof StatisticsProvider) {
         ((StatisticsProvider) pAlgorithm).collectStatistics(stats.statistics);
       }
-    }
-  }
-
-  private PartitioningOperator createPartitioningOperator() throws CPAException {
-    try {
-      Constructor<?> partitioningOperatorConstructor =
-          partitioningOperatorClass.getConstructor(
-              Configuration.class, MultipleProperties.class, TimeSpan.class);
-      return (PartitioningOperator)
-          partitioningOperatorConstructor.newInstance(
-              config, stats.multipleProperties, cpuTimePerProperty);
-    } catch (NoSuchMethodException
-        | SecurityException
-        | InstantiationException
-        | IllegalAccessException
-        | IllegalArgumentException
-        | InvocationTargetException e) {
-      logger.log(
-          Level.SEVERE,
-          "Cannot instantiate partitioning operator " + partitioningOperatorClass + ": " + e);
-      throw new CPAException("Cannot instantiate partitioning operator: " + e);
     }
   }
 

@@ -20,14 +20,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpv.partition;
 
 import com.google.common.collect.ImmutableList;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.property.AbstractSingleProperty;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.property.MultipleProperties;
 
-@Options
 abstract class AbstractPartitioningOperator implements PartitioningOperator {
 
   private final MultipleProperties properties; // initial properties
@@ -35,9 +31,7 @@ abstract class AbstractPartitioningOperator implements PartitioningOperator {
   private int phase;
 
   public AbstractPartitioningOperator(
-      Configuration pConfiguration, MultipleProperties pProperties, TimeSpan pTimeLimitPerProperty)
-      throws InvalidConfigurationException {
-    pConfiguration.inject(this);
+      MultipleProperties pProperties, TimeSpan pTimeLimitPerProperty) {
     properties = pProperties;
     timeLimitPerProperty = pTimeLimitPerProperty;
     phase = 1;

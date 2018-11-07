@@ -41,7 +41,7 @@ public final class JointPartitioningOperator extends AbstractPartitioningOperato
   public JointPartitioningOperator(
       Configuration pConfiguration, MultipleProperties pProperties, TimeSpan pTimeLimitPerProperty)
       throws InvalidConfigurationException {
-    super(pConfiguration, pProperties, pTimeLimitPerProperty);
+    super(pProperties, pTimeLimitPerProperty);
     pConfiguration.inject(this);
   }
 

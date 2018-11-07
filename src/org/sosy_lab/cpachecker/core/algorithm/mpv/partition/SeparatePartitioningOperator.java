@@ -20,19 +20,14 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpv.partition;
 
 import com.google.common.collect.ImmutableList;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.property.MultipleProperties;
 
-@Options
 public final class SeparatePartitioningOperator extends AbstractPartitioningOperator {
 
   public SeparatePartitioningOperator(
-      Configuration pConfiguration, MultipleProperties pProperties, TimeSpan pTimeLimitPerProperty)
-      throws InvalidConfigurationException {
-    super(pConfiguration, pProperties, pTimeLimitPerProperty);
+      MultipleProperties pProperties, TimeSpan pTimeLimitPerProperty) {
+    super(pProperties, pTimeLimitPerProperty);
   }
 
   @Override

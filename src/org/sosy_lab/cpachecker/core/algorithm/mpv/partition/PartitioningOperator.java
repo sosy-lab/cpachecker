@@ -20,8 +20,24 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpv.partition;
 
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.cpachecker.core.algorithm.mpv.property.MultipleProperties;
 
 public interface PartitioningOperator {
 
   public ImmutableList<Partition> createPartition();
+
+  interface Factory {
+    PartitioningOperator create(
+        Configuration pConfiguration,
+        LogManager pLogger,
+        ShutdownNotifier pShutdownManager,
+        MultipleProperties pProperties,
+        TimeSpan pTimeLimitPerProperty)
+        throws InvalidConfigurationException;
+  }
 }

@@ -51,7 +51,7 @@ public final class RelevancePartitioningOperator extends AbstractPartitioningOpe
   public RelevancePartitioningOperator(
       Configuration pConfiguration, MultipleProperties pProperties, TimeSpan pTimeLimitPerProperty)
       throws InvalidConfigurationException {
-    super(pConfiguration, pProperties, pTimeLimitPerProperty);
+    super(pProperties, pTimeLimitPerProperty);
     pConfiguration.inject(this);
     lastNumberOfIrrelevantProperties = 0;
   }
