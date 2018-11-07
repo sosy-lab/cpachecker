@@ -3168,7 +3168,7 @@ mpv.limits.relevance.firstPhaseRatio = 0.2
 mpv.limits.relevance.secondPhaseRatio = 1.3
 
 # Partitioning operator for multi-property verification.
-mpv.partitionOperator = SeparatePartitioningOperator.class
+mpv.partitionOperator = no default value
 
 # Specifies how to separate a single property.
 # - FILE: each .spc file represent a single property (i.e., property is
