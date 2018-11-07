@@ -46,6 +46,10 @@
         <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar build/annotations.jar build/error_prone_annotations.jar"/>
     </path>
 
+    <!-- Needs to include all annotation processors and error-prone -->
+    <path id="processorpath">
+        <fileset dir="${ivy.lib.dir}" includes="build/*.jar runtime/common.jar"/>
+    </path>
 
     <!-- Main targets -->
 
