@@ -210,27 +210,32 @@ describe('Error path section in Report.js', function () {
     // });
 
 
-    // TODO: This tests just that a tooltip appears, it should also test the tooltip text.
-    // Furthermore, the second and third test see the tooltipText element in the DOM
-    // from the first test instead of verifying that a new element appeared.
+    function findTooltipWithText(text) {
+       return $$('div.tooltip-inner').filter(function (elem) {
+           return elem.getText().then(function (elementText) {
+               return elementText.includes(text)
+           })
+       }).first()
+    }
+
     it('Prev button tooltip test', function () {
         browser.actions().mouseMove(element(by.xpath('//*[@id="errorpath_section"]/header/div[1]/button[1]'))).perform();
-        tooltipText = element(by.xpath('//div[@class="tooltip-inner"]'));
+        tooltipText = findTooltipWithText('Previous Line')
         browser.wait(EC.presenceOf(tooltipText))
         expect(tooltipText.isDisplayed()).toBeTruthy();
     });
 
     it('help button tooltip test', function () {
         browser.actions().mouseMove(element(by.xpath('//*[@id="errorpath_section"]/header/div[2]'))).perform();
+        tooltipText = findTooltipWithText('help')
         browser.wait(EC.presenceOf(tooltipText))
-        tooltipText = element(by.xpath('//div[@class="tooltip-inner"]'));
         expect(tooltipText.isDisplayed()).toBeTruthy();
     });
 
     it('Next button tooltip test', function () {
         browser.actions().mouseMove(element(by.xpath('//*[@id="errorpath_section"]/header/div[1]/button[3]'))).perform();
+        tooltipText = findTooltipWithText('Next Line')
         browser.wait(EC.presenceOf(tooltipText))
-        tooltipText = element(by.xpath('//div[@class="tooltip-inner"]'));
         expect(tooltipText.isDisplayed()).toBeTruthy();
     });
 
