@@ -44,11 +44,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -1010,27 +1012,20 @@ public class SMGTransferRelation
 
     // Move preinitialization of global variable because of unpredictable fields' order within CDesignatedInitializer
     if (pVarDecl.isGlobal()) {
-      List<Pair<SMGState, Long>> result = new ArrayList<>(offsetAndStates.size());
+      List<Pair<SMGState, Long>> result = new ArrayList<>();
 
-      for (Pair<SMGState, Long> offsetAndState : offsetAndStates) {
-        long offset = offsetAndState.getSecond();
-        SMGState newState = offsetAndState.getFirst();
-        int sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
+      int sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
 
-        if (offset - pOffset < sizeOfType) {
-          newState =
-              expressionEvaluator.writeValue(
-                  newState,
-                  pNewObject,
-                  offset,
-                  TypeUtils.createTypeWithLength(
-                      Math.toIntExact((sizeOfType - (offset - pOffset)))),
-                  SMGZeroValue.INSTANCE,
-                  pEdge);
-        }
+      SMGState newState =
+          expressionEvaluator.writeValue(
+              pNewState,
+              pNewObject,
+              pOffset,
+              TypeUtils.createTypeWithLength(Math.toIntExact((sizeOfType))),
+              SMGZeroValue.INSTANCE,
+              pEdge);
 
-        result.add(Pair.of(newState, offset));
-      }
+      result.add(Pair.of(newState, pOffset));
 
       offsetAndStates = result;
     }
@@ -1111,7 +1106,54 @@ public class SMGTransferRelation
     List<SMGState> newStates = new ArrayList<>(4);
     newStates.add(pNewState);
 
+    // Move preinitialization of global variable because of unpredictable fields' order within
+    // CDesignatedInitializer
+    if (pVarDecl.isGlobal()) {
+      List<SMGState> result = new ArrayList<>(newStates.size());
+
+      for (SMGState newState : newStates) {
+        if (!options.isGCCZeroLengthArray() || pLValueType.getLength() != null) {
+          int sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
+          newState =
+              expressionEvaluator.writeValue(
+                  newState,
+                  pNewObject,
+                  pOffset,
+                  TypeUtils.createTypeWithLength(Math.toIntExact(sizeOfType)),
+                  SMGZeroValue.INSTANCE,
+                  pEdge);
+        }
+        result.add(newState);
+      }
+      newStates = result;
+    }
+
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
+      if (initializer instanceof CDesignatedInitializer) {
+        CDesignatedInitializer designatedInitializer = (CDesignatedInitializer) initializer;
+        assert designatedInitializer.getDesignators().size() == 1;
+        CDesignator cDesignator = designatedInitializer.getDesignators().get(0);
+        if (cDesignator instanceof CArrayDesignator) {
+          CExpression subscriptExpression =
+              ((CArrayDesignator) cDesignator).getSubscriptExpression();
+          SMGExplicitValueAndState smgExplicitValueAndState =
+              expressionEvaluator.forceExplicitValue(pNewState, pEdge, subscriptExpression);
+          listCounter = smgExplicitValueAndState.getObject().getAsInt();
+        } else {
+          throw new UnrecognizedCodeException(
+              "Non array designator for array " + pNewInitializer.toASTString(), pEdge);
+        }
+        initializer = designatedInitializer.getRightHandSide();
+      }
+
+      if (listCounter >= pLValueType.getLengthAsInt().orElse(0)) {
+        throw new UnrecognizedCodeException(
+            "More Initializers in initializer list "
+                + pNewInitializer.toASTString()
+                + " than fit in type "
+                + pLValueType.toASTString(""),
+            pEdge);
+      }
 
       long offset = pOffset + listCounter * sizeOfElementType;
 
@@ -1124,31 +1166,6 @@ public class SMGTransferRelation
 
       newStates = result;
       listCounter++;
-    }
-
-    if (pVarDecl.isGlobal()) {
-      List<SMGState> result = new ArrayList<>(newStates.size());
-
-      for (SMGState newState : newStates) {
-        if (!options.isGCCZeroLengthArray() || pLValueType.getLength() != null) {
-          int sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
-
-          long offset = pOffset + listCounter * sizeOfElementType;
-          if (offset - pOffset < sizeOfType) {
-            newState =
-                expressionEvaluator.writeValue(
-                    newState,
-                    pNewObject,
-                    offset,
-                    TypeUtils.createTypeWithLength(
-                        Math.toIntExact(sizeOfType - (offset - pOffset))),
-                    SMGZeroValue.INSTANCE,
-                    pEdge);
-          }
-        }
-        result.add(newState);
-      }
-      newStates = result;
     }
 
     return ImmutableList.copyOf(newStates);
