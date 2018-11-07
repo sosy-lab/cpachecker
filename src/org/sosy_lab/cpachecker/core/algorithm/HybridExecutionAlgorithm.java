@@ -31,6 +31,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 
+import com.google.common.collect.ImmutableList;
+
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -60,13 +62,16 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 import apron.NotImplementedException;
 
 /**
  * This class implements a CPA algorithm based on the idea of concolic execution
- * It traversals the CFA via DFS and introduces new edges for the ARG on branching states in order to cover more branches
+ * It traversals the CFA via DFS (or BFS) and introduces new edges for the ARG on branching states in order to cover more branches
+ * ! ARGCPA is required for this algorithm !
  */
 public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
 
@@ -238,22 +243,12 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
-
-    // ( LeafExpression#of creates a new ExpressionTree out of a CExpression
-    // ToFormulaVisitor defines a BooleanFormula out the the ExpressionTree
-    // BooleanFormulaManagerView#and(BooleanFormula... args) builds a conjunction over all formulas )
-
-    
-    // ARGUtils#getOnePathTo(ARGState ..) to get the complete path to the defined ARGState
-    // PathFormulaManager to build the BooleanFormula
     
     // Solver#isUnsat
     // Solver#getProverEnvironment
     // Prover#getModelAsAssignments
 
     // ReachedSet#add
-
-    // ARGCPA is needed for hybrid execution
 
     /*
      *  algorithm idea:
@@ -298,11 +293,22 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
 
       boolean satisfiable = false;
 
+      // TODO: SSAMap usage
+
       try {
         satisfiable = !solver.isUnsat(pathFormula.getFormula());
+
+        if(satisfiable) {
+          // are empty prover options valid?
+          ProverEnvironment proverEnvironment = solver.newProverEnvironment();
+          ImmutableList<ValueAssignment> assignments = proverEnvironment.getModelAssignments();
+        }
+
       } catch(SolverException sException) {
         throw new CPAException("Exception occurred in SMT-Solver.", sException);
       }
+
+      // on the branching state, we need to invert the current assumption in order to walk the other path (take the 'else' path)
 
       // choose a state further up in the path 
       // get the model assigment 
