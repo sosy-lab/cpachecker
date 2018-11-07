@@ -209,25 +209,28 @@ describe('Error path section in Report.js', function () {
     //     browser.actions().mouseMove(element(by.xpath('//*[@id="errpath-6"]/td[1]'))).click();
     // });
 
+
+    // TODO: This tests just that a tooltip appears, it should also test the tooltip text.
+    // Furthermore, the second and third test see the tooltipText element in the DOM
+    // from the first test instead of verifying that a new element appeared.
     it('Prev button tooltip test', function () {
-        tooltipText = element(by.xpath('//div[@class="tooltip-inner"]'));
         browser.actions().mouseMove(element(by.xpath('//*[@id="errorpath_section"]/header/div[1]/button[1]'))).perform();
+        tooltipText = element(by.xpath('//div[@class="tooltip-inner"]'));
         browser.wait(EC.presenceOf(tooltipText))
         expect(tooltipText.isDisplayed()).toBeTruthy();
     });
-    browser.driver.sleep(100);
 
     it('help button tooltip test', function () {
-        tooltipText = element(by.xpath('//div[@class="tooltip-inner"]'));
         browser.actions().mouseMove(element(by.xpath('//*[@id="errorpath_section"]/header/div[2]'))).perform();
         browser.wait(EC.presenceOf(tooltipText))
+        tooltipText = element(by.xpath('//div[@class="tooltip-inner"]'));
         expect(tooltipText.isDisplayed()).toBeTruthy();
     });
 
     it('Next button tooltip test', function () {
-        tooltipText = element(by.xpath('//div[@class="tooltip-inner"]'));
         browser.actions().mouseMove(element(by.xpath('//*[@id="errorpath_section"]/header/div[1]/button[3]'))).perform();
         browser.wait(EC.presenceOf(tooltipText))
+        tooltipText = element(by.xpath('//div[@class="tooltip-inner"]'));
         expect(tooltipText.isDisplayed()).toBeTruthy();
     });
 
