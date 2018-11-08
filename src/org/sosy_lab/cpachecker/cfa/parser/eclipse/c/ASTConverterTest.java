@@ -25,14 +25,20 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.google.common.collect.ImmutableList;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.Triple;
 
 public class ASTConverterTest {
 
@@ -195,4 +201,61 @@ public class ASTConverterTest {
     }
   }
 
+  @Test
+  public final void testValidFloatExpressions() {
+    ImmutableList<ASTLiteralConverter> converters = ImmutableList.of(converter32, converter64);
+
+    ImmutableList<Triple<String, String, CType>> input_output =
+        ImmutableList.of(
+            // Triples consist of: input value, expected output, input type for CLiteralExpression
+            Triple.of("0", "0.0", CNumericTypes.DOUBLE),
+            Triple.of("-0", "0.0", CNumericTypes.DOUBLE),
+            Triple.of("0xf", "15.0", CNumericTypes.DOUBLE),
+            Triple.of("5e2f", "500.0", CNumericTypes.FLOAT),
+            Triple.of("5e+2f", "500.0", CNumericTypes.FLOAT),
+            Triple.of("0x5e2f", "24111.0", CNumericTypes.FLOAT),
+            Triple.of("0x5e-2f", "94.0", CNumericTypes.FLOAT),
+            Triple.of(
+                "3.41E+38", "341000000000000000445911848520865808384.0", CNumericTypes.DOUBLE));
+
+    for (ASTLiteralConverter converter : converters) {
+      for (Triple<String, String, CType> triple : input_output) {
+        String inputValue = triple.getFirst();
+        String expectedValue = triple.getSecond();
+        CType inputType = triple.getThird();
+
+        CFloatLiteralExpression literal =
+            (CFloatLiteralExpression)
+                converter.parseFloatLiteral(FileLocation.DUMMY, inputType, inputValue, null);
+
+        assertEquals(expectedValue, literal.getValue().toString());
+        assertTrue(inputType == literal.getExpressionType());
+      }
+    }
+  }
+
+  // Enable this test once BigDecimals are replaced by CFloats in CFloatLiteralExpression-class
+  // (and subsequently, when the ASTLiteralConverter#adjustPrecision() got removed)
+  @Ignore
+  public final void testInvalidFloatExpressions() {
+    ImmutableList<ASTLiteralConverter> converters = ImmutableList.of(converter32, converter64);
+
+    ImmutableList<String> values =
+        ImmutableList.of(
+            "3.41e+38f", "-4.2e+38f", "1.8e+308", "-2.3e+308", "1.2e+4932l", "-1.2e+4932l");
+
+    for (ASTLiteralConverter converter : converters) {
+      for (String value : values) {
+        try {
+          converter.parseFloatLiteral(FileLocation.DUMMY, null, value, null);
+          fail("Failed because of value: " + value);
+        } catch (CFAGenerationRuntimeException e) {
+          assertThat(e.getMessage())
+              .isAnyOf(
+                  "unable to parse floating point literal (inf)",
+                  "unable to parse floating point literal (-inf)");
+        }
+      }
+    }
+  }
 }
