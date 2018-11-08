@@ -38,7 +38,7 @@ public class FirstPartRenamingFct implements java.util
   @Override public String apply (String name){
     StringBuilder myBuilder = new StringBuilder();
     myBuilder.append(name);
-    Boolean equalsOtherArrayVariable = true;
+    boolean equalsOtherArrayVariable = true;
     for (int i = 0; i < arrayVariablesForFormulasHere.length;
          i++){
       if (name.equals(arrayVariablesForFormulasHere[i])){
@@ -55,10 +55,8 @@ public class FirstPartRenamingFct implements java.util
           }
         }
 
-        //name = name + ("'");
       }
     }
     return myBuilder.toString();
-    //return name;
   }
 }

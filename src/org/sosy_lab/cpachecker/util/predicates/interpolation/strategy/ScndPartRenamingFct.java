@@ -36,7 +36,7 @@ public class ScndPartRenamingFct implements java.util.function.Function<String,
   @Override public String apply (String name){
     StringBuilder myBuilder = new StringBuilder();
     myBuilder.append(name);
-    Boolean equalsOtherArrayVariable = true;
+    boolean equalsOtherArrayVariable = true;
     for (int i = 0; i < arrayVariablesForFormulasHere.length;
          i++){
       if (name.equals(arrayVariablesForFormulasHere[i])){
@@ -52,10 +52,8 @@ public class ScndPartRenamingFct implements java.util.function.Function<String,
             }
           }
         }
-        //name = name + ("''");
       }
     }
     return myBuilder.toString();
-    //return name;
   }
 }

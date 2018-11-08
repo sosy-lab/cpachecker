@@ -180,7 +180,7 @@ public final class InterpolationManager {
   private final BooleanFormulaManagerView bfmgr;
   private final PathFormulaManager pmgr;
   private final Solver solver;
-  private Configuration my_config;
+  private Configuration myConfig;
 
   private final Interpolator<?> interpolator;
 
@@ -276,7 +276,7 @@ public final class InterpolationManager {
     solver = pSolver;
     loopStructure = pLoopStructure.orElse(null);
     variableClassification = pVarClassification.orElse(null);
-    my_config = config;
+    myConfig = config;
 
     if (itpTimeLimit.isEmpty()) {
       executor = null;
@@ -354,7 +354,7 @@ public final class InterpolationManager {
   private CounterexampleTraceInfo buildCounterexampleTrace0(
       final BlockFormulas pFormulas,
       final List<AbstractState> pAbstractionStates)
-      throws CPAException, InterruptedException {
+      throws CPAException, InterruptedException, InvalidConfigurationException {
 
     cexAnalysisTimer.start();
     try {
@@ -682,73 +682,15 @@ public final class InterpolationManager {
    */
   private <T> List<BooleanFormula> getInterpolants(Interpolator<T> pInterpolator,
       List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
-          throws SolverException, InterruptedException {
+      throws SolverException, InterruptedException, InvalidConfigurationException {
 
     // TODO replace with Config-Class-Constructor-Injection?
-    List<BooleanFormula> my_interpolants;
 
 
     if (domainSpecificAbstractions) {
-      dsaAnalysisTimer.start();
-      try {
+      List <BooleanFormula> interpolants = createDSAInterpolants(formulasWithStatesAndGroupdIds);
+      return interpolants;
 
-        Solver my_solver = null;
-        try {
-          my_solver = Solver.create(
-              my_config, logger,
-              shutdownNotifier);
-        } catch (InvalidConfigurationException pE) {
-          logger.log(Level.WARNING, "Invalid Configuration!");
-        }
-        if (my_solver != null) {
-          FormulaManagerView new_fmgr = my_solver.getFormulaManager();
-          DomainSpecificAbstraction<T> dsa = new DomainSpecificAbstraction<>(/*shutdownNotifier,*/
-              new_fmgr,
-            /*bfmgr, */ fmgr, /* pInterpolator, */ logger, findingCommonVariablesTimer,
-              buildingLatticeNamesAndLatticeTypesTimer, renamingTimer, buildingAbstractionsTimer,
-              interpolationTimer, initialVariableExtractionTimer, feasiblityCheckTimer, maximisationTimer);
-          List<BooleanFormula> tocheck =
-              Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst);
-          if (tocheck != null) {
-            my_interpolants = dsa.domainSpecificAbstractionsCheck
-                (my_solver, tocheck);
-          } else {
-            my_interpolants = null;
-          }
-          //final List<BooleanFormula> interpolants = dsa.domainSpecificAbstractionsCheck
-          //    (my_solver, tocheck);
-          if (my_interpolants != null && !(my_interpolants.isEmpty())) {
-            //logger.log(Level.WARNING, "My Interpolants:", my_interpolants.toString());
-            List<BooleanFormula> interpolantList =
-                new ArrayList<>(my_interpolants.size());
-            for (BooleanFormula f : my_interpolants) {
-              BooleanFormula interpolant = fmgr.translateFrom(f, new_fmgr);
-              interpolantList.add(interpolant);
-            }
-
-            my_solver.close();
-            //return my_interpolants;
-            if (!(interpolantList.isEmpty())) {
-              // logger.log(Level.WARNING, "InterpolantList in InterpolationManager:", interpolantList
-              //     .toString
-              //     ());
-              return interpolantList;
-            } else {
-              my_solver.close();
-              logger.log(Level.WARNING, "Returning empty list");
-
-              return Collections.emptyList();
-            }
-          } else {
-            my_solver.close();
-            return Collections.emptyList();
-          }
-        } else {
-          return Collections.emptyList();
-        }
-      } finally {
-        dsaAnalysisTimer.stop();
-      }
     } else {
       final ITPStrategy<T> itpStrategy;
       switch (strategy) {
@@ -893,7 +835,7 @@ public final class InterpolationManager {
     private CounterexampleTraceInfo buildCounterexampleTrace(
         BlockFormulas formulas,
         List<AbstractState> pAbstractionStates)
-        throws SolverException, InterruptedException {
+        throws SolverException, InterruptedException, InvalidConfigurationException {
 
       // Check feasibility of counterexample
       shutdownNotifier.shutdownIfNecessary();
@@ -1138,6 +1080,69 @@ public final class InterpolationManager {
       itpProver.close();
       itpProver = null;
       currentlyAssertedFormulas.clear();
+    }
+  }
+
+  private <T> List<BooleanFormula> createDSAInterpolants(List<Triple<BooleanFormula, AbstractState,
+      T>> formulasWithStatesAndGroupdIds)
+      throws InvalidConfigurationException, SolverException, InterruptedException {
+    List<BooleanFormula> myInterpolants;
+    dsaAnalysisTimer.start();
+    try {
+
+      //Solver mySolver = null;
+        /*try {
+          mySolver = Solver.create(
+              myConfig, logger,
+              shutdownNotifier);
+        } catch (InvalidConfigurationException pE) {
+          logger.log(Level.WARNING, "Invalid Configuration!");
+        } */
+      try (Solver mySolver =Solver.create(
+          myConfig,logger,
+          shutdownNotifier)){
+        if (mySolver != null) {
+          FormulaManagerView newFmgr = mySolver.getFormulaManager();
+          DomainSpecificAbstraction<T> dsa = new DomainSpecificAbstraction<>(
+              newFmgr, fmgr, logger, findingCommonVariablesTimer,
+              buildingLatticeNamesAndLatticeTypesTimer, renamingTimer, buildingAbstractionsTimer,
+              interpolationTimer, initialVariableExtractionTimer, feasiblityCheckTimer,
+              maximisationTimer);
+          List<BooleanFormula> tocheck =
+              Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst);
+          if (tocheck != null) {
+            myInterpolants = dsa.domainSpecificAbstractionsCheck
+                (mySolver, tocheck);
+          } else {
+            myInterpolants = null;
+          }
+          if (myInterpolants != null && !(myInterpolants.isEmpty())) {
+            List<BooleanFormula> interpolantList =
+                new ArrayList<>(myInterpolants.size());
+            for (BooleanFormula f : myInterpolants) {
+              BooleanFormula interpolant = fmgr.translateFrom(f, newFmgr);
+              interpolantList.add(interpolant);
+            }
+
+            //mySolver.close();
+            if (!(interpolantList.isEmpty())) {
+              return interpolantList;
+            } else {
+              //mySolver.close();
+              logger.log(Level.WARNING, "Returning empty list");
+
+              return Collections.emptyList();
+            }
+          } else {
+            //mySolver.close();
+            return Collections.emptyList();
+          }
+        } else {
+          return Collections.emptyList();
+        }
+      }
+    } finally {
+      dsaAnalysisTimer.stop();
     }
   }
 }
