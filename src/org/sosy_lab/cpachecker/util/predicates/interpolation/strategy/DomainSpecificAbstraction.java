@@ -1274,7 +1274,7 @@ public class DomainSpecificAbstraction<T> {
       boolean isIncomparable = false;
       helperFormula1 = firstPartChanged;
       helperFormula2 = scndPartChanged;
-      String latticenamesH = null;
+      String latticenamesH = new String();
       buildingAbstractionsTimer.start();
       try {
         for (int h = 0; h < latticeNames.length;
