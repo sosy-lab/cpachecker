@@ -2211,7 +2211,11 @@ class CFAFunctionBuilder extends ASTVisitor {
    * @return the nextnode
    * @category sideeffects
    */
-  private CFANode createEdgesForSideEffects(CFANode prevNode, List<CAstNode> sideeffects, String rawSignature, FileLocation fileLocation) {
+  private CFANode createEdgesForSideEffects(
+      CFANode prevNode,
+      List<CAstNode> sideeffects,
+      String rawSignature,
+      FileLocation fileLocation) {
     for (CAstNode sideeffect : sideeffects) {
       prevNode = createEdgeForSideEffect(prevNode, sideeffect, rawSignature, fileLocation);
     }
@@ -2231,7 +2235,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     if (sideeffect instanceof CExpression) {
       sideeffect = new CExpressionStatement(sideeffect.getFileLocation(), (CExpression) sideeffect);
-      }
+    }
 
     CFAEdge edge;
     if (sideeffect instanceof CStatement) {
@@ -2246,14 +2250,14 @@ class CFAFunctionBuilder extends ASTVisitor {
         if (init != null) {
           init.accept(checkBinding);
         }
-        }
+      }
 
       edge =
           new CDeclarationEdge(
               rawSignature, fileLocation, prevNode, nextNode, (CDeclaration) sideeffect);
     } else {
       throw new AssertionError();
-      }
+    }
     addToCFA(edge);
     prevNode = nextNode;
 
