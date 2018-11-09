@@ -1064,7 +1064,6 @@ public class InvariantsState implements AbstractState,
         }
       }
     }
-    ExpressionTree<Object> result = And.of(approximationsAsCode);
 
     final Set<MemoryLocation> safePointers = Sets.newHashSet();
     isInvalidVar =
@@ -1120,12 +1119,12 @@ public class InvariantsState implements AbstractState,
         if (definitelyImplies(equality)) {
           ExpressionTree<Object> code = toCode.apply(replaceInvalid.apply(equality));
           if (code != null) {
-            result = And.of(result, code);
+            approximationsAsCode.add(code);
           }
         }
       }
     }
-    return result;
+    return And.of(approximationsAsCode);
   }
 
   private ReplaceVisitor<CompoundInterval> getInvalidReplacementVisitor(
