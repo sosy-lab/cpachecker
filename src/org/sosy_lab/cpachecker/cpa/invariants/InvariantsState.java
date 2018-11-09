@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -1044,11 +1043,9 @@ public class InvariantsState implements AbstractState,
         pFormula ->
             pFormula instanceof Variable
                 && !isExportable(((Variable<?>) pFormula).getMemoryLocation(), pFunctionEntryNode);
-    Function<BooleanFormula<CompoundInterval>, BooleanFormula<CompoundInterval>> replaceInvalid =
-        getInvalidReplacer(isInvalidVar);
     Set<ExpressionTree<Object>> approximationsAsCode = new LinkedHashSet<>();
     for (BooleanFormula<CompoundInterval> approximation : getApproximationFormulas()) {
-      approximation = replaceInvalid.apply(approximation);
+      approximation = replaceInvalid(approximation, isInvalidVar);
       Set<MemoryLocation> memLocs = approximation.accept(new CollectVarsVisitor<>());
       if (!memLocs.isEmpty()
           && Iterables.all(memLocs, memloc -> isExportable(memloc, pFunctionEntryNode))) {
@@ -1069,7 +1066,6 @@ public class InvariantsState implements AbstractState,
               }
               return !Iterables.any(pFormula.accept(COLLECT_VARS_VISITOR), this::isPointerOrArray);
             });
-    replaceInvalid = getInvalidReplacer(isInvalidVar);
     Predicate<NumeralFormula<CompoundInterval>> isNonSingletonConstant =
         pFormula ->
             pFormula instanceof Constant
@@ -1105,7 +1101,7 @@ public class InvariantsState implements AbstractState,
                 otherValue.getTypeInfo(), otherSafePointer);
         BooleanFormula<CompoundInterval> equality = InvariantsFormulaManager.INSTANCE.equal(otherVar, var);
         if (definitelyImplies(equality)) {
-          ExpressionTree<Object> code = formulaToCode(replaceInvalid.apply(equality));
+          ExpressionTree<Object> code = formulaToCode(replaceInvalid(equality, isInvalidVar));
           if (code != null) {
             approximationsAsCode.add(code);
           }
@@ -1127,54 +1123,53 @@ public class InvariantsState implements AbstractState,
         isInvalidVar, pFormula -> replaceOrEvaluateInvalid(pFormula, isInvalidVar));
   }
 
-  private Function<BooleanFormula<CompoundInterval>, BooleanFormula<CompoundInterval>>
-      getInvalidReplacer(final Predicate<NumeralFormula<CompoundInterval>> pIsAlwaysInvalid) {
+  private BooleanFormula<CompoundInterval> replaceInvalid(
+      BooleanFormula<CompoundInterval> pFormula,
+      final Predicate<NumeralFormula<CompoundInterval>> pIsAlwaysInvalid) {
     final Predicate<NumeralFormula<CompoundInterval>> pIsPointerOrArray =
         pFormula1 ->
             pFormula1 instanceof Variable
                 && isPointerOrArray(((Variable<?>) pFormula1).getMemoryLocation());
-    return new Function<BooleanFormula<CompoundInterval>, BooleanFormula<CompoundInterval>>() {
 
-      @Override
-      public BooleanFormula<CompoundInterval> apply(BooleanFormula<CompoundInterval> pFormula) {
-        if (pFormula instanceof Equal) {
-          Predicate<NumeralFormula<CompoundInterval>> isAlwaysInvalid = pIsAlwaysInvalid;
-
-          Equal<CompoundInterval> eq = (Equal<CompoundInterval>) pFormula;
-
-          if (eq.getOperand1() instanceof Variable
-              && eq.getOperand2() instanceof Variable
-              && !isAlwaysInvalid.apply(eq.getOperand1())
-              && !isAlwaysInvalid.apply(eq.getOperand2())) {
-            return pFormula;
-          }
-
-          isAlwaysInvalid = Predicates.or(isAlwaysInvalid, pIsPointerOrArray);
-
-          NumeralFormula<CompoundInterval> op1 =
-              eq.getOperand1().accept(getInvalidReplacementVisitor(isAlwaysInvalid));
-          final Set<MemoryLocation> op1Vars = op1.accept(COLLECT_VARS_VISITOR);
-          isAlwaysInvalid =
-              Predicates.or(
-                  isAlwaysInvalid,
-                  f -> !Sets.intersection(op1Vars, f.accept(COLLECT_VARS_VISITOR)).isEmpty());
-          NumeralFormula<CompoundInterval> op2 =
-              eq.getOperand2().accept(getInvalidReplacementVisitor(isAlwaysInvalid));
-          return InvariantsFormulaManager.INSTANCE.equal(op1, op2);
-        }
-        if (pFormula instanceof LogicalNot) {
-          return InvariantsFormulaManager.INSTANCE.logicalNot(
-              checkNotNull(apply(((LogicalNot<CompoundInterval>) pFormula).getNegated())));
-        }
-        if (pFormula instanceof LogicalAnd) {
+    if (pFormula instanceof LogicalAnd) {
           LogicalAnd<CompoundInterval> and = (LogicalAnd<CompoundInterval>) pFormula;
-          return InvariantsFormulaManager.INSTANCE.logicalAnd(
-              apply(and.getOperand1()), apply(and.getOperand2()));
-        }
-        return pFormula.accept(
-            getInvalidReplacementVisitor(Predicates.or(pIsAlwaysInvalid, pIsPointerOrArray)));
+      return InvariantsFormulaManager.INSTANCE.logicalAnd(
+          replaceInvalid(and.getOperand1(), pIsAlwaysInvalid),
+          replaceInvalid(and.getOperand2(), pIsAlwaysInvalid));
+    }
+
+    if (pFormula instanceof LogicalNot) {
+      return InvariantsFormulaManager.INSTANCE.logicalNot(
+          checkNotNull(
+              replaceInvalid(
+                  ((LogicalNot<CompoundInterval>) pFormula).getNegated(), pIsAlwaysInvalid)));
+    }
+
+    if (pFormula instanceof Equal) {
+      Equal<CompoundInterval> eq = (Equal<CompoundInterval>) pFormula;
+
+      if (eq.getOperand1() instanceof Variable
+          && eq.getOperand2() instanceof Variable
+          && !pIsAlwaysInvalid.apply(eq.getOperand1())
+          && !pIsAlwaysInvalid.apply(eq.getOperand2())) {
+        return pFormula;
       }
-    };
+
+      Predicate<NumeralFormula<CompoundInterval>> isAlwaysInvalid =
+          Predicates.or(pIsAlwaysInvalid, pIsPointerOrArray);
+      NumeralFormula<CompoundInterval> op1 =
+          eq.getOperand1().accept(getInvalidReplacementVisitor(isAlwaysInvalid));
+      final Set<MemoryLocation> op1Vars = op1.accept(COLLECT_VARS_VISITOR);
+      isAlwaysInvalid =
+          Predicates.or(
+              isAlwaysInvalid, f -> !Collections.disjoint(op1Vars, f.accept(COLLECT_VARS_VISITOR)));
+      NumeralFormula<CompoundInterval> op2 =
+          eq.getOperand2().accept(getInvalidReplacementVisitor(isAlwaysInvalid));
+      return InvariantsFormulaManager.INSTANCE.equal(op1, op2);
+    }
+
+    return pFormula.accept(
+        getInvalidReplacementVisitor(Predicates.or(pIsAlwaysInvalid, pIsPointerOrArray)));
   }
 
   private NumeralFormula<CompoundInterval> replaceOrEvaluateInvalid(
