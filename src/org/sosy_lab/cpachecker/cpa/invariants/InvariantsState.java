@@ -1060,11 +1060,6 @@ public class InvariantsState implements AbstractState,
 
     final Set<MemoryLocation> safePointers = Sets.newHashSet();
     isInvalidVar =
-        pFormula ->
-            pFormula instanceof Variable
-                && !isExportable(((Variable<?>) pFormula).getMemoryLocation(), pFunctionEntryNode);
-
-    isInvalidVar =
         Predicates.or(
             isInvalidVar,
             pFormula -> {
