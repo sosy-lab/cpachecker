@@ -41,6 +41,9 @@ import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
  *
  * <p>If visit returns <code>Boolean.FALSE</code> the computed C code is likely to be invalid and
  * therefore it is discouraged to use it.
+ *
+ * <p>Warning: Usage of this class can be exponentially expensive, because formulas are unfolded
+ * into C code. For formulas with several shared subtrees this leads to bad performance.
  */
 public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
 
