@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.List;
-import java.util.Set;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -57,7 +57,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
 
   private boolean bvSigned = false;
 
-  private static final Set<FunctionDeclarationKind> UNARY_OPS =
+  private static final ImmutableSet<FunctionDeclarationKind> UNARY_OPS =
       Sets.immutableEnumSet(
           FunctionDeclarationKind.UMINUS,
           FunctionDeclarationKind.NOT,
