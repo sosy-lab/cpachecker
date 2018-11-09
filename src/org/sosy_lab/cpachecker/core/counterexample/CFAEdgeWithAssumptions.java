@@ -167,11 +167,11 @@ public class CFAEdgeWithAssumptions {
 
   @Override
   public String toString() {
-      StringBuilder assumption = new StringBuilder();
-      for (AExpressionStatement assum : expressionStmts) {
-          assumption.append('\n' + "\t\t" + assum);
-      }
-      return edge + " " + assumption;
+    StringBuilder str = new StringBuilder(edge.toString());
+    for (AExpressionStatement assum : expressionStmts) {
+      str.append("\n\t").append(assum);
+    }
+    return str.toString();
   }
 
   @Nullable
