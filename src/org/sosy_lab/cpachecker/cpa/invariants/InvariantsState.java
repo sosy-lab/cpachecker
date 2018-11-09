@@ -31,6 +31,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -1287,9 +1288,9 @@ public class InvariantsState implements AbstractState,
 
   @Override
   public String toString() {
-    return FluentIterable.concat(
-            FluentIterable.from(environment.entrySet())
-                .transform(
+    return Joiner.on(", ").join(Iterables.concat(
+                Collections2.transform(
+                    environment.entrySet(),
                     pInput -> {
                       MemoryLocation memoryLocation = pInput.getKey();
                       NumeralFormula<?> value = pInput.getValue();
@@ -1299,8 +1300,7 @@ public class InvariantsState implements AbstractState,
                       }
                       return String.format("%s=%s", memoryLocation, value);
                     }),
-            assumptions)
-        .join(Joiner.on(", "));
+                assumptions));
   }
 
   public AbstractionState getAbstractionState() {
