@@ -787,6 +787,13 @@ public class InvariantsState implements AbstractState,
     return Collections.unmodifiableSet(environmentAsAssumptions);
   }
 
+  /**
+   * We build an interval formula like <code>A <= X <= B</code> for each known memory location.
+   *
+   * <p>Please note that we already try to simplify the interval, i.e., if X has type 'signed int',
+   * we return TRUE instead of <code>MIN_INT <= X <= MAX_INT</code> , because this is trivially
+   * satisfied.
+   */
   private Iterable<BooleanFormula<CompoundInterval>> getTypeInformationAsAssumptions() {
     List<BooleanFormula<CompoundInterval>> assumptionsIntervals = new ArrayList<>();
     for (Map.Entry<? extends MemoryLocation, ? extends Type> typeEntry : variableTypes.entrySet()) {
@@ -803,18 +810,24 @@ public class InvariantsState implements AbstractState,
         if (value == null
             || value.accept(tools.evaluationVisitor, environment).containsAllPossibleValues()) {
           if (range.hasLowerBound()) {
-            assumptionsIntervals.add(
+            BooleanFormula<CompoundInterval> lowerBound =
                 tools.compoundIntervalFormulaManager.greaterThanOrEqual(
                     variable,
                     InvariantsFormulaManager.INSTANCE.asConstant(
-                        typeInfo, cim.singleton(range.getLowerBound()))));
+                        typeInfo, cim.singleton(range.getLowerBound())));
+            if (!BooleanConstant.getTrue().equals(lowerBound)) {
+              assumptionsIntervals.add(lowerBound);
+            }
           }
           if (range.hasUpperBound()) {
-            assumptionsIntervals.add(
+            BooleanFormula<CompoundInterval> upperBound =
                 tools.compoundIntervalFormulaManager.lessThanOrEqual(
                     variable,
                     InvariantsFormulaManager.INSTANCE.asConstant(
-                        typeInfo, cim.singleton(range.getUpperBound()))));
+                        typeInfo, cim.singleton(range.getUpperBound())));
+            if (!BooleanConstant.getTrue().equals(upperBound)) {
+              assumptionsIntervals.add(upperBound);
+            }
           }
         }
       }
