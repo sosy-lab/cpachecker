@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import com.google.common.collect.Sets;
 import java.math.BigInteger;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -54,17 +54,15 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
 
   private boolean bvSigned = false;
 
-  private static final Set<FunctionDeclarationKind> UNARY_OPS = new HashSet<>();
-
-  static {
-    UNARY_OPS.add(FunctionDeclarationKind.UMINUS);
-    UNARY_OPS.add(FunctionDeclarationKind.NOT);
-    UNARY_OPS.add(FunctionDeclarationKind.GTE_ZERO);
-    UNARY_OPS.add(FunctionDeclarationKind.EQ_ZERO);
-    UNARY_OPS.add(FunctionDeclarationKind.FP_NEG);
-    UNARY_OPS.add(FunctionDeclarationKind.BV_NOT);
-    UNARY_OPS.add(FunctionDeclarationKind.BV_NEG);
-  }
+  private static final Set<FunctionDeclarationKind> UNARY_OPS =
+      Sets.immutableEnumSet(
+          FunctionDeclarationKind.UMINUS,
+          FunctionDeclarationKind.NOT,
+          FunctionDeclarationKind.GTE_ZERO,
+          FunctionDeclarationKind.EQ_ZERO,
+          FunctionDeclarationKind.FP_NEG,
+          FunctionDeclarationKind.BV_NOT,
+          FunctionDeclarationKind.BV_NEG);
 
   public FormulaToCVisitor(FormulaManagerView fmgr) {
     this.fmgr = fmgr;
@@ -163,7 +161,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       bvSigned = false;
     }
 
-    switch (pFunctionDeclaration.getKind()) {
+    switch (kind) {
       case BV_ADD:
       case FP_ADD:
       case ADD:
