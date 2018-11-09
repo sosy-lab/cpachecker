@@ -1039,36 +1039,12 @@ public class InvariantsState implements AbstractState,
   @Override
   public ExpressionTree<Object> getFormulaApproximation(
       final FunctionEntryNode pFunctionEntryNode, final CFANode pReferenceNode) {
-    final Predicate<MemoryLocation> isExportable =
-        pMemoryLocation -> {
-          if (pMemoryLocation.getIdentifier().startsWith("__CPAchecker_TMP_")) {
-            return false;
-          }
-          if (pFunctionEntryNode.getReturnVariable().isPresent()
-              && pMemoryLocation.isOnFunctionStack()
-              && pMemoryLocation
-                  .getIdentifier()
-                  .equals(pFunctionEntryNode.getReturnVariable().get().getName())) {
-            return false;
-          }
-          if (!isExportable(pMemoryLocation)) {
-            return false;
-          }
-          String functionName = pFunctionEntryNode.getFunctionName();
-          return !pMemoryLocation.isOnFunctionStack()
-              || pMemoryLocation.getFunctionName().equals(functionName);
-        };
-    final Predicate<MemoryLocation> isPointerOrArray =
-        pMemoryLocation -> {
-          Type type = getType(pMemoryLocation);
-          return type instanceof CPointerType || type instanceof CArrayType;
-        };
-    final Predicate<MemoryLocation> isValidMemLoc = isExportable;
     Predicate<NumeralFormula<CompoundInterval>> isInvalidVar =
         pFormula ->
             pFormula instanceof Variable
-                && !isValidMemLoc.apply(((Variable<?>) pFormula).getMemoryLocation());
-    Function<BooleanFormula<CompoundInterval>, BooleanFormula<CompoundInterval>> replaceInvalid = getInvalidReplacer(isInvalidVar, Variable.convert(isPointerOrArray));
+                && !isExportable(((Variable<?>) pFormula).getMemoryLocation(), pFunctionEntryNode);
+    Function<BooleanFormula<CompoundInterval>, BooleanFormula<CompoundInterval>> replaceInvalid =
+        getInvalidReplacer(isInvalidVar, Variable.convert(this::isPointerOrArray));
     Function<BooleanFormula<CompoundInterval>, ExpressionTree<Object>> toCode =
         pFormula ->
             ExpressionTrees.cast(
@@ -1080,7 +1056,8 @@ public class InvariantsState implements AbstractState,
     for (BooleanFormula<CompoundInterval> approximation : getApproximationFormulas()) {
       approximation = replaceInvalid.apply(approximation);
       Set<MemoryLocation> memLocs = approximation.accept(new CollectVarsVisitor<>());
-      if (!memLocs.isEmpty() && Iterables.all(memLocs, isValidMemLoc)) {
+      if (!memLocs.isEmpty()
+          && Iterables.all(memLocs, memloc -> isExportable(memloc, pFunctionEntryNode))) {
         ExpressionTree<Object> code = toCode.apply(approximation);
         if (code != null) {
           approximationsAsCode.add(code);
@@ -1093,7 +1070,7 @@ public class InvariantsState implements AbstractState,
     isInvalidVar =
         pFormula ->
             pFormula instanceof Variable
-                && !isExportable.apply(((Variable<?>) pFormula).getMemoryLocation());
+                && !isExportable(((Variable<?>) pFormula).getMemoryLocation(), pFunctionEntryNode);
 
     isInvalidVar =
         Predicates.or(
@@ -1102,10 +1079,9 @@ public class InvariantsState implements AbstractState,
               if (pFormula instanceof Variable) {
                 return !safePointers.contains(((Variable<?>) pFormula).getMemoryLocation());
               }
-              return !FluentIterable.from(pFormula.accept(COLLECT_VARS_VISITOR))
-                  .anyMatch(isPointerOrArray);
+              return !Iterables.any(pFormula.accept(COLLECT_VARS_VISITOR), this::isPointerOrArray);
             });
-    replaceInvalid = getInvalidReplacer(isInvalidVar, Variable.convert(isPointerOrArray));
+    replaceInvalid = getInvalidReplacer(isInvalidVar, Variable.convert(this::isPointerOrArray));
 
     Predicate<NumeralFormula<CompoundInterval>> isNonSingletonConstant =
         pFormula ->
@@ -1117,7 +1093,7 @@ public class InvariantsState implements AbstractState,
       if (!(type instanceof CPointerType)) {
         continue;
       }
-      if (!isExportable.apply(memoryLocation)) {
+      if (!isExportable(memoryLocation, pFunctionEntryNode)) {
         continue;
       }
       NumeralFormula<CompoundInterval> value = entry.getValue();
@@ -1747,6 +1723,31 @@ public class InvariantsState implements AbstractState,
 
   public boolean overapproximatesUnsupportedFeature() {
     return overapproximatesUnsupportedFeature;
+  }
+
+  private boolean isPointerOrArray(MemoryLocation pMemoryLocation) {
+    Type type = getType(pMemoryLocation);
+    return type instanceof CPointerType || type instanceof CArrayType;
+  }
+
+  private static boolean isExportable(
+      MemoryLocation pMemoryLocation, final FunctionEntryNode pFunctionEntryNode) {
+    if (pMemoryLocation.getIdentifier().startsWith("__CPAchecker_TMP_")) {
+      return false;
+    }
+    if (pFunctionEntryNode.getReturnVariable().isPresent()
+        && pMemoryLocation.isOnFunctionStack()
+        && pMemoryLocation
+            .getIdentifier()
+            .equals(pFunctionEntryNode.getReturnVariable().get().getName())) {
+      return false;
+    }
+    if (!isExportable(pMemoryLocation)) {
+      return false;
+    }
+    String functionName = pFunctionEntryNode.getFunctionName();
+    return !pMemoryLocation.isOnFunctionStack()
+        || pMemoryLocation.getFunctionName().equals(functionName);
   }
 
   private static boolean isExportable(@Nullable MemoryLocation pMemoryLocation) {
