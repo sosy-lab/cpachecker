@@ -1081,9 +1081,6 @@ public class InvariantsState implements AbstractState,
                 .transform(replaceInvalid)
                 .filter(
                     pFormula -> {
-                      if (pFormula.equals(BooleanConstant.getTrue())) {
-                        return false;
-                      }
                       Set<MemoryLocation> memLocs = pFormula.accept(new CollectVarsVisitor<>());
                       if (memLocs.isEmpty()) {
                         return false;
