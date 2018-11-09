@@ -1045,20 +1045,13 @@ public class InvariantsState implements AbstractState,
                 && !isExportable(((Variable<?>) pFormula).getMemoryLocation(), pFunctionEntryNode);
     Function<BooleanFormula<CompoundInterval>, BooleanFormula<CompoundInterval>> replaceInvalid =
         getInvalidReplacer(isInvalidVar, Variable.convert(this::isPointerOrArray));
-    Function<BooleanFormula<CompoundInterval>, ExpressionTree<Object>> toCode =
-        pFormula ->
-            ExpressionTrees.cast(
-                pFormula.accept(
-                    new ToCodeFormulaVisitor(tools.evaluationVisitor, machineModel),
-                    getEnvironment()));
-
     Set<ExpressionTree<Object>> approximationsAsCode = new LinkedHashSet<>();
     for (BooleanFormula<CompoundInterval> approximation : getApproximationFormulas()) {
       approximation = replaceInvalid.apply(approximation);
       Set<MemoryLocation> memLocs = approximation.accept(new CollectVarsVisitor<>());
       if (!memLocs.isEmpty()
           && Iterables.all(memLocs, memloc -> isExportable(memloc, pFunctionEntryNode))) {
-        ExpressionTree<Object> code = toCode.apply(approximation);
+        ExpressionTree<Object> code = formulaToCode(approximation);
         if (code != null) {
           approximationsAsCode.add(code);
         }
@@ -1081,7 +1074,6 @@ public class InvariantsState implements AbstractState,
               return !Iterables.any(pFormula.accept(COLLECT_VARS_VISITOR), this::isPointerOrArray);
             });
     replaceInvalid = getInvalidReplacer(isInvalidVar, Variable.convert(this::isPointerOrArray));
-
     Predicate<NumeralFormula<CompoundInterval>> isNonSingletonConstant =
         pFormula ->
             pFormula instanceof Constant
@@ -1117,7 +1109,7 @@ public class InvariantsState implements AbstractState,
                 otherValue.getTypeInfo(), otherSafePointer);
         BooleanFormula<CompoundInterval> equality = InvariantsFormulaManager.INSTANCE.equal(otherVar, var);
         if (definitelyImplies(equality)) {
-          ExpressionTree<Object> code = toCode.apply(replaceInvalid.apply(equality));
+          ExpressionTree<Object> code = formulaToCode(replaceInvalid.apply(equality));
           if (code != null) {
             approximationsAsCode.add(code);
           }
@@ -1125,6 +1117,12 @@ public class InvariantsState implements AbstractState,
       }
     }
     return And.of(approximationsAsCode);
+  }
+
+  private ExpressionTree<Object> formulaToCode(BooleanFormula<CompoundInterval> pFormula) {
+    return ExpressionTrees.cast(
+        pFormula.accept(
+            new ToCodeFormulaVisitor(tools.evaluationVisitor, machineModel), getEnvironment()));
   }
 
   private ReplaceVisitor<CompoundInterval> getInvalidReplacementVisitor(
