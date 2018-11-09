@@ -143,28 +143,6 @@ public class CFAEdgeWithAssumptions {
     return result.toString();
   }
 
-  /**
-   * Returns a message that contain information of the concrete values pertaining to
-   * this edge of the error path.
-   *
-   * @return returns a message that contain information of the concrete values pertaining to
-   * this edge of the error path.
-   */
-  public String prettyPrint() {
-    String expStmt = this.prettyPrintCode(0);
-    return expStmt + getComment();
-  }
-
-  /**
-   * Get a message that can be used inside of html.
-   *
-   * @return returns a message that contain information of the concrete values pertaining to
-   * this edge of the error path for a html page.
-   */
-  public String printForHTML() {
-    return prettyPrint().replace(System.lineSeparator(), "\n");
-  }
-
   @Override
   public String toString() {
     StringBuilder str = new StringBuilder(edge.toString());
