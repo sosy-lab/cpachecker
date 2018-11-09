@@ -1044,7 +1044,7 @@ public class InvariantsState implements AbstractState,
             pFormula instanceof Variable
                 && !isExportable(((Variable<?>) pFormula).getMemoryLocation(), pFunctionEntryNode);
     Function<BooleanFormula<CompoundInterval>, BooleanFormula<CompoundInterval>> replaceInvalid =
-        getInvalidReplacer(isInvalidVar, Variable.convert(this::isPointerOrArray));
+        getInvalidReplacer(isInvalidVar);
     Set<ExpressionTree<Object>> approximationsAsCode = new LinkedHashSet<>();
     for (BooleanFormula<CompoundInterval> approximation : getApproximationFormulas()) {
       approximation = replaceInvalid.apply(approximation);
@@ -1073,7 +1073,7 @@ public class InvariantsState implements AbstractState,
               }
               return !Iterables.any(pFormula.accept(COLLECT_VARS_VISITOR), this::isPointerOrArray);
             });
-    replaceInvalid = getInvalidReplacer(isInvalidVar, Variable.convert(this::isPointerOrArray));
+    replaceInvalid = getInvalidReplacer(isInvalidVar);
     Predicate<NumeralFormula<CompoundInterval>> isNonSingletonConstant =
         pFormula ->
             pFormula instanceof Constant
@@ -1131,9 +1131,12 @@ public class InvariantsState implements AbstractState,
         isInvalidVar, pFormula -> replaceOrEvaluateInvalid(pFormula, isInvalidVar));
   }
 
-  private Function<BooleanFormula<CompoundInterval>, BooleanFormula<CompoundInterval>> getInvalidReplacer(
-      final Predicate<NumeralFormula<CompoundInterval>> pIsAlwaysInvalid,
-      final Predicate<NumeralFormula<CompoundInterval>> pIsPointerOrArray) {
+  private Function<BooleanFormula<CompoundInterval>, BooleanFormula<CompoundInterval>>
+      getInvalidReplacer(final Predicate<NumeralFormula<CompoundInterval>> pIsAlwaysInvalid) {
+    final Predicate<NumeralFormula<CompoundInterval>> pIsPointerOrArray =
+        pFormula1 ->
+            pFormula1 instanceof Variable
+                && isPointerOrArray(((Variable<?>) pFormula1).getMemoryLocation());
     return new Function<BooleanFormula<CompoundInterval>, BooleanFormula<CompoundInterval>>() {
 
       @Override

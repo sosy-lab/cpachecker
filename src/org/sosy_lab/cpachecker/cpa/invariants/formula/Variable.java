@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import com.google.common.base.Predicate;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -86,11 +85,5 @@ public class Variable<ConstantType> extends AbstractFormula<ConstantType> implem
    */
   static <ConstantType> Variable<ConstantType> of(TypeInfo pInfo, MemoryLocation pMemoryLocation) {
     return new Variable<>(pInfo, pMemoryLocation);
-  }
-
-  public static <ConstantType> Predicate<NumeralFormula<ConstantType>> convert(Predicate<? super MemoryLocation> pPredicate) {
-    return pFormula ->
-        pFormula instanceof Variable
-            && pPredicate.apply(((Variable<?>) pFormula).getMemoryLocation());
   }
 }
