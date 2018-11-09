@@ -79,9 +79,12 @@ public final class CTypes {
   public static boolean isArithmeticType(CType type) {
     type = type.getCanonicalType();
     return (type instanceof CEnumType)
-        // C11 § 6.7.2.1 (10) "A bit-field is interpreted as having a signed or unsigned integer type"
+        // C11 § 6.7.2.1 (10) "A bit-field is interpreted as having a signed or unsigned integer
+        // type"
         || (type instanceof CBitFieldType)
-        || (type instanceof CSimpleType);
+        || (type instanceof CSimpleType)
+        || ((type instanceof CComplexType)
+            && ((CComplexType) type).getKind() == ComplexTypeKind.ENUM);
   }
 
   /**
