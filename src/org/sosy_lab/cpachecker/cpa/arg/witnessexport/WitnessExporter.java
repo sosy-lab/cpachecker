@@ -34,6 +34,7 @@ import java.io.Writer;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -193,14 +194,15 @@ public class WitnessExporter {
                   extractPredicateAnalysisAbstractionStateInvariants(
                       functionName, state, stateInvariant);
 
+              Set<ExpressionTree<Object>> approximations = new LinkedHashSet<>();
+              approximations.add(stateInvariant);
               for (ExpressionTreeReportingState etrs :
                   AbstractStates.asIterable(state).filter(ExpressionTreeReportingState.class)) {
-                stateInvariant =
-                    factory.and(
-                        stateInvariant,
-                        etrs.getFormulaApproximation(
-                            cfa.getFunctionHead(functionName), pEdge.getSuccessor()));
+                approximations.add(
+                    etrs.getFormulaApproximation(
+                        cfa.getFunctionHead(functionName), pEdge.getSuccessor()));
               }
+              stateInvariant = factory.and(approximations);
               stateInvariants.add(stateInvariant);
             }
             ExpressionTree<Object> invariant = factory.or(stateInvariants);
