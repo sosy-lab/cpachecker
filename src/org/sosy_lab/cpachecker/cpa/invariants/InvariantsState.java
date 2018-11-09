@@ -159,7 +159,7 @@ public class InvariantsState implements AbstractState,
 
   private final Set<BooleanFormula<CompoundInterval>> assumptions;
 
-  private Iterable<BooleanFormula<CompoundInterval>> environmentAsAssumptions;
+  private Set<BooleanFormula<CompoundInterval>> environmentAsAssumptions;
 
   private volatile int hash = 0;
 
@@ -780,11 +780,11 @@ public class InvariantsState implements AbstractState,
    *
    * @return the environment as a set equations of the variables with their values.
    */
-  public Iterable<BooleanFormula<CompoundInterval>> getEnvironmentAsAssumptions() {
+  public Set<BooleanFormula<CompoundInterval>> getEnvironmentAsAssumptions() {
     if (this.environmentAsAssumptions == null) {
       environmentAsAssumptions = getEnvironmentAsAssumptions0();
     }
-    return environmentAsAssumptions;
+    return Collections.unmodifiableSet(environmentAsAssumptions);
   }
 
   private Iterable<BooleanFormula<CompoundInterval>> getTypeInformationAsAssumptions() {
@@ -822,11 +822,12 @@ public class InvariantsState implements AbstractState,
     return assumptionsIntervals;
   }
 
-  private Iterable<BooleanFormula<CompoundInterval>> getEnvironmentAsAssumptions0() {
+  private Set<BooleanFormula<CompoundInterval>> getEnvironmentAsAssumptions0() {
     CompoundIntervalFormulaManager compoundIntervalFormulaManager =
         new CompoundIntervalFormulaManager(tools.compoundIntervalManagerFactory);
 
-    Set<BooleanFormula<CompoundInterval>> environmentalAssumptions = new HashSet<>(assumptions);
+    Set<BooleanFormula<CompoundInterval>> environmentalAssumptions =
+        new LinkedHashSet<>(assumptions);
 
     List<NumeralFormula<CompoundInterval>> atomic = new ArrayList<>(1);
     Deque<NumeralFormula<CompoundInterval>> toCheck = new ArrayDeque<>(1);
@@ -1075,20 +1076,18 @@ public class InvariantsState implements AbstractState,
                     new ToCodeFormulaVisitor(tools.evaluationVisitor, machineModel),
                     getEnvironment()));
 
-    ExpressionTree<Object> result =
-        And.of(
-            getApproximationFormulas()
-                .transform(replaceInvalid)
-                .filter(
-                    pFormula -> {
-                      Set<MemoryLocation> memLocs = pFormula.accept(new CollectVarsVisitor<>());
-                      if (memLocs.isEmpty()) {
-                        return false;
-                      }
-                      return FluentIterable.from(memLocs).allMatch(isValidMemLoc);
-                    })
-                .transform(toCode)
-                .filter(Predicates.notNull()));
+    Set<ExpressionTree<Object>> approximationsAsCode = new LinkedHashSet<>();
+    for (BooleanFormula<CompoundInterval> approximation : getApproximationFormulas()) {
+      approximation = replaceInvalid.apply(approximation);
+      Set<MemoryLocation> memLocs = approximation.accept(new CollectVarsVisitor<>());
+      if (!memLocs.isEmpty() && Iterables.all(memLocs, isValidMemLoc)) {
+        ExpressionTree<Object> code = toCode.apply(approximation);
+        if (code != null) {
+          approximationsAsCode.add(code);
+        }
+      }
+    }
+    ExpressionTree<Object> result = And.of(approximationsAsCode);
 
     final Set<MemoryLocation> safePointers = Sets.newHashSet();
     isInvalidVar =
@@ -1258,21 +1257,21 @@ public class InvariantsState implements AbstractState,
     return InvariantsFormulaManager.INSTANCE.asConstant(pFormula.getTypeInfo(), evaluated);
   }
 
-  private FluentIterable<BooleanFormula<CompoundInterval>> getApproximationFormulas() {
-
-    final Predicate<MemoryLocation> acceptVariable = InvariantsState::isExportable;
-
-    final Predicate<BooleanFormula<CompoundInterval>> acceptFormula =
-        pInput ->
-            pInput != null
-                && FluentIterable.from(CompoundIntervalFormulaManager.collectVariableNames(pInput))
-                    .allMatch(acceptVariable);
-
+  private Set<BooleanFormula<CompoundInterval>> getApproximationFormulas() {
     Iterable<BooleanFormula<CompoundInterval>> formulas = getEnvironmentAsAssumptions();
     if (includeTypeInformation) {
       formulas = Iterables.concat(formulas, getTypeInformationAsAssumptions());
     }
-    return FluentIterable.from(formulas).filter(acceptFormula);
+    Set<BooleanFormula<CompoundInterval>> result = new LinkedHashSet<>();
+    for (BooleanFormula<CompoundInterval> formula : formulas) {
+      if (formula != null
+          && Iterables.all(
+              CompoundIntervalFormulaManager.collectVariableNames(formula),
+              InvariantsState::isExportable)) {
+        result.add(formula);
+      }
+    }
+    return result;
   }
 
   @Override
