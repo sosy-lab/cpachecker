@@ -1586,15 +1586,18 @@ public class AssumptionToEdgeAllocator {
             logger instanceof LogManagerWithoutDuplicates
                 ? (LogManagerWithoutDuplicates) logger
                 : new LogManagerWithoutDuplicates(logger);
-        Number number =
+        Value castValue =
             AbstractExpressionValueVisitor.castCValue(
-                    new NumericValue(pIntegerValue),
-                    pType,
-                    machineModel,
-                    logManager,
-                    FileLocation.DUMMY)
-                .asNumericValue()
-                .getNumber();
+                new NumericValue(pIntegerValue),
+                pType,
+                machineModel,
+                logManager,
+                FileLocation.DUMMY);
+        if (castValue.isUnknown()) {
+          return UnknownValueLiteral.getInstance();
+        }
+
+        Number number = castValue.asNumericValue().getNumber();
         final BigInteger valueAsBigInt;
         if (number instanceof BigInteger) {
           valueAsBigInt = (BigInteger) number;
