@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
@@ -127,7 +128,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   private final CFA cfa;
   private final LogManagerWithoutDuplicates logger;
-  private final ConfigurableProgramAnalysis callstackCPA;
+  private final CallstackCPA callstackCPA;
   private final ConfigurableProgramAnalysis locationCPA;
 
   private final GlobalAccessChecker globalAccessChecker = new GlobalAccessChecker();
@@ -407,6 +408,13 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     // now create the thread
     CIdExpression id = (CIdExpression) expr0;
     String functionName = ((CIdExpression) expr2).getName();
+
+    if (callstackCPA
+        .getOptions()
+        .getUnsupportedFunctions()
+        .contains(CFACloner.extractFunctionName(functionName))) {
+      throw new UnsupportedCodeException(functionName, null);
+    }
 
     if (useAllPossibleClones) {
       // for witness validation we need to produce all possible successors,

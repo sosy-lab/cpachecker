@@ -26,7 +26,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
 @Options(prefix = "cpa.callstack")
-class CallstackOptions {
+public class CallstackOptions {
 
   // set of functions that may not appear in the source code
   @Option(secure = true, description = "unsupported functions cause an exception")
@@ -72,7 +72,7 @@ class CallstackOptions {
     config.inject(this);
   }
 
-  ImmutableSet<String> getUnsupportedFunctions() {
+  public ImmutableSet<String> getUnsupportedFunctions() {
     return unsupportedFunctions;
   }
 
