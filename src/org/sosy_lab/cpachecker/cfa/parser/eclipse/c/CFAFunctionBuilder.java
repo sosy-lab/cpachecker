@@ -1225,8 +1225,8 @@ class CFAFunctionBuilder extends ASTVisitor {
           pInnerNodes);
       return Optional.empty();
 
+      // plain condition
     } else {
-
       return buildConditionTreeLeaf(
           condition,
           fileLocation,
@@ -1263,30 +1263,29 @@ class CFAFunctionBuilder extends ASTVisitor {
     exp.accept(checkBinding);
 
     final CONDITION kind = astCreator.getConditionKind(exp);
-
     switch (kind) {
-    case ALWAYS_FALSE:
+      case ALWAYS_FALSE:
         // no edge connecting rootNode with thenNode,
         // so the "then" branch won't be connected to the rest of the CFA
 
         final BlankEdge falseEdge =
             new BlankEdge(rawSignature, onlyFirstLine(fileLocation), rootNode, elseNode, "");
-      addToCFA(falseEdge);
+        addToCFA(falseEdge);
 
         // reset side assignments which are not necessary
         return Optional.of(CIntegerLiteralExpression.ZERO);
 
-    case ALWAYS_TRUE:
+      case ALWAYS_TRUE:
         final BlankEdge trueEdge =
             new BlankEdge(rawSignature, onlyFirstLine(fileLocation), rootNode, thenNode, "");
-      addToCFA(trueEdge);
+        addToCFA(trueEdge);
 
         // no edge connecting prevNode with elseNode,
         // so the "else" branch won't be connected to the rest of the CFA
         return Optional.of(CIntegerLiteralExpression.ONE);
 
-    default:
-      throw new AssertionError();
+      default:
+        throw new AssertionError();
 
     case NORMAL:
     }
