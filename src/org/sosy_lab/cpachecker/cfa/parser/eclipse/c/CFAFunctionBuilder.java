@@ -1227,91 +1227,118 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     } else {
 
-      String rawSignature = condition.getRawSignature();
+      return buildConditionTreeLeaf(
+          condition,
+          fileLocation,
+          rootNode,
+          thenNode,
+          elseNode,
+          thenNodeForLastThen,
+          elseNodeForLastElse,
+          furtherThenComputation,
+          furtherElseComputation,
+          flippedThenElse,
+          pInnerNodes);
+    }
+  }
 
-      final CExpression exp = astCreator.convertExpressionWithoutSideEffects(condition);
-      rootNode = handleAllSideEffects(rootNode, fileLocation, rawSignature, true);
-      exp.accept(checkBinding);
+  /** Handle a leaf node of a condition tree, i.e. the most primitive part of a condition. */
+  private Optional<CExpression> buildConditionTreeLeaf(
+      IASTExpression condition,
+      final FileLocation fileLocation,
+      CFANode rootNode,
+      CFANode thenNode,
+      final CFANode elseNode,
+      CFANode thenNodeForLastThen,
+      CFANode elseNodeForLastElse,
+      boolean furtherThenComputation,
+      boolean furtherElseComputation,
+      boolean flippedThenElse,
+      Set<CFANode> pInnerNodes)
+      throws AssertionError {
 
-      final CONDITION kind = astCreator.getConditionKind(exp);
+    String rawSignature = condition.getRawSignature();
+    final CExpression exp = astCreator.convertExpressionWithoutSideEffects(condition);
+    rootNode = handleAllSideEffects(rootNode, fileLocation, rawSignature, true);
+    exp.accept(checkBinding);
 
-      switch (kind) {
-      case ALWAYS_FALSE:
-          // no edge connecting rootNode with thenNode,
-          // so the "then" branch won't be connected to the rest of the CFA
+    final CONDITION kind = astCreator.getConditionKind(exp);
 
-          final BlankEdge falseEdge =
-              new BlankEdge(rawSignature, onlyFirstLine(fileLocation), rootNode, elseNode, "");
-        addToCFA(falseEdge);
+    switch (kind) {
+    case ALWAYS_FALSE:
+        // no edge connecting rootNode with thenNode,
+        // so the "then" branch won't be connected to the rest of the CFA
 
-          // reset side assignments which are not necessary
-          return Optional.of(CIntegerLiteralExpression.ZERO);
+        final BlankEdge falseEdge =
+            new BlankEdge(rawSignature, onlyFirstLine(fileLocation), rootNode, elseNode, "");
+      addToCFA(falseEdge);
 
-      case ALWAYS_TRUE:
-          final BlankEdge trueEdge =
-              new BlankEdge(rawSignature, onlyFirstLine(fileLocation), rootNode, thenNode, "");
-        addToCFA(trueEdge);
+        // reset side assignments which are not necessary
+        return Optional.of(CIntegerLiteralExpression.ZERO);
 
-          // no edge connecting prevNode with elseNode,
-          // so the "else" branch won't be connected to the rest of the CFA
-          return Optional.of(CIntegerLiteralExpression.ONE);
+    case ALWAYS_TRUE:
+        final BlankEdge trueEdge =
+            new BlankEdge(rawSignature, onlyFirstLine(fileLocation), rootNode, thenNode, "");
+      addToCFA(trueEdge);
 
-      default:
-        throw new AssertionError();
+        // no edge connecting prevNode with elseNode,
+        // so the "else" branch won't be connected to the rest of the CFA
+        return Optional.of(CIntegerLiteralExpression.ONE);
 
-      case NORMAL:
-      }
+    default:
+      throw new AssertionError();
 
+    case NORMAL:
+    }
 
-      if (furtherThenComputation) {
-        thenNodeForLastThen = thenNode;
-      }
-      if (furtherElseComputation) {
-        elseNodeForLastElse = elseNode;
-      }
+    if (furtherThenComputation) {
+      thenNodeForLastThen = thenNode;
+    }
+    if (furtherElseComputation) {
+      elseNodeForLastElse = elseNode;
+    }
 
-      FileLocation loc = astCreator.getLocation(condition);
-      if (fileLocation.getStartingLineNumber() < loc.getStartingLineNumber()) {
-        loc =
-            new FileLocation(
-                loc.getFileName(),
-                parseContext.mapFileNameToNameForHumans(loc.getFileName()),
-                fileLocation.getNodeOffset(),
-                loc.getNodeLength() + loc.getNodeOffset() - fileLocation.getNodeOffset(),
-                fileLocation.getStartingLineNumber(),
-                loc.getEndingLineNumber(),
-                fileLocation.getStartingLineInOrigin(),
-                loc.getEndingLineInOrigin());
-      }
+    FileLocation loc = astCreator.getLocation(condition);
+    if (fileLocation.getStartingLineNumber() < loc.getStartingLineNumber()) {
+      loc =
+          new FileLocation(
+              loc.getFileName(),
+              parseContext.mapFileNameToNameForHumans(loc.getFileName()),
+              fileLocation.getNodeOffset(),
+              loc.getNodeLength() + loc.getNodeOffset() - fileLocation.getNodeOffset(),
+              fileLocation.getStartingLineNumber(),
+              loc.getEndingLineNumber(),
+              fileLocation.getStartingLineInOrigin(),
+              loc.getEndingLineInOrigin());
+    }
 
-     CExpression expression = exp;
+    CExpression expression = exp;
 
-      if (ASTOperatorConverter.isBooleanExpression(expression)) {
-        addConditionEdges(
-            expression,
-            rootNode,
-            thenNodeForLastThen,
-            elseNodeForLastElse,
-            loc,
-            flippedThenElse,
-            pInnerNodes);
-        return Optional.of(exp);
+    if (ASTOperatorConverter.isBooleanExpression(expression)) {
+      addConditionEdges(
+          expression,
+          rootNode,
+          thenNodeForLastThen,
+          elseNodeForLastElse,
+          loc,
+          flippedThenElse,
+          pInnerNodes);
+      return Optional.of(exp);
 
-      } else {
-        // build new boolean expression: a==0 and swap branches
-        CExpression conv = buildBinaryExpression(exp, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
+    } else {
+      // build new boolean expression: a==0 and swap branches
+      CExpression conv =
+          buildBinaryExpression(exp, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
 
-        addConditionEdges(
-            conv,
-            rootNode,
-            elseNodeForLastElse,
-            thenNodeForLastThen,
-            loc,
-            !flippedThenElse,
-            pInnerNodes);
-
-        return Optional.of(exp);
-      }
+      addConditionEdges(
+          conv,
+          rootNode,
+          elseNodeForLastElse,
+          thenNodeForLastThen,
+          loc,
+          !flippedThenElse,
+          pInnerNodes);
+      return Optional.of(exp);
     }
   }
 
