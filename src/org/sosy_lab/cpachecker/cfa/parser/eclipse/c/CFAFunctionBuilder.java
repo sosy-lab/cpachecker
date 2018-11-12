@@ -1314,32 +1314,25 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CExpression expression = exp;
 
-    if (ASTOperatorConverter.isBooleanExpression(expression)) {
-      addConditionEdges(
-          expression,
-          rootNode,
-          thenNodeForLastThen,
-          elseNodeForLastElse,
-          loc,
-          flippedThenElse,
-          pInnerNodes);
-      return Optional.of(exp);
-
-    } else {
+    if (!ASTOperatorConverter.isBooleanExpression(expression)) {
       // build new boolean expression: a==0 and swap branches
-      CExpression conv =
+      expression =
           buildBinaryExpression(exp, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
-
-      addConditionEdges(
-          conv,
-          rootNode,
-          elseNodeForLastElse,
-          thenNodeForLastThen,
-          loc,
-          !flippedThenElse,
-          pInnerNodes);
-      return Optional.of(exp);
+      flippedThenElse = !flippedThenElse;
+      CFANode tmp = elseNodeForLastElse;
+      elseNodeForLastElse = thenNodeForLastThen;
+      thenNodeForLastThen = tmp;
     }
+
+    addConditionEdges(
+        expression,
+        rootNode,
+        thenNodeForLastThen,
+        elseNodeForLastElse,
+        loc,
+        flippedThenElse,
+        pInnerNodes);
+    return Optional.of(exp);
   }
 
   /**
