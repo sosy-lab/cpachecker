@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -85,6 +86,11 @@ public class NumericValue implements Value, Serializable {
    */
   public BigDecimal bigDecimalValue() {
     return new BigDecimal(number.toString());
+  }
+
+  /** Returns a {@link BigInteger} value representing the stored number. */
+  public BigInteger bigInteger() {
+    return new BigInteger(number.toString());
   }
 
   /* (non-Javadoc)
