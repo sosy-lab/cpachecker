@@ -36,16 +36,18 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -125,15 +127,33 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
     if (readableState.contains(varLoc)) {
       ValueAndType valueAndType = readableState.getValueAndTypeFor(varLoc);
-      Type actualType = valueAndType.getType();
+      CType actualType = (CType) valueAndType.getType();
       CType readType = pLValue.getExpressionType();
       MachineModel machineModel = getMachineModel();
-      if (!(actualType instanceof CType)
-          || machineModel.getSizeof(readType) == machineModel.getSizeof((CType) actualType)) {
+      if (machineModel.getSizeof(readType) == machineModel.getSizeof(actualType)) {
+
+        if (doesRequireUnionFloatConversion(actualType, readType)) {
+          // TODO: Implement a proper bit-based conversion
+          // c.f. https://gitlab.com/sosy-lab/software/cpachecker/issues/503
+          return UnknownValue.getInstance();
+        }
+
         return valueAndType.getValue();
       }
     }
-    return Value.UnknownValue.getInstance();
+    return UnknownValue.getInstance();
+  }
+
+  private boolean doesRequireUnionFloatConversion(CType pSourceType, CType pTargetType) {
+    if (pSourceType instanceof CSimpleType && pTargetType instanceof CSimpleType) {
+      CBasicType sourceBasic = ((CSimpleType) pSourceType).getType();
+      CBasicType targetBasic = ((CSimpleType) pTargetType).getType();
+
+      // if only one of them is no integer type, a conversion is necessary
+      return sourceBasic.isIntegerType() != targetBasic.isIntegerType();
+    } else {
+      return false;
+    }
   }
 
   @Override
