@@ -2278,10 +2278,12 @@ public abstract class AbstractExpressionValueVisitor
             // result of conversion of NaN to integer is undefined
             return UnknownValue.getInstance();
 
-          } else if (numericValue.doubleValue() != numericValue.longValue()) {
-            // if float can not be exactly represented as integer, the
-            // result of the conversion of float to integer is undefined
-            return UnknownValue.getInstance();
+            } else if ((numericValue.getNumber() instanceof Float
+                    || numericValue.getNumber() instanceof Double)
+                && Math.abs(numericValue.doubleValue() - numericValue.longValue()) >= 1) {
+              // if number is a float and float can not be exactly represented as integer, the
+              // result of the conversion of float to integer is undefined
+              return UnknownValue.getInstance();
           }
 
           final BigInteger valueToCastAsInt = BigInteger.valueOf(numericValue.longValue());

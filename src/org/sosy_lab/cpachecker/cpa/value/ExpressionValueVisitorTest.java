@@ -295,6 +295,37 @@ public class ExpressionValueVisitorTest {
     performMachineModelAgnosticChecksForFloats();
   }
 
+  @Test
+  public void checkFloatToIntCasts32() {
+    assume().that(machineModel).named("MachineModel").isSameAs(MachineModel.LINUX32);
+
+    for (long i = -MAX_INT; i < MAX_INT; i += 10L * 1000L * 1000L) {
+      double d;
+      if (i < 0) {
+        d = i - 0.5;
+      } else {
+        d = i + 0.5;
+      }
+      checkCast(d, i, S_LONG_LONG_INT);
+    }
+  }
+
+  @Test
+  public void checkFloatToIntCasts64() {
+    assume().that(machineModel).named("MachineModel").isSameAs(MachineModel.LINUX64);
+
+    for (long i = -MAX_INT; i < MAX_INT; i += 10L * 1000L * 1000L) {
+      double d;
+      if (i < 0) {
+        d = i - 0.5;
+      } else {
+        d = i + 0.5;
+      }
+      checkCast(d, i, S_LONG_INT);
+      checkCast(d, i, S_LONG_LONG_INT);
+    }
+  }
+
   private void performMachineModelAgnosticChecksForFloats() {
     for (CType type : ImmutableList.of(FLOAT, DOUBLE)) {
       for (Float n : ImmutableList
@@ -360,5 +391,16 @@ public class ExpressionValueVisitorTest {
 
     assertThat(value).isInstanceOf(NumericValue.class);
     assertThat(((NumericValue) value).floatValue()).isEqualTo(expectedOut);
+  }
+
+  private void checkCast(double in, long expectedOut, CType outType) {
+    NumericValue inValue = new NumericValue(in);
+
+    final Value value =
+        AbstractExpressionValueVisitor.castCValue(
+            inValue, outType, machineModel, logger, FileLocation.DUMMY);
+
+    assertThat(value).isInstanceOf(NumericValue.class);
+    assertThat(((NumericValue) value).longValue()).isEqualTo(expectedOut);
   }
 }
