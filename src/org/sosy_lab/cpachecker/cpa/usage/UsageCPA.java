@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
 import org.sosy_lab.cpachecker.cpa.lock.LockCPA;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -110,8 +109,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
             pConfig,
             pLogger,
             statistics,
-            (CallstackTransferRelation)
-                (CPAs.retrieveCPA(this, CallstackCPA.class)).getTransferRelation());
+            CPAs.retrieveCPA(this, CallstackCPA.class).getTransferRelation());
   }
 
   @Override

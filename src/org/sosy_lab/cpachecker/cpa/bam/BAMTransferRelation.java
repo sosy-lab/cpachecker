@@ -82,9 +82,8 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     super(bamCpa, pShutdownNotifier);
     algorithmFactory = pFactory;
     callstackTransfer =
-        (CallstackTransferRelation)
-            (CPAs.retrieveCPAOrFail(bamCpa, CallstackCPA.class, BAMTransferRelation.class))
-                .getTransferRelation();
+        CPAs.retrieveCPAOrFail(bamCpa, CallstackCPA.class, BAMTransferRelation.class)
+            .getTransferRelation();
     bamPccManager = pBamPccManager;
   }
 
