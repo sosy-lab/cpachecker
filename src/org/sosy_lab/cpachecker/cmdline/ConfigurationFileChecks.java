@@ -419,7 +419,9 @@ public class ConfigurationFileChecks {
                 "specification/sv-comp-memorysafety.spc",
                 "specification/sv-comp-memorycleanup.spc");
       } else {
-        assertThat(spec).contains("specification/memorysafety.spc");
+        if (!spec.contains("specification/sv-comp-memorycleanup.spc")) {
+          assertThat(spec).contains("specification/memorysafety.spc");
+        }
       }
     } else if (basePath.toString().startsWith("ldv")) {
       assertThat(spec).endsWith("specification/sv-comp-errorlabel.spc");
