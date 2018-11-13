@@ -1228,23 +1228,24 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       // plain condition
     } else {
-      return buildConditionTreeLeaf(
-          condition,
-          fileLocation,
-          rootNode,
-          thenNode,
-          elseNode,
-          thenNodeForLastThen,
-          elseNodeForLastElse,
-          furtherThenComputation,
-          furtherElseComputation,
-          flippedThenElse,
-          pInnerNodes);
+      return Optional.of(
+          buildConditionTreeLeaf(
+              condition,
+              fileLocation,
+              rootNode,
+              thenNode,
+              elseNode,
+              thenNodeForLastThen,
+              elseNodeForLastElse,
+              furtherThenComputation,
+              furtherElseComputation,
+              flippedThenElse,
+              pInnerNodes));
     }
   }
 
   /** Handle a leaf node of a condition tree, i.e. the most primitive part of a condition. */
-  private Optional<CExpression> buildConditionTreeLeaf(
+  private CExpression buildConditionTreeLeaf(
       IASTExpression condition,
       final FileLocation fileLocation,
       CFANode rootNode,
@@ -1274,7 +1275,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         addToCFA(falseEdge);
 
         // reset side assignments which are not necessary
-        return Optional.of(CIntegerLiteralExpression.ZERO);
+        return CIntegerLiteralExpression.ZERO;
 
       case ALWAYS_TRUE:
         final BlankEdge trueEdge =
@@ -1283,7 +1284,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
         // no edge connecting prevNode with elseNode,
         // so the "else" branch won't be connected to the rest of the CFA
-        return Optional.of(CIntegerLiteralExpression.ONE);
+        return CIntegerLiteralExpression.ONE;
 
       default:
         throw new AssertionError();
@@ -1332,7 +1333,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         loc,
         flippedThenElse,
         pInnerNodes);
-    return Optional.of(exp);
+    return exp;
   }
 
   /**
