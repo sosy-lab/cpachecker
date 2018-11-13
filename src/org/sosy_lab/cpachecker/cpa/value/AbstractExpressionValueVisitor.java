@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.Lists;
@@ -484,6 +485,10 @@ public abstract class AbstractExpressionValueVisitor
       final BinaryOperator op, final CType calculationType,
       final MachineModel machineModel, final LogManager logger) {
 
+    checkArgument(calculationType.getCanonicalType() instanceof CSimpleType
+            && !((CSimpleType) calculationType.getCanonicalType()).isLong(),
+        "Value analysis can't compute long double values in a precise manner");
+
     switch (op) {
     case PLUS:
       return l + r;
@@ -577,10 +582,16 @@ public abstract class AbstractExpressionValueVisitor
         return new NumericValue(result);
       }
       case DOUBLE: {
-        double lVal = lNum.doubleValue();
-        double rVal = rNum.doubleValue();
-        double result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
-        return new NumericValue(result);
+        if (type.isLong()) {
+          return arithmeticOperationForLongDouble(lNum, rNum, op, calculationType, machineModel,
+              logger);
+        } else {
+          double lVal = lNum.doubleValue();
+          double rVal = rNum.doubleValue();
+          double result =
+              arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
+          return new NumericValue(result);
+        }
       }
       case FLOAT: {
         float lVal = lNum.floatValue();
@@ -603,6 +614,16 @@ public abstract class AbstractExpressionValueVisitor
           rNum.bigDecimalValue());
       return Value.UnknownValue.getInstance();
     }
+  }
+
+  @SuppressWarnings("unused")
+  private static Value arithmeticOperationForLongDouble(
+      NumericValue pLNum,
+      NumericValue pRNum,
+      BinaryOperator pOp,
+      CType pCalculationType, MachineModel pMachineModel, LogManager pLogger) {
+    // TODO: cf. https://gitlab.com/sosy-lab/software/cpachecker/issues/507
+    return Value.UnknownValue.getInstance();
   }
 
   private static Value booleanOperation(final NumericValue l, final NumericValue r,
