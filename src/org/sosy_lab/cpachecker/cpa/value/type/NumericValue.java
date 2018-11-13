@@ -85,7 +85,18 @@ public class NumericValue implements Value, Serializable {
    * Returns a BigDecimal value representing the stored number.
    */
   public BigDecimal bigDecimalValue() {
-    return new BigDecimal(number.toString());
+    if (number instanceof Double || number instanceof Float) {
+      // if we use number.toString() for float values, the toString() method
+      // will not print the full double but only the number of digits
+      // necessary to distinguish it from the surrounding double-values.
+      // This will result in an incorrect value of the BigDecimal.
+      // Instead, use the floats themselves to get the precise value.
+      //
+      // cf. https://docs.oracle.com/javase/8/docs/api/java/lang/Double.html#toString-double-
+      return BigDecimal.valueOf(number.doubleValue());
+    } else {
+      return new BigDecimal(number.toString());
+    }
   }
 
   /** Returns a {@link BigInteger} value representing the stored number. */
