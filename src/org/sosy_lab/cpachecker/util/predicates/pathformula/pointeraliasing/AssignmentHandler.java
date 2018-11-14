@@ -58,7 +58,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
@@ -199,18 +201,34 @@ class AssignmentHandler {
 
     if (lhsLocation.isUnaliasedLocation() && lhs instanceof CFieldReference) {
       CFieldReference fieldReference = (CFieldReference) lhs;
-      CType ownerType = typeHandler.getSimplifiedType(fieldReference.getFieldOwner());
-      if (!fieldReference.isPointerDereference()
-          && ownerType instanceof CCompositeType
-          && ((CCompositeType) ownerType).getKind() == ComplexTypeKind.UNION) {
-        addAssignmentsForOtherFieldsOfUnion(
-            lhsType,
-            (CCompositeType) ownerType,
-            rhsType,
-            rhsExpression,
-            useOldSSAIndices,
-            updatedRegions,
-            fieldReference);
+      CExpression fieldOwner = fieldReference.getFieldOwner();
+      CType ownerType = typeHandler.getSimplifiedType(fieldOwner);
+      if (!fieldReference.isPointerDereference() && ownerType instanceof CCompositeType) {
+        if (((CCompositeType) ownerType).getKind() == ComplexTypeKind.UNION) {
+          addAssignmentsForOtherFieldsOfUnion(
+              lhsType,
+              (CCompositeType) ownerType,
+              rhsType,
+              rhsExpression,
+              useOldSSAIndices,
+              updatedRegions,
+              fieldReference);
+        }
+        if (fieldOwner instanceof CFieldReference) {
+          CFieldReference owner = (CFieldReference) fieldOwner;
+          CType ownersOwnerType = typeHandler.getSimplifiedType(owner.getFieldOwner());
+          if (ownersOwnerType instanceof CCompositeType
+              && ((CCompositeType) ownersOwnerType).getKind() == ComplexTypeKind.UNION) {
+            addAssignmentsForOtherFieldsOfUnion(
+                ownersOwnerType,
+                (CCompositeType) ownersOwnerType,
+                ownerType,
+                createRHSExpression(owner, ownerType, rhsVisitor),
+                useOldSSAIndices,
+                updatedRegions,
+                owner);
+          }
+        }
       }
     }
 
@@ -826,6 +844,71 @@ class AssignmentHandler {
           rhsFormula = conv.makeCast(rhsType, lhsType, rhsFormula, constraints, edge);
           rhsFormula = conv.makeValueReinterpretation(lhsType, newLhsType, rhsFormula);
           newRhsExpression = rhsFormula == null ? Value.nondetValue() : Value.ofValue(rhsFormula);
+        } else if (rhsType instanceof CCompositeType) {
+          // reinterpret compositetype as bitvector; concatenate its fields appropiately in case of
+          // struct
+          if (((CCompositeType) rhsType).getKind() == ComplexTypeKind.STRUCT) {
+            CExpressionVisitorWithPointerAliasing expVisitor = newExpressionVisitor();
+            int offset = 0;
+            int targetSize = typeHandler.getBitSizeof(newLhsType);
+            Formula rhsFormula = null;
+
+            for (CCompositeTypeMemberDeclaration innerMember :
+                ((CCompositeType) rhsType).getMembers()) {
+              if (rhsFormula == null) {
+                rhsFormula = fmgr.getBitvectorFormulaManager().makeBitvector(targetSize, 0);
+              }
+
+              int innerMemberSize = typeHandler.getBitSizeof(innerMember.getType());
+
+              CExpression innerMemberFieldReference =
+                  new CFieldReference(
+                      FileLocation.DUMMY,
+                      innerMember.getType(),
+                      innerMember.getName(),
+                      fieldReference,
+                      false);
+              Formula memberFormula =
+                  getValueFormula(
+                          innerMember.getType(),
+                          createRHSExpression(
+                              innerMemberFieldReference, innerMember.getType(), expVisitor))
+                      .get();
+              if (!(memberFormula instanceof BitvectorFormula)) {
+                CType interType = TypeUtils.createTypeWithLength(innerMemberSize);
+                memberFormula =
+                    conv.makeCast(
+                        innerMember.getType(), interType, memberFormula, constraints, edge);
+                memberFormula =
+                    conv.makeValueReinterpretation(innerMember.getType(), interType, memberFormula);
+              }
+              assert memberFormula == null || memberFormula instanceof BitvectorFormula;
+
+              memberFormula =
+                  fmgr.makeExtend(
+                      memberFormula,
+                      targetSize - innerMemberSize,
+                      ((CSimpleType) newLhsType).isSigned());
+              memberFormula =
+                  fmgr.makeShiftLeft(
+                      memberFormula,
+                      fmgr.makeNumber(FormulaType.getBitvectorTypeWithSize(targetSize), offset));
+              rhsFormula = fmgr.makePlus(rhsFormula, memberFormula);
+
+              offset += typeHandler.getBitSizeof(innerMember.getType());
+            }
+
+            CType fromType = TypeUtils.createTypeWithLength(targetSize);
+            rhsFormula = conv.makeCast(fromType, newLhsType, rhsFormula, constraints, edge);
+            rhsFormula = conv.makeValueReinterpretation(fromType, newLhsType, rhsFormula);
+            // make rhsexpression from constructed bitvector; perhaps cast to lhsType in advance?
+            newRhsExpression = rhsFormula == null ? Value.nondetValue() : Value.ofValue(rhsFormula);
+
+            // make assignment to lhs
+          } else {
+            throw new UnsupportedCodeException(
+                "Assignment of complex Unions via nested Struct-Members not supported", edge);
+          }
         } else {
           newRhsExpression = Value.nondetValue();
         }
