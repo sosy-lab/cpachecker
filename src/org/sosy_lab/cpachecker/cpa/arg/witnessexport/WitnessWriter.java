@@ -950,7 +950,13 @@ class WitnessWriter implements EdgeAppender {
           switch (functionName) {
             case ThreadingTransferRelation.THREAD_START:
               {
-                ARGState child = getChildState(pState, pEdge);
+                com.google.common.base.Optional<ARGState> possibleChild =
+                    from(pState.getChildren()).firstMatch(c -> pEdge == pState.getEdgeToChild(c));
+                if (!possibleChild.isPresent()) {
+                  // this can happen e.g. if the ARG was not discovered completely.
+                  return Collections.singletonList(pResult);
+                }
+                ARGState child = possibleChild.get();
                 // search the new created thread-id
                 ThreadingState succThreadingState = extractStateByType(child, ThreadingState.class);
                 for (String threadId : succThreadingState.getThreadIds()) {
@@ -995,11 +1001,6 @@ class WitnessWriter implements EdgeAppender {
     }
 
     return result;
-  }
-
-  /** return the single successor state of a state along an edge. */
-  private static ARGState getChildState(ARGState pParent, final CFAEdge pEdge) {
-    return from(pParent.getChildren()).firstMatch(c -> pEdge == pParent.getEdgeToChild(c)).get();
   }
 
   private int getUniqueThreadNum(String threadId) {
