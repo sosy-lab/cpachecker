@@ -884,23 +884,31 @@ class AssignmentHandler {
               }
               assert memberFormula == null || memberFormula instanceof BitvectorFormula;
 
-              memberFormula =
-                  fmgr.makeExtend(
-                      memberFormula,
-                      targetSize - innerMemberSize,
-                      ((CSimpleType) newLhsType).isSigned());
-              memberFormula =
-                  fmgr.makeShiftLeft(
-                      memberFormula,
-                      fmgr.makeNumber(FormulaType.getBitvectorTypeWithSize(targetSize), offset));
-              rhsFormula = fmgr.makePlus(rhsFormula, memberFormula);
+              if (memberFormula != null) {
+                if (rhsFormula == null) {
+                  rhsFormula = fmgr.getBitvectorFormulaManager().makeBitvector(targetSize, 0);
+                }
+
+                memberFormula =
+                    fmgr.makeExtend(
+                        memberFormula,
+                        targetSize - innerMemberSize,
+                        ((CSimpleType) newLhsType).isSigned());
+                memberFormula =
+                    fmgr.makeShiftLeft(
+                        memberFormula,
+                        fmgr.makeNumber(FormulaType.getBitvectorTypeWithSize(targetSize), offset));
+                rhsFormula = fmgr.makePlus(rhsFormula, memberFormula);
+              }
 
               offset += typeHandler.getBitSizeof(innerMember.getType());
             }
 
-            CType fromType = TypeUtils.createTypeWithLength(targetSize);
-            rhsFormula = conv.makeCast(fromType, newLhsType, rhsFormula, constraints, edge);
-            rhsFormula = conv.makeValueReinterpretation(fromType, newLhsType, rhsFormula);
+            if (rhsFormula != null) {
+              CType fromType = TypeUtils.createTypeWithLength(targetSize);
+              rhsFormula = conv.makeCast(fromType, newLhsType, rhsFormula, constraints, edge);
+              rhsFormula = conv.makeValueReinterpretation(fromType, newLhsType, rhsFormula);
+            }
             // make rhsexpression from constructed bitvector; perhaps cast to lhsType in advance?
             newRhsExpression = rhsFormula == null ? Value.nondetValue() : Value.ofValue(rhsFormula);
 
