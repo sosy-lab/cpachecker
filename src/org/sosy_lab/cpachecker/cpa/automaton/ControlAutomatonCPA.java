@@ -77,11 +77,6 @@ public class ControlAutomatonCPA
         ConfigurableProgramAnalysisWithBAM,
         ProofCheckerCPA {
 
-  private enum AutomatonInitPrecision {
-    DEFAULT,
-    SWITCH
-  }
-
   @Option(secure=true, name="dotExport",
       description="export automaton to file")
   private boolean export = false;
@@ -131,15 +126,6 @@ public class ControlAutomatonCPA
         "An implicit precision: consider states with a self-loop and no other outgoing edges as TOP."
   )
   private boolean topOnFinalSelfLoopingState = false;
-
-  @Option(
-      secure = true,
-      name = "initPrecision",
-      description =
-          "Initial precision for automaton CPA.\n"
-              + "- DEFAULT: empty precision.\n"
-              + "- SWITCH: automaton precision, which allows to turn on and off the automata.")
-  private AutomatonInitPrecision initPrecision = AutomatonInitPrecision.DEFAULT;
 
   private final Automaton automaton;
   private final AutomatonState topState = new AutomatonState.TOP(this);
@@ -289,14 +275,6 @@ public class ControlAutomatonCPA
   @Override
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    switch (initPrecision) {
-      case DEFAULT:
-        return SingletonPrecision.getInstance();
-      case SWITCH:
-        return new AutomatonPrecision(automaton);
-      default:
-        assert false;
-    }
-    return null;
+    return new AutomatonPrecision(automaton);
   }
 }
