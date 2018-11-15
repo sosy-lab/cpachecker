@@ -855,10 +855,6 @@ class AssignmentHandler {
 
             for (CCompositeTypeMemberDeclaration innerMember :
                 ((CCompositeType) rhsType).getMembers()) {
-              if (rhsFormula == null) {
-                rhsFormula = fmgr.getBitvectorFormulaManager().makeBitvector(targetSize, 0);
-              }
-
               int innerMemberSize = typeHandler.getBitSizeof(innerMember.getType());
 
               CExpression innerMemberFieldReference =
