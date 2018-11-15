@@ -20,12 +20,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpv.property;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -56,26 +54,26 @@ public final class MultipleProperties {
    * AUTOMATON - each automaton represent a single property.
    */
   public MultipleProperties(
-      ImmutableMap<Path, List<Automaton>> specification,
+      ImmutableListMultimap<Path, Automaton> specification,
       PropertySeparator propertySeparator,
       boolean findAllViolations) {
     this.findAllViolations = findAllViolations;
     ImmutableList.Builder<AbstractSingleProperty> propertyBuilder = ImmutableList.builder();
-    for (Entry<Path, List<Automaton>> entry : specification.entrySet()) {
+    for (Path path : specification.keySet()) {
       switch (propertySeparator) {
         case FILE:
-          Path propertyFileName = entry.getKey().getFileName();
+          Path propertyFileName = path.getFileName();
           String propertyName;
           if (propertyFileName != null) {
             propertyName = propertyFileName.toString();
           } else {
-            propertyName = entry.getKey().toString();
+            propertyName = path.toString();
           }
           propertyName = propertyName.replace(".spc", "");
-          propertyBuilder.add(new AutomataSingleProperty(propertyName, entry.getValue()));
+          propertyBuilder.add(new AutomataSingleProperty(propertyName, specification.get(path)));
           break;
         case AUTOMATON:
-          for (Automaton automaton : entry.getValue()) {
+          for (Automaton automaton : specification.get(path)) {
             propertyName = automaton.getName();
             propertyBuilder.add(
                 new AutomataSingleProperty(propertyName, Lists.newArrayList(automaton)));

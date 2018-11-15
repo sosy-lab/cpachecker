@@ -260,7 +260,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
     config.inject(this);
     MultipleProperties multipleProperties =
         new MultipleProperties(
-            specification.getSpecification(), propertySeparator, findAllViolations);
+            specification.getPathToSpecificationAutomata(), propertySeparator, findAllViolations);
     multipleProperties.determineRelevance(pCfa);
 
     stats = new MPVStatistics(multipleProperties);
