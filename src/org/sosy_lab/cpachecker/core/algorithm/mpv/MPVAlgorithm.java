@@ -242,6 +242,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
   private final Specification specification;
   private final CFA cfa;
   private final PartitioningOperator partitioningOperator;
+  private final MultipleProperties multipleProperties;
 
   public MPVAlgorithm(
       ConfigurableProgramAnalysis pCpa,
@@ -258,7 +259,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
     specification = pSpecification;
     cfa = pCfa;
     config.inject(this);
-    MultipleProperties multipleProperties =
+    multipleProperties =
         new MultipleProperties(
             specification.getPathToSpecificationAutomata(), propertySeparator, findAllViolations);
     multipleProperties.determineRelevance(pCfa);
@@ -267,7 +268,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
     propertyDistribution = initializePropertyDistribution();
     partitioningOperator =
         partitioningOperatorFactory.create(
-            config, logger, shutdownNotifier, stats.multipleProperties, cpuTimePerProperty);
+            config, logger, shutdownNotifier, multipleProperties, cpuTimePerProperty);
   }
 
   private Map<AbstractSingleProperty, Double> initializePropertyDistribution() {
@@ -291,7 +292,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
           String ratioStr = matcher.group(2);
           AbstractSingleProperty targetProperty = null;
           // attempt to find property with this name
-          for (AbstractSingleProperty property : stats.multipleProperties.getProperties()) {
+          for (AbstractSingleProperty property : multipleProperties.getProperties()) {
             if (property.getName().equals(propertyName)) {
               targetProperty = property;
               break;
@@ -337,7 +338,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
   public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
 
     assert reached instanceof MPVReachedSet;
-    ((MPVReachedSet) reached).setMultipleProperties(stats.multipleProperties);
+    ((MPVReachedSet) reached).setMultipleProperties(multipleProperties);
 
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
@@ -367,7 +368,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
 
           // inner algorithm
           Algorithm algorithm = createInnerAlgorithm(reached, mainFunction, shutdownManager);
-          stats.multipleProperties.setTargetProperties(partition.getProperties(), reached);
+          multipleProperties.setTargetProperties(partition.getProperties(), reached);
           collectStatistics(algorithm);
           try {
             partition.startAnalysis();
@@ -404,7 +405,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
             limits.cancel();
           }
         }
-      } while (!stats.multipleProperties.isChecked());
+      } while (!multipleProperties.isChecked());
     } finally {
       stats.totalTimer.stop();
     }
@@ -423,7 +424,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
     }
     TimeSpan overallSpentCpuTime = stats.getCurrentCpuTime();
     TimeSpan overallCpuTimeLimit =
-        cpuTimePerProperty.multiply(stats.multipleProperties.getNumberOfProperties());
+        cpuTimePerProperty.multiply(multipleProperties.getNumberOfProperties());
     if (overallCpuTimeLimit.compareTo(overallSpentCpuTime) <= 0
         || overallPartitions <= currentPartitionNumber) {
       // do nothing in case of bad args - should be unreachable
