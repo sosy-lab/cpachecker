@@ -1107,7 +1107,7 @@ public final class InterpolationManager {
               newFmgr, fmgr, logger, findingCommonVariablesTimer,
               buildingLatticeNamesAndLatticeTypesTimer, renamingTimer, buildingAbstractionsTimer,
               interpolationTimer, initialVariableExtractionTimer, feasiblityCheckTimer,
-              maximisationTimer);
+              maximisationTimer, inequalityInterpolationAbstractions);
           List<BooleanFormula> tocheck =
               Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst);
           if (tocheck != null) {
