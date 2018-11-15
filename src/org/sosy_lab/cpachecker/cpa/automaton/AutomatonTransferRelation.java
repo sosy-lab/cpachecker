@@ -158,7 +158,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (precision instanceof AutomatonPrecision) {
-      if (((AutomatonPrecision) precision).isDisable()) {
+      if (!((AutomatonPrecision) precision).isEnabled()) {
         if (state.isTarget()) {
           // do not create transition from target states
           return Collections.emptySet();
