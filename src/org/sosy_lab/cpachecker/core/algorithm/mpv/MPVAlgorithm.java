@@ -82,22 +82,17 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 @Options(prefix = "mpv")
 public class MPVAlgorithm implements Algorithm, StatisticsProvider {
 
-  public static class MPVStatistics implements Statistics {
+  private class MPVStatistics implements Statistics {
 
     private final Timer totalTimer = new Timer();
     private final Timer createPartitionsTimer = new Timer();
 
     private int iterationNumber;
     private final List<Partition> partitions;
-    private final MultipleProperties multipleProperties;
 
-    private Collection<Statistics> statistics;
-
-    private MPVStatistics(final MultipleProperties pMultipleProperties) {
-      multipleProperties = pMultipleProperties;
+    private MPVStatistics() {
       iterationNumber = 0;
       partitions = Lists.newArrayList();
-      statistics = Lists.newArrayList();
     }
 
     @Override
@@ -228,12 +223,6 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
       description = "Find all violations of each checked property.")
   private boolean findAllViolations = false;
 
-  @Option(
-      secure = true,
-      name = "collectAllStatistics",
-      description = "Collect statistics for all inner algorithms on each iteration.")
-  private boolean collectAllStatistics = false;
-
   private final MPVStatistics stats;
   private final ConfigurableProgramAnalysis cpa;
   private final LogManager logger;
@@ -264,7 +253,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
             specification.getPathToSpecificationAutomata(), propertySeparator, findAllViolations);
     multipleProperties.determineRelevance(pCfa);
 
-    stats = new MPVStatistics(multipleProperties);
+    stats = new MPVStatistics();
     propertyDistribution = initializePropertyDistribution();
     partitioningOperator =
         partitioningOperatorFactory.create(
@@ -369,7 +358,6 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
           // inner algorithm
           Algorithm algorithm = createInnerAlgorithm(reached, mainFunction, shutdownManager);
           multipleProperties.setTargetProperties(partition.getProperties(), reached);
-          collectStatistics(algorithm);
           try {
             partition.startAnalysis();
             logger.log(
@@ -458,14 +446,6 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
     partition.updateTimeLimit(adjustedTimeLimit);
   }
 
-  private void collectStatistics(Algorithm pAlgorithm) {
-    if (collectAllStatistics) {
-      if (pAlgorithm instanceof StatisticsProvider) {
-        ((StatisticsProvider) pAlgorithm).collectStatistics(stats.statistics);
-      }
-    }
-  }
-
   private Algorithm createInnerAlgorithm(
       ReachedSet reached, CFANode mainFunction, ShutdownManager shutdownManager)
       throws InterruptedException, CPAException {
@@ -502,6 +482,5 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
-    stats.statistics = pStatsCollection;
   }
 }

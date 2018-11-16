@@ -3118,9 +3118,6 @@ memorysafety.config = no default value
 merge = "JOIN"
   allowed values: [SEP, JOIN]
 
-# Collect statistics for all inner algorithms on each iteration.
-mpv.collectAllStatistics = false
-
 # Find all violations of each checked property.
 mpv.findAllViolations = false
 
