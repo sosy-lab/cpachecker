@@ -501,7 +501,8 @@ class WitnessWriter implements EdgeAppender {
 
     if (witnessOptions.exportFunctionCallsAndReturns()
         && pEdge.getSuccessor() instanceof FunctionExitNode) {
-      String functionName = ((FunctionExitNode) pEdge.getSuccessor()).getFunctionName();
+      FunctionEntryNode entryNode = ((FunctionExitNode) pEdge.getSuccessor()).getEntryNode();
+      String functionName = entryNode.getFunctionDefinition().getOrigName();
       result = result.putAndCopy(KeyDef.FUNCTIONEXIT, getOriginalFunctionName(functionName));
     }
 
