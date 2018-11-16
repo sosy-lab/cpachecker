@@ -664,9 +664,12 @@ public class AssumptionToEdgeAllocator {
       if (pLValue instanceof CPointerExpression) {
         return ((CPointerExpression) pLValue).getOperand();
       }
-      CUnaryExpression unaryExpression = new CUnaryExpression(
-          pLValue.getFileLocation(), type, pLValue,
-          CUnaryExpression.UnaryOperator.AMPER);
+      CUnaryExpression unaryExpression =
+          new CUnaryExpression(
+              pLValue.getFileLocation(),
+              new CPointerType(false, false, type),
+              pLValue,
+              CUnaryExpression.UnaryOperator.AMPER);
       return unaryExpression;
     } else {
       return pLValue;
