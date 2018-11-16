@@ -3121,6 +3121,10 @@ merge = "JOIN"
 # Find all violations of each checked property.
 mpv.findAllViolations = false
 
+# Ignore exceptions, which may be caused by checking of some properties, to
+# successfully check the others.
+mpv.ignoreInnerExceptions = false
+
 # Adjust resource limitations during the analysis.
 # - NONE: do not adjust resource limitations (default).
 # - DISTRIBUTE_REMAINING: distribute resources, which were allocated for some

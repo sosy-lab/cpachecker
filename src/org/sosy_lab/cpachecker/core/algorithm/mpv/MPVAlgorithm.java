@@ -223,6 +223,13 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
       description = "Find all violations of each checked property.")
   private boolean findAllViolations = false;
 
+  @Option(
+      secure = true,
+      name = "ignoreInnerExceptions",
+      description =
+          "Ignore exceptions, which may be caused by checking of some properties, to successfully check the others.")
+  private boolean ignoreInnerExceptions = false;
+
   private final MPVStatistics stats;
   private final ConfigurableProgramAnalysis cpa;
   private final LogManager logger;
@@ -290,9 +297,9 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
           if (targetProperty == null) {
             logger.log(
                 Level.WARNING,
-                "Property with name '"
-                    + propertyName
-                    + "', specified in property distribution file, does not exist");
+                "Property with name '",
+                propertyName,
+                "', specified in property distribution file, does not exist");
             continue;
           }
           // attempt to parse ratio
@@ -302,23 +309,27 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
           } catch (NumberFormatException e) {
             logger.log(
                 Level.WARNING,
-                "Could not parse ratio '" + ratioStr + "' for property " + propertyName);
+                "Could not parse ratio '",
+                ratioStr,
+                "' for property",
+                propertyName,
+                e);
           }
         } else {
           logger.log(
               Level.WARNING,
-              "Could not parse line '"
-                  + line
-                  + "' in property distribution file. "
-                  + "Correct format is '<property name>':<ratio>");
+              "Could not parse line '",
+              line,
+              "' in property distribution file. Correct format is '<property name>':<ratio>");
         }
       }
       return propertyDistributionBuilder.build();
     } catch (IOException e) {
       logger.log(
           Level.WARNING,
-          e,
-          "Could not read properties distribution from file " + propertyDistributionFile);
+          "Could not read properties distribution from file",
+          propertyDistributionFile,
+          e);
     }
     return ImmutableMap.of();
   }
@@ -340,6 +351,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
       do {
         ImmutableList<Partition> partitions = partitioningOperator.createPartition();
         int partitionNumber = 0;
+        logger.log(Level.FINER, "Using the following partitions of properties:", partitions);
         for (Partition partition : partitions) {
           int numberOfProperties = partition.getNumberOfProperties();
           if (numberOfProperties <= 0) {
@@ -362,33 +374,33 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
             partition.startAnalysis();
             logger.log(
                 Level.INFO,
-                "Iteration "
-                    + stats.iterationNumber
-                    + ": checking partition "
-                    + partition
-                    + " with "
-                    + numberOfProperties
-                    + " properties");
+                "Iteration",
+                stats.iterationNumber,
+                ": checking partition",
+                partition,
+                "with",
+                numberOfProperties,
+                "properties");
             do {
               status = status.update(algorithm.run(reached));
             } while (!partition.isChecked(reached));
-            logger.log(Level.INFO, "Stopping iteration " + stats.iterationNumber);
           } catch (InterruptedException e) {
             if (shutdownNotifier.shouldShutdown()) {
               // Interrupted by outer limit checker or by user
-              logger.logUserException(Level.WARNING, e, "Analysis interrupted from the outside");
               partition.stopAnalysisOnFailure(reached, "Interrupted");
               throw e;
             } else {
               // Interrupted by inner limit checker
-              logger.log(Level.INFO, e, "Partition has exhausted resource limitations");
+              logger.log(Level.INFO, "Partition has exhausted resource limitations:", e);
               partition.stopAnalysisOnFailure(reached, "Inner time limit");
             }
           } catch (Exception e) {
-            // Try to intercept any exception, which may be related to checking of specific
-            // property, so it would be possible to successfully check other properties.
-            logger.log(Level.WARNING, e, ": Exception during partition checking");
             partition.stopAnalysisOnFailure(reached, e.getClass().getSimpleName());
+            if (ignoreInnerExceptions) {
+              logger.log(Level.INFO, "Exception occured during partition checking:", e);
+            } else {
+              throw e;
+            }
           } finally {
             limits.cancel();
           }
@@ -473,7 +485,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
       return coreComponents.createAlgorithm(cpa, cfa, specification);
     } catch (InvalidConfigurationException e) {
       // should be unreachable, since configuration is already checked
-      throw new CPAException("Cannot create configuration for inner algorithm: " + e);
+      throw new CPAException("Cannot create configuration for inner algorithm", e);
     } finally {
       stats.createPartitionsTimer.stop();
     }
