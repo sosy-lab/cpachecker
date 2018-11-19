@@ -1,0 +1,160 @@
+include: /build/gitlab-ci.yml
+
+variables:
+  PROJECT_PATH: "sosy-lab/software/cpachecker"
+  GH_REF: "github.com/sosy-lab/cpachecker"
+
+
+.binary_check: &binary_check
+  stage: checks
+
+.configuration-checks: &configuration-checks
+  <<: *binary_check
+  script: "ant $ANT_PROPS_CHECKS configuration-checks"
+  artifacts:
+    paths:
+      - "ConfigurationChecks.html"
+      - "hs_err_pid*.log"
+    when: always
+
+configuration-checks:jdk-8:
+  <<: *configuration-checks
+  dependencies:
+    - build-dependencies
+    - build:jdk-8
+
+configuration-checks:jdk-9:
+  <<: *configuration-checks
+  dependencies:
+    - build-dependencies
+    - build:jdk-9
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-9
+
+configuration-checks:jdk-10:
+  <<: *configuration-checks
+  dependencies:
+    - build-dependencies
+    - build:jdk-10
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-10
+  # Temporarily disabled until the segmentation fault is fixe
+  # (probably related to https://github.com/sosy-lab/java-smt/issues/132)
+  only: []
+
+
+configuration-documentation:
+  <<: *binary_check
+  script:
+    - "cp doc/ConfigurationOptions.txt doc/ConfigurationOptions.txt.old"
+    - "ant $ANT_PROPS_CHECKS build-documentation"
+    - "diff doc/ConfigurationOptions.txt.old doc/ConfigurationOptions.txt"
+  dependencies:
+    - build-dependencies
+    - build:jdk-8
+
+
+configuration-plot:
+  stage: checks
+  script:
+    - "mkdir -p output"
+    - "touch output/AssumptionAutomaton.txt"
+    - "scripts/configViz.py > ConfigurationPlot.dot"
+    - "dot -Tsvg ConfigurationPlot.dot -O"
+  dependencies: []
+  artifacts:
+    paths:
+      - "ConfigurationPlot.dot.svg"
+
+
+.python-unit-tests: &python-unit-tests
+  <<: *binary_check
+  script: "ant $ANT_PROPS_CHECKS python-unit-tests"
+
+python-unit-tests:jdk-8:
+  <<: *python-unit-tests
+  dependencies:
+    - build-dependencies
+    - build:jdk-8
+
+python-unit-tests:jdk-9:
+  <<: *python-unit-tests
+  dependencies:
+    - build-dependencies
+    - build:jdk-9
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-9
+
+python-unit-tests:jdk-10:
+  <<: *python-unit-tests
+  dependencies:
+    - build-dependencies
+    - build:jdk-10
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-10
+
+generate-sample-report:
+  stage: generate
+  dependencies:
+    - build-dependencies
+    - build:jdk-10
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-10
+  script:
+    - scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug_false-unreach-label.c
+  artifacts:
+    paths:
+     - "output/Counterexample.1.html"
+
+javascript-unit-tests:
+  stage: checks
+  dependencies: 
+    - generate-sample-report
+  image: node:8.9.4
+  before_script:
+    - cd src/org/sosy_lab/cpachecker/core/counterexample/
+    - npm install
+  script:
+    - cd node_modules/.bin/
+    - npm test --watch=false --single-run=true
+  cache:
+    paths:
+    - "src/org/sosy_lab/cpachecker/core/counterexample/node_modules/"
+  artifacts:
+    paths:
+      - src/org/sosy_lab/cpachecker/core/counterexample/unit_testing_report
+
+
+javascript-e2e-tests:
+  stage: checks
+  dependencies: 
+    - generate-sample-report
+  image: ${CI_REGISTRY_IMAGE}/test:java-node
+  before_script:
+    - cd src/org/sosy_lab/cpachecker/core/counterexample/
+    - npm install
+    - ./node_modules/protractor/node_modules/webdriver-manager/bin/webdriver-manager update
+  script:
+    - npm run e2e-test
+  cache:
+    paths:
+    - src/org/sosy_lab/cpachecker/core/counterexample/node_modules/
+  artifacts:
+    paths:
+      - src/org/sosy_lab/cpachecker/core/counterexample/e2e-tests-report
+
+
+# No coverage is computed for CPAchecker
+unit-tests:jdk-8:
+  script: "ant $ANT_PROPS_CHECKS unit-tests"
+
+unit-tests:jdk-9:
+  script: "ant $ANT_PROPS_CHECKS unit-tests"
+
+unit-tests:jdk-10:
+  script: "ant $ANT_PROPS_CHECKS unit-tests"
+
+# Disable some checks because they are not used for CPAchecker
+check-format:
+  only: []
+
+checkstyle:
+  only: []
+
+javadoc:
+  only: []
