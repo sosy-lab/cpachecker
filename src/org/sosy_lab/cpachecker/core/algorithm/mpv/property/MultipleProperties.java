@@ -35,9 +35,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 
-/*
- * Representation of multiple properties for multi-property verification.
- */
+/** Representation of multiple properties for multi-property verification algorithm. */
 public final class MultipleProperties {
 
   public enum PropertySeparator {
@@ -48,10 +46,9 @@ public final class MultipleProperties {
   private final boolean findAllViolations;
   private final ImmutableList<AbstractSingleProperty> properties;
 
-  /*
-   * Create a list of properties based on specified separator:
-   * FILE - each "*.spc" file represent a single property;
-   * AUTOMATON - each automaton represent a single property.
+  /**
+   * Create a list of properties based on specified separator: FILE - each "*.spc" file represent a
+   * single property; AUTOMATON - each automaton represent a single property.
    */
   public MultipleProperties(
       ImmutableListMultimap<Path, Automaton> specification,
@@ -92,9 +89,7 @@ public final class MultipleProperties {
     this.findAllViolations = findAllViolations;
   }
 
-  /*
-   * Create a joint partition with currently irrelevant properties.
-   */
+  /** Create a joint partition with currently irrelevant properties. */
   public MultipleProperties createIrrelevantProperties() {
     ImmutableList.Builder<AbstractSingleProperty> propertyBuilder = ImmutableList.builder();
     for (AbstractSingleProperty property : properties) {
@@ -105,9 +100,7 @@ public final class MultipleProperties {
     return new MultipleProperties(propertyBuilder.build(), findAllViolations);
   }
 
-  /*
-   * Stop analysis and make all currently checked properties UNKNOWN.
-   */
+  /** Stop analysis and make all currently checked properties UNKNOWN. */
   public void stopAnalysisOnFailure(String reason) {
     for (AbstractSingleProperty property : properties) {
       if (property.isNotChecked()) {
@@ -117,9 +110,7 @@ public final class MultipleProperties {
     }
   }
 
-  /*
-   * Stop analysis and make all currently checked properties TRUE.
-   */
+  /** Stop analysis and make all currently checked properties TRUE. */
   public void stopAnalysisOnSuccess() {
     for (AbstractSingleProperty property : properties) {
       if (property.isNotDetermined()) {
@@ -131,9 +122,7 @@ public final class MultipleProperties {
     }
   }
 
-  /*
-   * Process reached set with violated properties.
-   */
+  /** Process reached set with violated properties. */
   public void processPropertyViolation(ReachedSet reached) {
     Set<AbstractSingleProperty> violatedProperties =
         determineViolatedProperties(reached.getLastState());
@@ -155,9 +144,7 @@ public final class MultipleProperties {
     }
   }
 
-  /*
-   * Determine, which properties were violated in the given target state.
-   */
+  /** Determine, which properties were violated in the given target state. */
   private Set<AbstractSingleProperty> determineViolatedProperties(AbstractState targetState) {
     ImmutableSet.Builder<AbstractSingleProperty> builder = ImmutableSet.builder();
     if (targetState instanceof AbstractWrapperState) {
@@ -180,16 +167,14 @@ public final class MultipleProperties {
     return builder.build();
   }
 
-  /*
-   * Based on the given reached set determine relevant properties.
-   */
+  /** Based on the given reached set determine relevant properties. */
   public void determineRelevance(CFA cfa) {
     for (AbstractSingleProperty property : properties) {
       property.determineRelevancy(cfa);
     }
   }
 
-  /*
+  /**
    * Check only specified properties and ignore everything else. Here we assume, that reached set
    * contains only one initial state, so it is sufficient to change precision there.
    */
@@ -204,9 +189,7 @@ public final class MultipleProperties {
     }
   }
 
-  /*
-   * Return true, if all properties are checked.
-   */
+  /** Return true, if all properties are checked. */
   public boolean isChecked() {
     for (AbstractSingleProperty property : properties) {
       if (property.isNotDetermined()) {
@@ -216,7 +199,7 @@ public final class MultipleProperties {
     return true;
   }
 
-  /*
+  /**
    * Divide resources, which were spent on verification of multiple properties, between each checked
    * property.
    */
@@ -228,9 +211,7 @@ public final class MultipleProperties {
     }
   }
 
-  /*
-   * Adjust final result.
-   */
+  /** Adjust overall verification result based on result for each property. */
   public Result getOverallResult() {
     boolean isUnknown = false;
     for (AbstractSingleProperty property : properties) {

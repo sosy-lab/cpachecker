@@ -27,9 +27,18 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.property.MultipleProperties;
 
+/**
+ * This operator distributes the given multiple properties into several partitions (groups) and
+ * divides the given resources between each partition for multi-property verification algorithm.
+ * Properties, which are in the same partition, will be checked in a single algorithm run. The main
+ * idea of this operator is to separate properties into different partitions, which may cause state
+ * space explosion in case of joint checking, and to unite all other properties for more efficient
+ * verification.
+ */
 public interface PartitioningOperator {
 
-  public ImmutableList<Partition> createPartition();
+  /** Creates list of partitions for multi-property verification algorithm. */
+  public ImmutableList<Partition> createPartitions();
 
   interface Factory {
     PartitioningOperator create(

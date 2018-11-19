@@ -28,6 +28,10 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ResultProviderReachedSet;
 
+/**
+ * Reached set for multi-property verification algorithm, which provides verification result for
+ * each checked property.
+ */
 public class MPVReachedSet extends ForwardingReachedSet implements ResultProviderReachedSet {
 
   @Nullable private MultipleProperties multipleProperties = null;

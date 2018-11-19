@@ -28,16 +28,14 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 
-/*
- * Abstract representation of a single property inside multi-property verification.
- */
+/** Abstract representation of a single property inside multi-property verification. */
 public abstract class AbstractSingleProperty {
 
   private final String name;
 
   private TimeSpan cpuTime; // CPU time, which was spent on checking this property
   private boolean relevant; // whether this property was used during the analysis or not
-  private int violations; // number of found violations
+  private int violations; // number of found property violations
   private boolean allViolationsFound;
   private Result result;
   private final Set<Property> violatedPropertyDescription;
@@ -54,31 +52,24 @@ public abstract class AbstractSingleProperty {
     reasonOfUnknown = "";
   }
 
-  /*
-   * Ignore this property during the analysis.
-   */
+  /** Ignore this property during the analysis. */
   public abstract void disable(Precision pPrecision);
 
-  /*
-   * Resume checking of this property during the analysis.
-   */
+  /** Resume checking of this property during the analysis. */
   public abstract void enable(Precision pPrecision);
 
-  /*
-   * Check if the property is violated in the automaton state.
-   */
+  /** Check if the property is violated in the automaton state. */
   public abstract boolean isTarget(AutomatonState state);
 
+  /** Determine, if this property matches at least one CFA edge. */
   public abstract void determineRelevancy(CFA cfa);
 
-  /*
-   * Return true, if this property did not get final result (TRUE, FALSE or UNKNOWN).
-   */
+  /** Return true, if this property did not receive verification result (TRUE, FALSE or UNKNOWN). */
   public boolean isNotDetermined() {
     return result.equals(Result.NOT_YET_STARTED);
   }
 
-  /*
+  /**
    * Return true, if this property is still checking (it did not get final result or some property
    * violations were not found).
    */
@@ -86,9 +77,9 @@ public abstract class AbstractSingleProperty {
     return isNotDetermined() || (result.equals(Result.FALSE) && !allViolationsFound);
   }
 
-  /*
-   * Set final result for the property. Note, that FALSE result cannot be change to UNKNOWN if not
-   * all property violations were found.
+  /**
+   * Set final result for the property. Note, that FALSE result cannot be change to UNKNOWN if some
+   * property violations were not found.
    */
   public void updateResult(Result newResult) {
     if (!(newResult.equals(Result.UNKNOWN) && result.equals(Result.FALSE))) {

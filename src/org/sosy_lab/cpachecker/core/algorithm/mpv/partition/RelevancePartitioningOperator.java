@@ -27,6 +27,16 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.property.MultipleProperties;
 
+/**
+ * This partitioning operator takes 3 steps:<br>
+ * 1. put all the given properties in one partition with the given resource limitation (similar to
+ * {@link NoPartitioningOperator});<br>
+ * 2. put all potentially irrelevant properties, which were not successfully checked on the first
+ * step, in one partition with the given resource limitation (similar to {@link
+ * NoPartitioningOperator});<br>
+ * 3. put each relevant property, which was not checked on the previous steps, in the separate
+ * partition (similar to {@link SeparatePartitioningOperator}).<br>
+ */
 @Options(prefix = "mpv")
 public final class RelevancePartitioningOperator extends AbstractPartitioningOperator {
 
@@ -57,7 +67,7 @@ public final class RelevancePartitioningOperator extends AbstractPartitioningOpe
   }
 
   @Override
-  public ImmutableList<Partition> createPartition() {
+  public ImmutableList<Partition> createPartitions() {
     if (currentPhase() == 1) {
       nextPhase();
       return createJointPartition(getProperties(), scaleTimeLimit(firstPhaseRatio), false);

@@ -209,6 +209,11 @@ public class Automaton {
     return str.toString();
   }
 
+  /**
+   * Determine, if automaton is relevant for the given CFA, i.e. if there is at least one automaton
+   * transition, which matches at least one CFA edge. In this case automaton may be used during the
+   * analysis of the given CFA.
+   */
   public boolean isRelevantForCFA(CFA cfa) {
     for (CFANode node : cfa.getAllNodes()) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {

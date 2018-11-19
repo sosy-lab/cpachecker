@@ -23,6 +23,10 @@ import com.google.common.collect.ImmutableList;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.property.MultipleProperties;
 
+/**
+ * This partitioning operator creates a separate partition for each property and distributes the
+ * given resources between them equally.
+ */
 public final class SeparatePartitioningOperator extends AbstractPartitioningOperator {
 
   public SeparatePartitioningOperator(
@@ -31,7 +35,7 @@ public final class SeparatePartitioningOperator extends AbstractPartitioningOper
   }
 
   @Override
-  public ImmutableList<Partition> createPartition() {
+  public ImmutableList<Partition> createPartitions() {
     return createSeparatedPartition(getProperties());
   }
 }

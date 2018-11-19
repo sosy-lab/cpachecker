@@ -79,6 +79,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
+/**
+ * This is an implementation of multi-property verification algorithm, which was presented in the
+ * paper "On-the-Fly Decomposition of Specifications in Software Model Checking". This algorithm
+ * aims at efficient checking of multiple properties in a single verification run.
+ */
 @Options(prefix = "mpv")
 public class MPVAlgorithm implements Algorithm, StatisticsProvider {
 
@@ -349,25 +354,28 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
 
     try {
       do {
-        ImmutableList<Partition> partitions = partitioningOperator.createPartition();
+        // Distribute all checking properties into several partitions
+        ImmutableList<Partition> partitions = partitioningOperator.createPartitions();
         int partitionNumber = 0;
         logger.log(Level.FINER, "Using the following partitions of properties:", partitions);
+        // Check each partition of properties
         for (Partition partition : partitions) {
           int numberOfProperties = partition.getNumberOfProperties();
           if (numberOfProperties <= 0) {
-            // shortcut
+            // Shortcut - empty partition
             continue;
           }
           stats.partitions.add(partition);
           adjustTimeLimit(partition, partitions.size(), partitionNumber);
           partitionNumber++;
           ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
+          // Limit resources for partition
           ResourceLimitChecker limits =
               ResourceLimitChecker.createCpuTimeLimitChecker(
                   logger, shutdownManager, partition.getTimeLimit());
           limits.start();
 
-          // inner algorithm
+          // Create inner algorithm, that will check the partition
           Algorithm algorithm = createInnerAlgorithm(reached, mainFunction, shutdownManager);
           multipleProperties.setTargetProperties(partition.getProperties(), reached);
           try {
@@ -386,11 +394,11 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
             } while (!partition.isChecked(reached));
           } catch (InterruptedException e) {
             if (shutdownNotifier.shouldShutdown()) {
-              // Interrupted by outer limit checker or by user
+              // If interrupted by outer limit checker or by the user, then stop algorithm
               partition.stopAnalysisOnFailure(reached, "Interrupted");
               throw e;
             } else {
-              // Interrupted by inner limit checker
+              // If interrupted by inner limit checker, then continue the algorithm
               logger.log(Level.INFO, "Partition has exhausted resource limitations:", e);
               partition.stopAnalysisOnFailure(reached, "Inner time limit");
             }
@@ -405,6 +413,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
             limits.cancel();
           }
         }
+        // Continue the algorithm, until all properties are not checked
       } while (!multipleProperties.isChecked());
     } finally {
       stats.totalTimer.stop();
@@ -415,11 +424,11 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
   private void adjustTimeLimit(
       Partition partition, int overallPartitions, int currentPartitionNumber) {
     if (limitsAdjustmentStrategy.equals(LimitAdjustmentStrategy.NONE)) {
-      // do not change the specified time limit
+      // Do not change the specified time limit
       return;
     }
     if (!partition.isIntermediateStep()) {
-      // ignore intermediate steps
+      // Ignore intermediate steps
       return;
     }
     TimeSpan overallSpentCpuTime = stats.getCurrentCpuTime();
@@ -427,7 +436,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
         cpuTimePerProperty.multiply(multipleProperties.getNumberOfProperties());
     if (overallCpuTimeLimit.compareTo(overallSpentCpuTime) <= 0
         || overallPartitions <= currentPartitionNumber) {
-      // do nothing in case of bad args - should be unreachable
+      // Do nothing in case of bad args - should be unreachable
       return;
     }
     TimeSpan adjustedTimeLimit = cpuTimePerProperty;
@@ -484,7 +493,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
 
       return coreComponents.createAlgorithm(cpa, cfa, specification);
     } catch (InvalidConfigurationException e) {
-      // should be unreachable, since configuration is already checked
+      // Should be unreachable, since configuration is already checked
       throw new CPAException("Cannot create configuration for inner algorithm", e);
     } finally {
       stats.createPartitionsTimer.stop();

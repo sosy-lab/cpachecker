@@ -23,6 +23,10 @@ import com.google.common.collect.ImmutableList;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.property.MultipleProperties;
 
+/**
+ * This partitioning operator puts all the given properties in one partition and uses all the given
+ * resources for it.
+ */
 public final class NoPartitioningOperator extends AbstractPartitioningOperator {
 
   public NoPartitioningOperator(
@@ -32,7 +36,7 @@ public final class NoPartitioningOperator extends AbstractPartitioningOperator {
   }
 
   @Override
-  public ImmutableList<Partition> createPartition() {
+  public ImmutableList<Partition> createPartitions() {
     return createJointPartition(
         getProperties(), scaleTimeLimit(getProperties().getNumberOfProperties()), true);
   }

@@ -25,10 +25,15 @@ import org.sosy_lab.cpachecker.core.algorithm.mpv.property.MultipleProperties;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 
+/**
+ * Partition represents a group of multiple properties, which will be checked together in a single
+ * algorithm run.
+ */
 public final class Partition {
   private final MultipleProperties properties;
   private TimeSpan partitionTimeLimit;
-  private final boolean isAssignUnknown;
+  private final boolean
+      isAssignUnknown; // whether treat analysis failure as Unknown for checked properties or not
   private long cpuTime = 0;
   private TimeSpan spentCpuTime = TimeSpan.ofNanos(-1);
 
@@ -43,6 +48,7 @@ public final class Partition {
     return isAssignUnknown;
   }
 
+  /** Prepare partition for algorithm run. */
   public void startAnalysis() {
     try {
       cpuTime = ProcessCpuTime.read();
@@ -52,11 +58,7 @@ public final class Partition {
     }
   }
 
-  private void stopAnalysisOnSuccess(ReachedSet reached) {
-    properties.stopAnalysisOnSuccess();
-    stopAnalysis(reached);
-  }
-
+  /** Stop checking of the partition on algorithm failure. */
   public void stopAnalysisOnFailure(ReachedSet reached, String reason) {
     if (isAssignUnknown) {
       properties.stopAnalysisOnFailure(reason);
@@ -64,22 +66,34 @@ public final class Partition {
     stopAnalysis(reached);
   }
 
-  private void stopAnalysis(ReachedSet reached) {
-    spentCpuTime = getSpentCPUTime();
-    properties.divideSpentResources(spentCpuTime, reached);
-  }
-
+  /**
+   * Check if all properties received final result on algorithm successful stop or new property
+   * violation has been found. In the first case analysis of this partition will be stopped,
+   * otherwise it will be continued.
+   */
   public boolean isChecked(ReachedSet reached) {
     // Check for property violations
     if (reached.hasViolatedProperties()) {
       properties.processPropertyViolation(reached);
     }
+    // Stop if all properties have been checked
     if (!reached.hasWaitingState()
         || (properties.isChecked() && !properties.isFindAllViolations())) {
       stopAnalysisOnSuccess(reached);
       return true;
     }
+    // Analysis was not completed - continue it
     return false;
+  }
+
+  private void stopAnalysis(ReachedSet reached) {
+    spentCpuTime = getSpentCPUTime();
+    properties.divideSpentResources(spentCpuTime, reached);
+  }
+
+  private void stopAnalysisOnSuccess(ReachedSet reached) {
+    properties.stopAnalysisOnSuccess();
+    stopAnalysis(reached);
   }
 
   public MultipleProperties getProperties() {
