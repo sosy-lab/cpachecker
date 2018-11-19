@@ -291,17 +291,26 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       if (!fmgr.visit(pArgs.get(2), this)) {
         return Boolean.FALSE;
       }
+    } else if (pArgs.size() == 1 && UNARY_OPS.contains(kind)) {
+      builder.append(op).append(" ");
+      if (!fmgr.visit(pArgs.get(0), this)) {
+        return Boolean.FALSE;
+      }
+    } else if (kind == FunctionDeclarationKind.AND || kind == FunctionDeclarationKind.OR) {
+      for (int i = 0; i < pArgs.size(); i++) {
+        if (!fmgr.visit(pArgs.get(i), this)) {
+          return Boolean.FALSE;
+        }
+        if (i != pArgs.size() - 1) {
+          builder.append(" ").append(op).append(" ");
+        }
+      }
     } else if (pArgs.size() == 2) {
       if (!fmgr.visit(pArgs.get(0), this)) {
         return Boolean.FALSE;
       }
       builder.append(" ").append(op).append(" ");
       if (!fmgr.visit(pArgs.get(1), this)) {
-        return Boolean.FALSE;
-      }
-    } else if (pArgs.size() == 1 && UNARY_OPS.contains(kind)) {
-      builder.append(op).append(" ");
-      if (!fmgr.visit(pArgs.get(0), this)) {
         return Boolean.FALSE;
       }
     } else {
