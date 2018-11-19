@@ -252,9 +252,9 @@ public class DomainSpecificAbstraction<T> {
                 helperFormula8 = fmgr.makeVariable(FormulaType.getArrayType(elementType2,
                     indexType2),
                     arrayVariablesThatAreUsedInBothParts[i] + "#");
-                helperFormula1 = fmgr.makeVariable(resultType2,
+                helperFormula1 = fmgr.makeVariable(resultType1,
                     arrayVariablesThatAreUsedInBothParts[i + 1]);
-                helperFormula7 = fmgr.makeVariable(resultType2,
+                helperFormula7 = fmgr.makeVariable(resultType1,
                     arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
                 helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
                 helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
@@ -558,9 +558,9 @@ public class DomainSpecificAbstraction<T> {
                 helperFormula8 = fmgr.makeVariable(FormulaType.getArrayType(elementType2,
                     indexType2),
                     arrayVariablesThatAreUsedInBothParts[i] + "##");
-                helperFormula1 = fmgr.makeVariable(resultType2,
+                helperFormula1 = fmgr.makeVariable(resultType1,
                     arrayVariablesThatAreUsedInBothParts[i + 1]);
-                helperFormula7 = fmgr.makeVariable(resultType2,
+                helperFormula7 = fmgr.makeVariable(resultType1,
                     arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
                 helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
                 helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
@@ -843,9 +843,9 @@ public class DomainSpecificAbstraction<T> {
                 helperFormula8 = fmgr.makeVariable(FormulaType.getArrayType(elementType2,
                     indexType2),
                     arrayVariablesThatAreUsedInBothParts[i] + "#");
-                helperFormula1 = fmgr.makeVariable(resultType2,
+                helperFormula1 = fmgr.makeVariable(resultType1,
                     arrayVariablesThatAreUsedInBothParts[i + 1]);
-                helperFormula7 = fmgr.makeVariable(resultType2,
+                helperFormula7 = fmgr.makeVariable(resultType1,
                     arrayVariablesThatAreUsedInBothParts[i + 1] + "#");
                 helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
                 helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
@@ -1149,9 +1149,9 @@ public class DomainSpecificAbstraction<T> {
                 helperFormula8 = fmgr.makeVariable(FormulaType.getArrayType(elementType2,
                     indexType2),
                     arrayVariablesThatAreUsedInBothParts[i] + "##");
-                helperFormula1 = fmgr.makeVariable(resultType2,
+                helperFormula1 = fmgr.makeVariable(resultType1,
                     arrayVariablesThatAreUsedInBothParts[i + 1]);
-                helperFormula7 = fmgr.makeVariable(resultType2,
+                helperFormula7 = fmgr.makeVariable(resultType1,
                     arrayVariablesThatAreUsedInBothParts[i + 1] + "##");
                 helperFormula5 = fmgr.makeEqual(helperFormula2, helperFormula8);
                 helperFormula6 = fmgr.makeEqual(helperFormula1, helperFormula7);
