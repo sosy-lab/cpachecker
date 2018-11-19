@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="compile" basedir=".">
+
+    <!-- Targets for compilation. -->
+
+    <!-- DO NOT EDIT LOCALLY!
+         Keep this file synchronized with
+         https://gitlab.com/sosy-lab/software/java-project-template
+    -->
+
+    <!-- These properties can be overridden from including file. -->
+    <property name="source.format" value="1.8"/>
+    <property name="source.dir" value="src"/>
+    <property name="source.generated.dir" value=".apt-generated"/>
+    <property name="class.format" value="1.8"/>
+    <property name="class.dir" value="bin"/>
+    <property name="errorprone.options" value=""/>
+
+    <path id="errorprone">
+        <pathelement location="${ivy.lib.dir}/build/error_prone_ant.jar"/>
+    </path>
+
+    <!-- Needs to include all annotation processors and error-prone -->
+    <path id="processorpath">
+        <fileset dir="${ivy.lib.dir}" includes="build/*.jar"/>
+    </path>
+
+    <property name="errorprone" value="com.google.errorprone.ErrorProneAntCompilerAdapter"/>
+    <condition property="java8">
+        <matches string="${ant.java.version}" pattern="8"/>
+    </condition>
+    <condition property="java.compiler" value="${errorprone}" else="modern">
+        <isset property="java8"/>
+    </condition>
+
+    <!-- We use error-prone as the compiler, cf. http://errorprone.info/ -->
+    <target name="build-project" unless="skipBuild" depends="build-dependencies">
+        <depend srcdir="${source.dir}" destdir="${class.dir}"/>
+        <mkdir dir="${source.generated.dir}"/>
+        <copy todir="${class.dir}">
+          <fileset dir="${source.dir}">
+            <exclude name="**/*.java" />
+            <exclude name="**/*.cup" />
+            <exclude name="**/*.jflex" />
+            <exclude name="**/*.nested" />
+            <exclude name="**/*.xml" />
+            <exclude name="**/*.dia" />
+            <exclude name="**/*.pdf" />
+          </fileset>
+        </copy>
+        <javac debug="true"
+               debuglevel="source,lines,vars"
+               destdir="${class.dir}"
+               source="${source.format}"
+               target="${class.format}"
+               includeAntRuntime="false"
+               compiler="${java.compiler}"
+               encoding="UTF-8">
+            <src path="${source.dir}"/>
+            <classpath refid="classpath"/>
+            <compilerarg value="-Xlint"/>
+            <compilerarg value="-Xlint:-fallthrough"/> <!-- checked by error-prone, too, and javac does not recognized $FALL-THROUGH$ -->
+            <compilerarg value="-Xlint:-processing"/>
+            <compilerarg value="-Xlint:-options"/> <!-- suppress warning about bootclasspath on newer JDK -->
+            <compilerarg value="-Werror"/>
+            <compilerarg compiler="${errorprone}" line="-XepDisableWarningsInGeneratedCode ${errorprone.options}"/>
+            <compilerarg compiler="modern" value="-XDcompilePolicy=simple"/> <!-- necessary for error-prone -->
+            <compilerarg compiler="modern" value="-Xplugin:ErrorProne -XepDisableWarningsInGeneratedCode ${errorprone.options}"/>
+            <compilerarg value="-s"/><compilerarg value="${source.generated.dir}"/>
+            <compilerarg value="-processorpath"/><compilerarg pathref="processorpath"/>
+            <compilerclasspath refid="errorprone"/>
+        </javac>
+    </target>
+
+    <path id="ecj">
+        <pathelement location="${ivy.lib.dir}/build/ecj.jar"/>
+    </path>
+
+    <target name="build-project-ecj" depends="build-dependencies" description="Build project with the Eclipse JDT compiler">
+        <depend srcdir="${source.dir}" destdir="${class.dir}"/>
+        <mkdir dir="${source.generated.dir}"/>
+
+        <copy file=".settings/org.eclipse.jdt.core.prefs" tofile="${ivy.lib.dir}/build/org.eclipse.jdt.core.prefs">
+            <!-- Convert all compiler warnings to errors. -->
+            <filterchain>
+                <replacetokens begintoken="=" endtoken="g">
+                    <token key="warnin" value="=error"/>
+                </replacetokens>
+            </filterchain>
+        </copy>
+
+        <javac debug="true"
+               debuglevel="source,lines,vars"
+               destdir="${class.dir}"
+               source="${source.format}"
+               target="${class.format}"
+               compiler="org.eclipse.jdt.core.JDTCompilerAdapter"
+               includeAntRuntime="false"
+               encoding="UTF-8">
+            <src path="${source.dir}"/>
+            <classpath refid="classpath"/>
+            <compilerarg value="-properties"/>
+            <compilerarg value="${ivy.lib.dir}/build/org.eclipse.jdt.core.prefs"/>
+            <compilerarg value="-s"/><compilerarg value="${source.generated.dir}"/>
+            <compilerarg value="-processorpath"/><compilerarg pathref="processorpath"/>
+            <compilerclasspath refid="ecj"/>
+        </javac>
+    </target>
+</project>
