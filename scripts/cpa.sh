@@ -78,7 +78,7 @@ while [ $# -gt 0 ]; do
        JAVA_STACK_SIZE=$1
        ;;
    "-debug")
-       JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=y"
+       JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n"
        ;;
    "-disable-java-assertions")
        JAVA_ASSERTIONS=-da
