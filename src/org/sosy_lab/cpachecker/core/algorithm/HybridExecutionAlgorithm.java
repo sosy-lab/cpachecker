@@ -26,7 +26,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -221,7 +220,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     this.unbounded = pUnbounded;
     this.dfsMaxDepth = pDfsMaxDepth;
     this.useValueSets = pUseValueSets;
-    this.reachedSetUpdateListeners = new ArrayList<>();
+    this.reachedSetUpdateListeners = new LinkedList<>();
 
     this.solver = Solver.create(pConfiguration, pLogger, pNotifier);
     this.formulaManagerView = solver.getFormulaManager();
@@ -402,7 +401,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     reachedSetUpdateListeners.forEach(listener -> listener.updated(pReachedSet));
   }
 
-  // check if the algorithm should continue 
+  // check if the algorithm should continue
   private boolean checkContinue(ReachedSet pReachedSet) {
 
     boolean check = true;

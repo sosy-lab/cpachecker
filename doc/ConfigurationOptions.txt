@@ -2951,6 +2951,9 @@ hybridExecution.dfsMaxDepth = 60
 # Use dfs algorithm unbounded
 hybridExecution.unboundedDFS = false
 
+# Wether to use bfs as search strategy rather than dfs
+hybridExecution.useBFS = false
+
 # Wether to use multiple values on a state
 hybridExecution.useValueSets = false
 

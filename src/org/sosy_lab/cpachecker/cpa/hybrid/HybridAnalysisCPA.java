@@ -84,7 +84,9 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
         return AutomaticCPAFactory.forType(HybridAnalysisCPA.class);
     }
 
-    private final AbstractDomain abstractDomain;
+    // HybridAnalysisState implements LatticeAbstractState
+    private final AbstractDomain abstractDomain =
+        DelegateAbstractDomain.<HybridAnalysisState>getInstance();
     private final CFA cfa;
     private final LogManager logger;
     private final @Nullable AssumptionParser assumptionParser;
@@ -94,9 +96,7 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
         CFA cfa, 
         LogManager logger,
         Configuration configuration) throws InvalidConfigurationException {
-            
-        // HybridAnalysisState implements LatticeAbstractState
-        this.abstractDomain = DelegateAbstractDomain.<HybridAnalysisState>getInstance();
+
         this.cfa = Preconditions.checkNotNull(cfa, "CFA must be present for HybridAnalysis");
         this.logger = logger;
         this.scope = new CProgramScope(cfa, logger);
