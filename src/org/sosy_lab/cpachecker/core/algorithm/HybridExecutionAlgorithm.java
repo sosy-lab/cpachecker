@@ -26,13 +26,16 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 
+import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -42,6 +45,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
@@ -56,22 +60,20 @@ import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationExc
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-
-import apron.NotImplementedException;
 
 /**
  * This class implements a CPA algorithm based on the idea of concolic execution
- * It traversals the CFA via DFS (or BFS) and introduces new edges for the ARG on branching states in order to cover more branches
- * ! ARGCPA is required for this algorithm !
+ * It traversals the CFA via DFS and introduces new edges for the ARG on branching states in order to cover more branches
  */
 public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
 
@@ -87,9 +89,6 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     @Option(secure=true, name="useValueSets", description="Wether to use multiple values on a state")
     private boolean useValueSets = false;
 
-    @Option(secure=true, name="useBFS", description="Wether to use bfs as search strategy rather than dfs")
-    private boolean useBFS = false;
-
     private final Algorithm algorithm;
     private final ARGCPA argCPA;
     private final CFA cfa;
@@ -97,22 +96,32 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     private final Configuration configuration;
     private final ShutdownNotifier notifier;
 
+    /**
+     *
+     * @param pAlgorithm The composed algorithm created up to this point
+     * @param pArgCPA The respective wrappig CPA (the hybrid execution algorithm depends on the ARGCPA)
+     * @param pCFA The cfa for the code to be checked
+     * @param pLogger The logger instance
+     * @param pConfiguration The applications configuration
+     * @param pShutdownNotifier A shutdown notifier
+     * @throws InvalidConfigurationException Throws InvalidConfigurationException if injection of the factories options fails
+     */
     public HybridExecutionAlgorithmFactory(
-      Algorithm algorithm, 
-      ConfigurableProgramAnalysis argCPA,
-      CFA cfa,
-      LogManager logger, 
-      Configuration configuration,
-      ShutdownNotifier notifier) throws InvalidConfigurationException {
-        configuration.inject(this);
-        this.algorithm = algorithm;
-        // hybrid execution relies on arg cpa
-        this.argCPA = (ARGCPA) argCPA;
-        this.cfa = cfa;
-        this.logger = logger;
-        this.configuration = configuration;
-        this.notifier = notifier;
-      }
+        Algorithm pAlgorithm,
+        ConfigurableProgramAnalysis pArgCPA,
+        CFA pCFA,
+        LogManager pLogger,
+        Configuration pConfiguration,
+        ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+      pConfiguration.inject(this);
+      this.algorithm = pAlgorithm;
+      // hybrid execution relies on arg cpa
+      this.argCPA = CPAs.retrieveCPA(pArgCPA, ARGCPA.class);
+      this.cfa = pCFA;
+      this.logger = pLogger;
+      this.configuration = pConfiguration;
+      this.notifier = pShutdownNotifier;
+    }
 
     @Override
     public Algorithm newInstance() {
@@ -126,14 +135,13 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
             notifier,
             unbounded,
             dfsMaxDepth,
-            useValueSets,
-            useBFS);
+            useValueSets);
       } catch (InvalidConfigurationException e) {
         // this is a bad place to catch an exception
         logger.log(Level.SEVERE, e.getMessage());
       }
       // meh...
-      return null;
+      return algorithm;
     }
 
   }
@@ -144,7 +152,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
   private final Configuration configuration;
   private final LogManager logger;
   private final ShutdownNotifier notifier;
-  
+
   private final Solver solver;
   private final FormulaManagerView formulaManagerView;
   private final FormulaConverter formulaConverter;
@@ -162,17 +170,17 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
    *  if(x <= 0) {
    *    return 0; // we want the calculated value to never be smaller than 0
    *  }
-   *  
-   *  result = x * y; 
+   *
+   *  result = x * y;
    *  if(result > x) {
    *    // at this point, we know that y must have been greater than 1
-   *    return result; 
+   *    return result;
    *  }
-   * 
+   *
    *  return x * predefinedConstant; // so if y was actually 1, we multiply x with a predefined constant value (for some reasons ;) )
-   *  
+   *
    * }
-   * 
+   *
    * multiple value assignments for this example:
    * (1) x = 3, y = 1 -> this leads to 3* predefinedConstant
    * (2) x = 3, y = 2 -> this leads to 6
@@ -180,12 +188,12 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
    * negateOrMinimize(assigments(1)):
    * (3) x = -3, y = 1 -> leads to 0
    * here y is not negated, because of precondition being y >= 1
-   * 
+   *
    * with these 3 assigments we catch every path through the method
-   * 
-   * thus, without any further investigation (and runs of the cpa algorithm), we might be able to reach many different states 
+   *
+   * thus, without any further investigation (and runs of the cpa algorithm), we might be able to reach many different states
    * by simply executing the search strategy for all those assignments (maybe even in parallel ...)
-   * 
+   *
    */
   private boolean useValueSets;
   private final List<ReachedSetUpdateListener> reachedSetUpdateListeners;
@@ -193,75 +201,83 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
   private final SearchStrategy searchStrategy;
 
   private HybridExecutionAlgorithm(
-    Algorithm algorithm,
-    ARGCPA argCPA,
-    CFA cfa, 
-    LogManager logger,
-    Configuration configuration,
-    ShutdownNotifier notifier,
-    boolean unbounded, 
-    int dfsMaxDepth,
-    boolean useValueSets, 
-    boolean useBFS)
+      Algorithm pAlgorithm,
+      ARGCPA pArgCPA,
+      CFA pCFA,
+      LogManager pLogger,
+      Configuration pConfiguration,
+      ShutdownNotifier pNotifier,
+      boolean pUnbounded,
+      int pDfsMaxDepth,
+      boolean pUseValueSets)
       throws InvalidConfigurationException {
 
-      this.algorithm = algorithm;
-      this.argCPA = argCPA;
-      this.cfa = cfa;
-      this.logger = logger;
-      this.configuration = configuration;
-      this.notifier = notifier;
-      this.unbounded = unbounded;
-      this.dfsMaxDepth = dfsMaxDepth;
-      this.useValueSets = useValueSets;
-      this.reachedSetUpdateListeners = new LinkedList<>();
+    this.algorithm = pAlgorithm;
+    this.argCPA = pArgCPA;
+    this.cfa = pCFA;
+    this.logger = pLogger;
+    this.configuration = pConfiguration;
+    this.notifier = pNotifier;
+    this.unbounded = pUnbounded;
+    this.dfsMaxDepth = pDfsMaxDepth;
+    this.useValueSets = pUseValueSets;
+    this.reachedSetUpdateListeners = new ArrayList<>();
 
-      this.solver = Solver.create(configuration, logger, notifier);
-      this.formulaManagerView = solver.getFormulaManager();
-      
-      this.formulaConverter = new FormulaConverter(
-        formulaManagerView, 
-        new CProgramScope(cfa, logger), 
-        logger, 
-        cfa.getMachineModel(), 
-        configuration);
+    this.solver = Solver.create(pConfiguration, pLogger, pNotifier);
+    this.formulaManagerView = solver.getFormulaManager();
 
-      this.pathFormulaManager = new PathFormulaManagerImpl(
-        formulaManagerView, 
-        configuration, 
-        logger, 
-        notifier, 
-        cfa, 
+    this.formulaConverter = new FormulaConverter(
+        formulaManagerView,
+        new CProgramScope(pCFA, pLogger),
+        pLogger,
+        pCFA.getMachineModel(),
+        pConfiguration);
+
+    this.pathFormulaManager = new PathFormulaManagerImpl(
+        formulaManagerView,
+        pConfiguration,
+        pLogger,
+        pNotifier,
+        pCFA,
         AnalysisDirection.FORWARD);
 
-      // configurable search stragety
-      this.searchStrategy = 
-        useBFS ? (pState, pReachedSet) -> runBFS(pState, pReachedSet)
-               : (pState, pReachedSet) -> runDFS(pState, pReachedSet); 
+    // configurable search strategy
+    this.searchStrategy = (pState, pReachedSet) -> searchLast(pState, pReachedSet);
   }
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
-    
+
+    // PathFormulaManager to build the BooleanFormula
+
     // Solver#isUnsat
     // Solver#getProverEnvironment
     // Prover#getModelAsAssignments
 
     // ReachedSet#add
 
+    // ARGCPA is needed for hybrid execution
+
     /*
      *  algorithm idea:
      *  first we run the cpa algorihtm
-     *  next up we extract an arg-state from the reached set 
+     *  next up we extract an arg-state from the reached set
      *  then, we search from that state on in its children
      *  the search strategy returns an arg-state fro which we retrieve a path through the arg
      *  we build a BooleanFormula for this path
      *  then we check sat for this formula
      *  we choose a state upwards (before or at fork) and retrieve assignments for the variables
-     *  decide wether to take this assignments or create new ones (e.g. if useValueSets is true)
-     * 
-    */
+     *  decide whether to take this assignments or create new ones (e.g. if useValueSets is true)
+     *
+     */
+
+    // first we need to collect all assume edges from the cfa to distinguish between already visited and new paths
+    CFATraversal traversal = CFATraversal.dfs();
+    EdgeCollectingCFAVisitor edgeCollectingVisitor = new EdgeCollectingCFAVisitor();
+    CFANode startingNode = cfa.getMainFunction();
+    traversal.traverseOnce(startingNode, edgeCollectingVisitor);
+    final HashSet<CFAEdge> assumeEdges = Sets.newHashSet(edgeCollectingVisitor.getVisitedEdges());
 
     // start with good status
     AlgorithmStatus currentStatus = AlgorithmStatus.SOUND_AND_PRECISE;
@@ -273,51 +289,53 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
       currentStatus = algorithm.run(pReachedSet);
       notifyListeners(pReachedSet);
 
-      // retrieve the last state that was added to the reached set
-      AbstractState lastState = pReachedSet.getLastState();
+      // get all bottom states (has no children and is not part of the wait list)
+      final Collection<AbstractState> waitList = pReachedSet.getWaitlist(); // simplification for the lambda expression
+      List<ARGState> bottomStates = pReachedSet
+          .asCollection()
+          .stream()
+          .filter(state -> !waitList.contains(state))
+          .map(state -> AbstractStates.extractStateByType(state, ARGState.class))
+          .filter(argState -> argState.getChildren().isEmpty())
+          .collect(Collectors.toList());
 
-      // TODO: handle empty state (get another state, exit ?)
+      // there is nothing left to do
+      if(bottomStates.isEmpty()){
+        return currentStatus;
+      }
 
-      // extract ARGState
+      // retrieve the next state to work on
+      ARGState workingState = bottomStates.get(0);
 
-      ARGState argState = AbstractStates.extractStateByType(lastState, ARGState.class);
+      /*
+       * We will define here a assumption context to collect all depending variables
+       */
 
-      // dfs over children
-      ARGState searchEndState = searchStrategy.runStrategy(argState, pReachedSet);
+      // search for the next state to flip
+      ARGState flipState = searchStrategy.runStrategy(workingState, pReachedSet);
 
       // bottom up path search
-      ARGPath pathToFoundState = ARGUtils.getOnePathTo(searchEndState);
+      ARGPath pathToFoundState = ARGUtils.getOnePathTo(flipState);
 
       // build path formula
       PathFormula pathFormula = buildPathFormula(pathToFoundState.getFullPath());
 
       boolean satisfiable = false;
 
-      // TODO: SSAMap usage
-
       try {
         satisfiable = !solver.isUnsat(pathFormula.getFormula());
-
-        if(satisfiable) {
-          // are empty prover options valid?
-          ProverEnvironment proverEnvironment = solver.newProverEnvironment();
-          ImmutableList<ValueAssignment> assignments = proverEnvironment.getModelAssignments();
-        }
-
       } catch(SolverException sException) {
         throw new CPAException("Exception occurred in SMT-Solver.", sException);
       }
 
-      // on the branching state, we need to invert the current assumption in order to walk the other path (take the 'else' path)
-
-      // choose a state further up in the path 
-      // get the model assigment 
+      // choose a state further up in the path
+      // get the model assigment
       // push to waitlist
 
       // check for continuation
       running = checkContinue(pReachedSet);
     }
-    
+
     return currentStatus;
   }
 
@@ -341,42 +359,36 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     reachedSetUpdateListeners.remove(pReachedSetUpdateListener);
   }
 
-  // traverses the childer of the given state in depth first manner
-  private ARGState runDFS(ARGState pState, ReachedSet pReachedSet) {
+  // traverses from a given ARGState upwards to find the next branching state
+  private ARGState searchLast(ARGState pState, ReachedSet pReachedSet) {
 
-      // iterate over the children and check for existence within the reached set
-      Collection<ARGState> children = pState.getChildren();
+    // iterate over the children and check for existence within the reached set
+    Collection<ARGState> children = pState.getChildren();
 
-      // bottom reached
-      if(children.isEmpty()) {
-        return pState;
+    // bottom reached
+    if(children.isEmpty()) {
+      return pState;
+    }
+
+    for(ARGState childState : children) {
+
+      // we need another way to determine which state to use (i.e. which path to go)
+      if(!pReachedSet.contains(childState)) {
+
+        // update reached set
+        // pReachedSet.add(childState, pReachedSet.getPrecision(pState));
+        // notifyListeners(pReachedSet);
+
+        return searchLast(childState, pReachedSet);
       }
+    }
 
-      for(ARGState childState : children) {
-        
-        // we need another way to determine which state to use (i.e. which path to go)
-        if(!pReachedSet.contains(childState)) {
-
-          // update reached set 
-          // pReachedSet.add(childState, pReachedSet.getPrecision(pState));
-          // notifyListeners(pReachedSet);
-
-          return runDFS(childState, pReachedSet);
-        }
-      }
-
-      return null;
-  }
-
-  // currently this will not be implemented
-  private ARGState runBFS(ARGState pState, ReachedSet pReachedSet) {
-
-    throw new NotImplementedException();
+    return null;
   }
 
   // builds the complete path formula for a path through the application denoted by the set of edges
-  private PathFormula buildPathFormula(Collection<CFAEdge> pEdges) 
-    throws CPATransferException, InterruptedException {
+  private PathFormula buildPathFormula(Collection<CFAEdge> pEdges)
+      throws CPATransferException, InterruptedException {
     PathFormula formula = pathFormulaManager.makeEmptyPathFormula();
     for(CFAEdge edge : pEdges) {
       formula = pathFormulaManager.makeAnd(formula, edge);
@@ -405,6 +417,6 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
   private interface SearchStrategy {
 
     ARGState runStrategy(ARGState pState, ReachedSet pReachedSet);
-  } 
+  }
 
 }
