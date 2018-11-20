@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
@@ -845,7 +846,7 @@ class AssignmentHandler {
           rhsFormula = conv.makeValueReinterpretation(lhsType, newLhsType, rhsFormula);
           newRhsExpression = rhsFormula == null ? Value.nondetValue() : Value.ofValue(rhsFormula);
         } else if (rhsType instanceof CCompositeType) {
-          // reinterpret compositetype as bitvector; concatenate its fields appropiately in case of
+          // reinterpret compositetype as bitvector; concatenate its fields appropriately in case of
           // struct
           if (((CCompositeType) rhsType).getKind() == ComplexTypeKind.STRUCT) {
             CExpressionVisitorWithPointerAliasing expVisitor = newExpressionVisitor();
@@ -885,11 +886,12 @@ class AssignmentHandler {
                   rhsFormula = fmgr.getBitvectorFormulaManager().makeBitvector(targetSize, 0);
                 }
 
+                boolean lhsSigned = false;
+                if (!(newLhsType instanceof CPointerType)) {
+                  lhsSigned = ((CSimpleType) newLhsType).isSigned();
+                }
                 memberFormula =
-                    fmgr.makeExtend(
-                        memberFormula,
-                        targetSize - innerMemberSize,
-                        ((CSimpleType) newLhsType).isSigned());
+                    fmgr.makeExtend(memberFormula, targetSize - innerMemberSize, lhsSigned);
                 memberFormula =
                     fmgr.makeShiftLeft(
                         memberFormula,
@@ -934,6 +936,7 @@ class AssignmentHandler {
         final CType memberType = newLhsType;
         // newLhs is a CFieldReference to member:
         final CExpression memberCFieldReference = newLhs;
+        final int rhsSize = typeHandler.getBitSizeof(rhsType);
 
         // for each innerMember of member we need to add a (destructive!) constraint like:
         // union.member.innerMember := treatAsMemberTypeAndExtractInnerMemberValue(rhsExpression);
@@ -942,22 +945,37 @@ class AssignmentHandler {
 
           int fieldOffset =
               (int) typeHandler.getBitOffset(((CCompositeType) memberType), innerMember);
-          int fieldSize = typeHandler.getBitSizeof(innerMember.getType());
+          if (fieldOffset >= rhsSize) {
+            // nothing to fill anymore
+            break;
+          }
+          // don't try later to extract a too big chunk of bits
+          int fieldSize =
+              Math.min(typeHandler.getBitSizeof(innerMember.getType()), rhsSize - fieldOffset);
           assert fieldSize > 0;
           int startIndex = fieldOffset;
           int endIndex = fieldOffset + fieldSize - 1;
 
           // "treatAsMemberType"
           Formula rhsFormula = getValueFormula(rhsType, rhsExpression).get();
-          rhsFormula = conv.makeCast(rhsType, memberType, rhsFormula, constraints, edge);
-          rhsFormula = conv.makeValueReinterpretation(rhsType, memberType, rhsFormula);
+          if (rhsType instanceof CPointerType) {
+            // Do not break on Pointer-Handling
+            CType rhsCasted = TypeUtils.createTypeWithLength(rhsSize);
+            rhsFormula = conv.makeCast(rhsType, rhsCasted, rhsFormula, constraints, edge);
+            rhsFormula = conv.makeValueReinterpretation(rhsType, rhsCasted, rhsFormula);
+          } else {
+            rhsFormula = conv.makeCast(rhsType, memberType, rhsFormula, constraints, edge);
+            rhsFormula = conv.makeValueReinterpretation(rhsType, memberType, rhsFormula);
+          }
           assert rhsFormula == null || rhsFormula instanceof BitvectorFormula;
 
+          boolean rhsSigned = false;
+          if (!(rhsType instanceof CPointerType)) {
+            rhsSigned = ((CSimpleType) rhsType).isSigned();
+          }
           // "AndExtractInnerMemberValue"
           if (rhsFormula != null) {
-            rhsFormula =
-                fmgr.makeExtract(
-                    rhsFormula, endIndex, startIndex, ((CSimpleType) rhsType).isSigned());
+            rhsFormula = fmgr.makeExtract(rhsFormula, endIndex, startIndex, rhsSigned);
           }
           Expression newRhsExpression =
               rhsFormula == null ? Value.nondetValue() : Value.ofValue(rhsFormula);
