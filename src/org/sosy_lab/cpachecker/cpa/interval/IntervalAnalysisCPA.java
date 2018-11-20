@@ -39,6 +39,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -50,6 +52,14 @@ import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 @Options(prefix = "cpa.interval")
 public class IntervalAnalysisCPA extends AbstractCPA
     implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofCheckerCPA {
+
+  IntervalAnalysisPrecision precision;
+  private boolean refineablePrecisionSet = false;
+
+  private final Configuration config;
+
+  private ShutdownNotifier shutdownNotifier;
+  private CFA cfa;
 
   /**
    * This method returns a CPAfactory for the interval analysis CPA.
@@ -92,12 +102,16 @@ public class IntervalAnalysisCPA extends AbstractCPA
    * @param config the configuration of the CPAinterval analysis CPA.
    */
   private IntervalAnalysisCPA(
-      Configuration config, LogManager pLogger, ShutdownNotifier shutdownNotifier, CFA cfa)
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
       throws InvalidConfigurationException {
     super("irrelevant", "sep", DelegateAbstractDomain.<IntervalAnalysisState>getInstance(), null);
-    config.inject(this);
+    this.config = pConfig;
+    this.config.inject(this);
+    this.shutdownNotifier = pShutdownNotifier;
+    this.cfa = pCfa;
     writer = new StateToFormulaWriter(config, pLogger, shutdownNotifier, cfa);
     logger = pLogger;
+    precision = initializePrecision();
   }
 
   /* (non-Javadoc)
@@ -129,5 +143,44 @@ public class IntervalAnalysisCPA extends AbstractCPA
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     writer.collectStatistics(pStatsCollection);
+  }
+
+  public void injectRefinablePrecision() {
+
+    // replace the full precision with an empty, refinable precision
+    if (!refineablePrecisionSet) {
+      precision = new IntervalAnalysisPrecision();
+      refineablePrecisionSet = true;
+    }
+  }
+
+  @Override
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
+    return precision;
+  }
+
+  public CFA getCFA() {
+    return cfa;
+  }
+
+  public ShutdownNotifier getShutdownNotifier() {
+    return shutdownNotifier;
+  }
+
+  public Configuration getConfiguration() {
+    return config;
+  }
+
+  public LogManager getLogger() {
+    return logger;
+  }
+
+  private IntervalAnalysisPrecision initializePrecision() {
+    return new IntervalAnalysisPrecision();
+  }
+
+  @Override
+  public PrecisionAdjustment getPrecisionAdjustment() {
+    return new IntervalAnalysisPrecisionAdjustment();
   }
 }

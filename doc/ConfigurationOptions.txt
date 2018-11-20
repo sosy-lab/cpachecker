@@ -1417,6 +1417,9 @@ cpa.ifcsecurity.statestocheck = 0
 cpa.ifcsecurity.stop = "SEP"
   allowed values: [SEP, JOIN]
 
+# restrict abstraction computations to loop heads
+cpa.interval.abstraction.alwaysAtLoop = false
+
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"
   allowed values: [SEP, JOIN]
