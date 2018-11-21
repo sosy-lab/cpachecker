@@ -145,9 +145,11 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   }
 
   private boolean doesRequireUnionFloatConversion(CType pSourceType, CType pTargetType) {
-    if (pSourceType instanceof CSimpleType && pTargetType instanceof CSimpleType) {
-      CBasicType sourceBasic = ((CSimpleType) pSourceType).getType();
-      CBasicType targetBasic = ((CSimpleType) pTargetType).getType();
+    CType sourceType = pSourceType.getCanonicalType();
+    CType targetType = pTargetType.getCanonicalType();
+    if (sourceType instanceof CSimpleType && targetType instanceof CSimpleType) {
+      CBasicType sourceBasic = ((CSimpleType) sourceType).getType();
+      CBasicType targetBasic = ((CSimpleType) targetType).getType();
 
       // if only one of them is no integer type, a conversion is necessary
       return sourceBasic.isIntegerType() != targetBasic.isIntegerType();
