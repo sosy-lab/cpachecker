@@ -27,14 +27,12 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
-
-import com.google.common.collect.Sets;
-
 import java.util.stream.Collectors;
+
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -43,7 +41,9 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
@@ -68,11 +68,16 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
+import apron.NotImplementedException;
+
 /**
- * This class implements a CPA algorithm based on the idea of concolic execution
- * It traversals the CFA via DFS and introduces new edges for the ARG on branching states in order to cover more branches
+ * This class implements a CPA algorithm based on the idea of concolic execution It traversals the
+ * CFA via DFS and introduces new edges for the ARG on branching states in order to cover more
+ * branches
  */
 public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
 
@@ -81,9 +86,6 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
 
     @Option(secure=true, name="unboundedDFS", description="Use dfs algorithm unbounded")
     private boolean unbounded = false;
-
-    @Option(secure=true, name="dfsMaxDepth", description="The maximum depth for the dfs algorithm")
-    private int dfsMaxDepth = 60;
 
     @Option(secure=true, name="useValueSets", description="Wether to use multiple values on a state")
     private boolean useValueSets = false;
@@ -133,7 +135,6 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
             configuration,
             notifier,
             unbounded,
-            dfsMaxDepth,
             useValueSets);
       } catch (InvalidConfigurationException e) {
         // this is a bad place to catch an exception
@@ -158,7 +159,6 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
   private final PathFormulaManager pathFormulaManager;
 
   private final boolean unbounded;
-  private int dfsMaxDepth;
 
   // we could run the search with several values satisfying certain conditions to achieve a broader coverage
   // this must be experimental validated (in theory it is very easy to find several variable values for a specific state that will later on lead to different executions)
@@ -207,7 +207,6 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
       Configuration pConfiguration,
       ShutdownNotifier pNotifier,
       boolean pUnbounded,
-      int pDfsMaxDepth,
       boolean pUseValueSets)
       throws InvalidConfigurationException {
 
@@ -218,7 +217,6 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     this.configuration = pConfiguration;
     this.notifier = pNotifier;
     this.unbounded = pUnbounded;
-    this.dfsMaxDepth = pDfsMaxDepth;
     this.useValueSets = pUseValueSets;
     this.reachedSetUpdateListeners = new LinkedList<>();
 
@@ -241,7 +239,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
         AnalysisDirection.FORWARD);
 
     // configurable search strategy
-    this.searchStrategy = (pState, pReachedSet) -> searchLast(pState, pReachedSet);
+    this.searchStrategy = (pState, pARGPath, pAssumeEdges) -> searchLast(pState, pARGPath, pAssumeEdges);
   }
 
   @Override
@@ -256,27 +254,12 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
 
     // ReachedSet#add
 
-    // ARGCPA is needed for hybrid execution
-
-    /*
-     *  algorithm idea:
-     *  first we run the cpa algorihtm
-     *  next up we extract an arg-state from the reached set
-     *  then, we search from that state on in its children
-     *  the search strategy returns an arg-state fro which we retrieve a path through the arg
-     *  we build a BooleanFormula for this path
-     *  then we check sat for this formula
-     *  we choose a state upwards (before or at fork) and retrieve assignments for the variables
-     *  decide whether to take this assignments or create new ones (e.g. if useValueSets is true)
-     *
-     */
-
     // first we need to collect all assume edges from the cfa to distinguish between already visited and new paths
     CFATraversal traversal = CFATraversal.dfs();
     EdgeCollectingCFAVisitor edgeCollectingVisitor = new EdgeCollectingCFAVisitor();
     CFANode startingNode = cfa.getMainFunction();
     traversal.traverseOnce(startingNode, edgeCollectingVisitor);
-    final HashSet<CFAEdge> assumeEdges = Sets.newHashSet(edgeCollectingVisitor.getVisitedEdges());
+    final Set<AssumeEdge> assumeEdges = extractAssumeEdges(edgeCollectingVisitor.getVisitedEdges());
 
     // start with good status
     AlgorithmStatus currentStatus = AlgorithmStatus.SOUND_AND_PRECISE;
@@ -284,13 +267,12 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     boolean running = true;
     while(running) {
 
-
       currentStatus = algorithm.run(pReachedSet);
       notifyListeners(pReachedSet);
 
       // get all bottom states (has no children and is not part of the wait list)
       final Collection<AbstractState> waitList = pReachedSet.getWaitlist(); // simplification for the lambda expression
-      List<ARGState> bottomStates = pReachedSet
+      final List<ARGState> bottomStates = pReachedSet
           .asCollection()
           .stream()
           .filter(state -> !waitList.contains(state))
@@ -303,15 +285,23 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
         return currentStatus;
       }
 
-      // retrieve the next state to work on
+      // retrieve the next state to work on -> it doesn't matter which one, thus we simply choose the first one
       ARGState workingState = bottomStates.get(0);
+
+      // retrieve path through the arg to the working state
+      ARGPath pathToWorkingState = ARGUtils.getOnePathTo(workingState);
+
+      Collection<AssumeEdge> assumeEdgesInPath = extractAssumeEdges(pathToWorkingState.getInnerEdges());
+
+      // remove already visited assumptions
+      assumeEdges.removeAll(assumeEdgesInPath);
 
       /*
        * We will define here a assumption context to collect all depending variables
        */
 
       // search for the next state to flip
-      ARGState flipState = searchStrategy.runStrategy(workingState, pReachedSet);
+      ARGState flipState = searchStrategy.runStrategy(workingState, pathToWorkingState, assumeEdges);
 
       // bottom up path search
       ARGPath pathToFoundState = ARGUtils.getOnePathTo(flipState);
@@ -319,17 +309,20 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
       // build path formula
       PathFormula pathFormula = buildPathFormula(pathToFoundState.getFullPath());
 
-      boolean satisfiable = false;
-
       try {
-        satisfiable = !solver.isUnsat(pathFormula.getFormula());
+
+        boolean satisfiable = !solver.isUnsat(pathFormula.getFormula());
+
+        // -- infeasibility could be reported here --
+        // get assignments for the new path containing the flipped assumption
+        if(satisfiable) {
+          ProverEnvironment proverEnvironment = solver.newProverEnvironment();
+          Collection<ValueAssignment> assignments = proverEnvironment.getModelAssignments();
+        }
+
       } catch(SolverException sException) {
         throw new CPAException("Exception occurred in SMT-Solver.", sException);
       }
-
-      // choose a state further up in the path
-      // get the model assigment
-      // push to waitlist
 
       // check for continuation
       running = checkContinue(pReachedSet);
@@ -359,30 +352,9 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
   }
 
   // traverses from a given ARGState upwards to find the next branching state
-  private ARGState searchLast(ARGState pState, ReachedSet pReachedSet) {
+  private ARGState searchLast(ARGState pState, ARGPath pPath, Set<AssumeEdge> assumeEdges) {
 
-    // iterate over the children and check for existence within the reached set
-    Collection<ARGState> children = pState.getChildren();
-
-    // bottom reached
-    if(children.isEmpty()) {
-      return pState;
-    }
-
-    for(ARGState childState : children) {
-
-      // we need another way to determine which state to use (i.e. which path to go)
-      if(!pReachedSet.contains(childState)) {
-
-        // update reached set
-        // pReachedSet.add(childState, pReachedSet.getPrecision(pState));
-        // notifyListeners(pReachedSet);
-
-        return searchLast(childState, pReachedSet);
-      }
-    }
-
-    return null;
+   throw new NotImplementedException();
   }
 
   // builds the complete path formula for a path through the application denoted by the set of edges
@@ -412,10 +384,19 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     return check;
   }
 
+  // helper method to extract assume edges from a given collection of general cfa edges
+  private Set<AssumeEdge> extractAssumeEdges(Collection<CFAEdge> edges) {
+    return edges
+      .stream()
+      .filter(edge -> edge.getEdgeType() == CFAEdgeType.AssumeEdge)
+      .map(edge -> (AssumeEdge)edge)
+      .collect(Collectors.toSet());
+  }
+
   @FunctionalInterface
   private interface SearchStrategy {
 
-    ARGState runStrategy(ARGState pState, ReachedSet pReachedSet);
+    ARGState runStrategy(ARGState pState, ARGPath pPath, Set<AssumeEdge> assumeEdges);
   }
 
 }
