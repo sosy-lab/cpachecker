@@ -97,6 +97,7 @@ public class UndefinedFunctionCollectorAlgorithm
           "__finite",
           "__fpclassify",
           "__fpclassifyf",
+          "__fpclassifyl",
           "__isinf",
           "__isinff",
           "__isnan",
@@ -106,6 +107,14 @@ public class UndefinedFunctionCollectorAlgorithm
 
   @Option(secure = true, description = "Ignore functions that are defined by C11")
   private boolean allowC11Functions = true;
+
+  @Option(
+      secure = true,
+      description = "Ignore functions that are defined by GNU C and not by C11/POSIX")
+  private boolean allowGnuCFunctions = true;
+
+  @Option(secure = true, description = "Ignore functions that are defined by POSIX")
+  private boolean allowPosixFunctions = true;
 
   @Option(secure = true, description = "Memory-allocation function that will be used in stubs")
   private String externAllocFunction = "external_alloc";
@@ -212,6 +221,8 @@ public class UndefinedFunctionCollectorAlgorithm
   private boolean skipFunction(String name) {
     return allowedFunctions.contains(name)
         || (allowC11Functions && StandardFunctions.C11_ALL_FUNCTIONS.contains(name))
+        || (allowGnuCFunctions && StandardFunctions.GNUC_ALL_FUNCTIONS.contains(name))
+        || (allowPosixFunctions && StandardFunctions.POSIX_ALL_FUNCTIONS.contains(name))
         || allowedFunctionsRegexp.matcher(name).matches()
         || allowedUndeclaredFunctionsRegexp.matcher(name).matches();
   }

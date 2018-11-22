@@ -3760,6 +3760,12 @@ testcase.values.zip = no default value
 # Ignore functions that are defined by C11
 undefinedFunctionsCollector.allowC11Functions = true
 
+# Ignore functions that are defined by GNU C and not by C11/POSIX
+undefinedFunctionsCollector.allowGnuCFunctions = true
+
+# Ignore functions that are defined by POSIX
+undefinedFunctionsCollector.allowPosixFunctions = true
+
 # Set of functions that should be ignored
 undefinedFunctionsCollector.allowedFunctions = ImmutableSet.of(
 
