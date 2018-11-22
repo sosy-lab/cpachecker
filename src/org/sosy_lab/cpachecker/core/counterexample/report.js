@@ -285,6 +285,7 @@ with considerably less effort */
 			}
 			return values;
 		};
+
 		// initialize array that stores the important edges. Index counts only, when edges appear in the report.
                 var importantEdges = [];
                 var importantIndex = -1;
@@ -335,10 +336,10 @@ with considerably less effort */
 			    }
                         };
 
-                        // timeout is needed for the color to appear on the report.
-			setTimeout(function() {
+                        angular.element(document).ready(function(){
                             highlightEdges(importantEdges);
-                        }, 2000);
+                        });
+
 
 		}
 
@@ -921,8 +922,12 @@ function init() {
 		$("#arg-modal").text("0/" + argTotalGraphCount);
 	} else { // No ARG data -> happens if the AbstractStates are not ARGStates
 		$("#arg-modal").text("0/0");
-		$("#set-tab-2").parent().addClass("disabled");
+		$("#set-tab-2").addClass("disabled-btn");
 		argTabDisabled = true;
+		angular.element(document).ready(function(){
+                  $("#set-tab-2").parent().attr("data-original-title", "ARG not available for this configuration of CPAchecker");
+                  $("#set-tab-2").attr("data-toggle", "");
+                });
 	}
 	var cfaTotalGraphCount = 0;
 	cfaJson.functionNames.forEach(function (f) {
