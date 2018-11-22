@@ -23,7 +23,7 @@ static inline int spin_is_locked(spinlock_t *lock);
 extern int _atomic_dec_and_lock(atomic_t *atomic, spinlock_t *lock);
 
 
-void ldv_linux_spinlock_check_final_state(void);
+void ldv_check_final_state(void);
 
 void main(void)
 {
@@ -56,6 +56,6 @@ void main(void)
 		spin_unlock(lock_1);
 	}
 
-	ldv_linux_spinlock_check_final_state();
+	ldv_check_final_state();
 }
 
