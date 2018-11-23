@@ -87,6 +87,7 @@ import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.UnknownT
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
 @Options(prefix="cpa.functionpointer")
 class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
@@ -422,6 +423,13 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       CExpression actualArgument = arguments.get(i);
 
       FunctionPointerTarget target = actualArgument.accept(v);
+
+      if (target != pNewState.getTarget(paramName)) {
+        // we abort the analysis, because the old function pointer assignment
+        // will be lost when returning from the called function.
+        throw new UnsupportedCodeException("found recursion due to parameter collision", callEdge);
+      }
+
       pNewState.setTarget(paramName, target);
 
       // TODO only do this if declared type is function pointer?
