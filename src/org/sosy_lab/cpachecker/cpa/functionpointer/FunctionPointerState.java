@@ -28,19 +28,16 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.base.Joiner;
-
+import java.io.Serializable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-import java.io.Serializable;
-
-/**
- * Represents one abstract state of the FunctionPointer CPA.
- */
-public class FunctionPointerState implements LatticeAbstractState<FunctionPointerState>,
-    Serializable {
+/** Represents one abstract state of the FunctionPointer CPA. */
+public class FunctionPointerState
+    implements LatticeAbstractState<FunctionPointerState>, Serializable, Graphable {
 
   private static final long serialVersionUID = -1951853216031911649L;
 
@@ -201,6 +198,16 @@ public class FunctionPointerState implements LatticeAbstractState<FunctionPointe
     Joiner.on(", ").withKeyValueSeparator("=").appendTo(str, pointerVariableValues);
     str.append("]");
     return str.toString();
+  }
+
+  @Override
+  public String toDOTLabel() {
+    return pointerVariableValues.isEmpty() ? "" : toString();
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
   }
 
   public FunctionPointerTarget getTarget(String variableName) {
