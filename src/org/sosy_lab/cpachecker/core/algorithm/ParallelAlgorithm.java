@@ -506,7 +506,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       singleConfigBuilder.loadFromFile(singleConfigFileName);
 
       Configuration singleConfig = singleConfigBuilder.build();
-
+      RestartAlgorithm.checkConfigs(globalConfig, singleConfig, singleConfigFileName, logger);
       return singleConfig;
 
     } catch (IOException | InvalidConfigurationException e) {
