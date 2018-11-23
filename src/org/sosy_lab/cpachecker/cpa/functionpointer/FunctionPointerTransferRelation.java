@@ -102,6 +102,13 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure=true, description="When an unknown function pointer is called, do not assume all functions as possible targets and instead call no function (this is unsound).")
   private boolean ignoreUnknownFunctionPointerCalls = false;
 
+  @Option(
+      secure = true,
+      description =
+          "When a function pointer is given as parameter, assume that nothing else uses "
+              + "it any further. Otherwise we throw an exception.")
+  private boolean allowOverridingFunctionPointerParameters = true;
+
   private final LogManagerWithoutDuplicates logger;
 
   FunctionPointerTransferRelation(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
@@ -427,7 +434,12 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       if (target != pNewState.getTarget(paramName)) {
         // we abort the analysis, because the old function pointer assignment
         // will be lost when returning from the called function.
-        throw new UnsupportedCodeException("found recursion due to parameter collision", callEdge);
+        if (allowOverridingFunctionPointerParameters) {
+          logger.log(Level.WARNING, "found recursion due to parameter collision", callEdge);
+        } else {
+          throw new UnsupportedCodeException(
+              "found recursion due to parameter collision", callEdge);
+        }
       }
 
       pNewState.setTarget(paramName, target);

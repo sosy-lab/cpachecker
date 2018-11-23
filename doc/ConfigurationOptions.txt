@@ -1375,6 +1375,10 @@ cpa.defuse.merge = "sep"
 # Which strategy to use for forced coverings (empty for none)
 cpa.forcedCovering = no default value
 
+# When a function pointer is given as parameter, assume that nothing else
+# uses it any further. Otherwise we throw an exception.
+cpa.functionpointer.allowOverridingFunctionPointerParameters = true
+
 # When an invalid function pointer is called, do not assume all functions as
 # possible targets and instead call no function.
 cpa.functionpointer.ignoreInvalidFunctionPointerCalls = false
