@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.core;
 import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.base.Preconditions;
+import java.nio.file.Path;
+import java.util.Optional;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -574,12 +576,22 @@ public class CoreComponentsFactory {
   private Specification loadTerminationSpecification(CFA cfa, Specification originalSpecification)
       throws InvalidConfigurationException {
     Preconditions.checkState(useTerminationAlgorithm);
+    boolean atMostWitness = true;
+
+    Optional<Path> witness = Optional.empty();
+    for (Path specFile : originalSpecification.getSpecFiles()) {
+      if (specFile.getFileName().toString().endsWith(".graphml")) {
+        Preconditions.checkState(!witness.isPresent(), "More than one witness file.");
+        witness = Optional.of(specFile);
+      } else {
+        atMostWitness = false;
+      }
+    }
     Specification terminationSpecification =
         TerminationAlgorithm.loadTerminationSpecification(
-            originalSpecification.getProperties(), cfa, config, logger);
+            originalSpecification.getProperties(), witness, cfa, config, logger);
 
-    if (!originalSpecification.equals(Specification.alwaysSatisfied())
-        && !originalSpecification.equals(terminationSpecification)) {
+    if (!atMostWitness && !originalSpecification.equals(terminationSpecification)) {
       throw new InvalidConfigurationException(
           originalSpecification + "is not usable with termination analysis");
     }
