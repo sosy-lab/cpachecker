@@ -401,7 +401,8 @@ public class ConfigurationFileChecks {
     } else if (isOptionEnabled(config, "cfa.checkNullPointers")) {
       assertThat(spec).endsWith("specification/null-deref.spc");
     } else if (isOptionEnabled(config, "analysis.algorithm.termination")
-        || isOptionEnabled(config, "analysis.algorithm.nonterminationWitnessCheck")) {
+        || isOptionEnabled(config, "analysis.algorithm.nonterminationWitnessCheck")
+        || basePath.toString().contains("validation-termination")) {
       assertThat(spec).isEmpty();
     } else if (basePath.toString().contains("overflow")) {
       if (isSvcompConfig) {
