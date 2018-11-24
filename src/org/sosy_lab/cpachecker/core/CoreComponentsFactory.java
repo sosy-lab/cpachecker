@@ -580,7 +580,8 @@ public class CoreComponentsFactory {
 
     Optional<Path> witness = Optional.empty();
     for (Path specFile : originalSpecification.getSpecFiles()) {
-      if (specFile.getFileName().toString().endsWith(".graphml")) {
+      if (specFile.getFileName() != null
+          && specFile.getFileName().toString().endsWith(".graphml")) {
         Preconditions.checkState(!witness.isPresent(), "More than one witness file.");
         witness = Optional.of(specFile);
       } else {
