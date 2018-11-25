@@ -119,15 +119,14 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
-      throws CPATransferException, InterruptedException {
+      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException {
 
     final FunctionPointerState oldState = (FunctionPointerState)pElement;
 
     //check assumptions about function pointers, like p == &h, where p is a function pointer, h  is a function
     if (!shouldGoByEdge(oldState, pCfaEdge)) {
       //should not go by the edge
-      return ImmutableSet.of();//results is a empty set
+      return ImmutableSet.of();
     }
 
     // print warning if we go by the default edge of a function pointer call
@@ -157,7 +156,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
   private boolean shouldGoByEdge(FunctionPointerState oldState, CFAEdge cfaEdge)
       throws UnrecognizedCodeException {
-    if (cfaEdge.getEdgeType()==CFAEdgeType.AssumeEdge) {
+    if (cfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
       CAssumeEdge a = (CAssumeEdge)cfaEdge;
       CExpression exp = a.getExpression();
       if (exp instanceof CBinaryExpression) {
@@ -169,8 +168,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
           FunctionPointerTarget v2 = getValue(e.getOperand2(), newState);
           logger.log(Level.ALL, "Operand1 value is", v1);
           logger.log(Level.ALL, "Operand2 value is", v2);
-          if (v1 instanceof NamedFunctionTarget
-              && v2 instanceof NamedFunctionTarget) {
+          if (v1 instanceof NamedFunctionTarget && v2 instanceof NamedFunctionTarget) {
             boolean eq = v1.equals(v2);
             if (eq != a.getTruthAssumption()) {
               logger.log(Level.FINE, "Should not go by the edge", a);
@@ -229,7 +227,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     return true;
   }
 
-  private String getFunctionPointerCall(CFAEdge pCfaEdge) throws UnrecognizedCodeException {
+  private static String getFunctionPointerCall(CFAEdge pCfaEdge) throws UnrecognizedCodeException {
     if (pCfaEdge.getEdgeType() != CFAEdgeType.StatementEdge) {
       return null;
     }
@@ -457,11 +455,8 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
     CFunctionCall funcCall = summaryEdge.getExpression();
     if (funcCall instanceof CFunctionCallAssignmentStatement) {
-
       CExpression left = ((CFunctionCallAssignmentStatement)funcCall).getLeftHandSide();
-
       String varName = getLeftHandSide(left, summaryEdge);
-
       if (varName != null) {
         Optional<CVariableDeclaration> returnValue = pFunctionReturnEdge.getFunctionEntry().getReturnVariable();
         if (returnValue.isPresent()) {
