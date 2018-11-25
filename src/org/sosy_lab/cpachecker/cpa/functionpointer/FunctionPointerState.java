@@ -29,6 +29,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.base.Joiner;
 import java.io.Serializable;
+import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -209,6 +210,10 @@ public class FunctionPointerState
     return pointerVariableValues.getOrDefault(variableName, UnknownTarget.getInstance());
   }
 
+  Set<String> getTrackedVariables() {
+    return pointerVariableValues.keySet();
+  }
+
   @Override
   public boolean isLessOrEqual(FunctionPointerState pElement) {
     // check if the other map is a subset of this map
@@ -241,4 +246,6 @@ public class FunctionPointerState
     }
     return hashCode;
   }
+
+
 }
