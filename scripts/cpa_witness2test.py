@@ -216,7 +216,7 @@ def _create_gcc_cmd_tail(harness, file, target):
     return ['-o', target, harness, file]
 
 
-def create_compile_cmd(harness, target, args, specification, c_version='c11'):
+def create_compile_cmd(harness, target, args, specification, c_version='gnu11'):
     """Create the compile command.
 
     :param str harness: path to harness file
@@ -416,7 +416,7 @@ def run():
         log_multiline(compile_result.stdout, level=logging.DEBUG)
 
         if compile_result.returncode != 0:
-            compile_cmd = create_compile_cmd(harness, exe_target, args, specification, 'c90')
+            compile_cmd = create_compile_cmd(harness, exe_target, args, specification, 'gnu90')
             compile_result = execute(compile_cmd)
             log_multiline(compile_result.stderr, level=logging.INFO)
             log_multiline(compile_result.stdout, level=logging.DEBUG)
