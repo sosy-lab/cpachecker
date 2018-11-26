@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
