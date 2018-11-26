@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -133,8 +134,13 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       if (machineModel.getSizeof(readType) == machineModel.getSizeof(actualType)) {
 
         if (doesRequireUnionFloatConversion(actualType, readType)) {
-          // TODO: Implement a proper bit-based conversion
-          // c.f. https://gitlab.com/sosy-lab/software/cpachecker/issues/503
+          if (isFloatingPointType(actualType.getCanonicalType())) {
+            return extractFloatingPointValueAsIntegralValue(actualType.getCanonicalType(), valueAndType);
+          } else if (isFloatingPointType(readType.getCanonicalType())) {
+            return extractIntegralValueAsFloatingPointValue(
+                readType.getCanonicalType(), valueAndType);
+          }
+          // TODO: That shouldn't happen...
           return UnknownValue.getInstance();
         }
 
@@ -144,18 +150,64 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     return UnknownValue.getInstance();
   }
 
+  private Value extractFloatingPointValueAsIntegralValue(
+      CType pActualType, ValueAndType pValueAndType) {
+    if (pActualType instanceof CSimpleType) {
+      CBasicType basicType = ((CSimpleType) pActualType.getCanonicalType()).getType();
+      NumericValue numericValue = pValueAndType.getValue().asNumericValue();
+
+      if (basicType.equals(CBasicType.FLOAT)) {
+        float floatValue = numericValue.floatValue();
+        int intBits = Float.floatToIntBits(floatValue);
+
+        return new NumericValue(intBits);
+      } else if (basicType.equals(CBasicType.DOUBLE)) {
+        double doubleValue = numericValue.doubleValue();
+        long longBits = Double.doubleToLongBits(doubleValue);
+
+        return new NumericValue(longBits);
+      }
+    }
+    return UnknownValue.getInstance();
+  }
+
+  private Value extractIntegralValueAsFloatingPointValue(
+      CType pReadType, ValueAndType pValueAndType) {
+    if (pReadType instanceof CSimpleType) {
+      CBasicType basicReadType = ((CSimpleType) pReadType.getCanonicalType()).getType();
+      NumericValue numericValue = pValueAndType.getValue().asNumericValue();
+
+      if (basicReadType.equals(CBasicType.FLOAT)) {
+        int bits = numericValue.bigInteger().intValue();
+        float floatValue = Float.intBitsToFloat(bits);
+
+        return new NumericValue(floatValue);
+      } else if (basicReadType.equals(CBasicType.DOUBLE)) {
+        long bits = numericValue.bigInteger().longValue();
+        double doubleValue = Double.longBitsToDouble(bits);
+
+        return new NumericValue(doubleValue);
+      }
+    }
+    return UnknownValue.getInstance();
+  }
+
   private boolean doesRequireUnionFloatConversion(CType pSourceType, CType pTargetType) {
     CType sourceType = pSourceType.getCanonicalType();
     CType targetType = pTargetType.getCanonicalType();
     if (sourceType instanceof CSimpleType && targetType instanceof CSimpleType) {
-      CBasicType sourceBasic = ((CSimpleType) sourceType).getType();
-      CBasicType targetBasic = ((CSimpleType) targetType).getType();
-
       // if only one of them is no integer type, a conversion is necessary
-      return sourceBasic.isIntegerType() != targetBasic.isIntegerType();
+      return isFloatingPointType(sourceType) != isFloatingPointType(targetType);
     } else {
       return false;
     }
+  }
+
+  private boolean isFloatingPointType(CType pType) {
+    if (pType instanceof CSimpleType) {
+      return ((CSimpleType) pType).getType().isFloatingPointType();
+    }
+    return false;
   }
 
   @Override
