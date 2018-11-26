@@ -1656,6 +1656,20 @@ public class DomainSpecificAbstraction<T> {
         buildingLatticeNamesAndLatticeTypesTimer.stop();
       }
 
+      for(Formula x : relationAbstraction1Formula){
+        logger.log(Level.WARNING, x.toString());
+      }
+
+      for(Formula y : relationAbstraction2Formula){
+        logger.log(Level.WARNING, y.toString());
+      }
+
+      for(int i=0; i < latticeNames.length; i++){
+        logger.log(Level.WARNING, "LatticeName: " + latticeNames[i] + " "
+            + "LatticeNameType: " + latticeNamesTypes.get
+            (latticeNames[i]));
+      }
+
       FirstPartRenamingFct renamer1 = new FirstPartRenamingFct
           (arrayVariablesThatAreUsedInBothParts, arrayVariablesThatAreNotUsedInBothParts);
       ScndPartRenamingFct renamer2 = new ScndPartRenamingFct
