@@ -71,7 +71,26 @@ public class TestTargetProvider implements Statistics {
     for (CFANode node : cfa.getAllNodes()) {
       edges.addAll(CFAUtils.allLeavingEdges(node).filter(criterion).toSet());
     }
+    deleteIfCoveredByDifferentGoal(edges);
     return edges;
+  }
+
+  private void deleteIfCoveredByDifferentGoal(final Set<CFAEdge> goals) {
+    // currently only simple heuristic
+    Set<CFAEdge> keptGoals = new HashSet<>(goals);
+
+    for (CFAEdge target : goals) {
+      if (target.getSuccessor().getNumEnteringEdges() == 1) {
+        for (CFAEdge leaving : CFAUtils.leavingEdges(target.getSuccessor())) {
+          if (keptGoals.contains(leaving)) {
+            keptGoals.remove(target);
+            break;
+          }
+        }
+      }
+    }
+    goals.clear();
+    goals.addAll(keptGoals);
   }
 
   public static Set<CFAEdge> getTestTargets(
