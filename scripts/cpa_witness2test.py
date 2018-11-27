@@ -28,6 +28,7 @@ import sys
 import os
 import glob
 import subprocess
+import shutil
 import argparse
 
 import logging
@@ -227,7 +228,12 @@ def create_compile_cmd(harness, target, args, specification, c_version='gnu11'):
     :return: list of command-line keywords that can be given to method `execute`
     """
 
-    gcc_cmd = ['gcc'] + _create_gcc_basic_args(args)
+    if shutil.which('clang'):
+        compiler = 'clang'
+    else:
+        compiler = 'gcc'
+
+    gcc_cmd = [compiler] + _create_gcc_basic_args(args)
     gcc_cmd.append('-std={}'.format(c_version))
 
     sanitizer_in_use = False
