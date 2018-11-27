@@ -51,7 +51,7 @@ public class TestTargetCPA extends AbstractCPA {
 
   @Option(
     secure = true,
-    name = "targets.type",
+    name = "targets.type", // adapt CPAMain.java if adjust name
     description = "Which CFA edges to use as test targets"
   )
   private TestTargetType targetType = TestTargetType.ASSUME;
