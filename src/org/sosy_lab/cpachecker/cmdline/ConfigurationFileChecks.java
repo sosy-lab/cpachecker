@@ -143,6 +143,7 @@ public class ConfigurationFileChecks {
           "invariantGeneration.kInduction.async",
           "invariantGeneration.kInduction.guessCandidatesFromCFA",
           "invariantGeneration.kInduction.terminateOnCounterexample",
+          "counterexample.export.allowImpreciseCounterexamples", // refactor BMCAlgorithm for this
           // irrelevant if other solver is used
           "solver.z3.requireProofs",
           // present in many config files that explicitly disable counterexample checks
