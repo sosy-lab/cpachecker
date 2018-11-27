@@ -777,6 +777,10 @@ counterexample.concrete.timelimit = 0ms
 # second check
 counterexample.continueAfterInfeasibleError = true
 
+# An imprecise counterexample of the Predicate CPA is usually a bug, but
+# expected in some configurations. Should it be treated as a bug or accepted?
+counterexample.export.allowImpreciseCounterexamples = true
+
 # If the option assumeLinearArithmetics is set, this option can be used to
 # allow division and modulo by constants.
 counterexample.export.assumptions.allowDivisionAndModuloByConstants = false
