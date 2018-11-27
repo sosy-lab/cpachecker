@@ -56,6 +56,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.Optionals;
@@ -495,35 +496,50 @@ public class ReportGenerator {
 
   private void insertLog(Writer writer) throws IOException {
     if (logFile != null && Files.isReadable(logFile)) {
+      final Pattern logLinePattern = Pattern.compile("[0-9-]* [0-9:]*\t[A-Z]*\t.*\t.*");
+      final Splitter logLineSplitter = Splitter.on('\t').limit(4);
+      final Splitter logDateSplitter = Splitter.on(' ').limit(2);
+
       String insertTableLine =
-          "<table  id=\"log_table\" class=\"display\" style=\"width:100%;padding: 10px\" class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th scope=\"col\">Date</th><th scope=\"col\">Time</th><th scope=\"col\">Log Level</th><th scope=\"col\">Log Info</th><th scope=\"col\">Log Message</th></tr></thead><tbody>\n";
+          "<table  id=\"log_table\" class=\"display\" style=\"width:100%;padding: 10px\" class=\"table table-bordered\">"
+              + "<thead class=\"thead-light\"><tr>"
+              + "<th scope=\"col\">Date</th>"
+              + "<th scope=\"col\">Time</th>"
+              + "<th scope=\"col\">Level</th>"
+              + "<th scope=\"col\">Component</th>"
+              + "<th scope=\"col\">Message</th>"
+              + "</tr></thead><tbody>\n";
       writer.write(insertTableLine);
       try (BufferedReader log = Files.newBufferedReader(logFile, Charset.defaultCharset())) {
         int counter = 0;
         String line;
-        while (null != (line = log.readLine())) {
-          String getDate = line.replaceFirst("\\s", "-i-");
-          String getLogLevel = getDate.replaceFirst("\\s", "-i-");
-          String getLogInfo = getLogLevel.replaceFirst("\\s", "-i-");
-          String getLogMessage = getLogInfo.replaceFirst("\\s", "-i-");
-          List<String> splitLine = Splitter.onPattern("-i-").limit(5).splitToList(getLogMessage);
-          if (splitLine.size() == 5) {
-            line =
-                "<tr id=\"log-"
-                    + counter
-                    + "\"><th scope=\"row\">"
-                    + htmlEscaper().escape(splitLine.get(0))
-                    + "</th><td>"
-                    + htmlEscaper().escape(splitLine.get(1))
-                    + "</td><td>"
-                    + htmlEscaper().escape(splitLine.get(2))
-                    + "</td><td>"
-                    + htmlEscaper().escape(splitLine.get(3))
-                    + "</td><td>"
-                    + htmlEscaper().escape(splitLine.get(4))
-                    + "</td></tr>\n";
-            writer.write(line);
+        // If there is junk at the beginning, ignore it
+        while ((line = log.readLine()) != null && !logLinePattern.matcher(line).matches()) {}
+        while (line != null) {
+          List<String> splitLine = logLineSplitter.splitToList(line);
+          List<String> dateTime = logDateSplitter.splitToList(splitLine.get(0));
+
+          writer.write("<tr id=\"log-" + counter + "\">");
+          writer.write("<th scope=\"row\">");
+          writer.write(htmlEscaper().escape(dateTime.get(0)));
+          writer.write("</th><td>");
+          writer.write(htmlEscaper().escape(dateTime.get(1)));
+          writer.write("</td><td>");
+          writer.write(htmlEscaper().escape(splitLine.get(1)));
+          writer.write("</td><td>");
+          writer.write(htmlEscaper().escape(splitLine.get(2)).replaceAll(":", "<br>"));
+          writer.write("</td><td>");
+          writer.write(htmlEscaper().escape(splitLine.get(3)));
+
+          // peek at next line to handle multi-line log messages
+          while ((line = log.readLine()) != null && !logLinePattern.matcher(line).matches()) {
+            if (!line.isEmpty()) {
+              writer.write("<br>");
+              writer.write(htmlEscaper().escape(line));
+            }
           }
+          writer.write("</td></tr>\n");
+
           counter++;
         }
         String exitTableLine = "</tbody></table>\n";
