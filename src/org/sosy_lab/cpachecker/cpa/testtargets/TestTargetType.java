@@ -23,6 +23,7 @@ import com.google.common.base.Predicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
 public enum TestTargetType {
@@ -43,6 +44,15 @@ public enum TestTargetType {
                   .getFunctionNameExpression()
                   .toASTString()
                   .equals("__VERIFIER_error");
+    }
+  },
+  STATEMENT {
+    @Override
+    public Predicate<CFAEdge> getEdgeCriterion() {
+      return edge ->
+          edge.getEdgeType() == CFAEdgeType.DeclarationEdge
+              || edge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
+              || edge.getEdgeType() == CFAEdgeType.StatementEdge;
     }
   };
 
