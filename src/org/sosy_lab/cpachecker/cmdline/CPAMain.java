@@ -77,7 +77,9 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
+import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetType;
 import org.sosy_lab.cpachecker.util.Property;
+import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.util.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.util.PropertyFileParser;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
@@ -392,6 +394,37 @@ public class CPAMain {
             "Unsupported combination of properties: " + properties);
       }
       alternateConfigFile = check(options.terminationConfig, "termination", "termination.config");
+    } else if (properties.contains(CommonCoverageType.COVERAGE_ERROR)) {
+      // coverage criterion cannot be checked with other properties in combination
+      if (properties.size() != 1) {
+        throw new InvalidConfigurationException(
+            "Unsupported combination of properties: " + properties);
+      }
+      return Configuration.builder()
+          .copyFrom(config)
+          .setOption("testcase.targets.type", TestTargetType.ERROR_CALL.name())
+          .build();
+    } else if (properties.contains(CommonCoverageType.COVERAGE_BRANCH)
+        || properties.contains(CommonCoverageType.COVERAGE_CONDITION)) {
+      // coverage criterion cannot be checked with other properties in combination
+      if (properties.size() != 1) {
+        throw new InvalidConfigurationException(
+            "Unsupported combination of properties: " + properties);
+      }
+      return Configuration.builder()
+          .copyFrom(config)
+          .setOption("testcase.targets.type", TestTargetType.ASSUME.name())
+          .build();
+    } else if (properties.contains(CommonCoverageType.COVERAGE_STATEMENT)) {
+      // coverage criterion cannot be checked with other properties in combination
+      if (properties.size() != 1) {
+        throw new InvalidConfigurationException(
+            "Unsupported combination of properties: " + properties);
+      }
+      return Configuration.builder()
+          .copyFrom(config)
+          .setOption("testcase.targets.type", TestTargetType.STATEMENT.name())
+          .build();
     } else {
       alternateConfigFile = null;
     }
