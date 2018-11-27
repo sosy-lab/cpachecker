@@ -103,8 +103,7 @@ public class PropertyFileParser {
     Matcher matcher = PROPERTY_PATTERN.matcher(rawProperty);
 
     if (rawProperty == null) {
-      throw new InvalidPropertyFileException(
-          String.format("The property '%s' is not well-formed!", rawProperty));
+      throw new InvalidPropertyFileException(String.format("The property is not well-formed!"));
     }
 
     Map<String, ? extends Property> propStringToProperty = AVAILABLE_VERIFICATION_PROPERTIES;
