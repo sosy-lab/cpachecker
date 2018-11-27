@@ -143,8 +143,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
                   readType.getCanonicalType(), valueAndType);
             }
           }
-          // TODO: in that case we are most likely doing symbolic execution; perhaps we can
-          // introduce a new symbolic value instead of unknown?
+          
           return UnknownValue.getInstance();
         }
 
