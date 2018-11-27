@@ -134,13 +134,17 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       if (machineModel.getSizeof(readType) == machineModel.getSizeof(actualType)) {
 
         if (doesRequireUnionFloatConversion(actualType, readType)) {
-          if (isFloatingPointType(actualType.getCanonicalType())) {
-            return extractFloatingPointValueAsIntegralValue(actualType.getCanonicalType(), valueAndType);
-          } else if (isFloatingPointType(readType.getCanonicalType())) {
-            return extractIntegralValueAsFloatingPointValue(
-                readType.getCanonicalType(), valueAndType);
+          if (valueAndType.getValue().isNumericValue()) {
+            if (isFloatingPointType(actualType.getCanonicalType())) {
+              return extractFloatingPointValueAsIntegralValue(
+                  actualType.getCanonicalType(), valueAndType);
+            } else if (isFloatingPointType(readType.getCanonicalType())) {
+              return extractIntegralValueAsFloatingPointValue(
+                  readType.getCanonicalType(), valueAndType);
+            }
           }
-          // TODO: That shouldn't happen...
+          // TODO: in that case we are most likely doing symbolic execution; perhaps we can
+          // introduce a new symbolic value instead of unknown?
           return UnknownValue.getInstance();
         }
 
