@@ -26,24 +26,25 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
 public enum TestTargetType {
-  ASSUME(edge -> edge instanceof AssumeEdge),
-  ERROR_CALL(
-      edge ->
+  ASSUME {
+    @Override
+    public Predicate<CFAEdge> getEdgeCriterion() {
+      return edge -> edge instanceof AssumeEdge;
+    }
+  },
+  ERROR_CALL {
+    @Override
+    public Predicate<CFAEdge> getEdgeCriterion() {
+      return edge ->
           edge instanceof CStatementEdge
               && ((CStatementEdge) edge).getStatement() instanceof CFunctionCall
               && ((CFunctionCall) ((CStatementEdge) edge).getStatement())
                   .getFunctionCallExpression()
                   .getFunctionNameExpression()
                   .toASTString()
-                  .equals("__VERIFIER_error"));
+                  .equals("__VERIFIER_error");
+    }
+  };
 
-  private final Predicate<CFAEdge> criterion;
-
-  private TestTargetType(final Predicate<CFAEdge> pCriterion) {
-    criterion = pCriterion;
-  }
-
-  public Predicate<CFAEdge> getEdgeCriterion() {
-    return criterion;
-  }
+  public abstract Predicate<CFAEdge> getEdgeCriterion();
 }
