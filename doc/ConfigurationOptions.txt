@@ -3752,6 +3752,10 @@ testcase.generate.parallel = false
 # display all test targets and non-covered test targets in statistics
 testcase.inStats = false
 
+# Which CFA edges to use as test targets
+testcase.targets.type = ASSUME
+  enum:     [ASSUME, ERROR_CALL]
+
 # export test values to file (line separated)
 testcase.values = no default value
 
