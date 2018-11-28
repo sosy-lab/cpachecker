@@ -207,6 +207,14 @@ public class UsageState extends AbstractSingleWrapperState
   }
 
   @Override
+  public boolean isExitState() {
+    if (isExitState) {
+      return true;
+    }
+    return super.isExitState();
+  }
+
+  @Override
   public UsageState join(UsageState pOther) {
     stats.joinTimer.start();
     PersistentSortedMap<AbstractIdentifier, AbstractIdentifier> newRelation =
