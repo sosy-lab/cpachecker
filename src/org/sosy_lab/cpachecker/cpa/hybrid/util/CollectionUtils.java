@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.hybrid.util;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -52,7 +51,8 @@ public final class CollectionUtils
     {
         return collection
             .stream()
-            .filter(elem -> elem.getClass() == clazz)
+            // the former implementation may not havy been sound in all variations (comparing elements class with the given one)
+            .filter(elem -> clazz.isInstance(elem)) 
             // the cast is safe due to filter operation
             .map(elem -> (T) elem)
             .collect(Collectors.toList());

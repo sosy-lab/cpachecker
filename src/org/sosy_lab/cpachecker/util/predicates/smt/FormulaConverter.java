@@ -92,7 +92,13 @@ public class FormulaConverter {
                     throws InvalidAutomatonException {
 
         // convert Formula to C-String
-        Boolean isValid = formulaManagerView.visit(formula, toCVisitor); // don't know if we need the output
+        Boolean isValid = formulaManagerView.visit(formula, toCVisitor);
+
+        // if the formula is invalid, the resulting string is useless
+        if(!isValid) {
+            throw new InvalidAutomatonException(String.format("The boolean formula %s could not be parsed", formula));
+        }
+
         final String cCodeString = toCVisitor.getString();
 
         // parse c code to expression

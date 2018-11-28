@@ -84,9 +84,6 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
   @Options(prefix = "hybridExecution")
   public static class HybridExecutionAlgorithmFactory implements AlgorithmFactory {
 
-    @Option(secure=true, name="unboundedDFS", description="Use dfs algorithm unbounded")
-    private boolean unbounded = false;
-
     @Option(secure=true, name="useValueSets", description="Wether to use multiple values on a state")
     private boolean useValueSets = false;
 
@@ -113,11 +110,16 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
         CFA pCFA,
         LogManager pLogger,
         Configuration pConfiguration,
-        ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+        ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException, CPAException {
       pConfiguration.inject(this);
       this.algorithm = pAlgorithm;
       // hybrid execution relies on arg cpa
       this.argCPA = CPAs.retrieveCPA(pArgCPA, ARGCPA.class);
+
+      if(argCPA == null) {
+        throw new CPAException("Hybrid Execution relies on the >Abstract Reachability Graph CPA<");
+      }
+
       this.cfa = pCFA;
       this.logger = pLogger;
       this.configuration = pConfiguration;
@@ -134,7 +136,6 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
             logger,
             configuration,
             notifier,
-            unbounded,
             useValueSets);
       } catch (InvalidConfigurationException e) {
         // this is a bad place to catch an exception
@@ -149,16 +150,12 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
   private final Algorithm algorithm;
   private final ARGCPA argCPA;
   private final CFA cfa;
-  private final Configuration configuration;
   private final LogManager logger;
-  private final ShutdownNotifier notifier;
 
   private final Solver solver;
   private final FormulaManagerView formulaManagerView;
   private final FormulaConverter formulaConverter;
   private final PathFormulaManager pathFormulaManager;
-
-  private final boolean unbounded;
 
   // we could run the search with several values satisfying certain conditions to achieve a broader coverage
   // this must be experimental validated (in theory it is very easy to find several variable values for a specific state that will later on lead to different executions)
@@ -206,7 +203,6 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
       LogManager pLogger,
       Configuration pConfiguration,
       ShutdownNotifier pNotifier,
-      boolean pUnbounded,
       boolean pUseValueSets)
       throws InvalidConfigurationException {
 
@@ -214,9 +210,6 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     this.argCPA = pArgCPA;
     this.cfa = pCFA;
     this.logger = pLogger;
-    this.configuration = pConfiguration;
-    this.notifier = pNotifier;
-    this.unbounded = pUnbounded;
     this.useValueSets = pUseValueSets;
     this.reachedSetUpdateListeners = new LinkedList<>();
 
@@ -248,12 +241,16 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
 
     // ReachedSet#add
 
+    logger.log(Level.INFO, "Hybrid Execution algorithm started.");
+
     // first we need to collect all assume edges from the cfa to distinguish between already visited and new paths
     CFATraversal traversal = CFATraversal.dfs();
     EdgeCollectingCFAVisitor edgeCollectingVisitor = new EdgeCollectingCFAVisitor();
     CFANode startingNode = cfa.getMainFunction();
     traversal.traverseOnce(startingNode, edgeCollectingVisitor);
     final Set<AssumeEdge> assumeEdges = extractAssumeEdges(edgeCollectingVisitor.getVisitedEdges());
+
+    logger.log(Level.FINEST, "Assume edges from program cfa collected.");
 
     // start with good status
     AlgorithmStatus currentStatus = AlgorithmStatus.SOUND_AND_PRECISE;
@@ -309,6 +306,9 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
         boolean satisfiable = !solver.isUnsat(pathFormula.getFormula());
 
         // -- infeasibility could be reported here --
+
+        logger.log(Level.INFO, String.format("The boolean formula %s is not satisfiable for the solver", pathFormula.getFormula()));
+
         // get assignments for the new path containing the flipped assumption
         if(satisfiable) {
           ProverEnvironment proverEnvironment = solver.newProverEnvironment();
