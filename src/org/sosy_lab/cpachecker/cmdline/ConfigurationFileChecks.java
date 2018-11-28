@@ -123,6 +123,7 @@ public class ConfigurationFileChecks {
           "limits.time.cpu",
           "limits.time.cpu::required",
           "limits.time.cpu.thread",
+          "log.consoleLevel",
           "memorysafety.config",
           "memorycleanup.config",
           "overflow.config",
@@ -373,6 +374,18 @@ public class ConfigurationFileChecks {
                 Paths.get(
                     tempFolder.getRoot().getAbsolutePath()
                         + "/config/specification/TargetState.spc"),
+                StandardCharsets.UTF_8)) {
+      CharStreams.copy(r, w);
+    }
+
+    try (Reader r =
+            Files.newBufferedReader(
+                Paths.get("config/specification/sv-comp-terminatingfunctions.spc"));
+        Writer w =
+            IO.openOutputFile(
+                Paths.get(
+                    tempFolder.getRoot().getAbsolutePath()
+                        + "/config/specification/sv-comp-terminatingfunctions.spc"),
                 StandardCharsets.UTF_8)) {
       CharStreams.copy(r, w);
     }
