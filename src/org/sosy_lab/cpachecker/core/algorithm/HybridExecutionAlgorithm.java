@@ -246,12 +246,6 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
   public AlgorithmStatus run(ReachedSet pReachedSet)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
 
-    // PathFormulaManager to build the BooleanFormula
-
-    // Solver#isUnsat
-    // Solver#getProverEnvironment
-    // Prover#getModelAsAssignments
-
     // ReachedSet#add
 
     // first we need to collect all assume edges from the cfa to distinguish between already visited and new paths
@@ -297,6 +291,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
       assumeEdges.removeAll(assumeEdgesInPath);
 
       /*
+       * TODO
        * We will define here a assumption context to collect all depending variables
        */
 

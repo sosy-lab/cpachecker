@@ -38,9 +38,12 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -66,15 +69,15 @@ public class HybridAnalysisTransferRelation
 
 
   public HybridAnalysisTransferRelation(
-      CFA cfa, 
-      LogManager logger, 
-      HybridValueProvider valueProvider,
-      HybridValueTransformer valueTransformer)
+      CFA pCfa,
+      LogManager pLogger,
+      HybridValueProvider pValueProvider,
+      HybridValueTransformer pHybridValueTransformer)
   {
-    this.cfa = cfa;
-    this.logger = logger;
-    this.valueProvider = valueProvider;
-    this.valueTransformer = valueTransformer;
+    this.cfa = pCfa;
+    this.logger = pLogger;
+    this.valueProvider = pValueProvider;
+    this.valueTransformer = pHybridValueTransformer;
   }
 
   @Override
@@ -102,12 +105,6 @@ public class HybridAnalysisTransferRelation
     return Collections.singleton(stateToStrengthen);
   }
 
-  @Override
-  protected @Nullable Collection<HybridAnalysisState> preCheck(HybridAnalysisState pState, VariableTrackingPrecision pPrecision) {
-
-    // TODO: check for states that will definitely not change
-    return null;
-  }
 
   @Override
   protected @Nullable HybridAnalysisState handleAssumption(
@@ -125,23 +122,26 @@ public class HybridAnalysisTransferRelation
 
     Set<CBinaryExpression> assumptions = Sets.newHashSet(state.getExplicitAssumptions());
     CBinaryExpression binaryExpression = (CBinaryExpression) expression;
-    CExpression firstOperand = binaryExpression.getOperand1();
+    CIdExpression variableId = (CIdExpression) binaryExpression.getOperand1();
 
-    // check for existance of the first operand -> assumptionEdge updates the assumption of an already exisiting variable
-    final Collection<CBinaryExpression> matchingAssumptions = CollectionUtils.getApplyingElements(assumptions, assumption -> assumption.getOperand1().equals(firstOperand));
+    // existing variable (within state)
+    if(state.tracksVariable(variableId)) {
+      // check for existence of the first operand -> assumptionEdge updates the assumption of an already existing variable
+      final Collection<CBinaryExpression> matchingAssumptions =
+          CollectionUtils.getApplyingElements(assumptions, assumption -> assumption.getOperand1().equals(variableId));
 
-    // exactly one assumption for a variable should exist at a time, or none at all
-    if(matchingAssumptions.size() > 1) {
-      throw new CPATransferException("Multiple assumptions for the same variable in this state.");
+      // at this point exactly one assumption for a variable should existredshift
+      if(matchingAssumptions.size() != 1) {
+        throw new CPATransferException("Multiple assumptions for the same variable in this state.");
+      }
+
+      @Nullable CBinaryExpression existingAssumption = CollectionUtils.first(matchingAssumptions);
+
+      if(existingAssumption != null) {
+        // replace the assumption
+        assumptions.remove(existingAssumption);
+      }
     }
-
-    @Nullable CBinaryExpression existingAssumption = CollectionUtils.first(matchingAssumptions);
-
-    // there is no assumption for this variable - later on we will use the variable cache of a state to simplify this search
-    if(existingAssumption != null) {
-      // replace the assumption
-      assumptions.remove(existingAssumption);
-    } 
 
     // possible inversion of logical operation
     assumptions.add(ExpressionUtils.getASTWithTruthAssumption(cfaEdge, binaryExpression));
@@ -160,6 +160,13 @@ public class HybridAnalysisTransferRelation
     postDeclarationAssumptions.add(newAssumption);
 
     return new HybridAnalysisState(postDeclarationAssumptions);
+  }
+
+  @Override
+  protected HybridAnalysisState handleStatementEdge(CStatementEdge pCStatementEdge, CStatement pCStatement)
+    throws  CPATransferException {
+    // TODO: handle assignments
+    return HybridAnalysisState.copyOf(state);
   }
 
 }

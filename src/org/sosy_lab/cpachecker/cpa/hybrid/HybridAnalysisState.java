@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.*;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -46,20 +47,21 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 public class HybridAnalysisState implements 
     AbstractQueryableState, 
     LatticeAbstractState<HybridAnalysisState>,
-    AbstractStateWithAssumptions {
+    AbstractStateWithAssumptions,
+    Graphable {
 
     private ImmutableSet<CBinaryExpression> assumptions;
 
-    // varibale cache 
+    // variable cache
     private ImmutableSet<CIdExpression> trackedVariables;
 
     public HybridAnalysisState() {
         this(Collections.emptySet());
     }
 
-    public HybridAnalysisState(Set<CExpression> assumptions) {
+    public HybridAnalysisState(Set<CExpression> pAssumptions) {
         this.assumptions = ImmutableSet.copyOf(
-            CollectionUtils.ofType(assumptions, CBinaryExpression.class));
+            CollectionUtils.ofType(pAssumptions, CBinaryExpression.class));
         
         trackedVariables = ImmutableSet.copyOf(
             this.assumptions
@@ -68,9 +70,16 @@ public class HybridAnalysisState implements
                 .collect(Collectors.toSet()));
     }
 
-    private HybridAnalysisState(Collection<CExpression> assumptions)
+    protected HybridAnalysisState(Set<CExpression> pAssumptions, Set<CIdExpression> pVariables) {
+      this.assumptions = ImmutableSet.copyOf(
+          CollectionUtils.ofType(pAssumptions, CBinaryExpression.class));
+
+      this.trackedVariables = ImmutableSet.copyOf(pVariables);
+    }
+
+    private HybridAnalysisState(Collection<CExpression> pAssumptions)
     {
-        this(Sets.newHashSet(assumptions));
+        this(Sets.newHashSet(pAssumptions));
     }
 
     // creates an exact copy of the given state in terms of assumptions
@@ -86,8 +95,8 @@ public class HybridAnalysisState implements
 
     @Override
     public boolean checkProperty(String property) throws InvalidQueryException {
-    // TODO: define dsl for properties
-    return true;
+      // TODO: define dsl for properties
+      return true;
     }
 
     @Override
@@ -154,4 +163,24 @@ public class HybridAnalysisState implements
         return assumptions.hashCode();
     }
 
+    @Override
+    public String toDOTLabel() {
+        StringBuilder builder = new StringBuilder();
+        assumptions.forEach(assumption -> builder.append(assumption).append(System.lineSeparator()));
+        return builder.toString();
+    }
+
+    @Override
+    public boolean shouldBeHighlighted() {
+        return false;
+    }
+
+    /**
+     *
+     * @param pCIdExpression
+     * @return
+     */
+    public boolean tracksVariable(CIdExpression pCIdExpression) {
+      return trackedVariables.contains(pCIdExpression);
+    }
 }
