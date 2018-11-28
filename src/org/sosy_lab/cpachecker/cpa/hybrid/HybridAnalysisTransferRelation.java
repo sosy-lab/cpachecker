@@ -35,9 +35,11 @@ import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -48,6 +50,8 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueProvider;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.CollectionUtils;
@@ -165,8 +169,32 @@ public class HybridAnalysisTransferRelation
   @Override
   protected HybridAnalysisState handleStatementEdge(CStatementEdge pCStatementEdge, CStatement pCStatement)
     throws  CPATransferException {
-    // TODO: handle assignments
-    return HybridAnalysisState.copyOf(state);
+    
+      // no assignment
+    if(!(pCStatement instanceof CExpressionAssignmentStatement)) {
+      return HybridAnalysisState.copyOf(state);
+    }
+
+    // handle assignment
+    assert pCStatement instanceof CExpressionAssignmentStatement;
+
+    Collection<CStatement> singletonList = Collections.singleton(pCStatement);
+    try {
+      Collection<CExpression> expressions =
+          CollectionUtils.ofType(
+              CParserUtils
+                  .convertStatementsToAssumptions(singletonList, cfa.getMachineModel(), logger),
+              CExpression.class);
+
+      // build new state
+      CExpression assignment = CollectionUtils.first(expressions); // first and only
+
+      // save to call with null, because of null check on usage of the edge
+      return handleAssumption(null, assignment, true);
+      
+    } catch (InvalidAutomatonException e) {
+      throw new CPATransferException("Unable to parse CStatement into assumption", e);
+    }
   }
 
 }

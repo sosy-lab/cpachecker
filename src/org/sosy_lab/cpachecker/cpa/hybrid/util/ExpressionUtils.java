@@ -46,21 +46,21 @@ public final class ExpressionUtils {
      */
     public static CBinaryExpression getASTWithTruthAssumption(AssumeEdge cfaEdge, CBinaryExpression expression) {
 
-        if(!cfaEdge.getTruthAssumption()) {
+        if(cfaEdge == null || cfaEdge.getTruthAssumption()) {
 
-            // operator inversion is needed
-            BinaryOperator newOperator = expression.getOperator().getOppositLogicalOperator();
-
-            expression = new CBinaryExpression(
-                expression.getFileLocation(), 
-                expression.getExpressionType(), 
-                expression.getCalculationType(),
-                expression.getOperand1(),
-                expression.getOperand2(),
-                newOperator);
+            return expression;
         }
 
-        return expression;
+        // operator inversion is needed
+        BinaryOperator newOperator = expression.getOperator().getOppositLogicalOperator();
+
+        return new CBinaryExpression(
+            expression.getFileLocation(), 
+            expression.getExpressionType(), 
+            expression.getCalculationType(),
+            expression.getOperand1(),
+            expression.getOperand2(),
+            newOperator);
     }
 
     /**
