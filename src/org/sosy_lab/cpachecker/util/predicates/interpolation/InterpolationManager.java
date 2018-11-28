@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.DomainSpecificAbstraction;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.ITPStrategy;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.NestedInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolation;
@@ -74,7 +75,6 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.Sequential
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.TreeInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.TreeInterpolationWithSolver;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.WellScopedInterpolation;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.DomainSpecificAbstraction;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -1101,43 +1101,46 @@ public final class InterpolationManager {
       try (Solver mySolver =Solver.create(
           myConfig,logger,
           shutdownNotifier)){
-        if (mySolver != null) {
-          FormulaManagerView newFmgr = mySolver.getFormulaManager();
-          DomainSpecificAbstraction<T> dsa = new DomainSpecificAbstraction<>(
-              newFmgr, fmgr, logger, findingCommonVariablesTimer,
-              buildingLatticeNamesAndLatticeTypesTimer, renamingTimer, buildingAbstractionsTimer,
-              interpolationTimer, initialVariableExtractionTimer, feasiblityCheckTimer,
-              maximisationTimer, inequalityInterpolationAbstractions);
-          List<BooleanFormula> tocheck =
-              Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst);
-          if (tocheck != null) {
-            myInterpolants = dsa.domainSpecificAbstractionsCheck
-                (mySolver, tocheck);
-          } else {
-            myInterpolants = null;
+        FormulaManagerView newFmgr = mySolver.getFormulaManager();
+        DomainSpecificAbstraction<T> dsa =
+            new DomainSpecificAbstraction<>(
+                newFmgr,
+                fmgr,
+                logger,
+                findingCommonVariablesTimer,
+                buildingLatticeNamesAndLatticeTypesTimer,
+                renamingTimer,
+                buildingAbstractionsTimer,
+                interpolationTimer,
+                initialVariableExtractionTimer,
+                feasiblityCheckTimer,
+                maximisationTimer,
+                inequalityInterpolationAbstractions);
+        List<BooleanFormula> tocheck =
+            Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst);
+        if (tocheck != null) {
+          myInterpolants = dsa.domainSpecificAbstractionsCheck(mySolver, tocheck);
+        } else {
+          myInterpolants = null;
+        }
+        if (myInterpolants != null && !(myInterpolants.isEmpty())) {
+          List<BooleanFormula> interpolantList = new ArrayList<>(myInterpolants.size());
+          for (BooleanFormula f : myInterpolants) {
+            BooleanFormula interpolant = fmgr.translateFrom(f, newFmgr);
+            interpolantList.add(interpolant);
           }
-          if (myInterpolants != null && !(myInterpolants.isEmpty())) {
-            List<BooleanFormula> interpolantList =
-                new ArrayList<>(myInterpolants.size());
-            for (BooleanFormula f : myInterpolants) {
-              BooleanFormula interpolant = fmgr.translateFrom(f, newFmgr);
-              interpolantList.add(interpolant);
-            }
 
-            //mySolver.close();
-            if (!(interpolantList.isEmpty())) {
-              return interpolantList;
-            } else {
-              //mySolver.close();
-              logger.log(Level.WARNING, "Returning empty list");
-
-              return Collections.emptyList();
-            }
+          // mySolver.close();
+          if (!(interpolantList.isEmpty())) {
+            return interpolantList;
           } else {
-            //mySolver.close();
+            // mySolver.close();
+            logger.log(Level.WARNING, "Returning empty list");
+
             return Collections.emptyList();
           }
         } else {
+          // mySolver.close();
           return Collections.emptyList();
         }
       }

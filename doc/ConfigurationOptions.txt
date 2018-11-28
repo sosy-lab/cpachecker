@@ -2093,6 +2093,10 @@ cpa.predicate.refinement.includePartialInvariants = true
 # infeasible prefix
 cpa.predicate.refinement.incrementalCexTraceCheck = false
 
+# additional variation to domainSpecificAbstractions using inequalities
+# instead of equalities
+cpa.predicate.refinement.inequalityInterpolationAbstractions = false
+
 # Max. number of prefixes to extract
 cpa.predicate.refinement.maxPrefixCount = 64
 
