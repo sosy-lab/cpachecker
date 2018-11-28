@@ -355,6 +355,14 @@ public class CPAMain {
     return new Config(config, outputDirectory, properties);
   }
 
+  private static final ImmutableMap<Property, TestTargetType> TARGET_TYPES =
+      ImmutableMap.<Property, TestTargetType>builder()
+          .put(CommonCoverageType.COVERAGE_BRANCH, TestTargetType.ASSUME)
+          .put(CommonCoverageType.COVERAGE_CONDITION, TestTargetType.ASSUME)
+          .put(CommonCoverageType.COVERAGE_ERROR, TestTargetType.ERROR_CALL)
+          .put(CommonCoverageType.COVERAGE_STATEMENT, TestTargetType.STATEMENT)
+          .build();
+
   private static Configuration handlePropertyOptions(
       Configuration config,
       BootstrapOptions options,
@@ -394,7 +402,10 @@ public class CPAMain {
             "Unsupported combination of properties: " + properties);
       }
       alternateConfigFile = check(options.terminationConfig, "termination", "termination.config");
-    } else if (properties.contains(CommonCoverageType.COVERAGE_ERROR)) {
+    } else if (properties.contains(CommonCoverageType.COVERAGE_ERROR)
+        || properties.contains(CommonCoverageType.COVERAGE_BRANCH)
+        || properties.contains(CommonCoverageType.COVERAGE_CONDITION)
+        || properties.contains(CommonCoverageType.COVERAGE_STATEMENT)) {
       // coverage criterion cannot be checked with other properties in combination
       if (properties.size() != 1) {
         throw new InvalidConfigurationException(
@@ -402,28 +413,7 @@ public class CPAMain {
       }
       return Configuration.builder()
           .copyFrom(config)
-          .setOption("testcase.targets.type", TestTargetType.ERROR_CALL.name())
-          .build();
-    } else if (properties.contains(CommonCoverageType.COVERAGE_BRANCH)
-        || properties.contains(CommonCoverageType.COVERAGE_CONDITION)) {
-      // coverage criterion cannot be checked with other properties in combination
-      if (properties.size() != 1) {
-        throw new InvalidConfigurationException(
-            "Unsupported combination of properties: " + properties);
-      }
-      return Configuration.builder()
-          .copyFrom(config)
-          .setOption("testcase.targets.type", TestTargetType.ASSUME.name())
-          .build();
-    } else if (properties.contains(CommonCoverageType.COVERAGE_STATEMENT)) {
-      // coverage criterion cannot be checked with other properties in combination
-      if (properties.size() != 1) {
-        throw new InvalidConfigurationException(
-            "Unsupported combination of properties: " + properties);
-      }
-      return Configuration.builder()
-          .copyFrom(config)
-          .setOption("testcase.targets.type", TestTargetType.STATEMENT.name())
+          .setOption("testcase.targets.type", TARGET_TYPES.get(properties.iterator().next()).name())
           .build();
     } else {
       alternateConfigFile = null;
