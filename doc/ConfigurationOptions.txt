@@ -2055,6 +2055,10 @@ cpa.predicate.refinement.cexTraceCheckDirection = FORWARDS
 # BDDs as they are.
 cpa.predicate.refinement.doAbstractionComputation = false
 
+# use variant described in the Guiding Craig Interpolation Paper leading to a
+# different routine
+cpa.predicate.refinement.domainSpecificAbstractions = false
+
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
 
@@ -2085,6 +2089,10 @@ cpa.predicate.refinement.includePartialInvariants = true
 # use incremental search in counterexample analysis, to find the minimal
 # infeasible prefix
 cpa.predicate.refinement.incrementalCexTraceCheck = false
+
+# additional variation to domainSpecificAbstractions using inequalities
+# instead of equalities
+cpa.predicate.refinement.inequalityInterpolationAbstractions = false
 
 # Max. number of prefixes to extract
 cpa.predicate.refinement.maxPrefixCount = 64
