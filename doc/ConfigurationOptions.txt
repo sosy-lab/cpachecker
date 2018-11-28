@@ -3195,11 +3195,17 @@ tiger.optimizeGoalAutomata = true
 # List of output variables: v1,v2,v3...
 tiger.outputInterface = ""
 
+# Filename for output of path formulas
+tiger.pathFormulasFile = "pathFormulas.txt"
+
 # Print the ARG for each test goal
 tiger.printARGperGoal = false
 
 # Prints labels reached with the error path of a test case.
 tiger.printLabels = false
+
+# Writes all target state path formulas for a goal in a file.
+tiger.printPathFormulasPerGoal = false
 
 # Reuse ARG across test goals
 tiger.reuseARG = true
