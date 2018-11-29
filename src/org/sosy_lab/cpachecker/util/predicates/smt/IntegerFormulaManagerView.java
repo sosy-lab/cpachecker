@@ -23,11 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import java.math.BigInteger;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
-
-import java.math.BigInteger;
 
 public class IntegerFormulaManagerView
     extends NumeralFormulaManagerView<IntegerFormula, IntegerFormula>
@@ -51,5 +50,10 @@ public class IntegerFormulaManagerView
   public BooleanFormula modularCongruence(
       IntegerFormula number1, IntegerFormula number2, BigInteger n) {
     return integerFormulaManager.modularCongruence(number1, number2, n);
+  }
+
+  @Override
+  public IntegerFormula modulo(IntegerFormula pNumber1, IntegerFormula pNumber2) {
+    return integerFormulaManager.modulo(pNumber1, pNumber2);
   }
 }

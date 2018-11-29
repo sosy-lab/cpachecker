@@ -88,6 +88,6 @@ public class PersistentSet<K> implements Iterable<K> {
 
   @Override
   public String toString() {
-    return delegate.toString();
+    return delegate.keySet().toString();
   }
 }

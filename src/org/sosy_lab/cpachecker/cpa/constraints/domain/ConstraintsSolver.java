@@ -32,7 +32,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -43,15 +42,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreatorUsingCConverter;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
@@ -63,10 +58,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.statistics.StatCounter;
-import org.sosy_lab.cpachecker.util.statistics.StatKind;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
-import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -74,7 +65,7 @@ import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.constraints")
-public class ConstraintsSolver implements StatisticsProvider {
+public class ConstraintsSolver {
 
   @Option(
     secure = true,
@@ -110,19 +101,6 @@ public class ConstraintsSolver implements StatisticsProvider {
       name = "useLastModel")
   private boolean useLastModel = true;
 
-  private final StatTimer
-      timeForSolving = new StatTimer(StatKind.SUM, "Time for solving constraints");
-  private final StatTimer timeForIndependentComputation =
-      new StatTimer(StatKind.SUM, "Time for independent computation");
-  private final StatTimer timeForDefinitesComputation =
-      new StatTimer(StatKind.SUM, "Time for resolving definites");
-  private final StatTimer timeForModelReuse =
-      new StatTimer(StatKind.SUM, "Time for model re-use attempts");
-  private final StatTimer timeForSatCheck =
-      new StatTimer(StatKind.SUM, "Time for SMT check");
-
-  private final StatCounter modelReuseSuccesses = new StatCounter("Successful model re-uses");
-
   private ConstraintsCache cache;
   private Solver solver;
   private ProverEnvironment prover;
@@ -137,13 +115,15 @@ public class ConstraintsSolver implements StatisticsProvider {
 
   private BooleanFormula literalForModel;
   private BooleanFormula literalForSingleAssignment;
-  private BooleanFormula literalForDefiniteAssignment;
+
+  private ConstraintsStatistics stats;
 
   public ConstraintsSolver(
       final Configuration pConfig,
       final Solver pSolver,
       final FormulaManagerView pFormulaManager,
-      final CtoFormulaConverter pConverter)
+      final CtoFormulaConverter pConverter,
+      final ConstraintsStatistics pStats)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
@@ -152,9 +132,9 @@ public class ConstraintsSolver implements StatisticsProvider {
     booleanFormulaManager = formulaManager.getBooleanFormulaManager();
     literalForModel = booleanFormulaManager.makeVariable("__M");
     literalForSingleAssignment = booleanFormulaManager.makeVariable("__A");
-    literalForDefiniteAssignment = booleanFormulaManager.makeVariable("__D");
     converter = pConverter;
     locator = SymbolicIdentifierLocator.getInstance();
+    stats = pStats;
 
     if (doCaching) {
       if (cacheSubsets) {
@@ -189,7 +169,7 @@ public class ConstraintsSolver implements StatisticsProvider {
     }
 
     try {
-      timeForSolving.start();
+      stats.timeForSolving.start();
 
       Boolean unsat = null; // assign null to fail fast if assignment is missed
       Set<Constraint> relevantConstraints = getRelevantConstraints(pConstraints);
@@ -207,15 +187,9 @@ public class ConstraintsSolver implements StatisticsProvider {
 
       } else {
         prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
-        BooleanFormula singleConstraintFormula = booleanFormulaManager.and(constraintsAsFormulas);
-        prover.push(singleConstraintFormula);
-
-        BooleanFormula definiteAssignments = pConstraints.getDefiniteAssignment()
-            .stream()
-            .map(ValueAssignment::getAssignmentAsFormula)
-            .collect(booleanFormulaManager.toConjunction());
-        definiteAssignments = createLiteralLabel(literalForDefiniteAssignment, definiteAssignments);
-        prover.push(definiteAssignments);
+        BooleanFormula definitesAndConstraints =
+            combineWithDefinites(constraintsAsFormulas, pConstraints);
+        prover.push(definitesAndConstraints);
 
         ImmutableList<ValueAssignment> newModelAsAssignment;
         ImmutableList<ValueAssignment> modelAsAssignment = pConstraints.getModel();
@@ -223,7 +197,7 @@ public class ConstraintsSolver implements StatisticsProvider {
         boolean modelExists = !modelAsAssignment.isEmpty();
         if (useLastModel && modelExists) {
           try {
-            timeForModelReuse.start();
+            stats.timeForModelReuse.start();
             BooleanFormula modelFormula =
                 modelAsAssignment
                     .stream()
@@ -232,21 +206,21 @@ public class ConstraintsSolver implements StatisticsProvider {
             modelFormula = createLiteralLabel(literalForModel, modelFormula);
             prover.push(modelFormula);
             unsat = prover.isUnsatWithAssumptions(
-                ImmutableList.of(literalForDefiniteAssignment, literalForModel));
+                ImmutableList.of(literalForModel));
             if (!unsat) {
-              modelReuseSuccesses.inc();
+              stats.modelReuseSuccesses.inc();
             }
           } finally {
-            timeForModelReuse.stop();
+            stats.timeForModelReuse.stop();
           }
         }
 
         if (unsat == null || unsat) {
           try {
-            timeForSatCheck.start();
-            unsat = prover.isUnsatWithAssumptions(ImmutableList.of(literalForDefiniteAssignment));
+            stats.timeForSatCheck.start();
+            unsat = prover.isUnsat();
           } finally {
-            timeForSatCheck.stop();
+            stats.timeForSatCheck.stop();
           }
         }
 
@@ -279,9 +253,24 @@ public class ConstraintsSolver implements StatisticsProvider {
 
     } finally {
       closeProver();
-      timeForSolving.stop();
+      stats.timeForSolving.stop();
     }
+  }
 
+  private BooleanFormula combineWithDefinites(
+      Collection<BooleanFormula> pConstraintsAsFormulas,
+      ConstraintsState pConstraints) {
+
+    BooleanFormula singleConstraintFormula = booleanFormulaManager.and(pConstraintsAsFormulas);
+    BooleanFormula definites = getDefAssignmentsFormula(pConstraints);
+    return booleanFormulaManager.and(definites, singleConstraintFormula);
+  }
+
+  private BooleanFormula getDefAssignmentsFormula(ConstraintsState pConstraints) {
+    return pConstraints.getDefiniteAssignment()
+        .stream()
+        .map(ValueAssignment::getAssignmentAsFormula)
+        .collect(booleanFormulaManager.toConjunction());
   }
 
   private BooleanFormula createLiteralLabel(
@@ -294,7 +283,7 @@ public class ConstraintsSolver implements StatisticsProvider {
     Set<Constraint> relevantConstraints = new HashSet<>();
     if (performMinimalSatCheck && pConstraints.getLastAddedConstraint().isPresent()) {
       try {
-        timeForIndependentComputation.start();
+        stats.timeForIndependentComputation.start();
         Constraint lastConstraint = pConstraints.getLastAddedConstraint().get();
         // Always add the last added constraint to the set of relevant constraints.
         // It may not contain any symbolic identifiers (e.g., 0 == 5) and will thus
@@ -319,7 +308,7 @@ public class ConstraintsSolver implements StatisticsProvider {
         } while (!newRelevantIdentifiers.equals(relevantIdentifiers));
 
       } finally {
-        timeForIndependentComputation.stop();
+        stats.timeForIndependentComputation.stop();
       }
 
     } else {
@@ -340,12 +329,12 @@ public class ConstraintsSolver implements StatisticsProvider {
       ConstraintsState pConstraints, List<ValueAssignment> pModel)
       throws InterruptedException, SolverException {
     try {
-      timeForDefinitesComputation.start();
+      stats.timeForDefinitesComputation.start();
 
       return computeDefiniteAssignment(pConstraints, pModel);
 
     } finally {
-      timeForDefinitesComputation.stop();
+      stats.timeForDefinitesComputation.stop();
     }
   }
 
@@ -417,37 +406,6 @@ public class ConstraintsSolver implements StatisticsProvider {
     return getFormulaCreator(pFunctionName).createFormula(pConstraint);
   }
 
-  @Override
-  public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.add(
-        new Statistics() {
-          @Override
-          public void printStatistics(
-              PrintStream out, Result result, UnmodifiableReachedSet reached) {
-            StatisticsWriter.writingStatisticsTo(out)
-                .put(timeForSolving)
-                .beginLevel()
-                .put(timeForIndependentComputation)
-                .put(timeForModelReuse)
-                .put(timeForDefinitesComputation)
-                .endLevel()
-                .put(modelReuseSuccesses);
-          }
-
-          @Override
-          public String getName() {
-            return ConstraintsSolver.class.getSimpleName();
-          }
-        });
-
-    if (cache instanceof StatisticsProvider) {
-      ((StatisticsProvider) cache).collectStatistics(statsCollection);
-
-    } else if (cache instanceof Statistics) {
-      statsCollection.add((Statistics) cache);
-    }
-  }
-
   private interface ConstraintsCache {
     CacheResult getCachedResult(Collection<BooleanFormula> pConstraints);
 
@@ -458,28 +416,24 @@ public class ConstraintsSolver implements StatisticsProvider {
     void addUnsat(Collection<BooleanFormula> pConstraints);
   }
 
-  private static class MatchingConstraintsCache implements ConstraintsCache, Statistics {
+  private class MatchingConstraintsCache implements ConstraintsCache {
 
     private Map<Collection<BooleanFormula>, CacheResult> cacheMap = new HashMap<>();
 
-    private StatCounter cacheLookups = new StatCounter("Matching cache lookups");
-    private StatCounter cacheHits = new StatCounter("Matching cache hits");
-    private StatTimer lookupTime = new StatTimer("Matching cache lookup time");
-
     @Override
     public CacheResult getCachedResult(Collection<BooleanFormula> pConstraints) {
+      stats.cacheLookups.inc();
+      stats.directCacheLookupTime.start();
       try {
-        cacheLookups.inc();
-        lookupTime.start();
         if (cacheMap.containsKey(pConstraints)) {
-          cacheHits.inc();
+          stats.directCacheHits.inc();
           return cacheMap.get(pConstraints);
 
         } else {
           return CacheResult.getUnknown();
         }
       } finally {
-        lookupTime.stop();
+        stats.directCacheLookupTime.stop();
       }
     }
 
@@ -498,24 +452,9 @@ public class ConstraintsSolver implements StatisticsProvider {
     private void add(Collection<BooleanFormula> pConstraints, CacheResult pResult) {
       cacheMap.put(pConstraints, pResult);
     }
-
-    @Override
-    public void printStatistics(
-        PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-      StatisticsWriter.writingStatisticsTo(pOut)
-          .put(cacheLookups)
-          .put(cacheHits)
-          .put(lookupTime);
-    }
-
-    @Nullable
-    @Override
-    public String getName() {
-      return getClass().getSimpleName();
-    }
   }
 
-  private static class SubsetConstraintsCache implements ConstraintsCache, StatisticsProvider {
+  private class SubsetConstraintsCache implements ConstraintsCache {
 
     private MatchingConstraintsCache delegate;
 
@@ -525,33 +464,25 @@ public class ConstraintsSolver implements StatisticsProvider {
     private Multimap<BooleanFormula, Set<BooleanFormula>> constraintContainedIn =
         HashMultimap.create();
 
-    private StatCounter cacheLookups = new StatCounter("Cache lookups");
-    private StatCounter directCacheHits = new StatCounter("Direct cache hits");
-    private StatCounter cacheHits = new StatCounter("Subset cache hits");
-    private StatTimer lookupTime = new StatTimer(StatKind.SUM, "Subset lookup time");
-
     public SubsetConstraintsCache() {
       delegate = new MatchingConstraintsCache();
     }
 
     @Override
     public CacheResult getCachedResult(Collection<BooleanFormula> pConstraints) {
-      try {
-        cacheLookups.inc();
-        lookupTime.start();
-        CacheResult res = delegate.getCachedResult(pConstraints);
+      CacheResult res = delegate.getCachedResult(pConstraints);
         if (!res.isSat() && !res.isUnsat()) {
+        try {
+          stats.subsetLookupTime.start();
           res = getCachedResultOfSubset(pConstraints);
           if (res.isSat() || res.isUnsat()) {
-            cacheHits.inc();
+            stats.subsetCacheHits.inc();
           }
-        } else {
-          directCacheHits.inc();
+        } finally {
+          stats.subsetLookupTime.stop();
+          }
         }
-        return res;
-      } finally {
-        lookupTime.stop();
-      }
+      return res;
     }
 
     @Override
@@ -604,30 +535,6 @@ public class ConstraintsSolver implements StatisticsProvider {
         }
       }
       return CacheResult.getUnknown();
-    }
-
-    @Override
-    public void collectStatistics(Collection<Statistics> statsCollection) {
-      statsCollection.add(
-          new Statistics() {
-            @Override
-            public void printStatistics(
-                PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-              StatisticsWriter.writingStatisticsTo(pOut)
-                  .put(cacheLookups)
-                  .put(directCacheHits)
-                  .put(cacheHits)
-                  .put(lookupTime);
-            }
-
-            @Nullable
-            @Override
-            public String getName() {
-              return ConstraintsSolver.class.getSimpleName();
-            }
-          });
-
-      statsCollection.add(delegate);
     }
   }
 

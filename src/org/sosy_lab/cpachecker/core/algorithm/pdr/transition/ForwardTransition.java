@@ -400,7 +400,7 @@ public class ForwardTransition {
                 CType type = ssaMap.getType(variable);
                 if (type != null) {
                   Formula varFormula =
-                      pathFormulaManager.makeFormulaForVariable(pathFormula, variable, type, false);
+                      pathFormulaManager.makeFormulaForVariable(pathFormula, variable, type);
                   nondeterministicVariables.add(varFormula);
                 }
               }

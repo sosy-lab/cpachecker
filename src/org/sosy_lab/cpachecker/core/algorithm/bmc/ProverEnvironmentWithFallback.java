@@ -82,7 +82,7 @@ class ProverEnvironmentWithFallback
       if (useInterpolation) {
         interpolatingProverEnvironment =
             (InterpolatingProverEnvironment<Object>)
-                solver.newProverEnvironmentWithInterpolation();
+                solver.newProverEnvironmentWithInterpolation(getOptions());
       } else {
         proverEnvironment = solver.newProverEnvironment(getOptions());
       }
@@ -296,7 +296,7 @@ class ProverEnvironmentWithFallback
   }
 
   @Override
-  public BooleanFormula getInterpolant(List<Object> pArg0)
+  public BooleanFormula getInterpolant(Collection<Object> pArg0)
       throws SolverException, InterruptedException {
     return getInterpolant((Iterable<Object>) pArg0);
   }

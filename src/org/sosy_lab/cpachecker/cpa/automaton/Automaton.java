@@ -30,12 +30,18 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
@@ -201,5 +207,36 @@ public class Automaton {
     str.append("END AUTOMATON\n");
 
     return str.toString();
+  }
+
+  /**
+   * Determine, if automaton is relevant for the given CFA, i.e. if there is at least one automaton
+   * transition, which matches at least one CFA edge. In this case automaton may be used during the
+   * analysis of the given CFA.
+   */
+  public boolean isRelevantForCFA(CFA cfa) {
+    for (CFANode node : cfa.getAllNodes()) {
+      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+        CFAEdge edge = node.getLeavingEdge(i);
+        for (AutomatonTransition transition : initState.getTransitions()) {
+          AutomatonExpressionArguments args =
+              new AutomatonExpressionArguments(
+                  null,
+                  Collections.emptyMap(),
+                  Collections.emptyList(),
+                  edge,
+                  LogManager.createNullLogManager());
+          try {
+            if (!transition.getTrigger().eval(args).canNotEvaluate()
+                && transition.getTrigger().eval(args).getValue()) {
+              return true;
+            }
+          } catch (CPATransferException e) {
+            // ignore it, since we cannot process all transition triggers here.
+          }
+        }
+      }
+    }
+    return false;
   }
 }

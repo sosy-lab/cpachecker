@@ -354,7 +354,7 @@ public class TransitionSystem {
     // TODO The restriction "no function param" of makeFormulaForVariable may be a problem.
     BitvectorFormula var =
         (BitvectorFormula)
-            pPfmgr.makeFormulaForVariable(pContext, pName, pContext.getSsa().getType(pName), false);
+            pPfmgr.makeFormulaForVariable(pContext, pName, pContext.getSsa().getType(pName));
     return pFmgr.instantiate(var, SSAMap.emptySSAMap().withDefault(pIndex));
   }
 

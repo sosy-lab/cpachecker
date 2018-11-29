@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
 import static org.sosy_lab.cpachecker.util.Precisions.extractPrecisionByType;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
@@ -39,7 +40,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -59,17 +59,14 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
+import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.refinement.InterpolationTree;
 import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -93,8 +90,6 @@ public class SMGRefiner implements Refiner {
 
   private final ShutdownNotifier shutdownNotifier;
 
-  private Set<Integer> previousErrorPathIds = Sets.newHashSet();
-
   @Option(secure = true, description = "export interpolation trees to this file template")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate interpolationTreeExportFile = PathTemplate.ofFormatString("interpolationTree.%d-%d.dot");
@@ -105,7 +100,7 @@ public class SMGRefiner implements Refiner {
 
   @Option(secure = true, description = "export interpolant smgs for every path interpolation to this path template")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate exportRefinmentSMGs = PathTemplate.ofFormatString("smg/refinment-%d/smg-%s");
+  private PathTemplate exportRefinementSMGs = PathTemplate.ofFormatString("smg/refinement-%d/smg-%s");
 
   @Option(secure = true, description = "when to export the interpolation tree"
       + "\nNEVER:   never export the interpolation tree"
@@ -114,121 +109,91 @@ public class SMGRefiner implements Refiner {
       values = { "NEVER", "FINAL", "ALWAYS" })
   private String exportInterpolationTree = "NEVER";
 
-  private SMGRefiner(SMGCPA pSmgCpa, CFA pCfa, LogManager pLogger, ARGCPA pArgCpa,
-      PathExtractor pPathExtractor,
-      ShutdownNotifier pShutdownNotifier,
-      Configuration pConfig, Set<ControlAutomatonCPA> automatonCpas) throws InvalidConfigurationException {
-    pConfig.inject(this);
+  private SMGRefiner(SMGCPA pSmgCpa, ARGCPA pArgCpa, Set<ControlAutomatonCPA> automatonCpas)
+      throws InvalidConfigurationException, SMGInconsistentException {
+    pSmgCpa.getConfiguration().inject(this);
 
-    logger = pLogger;
     argCpa = pArgCpa;
     smgCpa = pSmgCpa;
-    pathExtractor = pPathExtractor;
-    SMGPredicateManager predicateManager = smgCpa.getPredicateManager();
-    BlockOperator blockOperator = smgCpa.getBlockOperator();
+    logger = pSmgCpa.getLogger();
+    CFA cfa = pSmgCpa.getCFA();
+    shutdownNotifier = pSmgCpa.getShutdownNotifier();
 
-    smgCpa.injectRefinablePrecision();
-    smgCpa.setTransferRelationToRefinment(exportRefinmentSMGs);
+    smgCpa.enableRefinement(exportRefinementSMGs);
+
+    pathExtractor = new PathExtractor(logger, pSmgCpa.getConfiguration());
+    SMGPredicateManager predicateManager = smgCpa.getPredicateManager();
 
     SMGStrongestPostOperator strongestPostOpForCEX =
-        SMGStrongestPostOperator.getSMGStrongestPostOperatorForCEX(pLogger, pCfa, predicateManager, blockOperator, smgCpa.getOptions());
+        new SMGStrongestPostOperator(
+            logger, cfa, predicateManager, smgCpa.getOptions(), SMGTransferRelationKind.STATIC);
 
     UnmodifiableSMGState initialState =
-        smgCpa.getInitialState(pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+        smgCpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
 
     checker =
-        new SMGFeasibilityChecker(strongestPostOpForCEX, logger, pCfa, initialState, automatonCpas, smgCpa.getBlockOperator());
+        new SMGFeasibilityChecker(strongestPostOpForCEX, logger, cfa, initialState, automatonCpas);
 
-    interpolantManager = new SMGInterpolantManager(smgCpa.getMachineModel(), logger, pCfa, smgCpa.getOptions());
+    interpolantManager = new SMGInterpolantManager(logger, cfa, smgCpa.getOptions());
 
     SMGStrongestPostOperator strongestPostOpForInterpolation =
-        SMGStrongestPostOperator.getSMGStrongestPostOperatorForInterpolation(pLogger, pCfa,
-            predicateManager, blockOperator, smgCpa.getOptions());
+        new SMGStrongestPostOperator(
+            logger, cfa, predicateManager, smgCpa.getOptions(), SMGTransferRelationKind.REFINEMENT);
 
     SMGFeasibilityChecker checkerForInterpolation =
-        new SMGFeasibilityChecker(strongestPostOpForInterpolation, logger, pCfa, initialState, automatonCpas, smgCpa.getBlockOperator());
+        new SMGFeasibilityChecker(
+            strongestPostOpForInterpolation, logger, cfa, initialState, automatonCpas);
 
     SMGEdgeInterpolator edgeInterpolator =
-        new SMGEdgeInterpolator(checkerForInterpolation, strongestPostOpForInterpolation,
+        new SMGEdgeInterpolator(
+            checkerForInterpolation,
+            strongestPostOpForInterpolation,
             interpolantManager,
-            smgCpa.getShutdownNotifier(), logger, smgCpa.getBlockOperator());
+            shutdownNotifier,
+            logger,
+            smgCpa.getBlockOperator());
 
     interpolator =
-        new SMGPathInterpolator(smgCpa.getShutdownNotifier(), interpolantManager,
-            edgeInterpolator, logger, exportInterpolantSMGs,
-            smgCpa.getOptions().getExportSMGLevel(), checkerForInterpolation);
-
-    shutdownNotifier = pShutdownNotifier;
+        new SMGPathInterpolator(
+            shutdownNotifier,
+            interpolantManager,
+            edgeInterpolator,
+            logger,
+            exportInterpolantSMGs,
+            smgCpa.getOptions().getExportSMGLevel(),
+            checkerForInterpolation);
   }
 
   public static final SMGRefiner create(ConfigurableProgramAnalysis pCpa)
-      throws InvalidConfigurationException {
+      throws InvalidConfigurationException, SMGInconsistentException {
 
     ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SMGRefiner.class);
     SMGCPA smgCpa = CPAs.retrieveCPAOrFail(pCpa, SMGCPA.class, SMGRefiner.class);
     Set<ControlAutomatonCPA> automatonCpas =
         CPAs.asIterable(pCpa).filter(ControlAutomatonCPA.class).toSet();
 
-    LogManager logger = smgCpa.getLogger();
-    Configuration config = smgCpa.getConfiguration();
-    CFA cfa = smgCpa.getCFA();
-
-    PathExtractor pathExtractor = new PathExtractor(logger, config);
-
-    return new SMGRefiner(smgCpa, cfa, logger, argCpa, pathExtractor,
-        smgCpa.getShutdownNotifier(), config, automatonCpas);
+    return new SMGRefiner(smgCpa, argCpa, automatonCpas);
   }
 
   @Override
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
     ARGReachedSet reached = new ARGReachedSet(pReached, argCpa);
-    CounterexampleInfo cexInfo = performRefinement(reached);
+    Collection<ARGState> targets = pathExtractor.getTargetStates(reached);
+    List<ARGPath> targetPaths = pathExtractor.getTargetPaths(targets);
+    CounterexampleInfo cexInfo = performRefinementForPaths(reached, targets, targetPaths);
 
     boolean isSpuriousCEX = cexInfo.isSpurious();
-
     if (isSpuriousCEX) {
-      smgCpa.nextRefinment();
+      // just increment counters for exporting SMGs
+      smgCpa.nextRefinement();
     }
-
     return isSpuriousCEX;
   }
 
-  private CounterexampleInfo performRefinement(ARGReachedSet pReached) throws CPAException, InterruptedException {
-
-    Collection<ARGState> targets = pathExtractor.getTargetStates(pReached);
-    List<ARGPath> targetPaths = pathExtractor.getTargetPaths(targets);
-
-    if (!madeProgress(targetPaths.get(0))) {
-      throw new RefinementFailedException(Reason.RepeatedCounterexample,
-          targetPaths.get(0));
-    }
-
-    return performRefinementForPaths(pReached, targets, targetPaths);
-  }
-
-  private boolean madeProgress(ARGPath path) {
-    Integer pathId = obtainErrorPathId(path);
-    boolean progress = (previousErrorPathIds.isEmpty() || !previousErrorPathIds.contains(pathId));
-
-    previousErrorPathIds.add(pathId);
-
-    return progress;
-  }
-
-  private int obtainErrorPathId(ARGPath path) {
-    Set<String> automatonNames =
-        AbstractStates.asIterable(path.getLastState())
-            .filter(AutomatonState.class)
-            .filter(AutomatonState::isTarget)
-            .transform(AutomatonState::getOwningAutomatonName)
-            .toSet();
-    int id = path.toString().hashCode() + automatonNames.hashCode();
-    return id;
-  }
-
-  private CounterexampleInfo performRefinementForPaths(ARGReachedSet pReached,
-      Collection<ARGState> pTargets,
-      List<ARGPath> pTargetPaths) throws CPAException, InterruptedException {
+  private CounterexampleInfo performRefinementForPaths(
+      ARGReachedSet pReached, Collection<ARGState> pTargets, List<ARGPath> pTargetPaths)
+      throws CPAException, InterruptedException {
+    Preconditions.checkState(pTargets.size() == pTargetPaths.size());
     logger.log(Level.FINEST, "performing refinement ...");
     refinementCounter.inc();
     numberOfTargets.setNextValue(pTargets.size());
@@ -244,24 +209,31 @@ public class SMGRefiner implements Refiner {
     return cex;
   }
 
+  private List<ARGPath> getFeasibleErrorPaths(Collection<ARGPath> pErrorPaths)
+      throws CPAException, InterruptedException {
+    List<ARGPath> lst = new ArrayList<>();
+    for (ARGPath currentPath : pErrorPaths) {
+      if (checker.isFeasible(currentPath)) {
+        lst.add(currentPath);
+      }
+    }
+    return lst;
+  }
+
   private CounterexampleInfo isAnyPathFeasible(
       final ARGReachedSet pReached,
       final Collection<ARGPath> pErrorPaths
   ) throws CPAException, InterruptedException {
 
-    ARGPath feasiblePath = null;
-    for (ARGPath currentPath : pErrorPaths) {
-
-      if (isErrorPathFeasible(currentPath)) {
-        if(feasiblePath == null) {
-          feasiblePath = currentPath;
-        }
-
-        pathExtractor.addFeasibleTarget(currentPath.getLastState());
-      }
+    // get all feasible error paths
+    List<ARGPath> feasibleErrorPaths = getFeasibleErrorPaths(pErrorPaths);
+    for (ARGPath feasibleErrorPath : feasibleErrorPaths) {
+      pathExtractor.addFeasibleTarget(feasibleErrorPath.getLastState());
     }
 
-    // remove all other target states, so that only one is left (for CEX-checker)
+    // choose one path and remove all other target states,
+    // so that only one is left (for CEX-checker)
+    ARGPath feasiblePath = Iterables.getFirst(feasibleErrorPaths, null);
     if (feasiblePath != null) {
       for (ARGPath others : pErrorPaths) {
         if (others != feasiblePath) {
@@ -342,8 +314,14 @@ public class SMGRefiner implements Refiner {
       return false;
     }
 
-    // for all other cases, check if the path is feasible when using the interpolant as initial state
-    return checker.isFeasible(errorPath, initialItp.reconstructStates());
+    // for all other cases, check if the path is feasible when using the interpolant
+    // (or any of its reconstructed states) as initial state
+    for (UnmodifiableSMGState start : initialItp.reconstructState()) {
+      if (checker.isFeasible(errorPath, start)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private SMGInterpolationTree createInterpolationTree(List<ARGPath> pTargetPaths) {
@@ -391,11 +369,6 @@ public class SMGRefiner implements Refiner {
     }
 
     return mergedPrecision;
-  }
-
-  private boolean isErrorPathFeasible(ARGPath pErrorPath)
-      throws CPAException, InterruptedException {
-    return checker.isFeasible(pErrorPath);
   }
 
   /** export the interpolation-tree as dot-file, if necessary. */

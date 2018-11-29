@@ -119,12 +119,16 @@ public class ConfigurationFileChecks {
           "differential.program",
           // handled by code outside of CPAchecker class
           "output.disable",
+          "statistics.print",
           "limits.time.cpu",
           "limits.time.cpu::required",
           "limits.time.cpu.thread",
+          "log.consoleLevel",
           "memorysafety.config",
+          "memorycleanup.config",
           "overflow.config",
           "termination.config",
+          "termination.violation.witness",
           "witness.validation.violation.config",
           "witness.validation.correctness.config",
           "pcc.proofgen.doPCC",
@@ -140,6 +144,7 @@ public class ConfigurationFileChecks {
           "invariantGeneration.kInduction.async",
           "invariantGeneration.kInduction.guessCandidatesFromCFA",
           "invariantGeneration.kInduction.terminateOnCounterexample",
+          "counterexample.export.allowImpreciseCounterexamples", // refactor BMCAlgorithm for this
           // irrelevant if other solver is used
           "solver.z3.requireProofs",
           // present in many config files that explicitly disable counterexample checks
@@ -175,6 +180,13 @@ public class ConfigurationFileChecks {
               + " analysis finishing in time. All other analyses are terminated."
     )
     private boolean useParallelAlgorithm = false;
+
+    @Option(
+      secure = true,
+      name = "analysis.useInterleavedAnalyses",
+      description = "start different analyses interleaved and continue after unknown result"
+    )
+    private boolean useInterleavedAlgorithm = false;
 
     @Option(secure=true, name="limits.time.cpu::required",
         description="Enforce that the given CPU time limit is set as the value of limits.time.cpu.")
@@ -372,6 +384,18 @@ public class ConfigurationFileChecks {
                 StandardCharsets.UTF_8)) {
       CharStreams.copy(r, w);
     }
+
+    try (Reader r =
+            Files.newBufferedReader(
+                Paths.get("config/specification/sv-comp-terminatingfunctions.spc"));
+        Writer w =
+            IO.openOutputFile(
+                Paths.get(
+                    tempFolder.getRoot().getAbsolutePath()
+                        + "/config/specification/sv-comp-terminatingfunctions.spc"),
+                StandardCharsets.UTF_8)) {
+      CharStreams.copy(r, w);
+    }
   }
 
   @Test
@@ -398,7 +422,8 @@ public class ConfigurationFileChecks {
     } else if (isOptionEnabled(config, "cfa.checkNullPointers")) {
       assertThat(spec).endsWith("specification/null-deref.spc");
     } else if (isOptionEnabled(config, "analysis.algorithm.termination")
-        || isOptionEnabled(config, "analysis.algorithm.nonterminationWitnessCheck")) {
+        || isOptionEnabled(config, "analysis.algorithm.nonterminationWitnessCheck")
+        || basePath.toString().contains("validation-termination")) {
       assertThat(spec).isEmpty();
     } else if (basePath.toString().contains("overflow")) {
       if (isSvcompConfig) {
@@ -411,9 +436,14 @@ public class ConfigurationFileChecks {
       assertThat(spec).endsWith("specification/UninitializedVariables.spc");
     } else if (cpas.contains("cpa.smg.SMGCPA")) {
       if (isSvcompConfig) {
-        assertThat(spec).contains("specification/sv-comp-memorysafety.spc");
+        assertThat(spec)
+            .isAnyOf(
+                "specification/sv-comp-memorysafety.spc",
+                "specification/sv-comp-memorycleanup.spc");
       } else {
-        assertThat(spec).contains("specification/memorysafety.spc");
+        if (!spec.contains("specification/sv-comp-memorycleanup.spc")) {
+          assertThat(spec).contains("specification/memorysafety.spc");
+        }
       }
     } else if (basePath.toString().startsWith("ldv")) {
       assertThat(spec).endsWith("specification/sv-comp-errorlabel.spc");
@@ -509,7 +539,8 @@ public class ConfigurationFileChecks {
           .isNotEqualTo(CPAcheckerResult.Result.NOT_YET_STARTED);
     }
 
-    if (!(options.useParallelAlgorithm || options.useRestartingAlgorithm)) {
+    if (!(options.useParallelAlgorithm || options.useRestartingAlgorithm)
+        || options.useInterleavedAlgorithm) {
       // TODO find a solution how to check for unused properties correctly even with
       // RestartAlgorithm
       assert_()

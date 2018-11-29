@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
 
-  final boolean doPrecisionRefinementForMostInnerBlock;
+  private final boolean doPrecisionRefinementForMostInnerBlock;
 
   public ARGCopyOnWriteSubtreeRemover(AbstractBAMCPA bamCpa, StatTimer pRemoveCachedSubtreeTimer) {
     super(bamCpa, pRemoveCachedSubtreeTimer);

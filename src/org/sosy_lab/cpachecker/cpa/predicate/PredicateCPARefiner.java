@@ -275,7 +275,8 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       // No branches/merges in path, it is precise.
       // We don't need to care about creating extra predicates for branching etc.
       boolean branchingOccurred = true;
-      if (elementsOnPath.size() == allStatesTrace.size()) {
+      if (elementsOnPath.size() == allStatesTrace.size()
+          && !containsBranchingInPath(elementsOnPath)) {
         elementsOnPath = Collections.emptySet();
         branchingOccurred = false;
       }
@@ -342,6 +343,27 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   }
 
   /**
+   * Check whether the path contains states A, B, C with successor relations A->B, B->C, A->C.
+   * Branching like this would not be detected otherwise.
+   */
+  private boolean containsBranchingInPath(Set<ARGState> pElementsOnPath) {
+    for (ARGState state : pElementsOnPath) {
+      boolean alreadyFoundOneChild = false;
+      for (ARGState child : state.getChildren()) {
+        if (pElementsOnPath.contains(child)) {
+          if (alreadyFoundOneChild) {
+            // already found another child in the path, second child must be a branching.
+            return true;
+          } else {
+            alreadyFoundOneChild = true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
    * Check the given trace (or traces in the DAG) for feasibility and collect information why it is
    * feasible or why not.
    *
@@ -379,19 +401,26 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
     } else if (useNewtonRefinement) {
       assert newtonManager.isPresent();
-      try {
-        logger.log(Level.FINEST, "Starting Newton-based refinement");
-        return performNewtonRefinement(allStatesTrace, formulas);
-      } catch (RefinementFailedException e) {
-        if (e.getReason() == Reason.SequenceOfAssertionsToWeak
-            && newtonManager.get().fallbackToInterpolation()) {
-          logger.log(
-              Level.FINEST,
-              "Fallback from Newton-based refinement to interpolation-based refinement");
-          return performInterpolatingRefinement(abstractionStatesTrace, formulas);
-        } else {
-          throw e;
+      if (!repeatedCounterexample) {
+        try {
+          logger.log(Level.FINEST, "Starting Newton-based refinement");
+          return performNewtonRefinement(allStatesTrace, formulas);
+        } catch (RefinementFailedException e) {
+          if (e.getReason() == Reason.SequenceOfAssertionsToWeak
+              && newtonManager.get().fallbackToInterpolation()) {
+            logger.log(
+                Level.FINEST,
+                "Fallback from Newton-based refinement to interpolation-based refinement");
+            return performInterpolatingRefinement(abstractionStatesTrace, formulas);
+          } else {
+            throw e;
+          }
         }
+      } else {
+        logger.log(
+            Level.FINEST,
+            "Fallback from Newton-based refinement to interpolation-based refinement");
+        return performInterpolatingRefinement(abstractionStatesTrace, formulas);
       }
     } else if (useUCBRefinement) {
       logger.log(Level.FINEST, "Starting unsat-core-based refinement");

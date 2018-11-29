@@ -145,7 +145,15 @@ public class AppliedCustomInstructionParser {
     try (Writer br = IO.openOutputFile(signatureFile, Charset.defaultCharset())) {
       br.write(ci.getSignature() + "\n");
       String ciString = ci.getFakeSMTDescription().getSecond();
-      br.write(ciString.substring(ciString.indexOf("a")-1,ciString.length()-1) + ";");
+      int index = ciString.indexOf("a");
+      if (index == -1 || ciString.charAt(index - 1) != '(') {
+        index = ciString.indexOf("(", ciString.indexOf("B"));
+      } else {
+        index--; // also write ( in front of first a
+      }
+      if (index != -1) {
+        br.write(ciString.substring(index, ciString.length() - 1) + ";");
+      }
     }
   }
 

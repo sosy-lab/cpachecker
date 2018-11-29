@@ -69,9 +69,10 @@ class AutomatonStatistics implements Statistics {
       put(out, 0, totalStrengthenTime);
     }
 
-    long stateBranchings = automatonSuccessors.getValueCount()
-        - automatonSuccessors.getTimesWithValue(0)
-        - automatonSuccessors.getTimesWithValue(1);
+    long stateBranchings =
+        automatonSuccessors.getValueCount()
+            - automatonSuccessors.getTimesWithValue(0)
+            - automatonSuccessors.getTimesWithValue(1);
     put(out, 0, "Automaton transfers with branching", stateBranchings);
     put(out, 0, automatonSuccessors);
   }

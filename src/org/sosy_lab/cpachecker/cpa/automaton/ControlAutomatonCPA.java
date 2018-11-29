@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -269,5 +270,11 @@ public class ControlAutomatonCPA
 
   boolean isTreatingErrorsAsTargets() {
     return treatErrorsAsTargets;
+  }
+
+  @Override
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition)
+      throws InterruptedException {
+    return new AutomatonPrecision(automaton);
   }
 }

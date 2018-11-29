@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -77,23 +78,23 @@ public class CEXExporter {
   }
 
   @Option(
-    secure = true,
-    name = "compressWitness",
-    description = "compress the produced error-witness automata using GZIP compression."
+      secure = true,
+      name = "compressWitness",
+      description = "compress the produced error-witness automata using GZIP compression."
   )
   private boolean compressWitness = true;
 
   @Option(secure=true, name="codeStyle",
-          description="exports either CMBC format or a concrete path program")
+      description="exports either CMBC format or a concrete path program")
   private CounterexampleExportType codeStyle = CounterexampleExportType.CBMC;
 
   @Option(
-    secure = true,
-    name = "filters",
-    description =
-        "Filter for irrelevant counterexamples to reduce the number of similar counterexamples reported."
-            + " Only relevant with analysis.stopAfterError=false and counterexample.export.exportImmediately=true."
-            + " Put the weakest and cheapest filter first, e.g., PathEqualityCounterexampleFilter."
+      secure = true,
+      name = "filters",
+      description =
+          "Filter for irrelevant counterexamples to reduce the number of similar counterexamples reported."
+              + " Only relevant with analysis.stopAfterError=false and counterexample.export.exportImmediately=true."
+              + " Put the weakest and cheapest filter first, e.g., PathEqualityCounterexampleFilter."
   )
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cpa.arg.counterexamples")
   private List<CounterexampleFilter.Factory> cexFilterClasses =
@@ -193,11 +194,21 @@ public class CEXExporter {
       if (counterexample.isPreciseCounterExample()) {
         targetPAssum = counterexample.getCFAPathWithAssignments();
       }
-      List<CFAEdgeWithAssumptions> shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath, targetPAssum);
+        List<Pair<CFAEdgeWithAssumptions, Boolean>>
+          shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath, targetPAssum);
+
+      // present only the important edges in the Counterxample.core.txt output file
+      List<CFAEdgeWithAssumptions> importantShrinkedErrorPath = new ArrayList<>();
+      for(Pair<CFAEdgeWithAssumptions, Boolean> pair : shrinkedErrorPath){
+        if(pair.getSecond()){
+          importantShrinkedErrorPath.add(pair.getFirst());
+        }
+      }
+
       writeErrorPathFile(
           options.getCoreFile(),
           uniqueId,
-          Appenders.forIterable(Joiner.on('\n'), shrinkedErrorPath));
+          Appenders.forIterable(Joiner.on('\n'), importantShrinkedErrorPath));
     }
 
     final Set<ARGState> pathElements;
@@ -207,14 +218,14 @@ public class CEXExporter {
 
       if (options.getSourceFile() != null) {
         switch(codeStyle) {
-        case CONCRETE_EXECUTION:
-          pathProgram = PathToConcreteProgramTranslator.translateSinglePath(targetPath, counterexample.getCFAPathWithAssignments());
-          break;
-        case CBMC:
-          pathProgram = PathToCTranslator.translateSinglePath(targetPath);
-          break;
-        default:
-          throw new AssertionError("Unhandled case statement: " + codeStyle);
+          case CONCRETE_EXECUTION:
+            pathProgram = PathToConcreteProgramTranslator.translateSinglePath(targetPath, counterexample.getCFAPathWithAssignments());
+            break;
+          case CBMC:
+            pathProgram = PathToCTranslator.translateSinglePath(targetPath);
+            break;
+          default:
+            throw new AssertionError("Unhandled case statement: " + codeStyle);
         }
       }
 
@@ -227,19 +238,19 @@ public class CEXExporter {
 
       if (options.getSourceFile() != null) {
         switch(codeStyle) {
-        case CONCRETE_EXECUTION:
-          logger.log(Level.WARNING, "Cannot export imprecise counterexample to C code for concrete execution.");
-          break;
-        case CBMC:
-          // "translatePaths" does not work if the ARG branches without assume edge
-          if (ARGUtils.hasAmbiguousBranching(rootState, pathElements)) {
-            pathProgram = PathToCTranslator.translateSinglePath(targetPath);
-          } else {
-            pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
-          }
-          break;
-        default:
-          throw new AssertionError("Unhandled case statement: " + codeStyle);
+          case CONCRETE_EXECUTION:
+            logger.log(Level.WARNING, "Cannot export imprecise counterexample to C code for concrete execution.");
+            break;
+          case CBMC:
+            // "translatePaths" does not work if the ARG branches without assume edge
+            if (ARGUtils.hasAmbiguousBranching(rootState, pathElements)) {
+              pathProgram = PathToCTranslator.translateSinglePath(targetPath);
+            } else {
+              pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
+            }
+            break;
+          default:
+            throw new AssertionError("Unhandled case statement: " + codeStyle);
         }
       }
     }
@@ -342,7 +353,7 @@ public class CEXExporter {
         }
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
-                "Could not write information about the error path to file");
+            "Could not write information about the error path to file");
       }
     }
   }

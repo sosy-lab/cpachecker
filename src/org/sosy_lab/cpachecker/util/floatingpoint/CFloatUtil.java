@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.floatingpoint;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.ImmutableIntArray;
 
-public class CFloatUtil {
+class CFloatUtil {
 
   private static final ImmutableMap<Long, ImmutableIntArray> BIT_TO_DEC_MAP;
 
@@ -317,16 +317,16 @@ public class CFloatUtil {
   /**
    * Split a {@link CFloat} object into its fields and put their bit representation as well as their
    * human readable base-10 format into a {@link String}.
-   * <p>
-   * This method is meant mostly for any kind of debugging purpose, where one could need some clear
-   * visualization of the components of some {@link CFloat} object to evaluate potential misbehavior
-   * in some implemented floating point operation or maybe to assess why some edge cases behave the
-   * way they do.
+   *
+   * <p>This method is meant mostly for any kind of debugging purpose, where one could need some
+   * clear visualization of the components of some {@link CFloat} object to evaluate potential
+   * misbehavior in some implemented floating point operation or maybe to assess why some edge cases
+   * behave the way they do.
    *
    * @param pFloat the {@link CFloat} object to decompose and represent as a {@link String}
    * @return the {@link String} built from <code>pFloat</code>
    */
-  public static String getFieldsAsComprehensiveStringRepresentation(CFloat pFloat) {
+  static String getFieldsAsComprehensiveStringRepresentation(CFloat pFloat) {
     StringBuilder builder = new StringBuilder();
     CFloatWrapper wrapper = pFloat.copyWrapper();
 
@@ -361,7 +361,7 @@ public class CFloatUtil {
     }
   }
 
-  public static int[] getDecimalArray(int pType, long pSignificand) {
+  static int[] getDecimalArray(int pType, long pSignificand) {
     switch (pType) {
       case CFloatNativeAPI.FP_TYPE_SINGLE:
         pSignificand = pSignificand << 40;

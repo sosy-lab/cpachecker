@@ -24,13 +24,14 @@
 package org.sosy_lab.cpachecker.cpa.testtargets;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -43,36 +44,89 @@ public class TestTargetProvider implements Statistics {
   private static TestTargetProvider instance = null;
 
   private final CFA cfa;
+  private final TestTargetType type;
   private final ImmutableSet<CFAEdge> initialTestTargets;
   private final Set<CFAEdge> uncoveredTargets;
   private boolean printTargets = false;
+  private boolean runParallel;
 
-  private TestTargetProvider(final CFA pCfa) {
+  private TestTargetProvider(
+      final CFA pCfa, final boolean pRunParallel, final TestTargetType pType) {
     cfa = pCfa;
-    uncoveredTargets = extractAssumeEdges();
+    runParallel = pRunParallel;
+    type = pType;
+
+    Set<CFAEdge> targets = extractEdgesByCriterion(type.getEdgeCriterion());
+
+    if (runParallel) {
+      uncoveredTargets = Collections.synchronizedSet(targets);
+    } else {
+      uncoveredTargets = targets;
+    }
     initialTestTargets = ImmutableSet.copyOf(uncoveredTargets);
   }
 
-  private Set<CFAEdge> extractAssumeEdges() {
+  private Set<CFAEdge> extractEdgesByCriterion(final Predicate<CFAEdge> criterion) {
     Set<CFAEdge> edges = new HashSet<>();
     for (CFANode node : cfa.getAllNodes()) {
-      edges.addAll(CFAUtils.allLeavingEdges(node).filter(AssumeEdge.class).toSet());
+      edges.addAll(CFAUtils.allLeavingEdges(node).filter(criterion).toSet());
     }
+    deleteIfCoveredByDifferentGoal(edges);
     return edges;
   }
 
-  public static Set<CFAEdge> getTestTargets(final CFA pCfa) {
-    if (instance == null || pCfa != instance.cfa) {
-      instance = new TestTargetProvider(pCfa);
+  private void deleteIfCoveredByDifferentGoal(final Set<CFAEdge> goals) {
+    // currently only simple heuristic
+    Set<CFAEdge> keptGoals = new HashSet<>(goals);
+    boolean allSuccessorsGoals;
+    for (CFAEdge target : goals) {
+      if (target.getSuccessor().getNumEnteringEdges() == 1) {
+        allSuccessorsGoals = true;
+        for (CFAEdge leaving : CFAUtils.leavingEdges(target.getSuccessor())) {
+          if (!keptGoals.contains(leaving)) {
+            allSuccessorsGoals = false;
+            break;
+          }
+        }
+        if (allSuccessorsGoals) {
+          keptGoals.remove(target);
+        }
+      }
     }
+    goals.clear();
+    goals.addAll(keptGoals);
+  }
+
+  public static int getCurrentNumOfTestTargets() {
+    if (instance == null) {
+      return 0;
+    }
+    return instance.initialTestTargets.size();
+  }
+
+  public static Set<CFAEdge> getTestTargets(
+      final CFA pCfa, final boolean pRunParallel, final TestTargetType pType) {
+    if (instance == null || pCfa != instance.cfa || instance.type != pType) {
+      instance = new TestTargetProvider(pCfa, pRunParallel, pType);
+    }
+    Preconditions.checkState(instance.runParallel || !pRunParallel);
     return instance.uncoveredTargets;
   }
 
+  public static String getCoverageInfo() {
+    Preconditions.checkNotNull(instance);
+    return (instance.initialTestTargets.size() - instance.uncoveredTargets.size())
+        + " of "
+        + instance.initialTestTargets.size()
+        + " covered";
+  }
+
   public static Statistics getTestTargetStatisitics(boolean pPrintTestGoalInfo) {
-    Preconditions.checkState(instance != null);
+    Preconditions.checkNotNull(instance);
     instance.printTargets = pPrintTestGoalInfo;
     return instance;
   }
+
 
   @Override
   public @Nullable String getName() {
@@ -100,5 +154,6 @@ public class TestTargetProvider implements Statistics {
       pOut.println(edge.toString());
     }
     }
+    pOut.flush(); // TODO check if makes sense
   }
 }

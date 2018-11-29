@@ -28,9 +28,6 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.logging.Level;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -49,12 +46,10 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
-@Options(prefix="cpa.callstack")
 public class CallstackTransferRelationBackwards extends CallstackTransferRelation {
 
-  public CallstackTransferRelationBackwards(Configuration pConfig, LogManager pLogger)
-      throws InvalidConfigurationException {
-    super(pConfig, pLogger);
+  public CallstackTransferRelationBackwards(CallstackOptions pOptions, LogManager pLogger) {
+    super(pOptions, pLogger);
   }
 
   @Override
@@ -80,10 +75,11 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
         AExpression functionNameExp = ((AFunctionCall)edge.getStatement()).getFunctionCallExpression().getFunctionNameExpression();
         if (functionNameExp instanceof AIdExpression) {
           String functionName = ((AIdExpression)functionNameExp).getName();
-          if (unsupportedFunctions.contains(functionName)) {
-            throw new UnrecognizedCodeException(
-                "Unsupported feature: " + unsupportedFunctions,
-                edge, edge.getStatement());
+              if (options.getUnsupportedFunctions().contains(functionName)) {
+                throw new UnrecognizedCodeException(
+                    "Unsupported feature: " + options.getUnsupportedFunctions(),
+                    edge,
+                    edge.getStatement());
           }
         }
       }
@@ -102,7 +98,7 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
       FunctionReturnEdge edge = (FunctionReturnEdge) pEdge;
       CFANode correspondingCallNode = edge.getSummaryEdge().getPredecessor();
         if (hasRecursion(e, nextAnalysisFunction)) {
-          if (skipRecursion) {
+            if (options.skipRecursion()) {
             logger.logOnce(
                 Level.WARNING, "Skipping recursive function call from",
                 prevAnalysisFunction, "to", nextAnalysisFunction);

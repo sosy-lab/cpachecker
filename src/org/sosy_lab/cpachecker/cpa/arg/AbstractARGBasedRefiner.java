@@ -25,16 +25,14 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.collect.Collections2;
+import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.ForOverride;
 import java.util.Collection;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -75,6 +73,13 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
     logger = pLogger;
   }
 
+  /** creates a dummy instance of this refiner, that does nothing but report found error paths. */
+  public static Refiner create(ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
+    return AbstractARGBasedRefiner.forARGBasedRefiner(
+        (rs, path) -> CounterexampleInfo.feasibleImprecise(path), pCpa);
+  }
+
   /**
    * Create a {@link Refiner} instance from a {@link ARGBasedRefiner} instance.
    */
@@ -87,9 +92,6 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
     ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, Refiner.class);
     return new AbstractARGBasedRefiner(pRefiner, argCpa, argCpa.getLogger());
   }
-
-  private static final Function<CFAEdge, String> pathToFunctionCalls
-        = arg ->  arg instanceof CFunctionCallEdge ? arg.toString() : null;
 
   @Override
   public final boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
@@ -106,7 +108,7 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
     if (logger.wouldBeLogged(Level.ALL) && path != null) {
       logger.log(Level.ALL, "Error path:\n", path);
       logger.log(Level.ALL, "Function calls on Error path:\n",
-          Joiner.on("\n ").skipNulls().join(Collections2.transform(path.getFullPath(), pathToFunctionCalls)));
+          Joiner.on("\n ").join(Iterables.filter(path.getFullPath(), CFunctionCallEdge.class)));
     }
 
     final CounterexampleInfo counterexample;
@@ -158,6 +160,10 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
    */
   protected CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
       throws CPAException, InterruptedException {
+
+    // Print all available error traces, if option is enabled
+    argCpa.getARGExporter().exportCounterexampleOnTheFly(pReached.asReachedSet());
+
     return refiner.performRefinementForPath(pReached, pPath);
   }
 

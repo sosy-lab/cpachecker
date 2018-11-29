@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.core;
 import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.base.Preconditions;
+import java.nio.file.Path;
+import java.util.Optional;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -59,6 +61,8 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorithm;
@@ -241,10 +245,15 @@ public class CoreComponentsFactory {
   private boolean unknownIfUnrestrictedProgram = false;
 
   @Option(
-    secure = true,
-    name = "algorithm.CBMC",
-    description = "use CBMC as an external tool from CPAchecker"
-  )
+      secure = true,
+      name = "algorithm.MPV",
+      description = "use MPV algorithm for checking multiple properties")
+  private boolean useMPV = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.CBMC",
+      description = "use CBMC as an external tool from CPAchecker")
   boolean runCBMCasExternalTool = false;
 
   private final Configuration config;
@@ -322,8 +331,7 @@ public class CoreComponentsFactory {
 
     if (useUndefinedFunctionCollector) {
       logger.log(Level.INFO, "Using undefined function collector");
-      algorithm =
-          new UndefinedFunctionCollectorAlgorithm(cfa, config, logger);
+      algorithm = new UndefinedFunctionCollectorAlgorithm(config, logger, shutdownNotifier, cfa);
     } else if (useNonTerminationWitnessValidation) {
       logger.log(Level.INFO, "Using validator for violation witnesses for termination");
       algorithm =
@@ -447,11 +455,12 @@ public class CoreComponentsFactory {
 
       if (useTestCaseGeneratorAlgorithm) {
         algorithm =
-            new TestCaseGeneratorAlgorithm(algorithm, cfa, config, cpa, logger, shutdownNotifier);
+            new TestCaseGeneratorAlgorithm(
+                algorithm, cfa, config, cpa, logger, shutdownNotifier, specification);
       }
 
       if (collectAssumptions) {
-        algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger);
+        algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger, cfa);
       }
 
       if (useAdjustableConditions) {
@@ -505,6 +514,10 @@ public class CoreComponentsFactory {
       if (cpa instanceof ARGCPA && forceCexStore) {
         algorithm = new CounterexampleStoreAlgorithm(algorithm, cpa, config, logger, cfa.getMachineModel());
       }
+
+      if (useMPV) {
+        algorithm = new MPVAlgorithm(cpa, config, logger, shutdownNotifier, specification, cfa);
+      }
     }
 
     return algorithm;
@@ -525,6 +538,9 @@ public class CoreComponentsFactory {
       } else {
         reached = new ForwardingReachedSet(reached);
       }
+    }
+    if (useMPV) {
+      reached = new MPVReachedSet(reached);
     }
 
     return reached;
@@ -561,12 +577,23 @@ public class CoreComponentsFactory {
   private Specification loadTerminationSpecification(CFA cfa, Specification originalSpecification)
       throws InvalidConfigurationException {
     Preconditions.checkState(useTerminationAlgorithm);
+    boolean atMostWitness = true;
+
+    Optional<Path> witness = Optional.empty();
+    for (Path specFile : originalSpecification.getSpecFiles()) {
+      Path fileName = specFile.getFileName();
+      if (fileName != null && fileName.toString().endsWith(".graphml")) {
+        Preconditions.checkState(!witness.isPresent(), "More than one witness file.");
+        witness = Optional.of(specFile);
+      } else {
+        atMostWitness = false;
+      }
+    }
     Specification terminationSpecification =
         TerminationAlgorithm.loadTerminationSpecification(
-            originalSpecification.getProperties(), cfa, config, logger);
+            originalSpecification.getProperties(), witness, cfa, config, logger);
 
-    if (!originalSpecification.equals(Specification.alwaysSatisfied())
-        && !originalSpecification.equals(terminationSpecification)) {
+    if (!atMostWitness && !originalSpecification.equals(terminationSpecification)) {
       throw new InvalidConfigurationException(
           originalSpecification + "is not usable with termination analysis");
     }

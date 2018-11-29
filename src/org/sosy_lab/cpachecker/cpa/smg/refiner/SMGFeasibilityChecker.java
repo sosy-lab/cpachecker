@@ -30,6 +30,7 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -53,9 +54,9 @@ import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
+import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 
-public class SMGFeasibilityChecker {
+public class SMGFeasibilityChecker implements FeasibilityChecker<UnmodifiableSMGState> {
 
   private final LogManager logger;
   private final SMGStrongestPostOperator strongestPostOp;
@@ -69,12 +70,11 @@ public class SMGFeasibilityChecker {
       LogManager pLogger,
       CFA pCfa,
       UnmodifiableSMGState pInitialState,
-      Set<ControlAutomatonCPA> pAutomatonCPA,
-      BlockOperator pBlockOperator) {
+      Set<ControlAutomatonCPA> pAutomatonCPA) {
     strongestPostOp = pStrongestPostOp;
     initialState = pInitialState;
     logger = pLogger;
-    precision = SMGPrecision.createStaticPrecision(false, pBlockOperator);
+    precision = SMGPrecision.createStaticPrecision(false);
     mainFunction = pCfa.getMainFunction();
     automatonCPA = pAutomatonCPA;
   }
@@ -96,22 +96,8 @@ public class SMGFeasibilityChecker {
       while (iterator.hasNext()) {
         edge = iterator.getOutgoingEdge();
 
-//        int c = 0;
-
-//        for (SMGState state : next) {
-//          SMGDebugTest.dumpPlot("beforeStrongest" + c, state);
-//          c++;
-//        }
-
         Collection<SMGState> successors =
             strongestPostOp.getStrongestPost(next, pPrecision, edge);
-
-//        c = 0;
-//
-//        for (SMGState state : successors) {
-//          SMGDebugTest.dumpPlot("afterStrongest" + c, state);
-//          c++;
-//        }
 
         // no successors => path is infeasible
         if (successors.isEmpty()) {
@@ -200,13 +186,20 @@ public class SMGFeasibilityChecker {
     return Iterables.any(strengthenResult, AbstractStates.IS_TARGET_STATE);
   }
 
+  @Override
   public boolean isFeasible(ARGPath pPath) throws CPAException, InterruptedException {
     return isFeasible(pPath, initialState);
   }
 
-  private boolean isFeasible(ARGPath pPath, UnmodifiableSMGState pStartingPoint)
+  @Override
+  public boolean isFeasible(ARGPath pPath, UnmodifiableSMGState pStartingPoint)
       throws CPAException, InterruptedException {
     return isFeasible(pPath, pStartingPoint, precision, false);
+  }
+
+  boolean isFeasible(ARGPath pErrorPath, boolean pAllTargets)
+      throws CPAException, InterruptedException {
+    return isFeasible(pErrorPath, initialState, precision, pAllTargets);
   }
 
   private boolean isFeasible(
@@ -268,6 +261,7 @@ public class SMGFeasibilityChecker {
       return lastEdge;
     }
 
+    @SuppressWarnings("unused")
     public PathPosition getLastPosition() {
       return lastPosition;
     }
@@ -280,26 +274,6 @@ public class SMGFeasibilityChecker {
     public static ReachabilityResult isNotReachable(PathPosition pLastPosition) {
       return new ReachabilityResult(pLastPosition);
     }
-  }
-
-  public boolean isFeasible(ARGPath pErrorPath, Collection<SMGState> pStartingPoints)
-      throws CPAException, InterruptedException {
-    for (UnmodifiableSMGState start : pStartingPoints) {
-      if (!isFeasible(pErrorPath, start)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  public boolean isReachable(ARGPath pErrorPath, UnmodifiableSMGState pInitialState)
-      throws CPAException {
-
-    if (pErrorPath.size() == 1) {
-      return true;
-    }
-
-    return isReachable(pErrorPath, pInitialState, precision).isReachable();
   }
 
   public boolean isRemainingPathFeasible(
@@ -320,29 +294,11 @@ public class SMGFeasibilityChecker {
         pAllTargets);
   }
 
-  public boolean isReachable(ARGPath pErrorPathPrefix) throws CPAException {
-    return isReachable(pErrorPathPrefix, initialState);
-  }
-
-  public PathPosition getLastReachablePosition(
-      ARGPath pErrorPath, List<UnmodifiableSMGState> pStartingPoints) throws CPAException {
-
-    PathPosition result = pErrorPath.fullPathIterator().getPosition();
-
-    for (UnmodifiableSMGState startPoint : pStartingPoints) {
-      ReachabilityResult reachabilityResult = isReachable(pErrorPath, startPoint, precision);
-      PathPosition reachabilityResultPosition = reachabilityResult.getLastPosition();
-
-      if (result.iterator().getIndex() < reachabilityResultPosition.iterator().getIndex()) {
-        result = reachabilityResultPosition;
-      }
-    }
-
-    return result;
-  }
-
-  public boolean isFeasible(ARGPath pErrorPath, boolean pAllTargets)
+  @Override
+  public boolean isFeasible(
+      ARGPath pPath, UnmodifiableSMGState pStartingPoint, Deque<UnmodifiableSMGState> pCallstack)
       throws CPAException, InterruptedException {
-    return isFeasible(pErrorPath, initialState, precision, pAllTargets);
+    // TODO Implementation
+    throw new UnsupportedOperationException("method not yet implemented");
   }
 }

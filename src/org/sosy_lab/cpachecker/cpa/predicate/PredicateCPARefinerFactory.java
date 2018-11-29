@@ -140,7 +140,9 @@ public class PredicateCPARefinerFactory {
     PredicateAbstractionManager predAbsManager = predicateCpa.getPredicateManager();
     PredicateCPAInvariantsManager invariantsManager = predicateCpa.getInvariantsManager();
 
-    PrefixProvider prefixProvider = predicateCpa.getPrefixProvider();
+    PrefixProvider prefixProvider =
+        new PredicateBasedPrefixProvider(
+            config, logger, solver, predicateCpa.getPathFormulaManager(), shutdownNotifier);
     PrefixSelector prefixSelector = new PrefixSelector(variableClassification, loopStructure);
 
     InterpolationManager interpolationManager =

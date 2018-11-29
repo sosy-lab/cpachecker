@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
@@ -289,9 +290,9 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       }
     }
 
-    CallstackTransferRelation csTr;
+    CallstackCPA callstackCpa;
     try {
-      csTr = new CallstackTransferRelation(Configuration.defaultConfiguration(), logger);
+      callstackCpa = new CallstackCPA(Configuration.defaultConfiguration(), logger);
     } catch (InvalidConfigurationException e) {
       logger.log(Level.INFO,
           "Cannot use inlined representation to detect unexplored target states. ",
@@ -299,6 +300,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       return getAllTargetStatesNotFullyExploredBasedOnLocations(pUnexploredStates,
           pNodesOfInlinedProg);
     }
+    CallstackTransferRelation csTr = callstackCpa.getTransferRelation();
     Collection<? extends AbstractState> csSucc;
 
     while (!toProcess.isEmpty()) {

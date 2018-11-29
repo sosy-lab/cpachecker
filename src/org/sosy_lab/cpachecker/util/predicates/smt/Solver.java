@@ -269,8 +269,10 @@ public final class Solver implements AutoCloseable {
    * This environment needs to be closed after it is used by calling {@link InterpolatingProverEnvironment#close()}.
    * It is recommended to use the try-with-resources syntax.
    */
-  public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation() {
-    InterpolatingProverEnvironment<?> ipe = interpolatingContext.newProverEnvironmentWithInterpolation();
+  public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(
+      ProverOptions... options) {
+    InterpolatingProverEnvironment<?> ipe =
+        interpolatingContext.newProverEnvironmentWithInterpolation(options);
 
     if (solvingContext != interpolatingContext) {
       // If interpolatingContext is not the normal solver,
@@ -300,7 +302,8 @@ public final class Solver implements AutoCloseable {
    * It is recommended to use the try-with-resources syntax.
    */
   public OptimizationProverEnvironment newOptEnvironment() {
-    OptimizationProverEnvironment environment = solvingContext.newOptimizationProverEnvironment();
+    OptimizationProverEnvironment environment =
+        solvingContext.newOptimizationProverEnvironment(ProverOptions.GENERATE_MODELS);
     environment = new OptimizationProverEnvironmentView(environment, fmgr);
     return environment;
   }

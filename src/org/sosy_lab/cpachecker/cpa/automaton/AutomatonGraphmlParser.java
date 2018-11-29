@@ -734,7 +734,9 @@ public class AutomatonGraphmlParser {
   private ExpressionTree<AExpression> logAndRemoveUnknown(ExpressionTree<AExpression> invariant) {
     FluentIterable<AExpression> expressions =
         FluentIterable.from(ExpressionTrees.traverseRecursively(invariant))
-            .filter(ExpressionTrees::isLeaf)
+            .filter(
+                Predicates.and(
+                    ExpressionTrees::isLeaf, Predicates.not(ExpressionTrees::isConstant)))
             .transform(leaf -> ((LeafExpression<AExpression>) leaf).getExpression());
     Multimap<AExpression, AIdExpression> invalid = LinkedHashMultimap.create();
     for (AExpression assumption : expressions) {
@@ -1054,9 +1056,11 @@ public class AutomatonGraphmlParser {
   }
 
   private static AutomatonBoolExpr getFunctionExitMatcher(String pExitedFunction) {
-    AutomatonBoolExpr functionExitMatcher = or(
-        new AutomatonBoolExpr.MatchFunctionExit(pExitedFunction),
-        new AutomatonBoolExpr.MatchFunctionCallStatement(pExitedFunction));
+    AutomatonBoolExpr functionExitMatcher =
+        or(
+            AutomatonBoolExpr.EpsilonMatch.forwardEpsilonMatch(
+                new AutomatonBoolExpr.MatchFunctionExit(pExitedFunction), false),
+            new AutomatonBoolExpr.MatchFunctionCallStatement(pExitedFunction));
     return functionExitMatcher;
   }
 

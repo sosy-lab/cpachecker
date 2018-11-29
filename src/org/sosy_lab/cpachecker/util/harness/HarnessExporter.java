@@ -69,7 +69,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -104,6 +103,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -178,7 +178,7 @@ public class HarnessExporter {
       Set<AFunctionDeclaration> externalFunctions = getExternalFunctions();
 
       CodeAppender codeAppender = new CodeAppender(pTarget);
-      
+
       codeAppender.appendln("struct _IO_FILE;");
       codeAppender.appendln("typedef struct _IO_FILE FILE;");
       codeAppender.appendln("extern struct _IO_FILE *stderr;");
@@ -585,7 +585,7 @@ public class HarnessExporter {
           AbstractStates.asIterable(argState).filter(AutomatonState.class);
       for (AutomatonState automatonState : automatonStates) {
         for (AExpression assumption : automatonState.getAssumptions()) {
-          Optional<ALiteralExpression> value = getOther(assumption, pLeftHandSide);
+          Optional<AExpression> value = getOther(assumption, pLeftHandSide);
           if (value.isPresent()) {
             AExpression v = castIfNecessary(pLeftHandSide.getExpressionType(), value.get());
             return Optional.of(new State(pChild, pUpdate.apply(v).apply(pPrevious.testVector)));
@@ -599,7 +599,7 @@ public class HarnessExporter {
                 .filter(e -> e.getCFAEdge().equals(pEdge))
                 .transformAndConcat(CFAEdgeWithAssumptions::getExpStmts)
                 .transform(AExpressionStatement::getExpression)) {
-          Optional<ALiteralExpression> value = getOther(assumption, pLeftHandSide);
+          Optional<AExpression> value = getOther(assumption, pLeftHandSide);
           if (value.isPresent()) {
             AExpression v = castIfNecessary(pLeftHandSide.getExpressionType(), value.get());
             return Optional.of(new State(pChild, pUpdate.apply(v).apply(pPrevious.testVector)));
@@ -612,7 +612,8 @@ public class HarnessExporter {
         if (argState
             .getEdgesToChild(candidate)
             .stream()
-            .allMatch(AutomatonGraphmlCommon::handleAsEpsilonEdge)) {
+            .allMatch(
+                e -> e instanceof AssumeEdge || AutomatonGraphmlCommon.handleAsEpsilonEdge(e))) {
           argState = candidate;
           continue;
         }
@@ -924,7 +925,7 @@ public class HarnessExporter {
     return false;
   }
 
-  private static Optional<ALiteralExpression> getOther(
+  private static Optional<AExpression> getOther(
       AExpression pAssumption, ALeftHandSide pLeftHandSide) {
     if (!(pAssumption instanceof ABinaryExpression)) {
       return Optional.empty();
@@ -935,13 +936,11 @@ public class HarnessExporter {
             != org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.EQUALS) {
       return Optional.empty();
     }
-    if (binOp.getOperand2() instanceof ALiteralExpression
-        && binOp.getOperand1().equals(pLeftHandSide)) {
-      return Optional.of((ALiteralExpression) binOp.getOperand2());
+    if (binOp.getOperand1().equals(pLeftHandSide)) {
+      return Optional.of(binOp.getOperand2());
     }
-    if (binOp.getOperand1() instanceof ALiteralExpression
-        && binOp.getOperand2().equals(pLeftHandSide)) {
-      return Optional.of((ALiteralExpression) binOp.getOperand1());
+    if (binOp.getOperand2().equals(pLeftHandSide)) {
+      return Optional.of(binOp.getOperand1());
     }
     return Optional.empty();
   }

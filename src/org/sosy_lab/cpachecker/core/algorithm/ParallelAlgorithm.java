@@ -32,6 +32,7 @@ import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDef
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -54,6 +55,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
+import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.AnnotatedValue;
@@ -91,8 +93,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 @Options(prefix = "parallelAlgorithm")
 public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
-
-  public static final String UNEXPECTED_EXCEPTION_MSG = "An unexpected exception occured";
 
   @Option(
     secure = true,
@@ -240,7 +240,10 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           // cancel other computations
           futures.forEach(future -> future.cancel(true));
           shutdownManager.requestShutdown("cancelling all remaining analyses");
-          throw new CPAException(UNEXPECTED_EXCEPTION_MSG, cause);
+          Throwables.throwIfUnchecked(cause);
+          // probably we need to handle IOException, ParserException,
+          // InvalidConfigurationException, and InterruptedException here (#326)
+          throw new UnexpectedCheckedException("analysis", cause);
         }
       } catch (CancellationException e) {
         // do nothing, this is normal if we cancel other analyses
@@ -503,7 +506,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       singleConfigBuilder.loadFromFile(singleConfigFileName);
 
       Configuration singleConfig = singleConfigBuilder.build();
-
+      RestartAlgorithm.checkConfigs(globalConfig, singleConfig, singleConfigFileName, logger);
       return singleConfig;
 
     } catch (IOException | InvalidConfigurationException e) {

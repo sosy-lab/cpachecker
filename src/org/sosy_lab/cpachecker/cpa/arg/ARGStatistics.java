@@ -503,6 +503,16 @@ public class ARGStatistics implements Statistics {
     }
   }
 
+  public void exportCounterexampleOnTheFly(UnmodifiableReachedSet pReachedSet)
+      throws InterruptedException {
+    if (counterexampleOptions.dumpAllFoundErrorPaths()) {
+      for (Map.Entry<ARGState, CounterexampleInfo> cex :
+          getAllCounterexamples(pReachedSet).entrySet()) {
+        exportCounterexampleOnTheFly(cex.getKey(), cex.getValue());
+      }
+    }
+  }
+
   public void printIterationStatistics(UnmodifiableReachedSet pReached) {
     if (dumpArgInEachCpaIteration) {
       exportARG(pReached, getAllCounterexamples(pReached), CPAcheckerResult.Result.UNKNOWN);

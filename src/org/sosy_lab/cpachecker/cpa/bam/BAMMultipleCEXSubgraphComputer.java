@@ -64,7 +64,6 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
   private ARGState findPath(BackwardARGState newTreeTarget, Set<List<Integer>> pProcessedStates) throws InterruptedException, MissingBlockException {
 
     Map<ARGState, BackwardARGState> elementsMap = new HashMap<>();
-    final NavigableSet<ARGState> openElements = new TreeSet<>(); // for sorted IDs in ARGstates
     ARGState root = null;
     boolean inCallstackFunction = false;
 
@@ -78,7 +77,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
     elementsMap.put(target, newTreeTarget);
     ARGState currentState = target;
 
-    openElements.addAll(target.getParents());
+    final NavigableSet<ARGState> openElements = new TreeSet<>(target.getParents());
     while (!openElements.isEmpty()) {
       currentState = openElements.pollLast();
       BackwardARGState newCurrentElement = new BackwardARGState(currentState);
@@ -202,9 +201,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
         return null;
       }
       return result;
-    } catch (MissingBlockException e) {
-      return null;
-    } catch (InterruptedException e) {
+    } catch (MissingBlockException | InterruptedException e) {
       return null;
     }
   }

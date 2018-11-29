@@ -30,7 +30,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.StandardSystemProperty;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -74,8 +73,8 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -84,6 +83,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ResultProviderReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -308,99 +308,96 @@ public class CPAchecker {
     shutdownNotifier.register(interruptThreadOnShutdown);
 
     try {
-      try {
-        stats = new MainCPAStatistics(config, logger, shutdownNotifier);
+      stats = new MainCPAStatistics(config, logger, shutdownNotifier);
 
-        // create reached set, cpa, algorithm
-        stats.creationTime.start();
-        reached = factory.createReachedSet();
+      // create reached set, cpa, algorithm
+      stats.creationTime.start();
+      reached = factory.createReachedSet();
 
-        if (runCBMCasExternalTool) {
-          algorithm =
-              new ExternalCBMCAlgorithm(checkIfOneValidFile(programDenotation), config, logger);
+      if (runCBMCasExternalTool) {
+        algorithm =
+            new ExternalCBMCAlgorithm(checkIfOneValidFile(programDenotation), config, logger);
 
-        } else {
-          cfa = parse(programDenotation, stats);
-          GlobalInfo.getInstance().storeCFA(cfa);
-          shutdownNotifier.shutdownIfNecessary();
-
-          ConfigurableProgramAnalysis cpa;
-          Specification specification;
-          stats.cpaCreationTime.start();
-          try {
-            specification =
-                Specification.fromFiles(properties, specificationFiles, cfa, config, logger);
-            cpa = factory.createCPA(cfa, specification);
-          } finally {
-            stats.cpaCreationTime.stop();
-          }
-          stats.setCPA(cpa);
-
-          if (cpa instanceof StatisticsProvider) {
-            ((StatisticsProvider)cpa).collectStatistics(stats.getSubStatistics());
-          }
-
-          GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-
-          algorithm = factory.createAlgorithm(cpa, cfa, specification);
-
-          if (algorithm instanceof StatisticsProvider) {
-            ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
-          }
-
-          if (algorithm instanceof ImpactAlgorithm) {
-            ImpactAlgorithm mcmillan = (ImpactAlgorithm)algorithm;
-            reached.add(mcmillan.getInitialState(cfa.getMainFunction()), mcmillan.getInitialPrecision(cfa.getMainFunction()));
-          } else {
-            initializeReachedSet(reached, cpa, properties, cfa.getMainFunction(), cfa);
-          }
-        }
-
-        printConfigurationWarnings();
-
-        stats.creationTime.stop();
+      } else {
+        cfa = parse(programDenotation, stats);
+        GlobalInfo.getInstance().storeCFA(cfa);
         shutdownNotifier.shutdownIfNecessary();
-        // now everything necessary has been instantiated
 
-        if (disableAnalysis) {
-          return new CPAcheckerResult(
-              Result.NOT_YET_STARTED, violatedPropertyDescription, null, cfa, stats);
+        ConfigurableProgramAnalysis cpa;
+        Specification specification;
+        stats.cpaCreationTime.start();
+        try {
+          specification =
+              Specification.fromFiles(properties, specificationFiles, cfa, config, logger);
+          cpa = factory.createCPA(cfa, specification);
+        } finally {
+          stats.cpaCreationTime.stop();
+        }
+        stats.setCPA(cpa);
+
+        if (cpa instanceof StatisticsProvider) {
+          ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());
         }
 
-        // run analysis
-        result = Result.UNKNOWN; // set to unknown so that the result is correct in case of exception
+        GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
-        AlgorithmStatus status = runAlgorithm(algorithm, reached, stats);
+        algorithm = factory.createAlgorithm(cpa, cfa, specification);
 
-        stats.resultAnalysisTime.start();
-        Collection<Property> violatedProperties = reached.getViolatedProperties();
-        if (!violatedProperties.isEmpty()) {
-          violatedPropertyDescription = Joiner.on(", ").join(violatedProperties);
+        if (algorithm instanceof MPVAlgorithm && !stopAfterError) {
+          // sanity check
+          throw new InvalidConfigurationException(
+              "Cannot use option 'analysis.stopAfterError' along with "
+                  + "multi-property verification algorithm. "
+                  + "Please use option 'mpv.findAllViolations' instead");
+        }
 
-          if (!status.isPrecise()) {
-            result = Result.UNKNOWN;
-          } else {
-            result = Result.FALSE;
-          }
+        if (algorithm instanceof StatisticsProvider) {
+          ((StatisticsProvider) algorithm).collectStatistics(stats.getSubStatistics());
+        }
+
+        if (algorithm instanceof ImpactAlgorithm) {
+          ImpactAlgorithm mcmillan = (ImpactAlgorithm) algorithm;
+          reached.add(
+              mcmillan.getInitialState(cfa.getMainFunction()),
+              mcmillan.getInitialPrecision(cfa.getMainFunction()));
         } else {
-          result = analyzeResult(reached, status.isSound());
-          if (unknownAsTrue && result == Result.UNKNOWN) {
-            result = Result.TRUE;
-          }
+          initializeReachedSet(reached, cpa, properties, cfa.getMainFunction(), cfa);
         }
-        stats.resultAnalysisTime.stop();
-      } catch (CPAException e) {
-        // Dirty hack necessary until broken exception handling in parallel algorithm is fixed
-        Throwable cause = e.getCause();
-        if (cause != null && ParallelAlgorithm.UNEXPECTED_EXCEPTION_MSG.equals(e.getMessage())) {
-          Throwables.throwIfInstanceOf(cause, IOException.class);
-          Throwables.throwIfInstanceOf(cause, ParserException.class);
-          Throwables.throwIfInstanceOf(cause, InvalidConfigurationException.class);
-          Throwables.throwIfInstanceOf(cause, CPAException.class);
-          Throwables.throwIfUnchecked(cause);
-        }
-        throw e;
       }
+
+      printConfigurationWarnings();
+
+      stats.creationTime.stop();
+      shutdownNotifier.shutdownIfNecessary();
+      // now everything necessary has been instantiated
+
+      if (disableAnalysis) {
+        return new CPAcheckerResult(
+            Result.NOT_YET_STARTED, violatedPropertyDescription, null, cfa, stats);
+      }
+
+      // run analysis
+      result = Result.UNKNOWN; // set to unknown so that the result is correct in case of exception
+
+      AlgorithmStatus status = runAlgorithm(algorithm, reached, stats);
+
+      stats.resultAnalysisTime.start();
+      Collection<Property> violatedProperties = reached.getViolatedProperties();
+      if (!violatedProperties.isEmpty()) {
+        violatedPropertyDescription = Joiner.on(", ").join(violatedProperties);
+
+        if (!status.isPrecise()) {
+          result = Result.UNKNOWN;
+        } else {
+          result = Result.FALSE;
+        }
+      } else {
+        result = analyzeResult(reached, status.isSound());
+        if (unknownAsTrue && result == Result.UNKNOWN) {
+          result = Result.TRUE;
+        }
+      }
+      stats.resultAnalysisTime.stop();
 
     } catch (IOException e) {
       logger.logUserException(Level.SEVERE, e, "Could not read file");
@@ -534,6 +531,9 @@ public class CPAchecker {
   }
 
   private Result analyzeResult(final ReachedSet reached, boolean isSound) {
+    if (reached instanceof ResultProviderReachedSet) {
+      return ((ResultProviderReachedSet) reached).getOverallResult();
+    }
     if (reached.hasWaitingState()) {
       logger.log(Level.WARNING, "Analysis not completed: there are still states to be processed.");
       return Result.UNKNOWN;

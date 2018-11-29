@@ -96,17 +96,20 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
 
   protected StopOperator buildStopOperator(String pStopType) throws AssertionError {
     switch (pStopType.toUpperCase()) {
-      case "SEP":
+      case "SEP": // state is LESS_OR_EQUAL to any reached state
         return new StopSepOperator(getAbstractDomain());
 
-      case "JOIN":
+      case "JOIN": // state is LESS_OR_EQUAL to the union of all reached state
         return new StopJoinOperator(getAbstractDomain());
 
-      case "NEVER":
+      case "NEVER": // always FALSE
         return new StopNeverOperator();
 
-      case "ALWAYS":
+      case "ALWAYS": // always TRUE
         return new StopAlwaysOperator();
+
+      case "EQUALS": // state is EQUAL to any reached state
+        return new StopEqualsOperator();
 
       default:
         throw new AssertionError("unknown stop operator");

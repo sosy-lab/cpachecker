@@ -118,6 +118,7 @@ javascript-unit-tests:
   artifacts:
     paths:
       - src/org/sosy_lab/cpachecker/core/counterexample/unit_testing_report
+    when: always
 
 
 javascript-e2e-tests:
@@ -137,6 +138,7 @@ javascript-e2e-tests:
   artifacts:
     paths:
       - src/org/sosy_lab/cpachecker/core/counterexample/e2e-tests-report
+    when: always
 
 
 # No coverage is computed for CPAchecker

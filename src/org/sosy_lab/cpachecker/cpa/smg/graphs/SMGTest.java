@@ -357,9 +357,9 @@ public class SMGTest {
     Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg1));
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test // (expected=IllegalArgumentException.class)
   public void isObjectValidBadCallTest() {
-    smg.isObjectValid(new SMGRegion(192, "wee"));
+    Assert.assertFalse(smg.isObjectValid(new SMGRegion(192, "wee")));
   }
 
   @Test(expected=IllegalArgumentException.class)

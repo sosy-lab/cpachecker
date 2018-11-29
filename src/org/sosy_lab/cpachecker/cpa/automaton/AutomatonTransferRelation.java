@@ -107,13 +107,14 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       return Collections.singleton(top);
     }
 
-    Collection<AutomatonState> result = getAbstractSuccessors0((AutomatonState) pElement, pCfaEdge);
+    Collection<AutomatonState> result =
+        getAbstractSuccessors0((AutomatonState) pElement, pCfaEdge, pPrecision);
     automatonSuccessors.setNextValue(result.size());
     return result;
   }
 
   private Collection<AutomatonState> getAbstractSuccessors0(
-      AutomatonState pElement, CFAEdge pCfaEdge) throws CPATransferException {
+      AutomatonState pElement, CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
     totalPostTime.start();
     try {
       if (pElement instanceof AutomatonUnknownState) {
@@ -123,22 +124,29 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
         pElement = ((AutomatonUnknownState)pElement).getPreviousState();
       }
 
-      return getFollowStates(pElement, null, pCfaEdge, false);
+      return getFollowStates(pElement, null, pCfaEdge, false, pPrecision);
     } finally {
       totalPostTime.stop();
     }
   }
 
   /**
-   * Returns the <code>AutomatonStates</code> that follow this State in the ControlAutomatonCPA.
-   * If the passed <code>AutomatonExpressionArguments</code> are not sufficient to determine the following state
-   * this method returns a <code>AutomatonUnknownState</code> that contains this as previous State.
-   * The strengthen method of the <code>AutomatonUnknownState</code> should be used once enough Information is available to determine the correct following State.
+   * Returns the <code>AutomatonStates</code> that follow this State in the ControlAutomatonCPA. If
+   * the passed <code>AutomatonExpressionArguments</code> are not sufficient to determine the
+   * following state this method returns a <code>AutomatonUnknownState</code> that contains this as
+   * previous State. The strengthen method of the <code>AutomatonUnknownState</code> should be used
+   * once enough Information is available to determine the correct following State.
    *
-   * If the state is a NonDet-State multiple following states may be returned.
-   * If the only following state is BOTTOM an empty set is returned.
+   * <p>If the state is a NonDet-State multiple following states may be returned. If the only
+   * following state is BOTTOM an empty set is returned.
    */
-  private Collection<AutomatonState> getFollowStates(AutomatonState state, List<AbstractState> otherElements, CFAEdge edge, boolean failOnUnknownMatch) throws CPATransferException {
+  private Collection<AutomatonState> getFollowStates(
+      AutomatonState state,
+      List<AbstractState> otherElements,
+      CFAEdge edge,
+      boolean failOnUnknownMatch,
+      Precision precision)
+      throws CPATransferException {
     Preconditions.checkArgument(!(state instanceof AutomatonUnknownState));
     if (state == cpa.getBottomState()) {
       return Collections.emptySet();
@@ -147,6 +155,18 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
     if (state.getInternalState().getTransitions().isEmpty()) {
       // shortcut
       return Collections.singleton(state);
+    }
+
+    if (precision instanceof AutomatonPrecision) {
+      if (!((AutomatonPrecision) precision).isEnabled()) {
+        if (state.isTarget()) {
+          // do not create transition from target states
+          return Collections.emptySet();
+        } else {
+          // ignore disabled automaton
+          return Collections.singleton(state);
+        }
+      }
     }
 
     Collection<AutomatonState> lSuccessors = Sets.newLinkedHashSetWithExpectedSize(2);
@@ -302,7 +322,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       totalStrengthenTime.start();
       Collection<AbstractState> successors =
           strengthenAutomatonUnknownState(
-              (AutomatonUnknownState) pElement, pOtherElements, pCfaEdge);
+              (AutomatonUnknownState) pElement, pOtherElements, pCfaEdge, pPrecision);
       totalStrengthenTime.stop();
       assert !from(successors).anyMatch(instanceOf(AutomatonUnknownState.class));
       return successors;
@@ -374,7 +394,10 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
    * fixed-point iteration.
    */
   private Collection<AbstractState> strengthenAutomatonUnknownState(
-      AutomatonUnknownState lUnknownState, List<AbstractState> pOtherElements, CFAEdge pCfaEdge)
+      AutomatonUnknownState lUnknownState,
+      List<AbstractState> pOtherElements,
+      CFAEdge pCfaEdge,
+      Precision pPrecision)
       throws CPATransferException {
     Collection<List<AbstractState>> strengtheningCombinations = new HashSet<>();
     strengtheningCombinations.add(pOtherElements);
@@ -396,7 +419,11 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
             statesOtherToCurrent.add(lUnknownState);
             Collection<? extends AbstractState> successors =
                 getFollowStates(
-                    unknownState.getPreviousState(), statesOtherToCurrent, pCfaEdge, true);
+                    unknownState.getPreviousState(),
+                    statesOtherToCurrent,
+                    pCfaEdge,
+                    true,
+                    pPrecision);
 
             // There might be zero or more than one successor,
             // so the list of states is multiplied with the list of successors
@@ -425,7 +452,9 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
     // For each list of other states, do the strengthening
     Collection<AbstractState> successors = new HashSet<>();
     for (List<AbstractState> otherStates : strengtheningCombinations) {
-      successors.addAll(getFollowStates(lUnknownState.getPreviousState(), otherStates, pCfaEdge, true));
+      successors.addAll(
+          getFollowStates(
+              lUnknownState.getPreviousState(), otherStates, pCfaEdge, true, pPrecision));
     }
     return successors;
   }

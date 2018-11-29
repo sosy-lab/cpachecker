@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
@@ -171,7 +171,8 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
           getCounterexampleInfo.apply(pErrorState).orElse(null));
     }
 
-    CFANode entryNode = extractLocation(pRootState);
+    // We assume only one initial node for an analysis, even for mutli-threaded tasks.
+    CFANode entryNode = Iterables.getOnlyElement(extractLocations(pRootState));
     LogManager lLogger = logger.withComponentName("CounterexampleCheck");
 
     try {

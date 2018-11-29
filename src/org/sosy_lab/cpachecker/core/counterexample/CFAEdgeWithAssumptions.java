@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -79,8 +81,8 @@ public class CFAEdgeWithAssumptions {
     expressionStmts = result;
   }
 
-  public Collection<AExpressionStatement> getExpStmts() {
-    return expressionStmts;
+  public ImmutableCollection<AExpressionStatement> getExpStmts() {
+    return ImmutableList.copyOf(expressionStmts);
   }
 
   public CFAEdge getCFAEdge() {
@@ -141,35 +143,13 @@ public class CFAEdgeWithAssumptions {
     return result.toString();
   }
 
-  /**
-   * Returns a message that contain information of the concrete values pertaining to
-   * this edge of the error path.
-   *
-   * @return returns a message that contain information of the concrete values pertaining to
-   * this edge of the error path.
-   */
-  public String prettyPrint() {
-    String expStmt = this.prettyPrintCode(0);
-    return expStmt + getComment();
-  }
-
-  /**
-   * Get a message that can be used inside of html.
-   *
-   * @return returns a message that contain information of the concrete values pertaining to
-   * this edge of the error path for a html page.
-   */
-  public String printForHTML() {
-    return prettyPrint().replace(System.lineSeparator(), "\n");
-  }
-
   @Override
   public String toString() {
-      StringBuilder assumption = new StringBuilder();
-      for (AExpressionStatement assum : expressionStmts) {
-          assumption.append('\n' + "\t\t" + assum);
-      }
-      return edge + " " + assumption;
+    StringBuilder str = new StringBuilder(edge.toString());
+    for (AExpressionStatement assum : expressionStmts) {
+      str.append("\n\t").append(assum);
+    }
+    return str.toString();
   }
 
   @Nullable

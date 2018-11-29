@@ -31,16 +31,13 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 /**
@@ -59,8 +56,6 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
   // add a constraint to 'constraints' if it's not yet in this list.
   private Optional<Constraint> lastAddedConstraint = Optional.empty();
 
-  private Map<Constraint, BooleanFormula> constraintFormulas;
-
   private ImmutableCollection<ValueAssignment> definiteAssignment;
   private ImmutableList<ValueAssignment> lastModelAsAssignment = ImmutableList.of();
 
@@ -74,7 +69,6 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
   public ConstraintsState(final Set<Constraint> pConstraints) {
     constraints = new ArrayList<>(pConstraints);
     definiteAssignment = ImmutableList.of();
-    constraintFormulas = new HashMap<>();
   }
 
   /**
@@ -86,7 +80,6 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
    */
   protected ConstraintsState(ConstraintsState pState) {
     constraints = new ArrayList<>(pState.constraints);
-    constraintFormulas = new HashMap<>(pState.constraintFormulas);
 
     lastAddedConstraint = pState.lastAddedConstraint;
     definiteAssignment = ImmutableList.copyOf(pState.definiteAssignment);
@@ -121,8 +114,6 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
     boolean changed = constraints.remove(pObject);
 
     if (changed) {
-      constraintFormulas.remove(pObject);
-      assert constraints.size() >= constraintFormulas.size();
       definiteAssignment = ImmutableList.of();
     }
 
@@ -163,7 +154,6 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
       definiteAssignment = ImmutableList.of();
     }
 
-    assert constraints.size() >= constraintFormulas.size();
     return changed;
   }
 
@@ -179,14 +169,12 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
       definiteAssignment = ImmutableList.of();
     }
 
-    assert constraints.size() >= constraintFormulas.size();
     return changed;
   }
 
   @Override
   public void clear() {
     constraints.clear();
-    constraintFormulas.clear();
     definiteAssignment = ImmutableList.of();
   }
 
@@ -315,10 +303,7 @@ public class ConstraintsState implements AbstractState, Graphable, Set<Constrain
         throw new IllegalStateException("Iterator not at valid location");
       }
 
-      Constraint constraintToRemove = constraints.get(index);
-
       constraints.remove(index);
-      constraintFormulas.remove(constraintToRemove);
       index--;
     }
   }

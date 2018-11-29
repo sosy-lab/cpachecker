@@ -201,6 +201,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * This method tries to find a feasible path to (one of) the target state(s). It does so by asking
    * the solver for a satisfying assignment.
    */
+  @SuppressWarnings("resource")
   @Override
   protected void analyzeCounterexample(
       final BooleanFormula pCounterexampleFormula,
@@ -297,19 +298,27 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       // replay error path for a more precise satisfying assignment
       PathChecker pathChecker;
       try {
-        Solver solver = this.solver;
-        PathFormulaManager pmgr = this.pmgr;
+        Solver solverForPathChecker = this.solver;
+        PathFormulaManager pmgrForPathChecker = this.pmgr;
 
-        if (solver.getVersion().toLowerCase().contains("smtinterpol")) {
+        if (solverForPathChecker.getVersion().toLowerCase().contains("smtinterpol")) {
           // SMTInterpol does not support reusing the same solver
-          solver = Solver.create(config, logger, shutdownNotifier);
-          FormulaManagerView formulaManager = solver.getFormulaManager();
-          pmgr = new PathFormulaManagerImpl(formulaManager, config, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
+          solverForPathChecker = Solver.create(config, logger, shutdownNotifier);
+          FormulaManagerView formulaManager = solverForPathChecker.getFormulaManager();
+          pmgrForPathChecker =
+              new PathFormulaManagerImpl(
+                  formulaManager, config, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
           // cannot dump pCounterexampleFormula, PathChecker would use wrong FormulaManager for it
-          cexFormula = solver.getFormulaManager().getBooleanFormulaManager().makeTrue();
+          cexFormula = solverForPathChecker.getFormulaManager().getBooleanFormulaManager().makeTrue();
         }
 
-        pathChecker = new PathChecker(config, logger, pmgr, solver, assignmentToPathAllocator);
+        pathChecker =
+            new PathChecker(
+                config,
+                logger,
+                pmgrForPathChecker,
+                solverForPathChecker,
+                assignmentToPathAllocator);
 
       } catch (InvalidConfigurationException e) {
         // Configuration has somehow changed and can no longer be used to create the solver and path formula manager

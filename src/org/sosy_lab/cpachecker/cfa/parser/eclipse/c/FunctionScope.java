@@ -29,8 +29,12 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -116,7 +120,12 @@ class FunctionScope extends AbstractScope {
   public void enterFunction(CFunctionDeclaration pFuncDef) {
     checkState(currentFunction == null);
     currentFunction = checkNotNull(pFuncDef);
-    checkArgument(globalFunctions.containsKey(getCurrentFunctionName()) || localFunctions.containsKey(getCurrentFunctionName()));
+    String functionName = pFuncDef.getName();
+    checkArgument(
+        globalFunctions.containsKey(functionName) || localFunctions.containsKey(functionName),
+        String.format(
+            "function '%s' not available in global scope (%s) or local scope (%s)",
+            functionName, globalFunctions.keySet(), localFunctions.keySet()));
 
     if (currentFunction.getType().getReturnType().getCanonicalType() instanceof CVoidType) {
       returnVariable = Optional.absent();
@@ -147,6 +156,20 @@ class FunctionScope extends AbstractScope {
     typesStack.removeLast();
     labelsStack.removeLast();
     labelsNodeStack.removeLast();
+  }
+
+  /** returns only the most local scope, i.e., the scope between the nearest curly brackets. */
+  public Collection<CSimpleDeclaration> getVariablesOfMostLocalScope() {
+    return getVariablesOfMostLocalScopes().iterator().next();
+  }
+
+  /** returns the most local scopes in increasing order, i.e., from most local to global scope. */
+  public Iterable<Collection<CSimpleDeclaration>> getVariablesOfMostLocalScopes() {
+    Preconditions.checkState(
+        !varsStackWitNewNames.isEmpty(), "at least function scope should be open");
+    return Iterables.transform(
+        () -> varsStackWitNewNames.descendingIterator(),
+        vars -> Collections.unmodifiableCollection(vars.values()));
   }
 
   @Override
