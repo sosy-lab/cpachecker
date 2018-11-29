@@ -39,6 +39,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cpa.harness.HarnessTransferRelation;
+import org.sosy_lab.cpachecker.cpa.harness.HarnessTransferRelation.RelevantPointerFunctionsState;
 
 class TestVector {
 
@@ -51,6 +53,8 @@ class TestVector {
   private final PersistentSortedMap<ComparableVariableDeclaration, InitializerTestValue>
       inputVariableValues;
 
+  private final RelevantPointerFunctionsState relevantFunctions;
+
   private final int externPointersArrayLength;
 
   public TestVector setExternPointersArrayLength(int newLength) {
@@ -59,7 +63,14 @@ class TestVector {
         inputVariableValues,
         undefinedPointerTypeFunctionIndices,
         newLength,
-        functionDeclarations);
+        functionDeclarations,
+        relevantFunctions);
+  }
+
+
+
+  public HarnessTransferRelation.RelevantPointerFunctionsState getRelevantFunctions() {
+    return relevantFunctions;
   }
 
   public int getExternPointersArrayLength() {
@@ -78,7 +89,8 @@ class TestVector {
         PathCopyingPersistentTreeMap
             .<ComparableFunctionDeclaration, ImmutableList<ExpressionTestValue>>of(),
         PathCopyingPersistentTreeMap.<ComparableVariableDeclaration, InitializerTestValue>of(),
-        ImmutableList.of());
+        ImmutableList.of(),
+        new RelevantPointerFunctionsState());
   }
 
 
@@ -88,24 +100,28 @@ class TestVector {
           pInputFunctionValues,
       PersistentSortedMap<ComparableVariableDeclaration, InitializerTestValue>
       pInputVariableValues,
-      ImmutableList<AFunctionDeclaration> pFunctionDeclarations) {
+      ImmutableList<AFunctionDeclaration> pFunctionDeclarations,
+      RelevantPointerFunctionsState pRelevantFunctions) {
     inputFunctionValues = pInputFunctionValues;
     inputVariableValues = pInputVariableValues;
     undefinedPointerTypeFunctionIndices = PathCopyingPersistentTreeMap.of();
     externPointersArrayLength = 0;
     functionDeclarations = pFunctionDeclarations;
+    relevantFunctions = pRelevantFunctions;
   }
 
   private TestVector(
       PersistentSortedMap<ComparableFunctionDeclaration, ImmutableList<ExpressionTestValue>> pInputFunctionValues,
       PersistentSortedMap<ComparableVariableDeclaration, InitializerTestValue> pInputVariableValues,
       PersistentSortedMap<ComparableFunctionDeclaration, ImmutableList<Integer>> pUndefinedPointerTypeFunctionIndices,
-      ImmutableList<AFunctionDeclaration> pFunctionDeclarations) {
+      ImmutableList<AFunctionDeclaration> pFunctionDeclarations,
+      RelevantPointerFunctionsState pRelevantFunctions) {
     inputFunctionValues = pInputFunctionValues;
     inputVariableValues = pInputVariableValues;
     undefinedPointerTypeFunctionIndices = pUndefinedPointerTypeFunctionIndices;
     externPointersArrayLength = 0;
     functionDeclarations = pFunctionDeclarations;
+    relevantFunctions = pRelevantFunctions;
   }
 
   private TestVector(
@@ -113,12 +129,14 @@ class TestVector {
       PersistentSortedMap<ComparableVariableDeclaration, InitializerTestValue> pInputVariableValues,
       PersistentSortedMap<ComparableFunctionDeclaration, ImmutableList<Integer>> pUndefinedPointerTypeFunctionIndices,
       int pArrayLength,
-      ImmutableList<AFunctionDeclaration> pFunctionDeclarations) {
+      ImmutableList<AFunctionDeclaration> pFunctionDeclarations,
+      RelevantPointerFunctionsState pRelevantFunctions) {
     inputFunctionValues = pInputFunctionValues;
     inputVariableValues = pInputVariableValues;
     undefinedPointerTypeFunctionIndices = pUndefinedPointerTypeFunctionIndices;
     externPointersArrayLength = pArrayLength;
     functionDeclarations = pFunctionDeclarations;
+    relevantFunctions = pRelevantFunctions;
   }
 
   public TestVector
@@ -139,7 +157,8 @@ class TestVector {
         inputVariableValues,
         newFunctionIndices,
         externPointersArrayLength,
-        functionDeclarations);
+        functionDeclarations,
+        relevantFunctions);
   }
 
   public TestVector addInputValue(AFunctionDeclaration pFunction, AExpression pValue) {
@@ -162,7 +181,19 @@ class TestVector {
         inputVariableValues,
         undefinedPointerTypeFunctionIndices,
         externPointersArrayLength,
-        functionDeclarations);
+        functionDeclarations,
+        relevantFunctions);
+  }
+
+  public TestVector addRelevantFunctions(
+      HarnessTransferRelation.RelevantPointerFunctionsState pRelevantFunctions) {
+    return new TestVector(
+        inputFunctionValues,
+        inputVariableValues,
+        undefinedPointerTypeFunctionIndices,
+        externPointersArrayLength,
+        functionDeclarations,
+        pRelevantFunctions);
   }
 
   public TestVector addInputValue(AVariableDeclaration pVariable, AInitializer pValue) {
@@ -181,7 +212,8 @@ class TestVector {
         inputVariableValues.putAndCopy(variable, pValue),
         undefinedPointerTypeFunctionIndices,
         externPointersArrayLength,
-        functionDeclarations);
+        functionDeclarations,
+        relevantFunctions);
   }
 
   public Iterable<AFunctionDeclaration> getInputFunctions() {
@@ -351,7 +383,8 @@ class TestVector {
         inputVariableValues,
         undefinedPointerTypeFunctionIndices,
         externPointersArrayLength,
-        newFunctionDeclarations);
+        newFunctionDeclarations,
+        relevantFunctions);
   }
 
   public ImmutableList<AFunctionDeclaration> getFunctionDeclarations() {
