@@ -287,9 +287,9 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
         case Texpr0BinNode.OP_SUB:
           sb.append("-");
           break;
-        case Texpr0BinNode.OP_MUL:
-          sb.append("*");
-          break;
+          case Texpr0BinNode.OP_MUL:
+            sb.append("*");
+            break;
         case Texpr0BinNode.OP_DIV:
           sb.append("/");
           break;
@@ -300,8 +300,9 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
           throw new AssertionError("Unsupported binary operator.");
         }
 
+        stack.push(
+            Pair.of(((Texpr0BinNode) current).getRightArgument(), currentPair.getSecond() + 1));
         stack.push(Pair.of(((Texpr0BinNode) current).getLeftArgument(), 0));
-        stack.push(Pair.of(((Texpr0BinNode) current).getRightArgument(), currentPair.getSecond() + 1));
       } else if (current instanceof Texpr0UnNode) {
 
         switch (((Texpr0UnNode) current).getOperation()) {
