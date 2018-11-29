@@ -78,14 +78,18 @@ public class TestTargetProvider implements Statistics {
   private void deleteIfCoveredByDifferentGoal(final Set<CFAEdge> goals) {
     // currently only simple heuristic
     Set<CFAEdge> keptGoals = new HashSet<>(goals);
-
+    boolean allSuccessorsGoals;
     for (CFAEdge target : goals) {
       if (target.getSuccessor().getNumEnteringEdges() == 1) {
+        allSuccessorsGoals = true;
         for (CFAEdge leaving : CFAUtils.leavingEdges(target.getSuccessor())) {
-          if (keptGoals.contains(leaving)) {
-            keptGoals.remove(target);
+          if (!keptGoals.contains(leaving)) {
+            allSuccessorsGoals = false;
             break;
           }
+        }
+        if (allSuccessorsGoals) {
+          keptGoals.remove(target);
         }
       }
     }
