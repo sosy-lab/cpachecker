@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -102,6 +103,9 @@ public class HarnessTransferRelation
     HarnessState state = (HarnessState) pState;
     HarnessState result = (HarnessState) pState;
 
+    if (!(pEdge.getFileLocation().getNiceFileName() == "")) {
+      return Collections.singleton(result);
+    }
     switch (pEdge.getEdgeType()) {
       case AssumeEdge:
         result = handleAssumeEdge(state, (CAssumeEdge) pEdge);
@@ -111,7 +115,7 @@ public class HarnessTransferRelation
       case CallToReturnEdge:
         break;
       case DeclarationEdge:
-        handleDeclarationEdge(state, (CDeclarationEdge) pEdge);
+        result = handleDeclarationEdge(state, (CDeclarationEdge) pEdge);
         break;
       case FunctionCallEdge:
         result = handleFunctionCallEdge(state, (CFunctionCallEdge) pEdge);
@@ -220,28 +224,87 @@ public class HarnessTransferRelation
      */
   }
 
+  private boolean declarationHasPointerType(CDeclarationEdge pDeclaration) {
+    return (pDeclaration.getDeclaration().getType() instanceof CPointerType);
+  }
+
+  private boolean declarationHasArrayType(CDeclarationEdge pDeclaration) {
+    return (pDeclaration.getDeclaration().getType() instanceof CArrayType);
+  }
+
+  private boolean isVariableDeclaration(CDeclarationEdge pDeclaration) {
+    return pDeclaration.getDeclaration() instanceof CVariableDeclaration;
+  }
+
   private HarnessState handleDeclarationEdge(HarnessState pState, CDeclarationEdge pEdge) {
-    if (!(pEdge.getDeclaration() instanceof CVariableDeclaration)) {
+    if (!isVariableDeclaration(pEdge)) {
       return pState;
     }
+    if (declarationHasPointerType(pEdge)) {
+      return handlePointerDeclaration(pState, pEdge);
+    } else if (declarationHasArrayType(pEdge)) {
+      return handleArrayDeclaration(pState, pEdge);
+    } else {
+      return handleSimpleDeclaration(pState, pEdge);
+    }
+  }
+
+  private HarnessState handleSimpleDeclaration(HarnessState pState, CDeclarationEdge pEdge) {
     CVariableDeclaration declaration = (CVariableDeclaration) pEdge.getDeclaration();
+    return pState.addMemoryLocation(declaration);
+  }
+
+  private HarnessState handlePointerDeclaration(HarnessState pState, CDeclarationEdge pEdge) {
+    CVariableDeclaration declaration = (CVariableDeclaration) pEdge.getDeclaration();
+    MemoryLocation sourceLocation = new MemoryLocation(declaration.getName());
+    HarnessState newState = pState.addMemoryLocation(sourceLocation);
     CInitializer initializer = declaration.getInitializer();
     if (initializer != null) {
-      String declarationName = declaration.getQualifiedName();
-      MemoryLocation newMemoryLocation = new MemoryLocation(declarationName);
-      return handleWithInitializer(pState, newMemoryLocation, declaration.getType(), initializer);
+      return handlePointerDeclarationWithInitializer(newState, sourceLocation, initializer);
     }
-    HarnessState newState = pState.addPointerDeclaration(declaration);
     return newState;
   }
 
-  private HarnessState handleWithInitializer(
-      HarnessState pState,
-      MemoryLocation pLocation,
-      CType pType,
-      CInitializer pInitializer) {
-    return pState;
+  private HarnessState handleArrayDeclaration(HarnessState pState, CDeclarationEdge pEdge) {
+    CVariableDeclaration declaration = (CVariableDeclaration) pEdge.getDeclaration();
+    MemoryLocation sourceLocation = new MemoryLocation(declaration.getName());
+    HarnessState newState = pState.addMemoryLocation(sourceLocation);
+    CInitializer initializer = declaration.getInitializer();
+    if (initializer != null) {
+      return handleArrayDeclarationWithInitializer(
+          newState,
+          sourceLocation,
+          initializer);
+    }
+    return newState;
   }
+
+  private HarnessState handlePointerDeclarationWithInitializer(
+      HarnessState pState,
+      MemoryLocation pSourceLocation,
+      CInitializer pInitializer) {
+    return handlePointerAssignment(pSourceLocation, pState, pInitializer);
+  }
+
+  private HarnessState handleArrayDeclarationWithInitializer(
+      HarnessState pState,
+      MemoryLocation pSourceLocation,
+      CInitializer pInitializer) {
+    return handlePointerAssignment(pSourceLocation, pState, pInitializer);
+  }
+
+  private HarnessState handlePointerAssignment(
+      MemoryLocation pLeftLocation,
+      HarnessState pState,
+      CInitializer pInitializer) {
+    return pState.addPointsToInformation(pLeftLocation, (CExpression) pInitializer);
+  }
+
+  private HarnessState handlePointerAssignment(HarnessState pState, CFAEdge pEdge) {
+    HarnessState newState = pState.updatePointerTarget((CAssignment) pEdge);
+    return newState;
+  }
+
 
   private HarnessState handleStatementEdge(HarnessState pState, CStatementEdge pEdge) {
     CStatement statement = pEdge.getStatement();

@@ -23,22 +23,27 @@
  */
 package org.sosy_lab.cpachecker.cpa.harness;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.harness.HarnessTransferRelation.RelevantPointerFunctionsState;
 import org.sosy_lab.cpachecker.util.harness.ComparableFunctionDeclaration;
 public class HarnessState implements AbstractState {
 
+  private final ImmutableSet<MemoryLocation> memoryLocations;
   private final PointerState pointers;
   private final PersistentList<MemoryLocation> externallyKnownLocations;
   private final ExternFunctionCallsState externFunctionCalls;
@@ -47,39 +52,39 @@ public class HarnessState implements AbstractState {
   public RelevantPointerFunctionsState getRelevantFunctions() {
     return relevantFunctions;
   }
-
-
   public HarnessState() {
+    memoryLocations = ImmutableSet.of();
     pointers = new PointerState();
     externallyKnownLocations = PersistentLinkedList.of();
     externFunctionCalls = new ExternFunctionCallsState();
     relevantFunctions = new HarnessTransferRelation.RelevantPointerFunctionsState();
   }
-
   public HarnessState(
+      ImmutableSet<MemoryLocation> pMemoryLocations,
       PointerState pPointers,
-      List<MemoryLocation> pExternallyKnownPointers,
+      List<MemoryLocation> pExternallyKnownLocations,
       ExternFunctionCallsState pExternFunctionCallsState,
       RelevantPointerFunctionsState pRelevantFunctions) {
+    memoryLocations = pMemoryLocations;
     pointers = pPointers;
-    externallyKnownLocations = PersistentLinkedList.copyOf(pExternallyKnownPointers);
+    externallyKnownLocations = PersistentLinkedList.copyOf(pExternallyKnownLocations);
     externFunctionCalls = pExternFunctionCallsState;
     relevantFunctions = pRelevantFunctions;
   }
 
   public HarnessState
       addFunctionCall(CExpression pFunctionNameExpression, MemoryLocation pLocation) {
-    if (pFunctionNameExpression instanceof CIdExpression) { // TODO handle other functionNames
-      final CIdExpression functionIdExpression = (CIdExpression) pFunctionNameExpression;
-      final String functionName = functionIdExpression.getName();
-      final CFunctionDeclaration functionDeclaration =
+    if (pFunctionNameExpression instanceof CIdExpression) {
+      CIdExpression functionIdExpression = (CIdExpression) pFunctionNameExpression;
+      CFunctionDeclaration functionDeclaration =
           (CFunctionDeclaration) functionIdExpression.getDeclaration();
-      final ComparableFunctionDeclaration comparableFunctionDeclaration =
+      ComparableFunctionDeclaration comparableFunctionDeclaration =
           new ComparableFunctionDeclaration(functionDeclaration);
       ExternFunctionCallsState newExternFunctionCalls =
           externFunctionCalls.addExternFunctionCall(comparableFunctionDeclaration, pLocation);
       HarnessState newState =
           new HarnessState(
+              memoryLocations,
               pointers,
               externallyKnownLocations,
               newExternFunctionCalls,
@@ -89,15 +94,111 @@ public class HarnessState implements AbstractState {
     return this;
   }
 
+  private MemoryLocation getLocationFromIdExpression(CIdExpression pExpression) {
+    return memoryLocations.stream()
+        .filter(m -> m.getIdentifier() == pExpression.getName())
+        .findFirst()
+        .orElse(new MemoryLocation(pExpression));
+  }
+
+  public HarnessState
+      addPointsToInformation(MemoryLocation pAssigneeLocation, CExpression pExpression) {
+    MemoryLocation assignedLocation;
+    ImmutableSet<MemoryLocation> newLocations = memoryLocations;
+    PointerState newPointers = pointers;
+    if (pExpression instanceof CIdExpression) {
+      // "q" is assigned to "p"
+      MemoryLocation assignedSourceLocation =
+          getLocationFromIdExpression((CIdExpression) pExpression);
+      assignedLocation = pointers.getTarget(assignedSourceLocation);
+    } else {
+      if (isAddressOperation(pExpression)) {
+        // "&i" is assigned to "p"
+        CUnaryExpression unaryExpression = (CUnaryExpression) pExpression;
+        CExpression operand = unaryExpression.getOperand();
+        assignedLocation =
+            memoryLocations.stream()
+                .filter(location -> location.getIdentifier() == operand.toString())
+                .findFirst()
+                .orElse(new MemoryLocation());
+      } else {
+        // "malloc(sizeof(int))" is assigned to "p"
+        assignedLocation = new MemoryLocation();
+        ImmutableSet.Builder<MemoryLocation> newLocationsBuilder = ImmutableSet.builder();
+        newLocationsBuilder.addAll(memoryLocations);
+        newLocationsBuilder.add(assignedLocation);
+        newLocations = newLocationsBuilder.build();
+      }
+    }
+    return new HarnessState(
+        newLocations,
+        pointers,
+        externallyKnownLocations,
+        externFunctionCalls,
+        relevantFunctions).addPointsToInformation(pAssigneeLocation, assignedLocation);
+  }
+
+
+  public HarnessState addMemoryLocation(CVariableDeclaration pDeclaration) {
+    String variableName = pDeclaration.getName();
+    MemoryLocation newLocation = new MemoryLocation(variableName);
+    ImmutableSet.Builder<MemoryLocation> memoryLocationsBuilder = ImmutableSet.builder();
+    memoryLocationsBuilder.addAll(memoryLocations);
+    memoryLocationsBuilder.add(newLocation);
+    ImmutableSet<MemoryLocation> newLocations = memoryLocationsBuilder.build();
+    return new HarnessState(
+        newLocations,
+        pointers,
+        externallyKnownLocations,
+        externFunctionCalls,
+        relevantFunctions);
+  }
+
+  public HarnessState addMemoryLocation(MemoryLocation pMemoryLocation) {
+    ImmutableSet.Builder<MemoryLocation> memoryLocationsBuilder = ImmutableSet.builder();
+    memoryLocationsBuilder.addAll(memoryLocations);
+    memoryLocationsBuilder.add(pMemoryLocation);
+    ImmutableSet<MemoryLocation> newLocations = memoryLocationsBuilder.build();
+    return new HarnessState(
+        newLocations,
+        pointers,
+        externallyKnownLocations,
+        externFunctionCalls,
+        relevantFunctions);
+  }
+
+  public HarnessState
+      addPointsToInformation(MemoryLocation pAssigneeLocation, MemoryLocation pAssignedLocation) {
+    PointerState newPointers = pointers.addPointer(pAssigneeLocation, pAssignedLocation);
+    return new HarnessState(
+        memoryLocations,
+        newPointers,
+        externallyKnownLocations,
+        externFunctionCalls,
+        relevantFunctions);
+  }
+
   public HarnessState addExternallyKnownPointer(MemoryLocation pPointerLocation) {
     PersistentList<MemoryLocation> newExternallyKnownPointers =
         externallyKnownLocations.with(pPointerLocation);
     return new HarnessState(
+        memoryLocations,
         pointers,
         newExternallyKnownPointers,
         externFunctionCalls,
         relevantFunctions);
   }
+
+  private boolean isAddressOperation(CExpression pExpression) {
+    if (pExpression instanceof CUnaryExpression) {
+      CUnaryExpression unaryExpression = (CUnaryExpression) pExpression;
+      UnaryOperator operator = unaryExpression.getOperator();
+      return operator.getOperator() == "&";
+    }
+    return false;
+  }
+
+
 
   public HarnessState addPointerDeclaration(CVariableDeclaration pVariableDeclaration) {
     String identifier = pVariableDeclaration.getName();
@@ -106,6 +207,7 @@ public class HarnessState implements AbstractState {
     PointerState newPointers =
         pointers.addPointer(pointerLocation, pointerTarget);
     return new HarnessState(
+        memoryLocations,
         newPointers,
         externallyKnownLocations,
         externFunctionCalls,
@@ -117,6 +219,7 @@ public class HarnessState implements AbstractState {
     ExternFunctionCallsState newExternFunctionCallsState =
         externFunctionCalls.addExternFunctionCall(pFunctionDeclaration);
     return new HarnessState(
+        memoryLocations,
         pointers,
         externallyKnownLocations,
         newExternFunctionCallsState,
@@ -150,6 +253,7 @@ public class HarnessState implements AbstractState {
     PointerState newPointers = pointers.addPointerIfNotExists(lhsLocation, pLocation);
     HarnessState newState =
         new HarnessState(
+            memoryLocations,
             newPointers,
             externallyKnownLocations,
             externFunctionCalls,
@@ -158,16 +262,29 @@ public class HarnessState implements AbstractState {
   }
 
   public HarnessState merge(String pIdentifier1, String pIdentifier2) {
-
-    MemoryLocation location1 = pointers.fromIdentifier(pIdentifier1);
-    MemoryLocation location2 = pointers.fromIdentifier(pIdentifier2);
-    MemoryLocation location1Target = pointers.getTarget(location1);
-    MemoryLocation location2Target = pointers.getTarget(location2);
-    PointerState newPointers = pointers.merge(location1Target, location2Target);
-    ExternFunctionCallsState newExternFunctionCallsState =
-        externFunctionCalls.merge(location1Target, location2Target);
+    final MemoryLocation firstPointerTarget = pointers.getTargetFromIdentifier(pIdentifier1);
+    final MemoryLocation secondPointerTarget = pointers.getTargetFromIdentifier(pIdentifier2);
+    if (firstPointerTarget == null) {
+      return new HarnessState(
+          memoryLocations,
+          pointers.addPointer(pointers.fromIdentifier(pIdentifier1), secondPointerTarget),
+          externallyKnownLocations,
+          externFunctionCalls,
+          relevantFunctions);
+    } else if (secondPointerTarget == null) {
+      return new HarnessState(
+          memoryLocations,
+          pointers.addPointer(pointers.fromIdentifier(pIdentifier2), firstPointerTarget),
+          externallyKnownLocations,
+          externFunctionCalls,
+          relevantFunctions);
+    }
+    final PointerState newPointers = pointers.merge(firstPointerTarget, secondPointerTarget);
+    final ExternFunctionCallsState newExternFunctionCallsState =
+        externFunctionCalls.merge(firstPointerTarget, secondPointerTarget);
 
     return new HarnessState(
+        memoryLocations,
         newPointers,
         externallyKnownLocations,
         newExternFunctionCallsState,
@@ -198,6 +315,10 @@ public class HarnessState implements AbstractState {
     return externallyKnownLocations.size();
   }
 
+  public HarnessState updatePointerTarget(CAssignment pAssignment) {
+    return this;
+  }
+
   public HarnessState
       addExternallyKnownLocations(List<CExpression> pFunctionParameters) {
     // TODO: handle case that arguments are not given by id expressions, like foo(&i);
@@ -216,13 +337,10 @@ public class HarnessState implements AbstractState {
     newExternallyKnownPointers.addAll(pointerArgumentValues);
     PersistentList<MemoryLocation> persistentNewExternallyKnownPointers =
         PersistentLinkedList.copyOf(newExternallyKnownPointers);
-    PointerState newPointers = pointers;
-    for (MemoryLocation location : pointerArgumentValues) {
-      newPointers = newPointers.addPointerIfNotExists(location);
-    }
     HarnessState newState =
         new HarnessState(
-            newPointers,
+            memoryLocations,
+            pointers,
             persistentNewExternallyKnownPointers,
             externFunctionCalls,
             relevantFunctions);
