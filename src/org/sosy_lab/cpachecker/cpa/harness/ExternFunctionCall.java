@@ -24,14 +24,13 @@
 package org.sosy_lab.cpachecker.cpa.harness;
 
 public class ExternFunctionCall {
-  public ExternFunctionCall(HarnessMemoryLocation pLocation) {
+  public ExternFunctionCall(MemoryLocation pLocation) {
     target = pLocation;
   }
 
   public ExternFunctionCall() {
-    // TODO Auto-generated constructor stub
-    target = new DefinedMemoryLocation();
+    target = new MemoryLocation();
   }
 
-  private final HarnessMemoryLocation target;
+  private final MemoryLocation target;
 }

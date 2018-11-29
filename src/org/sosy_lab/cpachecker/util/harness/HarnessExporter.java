@@ -155,7 +155,6 @@ public class HarnessExporter {
 
   private final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
-  private ArrayList<CTypeDeclaration> predefinedTypes = new ArrayList<>();
 
   @Option(secure = true, description = "Use the counterexample model to provide test-vector values")
   private boolean useModel = true;

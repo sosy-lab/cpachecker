@@ -27,8 +27,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -58,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.cpa.harness.HarnessState;
 
 class CodeAppender implements Appendable {
 
@@ -176,19 +175,10 @@ class CodeAppender implements Appendable {
 
   public CodeAppender append(TestVector pVector) throws IOException {
     String externPointersArrayName = "HARNESS_externPointersArray";
-    String arrayPushCounterName = "HARNESS_externPointersArrayCounter";
+    String arrayPushCounterName = "HARNESS_externPointersArrayCurrentLoc";
     append("long int ");
     append(arrayPushCounterName);
     appendln(" = 0;");
-
-    for (AFunctionDeclaration functionDeclaration : pVector.getFunctionDeclarations()) {
-      IAFunctionType functionType = functionDeclaration.getType();
-      append("extern ");
-      append(functionType.toASTString(functionDeclaration.getName()));
-      append(";");
-      appendln();
-
-    }
 
     for (AVariableDeclaration inputVariable : pVector.getInputVariables()) {
       InitializerTestValue inputValue = pVector.getInputValue(inputVariable);
@@ -241,13 +231,11 @@ class CodeAppender implements Appendable {
     appendln("];");
     for (ComparableFunctionDeclaration pointerFunction : pVector.getPointerFunctions()) {
       AFunctionDeclaration functionDeclaration = pointerFunction.getDeclaration();
-      isImplemented.add(functionDeclaration);
       List<Integer> arrayIndices = pVector.getIndices(pointerFunction);
       String functionCounterName = functionDeclaration.getOrigName().concat("_ret_counter");
 
       append("unsigned long int ");
       append(functionCounterName);
-      append(" = 0");
       appendln(";");
 
       append(functionDeclaration);
@@ -278,11 +266,7 @@ class CodeAppender implements Appendable {
       appendln("    return retval;");
       appendln("}");
     }
-    for (AFunctionDeclaration inputFunction : unimplementedPointerTypeParameterFunctions) {
-      if (isImplemented.contains(inputFunction)) {
-        continue;
-      }
-
+    for (AFunctionDeclaration inputFunction : pVector.getInputFunctions()) {
       Iterable<AParameterDeclaration> parameterDeclarations =
           TestVector.upcast(
               FluentIterable.from(inputFunction.getParameters()),
@@ -300,7 +284,7 @@ class CodeAppender implements Appendable {
       appendln(" {");
 
       if (pointerParameterDeclarations.size() > 0
-          && unimplementedPointerTypeParameterFunctions.contains(inputFunction)) {
+          && HarnessState.relevantFunctions.contains(inputFunction)) {
         for (AParameterDeclaration pointerParameterDeclaration : pointerParameterDeclarations) {
           String varName = pointerParameterDeclaration.getName();
           append(externPointersArrayName);

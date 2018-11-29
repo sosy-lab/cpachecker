@@ -110,7 +110,12 @@ public class PointerState {
     return newPointers;
   }
 
-
+  private Entry<MemoryLocation, MemoryLocation> modifyEntryToNewValue(
+      Entry<MemoryLocation, MemoryLocation> pEntry,
+      MemoryLocation pValue) {
+    pEntry.setValue(pValue);
+    return pEntry;
+  }
 
   private Map<Boolean, List<Entry<MemoryLocation, MemoryLocation>>> partitionByTargetLocation(MemoryLocation pTargetLocation) {
     return pointsToMap.entrySet().stream()
@@ -119,12 +124,6 @@ public class PointerState {
 
   public MemoryLocation getTarget(MemoryLocation pKeyLocation) {
     return pointsToMap.get(pKeyLocation);
-  }
-
-  public MemoryLocation getTargetFromIdentifier(String pIdentifier) {
-    MemoryLocation identifierLocation = fromIdentifier(pIdentifier);
-    MemoryLocation identifierTargetLocation = getTarget(identifierLocation);
-    return identifierTargetLocation;
   }
 
   public MemoryLocation fromIdentifier(String pIdentifier) {
