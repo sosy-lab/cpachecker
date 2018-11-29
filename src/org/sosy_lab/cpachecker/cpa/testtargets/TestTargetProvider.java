@@ -97,6 +97,13 @@ public class TestTargetProvider implements Statistics {
     goals.addAll(keptGoals);
   }
 
+  public static int getCurrentNumOfTestTargets() {
+    if (instance == null) {
+      return 0;
+    }
+    return instance.initialTestTargets.size();
+  }
+
   public static Set<CFAEdge> getTestTargets(
       final CFA pCfa, final boolean pRunParallel, final TestTargetType pType) {
     if (instance == null || pCfa != instance.cfa || instance.type != pType) {

@@ -455,7 +455,8 @@ public class CoreComponentsFactory {
 
       if (useTestCaseGeneratorAlgorithm) {
         algorithm =
-            new TestCaseGeneratorAlgorithm(algorithm, cfa, config, cpa, logger, shutdownNotifier);
+            new TestCaseGeneratorAlgorithm(
+                algorithm, cfa, config, cpa, logger, shutdownNotifier, specification);
       }
 
       if (collectAssumptions) {

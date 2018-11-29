@@ -3751,6 +3751,9 @@ termination.violation.witness = "nontermination_witness.graphml"
 # Use the counterexample model to provide test-vector values
 testHarnessExport.useModel = true
 
+# zip all exported test cases into a single file
+testcase.compress = false
+
 # export test harness to file as code
 testcase.file = no default value
 
@@ -3767,11 +3770,11 @@ testcase.targets.type = ASSUME
 # export test values to file (line separated)
 testcase.values = no default value
 
-# zip all exported test values into a single file
-testcase.values.compress = false
+# export test cases to xm file (Test-Comp format)
+testcase.xml = no default value
 
-# Zip file into which all test values files are bundled
-testcase.values.zip = no default value
+# Zip file into which all test case files are bundled
+testcase.zip.file = no default value
 
 # Ignore functions that are defined by C11
 undefinedFunctionsCollector.allowC11Functions = true
