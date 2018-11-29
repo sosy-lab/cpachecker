@@ -23,10 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.harness;
 
-public class ExternFunctionCall {
-  public ExternFunctionCall(HarnessMemoryLocation pLocation) {
-    target = pLocation;
+
+import java.util.Optional;
+
+public class DefinedMemoryLocation implements HarnessMemoryLocation {
+  private final Optional<String> identifier;
+
+  public DefinedMemoryLocation() {
+    identifier = Optional.empty();
   }
 
-  private final HarnessMemoryLocation target;
+  public DefinedMemoryLocation(Optional<String> pIdentifier) {
+    identifier = pIdentifier;
+  }
+
+  @Override
+  public int compareTo(HarnessMemoryLocation pO) {
+    // TODO Auto-generated method stub
+    return 0;
+  }
 }

@@ -23,10 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.harness;
 
-public class ExternFunctionCall {
-  public ExternFunctionCall(HarnessMemoryLocation pLocation) {
-    target = pLocation;
+public class UndefinedMemoryLocation implements HarnessMemoryLocation {
+
+  private UndefinedMemoryLocation() {};
+
+  private static UndefinedMemoryLocation instance;
+
+  public static synchronized UndefinedMemoryLocation getInstance() {
+    if (UndefinedMemoryLocation.instance == null) {
+      UndefinedMemoryLocation.instance = new UndefinedMemoryLocation();
+    }
+    return UndefinedMemoryLocation.instance;
   }
 
-  private final HarnessMemoryLocation target;
 }

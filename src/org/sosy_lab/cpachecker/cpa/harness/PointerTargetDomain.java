@@ -23,10 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.harness;
 
-public class ExternFunctionCall {
-  public ExternFunctionCall(HarnessMemoryLocation pLocation) {
-    target = pLocation;
-  }
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 
-  private final HarnessMemoryLocation target;
+public class PointerTargetDomain extends FlatLatticeDomain{
+
+  public int index;
+  public boolean isKnown;
+  public boolean isPrecise;
+
 }
