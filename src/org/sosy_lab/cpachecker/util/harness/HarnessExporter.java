@@ -193,6 +193,8 @@ public class HarnessExporter {
 
       CodeAppender codeAppender = new CodeAppender(pTarget, cfa);
 
+      codeAppender.appendIncludes();
+
       codeAppender.appendln("struct _IO_FILE;");
       codeAppender.appendln("typedef struct _IO_FILE FILE;");
       codeAppender.appendln("extern struct _IO_FILE *stderr;");
@@ -228,8 +230,8 @@ public class HarnessExporter {
                   ? FluentIterable.from(externalFunctions)
                       .filter(Predicates.not(Predicates.equalTo(errorFunction.get())))
                   : externalFunctions);
-      copyTypeDeclarations(codeAppender);
-      codeAppender.append(predefinedTypes);
+      // copyTypeDeclarations(codeAppender);
+      // codeAppender.append(predefinedTypes);
       codeAppender.append(vector);
 
     } else {

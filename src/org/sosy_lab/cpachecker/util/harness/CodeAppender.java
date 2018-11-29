@@ -278,7 +278,7 @@ class CodeAppender implements Appendable {
       appendln("    return retval;");
       appendln("}");
     }
-    for (AFunctionDeclaration inputFunction : pVector.getInputFunctions()) {
+    for (AFunctionDeclaration inputFunction : unimplementedPointerTypeParameterFunctions) {
       if (isImplemented.contains(inputFunction)) {
         continue;
       }
