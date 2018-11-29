@@ -94,22 +94,22 @@ public class UsageProcessor {
 
     ARGState argState = (ARGState) pState;
 
-    for (ARGState parent : argState.getParents()) {
-      CFAEdge edge = parent.getEdgeToChild(argState);
+    for (ARGState child : argState.getChildren()) {
+      CFAEdge edge = argState.getEdgeToChild(child);
       if (edge != null) {
-        getUsagesForEdge(pState, edge);
+        getUsagesForEdge(pState, child, edge);
       }
     }
     return result;
   }
 
-  public void getUsagesForEdge(AbstractState pState, CFAEdge pCfaEdge) {
+  public void getUsagesForEdge(AbstractState pParent, AbstractState pChild, CFAEdge pCfaEdge) {
 
     switch (pCfaEdge.getEdgeType()) {
       case DeclarationEdge:
         {
           CDeclarationEdge declEdge = (CDeclarationEdge) pCfaEdge;
-          handleDeclaration(pState, declEdge);
+        handleDeclaration(pParent, pChild, declEdge);
           break;
         }
 
@@ -117,19 +117,19 @@ public class UsageProcessor {
       case StatementEdge:
         {
           CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
-          handleStatement(pState, statementEdge.getStatement());
+        handleStatement(pParent, pChild, statementEdge.getStatement());
           break;
         }
 
       case AssumeEdge:
         {
-          visitStatement(pState, ((CAssumeEdge) pCfaEdge).getExpression(), Access.READ);
+        visitStatement(pParent, pChild, ((CAssumeEdge) pCfaEdge).getExpression(), Access.READ);
           break;
         }
 
       case FunctionCallEdge:
         {
-          handleFunctionCall(pState, (CFunctionCallEdge) pCfaEdge);
+        handleFunctionCall(pParent, pChild, (CFunctionCallEdge) pCfaEdge);
           break;
         }
 
@@ -140,7 +140,8 @@ public class UsageProcessor {
     }
   }
 
-  private void handleFunctionCall(AbstractState pState, CFunctionCallEdge edge) {
+  private void
+      handleFunctionCall(AbstractState pParent, AbstractState pChild, CFunctionCallEdge edge) {
     CStatement statement = edge.getRawAST().get();
 
     if (statement instanceof CFunctionCallAssignmentStatement) {
@@ -152,16 +153,19 @@ public class UsageProcessor {
       CExpression variable = ((CFunctionCallAssignmentStatement) statement).getLeftHandSide();
 
       // expression - only name of function
-      handleFunctionCallExpression(pState, right);
-      visitStatement(pState, variable, Access.WRITE);
+      handleFunctionCallExpression(pParent, pChild, right);
+      visitStatement(pParent, pChild, variable, Access.WRITE);
 
     } else if (statement instanceof CFunctionCallStatement) {
       handleFunctionCallExpression(
-          pState, ((CFunctionCallStatement) statement).getFunctionCallExpression());
+          pParent,
+          pChild,
+          ((CFunctionCallStatement) statement).getFunctionCallExpression());
     }
   }
 
-  private void handleDeclaration(AbstractState pState, CDeclarationEdge declEdge) {
+  private void
+      handleDeclaration(AbstractState pParent, AbstractState pChild, CDeclarationEdge declEdge) {
 
     if (declEdge.getDeclaration().getClass() != CVariableDeclaration.class) {
       // not a variable declaration
@@ -184,7 +188,7 @@ public class UsageProcessor {
       CExpression initExpression = ((CInitializerExpression) init).getExpression();
       // Use EdgeType assignment for initializer expression to avoid mistakes related to expressions
       // "int CPACHECKER_TMP_0 = global;"
-      visitStatement(pState, initExpression, Access.READ);
+      visitStatement(pParent, pChild, initExpression, Access.READ);
 
       // We do not add usage for currently declared variable
       // It can not cause a race
@@ -192,7 +196,9 @@ public class UsageProcessor {
   }
 
   private void handleFunctionCallExpression(
-      AbstractState pState, final CFunctionCallExpression fcExpression) {
+      AbstractState pParent,
+      AbstractState pChild,
+      final CFunctionCallExpression fcExpression) {
 
     String functionCallName = fcExpression.getFunctionNameExpression().toASTString();
 
@@ -203,17 +209,19 @@ public class UsageProcessor {
       AbstractIdentifier id;
 
       for (int i = 0; i < params.size(); i++) {
-        id = currentInfo.createParamenterIdentifier(params.get(i), i, getCurrentFunction(pState));
-        createUsageAndAdd(id, pState, currentInfo.getBindedAccess(i));
+        id = currentInfo.createParamenterIdentifier(params.get(i), i, getCurrentFunction(pChild));
+        createUsageAndAdd(id, pParent, pChild, currentInfo.getBindedAccess(i));
       }
 
     } else {
-      fcExpression.getParameterExpressions().forEach(p -> visitStatement(pState, p, Access.READ));
-      visitStatement(pState, fcExpression.getFunctionNameExpression(), Access.READ);
+      fcExpression.getParameterExpressions()
+          .forEach(p -> visitStatement(pParent, pChild, p, Access.READ));
+      visitStatement(pParent, pChild, fcExpression.getFunctionNameExpression(), Access.READ);
     }
   }
 
-  private void handleStatement(AbstractState pState, final CStatement pStatement) {
+  private void
+      handleStatement(AbstractState pParent, AbstractState pChild, final CStatement pStatement) {
 
     if (pStatement instanceof CAssignment) {
       // assignment like "a = b" or "a = foo()"
@@ -222,38 +230,51 @@ public class UsageProcessor {
       CRightHandSide right = assignment.getRightHandSide();
 
       if (right instanceof CExpression) {
-        visitStatement(pState, (CExpression) right, Access.READ);
+        visitStatement(pParent, pChild, (CExpression) right, Access.READ);
 
       } else if (right instanceof CFunctionCallExpression) {
-        handleFunctionCallExpression(pState, (CFunctionCallExpression) right);
+        handleFunctionCallExpression(pParent, pChild, (CFunctionCallExpression) right);
       }
-      visitStatement(pState, left, Access.WRITE);
+      visitStatement(pParent, pChild, left, Access.WRITE);
 
     } else if (pStatement instanceof CFunctionCallStatement) {
       handleFunctionCallExpression(
-          pState, ((CFunctionCallStatement) pStatement).getFunctionCallExpression());
+          pParent,
+          pChild,
+          ((CFunctionCallStatement) pStatement).getFunctionCallExpression());
 
     } else if (pStatement instanceof CExpressionStatement) {
-      visitStatement(pState, ((CExpressionStatement) pStatement).getExpression(), Access.WRITE);
+      visitStatement(
+          pParent,
+          pChild,
+          ((CExpressionStatement) pStatement).getExpression(),
+          Access.WRITE);
     }
   }
 
   private void visitStatement(
-      AbstractState pState, final CExpression expression, final Access access) {
-    ExpressionHandler handler = new ExpressionHandler(access, getCurrentFunction(pState));
+      AbstractState pParent,
+      AbstractState pChild,
+      final CExpression expression,
+      final Access access) {
+    ExpressionHandler handler = new ExpressionHandler(access, getCurrentFunction(pChild));
     expression.accept(handler);
 
     for (Pair<AbstractIdentifier, Access> pair : handler.getProcessedExpressions()) {
       AbstractIdentifier id = pair.getFirst();
-      createUsageAndAdd(id, pState, pair.getSecond());
+      createUsageAndAdd(id, pParent, pChild, pair.getSecond());
     }
   }
 
-  private void createUsageAndAdd(AbstractIdentifier pId, AbstractState pState, Access pAccess) {
+  private void createUsageAndAdd(
+      AbstractIdentifier pId,
+      AbstractState pParent,
+      AbstractState pChild,
+      Access pAccess) {
 
-    UsageState uState = UsageState.get(pState);
+    UsageState uState = UsageState.get(pParent);
     pId = uState.getLinksIfNecessary(pId);
-    UsageInfo usage = UsageInfo.createUsageInfo(pAccess, pState, pId);
+    UsageInfo usage = UsageInfo.createUsageInfo(pAccess, pChild, pId);
 
     // Precise information, using results of shared analysis
     if (!usage.isRelevant()) {
@@ -262,7 +283,7 @@ public class UsageProcessor {
 
     SingleIdentifier singleId = usage.getId();
 
-    CFANode node = AbstractStates.extractLocation(pState);
+    CFANode node = AbstractStates.extractLocation(pParent);
     Map<GeneralIdentifier, DataType> localInfo = precision.get(node);
 
     if (localInfo != null) {

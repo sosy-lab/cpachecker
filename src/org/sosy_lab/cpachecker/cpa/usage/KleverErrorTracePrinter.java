@@ -272,8 +272,9 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
         warningIsPrinted = true;
         builder.addDataElementChild(edge, KeyDef.WARNING, usage.toString());
       } else if (!warningIsPrinted && !iterator.hasNext()) {
-        logger.log(Level.WARNING, "Can not determine an unsafe edge");
-        builder.addDataElementChild(edge, KeyDef.WARNING, WARNING_MESSAGE);
+        String extra = " for " + pIdName + usage.getCFANode().describeFileLocation();
+        logger.log(Level.WARNING, "Can not determine an unsafe edge for " + pIdName);
+        builder.addDataElementChild(edge, KeyDef.WARNING, WARNING_MESSAGE + extra);
       }
     }
   }
