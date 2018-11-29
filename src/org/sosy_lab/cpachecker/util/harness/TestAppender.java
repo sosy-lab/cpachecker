@@ -87,11 +87,7 @@ public class TestAppender {
       }
 
     }
-    try {
-      appendln();
-    } catch (IOException e) {
-      throw new AssertionError();
-    }
+
 
   }
 
