@@ -85,6 +85,7 @@ public class TestAppender {
       } catch (IOException e) {
         throw new AssertionError();
       }
+    }
 
 
   }
