@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-import org.sosy_lab.cpachecker.cpa.harness.HarnessState;
 
 class CodeAppender implements Appendable {
 
@@ -284,7 +283,7 @@ class CodeAppender implements Appendable {
       appendln(" {");
 
       if (pointerParameterDeclarations.size() > 0
-          && HarnessState.relevantFunctions.contains(inputFunction)) {
+          && pVector.getRelevantFunctions().parameterContains(inputFunction)) {
         for (AParameterDeclaration pointerParameterDeclaration : pointerParameterDeclarations) {
           String varName = pointerParameterDeclaration.getName();
           append(externPointersArrayName);

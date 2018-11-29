@@ -836,6 +836,9 @@ counterexample.export.exportHarness = false
 # export error paths to files immediately after they were found
 counterexample.export.exportImmediately = false
 
+# export test harness test file
+counterexample.export.exportTestHarness = false
+
 # export counterexample as witness/graphml file
 counterexample.export.exportWitness = true
 
@@ -863,6 +866,9 @@ counterexample.export.graphml = "Counterexample.%d.graphml"
 
 # export test harness to file as code
 counterexample.export.harness = "Counterexample.%d.harness.c"
+
+# export test harness test to file as csv
+counterexample.export.harnessTest = "HarnessTest.%d.csv"
 
 # where to dump the counterexample model in case a specification violation is
 # found
@@ -1393,6 +1399,14 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 # whether function pointers with invalid targets (e.g., 0) should be tracked
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
+
+# which merge operator to use for HarnessCPA
+cpa.harness.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
+# which stop operator to use for HarnessCPA
+cpa.harness.stop = "SEP"
+  allowed values: [SEP, JOIN, NEVER]
 
 # which default SecurityClass to use for PolicyEnforcementCPA
 cpa.ifcsecurity.defaultsc = "LOW"
@@ -3744,6 +3758,7 @@ termination.violation.witness = "nontermination_witness.graphml"
 
 # Use the counterexample model to provide test-vector values
 testHarnessExport.useModel = true
+testHarnessTestExport.useModel = true
 
 # export test harness to file as code
 testcase.file = no default value

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.harness;
 
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -36,28 +35,36 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.harness.HarnessTransferRelation.RelevantPointerFunctionsState;
 import org.sosy_lab.cpachecker.util.harness.ComparableFunctionDeclaration;
 public class HarnessState implements AbstractState {
 
   private final PointerState pointers;
   private final PersistentList<MemoryLocation> externallyKnownLocations;
   private final ExternFunctionCallsState externFunctionCalls;
-  public static Set<CFunctionDeclaration> relevantFunctions = new HashSet<>();
+  private final HarnessTransferRelation.RelevantPointerFunctionsState relevantFunctions;
+
+  public RelevantPointerFunctionsState getRelevantFunctions() {
+    return relevantFunctions;
+  }
 
 
   public HarnessState() {
     pointers = new PointerState();
     externallyKnownLocations = PersistentLinkedList.of();
     externFunctionCalls = new ExternFunctionCallsState();
+    relevantFunctions = new HarnessTransferRelation.RelevantPointerFunctionsState();
   }
 
   public HarnessState(
       PointerState pPointers,
       List<MemoryLocation> pExternallyKnownPointers,
-      ExternFunctionCallsState pExternFunctionCallsState) {
+      ExternFunctionCallsState pExternFunctionCallsState,
+      RelevantPointerFunctionsState pRelevantFunctions) {
     pointers = pPointers;
     externallyKnownLocations = PersistentLinkedList.copyOf(pExternallyKnownPointers);
     externFunctionCalls = pExternFunctionCallsState;
+    relevantFunctions = pRelevantFunctions;
   }
 
   public HarnessState
@@ -72,7 +79,11 @@ public class HarnessState implements AbstractState {
       ExternFunctionCallsState newExternFunctionCalls =
           externFunctionCalls.addExternFunctionCall(comparableFunctionDeclaration, pLocation);
       HarnessState newState =
-          new HarnessState(pointers, externallyKnownLocations, newExternFunctionCalls);
+          new HarnessState(
+              pointers,
+              externallyKnownLocations,
+              newExternFunctionCalls,
+              relevantFunctions);
       return newState;
     }
     return this;
@@ -84,7 +95,8 @@ public class HarnessState implements AbstractState {
     return new HarnessState(
         pointers,
         newExternallyKnownPointers,
-        externFunctionCalls);
+        externFunctionCalls,
+        relevantFunctions);
   }
 
   public HarnessState addPointerDeclaration(CVariableDeclaration pVariableDeclaration) {
@@ -96,7 +108,8 @@ public class HarnessState implements AbstractState {
     return new HarnessState(
         newPointers,
         externallyKnownLocations,
-        externFunctionCalls);
+        externFunctionCalls,
+        relevantFunctions);
   }
 
   public HarnessState
@@ -106,7 +119,8 @@ public class HarnessState implements AbstractState {
     return new HarnessState(
         pointers,
         externallyKnownLocations,
-        newExternFunctionCallsState);
+        newExternFunctionCallsState,
+        relevantFunctions);
   }
 
   public HarnessState addExternFunctionCallWithPointerParams(CFunctionCallExpression pExpression) {
@@ -135,7 +149,11 @@ public class HarnessState implements AbstractState {
     MemoryLocation lhsLocation = pointers.fromIdentifier(lhsName);
     PointerState newPointers = pointers.addPointerIfNotExists(lhsLocation, pLocation);
     HarnessState newState =
-        new HarnessState(newPointers, externallyKnownLocations, externFunctionCalls);
+        new HarnessState(
+            newPointers,
+            externallyKnownLocations,
+            externFunctionCalls,
+            relevantFunctions);
     return newState;
   }
 
@@ -152,7 +170,8 @@ public class HarnessState implements AbstractState {
     return new HarnessState(
         newPointers,
         externallyKnownLocations,
-        newExternFunctionCallsState);
+        newExternFunctionCallsState,
+        relevantFunctions);
   }
 
   public List<Integer> getIndices(ComparableFunctionDeclaration pFunctionName) {
@@ -202,7 +221,11 @@ public class HarnessState implements AbstractState {
       newPointers = newPointers.addPointerIfNotExists(location);
     }
     HarnessState newState =
-        new HarnessState(newPointers, persistentNewExternallyKnownPointers, externFunctionCalls);
+        new HarnessState(
+            newPointers,
+            persistentNewExternallyKnownPointers,
+            externFunctionCalls,
+            relevantFunctions);
     return newState;
   }
 }
