@@ -181,6 +181,13 @@ public class ConfigurationFileChecks {
     )
     private boolean useParallelAlgorithm = false;
 
+    @Option(
+      secure = true,
+      name = "analysis.useInterleavedAnalyses",
+      description = "start different analyses interleaved and continue after unknown result"
+    )
+    private boolean useInterleavedAlgorithm = false;
+
     @Option(secure=true, name="limits.time.cpu::required",
         description="Enforce that the given CPU time limit is set as the value of limits.time.cpu.")
     @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
@@ -532,7 +539,8 @@ public class ConfigurationFileChecks {
           .isNotEqualTo(CPAcheckerResult.Result.NOT_YET_STARTED);
     }
 
-    if (!(options.useParallelAlgorithm || options.useRestartingAlgorithm)) {
+    if (!(options.useParallelAlgorithm || options.useRestartingAlgorithm)
+        || options.useInterleavedAlgorithm) {
       // TODO find a solution how to check for unused properties correctly even with
       // RestartAlgorithm
       assert_()
