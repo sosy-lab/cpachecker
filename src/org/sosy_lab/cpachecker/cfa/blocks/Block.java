@@ -26,8 +26,10 @@ package org.sosy_lab.cpachecker.cfa.blocks;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.ImmutableSortedSet;
+import java.util.Collections;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 
 /**
  * Represents a block as described in the BAM paper.
@@ -39,17 +41,20 @@ public class Block {
   private final ImmutableSet<CFANode> callNodes;
   private final ImmutableSet<CFANode> returnNodes;
   private final ImmutableSet<CFANode> nodes;
+  private final ImmutableSet<LockIdentifier> capturedLocks;
 
   public Block(
       Iterable<ReferencedVariable> pReferencedVariables,
       Set<CFANode> pCallNodes,
       Set<CFANode> pReturnNodes,
-      Iterable<CFANode> allNodes) {
+      Iterable<CFANode> allNodes,
+      Iterable<LockIdentifier> locks) {
 
     referencedVariables = ImmutableSet.copyOf(pReferencedVariables);
     callNodes = ImmutableSortedSet.copyOf(pCallNodes);
     returnNodes = ImmutableSortedSet.copyOf(pReturnNodes);
     nodes = ImmutableSortedSet.copyOf(allNodes);
+    capturedLocks = ImmutableSortedSet.copyOf(locks);
   }
 
   public Set<CFANode> getCallNodes() {
@@ -65,6 +70,10 @@ public class Block {
    * For soundness this must be a superset of the actually used variables. */
   public Set<ReferencedVariable> getReferencedVariables() {
     return referencedVariables;
+  }
+
+  public Set<LockIdentifier> getCapturedLocks() {
+    return Collections.unmodifiableSet(capturedLocks);
   }
 
   /** returns a collection of variables used in the block.

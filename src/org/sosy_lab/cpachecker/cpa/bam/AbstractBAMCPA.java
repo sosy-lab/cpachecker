@@ -52,6 +52,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.bam.TimedReducer.ReducerStatistics;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
+import org.sosy_lab.cpachecker.cpa.lock.LockCPA;
+import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix = "cpa.bam")
@@ -143,7 +145,11 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
 
   private BlockPartitioning buildBlockPartitioning(CFA pCfa, Configuration pConfig)
       throws InvalidConfigurationException, CPAException {
-    final BlockPartitioningBuilder blockBuilder = new BlockPartitioningBuilder();
+
+    LockCPA cpa = retrieveWrappedCpa(LockCPA.class);
+    final BlockPartitioningBuilder blockBuilder =
+        new BlockPartitioningBuilder(
+            cpa == null ? null : (LockTransferRelation) cpa.getTransferRelation());
     PartitioningHeuristic heuristic = blockHeuristic.create(logger, pCfa, pConfig);
     BlockPartitioning partitioning = heuristic.buildPartitioning(blockBuilder);
     if (exportBlocksPath != null) {

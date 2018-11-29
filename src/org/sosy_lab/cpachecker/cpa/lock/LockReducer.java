@@ -56,16 +56,15 @@ public class LockReducer extends GenericReducer<AbstractLockState, SingletonPrec
     AbstractLockStateBuilder builder = pExpandedElement.builder();
     builder.reduce();
     if (reduceUselessLocks) {
-      // builder.reduceLocks(pContext.getCapturedLocks());
+      builder.reduceLocks(pContext.getCapturedLocks());
     } else if (aggressiveReduction) {
-      builder.reduceLockCounters(new HashSet<>());
-      AbstractLockState reducedState = builder.build();
-      builder.expand(pExpandedElement);
-      builder.expandLockCounters(pExpandedElement, new HashSet<>());
-      assert builder.build().equals(pExpandedElement);
-      return reducedState;
+      builder.reduceLockCounters(pContext.getCapturedLocks());
     }
-    return builder.build();
+    AbstractLockState reducedState = builder.build();
+    AbstractLockState expanded =
+        getVariableExpandedState0(pExpandedElement, pContext, reducedState);
+    assert expanded.equals(pExpandedElement);
+    return reducedState;
   }
 
   @Override
@@ -75,7 +74,7 @@ public class LockReducer extends GenericReducer<AbstractLockState, SingletonPrec
     AbstractLockStateBuilder builder = pReducedElement.builder();
     builder.expand(pRootElement);
     if (reduceUselessLocks) {
-      // builder.expandLocks(rootState, pReducedContext.getCapturedLocks());
+      builder.expandLocks((LockState) pRootElement, pReducedContext.getCapturedLocks());
     } else if (aggressiveReduction) {
       builder.expandLockCounters(pRootElement, new HashSet<>());
     }

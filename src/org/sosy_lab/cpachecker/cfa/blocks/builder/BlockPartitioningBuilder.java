@@ -29,6 +29,7 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -45,6 +46,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
+import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -56,12 +59,21 @@ public class BlockPartitioningBuilder {
   private static final CFATraversal TRAVERSE_CFA_INSIDE_FUNCTION = CFATraversal.dfs().ignoreFunctionCalls();
 
   protected final Map<CFANode, Set<ReferencedVariable>> referencedVariablesMap = new HashMap<>();
+  protected final Map<CFANode, Set<LockIdentifier>> locks = new HashMap<>();
   protected final Map<CFANode, Set<CFANode>> callNodesMap = new HashMap<>();
   protected final Map<CFANode, Set<CFANode>> returnNodesMap = new HashMap<>();
   protected final Map<CFANode, Set<FunctionEntryNode>> innerFunctionCallsMap = new HashMap<>();
   protected final Map<CFANode, Set<CFANode>> blockNodesMap = new HashMap<>();
 
-  public BlockPartitioningBuilder() {}
+  protected final LockTransferRelation lTransfer;
+
+  public BlockPartitioningBuilder() {
+    this(null);
+  }
+
+  public BlockPartitioningBuilder(LockTransferRelation t) {
+    lTransfer = t;
+  }
 
   public BlockPartitioning build(CFA cfa) {
 
@@ -77,6 +89,7 @@ public class BlockPartitioningBuilder {
       functions.put(head, body);
       referencedVariables.put(head, collectReferencedVariables(body));
       innerFunctionCalls.put(head, collectInnerFunctionCalls(body));
+      locks.put(head, collectInnerLocks(body));
     }
 
     // then get directly called functions and sum up all indirectly called functions
@@ -95,12 +108,14 @@ public class BlockPartitioningBuilder {
       // we collect nodes and variables from all inner function calls
       Collection<Iterable<ReferencedVariable>> variables = new ArrayList<>();
       Collection<Iterable<CFANode>> blockNodes = new ArrayList<>();
+      Collection<Iterable<LockIdentifier>> blockLocks = new ArrayList<>();
       Set<CFANode> directNodes = blockNodesMap.get(callNode);
       blockNodes.add(directNodes);
       variables.add(referencedVariablesMap.get(callNode));
       for (FunctionEntryNode calledFunction : blockFunctionCalls.get(callNode)) {
         blockNodes.add(functions.get(calledFunction));
         variables.add(referencedVariables.get(calledFunction));
+        blockLocks.add(locks.get(calledFunction));
       }
 
       blocks.add(
@@ -108,7 +123,8 @@ public class BlockPartitioningBuilder {
               Iterables.concat(variables),
               entry.getValue(),
               returnNodesMap.get(callNode),
-              Iterables.concat(blockNodes)));
+              Iterables.concat(blockNodes),
+              Iterables.concat(blockLocks)));
     }
 
     return new BlockPartitioning(blocks, cfa.getMainFunction());
@@ -179,6 +195,20 @@ public class BlockPartitioningBuilder {
       }
     }
     return result.build();
+  }
+
+  private Set<LockIdentifier> collectInnerLocks(Set<CFANode> pNodes) {
+    Set<LockIdentifier> result = new HashSet<>();
+    if (lTransfer == null) {
+      return Collections.emptySet();
+    }
+    for (CFANode node : pNodes) {
+      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+        CFAEdge e = node.getLeavingEdge(i);
+        result.addAll(lTransfer.getAffectedLocks(e));
+      }
+    }
+    return result;
   }
 
   /**

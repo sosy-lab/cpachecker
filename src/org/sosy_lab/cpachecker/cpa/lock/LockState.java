@@ -37,6 +37,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeSet;
+import java.util.function.Consumer;
 import org.sosy_lab.cpachecker.cpa.lock.effects.AcquireLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.ReleaseLockEffect;
@@ -198,19 +199,22 @@ public class LockState extends AbstractLockState {
 
     @Override
     public void reduceLocks(Set<LockIdentifier> usedLocks) {
-      if (usedLocks != null) {
-        usedLocks.forEach(mutableLocks::remove);
-      }
+      reduce(usedLocks, l -> mutableLocks.remove(l));
     }
 
     @Override
     public void reduceLockCounters(Set<LockIdentifier> exceptLocks) {
-      Sets.difference(new HashSet<>(mutableLocks.keySet()), exceptLocks)
-          .forEach(
+      reduce(exceptLocks,
               l -> {
                 mutableLocks.remove(l);
                 add(l);
               });
+    }
+
+    private void
+        reduce(Set<LockIdentifier> exceptLocks, Consumer<LockIdentifier> action) {
+      Sets.difference(new HashSet<>(mutableLocks.keySet()), exceptLocks)
+          .forEach(l -> action.accept(l));
     }
 
     public void expand(LockState rootState) {
