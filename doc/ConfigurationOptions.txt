@@ -1388,6 +1388,14 @@ cpa.hybrid.mergeOperator = SEP
 cpa.hybrid.stopOperator = SEP
   enum:     [SEP, JOIN, NEVER]
 
+# Determines whether to track assignments occurring within the code in the
+# hybrid analysis states.
+cpa.hybrid.trackAssignments = false
+
+# Determines whether to track assumptions occurring within the code in the
+# hybrid analysis states.
+cpa.hybrid.trackAssumptions = false
+
 # which default SecurityClass to use for PolicyEnforcementCPA
 cpa.ifcsecurity.defaultsc = "LOW"
 
@@ -2944,15 +2952,6 @@ heuristicSelection.loopFreeConfig = no default value
 
 # Configuration for programs containing only relevant bool vars.
 heuristicSelection.onlyBoolConfig = no default value
-
-# The maximum depth for the dfs algorithm
-hybridExecution.dfsMaxDepth = 60
-
-# Use dfs algorithm unbounded
-hybridExecution.unboundedDFS = false
-
-# Wether to use bfs as search strategy rather than dfs
-hybridExecution.useBFS = false
 
 # Wether to use multiple values on a state
 hybridExecution.useValueSets = false

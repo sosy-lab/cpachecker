@@ -41,12 +41,12 @@ public class CollectionUtilsTest{
     @Test
     public void ofTypeTest() {
         List<Number> numList = Arrays.asList(
-            new Integer(1),
-            new Integer(2),
-            new Integer(3),
-            new Double(2.0),
-            new Double(3.44),
-            new Float(2.5)
+            1,
+            2,
+            3,
+            2.0,
+            3.44,
+            2.5f
         );
 
         Collection<Integer> filteredList = CollectionUtils.ofType(numList, Integer.class); 
@@ -68,7 +68,7 @@ public class CollectionUtilsTest{
         CType boolEl = CNumericTypes.BOOL;
         CType floatEl = CNumericTypes.FLOAT;
         CType arrayEl = new CArrayType(false, false, CNumericTypes.INT, null);
-        Collection<CType> typeCollection = CollectionUtils.of(voidEl, intEl, boolEl, floatEl, arrayEl);
+        Collection<CType> typeCollection = Arrays.asList(new CType[] {voidEl, intEl, boolEl, floatEl, arrayEl});
 
         Collection<CType> sutResult = CollectionUtils.getApplyingElements(typeCollection, exp -> exp instanceof CSimpleType);
         Assert.assertTrue(sutResult.size() == 3);

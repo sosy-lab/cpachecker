@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,17 +21,25 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.hybrid.abstraction;
+package org.sosy_lab.cpachecker.cpa.hybrid.visitor;
 
-import org.sosy_lab.cpachecker.cpa.hybrid.value.*;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueVisitor;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.ConstantValue;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
 
-/**
- * Simple visitor interface for visiting @see HybridValue
- * @param <T> the type to return on visit
- */
-public interface HybridValueVisitor<T, TDependentObj> {
+public class HybridValueIdExpressionTransformer implements HybridValueVisitor<CExpression, CIdExpression> {
 
-    T visit(HybridValue value, TDependentObj obj);
+  @Override
+  public CExpression visit(
+      HybridValue value, CIdExpression pCIdExpression) {
+    return null;
+  }
 
-    T visit(ConstantValue value, TDependentObj obj);
+  @Override
+  public CExpression visit(
+      ConstantValue value, CIdExpression pCIdExpression) {
+    return null;
+  }
 }

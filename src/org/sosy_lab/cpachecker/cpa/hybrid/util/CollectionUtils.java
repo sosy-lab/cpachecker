@@ -67,13 +67,6 @@ public final class CollectionUtils
         return new ArrayList<>();
     }
 
-    /**
-     * @param elements The elements to instantiate the collection with
-     */
-    public static <T> Collection<T> of(T... elements)
-    {
-        return new ArrayList<>(Arrays.asList(elements));
-    }
 
     /**
      * Checks wether a given predicate applies to one or more elements of the collection
@@ -97,7 +90,7 @@ public final class CollectionUtils
      * @return A collection containing all elements that the predicate applies for
      */
     public static  <T> Collection<T> getApplyingElements(Iterable<T> collection, Predicate<T> pred) {
-        Collection<T> resultCollection = new LinkedList<>();
+        Collection<T> resultCollection = new ArrayList<>();
 
         for(T element : collection) {
             if(pred.test(element)) {

@@ -26,13 +26,13 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import apron.NotImplementedException;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -71,8 +71,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
-
-import apron.NotImplementedException;
 
 /**
  * This class implements a CPA algorithm based on the idea of concolic execution It traversals the
@@ -211,7 +209,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     this.cfa = pCFA;
     this.logger = pLogger;
     this.useValueSets = pUseValueSets;
-    this.reachedSetUpdateListeners = new LinkedList<>();
+    this.reachedSetUpdateListeners = new ArrayList<>();
 
     this.solver = Solver.create(pConfiguration, pLogger, pNotifier);
     this.formulaManagerView = solver.getFormulaManager();

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,24 +29,22 @@ import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueVisitor;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.ConstantValue;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
 
-/**
- * This class implements the HybridValueVisitor to build assumptions in the form of CExpressions
- */
-public class HybridValueTransformer implements HybridValueVisitor<CExpression, CDeclaration> {
+public class HybridValueDeclarationTransformer implements HybridValueVisitor<CExpression, CDeclaration> {
 
-    @Override
-    public CExpression visit(HybridValue pValue, CDeclaration declaration) {
-        
-        if(pValue instanceof ConstantValue) {
-            return visit((ConstantValue) pValue, declaration);
-        }
+  @Override
+  public CExpression visit(
+      HybridValue value, CDeclaration pDeclaration) {
 
-        return null;
+    if(value instanceof ConstantValue) {
+      return visit((ConstantValue) value, pDeclaration);
     }
 
-    @Override
-    public CExpression visit(ConstantValue pValue, CDeclaration declaration) {
     return null;
   }
 
+  @Override
+  public CExpression visit(
+      ConstantValue value, CDeclaration pDeclaration) {
+    return null;
+  }
 }

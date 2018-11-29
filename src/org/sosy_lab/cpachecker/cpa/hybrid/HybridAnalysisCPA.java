@@ -55,8 +55,9 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.AssumptionParser;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.OperatorType;
+import org.sosy_lab.cpachecker.cpa.hybrid.visitor.HybridValueDeclarationTransformer;
+import org.sosy_lab.cpachecker.cpa.hybrid.visitor.HybridValueIdExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.hybrid.visitor.SimpleValueProvider;
-import org.sosy_lab.cpachecker.cpa.hybrid.visitor.HybridValueTransformer;
 
 @Options(prefix = "cpa.hybrid")
 public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
@@ -93,16 +94,16 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
     private final CProgramScope scope;
 
     protected HybridAnalysisCPA( 
-        CFA cfa, 
-        LogManager logger,
-        Configuration configuration) throws InvalidConfigurationException {
+        CFA pCfa,
+        LogManager pLogger,
+        Configuration pConfiguration) throws InvalidConfigurationException {
 
-        this.cfa = Preconditions.checkNotNull(cfa, "CFA must be present for HybridAnalysis");
-        this.logger = logger;
-        this.scope = new CProgramScope(cfa, logger);
+        this.cfa = Preconditions.checkNotNull(pCfa, "CFA must be present for HybridAnalysis");
+        this.logger = pLogger;
+        this.scope = new CProgramScope(pCfa, pLogger);
         this.assumptionParser = 
-            new AssumptionParser(delimiter, scope, configuration, cfa.getMachineModel(), logger);
-        configuration.inject(this);
+            new AssumptionParser(delimiter, scope, pConfiguration, pCfa.getMachineModel(), pLogger);
+        pConfiguration.inject(this);
     }
 
     @Override
@@ -127,7 +128,12 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
 
     @Override
     public TransferRelation getTransferRelation() {
-        return new HybridAnalysisTransferRelation(cfa, logger, new SimpleValueProvider(), new HybridValueTransformer());
+        return new HybridAnalysisTransferRelation(
+            cfa,
+            logger,
+            new SimpleValueProvider(),
+            new HybridValueDeclarationTransformer(),
+            new HybridValueIdExpressionTransformer());
     }
 
     @Override

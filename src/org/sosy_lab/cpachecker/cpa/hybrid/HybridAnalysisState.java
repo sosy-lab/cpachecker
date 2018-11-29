@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -44,8 +45,7 @@ import org.sosy_lab.cpachecker.cpa.hybrid.util.*;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-public class HybridAnalysisState implements 
-    AbstractQueryableState, 
+public class HybridAnalysisState implements
     LatticeAbstractState<HybridAnalysisState>,
     AbstractStateWithAssumptions,
     Graphable {
@@ -88,15 +88,10 @@ public class HybridAnalysisState implements
         return new HybridAnalysisState(state.getAssumptions());
     }
 
-    @Override
-    public String getCPAName() {
-        return HybridAnalysisCPA.class.getSimpleName();
-    }
-
-    @Override
-    public boolean checkProperty(String property) throws InvalidQueryException {
-      // TODO: define dsl for properties
-      return true;
+    public static HybridAnalysisState copyWithNewAssumptions(HybridAnalysisState pState, CExpression... pExpressions) {
+        Set<CExpression> currentAssumptions = Sets.newHashSet(pState.getAssumptions());
+        currentAssumptions.addAll(Arrays.asList(pExpressions));
+        return new HybridAnalysisState(currentAssumptions);
     }
 
     @Override
@@ -109,11 +104,14 @@ public class HybridAnalysisState implements
         
         for(CBinaryExpression assumption : assumptions)
         {
-            // first operand for assumptions must always be CIdExpression! -> if the cast fails, something is wrong
-            CIdExpression localVariable = (CIdExpression) assumption.getOperand1();
+            // first operand for assumptions must always be CIdExpression!
+
+            assert assumption.getOperand1() instanceof CIdExpression;
+
+            CIdExpression variable = (CIdExpression) assumption.getOperand1();
 
             // here we calculate the 'intersection'
-            if(!CollectionUtils.appliesToAtLeastOne(otherAssumptions, exp -> localVariable.equals(exp.getOperand1())))
+            if(!pOther.tracksVariable(variable))
             {
                 combinedAssumptions.add(assumption);
             }
@@ -125,7 +123,6 @@ public class HybridAnalysisState implements
     @Override
     public boolean isLessOrEqual(HybridAnalysisState pOther)
             throws CPAException, InterruptedException {
-        // TODO: check for TOP/BOTTOM element
         List<CExpression> otherAssumptions = pOther.getAssumptions();
         // avoid copying the state inside the lamda 
         return CollectionUtils.appliesToAll(assumptions, a -> otherAssumptions.contains(a));
