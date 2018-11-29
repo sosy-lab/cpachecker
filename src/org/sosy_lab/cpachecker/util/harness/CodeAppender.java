@@ -27,6 +27,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -41,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
@@ -162,6 +164,15 @@ class CodeAppender implements Appendable {
     append("long int ");
     append(arrayPushCounterName);
     appendln(" = 0;");
+
+    for (AFunctionDeclaration functionDeclaration : pVector.getFunctionDeclarations()) {
+      IAFunctionType functionType = functionDeclaration.getType();
+      append("extern ");
+      append(functionType.toASTString(functionDeclaration.getName()));
+      append(";");
+      appendln();
+
+    }
 
     for (AVariableDeclaration inputVariable : pVector.getInputVariables()) {
       InitializerTestValue inputValue = pVector.getInputValue(inputVariable);
@@ -387,6 +398,13 @@ class CodeAppender implements Appendable {
       result.add(declaration);
     }
     return result;
+  }
+
+  public void append(ArrayList<CTypeDeclaration> pPredefinedTypes) throws IOException {
+    for (CTypeDeclaration typeDeclaration : pPredefinedTypes) {
+      appendable.append(typeDeclaration.toASTString());
+
+    }
   }
 
 }

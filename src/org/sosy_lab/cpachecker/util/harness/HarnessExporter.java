@@ -39,16 +39,19 @@ import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
@@ -152,6 +155,8 @@ public class HarnessExporter {
 
   private final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
+  private ArrayList<CTypeDeclaration> predefinedTypes = new ArrayList<>();
+
 
   @Option(secure = true, description = "Use the counterexample model to provide test-vector values")
   private boolean useModel = true;
@@ -179,6 +184,11 @@ public class HarnessExporter {
     if (testVector.isPresent()) {
 
       Set<AFunctionDeclaration> externalFunctions = getExternalFunctions();
+      List<String> sortedExternalFunctionNames =
+          externalFunctions.stream()
+              .map(f -> f.getName())
+              .sorted(String::compareToIgnoreCase)
+              .collect(Collectors.toList());
 
       CodeAppender codeAppender = new CodeAppender(pTarget);
 
@@ -217,7 +227,9 @@ public class HarnessExporter {
                       .filter(Predicates.not(Predicates.equalTo(errorFunction.get())))
                   : externalFunctions);
       copyTypeDeclarations(codeAppender);
+      codeAppender.append(predefinedTypes);
       codeAppender.append(vector);
+
     } else {
       logger.log(
           Level.WARNING, "Could not export a test harness, some test-vector values are missing.");
@@ -311,6 +323,9 @@ public class HarnessExporter {
                         declarations.add(declaration);
                       }
                     }
+            else {
+                      predefinedTypes.add((CTypeDeclaration) declaration);
+                    }
                   }
                 } else if (pEdge.getEdgeType() == CFAEdgeType.BlankEdge
                     && !pEdge.getPredecessor().equals(cfa.getMainFunction())) {
@@ -340,9 +355,17 @@ public class HarnessExporter {
       if (!isPredefinedFunctionWithoutVerifierError(functionDeclaration)
           && !pVector.contains(functionDeclaration)) {
         result = addDummyValue(result, functionDeclaration);
+      } else if (isPredefinedFunction(functionDeclaration)) {
+        result = addFunctionDeclaration(result, functionDeclaration);
       }
     }
     return result;
+  }
+
+  private TestVector
+      addFunctionDeclaration(TestVector pResult, AFunctionDeclaration pFunctionDeclaration) {
+    // TODO Auto-generated method stub
+    return pResult.addFunctionDeclaration(pFunctionDeclaration);
   }
 
   private Multimap<ARGState, CFAEdgeWithAssumptions> getValueMap(
