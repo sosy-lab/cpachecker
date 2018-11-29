@@ -68,17 +68,17 @@ public class MPVTest {
    * In this test 2 specification are violated, the others are satisfied.
    */
   private static final String SIMPLE_TEST =
-      "test/programs/automata/mpv/test_false-unreach-call_simple.c";
+      "test/programs/ldv-automata/mpv/mpv_test_false_simple.c";
 
   /*
    * In this test overall number of violations for specification 'linux_rculock' is undefined.
    */
-  private static final String MEA_TEST = "test/programs/automata/mpv/test_false-unreach-call_mea.c";
+  private static final String MEA_TEST = "test/programs/ldv-automata/mpv/mpv_test_false_mea.c";
 
   /*
    * In this test specification 'linux_rculock' may not be checked successfully.
    */
-  private static final String ITL_TEST = "test/programs/automata/mpv/test_false-unreach-call_itl.c";
+  private static final String ITL_TEST = "test/programs/ldv-automata/mpv/mpv_test_false_itl.c";
 
   /*
    * MPV results are presented in the following format for comparison:
