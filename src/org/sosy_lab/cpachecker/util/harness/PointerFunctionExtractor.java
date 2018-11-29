@@ -99,6 +99,8 @@ public class PointerFunctionExtractor {
             if (!cfa.getAllFunctionNames().contains(functionDeclaration.getName())) {
               boolean headIsEmpty = (cfa.getFunctionHead(declaration.getQualifiedName()) == null);
 
+              boolean declaredInInputFile = pEdge.getFileLocation().getNiceFileName() == "";
+
               boolean hasPointerParameter =
                   functionDeclaration.getParameters()
                       .stream()
@@ -106,7 +108,7 @@ public class PointerFunctionExtractor {
                       .filter(type -> type instanceof CPointerType)
                       .findFirst()
                       .isPresent();
-              if (hasPointerParameter && headIsEmpty) {
+              if (hasPointerParameter && headIsEmpty && declaredInInputFile) {
                 relevantFunctions.add(functionDeclaration);
               }
             }
