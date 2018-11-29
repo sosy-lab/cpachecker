@@ -133,7 +133,6 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.harness.HarnessState;
-import org.sosy_lab.cpachecker.cpa.harness.HarnessTransferRelation.RelevantPointerFunctionsState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
@@ -157,56 +156,6 @@ public class HarnessExporter {
   private final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
   private ArrayList<CTypeDeclaration> predefinedTypes = new ArrayList<>();
-
-  private RelevantPointerFunctionsState extractExternPointerFunctions(CFA pCFA) {
-
-    RelevantPointerFunctionsState relevantPointerFunctionsState =
-        new RelevantPointerFunctionsState();
-
-    CFAVisitor externalFunctionCollector = new CFAVisitor() {
-
-      private CFA cfa = pCFA;
-
-      @Override
-      public TraversalProcess visitNode(CFANode pNode) {
-        return TraversalProcess.CONTINUE;
-      }
-
-      @Override
-      public TraversalProcess visitEdge(CFAEdge pEdge) {
-        if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-          ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
-          ADeclaration declaration = declarationEdge.getDeclaration();
-          if (declaration instanceof AFunctionDeclaration) {
-            AFunctionDeclaration functionDeclaration = (AFunctionDeclaration) declaration;
-            if (!cfa.getAllFunctionNames().contains(functionDeclaration.getName())) {
-              boolean headIsEmpty = (cfa.getFunctionHead(declaration.getQualifiedName()) == null);
-
-              boolean hasPointerParameter =
-                  functionDeclaration.getParameters()
-                      .stream()
-                      .map(o -> o.getType())
-                      .filter(type -> type instanceof CPointerType)
-                      .findFirst()
-                      .isPresent();
-              if (hasPointerParameter && headIsEmpty) {
-                relevantPointerFunctionsState.addPointerParameterFunction(functionDeclaration);
-              }
-              boolean hasPointerReturnType =
-                  (functionDeclaration.getType().getReturnType() instanceof CPointerType);
-              if (hasPointerReturnType && headIsEmpty) {
-                relevantPointerFunctionsState.addPointerReturnTypeFunction(functionDeclaration);
-              }
-            }
-          }
-        }
-        return TraversalProcess.CONTINUE;
-      }
-    };
-    CFATraversal.dfs().traverseOnce(pCFA.getMainFunction(), externalFunctionCollector);
-    return relevantPointerFunctionsState;
-  }
-
 
   @Option(secure = true, description = "Use the counterexample model to provide test-vector values")
   private boolean useModel = true;
@@ -242,7 +191,7 @@ public class HarnessExporter {
               .collect(Collectors.toList());
 
 
-      CodeAppender codeAppender = new CodeAppender(pTarget);
+      CodeAppender codeAppender = new CodeAppender(pTarget, cfa);
 
       codeAppender.appendln("struct _IO_FILE;");
       codeAppender.appendln("typedef struct _IO_FILE FILE;");
@@ -441,8 +390,6 @@ public class HarnessExporter {
         }
       }
     }
-    RelevantPointerFunctionsState relevantFunctions = extractExternPointerFunctions(cfa);
-    newTestVector = newTestVector.addRelevantFunctions(relevantFunctions);
     return newTestVector;
   }
 

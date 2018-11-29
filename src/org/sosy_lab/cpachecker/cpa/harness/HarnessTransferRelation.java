@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.harness;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -35,7 +34,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -51,10 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -69,21 +64,14 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
-import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
+import org.sosy_lab.cpachecker.util.harness.PointerFunctionExtractor;
 
 @Options(prefix = "cpa.harness")
 public class HarnessTransferRelation
     extends SingleEdgeTransferRelation {
 
-
   private final LogManager logger;
-  private final RelevantPointerFunctionsState externPointerFunctions;
-
-  public RelevantPointerFunctionsState getExternPointerFunctions() {
-    return externPointerFunctions;
-  }
+  private final Set<AFunctionDeclaration> unimplementedPointerReturnTypeFunctions;
 
   public HarnessTransferRelation(
       Configuration pConfig,
@@ -92,7 +80,8 @@ public class HarnessTransferRelation
       throws InvalidConfigurationException {
     pConfig.inject(this, HarnessTransferRelation.class);
     logger = new LogManagerWithoutDuplicates(pLogger);
-    externPointerFunctions = extractExternPointerFunctions(pCFA);
+    unimplementedPointerReturnTypeFunctions =
+        PointerFunctionExtractor.getExternUnimplementedPointerReturnTypeFunctions(pCFA);
   }
 
   @Override
@@ -137,10 +126,6 @@ public class HarnessTransferRelation
   }
 
   private HarnessState handleAssumeEdge(HarnessState pState, CAssumeEdge pEdge) {
-    /*
-     * TODO handle implicit struct/union equality where it can be inferred that bar() returns q from
-     * knowing that q.i = someInt; foo(q); p = bar(); p.i == someInt;
-     */
     CExpression expression = pEdge.getExpression();
     boolean modifier = pEdge.getTruthAssumption();
     if (expression instanceof CBinaryExpression) {
@@ -171,7 +156,6 @@ public class HarnessTransferRelation
       HarnessState newState = pState.merge(operand1Name, operand2Name);
       return newState;
     }
-
     return pState;
   }
 
@@ -192,7 +176,6 @@ public class HarnessTransferRelation
   }
 
   private HarnessState handleFunctionCallEdge(HarnessState pState, CFunctionCallEdge pEdge) {
-
     HarnessState newState = pState;
     CFunctionCall functionCall = pEdge.getSummaryEdge().getExpression();
     CFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
@@ -200,28 +183,6 @@ public class HarnessTransferRelation
     CFunctionDeclaration functionDeclaration = functionCallExpression.getDeclaration();
 
     return pState;
-
-    // check if function is external, and takes pointer parameters, in that case add that parameter
-    // to array
-    // if it is external but no pointer params, do nothing
-    // if it is internal, and has pointer params, update pointers with assignments of
-    // qualified param names to their param values
-    // how to check if it is extern? check if it has any code associated with it
-    // as there is no storage class attribute for function declarations
-
-    /*
-     * List<CParameterDeclaration> formalParams = pEdge.getSuccessor().getFunctionParameters();
-     * List<CExpression> actualParams = pEdge.getArguments(); int limit =
-     * Math.min(formalParams.size(), actualParams.size()); formalParams =
-     * FluentIterable.from(formalParams).limit(limit).toList(); actualParams =
-     * FluentIterable.from(actualParams).limit(limit).toList();
-     *
-     * Handle the mapping of arguments to formal parameters for (Pair<CParameterDeclaration,
-     * CExpression> param : Pair .zipList(formalParams, actualParams)) { CExpression actualParam =
-     * param.getSecond(); CParameterDeclaration formalParam = param.getFirst(); MemoryLocation
-     * location = new MemoryLocation(formalParam); newState = handleAssignment(newState, location,
-     * pState.getLocation(actualParam)); } return newState;
-     */
   }
 
   private boolean declarationHasPointerType(CDeclarationEdge pDeclaration) {
@@ -313,7 +274,7 @@ public class HarnessTransferRelation
       CFunctionCallExpression functionCallExpression =
           functionCallStatement.getFunctionCallExpression();
       CExpression functionNameExpression = functionCallExpression.getFunctionNameExpression();
-      if (isExternFunction(functionNameExpression)) {
+      if (isExternFunction(functionCallExpression)) {
         List<CExpression> functionParameters = functionCallExpression.getParameterExpressions();
         List<CExpression> functionParametersOfPointerType =
             functionParameters.stream()
@@ -337,7 +298,7 @@ public class HarnessTransferRelation
           HarnessState newState = pState.addPointsToInformation(lhs, newMemoryLocation);
           return newState;
         }
-        if (isExternFunction(functionNameExpression)) {
+        if (isExternFunction(functionCallExpression)) {
           MemoryLocation newMemoryLocation = new MemoryLocation(false);
           CLeftHandSide lhs = functionCallAssignment.getLeftHandSide();
           if (lhs instanceof CIdExpression) {
@@ -365,103 +326,9 @@ public class HarnessTransferRelation
     }
   }
 
-  private boolean isExternFunction(CExpression pFunctionNameExpression) {
-    if (pFunctionNameExpression instanceof CIdExpression) {
-      String functionName = ((CIdExpression) pFunctionNameExpression).getName();
-      return externPointerFunctions.contains(functionName);
-    } else {
-      return false;
-    }
-  }
+  private boolean isExternFunction(CFunctionCallExpression pFunctionCallExpression) {
+    AFunctionDeclaration functionDeclaration = pFunctionCallExpression.getDeclaration();
+    return unimplementedPointerReturnTypeFunctions.contains(functionDeclaration);
 
-  public static class RelevantPointerFunctionsState {
-    private final Set<AFunctionDeclaration> pointerReturnTypeFunctions;
-    private final Set<AFunctionDeclaration> pointerParameterFunctions;
-
-    public boolean contains(AFunctionDeclaration pFunctionDeclaration) {
-      return pointerReturnTypeFunctions.contains(pFunctionDeclaration)
-          || pointerParameterFunctions.contains(pFunctionDeclaration);
-    }
-
-    public boolean returnTypeContains(AFunctionDeclaration pFunctionDeclaration) {
-      return pointerReturnTypeFunctions.contains(pFunctionDeclaration);
-    }
-
-    public boolean parameterContains(AFunctionDeclaration pFunctionDeclaration) {
-      return pointerParameterFunctions.contains(pFunctionDeclaration);
-    }
-
-    public RelevantPointerFunctionsState() {
-      pointerReturnTypeFunctions = new HashSet<>();
-      pointerParameterFunctions = new HashSet<>();
-    }
-
-    public boolean contains(String pFunctionName) {
-      return pointerReturnTypeFunctions.stream()
-          .anyMatch(fun -> fun.getName().equals(pFunctionName));
-    }
-
-    RelevantPointerFunctionsState(
-        Set<AFunctionDeclaration> pPointerReturnTypeFunctions,
-        Set<AFunctionDeclaration> pPointerParameterFunctions) {
-      pointerReturnTypeFunctions = pPointerReturnTypeFunctions;
-      pointerParameterFunctions = pPointerParameterFunctions;
-    }
-
-    public void addPointerReturnTypeFunction(AFunctionDeclaration pPointerReturnTypeFunction) {
-      pointerReturnTypeFunctions.add(pPointerReturnTypeFunction);
-    }
-
-    public void addPointerParameterFunction(AFunctionDeclaration pPointerParameterFunction) {
-      pointerParameterFunctions.add(pPointerParameterFunction);
-    }
-  }
-
-  private RelevantPointerFunctionsState extractExternPointerFunctions(CFA pCFA) {
-
-    RelevantPointerFunctionsState relevantPointerFunctionsState =
-        new RelevantPointerFunctionsState();
-
-    CFAVisitor externalFunctionCollector = new CFAVisitor() {
-
-      private CFA cfa = pCFA;
-
-      @Override
-      public TraversalProcess visitNode(CFANode pNode) {
-        return TraversalProcess.CONTINUE;
-      }
-
-      @Override
-      public TraversalProcess visitEdge(CFAEdge pEdge) {
-        if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-          ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
-          ADeclaration declaration = declarationEdge.getDeclaration();
-          if (declaration instanceof AFunctionDeclaration) {
-            AFunctionDeclaration functionDeclaration = (AFunctionDeclaration) declaration;
-            if (!cfa.getAllFunctionNames().contains(functionDeclaration.getName())) {
-              boolean headIsEmpty = (cfa.getFunctionHead(declaration.getQualifiedName()) == null);
-
-              boolean hasPointerParameter =
-                  functionDeclaration.getParameters()
-                      .stream()
-                      .map(o -> o.getType())
-                      .filter(type -> type instanceof CPointerType)
-                      .findFirst()
-                      .isPresent();
-              if (hasPointerParameter && headIsEmpty) {
-                relevantPointerFunctionsState.addPointerParameterFunction(functionDeclaration);
-              }
-              boolean hasPointerReturnType = (functionDeclaration.getType().getReturnType() instanceof CPointerType);
-              if (hasPointerReturnType && headIsEmpty) {
-                relevantPointerFunctionsState.addPointerReturnTypeFunction(functionDeclaration);
-              }
-            }
-          }
-        }
-        return TraversalProcess.CONTINUE;
-      }
-    };
-    CFATraversal.dfs().traverseOnce(pCFA.getMainFunction(), externalFunctionCollector);
-    return relevantPointerFunctionsState;
   }
 }

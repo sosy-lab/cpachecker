@@ -33,6 +33,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
@@ -65,9 +66,17 @@ class CodeAppender implements Appendable {
   private static final String RETVAL_NAME = "retval";
 
   private final Appendable appendable;
+  private final Set<AFunctionDeclaration> unimplementedPointerTypeParameterFunctions;
+
+  public CodeAppender(Appendable pAppendable, CFA pCFA) {
+    appendable = Objects.requireNonNull(pAppendable);
+    unimplementedPointerTypeParameterFunctions =
+        PointerFunctionExtractor.getExternUnimplementedPointerTypeParameterFunctions(pCFA);
+  }
 
   public CodeAppender(Appendable pAppendable) {
     appendable = Objects.requireNonNull(pAppendable);
+    unimplementedPointerTypeParameterFunctions = new HashSet<>();
   }
 
   @Override
@@ -283,7 +292,7 @@ class CodeAppender implements Appendable {
       appendln(" {");
 
       if (pointerParameterDeclarations.size() > 0
-          && pVector.getRelevantFunctions().parameterContains(inputFunction)) {
+          && unimplementedPointerTypeParameterFunctions.contains(inputFunction)) {
         for (AParameterDeclaration pointerParameterDeclaration : pointerParameterDeclarations) {
           String varName = pointerParameterDeclaration.getName();
           append(externPointersArrayName);
