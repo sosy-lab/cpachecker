@@ -54,7 +54,12 @@ class TestVector {
   private final int externPointersArrayLength;
 
   public TestVector setExternPointersArrayLength(int newLength) {
-    return new TestVector(inputFunctionValues, inputVariableValues,undefinedPointerTypeFunctionIndices, newLength);
+    return new TestVector(
+        inputFunctionValues,
+        inputVariableValues,
+        undefinedPointerTypeFunctionIndices,
+        newLength,
+        functionDeclarations);
   }
 
   public int getExternPointersArrayLength() {
@@ -66,6 +71,8 @@ class TestVector {
     return undefinedPointerTypeFunctionIndices;
   }
 
+  private ImmutableList<AFunctionDeclaration> functionDeclarations;
+
   private TestVector() {
     this(
         PathCopyingPersistentTreeMap
@@ -75,17 +82,6 @@ class TestVector {
   }
 
 
-
-  private TestVector(
-      PersistentSortedMap<ComparableFunctionDeclaration, ImmutableList<ExpressionTestValue>> pInputFunctionValues,
-      PersistentSortedMap<ComparableVariableDeclaration, InitializerTestValue> pInputVariableValues,
-      PersistentSortedMap<ComparableFunctionDeclaration, ImmutableList<Integer>> pUndefinedPointerTypeFunctionIndices,
-      int pArrayLength) {
-    inputFunctionValues = pInputFunctionValues;
-    inputVariableValues = pInputVariableValues;
-    undefinedPointerTypeFunctionIndices = pUndefinedPointerTypeFunctionIndices;
-    externPointersArrayLength = pArrayLength;
-  }
 
   private TestVector(
       PersistentSortedMap<ComparableFunctionDeclaration, ImmutableList<ExpressionTestValue>>
@@ -120,18 +116,9 @@ class TestVector {
       ImmutableList<AFunctionDeclaration> pFunctionDeclarations) {
     inputFunctionValues = pInputFunctionValues;
     inputVariableValues = pInputVariableValues;
-    undefinedPointerTypeFunctionIndices = PathCopyingPersistentTreeMap.of();
-    externPointersArrayLength = 0;
-  }
-
-  private TestVector(
-      PersistentSortedMap<ComparableFunctionDeclaration, ImmutableList<ExpressionTestValue>> pInputFunctionValues,
-      PersistentSortedMap<ComparableVariableDeclaration, InitializerTestValue> pInputVariableValues,
-      PersistentSortedMap<ComparableFunctionDeclaration, ImmutableList<Integer>> pUndefinedPointerTypeFunctionIndices) {
-    inputFunctionValues = pInputFunctionValues;
-    inputVariableValues = pInputVariableValues;
     undefinedPointerTypeFunctionIndices = pUndefinedPointerTypeFunctionIndices;
-    externPointersArrayLength = 0;
+    externPointersArrayLength = pArrayLength;
+    functionDeclarations = pFunctionDeclarations;
   }
 
   public TestVector
@@ -151,7 +138,8 @@ class TestVector {
         inputFunctionValues,
         inputVariableValues,
         newFunctionIndices,
-        externPointersArrayLength);
+        externPointersArrayLength,
+        functionDeclarations);
   }
 
   public TestVector addInputValue(AFunctionDeclaration pFunction, AExpression pValue) {
@@ -173,7 +161,8 @@ class TestVector {
         inputFunctionValues.putAndCopy(function, newValues),
         inputVariableValues,
         undefinedPointerTypeFunctionIndices,
-        externPointersArrayLength);
+        externPointersArrayLength,
+        functionDeclarations);
   }
 
   public TestVector addInputValue(AVariableDeclaration pVariable, AInitializer pValue) {
@@ -191,7 +180,8 @@ class TestVector {
         inputFunctionValues,
         inputVariableValues.putAndCopy(variable, pValue),
         undefinedPointerTypeFunctionIndices,
-        externPointersArrayLength);
+        externPointersArrayLength,
+        functionDeclarations);
   }
 
   public Iterable<AFunctionDeclaration> getInputFunctions() {
@@ -344,5 +334,27 @@ class TestVector {
             .stream()
             .collect(Collectors.toList());
     return ImmutableList.copyOf(result);
+  }
+
+  public TestVector addFunctionDeclaration(AFunctionDeclaration pFunctionDeclaration) {
+    ImmutableList.Builder<AFunctionDeclaration> functionDeclarationBuilder =
+        ImmutableList.builder();
+    if (!functionDeclarations.isEmpty()) {
+      functionDeclarationBuilder.addAll(functionDeclarations).add(pFunctionDeclaration);
+    } else {
+      functionDeclarationBuilder.add(pFunctionDeclaration);
+    }
+    ImmutableList<AFunctionDeclaration> newFunctionDeclarations =
+        functionDeclarationBuilder.build();
+    return new TestVector(
+        inputFunctionValues,
+        inputVariableValues,
+        undefinedPointerTypeFunctionIndices,
+        externPointersArrayLength,
+        newFunctionDeclarations);
+  }
+
+  public ImmutableList<AFunctionDeclaration> getFunctionDeclarations() {
+    return functionDeclarations;
   }
 }
