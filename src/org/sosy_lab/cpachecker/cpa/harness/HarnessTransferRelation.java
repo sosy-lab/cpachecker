@@ -38,6 +38,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -46,7 +48,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -57,6 +62,10 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -131,6 +140,25 @@ public class HarnessTransferRelation
     if (expression instanceof CBinaryExpression) {
       CBinaryExpression binaryExpression = (CBinaryExpression) expression;
       CExpression operand1 = binaryExpression.getOperand1();
+      CExpression operand2 = binaryExpression.getOperand2();
+
+      boolean op1IsPointerExpression = operand1 instanceof CPointerExpression;
+      boolean op2IsPointerExpression = operand2 instanceof CPointerExpression;
+
+      boolean op1IsIdExpression = operand1 instanceof CIdExpression;
+      boolean op2IsIdExpression = operand2 instanceof CIdExpression;
+
+      if (op1IsPointerExpression) {
+        CPointerExpression op1PExp = (CPointerExpression) operand1;
+        CType op1ExpType = operand1.getExpressionType();
+        CType canonType = op1ExpType.getCanonicalType();
+      } ;
+
+      if (op1IsPointerExpression) {
+        CPointerExpression op1PointerExpression = (CPointerExpression) operand1;
+        CExpression op1PointerExpressionOperand = op1PointerExpression.getOperand();
+      }
+
       CType operand1Type = operand1.getExpressionType();
       if (operand1Type instanceof CPointerType) {
         BinaryOperator binaryOperator = binaryExpression.getOperator();
@@ -148,7 +176,8 @@ public class HarnessTransferRelation
     CExpression operand1 = binaryExpression.getOperand1();
     CExpression operand2 = binaryExpression.getOperand2();
     if (operand1 instanceof CIdExpression && operand2 instanceof CIdExpression) {
-      // TODO: handle cases where operands are not id expressions, such as *p == *q, p.i == q.i
+      // TODO: handle cases where operands are not id expressions, such as *p == *q, p.i == q.i, so
+      // field references or ref/deref operation expressions
       CIdExpression operand1IdExpression = (CIdExpression) operand1;
       String operand1Name = operand1IdExpression.getName();
       CIdExpression operand2IdExpression = (CIdExpression) operand2;
@@ -163,8 +192,7 @@ public class HarnessTransferRelation
     return pState;
   }
 
-  private HarnessState handleReturnStatementEdge(HarnessState pState, CReturnStatementEdge pEdge)
-      throws UnrecognizedCCodeException {
+  private HarnessState handleReturnStatementEdge(HarnessState pState, CReturnStatementEdge pEdge) {
     if (!pEdge.getExpression().isPresent()) {
       return pState;
     }
@@ -205,9 +233,112 @@ public class HarnessTransferRelation
       return handlePointerDeclaration(pState, pEdge);
     } else if (declarationHasArrayType(pEdge)) {
       return handleArrayDeclaration(pState, pEdge);
+    } else if (hasStructTypeWithPointerField(pEdge)) {
+      return handleStructDeclarationWithPointerField(pState, pEdge);
     } else {
       return handleSimpleDeclaration(pState, pEdge);
     }
+  }
+
+  private HarnessState
+      handleStructDeclarationWithPointerField(HarnessState pState, CDeclarationEdge pEdge) {
+    CVariableDeclaration variableDeclaration = (CVariableDeclaration) pEdge.getDeclaration();
+    MemoryLocation structVariableLocation =
+        new MemoryLocation(variableDeclaration.getQualifiedName());
+    HarnessState stateWithStructVariable = pState.addMemoryLocation(structVariableLocation);
+    CInitializer initializer = variableDeclaration.getInitializer();
+    if (initializer != null) {
+      return handleStructDeclarationWithPointerFieldWithInitializer(stateWithStructVariable, pEdge);
+    }
+    return stateWithStructVariable;
+  }
+
+  private HarnessState handleStructDeclarationWithPointerFieldWithInitializer(
+      HarnessState pState,
+      CDeclarationEdge pEdge) {
+    // need to implement method on harnessState to add multiple locations, as there is an arbitrary
+    // number of pointer
+    // members, or declare variable to hold new state and update it within an iteration
+
+    CElaboratedType elaboratedDeclarationType = (CElaboratedType) pEdge.getDeclaration().getType();
+    CCompositeType realDeclarationType = (CCompositeType) elaboratedDeclarationType.getRealType();
+    List<CCompositeTypeMemberDeclaration> memberDeclarations = realDeclarationType.getMembers();
+    List<CCompositeTypeMemberDeclaration> memberDeclarationsRelevantType =
+        memberDeclarations.stream()
+            .filter(
+                memberDec -> memberDec.getType() instanceof CPointerType
+                    || memberDec.getType() instanceof CArrayType)
+            .collect(Collectors.toList());
+
+    CVariableDeclaration declaration = (CVariableDeclaration) pEdge.getDeclaration();
+    CInitializer initializer = declaration.getInitializer();
+    if (initializer instanceof CInitializerList) {
+      CInitializerList initializerList = (CInitializerList) initializer;
+      List<CInitializer> initializersList = initializerList.getInitializers();
+      initializersList.forEach(cInitializer -> {
+        if (cInitializer instanceof CDesignatedInitializer) {
+          CDesignatedInitializer designatedInitializer = (CDesignatedInitializer) cInitializer;
+          CInitializer rightHandSide = designatedInitializer.getRightHandSide();
+          // if(rightHandSide)
+
+        }
+      });
+    }
+
+
+    // CElaborated types get here and cannot be cast to composite type
+    // List<CCompositeTypeMemberDeclaration> structMembers =
+    // ((CCompositeType)pEdge.getDeclaration().getType()).getMembers();
+    /*
+     * List<CCompositeTypeMemberDeclaration> pointerTypeMembers = structMembers.stream() .filter(
+     * member -> member.getType() instanceof CArrayType || member.getType() instanceof CPointerType)
+     * .collect(Collectors.toList());
+     */
+    // how to cast to struct declaration
+    /*
+     * error: cInitializerList cannot be cast to CDesignatedInitializer CDesignatedInitializer
+     * designatedInitializer = ((CDesignatedInitializer) ((CVariableDeclaration)
+     * pEdge.getDeclaration()).getInitializer()); List<CDesignator> initializedMembers =
+     * designatedInitializer.getDesignators();
+     */
+
+    // Set<CIdExpression> pointerTypeStructFields = (CCompositeTyopEdge.getDeclaration().getType().g
+    // CExpression pointerMembers = (CExpression) ((CVariableDeclaration) pEdge).getInitializer()
+    // HarnessState stateWithPointerFieldLocations = pState.addMemoryLocations(pointerMembers);
+    return pState;
+  }
+
+  private HarnessState handleInitializer(HarnessState pState, CInitializer pInitializer) {
+    if (pInitializer instanceof CDesignatedInitializer) {
+      return pState;
+    } else if (pInitializer instanceof CInitializerList) {
+      return pState;
+    } else if (pInitializer instanceof CInitializerExpression) {
+      return pState;
+    }
+    return pState;
+  }
+
+  private boolean hasStructTypeWithPointerField(CDeclarationEdge pEdge) {
+    boolean hasPointerMembers = false;
+    boolean isStruct = false;
+    CDeclaration declaration = pEdge.getDeclaration();
+    CType declarationType = declaration.getType();
+    if (declarationType instanceof CElaboratedType) {
+      CElaboratedType elaboratedDeclarationType = (CElaboratedType) declarationType;
+      if (elaboratedDeclarationType.getKind() == ComplexTypeKind.STRUCT) {
+        isStruct = true;
+        CCompositeType realDeclarationType =
+            (CCompositeType) elaboratedDeclarationType.getRealType();
+        List<CCompositeTypeMemberDeclaration> memberList = realDeclarationType.getMembers();
+        hasPointerMembers =
+            memberList.stream()
+            .filter(memberDeclaration -> memberDeclaration.getType() instanceof CPointerType)
+            .findFirst()
+            .isPresent();
+      }
+    }
+    return hasPointerMembers && isStruct;
   }
 
   private HarnessState handleSimpleDeclaration(HarnessState pState, CDeclarationEdge pEdge) {
