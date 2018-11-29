@@ -90,6 +90,11 @@
 /src/org/sosy_lab/cpachecker/core/interfaces/*.jar
 /src/org/sosy_lab/cpachecker/core/interfaces/nativeLib*
 
+# src/org/sosy_lab/cpachecker/core/algorithm/tiger/fql/parser/
+src/org/sosy_lab/cpachecker/core/algorithm/tiger/fql/parser/FQLLexer.java
+src/org/sosy_lab/cpachecker/core/algorithm/tiger/fql/parser/FQLParser.java
+src/org/sosy_lab/cpachecker/core/algorithm/tiger/fql/parser/FQLSym.java
+
 # /src/org/sosy_lab/cpachecker/cpa/automaton/
 /src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonParser.java
 /src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonScanner.java
