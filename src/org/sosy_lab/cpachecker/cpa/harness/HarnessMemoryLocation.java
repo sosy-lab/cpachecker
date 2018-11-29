@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.harness;
 
-import java.util.Optional;
-
 public interface HarnessMemoryLocation extends Comparable<HarnessMemoryLocation> {
-  public Optional<String> getIdentifier();
+  public String getIdentifier();
 }

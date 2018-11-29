@@ -23,23 +23,34 @@
  */
 package org.sosy_lab.cpachecker.cpa.harness;
 
-
-import java.util.Optional;
-
 public class DefinedMemoryLocation implements HarnessMemoryLocation {
-  private final Optional<String> identifier;
+  private final String identifier;
+  private boolean isDefined;
 
   public DefinedMemoryLocation() {
-    identifier = Optional.empty();
+    identifier = null;
+    isDefined = false;
   }
 
-  public DefinedMemoryLocation(Optional<String> pIdentifier) {
+  public DefinedMemoryLocation(String pIdentifier, boolean pIsDefined) {
     identifier = pIdentifier;
+    isDefined = pIsDefined;
+  }
+
+  public DefinedMemoryLocation(String pIdentifier) {
+    identifier = pIdentifier;
+    isDefined = false;
   }
 
   @Override
   public int compareTo(HarnessMemoryLocation pO) {
     // TODO Auto-generated method stub
     return 0;
+  }
+
+  @Override
+  public String getIdentifier() {
+    // TODO Auto-generated method stub
+    return identifier;
   }
 }

@@ -28,5 +28,10 @@ public class ExternFunctionCall {
     target = pLocation;
   }
 
+  public ExternFunctionCall() {
+    // TODO Auto-generated constructor stub
+    target = new DefinedMemoryLocation();
+  }
+
   private final HarnessMemoryLocation target;
 }
