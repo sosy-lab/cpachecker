@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WrapperUtil;
 
 public class Wrapper {
 
@@ -39,15 +38,21 @@ public class Wrapper {
   private CFAEdge mAlphaEdge;
   private CFAEdge mOmegaEdge;
 
-  public Wrapper(CFA pCFA, String pOriginalEntryFunction) {
+  public Wrapper(CFA pCFA, String pOriginalEntryFunction, boolean useOmegaEdge) {
     // pCFA already contains a wrapper function in the C code! See CFACreator.CPAtiger_MAIN
 
     mCFA = pCFA;
 
-    determineAlphaAndOmegaEdges(mCFA.getFunctionHead(WrapperUtil.CPAtiger_MAIN), mCFA.getFunctionHead(pOriginalEntryFunction));
+    determineAlphaAndOmegaEdges(
+        mCFA.getFunctionHead(WrapperUtil.CPAtiger_MAIN),
+        mCFA.getFunctionHead(pOriginalEntryFunction),
+        useOmegaEdge);
   }
 
-  private void determineAlphaAndOmegaEdges(CFANode pInitialNode, CFANode pOriginalInitialNode) {
+  private void determineAlphaAndOmegaEdges(
+      CFANode pInitialNode,
+      CFANode pOriginalInitialNode,
+      boolean useOmegaEdge) {
     assert(pInitialNode != null);
 
     Set<CFANode> lWorklist = new LinkedHashSet<>();
@@ -85,22 +90,26 @@ public class Wrapper {
           }
 
           mAlphaEdge = lEdge;
+          if (useOmegaEdge) {
+            CFAEdge lSummaryEdge = lPredecessor.getLeavingSummaryEdge();
 
-          CFAEdge lSummaryEdge = lPredecessor.getLeavingSummaryEdge();
+            if (lSummaryEdge == null) {
+              throw new RuntimeException();
+            }
 
-          if (lSummaryEdge == null) {
-            throw new RuntimeException();
+            CFANode lSummarySuccessor = lSummaryEdge.getSuccessor();
+
+            if (lSummarySuccessor.getNumEnteringEdges() != 1) {
+              throw new RuntimeException(
+                  "Summary successor has "
+                      + lSummarySuccessor.getNumEnteringEdges()
+                      + " entering CFA edges!");
+            }
+
+            mOmegaEdge = lSummarySuccessor.getEnteringEdge(0);
+
+            break;
           }
-
-          CFANode lSummarySuccessor = lSummaryEdge.getSuccessor();
-
-          if (lSummarySuccessor.getNumEnteringEdges() != 1) {
-            throw new RuntimeException("Summary successor has " + lSummarySuccessor.getNumEnteringEdges() + " entering CFA edges!");
-          }
-
-          mOmegaEdge = lSummarySuccessor.getEnteringEdge(0);
-
-          break;
         }
 
         lWorklist.add(lCallToReturnEdge.getSuccessor());
@@ -118,7 +127,9 @@ public class Wrapper {
     }
 
     assert(mAlphaEdge != null);
-    assert(mOmegaEdge != null);
+    if (useOmegaEdge) {
+      assert (mOmegaEdge != null);
+    }
   }
 
   public CFA getCFA() {

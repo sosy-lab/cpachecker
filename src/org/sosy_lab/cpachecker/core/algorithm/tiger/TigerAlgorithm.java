@@ -155,7 +155,11 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
     // startupConfig.getConfig().inject(this);
     logger = pLogger;
     assert TigerAlgorithm.originalMainFunction != null;
-    wrapper = new Wrapper(pCfa, TigerAlgorithm.originalMainFunction);
+    config = pConfig;
+    config.inject(this);
+
+    wrapper =
+        new Wrapper(pCfa, TigerAlgorithm.originalMainFunction, tigerConfig.shouldUseOmegaLabel());
     testGoalUtils =
         new TestGoalUtils(
             logger,
@@ -163,8 +167,7 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
             pCfa,
             tigerConfig.shouldOptimizeGoalAutomata(),
             TigerAlgorithm.originalMainFunction);
-    config = pConfig;
-    config.inject(this);
+
     logger.logf(Level.INFO, "FQL query string: %s", tigerConfig.getFqlQuery());
     String preprocessFqlStmt = testGoalUtils.preprocessFQL(tigerConfig.getFqlQuery());
     fqlSpecification = FQLSpecificationUtil.getFQLSpecification(preprocessFqlStmt);
@@ -502,29 +505,26 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
           Region simplifiedPresenceCondition = getPresenceConditionFromCexForGoal(cex, pGoal);
           TestCase testcase = createTestcase(cex, testCasePresenceCondition);
           // only add new Testcase and check for coverage if it does not already exist
-          if (!testsuite.testSuiteAlreadyContainsTestCase(testcase, pGoal)) {
-            testsuite.addTestCase(
-                testcase,
-                pGoal,
-                simplifiedPresenceCondition);
 
-            if (tigerConfig.getCoverageCheck() == CoverageCheck.SINGLE
-                || tigerConfig.getCoverageCheck() == CoverageCheck.ALL) {
+          testsuite.addTestCase(testcase, pGoal, simplifiedPresenceCondition);
 
-              // remove covered goals from goalstocover if
-              // we want only one featureconfiguration per goal
-              // or do not want variability at all
-              boolean removeGoalsToCover =
-                  !bddUtils.isVariabilityAware()
-                      || tigerConfig.shouldUseSingleFeatureGoalCoverage();
-              HashSet<Goal> goalsToCheckCoverage = new HashSet<>(pGoalsToCover);
-              if (tigerConfig.getCoverageCheck() == CoverageCheck.ALL) {
-                goalsToCheckCoverage.addAll(testsuite.getTestGoals());
-              }
-              goalsToCheckCoverage.remove(pGoal);
-              checkGoalCoverage(goalsToCheckCoverage, testcase, removeGoalsToCover, cex);
+          if (tigerConfig.getCoverageCheck() == CoverageCheck.SINGLE
+              || tigerConfig.getCoverageCheck() == CoverageCheck.ALL) {
+
+            // remove covered goals from goalstocover if
+            // we want only one featureconfiguration per goal
+            // or do not want variability at all
+            // otherwise we need to keep the goals, to cover them for each possible configuration
+            boolean removeGoalsToCover =
+                !bddUtils.isVariabilityAware() || tigerConfig.shouldUseSingleFeatureGoalCoverage();
+            HashSet<Goal> goalsToCheckCoverage = new HashSet<>(pGoalsToCover);
+            if (tigerConfig.getCoverageCheck() == CoverageCheck.ALL) {
+              goalsToCheckCoverage.addAll(testsuite.getTestGoals());
             }
+            goalsToCheckCoverage.remove(pGoal);
+            checkGoalCoverage(goalsToCheckCoverage, testcase, removeGoalsToCover, cex);
           }
+
         }
 
       }

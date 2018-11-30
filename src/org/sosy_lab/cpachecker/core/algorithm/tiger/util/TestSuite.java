@@ -241,43 +241,6 @@ public class TestSuite implements AlgorithmResult {
   }
 
 
-  public boolean testSuiteAlreadyContainsTestCase(TestCase pTestcase, Goal pGoal) {
-    for (TestCase containingTestcase : this.getTestCases()) {
-      if (pTestcase.isEquivalent(containingTestcase) && mapping.get(containingTestcase).contains(pGoal)) {
-        return true;
-      }
-    }
-
-    return false;
-    /*
-     * Entry<TestCase, List<Goal>> entry : mapping.entrySet()
-     *
-     *
-     * pTestcase.get
-     *
-     *
-     * // TODO make a real comparison and not just a string compare String testcaseString =
-     * "Testcase " + pTestcase.toString() + " covers"; String testgoalString = "Goal "; CFANode
-     * predecessor = pGoal.getCriticalEdge().getPredecessor(); if (predecessor instanceof CLabelNode
-     * && !((CLabelNode) predecessor).getLabel().isEmpty()) { testgoalString += ((CLabelNode)
-     * predecessor).getLabel(); } else { testgoalString += pGoal.getIndex(); } testgoalString += " "
-     * + pGoal.toSkeleton() + (pGoal.getPresenceCondition() != null ? " with targetPC " +
-     * bddCpaNamedRegionManager .dumpRegion(pGoal .getPresenceCondition()) : "");
-     *
-     * for (Entry<TestCase, List<Goal>> entry : mapping.entrySet()) { String testcaseStringCmp =
-     * "Testcase " + entry.getKey().toString() + " covers"; if
-     * (testcaseString.equals(testcaseStringCmp)) { for (Goal goal : entry.getValue()) { String
-     * testgoalStringCmp = "Goal "; CFANode predecessorCmp =
-     * goal.getCriticalEdge().getPredecessor(); if (predecessorCmp instanceof CLabelNode &&
-     * !((CLabelNode) predecessorCmp).getLabel().isEmpty()) { testgoalStringCmp += ((CLabelNode)
-     * predecessorCmp).getLabel(); } else { testgoalStringCmp += goal.getIndex(); }
-     * testgoalStringCmp += " " + goal.toSkeleton() + (goal.getPresenceCondition() != null ?
-     * " with targetPC " + bddCpaNamedRegionManager .dumpRegion(goal .getPresenceCondition()) : "");
-     * if (testgoalString.equals(testgoalStringCmp)) { return true; } } } else { continue; } }
-     * return false;
-     */
-  }
-
   public Set<TestCase> getTestCases() {
     return mapping.keySet();
   }
