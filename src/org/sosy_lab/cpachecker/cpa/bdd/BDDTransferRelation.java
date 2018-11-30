@@ -616,7 +616,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       int M = partition.getVars().size();
       return (int) Math.ceil(Math.log(N + M) / Math.log(2));
     } else {
-      return machineModel.getSizeof(type).intValueExact() * machineModel.getSizeofCharInBits();
+      return machineModel.getSizeofInBits(type).intValueExact();
     }
   }
 

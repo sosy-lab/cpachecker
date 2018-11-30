@@ -362,7 +362,7 @@ public class BDDVectorCExpressionVisitor
   }
 
   protected int getSize(CType pType) {
-    return machineModel.getSizeof(pType).intValueExact() * machineModel.getSizeofCharInBits();
+    return machineModel.getSizeofInBits(pType).intValueExact();
   }
 
   /**

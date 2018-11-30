@@ -146,7 +146,10 @@ public class SMGExpressionEvaluator {
     CSizeOfVisitor v = getSizeOfVisitor(edge, pState, pExpression);
 
     try {
-      return pType.accept(v).intValueExact() * machineModel.getSizeofCharInBits();
+      return pType
+          .accept(v)
+          .multiply(BigInteger.valueOf(machineModel.getSizeofCharInBits()))
+          .intValueExact();
     } catch (IllegalArgumentException e) {
       logger.logDebugException(e);
       throw new UnrecognizedCodeException("Could not resolve type.", edge);
