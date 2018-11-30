@@ -158,6 +158,7 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
       }
     }
 
+    isFeasible(targetPathToUse, minimalPrecisionRequired, new HashSet<>());
     Preconditions.checkNotNull(cutpoint);
 
     pReached.removeSubtree(
