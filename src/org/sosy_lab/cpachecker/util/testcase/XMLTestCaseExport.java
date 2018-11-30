@@ -59,7 +59,7 @@ public class XMLTestCaseExport {
       pWriter.append(pProp.toString());
       pWriter.append("</specification>\n");
     } else {
-      pWriter.append("<specification/>\n");
+      pWriter.append("\t<specification/>\n");
     }
 
     pWriter.append("\t<programfile>");
@@ -97,7 +97,7 @@ public class XMLTestCaseExport {
           strB.append(value);
           strB.append("</input>\n");
         }
-        strB.append("<testcase>\n");
+        strB.append("</testcase>\n");
         return strB.toString();
       };
 }
