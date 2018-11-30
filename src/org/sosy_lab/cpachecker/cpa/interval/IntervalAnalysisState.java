@@ -29,11 +29,11 @@ import com.google.common.collect.ComparisonChain;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Collections;
 import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -45,12 +45,13 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class IntervalAnalysisState
     implements Serializable,
@@ -533,10 +534,23 @@ public class IntervalAnalysisState
     return Collections.unmodifiableSet(intervals.entrySet());
   }
 
+  public Interval forgetThis(String mem){
+    if(intervals.containsKey(mem)){
+      return intervals.get(mem);
+    }
+    return new Interval((long) 0);
+  }
+
+  public void rememberThis(String mem, Interval pInterval){
+    intervals = intervals.putAndCopy(mem, pInterval);
+  }
+
   @Override
   public IntervalAnalysisInformation forget(MemoryLocation memoryLocation) {
     String mem = memoryLocation.getAsSimpleString();
-    if (!intervals.containsKey(mem)) return IntervalAnalysisInformation.EMPTY;
+    if (!intervals.containsKey(mem)){
+      return IntervalAnalysisInformation.EMPTY;
+    }
 
     Interval interval = intervals.get(mem);
     intervals = intervals.removeAndCopy(mem);

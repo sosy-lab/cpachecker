@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import java.util.Collection;
+import org.matheclipse.basic.Config;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -35,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
@@ -60,6 +62,8 @@ public class IntervalAnalysisCPA extends AbstractCPA
 
   private ShutdownNotifier shutdownNotifier;
   private CFA cfa;
+
+
 
   /**
    * This method returns a CPAfactory for the interval analysis CPA.
@@ -155,32 +159,22 @@ public class IntervalAnalysisCPA extends AbstractCPA
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
-    return precision;
-  }
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition){return precision;}
 
-  public CFA getCFA() {
-    return cfa;
-  }
+  public CFA getCFA(){return cfa;}
 
-  public ShutdownNotifier getShutdownNotifier() {
-    return shutdownNotifier;
-  }
+  public ShutdownNotifier getShutdownNotifier(){return shutdownNotifier;}
 
-  public Configuration getConfiguration() {
-    return config;
-  }
+  public Configuration getConfiguration(){return config;}
 
-  public LogManager getLogger() {
-    return logger;
-  }
+  public LogManager getLogger(){return logger;}
 
-  private IntervalAnalysisPrecision initializePrecision() {
+  private IntervalAnalysisPrecision initializePrecision () {
     return new IntervalAnalysisPrecision();
   }
 
   @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
+  public PrecisionAdjustment getPrecisionAdjustment(){
     return new IntervalAnalysisPrecisionAdjustment();
   }
 }

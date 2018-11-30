@@ -23,28 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import com.google.common.base.Predicate;
-import com.google.common.collect.Multimap;
-import java.io.IOException;
-import java.io.Writer;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class IntervalAnalysisPrecision implements Precision {
-  Map<String, Integer> precision;
+  Map<String, Pair<Long, Long>> precision;
 
   public IntervalAnalysisPrecision() {
     precision = new HashMap<>();
@@ -52,8 +42,8 @@ public class IntervalAnalysisPrecision implements Precision {
 
   public IntervalAnalysisPrecision(Collection<String> pPrecision) {
     precision = new HashMap<>();
-    for(String nprecision : pPrecision){
-      precision.put(nprecision, 0);
+    for (String nprecision : pPrecision) {
+      precision.put(nprecision, Pair.of(Long.valueOf(0), Long.valueOf(0)));
     }
   }
 
@@ -66,7 +56,14 @@ public class IntervalAnalysisPrecision implements Precision {
     return false;
   }
 
-  public Map<String, Integer> getPrecision() {
+  public Pair<Long, Long> getInterval(String memString) {
+    if (precision.containsKey(memString)) {
+      return precision.get(memString);
+    }
+    return Pair.of(Long.valueOf(0), Long.valueOf(0));
+  }
+
+  public Map<String, Pair<Long, Long>> getPrecision() {
     return precision;
   }
 
@@ -78,37 +75,53 @@ public class IntervalAnalysisPrecision implements Precision {
     return precision.size();
   }
 
-
   public boolean isEmpty() {
     return precision.isEmpty();
   }
 
   public void remove(String x) {
-    if (precision.keySet().contains(x)){
+    if (precision.keySet().contains(x)) {
       precision.remove(x);
     }
   }
 
   public void add(String s) {
-    precision.put(s, 0);
+    precision.put(s, Pair.of(Long.valueOf(0), Long.valueOf(0)));
   }
 
-  public void addAll(Collection<String> add){
+  public void addAll(Collection<String> add) {
     for (String s : add) {
       add(s);
     }
   }
 
-  public void join(IntervalAnalysisPrecision x){
-    for(Entry<String, Integer> prec : x.getPrecision().entrySet()){
-      if(!precision.containsKey(prec.getKey())){
+  public void join(IntervalAnalysisPrecision x) {
+    for (Entry<String, Pair<Long, Long>> prec : x.getPrecision().entrySet()) {
+      if (!precision.containsKey(prec.getKey())) {
         precision.put(prec.getKey(), prec.getValue());
-      }else{
-        //join the Integer
+      } else {
+        // join the Integer
       }
     }
   }
 
+  public void setLow(String memoryLocation, Long value) {
+    if (precision.containsKey(memoryLocation)) {
+        Long high = precision.get(memoryLocation).getSecond();
+        precision.replace(memoryLocation, Pair.of(value, high));
+    }
+  }
+
+  public void setHigh(String memoryLocation, Long value) {
+    if (precision.containsKey(memoryLocation)) {
+      Long low = precision.get(memoryLocation).getFirst();
+      precision.replace(memoryLocation, Pair.of(low, value));
+    }
+  }
+
+  public boolean containsVariable(String variableName) {
+    return precision.keySet().contains(variableName);
+  }
 
   @Override
   public int hashCode() {
@@ -140,5 +153,9 @@ public class IntervalAnalysisPrecision implements Precision {
       return true;
     }
 
+    @Override
+    public boolean containsVariable(String variableName) {
+      return false;
+    }
   }
 }

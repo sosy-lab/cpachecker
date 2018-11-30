@@ -70,9 +70,5 @@ public class IntervalAnalysisEdgeInterpolator
         pCfa);
   }
 
-//  @Override
-//  public Precision getPrecision() {
-//    return precision;
-//  }
 }
 

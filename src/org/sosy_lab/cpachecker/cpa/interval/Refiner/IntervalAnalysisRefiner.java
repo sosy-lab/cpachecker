@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisPrecision.IntervalAnalysisFullPrecision;
@@ -58,7 +59,9 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+@Options(prefix = "cpa.interval.refinement")
 public class IntervalAnalysisRefiner implements ARGBasedRefiner {
 
   StrongestPostOperator<IntervalAnalysisState> strongestPostOperator;
@@ -169,17 +172,49 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
     Deque<IntervalAnalysisState> pCallstack = new ArrayDeque<>();
     PathIterator iterator = pPath.fullPathIterator();
     while (iterator.hasNext()) {
+
       final CFAEdge edge = iterator.getOutgoingEdge();
       Optional<IntervalAnalysisState> maybeNext =
           strongestPostOperator.step(next, edge, precisionToUse, pCallstack, pPath);
       if (!maybeNext.isPresent()) {
+        for (String testState : next.getVariables()) {
+          Interval currentInterval = next.forgetThis(testState);
+          Optional<IntervalAnalysisState> tempMaybeNext =
+              strongestPostOperator.step(next, edge, precisionToUse, pCallstack, pPath);
+          if (tempMaybeNext.isPresent()) {
+            Interval interval = tempMaybeNext.get().getInterval(testState);
+            precisionToUse.setLow(testState, interval.getLow() + 1);
+            precisionToUse.setHigh(testState, interval.getHigh() - 1);
+          }
+          next.rememberThis(testState, currentInterval);
+        }
         return false;
       } else {
+
+        for (String variable : next.getVariables()) {
+          if (usedVariables.contains(variable) && precisionToUse.containsVariable(variable)) {
+            adjustInterval(precisionToUse, variable, next.getInterval(variable));
+          }
+        }
+
         next = maybeNext.get();
+
         usedVariables.addAll(next.getVariables());
       }
       iterator.advance();
     }
     return true;
+  }
+
+  private void adjustInterval(
+      IntervalAnalysisPrecision prec, String memoryLocation, Interval currenInterval) {
+    Pair<Long, Long> precIntervalValues = prec.getInterval(memoryLocation);
+
+    if (currenInterval.getLow() < precIntervalValues.getFirst()) {
+      prec.setLow(memoryLocation, currenInterval.getLow());
+    }
+    if (precIntervalValues.getSecond() < currenInterval.getHigh()) {
+      prec.setHigh(memoryLocation, currenInterval.getHigh());
+    }
   }
 }

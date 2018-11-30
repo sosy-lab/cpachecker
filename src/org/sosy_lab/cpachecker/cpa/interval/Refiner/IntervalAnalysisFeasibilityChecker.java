@@ -62,12 +62,9 @@ public class IntervalAnalysisFeasibilityChecker
     precision = new IntervalAnalysisFullPrecision();
   }
 
-//  @Override
-//  public Precision getPrecision() {
-//    return precision;
-//  }
-
   public void setPrecision(IntervalAnalysisPrecision pPrecision){
     precision = pPrecision;
   }
+
+
 }

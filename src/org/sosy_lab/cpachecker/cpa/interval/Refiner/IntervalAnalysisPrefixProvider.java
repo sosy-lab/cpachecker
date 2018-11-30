@@ -62,8 +62,4 @@ public class IntervalAnalysisPrefixProvider extends GenericPrefixProvider<Interv
         pShutdownNotifier);
   }
 
-/*  @Override
-  public Precision getPrecision() {
-    return precision;
-  }*/
 }
