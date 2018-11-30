@@ -1213,7 +1213,7 @@ public class CtoFormulaConverter {
       // If there is an initializer, all fields/elements not mentioned
       // in the initializer are set to 0 (C standard § 6.7.9 (21)
 
-      int size = machineModel.getSizeof(decl.getType());
+      long size = machineModel.getSizeof(decl.getType()).longValueExact();
       if (size > 0) {
         Formula var = makeVariable(varName, decl.getType(), ssa);
         CType elementCType = decl.getType();

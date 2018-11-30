@@ -535,10 +535,11 @@ public class SMG implements UnmodifiableSMG {
 
   @Override
   public boolean isCoveredByNullifiedBlocks(SMGObject pObject, long pOffset, CType pType ) {
-    return isCoveredByNullifiedBlocks(pObject, pOffset, machine_model.getSizeofInBits(pType));
+    return isCoveredByNullifiedBlocks(
+        pObject, pOffset, machine_model.getSizeofInBits(pType).longValueExact());
   }
 
-  private boolean isCoveredByNullifiedBlocks(SMGObject pObject, long pOffset, int size) {
+  private boolean isCoveredByNullifiedBlocks(SMGObject pObject, long pOffset, long size) {
     long expectedMinClear = pOffset + size;
 
     TreeMap<Long, Integer> nullEdgesOffsetToSize = getNullEdgesMapOffsetToSizeForObject(pObject);
