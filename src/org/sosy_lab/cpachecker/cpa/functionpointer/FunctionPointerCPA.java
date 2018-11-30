@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
-import java.util.Collection;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;

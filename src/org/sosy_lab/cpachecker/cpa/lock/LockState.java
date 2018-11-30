@@ -233,10 +233,11 @@ public class LockState extends AbstractLockState {
     public void expandLockCounters(
         AbstractLockState pRootState, Set<LockIdentifier> pRestrictedLocks) {
       SortedMap<LockIdentifier, Integer> rootLocks = ((LockState) pRootState).locks;
-      for (LockIdentifier lock : rootLocks.keySet()) {
+      for (Entry<LockIdentifier, Integer> entry : rootLocks.entrySet()) {
+        LockIdentifier lock = entry.getKey();
         if (!pRestrictedLocks.contains(lock)) {
           Integer size = mutableLocks.get(lock);
-          Integer rootSize = rootLocks.get(lock);
+          Integer rootSize = entry.getValue();
           // null is also correct (it shows, that we've found new lock)
 
           Integer newSize;

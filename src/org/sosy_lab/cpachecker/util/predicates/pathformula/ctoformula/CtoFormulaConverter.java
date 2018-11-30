@@ -308,7 +308,7 @@ public class CtoFormulaConverter {
     return true;
   }
 
-  protected boolean isAddressedVariable(CSimpleDeclaration pVar) {
+  protected boolean isAddressedVariable(@SuppressWarnings("unused") CSimpleDeclaration pVar) {
     // dummy
     return true;
   }
