@@ -1038,7 +1038,7 @@ public class AssumptionToEdgeAllocator {
           return lookupReferenceAddress(pIastFieldReference);
         }
 
-        Address address = fieldOwnerAddress.addOffset(new BigDecimal(fieldOffset.get()));
+        Address address = fieldOwnerAddress.addOffset(fieldOffset.get());
 
         if (address.isUnknown()) {
           return lookupReferenceAddress(pIastFieldReference);
