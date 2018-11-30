@@ -387,12 +387,12 @@ public class ConfigurationFileChecks {
 
     try (Reader r =
             Files.newBufferedReader(
-                Paths.get("config/specification/sv-comp-terminatingfunctions.spc"));
+                Paths.get("config/specification/test-comp-terminatingfunctions.spc"));
         Writer w =
             IO.openOutputFile(
                 Paths.get(
                     tempFolder.getRoot().getAbsolutePath()
-                        + "/config/specification/sv-comp-terminatingfunctions.spc"),
+                        + "/config/specification/test-comp-terminatingfunctions.spc"),
                 StandardCharsets.UTF_8)) {
       CharStreams.copy(r, w);
     }
