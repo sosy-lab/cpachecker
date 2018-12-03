@@ -39,16 +39,29 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public abstract class SMGPrecision implements Precision {
 
   private final SMGPrecisionAbstractionOptions options;
+  private final int maxLength;
   private final int threshold = 0;
 
   public SMGPrecision(SMGPrecisionAbstractionOptions pOptions) {
     options = pOptions;
+    maxLength = 2;
+  }
+
+  public SMGPrecision(SMGPrecisionAbstractionOptions pOptions, int pMaxLength) {
+    options = pOptions;
+    maxLength = pMaxLength;
   }
 
   public static SMGPrecision createStaticPrecision(boolean pEnableHeapAbstraction) {
     SMGPrecisionAbstractionOptions options =
         new SMGPrecisionAbstractionOptions(pEnableHeapAbstraction, false, false);
     return new SMGStaticPrecision(options);
+  }
+
+  public static SMGPrecision createStaticPrecision(boolean pEnableHeapAbstraction, int pMaxLength) {
+    SMGPrecisionAbstractionOptions options =
+        new SMGPrecisionAbstractionOptions(pEnableHeapAbstraction, false, false);
+    return new SMGStaticPrecision(options, pMaxLength);
   }
 
   public abstract Precision withIncrement(Map<CFANode, SMGPrecisionIncrement> pPrecisionIncrement);
@@ -75,6 +88,10 @@ public abstract class SMGPrecision implements Precision {
 
   public SMGPrecisionAbstractionOptions getAbstractionOptions() {
     return options;
+  }
+
+  public int getMaxLength() {
+    return maxLength;
   }
 
   public abstract Set<SMGAbstractionBlock> getAbstractionBlocks(CFANode location);
@@ -167,6 +184,11 @@ public abstract class SMGPrecision implements Precision {
 
     private SMGStaticPrecision(SMGPrecisionAbstractionOptions pAllowsHeapAbstraction) {
       super(pAllowsHeapAbstraction);
+    }
+
+    public SMGStaticPrecision(
+        SMGPrecisionAbstractionOptions pAllowsHeapAbstraction, int pMaxLength) {
+      super(pAllowsHeapAbstraction, pMaxLength);
     }
 
     @Override
