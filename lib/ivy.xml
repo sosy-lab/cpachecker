@@ -38,6 +38,8 @@
         <dependency org="com.google.guava" name="guava" rev="27.0.1-jre" conf="runtime->default; contrib->sources"/>
 
         <dependency org="org.sosy_lab" name="llvm-j" rev="0.3.1-11-g4c74d18" conf="runtime->runtime; contrib->sources"/>
+        <!-- Temporary dependency until llvm-j gets migrated to checker-qual -->
+        <dependency org="org.checkerframework" name="checker-compat-qual" rev="2.5.3" conf="runtime->default"/>
 
         <!-- JavaBDD
              Java BDD library for predicate abstraction (uses CUDD). -->
