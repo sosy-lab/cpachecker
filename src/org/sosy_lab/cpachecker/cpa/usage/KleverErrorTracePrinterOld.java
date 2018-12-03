@@ -206,7 +206,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
       result = builder.createNodeElement(nextId, NodeType.ONPATH);
     }
     if (lastWarningElement != null) {
-      builder.addDataElementChild(lastWarningElement, KeyDef.WARNING, usage.getWarningMessage());
+      builder.addDataElementChild(lastWarningElement, KeyDef.WARNING, usage.toString());
     }
 
     // Special hack to connect two traces
