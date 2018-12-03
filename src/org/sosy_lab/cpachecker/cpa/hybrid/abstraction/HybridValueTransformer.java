@@ -21,32 +21,15 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.hybrid.value;
+package org.sosy_lab.cpachecker.cpa.hybrid.abstraction;
 
-import com.google.errorprone.annotations.Immutable;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.*;
 
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+/**
+ * Transformer interface for visiting @see HybridValue
+ * @param <T> the type to return on visit
+ */
+public interface HybridValueTransformer<T, TDependentObj> {
 
-/** This class represents a hybrid value that will never change over the complete program flow. */
-@Immutable
-public final class ConstantValue extends HybridValue {
-
-    private static final long serialVersionUID = 1L;
-
-    @Override
-    public boolean isNumericValue() {
-        return false;
-    }
-
-    @Override
-    public NumericValue asNumericValue() {
-        return null;
-    }
-
-    @Override
-    public Long asLong(CType pType) {
-      return null;
-    }
-
+    T transform(HybridValue value, TDependentObj obj);
 }

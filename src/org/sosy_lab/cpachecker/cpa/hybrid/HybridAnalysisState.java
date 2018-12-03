@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,21 +30,21 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.cpa.hybrid.util.*;
+import org.sosy_lab.cpachecker.cpa.hybrid.util.CollectionUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-public class HybridAnalysisState implements
-    LatticeAbstractState<HybridAnalysisState>,
-    AbstractStateWithAssumptions,
-    Graphable {
+public class HybridAnalysisState implements LatticeAbstractState<HybridAnalysisState>,
+        AbstractStateWithAssumptions, Graphable {
 
     private ImmutableSet<CBinaryExpression> assumptions;
 
@@ -123,8 +119,9 @@ public class HybridAnalysisState implements
     @Override
     public boolean isLessOrEqual(HybridAnalysisState pOther)
             throws CPAException, InterruptedException {
+
+        // avoid copying the state inside the lamda
         List<CExpression> otherAssumptions = pOther.getAssumptions();
-        // avoid copying the state inside the lamda 
         return CollectionUtils.appliesToAll(assumptions, a -> otherAssumptions.contains(a));
     }
 
@@ -135,7 +132,7 @@ public class HybridAnalysisState implements
 
     /**
      * Creates a copy of the assumptions held by this state
-     * @return the assumptions with explicit expression type
+     * @return the assumptions with explicit expression type (CBinaryExpression)
      */
     public ImmutableSet<CBinaryExpression> getExplicitAssumptions() {
         return ImmutableSet.copyOf(assumptions);

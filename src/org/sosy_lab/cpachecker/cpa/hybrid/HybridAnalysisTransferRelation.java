@@ -119,7 +119,6 @@ public class HybridAnalysisTransferRelation
       super.setInfo(stateToStrengthen, pPrecision, cfaEdge);
     }
 
-
     super.resetInfo();
     return Collections.singleton(stateToStrengthen);
   }
@@ -173,7 +172,7 @@ public class HybridAnalysisTransferRelation
       throws CPATransferException {
     
     HybridValue value = valueProvider.delegateVisit(decl.getType());
-    CExpression newAssumption = valueDeclarationTransformer.visit(value, decl);
+    CExpression newAssumption = valueDeclarationTransformer.transform(value, decl);
 
     return HybridAnalysisState.copyWithNewAssumptions(state, newAssumption);
   }
@@ -228,7 +227,7 @@ public class HybridAnalysisTransferRelation
 
         HybridValue value = valueProvider.delegateVisit(statement.getLeftHandSide().getExpressionType());
         CIdExpression leftHandSide = (CIdExpression) statement.getLeftHandSide(); // TODO: check if it is assignable from
-        CExpression newAssumption = valueIdExpressionTransformer.visit(value, leftHandSide);
+        CExpression newAssumption = valueIdExpressionTransformer.transform(value, leftHandSide);
 
         return HybridAnalysisState.copyWithNewAssumptions(state, newAssumption);
       }

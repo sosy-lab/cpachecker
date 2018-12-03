@@ -24,9 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.hybrid.util;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -60,7 +58,6 @@ public final class CollectionUtils
 
     /**
      * Creates a new collection of a specified generic param type
-     * Consider specialization into >>many additions<< and >>many look-ups<<
      */
     public static <T> Collection<T> of()
     {

@@ -25,21 +25,23 @@ package org.sosy_lab.cpachecker.cpa.hybrid.visitor;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueVisitor;
-import org.sosy_lab.cpachecker.cpa.hybrid.value.ConstantValue;
+import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueTransformer;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
 
-public class HybridValueIdExpressionTransformer implements HybridValueVisitor<CExpression, CIdExpression> {
+/**
+ * A hybrid value transformer for non deterministic function assignments to variable
+ */
+public class HybridValueIdExpressionTransformer
+    implements HybridValueTransformer<CExpression, CIdExpression> {
 
+  /**
+   * @param pValue The value to transform
+   * @param pCIdExpression The variable expression to assign the given value to
+   */
   @Override
-  public CExpression visit(
-      HybridValue value, CIdExpression pCIdExpression) {
+  public CExpression transform(HybridValue pValue, CIdExpression pCIdExpression) {
     return null;
   }
 
-  @Override
-  public CExpression visit(
-      ConstantValue value, CIdExpression pCIdExpression) {
-    return null;
-  }
+
 }
