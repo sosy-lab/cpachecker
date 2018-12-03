@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock;
 
+import java.util.Collections;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -36,8 +37,14 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 @Options(prefix = "cpa.lock")
 public class LockReducer extends GenericReducer<AbstractLockState, SingletonPrecision> {
 
+  public enum reduceStrategy {
+    NONE,
+    BLOCK,
+    ALL
+  }
+
   @Option(description = "reduce recursive locks to a single access", secure = true)
-  private boolean aggressiveReduction = false;
+  private reduceStrategy reduceLockCounters = reduceStrategy.BLOCK;
 
   // Attention! Error trace may be restored incorrectly.
   // If two states with different locks are reduced to the one state,
@@ -56,8 +63,16 @@ public class LockReducer extends GenericReducer<AbstractLockState, SingletonPrec
     builder.reduce();
     if (reduceUselessLocks) {
       builder.reduceLocks(pContext.getCapturedLocks());
-    } else if (aggressiveReduction) {
-      builder.reduceLockCounters(pContext.getCapturedLocks());
+    }
+    switch (reduceLockCounters) {
+      case ALL:
+        builder.reduceLockCounters(Collections.emptySet());
+        break;
+      case BLOCK:
+        builder.reduceLockCounters(pContext.getCapturedLocks());
+        break;
+      case NONE:
+        break;
     }
     AbstractLockState reducedState = builder.build();
     assert getVariableExpandedState0(pExpandedElement, pContext, reducedState)
@@ -73,8 +88,16 @@ public class LockReducer extends GenericReducer<AbstractLockState, SingletonPrec
     builder.expand(pRootElement);
     if (reduceUselessLocks) {
       builder.expandLocks((LockState) pRootElement, pReducedContext.getCapturedLocks());
-    } else if (aggressiveReduction) {
-      builder.expandLockCounters(pRootElement, pReducedContext.getCapturedLocks());
+    }
+    switch (reduceLockCounters) {
+      case ALL:
+        builder.expandLockCounters(pRootElement, Collections.emptySet());
+        break;
+      case BLOCK:
+        builder.expandLockCounters(pRootElement, pReducedContext.getCapturedLocks());
+        break;
+      case NONE:
+        break;
     }
     return builder.build();
   }
