@@ -43,7 +43,7 @@
     <path id="classpath">
         <pathelement location="${class.dir}"/>
         <fileset dir="lib" includes="*.jar"/>
-        <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar build/annotations.jar build/error_prone_annotations.jar"/>
+        <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar"/>
     </path>
 
     <!-- Needs to include all annotation processors and error-prone -->
