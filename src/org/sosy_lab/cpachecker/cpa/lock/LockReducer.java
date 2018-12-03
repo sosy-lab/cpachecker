@@ -61,9 +61,8 @@ public class LockReducer extends GenericReducer<AbstractLockState, SingletonPrec
       builder.reduceLockCounters(pContext.getCapturedLocks());
     }
     AbstractLockState reducedState = builder.build();
-    AbstractLockState expanded =
-        getVariableExpandedState0(pExpandedElement, pContext, reducedState);
-    assert expanded.equals(pExpandedElement);
+    assert getVariableExpandedState0(pExpandedElement, pContext, reducedState)
+        .equals(pExpandedElement);
     return reducedState;
   }
 
