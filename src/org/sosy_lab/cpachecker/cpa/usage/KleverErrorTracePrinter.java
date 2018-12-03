@@ -243,7 +243,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       Element edge = printEdge(builder, pEdge);
 
       if (!warningIsPrinted
-          && pEdge.getPredecessor() == usage.getLine().getNode()
+          && pEdge.getSuccessor() == usage.getCFANode()
           && containsId(pEdge, pIdName)) {
         warningIsPrinted = true;
         builder.addDataElementChild(edge, KeyDef.WARNING, usage.getWarningMessage());

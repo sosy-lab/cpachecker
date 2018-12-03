@@ -35,6 +35,7 @@ import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.lock.AbstractLockState;
 import org.sosy_lab.cpachecker.cpa.lock.LockState;
@@ -51,7 +52,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
   }
 
   private static class UsageCore {
-    private final LineInfo line;
+    private final CFANode node;
     private final Access accessType;
     private AbstractState keyState;
     private List<CFAEdge> path;
@@ -61,15 +62,15 @@ public class UsageInfo implements Comparable<UsageInfo> {
 
     private UsageCore() {
       // Only for unsupported usage
-      line = null;
+      node = null;
       accessType = Access.WRITE;
       keyState = null;
       isLooped = false;
       id = null;
     }
 
-    private UsageCore(@Nonnull Access atype, @Nonnull LineInfo l, SingleIdentifier ident) {
-      line = l;
+    private UsageCore(@Nonnull Access atype, @Nonnull CFANode n, SingleIdentifier ident) {
+      node = n;
       accessType = atype;
       keyState = null;
       isLooped = false;
@@ -89,8 +90,8 @@ public class UsageInfo implements Comparable<UsageInfo> {
     core = new UsageCore();
   }
 
-  private UsageInfo(@Nonnull Access atype, @Nonnull LineInfo l, SingleIdentifier ident) {
-    core = new UsageCore(atype, l, ident);
+  private UsageInfo(@Nonnull Access atype, @Nonnull CFANode n, SingleIdentifier ident) {
+    core = new UsageCore(atype, n, ident);
   }
 
   private UsageInfo(UsageCore pCore) {
@@ -98,12 +99,14 @@ public class UsageInfo implements Comparable<UsageInfo> {
   }
 
   public static UsageInfo createUsageInfo(
-      @Nonnull Access atype, int l, @Nonnull UsageState state, AbstractIdentifier ident) {
+      @Nonnull Access atype,
+      @Nonnull UsageState state,
+      AbstractIdentifier ident) {
     if (ident instanceof SingleIdentifier) {
       UsageInfo result =
           new UsageInfo(
               atype,
-              new LineInfo(l, AbstractStates.extractLocation(state)),
+              AbstractStates.extractLocation(state),
               (SingleIdentifier) ident);
       FluentIterable<CompatibleState> states =
           AbstractStates.asIterable(state).filter(CompatibleState.class);
@@ -115,8 +118,8 @@ public class UsageInfo implements Comparable<UsageInfo> {
     return IRRELEVANT_USAGE;
   }
 
-  public @Nonnull LineInfo getLine() {
-    return core.line;
+  public @Nonnull CFANode getCFANode() {
+    return core.node;
   }
 
   public @Nonnull SingleIdentifier getId() {
@@ -138,7 +141,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
 
   @Override
   public int hashCode() {
-    return Objects.hash(core.accessType, core.line, compatibleStates);
+    return Objects.hash(core.accessType, core.node, compatibleStates);
   }
 
   @Override
@@ -151,7 +154,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
     }
     UsageInfo other = (UsageInfo) obj;
     return core.accessType == other.core.accessType
-        && Objects.equals(core.line, other.core.line)
+        && Objects.equals(core.node, other.core.node)
         && Objects.equals(compatibleStates, other.compatibleStates);
   }
 
@@ -165,7 +168,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
       sb.append(", ");
     }
     sb.append("line ");
-    sb.append(core.line.toString());
+    sb.append(core.node.toString());
     sb.append(" (" + core.accessType + ")");
     sb.append(", " + getLockState());
 
@@ -236,7 +239,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
       }
     }
 
-    result = this.core.line.compareTo(pO.core.line);
+    result = this.core.node.compareTo(pO.core.node);
     if (result != 0) {
       return result;
     }

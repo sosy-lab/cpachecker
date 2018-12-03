@@ -335,7 +335,6 @@ public class UsageTransferRelation implements TransferRelation {
         UsageInfo usage =
             UsageInfo.createUsageInfo(
                 currentInfo.getBindedAccess(i),
-                fcExpression.getFileLocation().getStartingLineNumber(),
                 newState,
                 id);
         addUsageIfNeccessary(usage);
@@ -411,7 +410,9 @@ public class UsageTransferRelation implements TransferRelation {
       id = newState.getLinksIfNecessary(id);
       UsageInfo usage =
           UsageInfo.createUsageInfo(
-              pair.getSecond(), expression.getFileLocation().getStartingLineNumber(), newState, id);
+              pair.getSecond(),
+              newState,
+              id);
       addUsageIfNeccessary(usage);
     }
   }

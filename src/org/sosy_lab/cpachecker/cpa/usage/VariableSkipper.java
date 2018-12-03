@@ -76,7 +76,7 @@ public class VariableSkipper {
     }
 
     // Check special functions like INIT_LIST_HEAD, in which we should skip all usages
-    String functionName = usage.getLine().getNode().getFunctionName();
+    String functionName = usage.getCFANode().getFunctionName();
     if (byFunction.contains(functionName)) {
       return true;
     }
