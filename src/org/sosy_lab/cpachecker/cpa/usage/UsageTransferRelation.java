@@ -450,7 +450,7 @@ public class UsageTransferRelation implements TransferRelation {
       }
     }
 
-    if (varSkipper.shouldBeSkipped(singleId, usage)) {
+    if (varSkipper.shouldBeSkipped(singleId, usage.getCFANode().getFunctionName())) {
       return;
     }
 
