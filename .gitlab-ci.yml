@@ -155,8 +155,5 @@ unit-tests:jdk-10:
 check-format:
   only: []
 
-checkstyle:
-  only: []
-
 javadoc:
   only: []

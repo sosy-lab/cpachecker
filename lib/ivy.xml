@@ -23,6 +23,9 @@
         <!-- Dependencies needed for running SpotBugs. -->
         <conf name="spotbugs" />
 
+        <!-- Dependencies needed for running CheckStyle. -->
+        <conf name="checkstyle" />
+
         <!-- Additional files like JavaDocs or source code that will help developers.
              These are not downloaded by default, but only when "ant install-contrib" is called. -->
         <conf name="contrib" />
@@ -117,6 +120,9 @@
         <!-- JAR with annotations needs to be present at runtime because we use Nullable.class -->
         <dependency org="com.github.spotbugs" name="spotbugs-annotations" rev="3.1.9" conf="runtime->default; contrib->sources"/>
         <dependency org="com.google.code.findbugs" name="jsr305" rev="3.0.2" conf="runtime->default; contrib->sources"/>
+
+        <!-- Checkstyle -->
+        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.32.0" conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
