@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -63,8 +64,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -84,6 +87,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
+import org.sosy_lab.cpachecker.util.error.DummyErrorState;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 import org.sosy_lab.cpachecker.util.testcase.XMLTestCaseExport;
@@ -137,6 +141,9 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
     description = "display all test targets and non-covered test targets in statistics"
   )
   private boolean printTestTargetInfoInStats = false;
+
+  @Option(secure = true,  description = "when generating tests covering error call stop as soon as generated one test case and report false (only possible in combination with error call property specification")
+  private boolean reportCoveredErrorCallAsError = false;
 
   private final Algorithm algorithm;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
@@ -277,6 +284,11 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
 
                   logger.log(Level.FINE, "Removing test target: " + targetEdge.toString());
                   testTargets.remove(targetEdge);
+
+                  if (shouldReportCoveredErrorCallAsError()) {
+                    addErrorStateWithViolatedProperty(pReached);
+                    return AlgorithmStatus.SOUND_AND_PRECISE;
+                  }
                 } else {
                   logger.log(
                       Level.FINE,
@@ -313,6 +325,8 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
         logger.log(Level.SEVERE, TestTargetProvider.getCoverageInfo());
       }
       closeZipFS();
+
+
     }
 
     return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -325,6 +339,32 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
         pReached.removeOnlyFromWaitlist(state);
       }
     }
+  }
+
+  private void addErrorStateWithViolatedProperty(final ReachedSet pReached) {
+    Preconditions.checkState(shouldReportCoveredErrorCallAsError());
+    pReached.add(
+        new DummyErrorState(pReached.getLastState()) {
+          private static final long serialVersionUID = 5522643115974481914L;
+
+          @Override
+          public Set<Property> getViolatedProperties() throws IllegalStateException {
+            return ImmutableSet.of(
+                new Property() {
+                  @Override
+                  public String toString() {
+                    return specProp.getProperty().toString();
+                  }
+                });
+          }
+        },
+        SingletonPrecision.getInstance());
+  }
+
+  private boolean shouldReportCoveredErrorCallAsError() {
+    return reportCoveredErrorCallAsError
+        && specProp != null
+        && specProp.getProperty().equals(CommonCoverageType.COVERAGE_ERROR);
   }
 
   private void writeTestCaseFiles(final ARGState pTarget) {

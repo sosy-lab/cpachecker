@@ -3763,6 +3763,11 @@ testcase.generate.parallel = false
 # display all test targets and non-covered test targets in statistics
 testcase.inStats = false
 
+# when generating tests covering error call stop as soon as generated one
+# test case and report false (only possible in combination with error call
+# property specification
+testcase.reportCoveredErrorCallAsError = false
+
 # Which CFA edges to use as test targets
 testcase.targets.type = ASSUME
   enum:     [ASSUME, ERROR_CALL, STATEMENT]
