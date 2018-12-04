@@ -229,6 +229,10 @@ public final class StandardFunctions {
           "truncf",
           "truncl");
 
+  /** C11 B.12 Nonlocal jumps stdio.h * */
+  public static final ImmutableSet<String> C11_SETJUMP_H_FUNCTIONS =
+      ImmutableSet.of("setjmp", "longjmp");
+
   /** C11 B.20 Input/output stdio.h * */
   public static final ImmutableSet<String> C11_STDIO_H_FUNCTIONS =
       ImmutableSet.of(
@@ -386,6 +390,24 @@ public final class StandardFunctions {
           "strtok_s",
           "strxfrm");
 
+  /** C11 B.26 Date and time time.h * */
+  public static final ImmutableSet<String> C11_TIME_H_FUNCTIONS =
+      ImmutableSet.of(
+          "clock",
+          "difftime",
+          "mktime",
+          "time",
+          "timespec_get",
+          "asctime",
+          "ctime",
+          "gmtime",
+          "localtime",
+          "strftime",
+          "asctime_s",
+          "ctime_s",
+          "gmtime_s",
+          "localtime_s");
+
   /** C11 B.28 Extended multibyte/wide character utilities wchar.h */
   public static final ImmutableSet<String> C11_WCHAR_H_FUNCTIONS =
       ImmutableSet.of(
@@ -480,9 +502,11 @@ public final class StandardFunctions {
           .addAll(C11_ASSERT_H_FUNCTIONS)
           .addAll(C11_FENV_H_FUNCTIONS)
           .addAll(C11_MATH_H_FUNCTIONS)
+          .addAll(C11_SETJUMP_H_FUNCTIONS)
           .addAll(C11_STDIO_H_FUNCTIONS)
           .addAll(C11_STDLIB_H_FUNCTIONS)
           .addAll(C11_STRING_H_FUNCTIONS)
+          .addAll(C11_TIME_H_FUNCTIONS)
           .addAll(C11_WCHAR_H_FUNCTIONS)
           .build();
 
