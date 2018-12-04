@@ -28,7 +28,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 
-public class TestOctagonManager {
+public class OctagonManagerTest {
 
   static OctagonManager manager;
 
