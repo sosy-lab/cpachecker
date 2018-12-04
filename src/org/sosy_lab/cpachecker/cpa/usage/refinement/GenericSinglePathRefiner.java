@@ -52,21 +52,14 @@ public abstract class GenericSinglePathRefiner extends
       ExtendedARGPath firstPath = pInput.getFirst();
       ExtendedARGPath secondPath = pInput.getSecond();
 
-      PredicatePrecision completePrecision = PredicatePrecision.empty();
       //Refine paths separately
       RefinementResult result = refinePath(firstPath);
       if (result.isFalse()) {
         return result;
       }
-      PredicatePrecision precision = result.getPrecision();
-      if (precision != null) {
-        completePrecision = completePrecision.mergeWith(precision);
-      }
+      PredicatePrecision completePrecision = result.getPrecision();
       result = refinePath(secondPath);
-      precision = result.getPrecision();
-      if (precision != null) {
-        completePrecision = completePrecision.mergeWith(precision);
-      }
+      completePrecision = completePrecision.mergeWith(result.getPrecision());
       if (!result.isFalse()) {
         result = wrappedRefiner.performBlockRefinement(pInput);
       }
