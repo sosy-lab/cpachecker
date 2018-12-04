@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock;
 
-import java.util.Collections;
+import com.google.common.collect.Sets;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -54,22 +55,30 @@ public class LockReducer extends GenericReducer<AbstractLockState, SingletonPrec
 
   public LockReducer(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
+    if (reduceUselessLocks && reduceLockCounters == reduceStrategy.BLOCK) {
+      // reducing counters in this case is useless
+      reduceLockCounters = reduceStrategy.NONE;
+    }
   }
 
   @Override
   public AbstractLockState getVariableReducedState0(
       AbstractLockState pExpandedElement, Block pContext, CFANode pCallNode) {
     AbstractLockStateBuilder builder = pExpandedElement.builder();
+    Set<LockIdentifier> locksToProcess = pExpandedElement.getLocks();
+
     builder.reduce();
     if (reduceUselessLocks) {
-      builder.reduceLocks(pContext.getCapturedLocks());
+      builder.removeLocksExcept(pContext.getCapturedLocks());
+      // All other locks are successfully removed
+      locksToProcess = Sets.intersection(locksToProcess, pContext.getCapturedLocks());
     }
     switch (reduceLockCounters) {
-      case ALL:
-        builder.reduceLockCounters(Collections.emptySet());
-        break;
       case BLOCK:
-        builder.reduceLockCounters(pContext.getCapturedLocks());
+        locksToProcess = Sets.difference(locksToProcess, pContext.getCapturedLocks());
+        //$FALL-THROUGH$
+      case ALL:
+        builder.reduceLockCounters(locksToProcess);
         break;
       case NONE:
         break;
@@ -85,16 +94,20 @@ public class LockReducer extends GenericReducer<AbstractLockState, SingletonPrec
       AbstractLockState pRootElement, Block pReducedContext, AbstractLockState pReducedElement) {
 
     AbstractLockStateBuilder builder = pReducedElement.builder();
+    // Restore only what we reduced
+    Set<LockIdentifier> locksToProcess = pRootElement.getLocks();
+
     builder.expand(pRootElement);
     if (reduceUselessLocks) {
-      builder.expandLocks((LockState) pRootElement, pReducedContext.getCapturedLocks());
+      builder.returnLocksExcept((LockState) pRootElement, pReducedContext.getCapturedLocks());
+      locksToProcess = Sets.intersection(locksToProcess, pReducedContext.getCapturedLocks());
     }
     switch (reduceLockCounters) {
-      case ALL:
-        builder.expandLockCounters(pRootElement, Collections.emptySet());
-        break;
       case BLOCK:
-        builder.expandLockCounters(pRootElement, pReducedContext.getCapturedLocks());
+        locksToProcess = Sets.difference(locksToProcess, pReducedContext.getCapturedLocks());
+        //$FALL-THROUGH$
+      case ALL:
+        builder.expandLockCounters(pRootElement, locksToProcess);
         break;
       case NONE:
         break;

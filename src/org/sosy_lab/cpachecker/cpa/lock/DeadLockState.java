@@ -157,7 +157,7 @@ public class DeadLockState extends AbstractLockState {
     }
 
     @Override
-    public void reduceLocks(Set<LockIdentifier> usedLocks) {
+    public void removeLocksExcept(Set<LockIdentifier> usedLocks) {
 
     }
 
@@ -186,7 +186,7 @@ public class DeadLockState extends AbstractLockState {
     }
 
     @Override
-    public void expandLocks(LockState pRootState, Set<LockIdentifier> usedLocks) {
+    public void returnLocksExcept(LockState pRootState, Set<LockIdentifier> usedLocks) {
       throw new UnsupportedOperationException(
           "Valueable reduce/expand operations are not supported for dead lock analysis");
     }

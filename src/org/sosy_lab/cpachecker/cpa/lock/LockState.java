@@ -37,7 +37,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeSet;
-import java.util.function.Consumer;
 import org.sosy_lab.cpachecker.cpa.lock.effects.AcquireLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.ReleaseLockEffect;
@@ -198,23 +197,15 @@ public class LockState extends AbstractLockState {
     }
 
     @Override
-    public void reduceLocks(Set<LockIdentifier> usedLocks) {
-      reduce(usedLocks, l -> mutableLocks.remove(l));
+    public void removeLocksExcept(Set<LockIdentifier> locksToProcess) {
+      Set<LockIdentifier> expandableLocks =
+          Sets.difference(new HashSet<>(mutableLocks.keySet()), locksToProcess);
+      expandableLocks.forEach(l -> mutableLocks.remove(l));
     }
 
     @Override
-    public void reduceLockCounters(Set<LockIdentifier> exceptLocks) {
-      reduce(exceptLocks,
-              l -> {
-                mutableLocks.remove(l);
-                add(l);
-              });
-    }
-
-    private void
-        reduce(Set<LockIdentifier> exceptLocks, Consumer<LockIdentifier> action) {
-      Sets.difference(new HashSet<>(mutableLocks.keySet()), exceptLocks)
-          .forEach(l -> action.accept(l));
+    public void reduceLockCounters(Set<LockIdentifier> locksToProcess) {
+      locksToProcess.forEach(l -> mutableLocks.replace(l, 1));
     }
 
     public void expand(LockState rootState) {
@@ -222,22 +213,20 @@ public class LockState extends AbstractLockState {
     }
 
     @Override
-    public void expandLocks(LockState pRootState, Set<LockIdentifier> usedLocks) {
-      if (usedLocks != null) {
-        Set<LockIdentifier> expandableLocks = Sets.difference(pRootState.locks.keySet(), usedLocks);
-        expandableLocks.forEach(l -> mutableLocks.put(l, pRootState.getCounter(l)));
-      }
+    public void returnLocksExcept(LockState pRootState, Set<LockIdentifier> usedLocks) {
+      Set<LockIdentifier> expandableLocks = Sets.difference(pRootState.locks.keySet(), usedLocks);
+      expandableLocks.forEach(l -> mutableLocks.put(l, pRootState.getCounter(l)));
     }
 
     @Override
     public void expandLockCounters(
-        AbstractLockState pRootState, Set<LockIdentifier> pRestrictedLocks) {
+        AbstractLockState pRootState,
+        Set<LockIdentifier> locksToProcess) {
       SortedMap<LockIdentifier, Integer> rootLocks = ((LockState) pRootState).locks;
-      for (Entry<LockIdentifier, Integer> entry : rootLocks.entrySet()) {
-        LockIdentifier lock = entry.getKey();
-        if (!pRestrictedLocks.contains(lock)) {
+      for (LockIdentifier lock : locksToProcess) {
+        if (rootLocks.containsKey(lock)) {
           Integer size = mutableLocks.get(lock);
-          Integer rootSize = entry.getValue();
+          Integer rootSize = rootLocks.get(lock);
           // null is also correct (it shows, that we've found new lock)
 
           Integer newSize;
