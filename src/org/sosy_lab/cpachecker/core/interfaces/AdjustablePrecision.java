@@ -33,4 +33,7 @@ public interface AdjustablePrecision extends Precision {
 
   /** Subtract other Precision from current and a return new Precision. */
   AdjustablePrecision subtract(AdjustablePrecision otherPrecision);
+
+  /** Check if the precision contains something valuable or it may be safely thrown away */
+  boolean isEmpty();
 }
