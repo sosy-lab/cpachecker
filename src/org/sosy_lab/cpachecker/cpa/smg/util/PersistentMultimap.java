@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.util;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Iterables;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -33,6 +34,7 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 
 /** A Multimap-implementation based on the {@link PathCopyingPersistentTreeMap}. */
+@Immutable(containerOf = {"K", "V"})
 public class PersistentMultimap<K, V> {
 
   private final PersistentMap<K, ImmutableSet<V>> delegate;
