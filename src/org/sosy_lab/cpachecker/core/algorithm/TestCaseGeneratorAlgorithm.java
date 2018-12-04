@@ -229,8 +229,10 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
         openZipFS();
       }
 
+      boolean shouldReturn;
       while (pReached.hasWaitingState() && !testTargets.isEmpty()) {
         shutdownNotifier.shutdownIfNecessary();
+        shouldReturn = false;
 
         assert ARGUtils.checkARG(pReached);
         assert (from(pReached).filter(IS_TARGET_STATE).isEmpty());
@@ -287,7 +289,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
 
                   if (shouldReportCoveredErrorCallAsError()) {
                     addErrorStateWithViolatedProperty(pReached);
-                    return AlgorithmStatus.SOUND_AND_PRECISE;
+                    shouldReturn = true;
                   }
                 } else {
                   logger.log(
@@ -314,6 +316,9 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
             logger.log(Level.FINE, "There was no target state in the reached set.");
           }
           shutdownNotifier.shutdownIfNecessary();
+        }
+        if (shouldReturn) {
+          return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
 
