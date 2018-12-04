@@ -112,6 +112,7 @@ public class BlockPartitioningBuilder {
       Set<CFANode> directNodes = blockNodesMap.get(callNode);
       blockNodes.add(directNodes);
       variables.add(referencedVariablesMap.get(callNode));
+      blockLocks.add(locks.get(callNode));
       for (FunctionEntryNode calledFunction : blockFunctionCalls.get(callNode)) {
         blockNodes.add(functions.get(calledFunction));
         variables.add(referencedVariables.get(calledFunction));
