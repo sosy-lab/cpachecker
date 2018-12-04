@@ -35,7 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
-import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
@@ -2271,7 +2271,7 @@ public abstract class AbstractExpressionValueVisitor
    * @param fileLocation the location of the corresponding code in the source file
    * @return the casted Value
    */
-  public static Value castCValue(@Nonnull final Value value, final CType targetType,
+  public static Value castCValue(@NonNull final Value value, final CType targetType,
       final MachineModel machineModel, final LogManagerWithoutDuplicates logger,
       final FileLocation fileLocation) {
 
@@ -2443,7 +2443,7 @@ public abstract class AbstractExpressionValueVisitor
    * @return the cast value, if a cast from the source to the target type is possible. Otherwise,
    *         the given value will be returned without a change
    */
-  public static Value castJValue(@Nonnull final Value value, JType sourceType,
+  public static Value castJValue(@NonNull final Value value, JType sourceType,
       JType targetType, final LogManagerWithoutDuplicates logger, final FileLocation fileLocation) {
 
     if (!value.isExplicitlyKnown()) {

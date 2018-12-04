@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;

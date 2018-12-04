@@ -48,7 +48,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import javax.management.JMException;
 import javax.xml.transform.TransformerException;
 import org.sosy_lab.common.ShutdownManager;

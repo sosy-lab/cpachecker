@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.simplification;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;

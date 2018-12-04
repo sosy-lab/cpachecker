@@ -50,7 +50,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.zip.GZIPInputStream;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownManager;

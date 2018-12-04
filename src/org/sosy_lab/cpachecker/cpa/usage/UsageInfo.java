@@ -31,7 +31,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -58,7 +58,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
 
     private boolean isLooped;
 
-    private UsageCore(@Nonnull Access atype, @Nonnull CFANode n, SingleIdentifier ident) {
+    private UsageCore(@NonNull Access atype, @NonNull CFANode n, SingleIdentifier ident) {
       node = n;
       accessType = atype;
       keyState = null;
@@ -78,8 +78,8 @@ public class UsageInfo implements Comparable<UsageInfo> {
   }
 
   private UsageInfo(
-      @Nonnull Access atype,
-      @Nonnull CFANode n,
+      @NonNull Access atype,
+      @NonNull CFANode n,
       SingleIdentifier ident,
       ImmutableList<CompatibleState> pStates) {
     this(new UsageCore(atype, n, ident), pStates);
@@ -91,7 +91,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
   }
 
   public static UsageInfo createUsageInfo(
-      @Nonnull Access atype, @Nonnull AbstractState state, AbstractIdentifier ident) {
+      @NonNull Access atype, @NonNull AbstractState state, AbstractIdentifier ident) {
     if (ident instanceof SingleIdentifier) {
       FluentIterable<CompatibleState> states =
           AbstractStates.asIterable(state).filter(CompatibleState.class);
@@ -108,11 +108,11 @@ public class UsageInfo implements Comparable<UsageInfo> {
     return IRRELEVANT_USAGE;
   }
 
-  public @Nonnull CFANode getCFANode() {
+  public @NonNull CFANode getCFANode() {
     return core.node;
   }
 
-  public @Nonnull SingleIdentifier getId() {
+  public @NonNull SingleIdentifier getId() {
     assert (core.id != null);
     return core.id;
   }

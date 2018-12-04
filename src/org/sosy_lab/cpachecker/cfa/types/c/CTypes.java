@@ -27,7 +27,7 @@ import com.google.common.base.Equivalence;
 import java.util.Iterator;
 import java.util.List;
 import java.util.OptionalInt;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.exceptions.NoException;
