@@ -2665,6 +2665,9 @@ cpa.usage.printFalseUnsafes = false
 # output only true unsafes
 cpa.usage.printOnlyTrueUnsafes = false
 
+# print found unsafes in case of unknown verdict
+cpa.usage.printUnsafesIfUnknown = true
+
 # The order of refinement blocks
 cpa.usage.refinementChain = no default value
 
