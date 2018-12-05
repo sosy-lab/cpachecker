@@ -157,7 +157,7 @@ public class JSimpleType implements JType {
       final int prime = 31;
       int result = 7;
       result = prime * result + Objects.hashCode(type);
-      result = prime * result + Objects.hashCode(isPrimitive);
+      result = prime * result + Boolean.hashCode(isPrimitive);
       return result;
   }
 
