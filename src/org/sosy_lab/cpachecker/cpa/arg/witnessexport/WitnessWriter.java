@@ -47,6 +47,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Queues;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.util.ArrayDeque;
@@ -290,7 +291,7 @@ class WitnessWriter implements EdgeAppender {
   private final ExpressionTreeFactory<Object> factory;
   private final Simplifier<Object> simplifier;
 
-  private final Multimap<String, NodeFlag> nodeFlags = LinkedHashMultimap.create();
+  private final SetMultimap<String, NodeFlag> nodeFlags = LinkedHashMultimap.create();
   private final Multimap<String, Property> violatedProperties = HashMultimap.create();
   private final Map<DelayedAssignmentsKey, CFAEdgeWithAssumptions> delayedAssignments = Maps.newHashMap();
 

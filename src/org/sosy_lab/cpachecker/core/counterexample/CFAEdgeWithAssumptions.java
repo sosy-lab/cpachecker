@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -42,19 +41,22 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 public class CFAEdgeWithAssumptions {
 
   private final CFAEdge edge;
-  private final Collection<AExpressionStatement> expressionStmts;
+  private final ImmutableList<AExpressionStatement> expressionStmts;
   private final String comment;
 
   /**
-   * Creates a edge {@link CFAEdgeWithAssumptions} that contains concrete assumptions along the error path.
+   * Creates a edge {@link CFAEdgeWithAssumptions} that contains concrete assumptions along the
+   * error path.
    *
    * @param pEdge The CFAEdge that represents a part of the errorpath.
    * @param pExpStmt The concrete assumptions represented as expression statements
-   * @param pComment Further comments that should be given to the user about this part of the path but can't be represented as assumption.
+   * @param pComment Further comments that should be given to the user about this part of the path
+   *     but can't be represented as assumption.
    */
-  public CFAEdgeWithAssumptions(CFAEdge pEdge, Collection<AExpressionStatement> pExpStmt, String pComment) {
+  public CFAEdgeWithAssumptions(
+      CFAEdge pEdge, Collection<AExpressionStatement> pExpStmt, String pComment) {
     edge = Objects.requireNonNull(pEdge);
-    expressionStmts = Objects.requireNonNull(pExpStmt);
+    expressionStmts = ImmutableList.copyOf(pExpStmt);
     comment = Objects.requireNonNull(pComment);
   }
 
@@ -66,23 +68,22 @@ public class CFAEdgeWithAssumptions {
      */
     edge = pEdgeWA.edge;
 
-    Collection<AExpressionStatement> expStmts1 = pEdgeWA.getExpStmts();
-    Collection<AExpressionStatement> expStmts2 = pEdgeWA2.getExpStmts();
+    Set<AExpressionStatement> expStmts1 = ImmutableSet.copyOf(pEdgeWA.getExpStmts());
+    ImmutableList.Builder<AExpressionStatement> result = ImmutableList.builder();
+    result.addAll(pEdgeWA.getExpStmts());
 
-    List<AExpressionStatement> result = new ArrayList<>(pEdgeWA.expressionStmts);
-
-    for (AExpressionStatement expStmt2 : expStmts2) {
+    for (AExpressionStatement expStmt2 : pEdgeWA2.getExpStmts()) {
       if (!expStmts1.contains(expStmt2)) {
         result.add(expStmt2);
       }
     }
 
     comment = pEdgeWA.comment;
-    expressionStmts = result;
+    expressionStmts = result.build();
   }
 
-  public ImmutableCollection<AExpressionStatement> getExpStmts() {
-    return ImmutableList.copyOf(expressionStmts);
+  public ImmutableList<AExpressionStatement> getExpStmts() {
+    return expressionStmts;
   }
 
   public CFAEdge getCFAEdge() {

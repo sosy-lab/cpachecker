@@ -284,7 +284,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
         data.getCache().get(reducedInitialState, reducedInitialPrecision, innerSubtree);
 
     final ReachedSet reached;
-    final Collection<AbstractState> reducedResult;
+    final List<AbstractState> reducedResult;
 
     if (entry == null) { // MISS
       entry =
@@ -301,7 +301,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     } else {
       final ReachedSet cachedReached = entry.getReachedSet();
       Preconditions.checkNotNull(cachedReached);
-      @Nullable final Collection<AbstractState> cachedReturnStates = entry.getExitStates();
+      @Nullable final List<AbstractState> cachedReturnStates = entry.getExitStates();
       if (isCacheHit(cachedReached, cachedReturnStates)) { // FULL HIT
         // cache hit, return element from cache
         logger.log(
@@ -369,7 +369,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
    *     <p>NB: return states will be either {@link
    *     org.sosy_lab.cpachecker.core.interfaces.Targetable}, or associated with the block end.
    */
-  private Collection<AbstractState> performCompositeAnalysisWithCPAAlgorithm(
+  private List<AbstractState> performCompositeAnalysisWithCPAAlgorithm(
       final ReachedSet reached, final Block innerSubtree)
       throws InterruptedException, CPAException {
 
@@ -378,7 +378,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     algorithm.run(reached);
 
     // if the element is an error element
-    final Collection<AbstractState> returnStates;
+    final List<AbstractState> returnStates;
     final AbstractState lastState = reached.getLastState();
     if (isTargetState(lastState)) {
       //found a target state inside a recursive subgraph call

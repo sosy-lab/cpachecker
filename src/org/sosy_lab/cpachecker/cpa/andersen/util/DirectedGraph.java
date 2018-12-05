@@ -154,7 +154,7 @@ public class DirectedGraph {
      *
      * @return this {@link DirectedGraph.Node}'s points-to set.
      */
-    public Collection<String> getPointsToSet() {
+    public Set<String> getPointsToSet() {
 
       return pointsToSet;
     }

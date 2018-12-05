@@ -231,7 +231,7 @@ public class AppliedCustomInstructionParser {
     }
 
     CFANode ciStartNode = null;
-    Collection<CFANode> ciEndNodes = new HashSet<>();
+    Set<CFANode> ciEndNodes = new HashSet<>();
 
     Set<CFANode> visitedNodes = new HashSet<>();
     Queue<CFANode> queue = new ArrayDeque<>();

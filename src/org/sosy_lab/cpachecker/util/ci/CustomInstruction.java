@@ -142,23 +142,27 @@ public class CustomInstruction{
   }
 
   private final CFANode ciStartNode;
-  private final Collection<CFANode> ciEndNodes;
+  private final Set<CFANode> ciEndNodes;
   private final List<String> inputVariables;
   private final List<String> outputVariables;
   private final ShutdownNotifier shutdownNotifier;
 
-
   /**
-   * Constructor of CustomInstruction.
-   * Note that the input-/output variables have to be sorted alphabetically!
+   * Constructor of CustomInstruction. Note that the input-/output variables have to be sorted
+   * alphabetically!
+   *
    * @param pCIStartNode CFANode
    * @param pCIEndNodes Collection of CFANode
    * @param pInputVariables List of String, represents the input variables
    * @param pOutputVariables List of String, represents the outputvariables
    * @param pShutdownNotifier ShutdownNotifier
    */
-  public CustomInstruction(final CFANode pCIStartNode, final Collection<CFANode> pCIEndNodes,
-      final List<String> pInputVariables, final List<String> pOutputVariables, final ShutdownNotifier pShutdownNotifier) {
+  public CustomInstruction(
+      final CFANode pCIStartNode,
+      final Set<CFANode> pCIEndNodes,
+      final List<String> pInputVariables,
+      final List<String> pOutputVariables,
+      final ShutdownNotifier pShutdownNotifier) {
 
       ciStartNode = pCIStartNode;
       ciEndNodes = pCIEndNodes;

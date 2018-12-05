@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.Collection;
@@ -227,7 +227,7 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
 
       CFANode dummyCfaNode = new CFANode("dummy");
       VariableTrackingPrecision previsousPrecision = null;
-      Multimap<CFANode, MemoryLocation> previousIncrement = null;
+      SetMultimap<CFANode, MemoryLocation> previousIncrement = null;
       timePrecision.start();
       for (Map.Entry<ARGState, ValueAnalysisInterpolant> itp : pInterpolationTree
           .getInterpolantMapping()) {
@@ -242,7 +242,7 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
           VariableTrackingPrecision currentPrecision =
               extractValuePrecision(pReached, currentState);
 
-          Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
+          SetMultimap<CFANode, MemoryLocation> increment = HashMultimap.create();
           for (MemoryLocation memoryLocation : pInterpolationTree
               .getInterpolantForState(currentState).getMemoryLocations()) {
             increment.put(dummyCfaNode, memoryLocation);
