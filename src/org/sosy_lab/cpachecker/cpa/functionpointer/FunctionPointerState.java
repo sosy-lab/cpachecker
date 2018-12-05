@@ -163,27 +163,6 @@ public class FunctionPointerState
       }
       return new FunctionPointerState(values);
     }
-
-    void addGlobalVariables(FunctionPointerState pReducedState) {
-      for (String var : pReducedState.pointerVariableValues.keySet()) {
-        FunctionPointerTarget newTarget = pReducedState.getTarget(var);
-        FunctionPointerTarget oldTarget = oldState.getTarget(var);
-        if (!var.contains("::") && !newTarget.equals(oldTarget)) {
-          // Global variable
-          setTarget(var, pReducedState.pointerVariableValues.get(var));
-        }
-      }
-    }
-
-    void clearVariablesExceptPrefix(String pFunctionName) {
-      for (String var : values.keySet()) {
-        if (!var.startsWith(pFunctionName) && var.contains("::")) {
-          // It needs to reduce states: we delete all information about other functions, except
-          // pFunctionName and global variables (without "::")
-          values = values.removeAndCopy(var);
-        }
-      }
-    }
   }
 
   // This map should never contain UnknownTargets.
