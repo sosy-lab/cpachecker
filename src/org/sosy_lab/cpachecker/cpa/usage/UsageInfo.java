@@ -103,6 +103,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
                 AbstractStates.extractLocation(state),
                 (SingleIdentifier) ident,
                 states.transform(CompatibleState::prepareToStore).toList());
+        result.core.keyState = state;
         return result;
       }
     }
