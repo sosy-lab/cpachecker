@@ -249,6 +249,6 @@ public class BlockPartitioningBuilder {
   }
 
   private Set<ReferencedVariable> collectReferencedVariables(Set<CFANode> nodes) {
-    return (new ReferencedVariablesCollector(nodes)).getVars();
+    return new ReferencedVariablesCollector(nodes).getVars();
   }
 }

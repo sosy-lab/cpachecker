@@ -154,8 +154,8 @@ public class ProgramSplitAlgorithm implements Algorithm, StatisticsProvider, Sta
               FluentIterable.from(pReached)
                   .filter(
                       state ->
-                          (AbstractStates.extractStateByType(state, SplitInfoState.class)
-                              .isInSplit(index)))
+                          AbstractStates.extractStateByType(state, SplitInfoState.class)
+                              .isInSplit(index))
                   .filter(ARGState.class)
                   .toSet()));
     }

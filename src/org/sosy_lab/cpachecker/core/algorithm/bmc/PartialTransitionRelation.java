@@ -324,7 +324,7 @@ public class PartialTransitionRelation implements Comparable<PartialTransitionRe
     ReachedSet reached = reachedSet.getReachedSet();
     Set<AbstractState> states =
         filterIterationsUpTo(
-                pStateFilter.apply((pAssertion.filterApplicable(reached))), getDesiredK())
+                pStateFilter.apply(pAssertion.filterApplicable(reached)), getDesiredK())
             .toSet();
 
     BooleanFormula stateAssertionFormula = bfmgr.makeTrue();

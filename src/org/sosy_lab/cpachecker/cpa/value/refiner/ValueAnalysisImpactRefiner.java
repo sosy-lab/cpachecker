@@ -250,8 +250,7 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
 
           VariableTrackingPrecision newPrecision = currentPrecision;
           // precision or increment changed -> create new precision and apply
-          if (previsousPrecision != currentPrecision
-              || !(increment.equals(previousIncrement))) {
+          if (previsousPrecision != currentPrecision || !increment.equals(previousIncrement)) {
             newPrecision = currentPrecision.withIncrement(increment);
           }
 

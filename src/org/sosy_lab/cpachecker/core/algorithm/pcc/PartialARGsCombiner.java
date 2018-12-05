@@ -77,7 +77,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
-
 public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
   private final Algorithm restartAlgorithm;
@@ -147,7 +146,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
           checkArgument(AbstractStates.extractLocation(usedReached.getFirstState()) != null,
               "Require that all restart configurations consider a location aware state");
 
-          for (AbstractState errorState : from(usedReached).filter((IS_TARGET_STATE))) {
+          for (AbstractState errorState : from(usedReached).filter(IS_TARGET_STATE)) {
             logger.log(Level.INFO, "Error state found in reached set ", usedReached,
                 "but not by last configuration. Error state must be infeasible.");
             logger.log(Level.FINE, "Remove infeasible error state", errorState);

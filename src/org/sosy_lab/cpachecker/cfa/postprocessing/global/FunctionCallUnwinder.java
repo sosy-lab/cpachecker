@@ -213,7 +213,7 @@ public class FunctionCallUnwinder {
     //          -> we assume an original CFA, not a clone
     // otherwise: call of non-existent function, example: nondet_int()
     final String functionname = getNameOfFunction(edge);
-    return functionname != null && (cfaFunctions.contains(functionname));
+    return functionname != null && cfaFunctions.contains(functionname);
   }
 
   /** checks, iff there is an call-stack from father to child.

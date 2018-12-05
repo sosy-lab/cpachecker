@@ -539,7 +539,7 @@ public enum MachineModel {
 
       BigInteger charSizeInBits = BigInteger.valueOf(model.getSizeofCharInBits());
       BigInteger result = pBitFieldsSize.divide(charSizeInBits);
-      if ((pBitFieldsSize.mod(charSizeInBits)).compareTo(BigInteger.ZERO) > 0) {
+      if (pBitFieldsSize.mod(charSizeInBits).compareTo(BigInteger.ZERO) > 0) {
         result = result.add(BigInteger.ONE);
       }
       return result;
@@ -1002,8 +1002,7 @@ public enum MachineModel {
     // alignment of the current type
     pBitOffset = sizeofVisitor.calculateByteSize(pBitOffset);
 
-    return (pBitOffset.add(getPadding(pBitOffset, pType)))
-        .multiply(BigInteger.valueOf(pSizeOfByte));
+    return pBitOffset.add(getPadding(pBitOffset, pType)).multiply(BigInteger.valueOf(pSizeOfByte));
   }
 
   @Deprecated

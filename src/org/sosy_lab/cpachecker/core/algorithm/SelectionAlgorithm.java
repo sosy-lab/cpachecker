@@ -393,19 +393,19 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     if (!variableClassification.getRelevantVariables().isEmpty()) {
       stats.relevantBoolRatio =
           ((double)
-                  (Sets.intersection(
+                  Sets.intersection(
                           variableClassification.getIntBoolVars(),
                           variableClassification.getRelevantVariables())
-                      .size()))
-              / (double) (variableClassification.getRelevantVariables().size());
+                      .size())
+              / (double) variableClassification.getRelevantVariables().size();
 
       stats.relevantAddressedRatio =
           ((double)
-                  (Sets.intersection(
+                  Sets.intersection(
                           variableClassification.getAddressedVariables(),
                           variableClassification.getRelevantVariables())
-                      .size()))
-              / (double) (variableClassification.getRelevantVariables().size());
+                      .size())
+              / (double) variableClassification.getRelevantVariables().size();
     }
 
     boolean requiresOnlyRelevantBoolsHandling =

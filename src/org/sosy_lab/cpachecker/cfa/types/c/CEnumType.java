@@ -167,7 +167,7 @@ public final class CEnumType implements CComplexType {
 
       CEnumerator other = (CEnumerator) obj;
 
-      return Objects.equals(value, other.value) && (qualifiedName.equals(other.qualifiedName));
+      return Objects.equals(value, other.value) && qualifiedName.equals(other.qualifiedName);
       // do not compare the enumType, comparing it with == is wrong because types which
       // are the same but not identical would lead to wrong results
       // comparing it with equals is no good choice, too. This would lead to a stack

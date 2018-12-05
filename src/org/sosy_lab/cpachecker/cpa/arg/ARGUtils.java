@@ -736,7 +736,7 @@ public class ARGUtils {
     Function<ARGState, String> getLocationName =
         s -> Joiner.on("_OR_").join(AbstractStates.extractLocations(s));
     Function<Integer, Function<ARGState, String>> getStateNameFunction =
-        i -> (s -> "S" + i + "at" + getLocationName.apply(s));
+        i -> s -> "S" + i + "at" + getLocationName.apply(s);
 
     sb.append("CONTROL AUTOMATON " + name + "\n\n");
     String stateName = getStateNameFunction.apply(index).apply(rootState);

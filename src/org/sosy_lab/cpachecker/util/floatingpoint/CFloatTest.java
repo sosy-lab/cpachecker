@@ -338,43 +338,43 @@ public class CFloatTest {
     b = new CFloatNative("1235124562371616235", CFloatNativeAPI.FP_TYPE_SINGLE);
 
     assertThat(b.toString()).isEqualTo("1235124567312171008.0");
-    assertThat((new CFloatNative(a.copyWrapper(), a.getType())).toString())
+    assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString())
         .isEqualTo("1235124567312171008.0");
 
     a = new CFloatImpl("0.1235124562371616235", CFloatNativeAPI.FP_TYPE_SINGLE);
     b = new CFloatNative("0.1235124562371616235", CFloatNativeAPI.FP_TYPE_SINGLE);
 
     assertThat(b.toString()).isEqualTo("0.123512454330921173095703125");
-    assertThat((new CFloatNative(a.copyWrapper(), a.getType())).toString())
+    assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString())
         .isEqualTo("0.123512454330921173095703125");
 
     a = new CFloatImpl("8388609", CFloatNativeAPI.FP_TYPE_SINGLE);
     b = new CFloatNative("8388609", CFloatNativeAPI.FP_TYPE_SINGLE);
 
-    assertThat((new CFloatNative(a.copyWrapper(), a.getType())).toString()).isEqualTo(b.toString());
+    assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
 
     a = new CFloatImpl("16777217", CFloatNativeAPI.FP_TYPE_SINGLE);
     b = new CFloatNative("16777217", CFloatNativeAPI.FP_TYPE_SINGLE);
 
-    assertThat((new CFloatNative(a.copyWrapper(), a.getType())).toString()).isEqualTo(b.toString());
+    assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
 
     a = new CFloatImpl("36893488147419103233", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
     b = new CFloatNative("36893488147419103233", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
 
     assertThat(b.toString()).isEqualTo("36893488147419103232.0");
-    assertThat((new CFloatNative(a.copyWrapper(), a.getType())).toString()).isEqualTo(b.toString());
+    assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
 
     a = new CFloatImpl("18446744073709551617", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
     b = new CFloatNative("18446744073709551617", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
 
     assertThat(b.toString()).isEqualTo("18446744073709551616.0");
-    assertThat((new CFloatNative(a.copyWrapper(), a.getType())).toString()).isEqualTo(b.toString());
+    assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
 
     a = new CFloatImpl("36893488147419103235", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
     b = new CFloatNative("36893488147419103235", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
 
     assertThat(b.toString()).isEqualTo("36893488147419103236.0");
-    assertThat((new CFloatNative(a.copyWrapper(), a.getType())).toString()).isEqualTo(b.toString());
+    assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
   }
 
   @SuppressWarnings({"deprecation"})
@@ -429,8 +429,9 @@ public class CFloatTest {
                 0b11000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000L),
             CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
 
-    assertThat((new CFloatNative(a.add(b).copyWrapper(), a.getType())).toString()).isEqualTo(
-        "7524684765169677984239668825841657450662424665126641865225532990851629461374682772298163028925468467204048782456979919923963285225557620642055414520570450567718506657241077846861357026497412026813181329408.0");
+    assertThat(new CFloatNative(a.add(b).copyWrapper(), a.getType()).toString())
+        .isEqualTo(
+            "7524684765169677984239668825841657450662424665126641865225532990851629461374682772298163028925468467204048782456979919923963285225557620642055414520570450567718506657241077846861357026497412026813181329408.0");
 
     b =
         new CFloatImpl(
@@ -439,8 +440,9 @@ public class CFloatTest {
                 0b11000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000L),
             CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
 
-    assertThat((new CFloatNative(a.add(b).copyWrapper(), a.getType())).toString()).isEqualTo(
-        "15049369530339355967391567042394575883208572683233827981680059276598297544036903949561899567255911541278292760274770262798041223663282407204681034557628156709126316397968184796941747610323938741049383452672.0");
+    assertThat(new CFloatNative(a.add(b).copyWrapper(), a.getType()).toString())
+        .isEqualTo(
+            "15049369530339355967391567042394575883208572683233827981680059276598297544036903949561899567255911541278292760274770262798041223663282407204681034557628156709126316397968184796941747610323938741049383452672.0");
 
     b =
         new CFloatImpl(
@@ -449,8 +451,9 @@ public class CFloatTest {
                 0b11000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000L),
             CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
 
-    assertThat((new CFloatNative(a.add(b).copyWrapper(), a.getType())).toString()).isEqualTo(
-        "30098739060678711932607592866211673730184592072428744465818105142986672330648884709054946153321772296296975911271161371496311753750899146250502480148230824565631238962908427800321562335306106856944808493056.0");
+    assertThat(new CFloatNative(a.add(b).copyWrapper(), a.getType()).toString())
+        .isEqualTo(
+            "30098739060678711932607592866211673730184592072428744465818105142986672330648884709054946153321772296296975911271161371496311753750899146250502480148230824565631238962908427800321562335306106856944808493056.0");
   }
 
   @Test
@@ -566,7 +569,7 @@ public class CFloatTest {
     assertThat(c.toString()).isEqualTo("8.0");
 
     CFloat d = new CFloatImpl("12.5625", CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
-    assertThat((new CFloatNative(d.copyWrapper(), d.getType())).toString()).isEqualTo("12.5625");
+    assertThat(new CFloatNative(d.copyWrapper(), d.getType()).toString()).isEqualTo("12.5625");
   }
 
   @SuppressWarnings({"deprecation"})
@@ -584,7 +587,7 @@ public class CFloatTest {
     assertThat(b.isZero()).isEqualTo(true);
     assertThat(a.isNegative()).isEqualTo(true);
     assertThat(b.isNegative()).isEqualTo(true);
-    assertThat((new CFloatNative(a.copyWrapper(), a.getType())).toString()).isEqualTo(b.toString());
+    assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
 
     a = new CFloatImpl("123.625", CFloatNativeAPI.FP_TYPE_DOUBLE);
     b = new CFloatNative(a.copyWrapper(), a.getType());
@@ -595,13 +598,13 @@ public class CFloatTest {
     b = b.trunc();
 
     assertThat(b.toString()).isEqualTo("123.0");
-    assertThat((new CFloatNative(a.copyWrapper(), a.getType())).toString()).isEqualTo(b.toString());
+    assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
 
     a = new CFloatImpl("12345667", CFloatNativeAPI.FP_TYPE_DOUBLE);
     b = new CFloatNative(a.copyWrapper(), a.getType());
 
     assertThat(b.toString()).isEqualTo("12345667.0");
-    assertThat((new CFloatNative(a.copyWrapper(), a.getType())).toString()).isEqualTo(b.toString());
+    assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
   }
 
   @SuppressWarnings({"deprecation"})
@@ -741,8 +744,9 @@ public class CFloatTest {
 
     assertThat(b.toString()).isEqualTo(
         "0.000000000000000008107087663424604897789104021903747826661400176467657530121613262963364832103252410888671875");
-    assertThat((new CFloatNative(a.copyWrapper(), a.getType())).toString()).isEqualTo(
-        "0.000000000000000008107087663424604897789104021903747826661400176467657530121613262963364832103252410888671875");
+    assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString())
+        .isEqualTo(
+            "0.000000000000000008107087663424604897789104021903747826661400176467657530121613262963364832103252410888671875");
 
     a = new CFloatImpl("123", CFloatNativeAPI.FP_TYPE_DOUBLE);
     b = new CFloatNative(a.copyWrapper(), a.getType());
@@ -754,7 +758,7 @@ public class CFloatTest {
 
     assertThat(b.toString())
         .isEqualTo("0.00813008130081300899039131735435148584656417369842529296875");
-    assertThat((new CFloatNative(a.copyWrapper(), a.getType())).toString()).isEqualTo(b.toString());
+    assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
   }
 
   @SuppressWarnings({"deprecation"})

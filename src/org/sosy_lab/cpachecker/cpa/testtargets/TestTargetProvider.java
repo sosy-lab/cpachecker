@@ -141,7 +141,7 @@ public class TestTargetProvider implements Statistics {
     pOut.printf("Test target coverage: %.2f%%%n", testTargetCoverage * 100);
     pOut.println("Number of total test targets: " + initialTestTargets.size());
     pOut.println("Number of covered test targets: " + numCovered);
-    pOut.println("Number of uncovered test targets: " + (uncoveredTargets.size()));
+    pOut.println("Number of uncovered test targets: " + uncoveredTargets.size());
 
     if (printTargets) {
     pOut.println("Initial test targets: ");

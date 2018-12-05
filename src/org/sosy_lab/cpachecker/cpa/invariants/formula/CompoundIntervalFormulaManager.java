@@ -402,9 +402,9 @@ public class CompoundIntervalFormulaManager {
       if (var != null && value != null) {
         CompoundInterval newValue = null;
         if (var.equals(p2.getOperand1()) && p2.getOperand2() instanceof Constant<?>) {
-          newValue = (((Constant<CompoundInterval>) p2.getOperand2()).getValue());
+          newValue = ((Constant<CompoundInterval>) p2.getOperand2()).getValue();
         } else if (var.equals(p2.getOperand2()) && p2.getOperand1() instanceof Constant<?>) {
-          newValue = (((Constant<CompoundInterval>) p2.getOperand1()).getValue());
+          newValue = ((Constant<CompoundInterval>) p2.getOperand1()).getValue();
         }
         if (newValue != null) {
           TypeInfo typeInfo = p2.getOperand1().getTypeInfo();

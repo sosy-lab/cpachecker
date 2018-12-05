@@ -618,7 +618,7 @@ public class CPAchecker {
     }
 
     if (!pReached.hasWaitingState()
-        && !(initialStatesFor.equals(Collections.singleton(InitialStatesFor.TARGET)))) {
+        && !initialStatesFor.equals(Collections.singleton(InitialStatesFor.TARGET))) {
       throw new InvalidConfigurationException("Initialization of the set of initial states failed: No analysis target found!");
     } else {
       logger.logf(

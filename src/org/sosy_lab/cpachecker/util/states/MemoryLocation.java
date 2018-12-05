@@ -138,7 +138,7 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
   }
 
   public String getAsSimpleString() {
-    String variableName = isOnFunctionStack() ? (functionName + "::" + identifier) : (identifier);
+    String variableName = isOnFunctionStack() ? (functionName + "::" + identifier) : identifier;
     if (offset == null) {
       return variableName;
     }

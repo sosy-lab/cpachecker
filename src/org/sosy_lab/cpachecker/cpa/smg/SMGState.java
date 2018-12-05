@@ -975,7 +975,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
           int level = reachedObjectSubSmg.getLevel();
           SMGTargetSpecifier tg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
 
-          if ((!reached.contains(reachedObjectSubSmg))
+          if (!reached.contains(reachedObjectSubSmg)
               && (level != 0 || tg == SMGTargetSpecifier.ALL)
               && !subDlsValue.isZero()) {
             assert level > 0;
@@ -1018,7 +1018,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         int level = reachedObjectSubSmg.getLevel();
         SMGTargetSpecifier tg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
 
-        if ((!reached.contains(reachedObjectSubSmg))
+        if (!reached.contains(reachedObjectSubSmg)
             && (level != 0 || tg == SMGTargetSpecifier.ALL)
             && !subDlsValue.isZero()) {
           assert level > 0;

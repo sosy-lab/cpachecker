@@ -95,8 +95,8 @@ public class CallstackCPA extends AbstractCPA
 
   @Override
   public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
-    return (getAbstractDomain().isLessOrEqual(pElement, pOtherElement)) || ((CallstackState) pElement)
-        .sameStateInProofChecking((CallstackState) pOtherElement);
+    return getAbstractDomain().isLessOrEqual(pElement, pOtherElement)
+        || ((CallstackState) pElement).sameStateInProofChecking((CallstackState) pOtherElement);
   }
 
   @Override

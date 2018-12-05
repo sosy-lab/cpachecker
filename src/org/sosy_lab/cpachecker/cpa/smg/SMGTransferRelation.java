@@ -1030,7 +1030,7 @@ public class SMGTransferRelation
               pNewState,
               pNewObject,
               pOffset,
-              TypeUtils.createTypeWithLength(Math.toIntExact((sizeOfType))),
+              TypeUtils.createTypeWithLength(Math.toIntExact(sizeOfType)),
               SMGZeroValue.INSTANCE,
               pEdge);
 

@@ -318,8 +318,7 @@ public class PolicyIterationManager {
 
     // Perform reachability checking, for property states, or before the abstractions.
     boolean isTarget = hasTargetState && checkTargetStates;
-    if (((isTarget) || shouldAbstract)
-        && isUnreachable(iState, extraInvariant, isTarget)) {
+    if ((isTarget || shouldAbstract) && isUnreachable(iState, extraInvariant, isTarget)) {
 
       logger.log(Level.FINE, "Returning bottom state");
       return Optional.empty();

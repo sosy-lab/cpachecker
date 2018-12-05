@@ -57,7 +57,7 @@ public final class CTypes {
     return (type instanceof CEnumType)
         // C11 § 6.7.2.1 (10) "A bit-field is interpreted as having a signed or unsigned integer type"
         || (type instanceof CBitFieldType)
-        || (type instanceof CSimpleType && !(((CSimpleType) type).isComplex()));
+        || (type instanceof CSimpleType && !((CSimpleType) type).isComplex());
   }
 
   /**

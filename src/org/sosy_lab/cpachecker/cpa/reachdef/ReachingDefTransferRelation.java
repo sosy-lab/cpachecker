@@ -313,7 +313,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
     return pNode
         .getFunctionParameters()
         .stream()
-        .map((x -> MemoryLocation.valueOf(x.getQualifiedName())))
+        .map(x -> MemoryLocation.valueOf(x.getQualifiedName()))
         .collect(Collectors.toSet());
   }
 

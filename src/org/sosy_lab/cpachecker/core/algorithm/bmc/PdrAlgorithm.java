@@ -240,10 +240,10 @@ public class PdrAlgorithm implements Algorithm {
             fmgr,
             initialLocation,
             getNonTrivialLoopHeads().iterator(),
-            (location ->
+            location ->
                 location == initialLocation
                     ? createPartialTransitionRelation(location, pReachedSet)
-                    : createPartialTransitionRelation(location)));
+                    : createPartialTransitionRelation(location));
     for (BooleanFormula locationFormula : transitionRelation.getPredecessorLocationFormulas()) {
       abstractionStrategy.refinePrecision(pam, Collections.singleton(locationFormula));
     }

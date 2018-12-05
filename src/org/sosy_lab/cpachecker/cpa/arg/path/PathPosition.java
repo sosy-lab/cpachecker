@@ -55,7 +55,7 @@ public class PathPosition {
     }
     PathPosition other = (PathPosition) pObj;
 
-    return ((this.pos == other.pos) && (this.path.equals(other.path)));
+    return ((this.pos == other.pos) && this.path.equals(other.path));
   }
 
   /**

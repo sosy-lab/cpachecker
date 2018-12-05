@@ -385,7 +385,7 @@ public class ExpressionValueVisitor
 
           case MINUS:
           case MODULO:
-            isZero = (lVal.equals(rVal));
+              isZero = lVal.equals(rVal);
               val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
               return singletonList(SMGValueAndState.of(newState, val));
 

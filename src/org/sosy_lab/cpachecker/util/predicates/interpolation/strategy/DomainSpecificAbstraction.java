@@ -50,9 +50,6 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
-
-
-
 @SuppressWarnings("rawtypes")
 public class DomainSpecificAbstraction<T> {
   protected final FormulaManagerView fmgr;
@@ -194,7 +191,7 @@ public class DomainSpecificAbstraction<T> {
           }
         }
       }
-      String[] latticeNames = new String[(arrayVariablesThatAreUsedInBothParts.length)];
+      String[] latticeNames = new String[arrayVariablesThatAreUsedInBothParts.length];
       List<BooleanFormula> relationAbstraction1Formula =
           Lists.newArrayListWithExpectedSize(variablesThatAreUsedInBothParts
               .size());
@@ -386,9 +383,10 @@ public class DomainSpecificAbstraction<T> {
                   arrayVariablesThatAreUsedInBothParts[i + 1];
               latticeNamesTypes.put(latticeNames[i], resultType1);
               latticeNamesTypes.put(latticeNames[i + 1], resultType1);
-            } else if (resultType1 == resultType2 && !(resultType1.isIntegerType()) && !
-                (resultType1.isFloatingPointRoundingModeType()) && !(resultType1
-                .isRationalType())) {
+            } else if (resultType1 == resultType2
+                && !resultType1.isIntegerType()
+                && !resultType1.isFloatingPointRoundingModeType()
+                && !resultType1.isRationalType()) {
               relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
                   arrayVariablesThatAreUsedInBothParts[i] + "#";
               relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
@@ -688,9 +686,10 @@ public class DomainSpecificAbstraction<T> {
               }
               relationAbstraction2Formula.add(helperFormula6);
               relationAbstraction2Formula.add(helperFormula5);
-            } else if (resultType1 == resultType2 && !(resultType1.isIntegerType()) && !
-                (resultType1.isFloatingPointRoundingModeType()) && !(resultType1
-                .isRationalType())) {
+            } else if (resultType1 == resultType2
+                && !resultType1.isIntegerType()
+                && !resultType1.isFloatingPointRoundingModeType()
+                && !resultType1.isRationalType()) {
               relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
                   arrayVariablesThatAreUsedInBothParts[i] + "##";
               relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
@@ -1001,9 +1000,10 @@ public class DomainSpecificAbstraction<T> {
                   arrayVariablesThatAreUsedInBothParts[i + 1];
               latticeNamesTypes.put(latticeNames[i], resultType1);
               latticeNamesTypes.put(latticeNames[i + 1], resultType1);
-            } else if (resultType1 == resultType2 && !(resultType1.isIntegerType()) && !
-                (resultType1.isFloatingPointRoundingModeType()) && !(resultType1
-                .isRationalType())) {
+            } else if (resultType1 == resultType2
+                && !resultType1.isIntegerType()
+                && !resultType1.isFloatingPointRoundingModeType()
+                && !resultType1.isRationalType()) {
               relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
                   arrayVariablesThatAreUsedInBothParts[i] + "#";
               relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
@@ -1298,9 +1298,10 @@ public class DomainSpecificAbstraction<T> {
               }
               relationAbstraction2Formula.add(helperFormula6);
               relationAbstraction2Formula.add(helperFormula5);
-            } else if (resultType1 == resultType2 && !(resultType1.isIntegerType()) && !
-                (resultType1.isFloatingPointRoundingModeType()) && !(resultType1
-                .isRationalType())) {
+            } else if (resultType1 == resultType2
+                && !resultType1.isIntegerType()
+                && !resultType1.isFloatingPointRoundingModeType()
+                && !resultType1.isRationalType()) {
               relationAbstraction1[i] = arrayVariablesThatAreUsedInBothParts[i] + " = " +
                   arrayVariablesThatAreUsedInBothParts[i] + "##";
               relationAbstraction1[i + 1] = arrayVariablesThatAreUsedInBothParts[i + 1] + " = " +
@@ -1800,8 +1801,8 @@ public class DomainSpecificAbstraction<T> {
              h++) {
           for (int k = 0; k < relationAbstraction1.length; k++) {
             if (relationAbstraction1[k] != null && latticeNames[h] != null) {
-              if (((relationAbstraction1[k]).contains( latticeNames[h] + " = ")) || (
-                  (relationAbstraction1[k]).contains( latticeNames[h] + " < "))) {
+              if (relationAbstraction1[k].contains(latticeNames[h] + " = ")
+                  || relationAbstraction1[k].contains(latticeNames[h] + " < ")) {
                 helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
                     (k));
                 if (latticenamesH.isEmpty()) {
@@ -1813,8 +1814,8 @@ public class DomainSpecificAbstraction<T> {
               }
             }
             if (relationAbstraction2[k] != null && latticeNames[h] != null) {
-              if (((relationAbstraction2[k]).contains( latticeNames[h] + " = ")) || (
-                  (relationAbstraction2[k]).contains( latticeNames[h] + " < "))) {
+              if (relationAbstraction2[k].contains(latticeNames[h] + " = ")
+                  || relationAbstraction2[k].contains(latticeNames[h] + " < ")) {
                 helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
                     (k));
 
@@ -1880,16 +1881,16 @@ public class DomainSpecificAbstraction<T> {
         for (Formula y : frontierList.get(0)) {
           for (int k = 0; k < relationAbstraction1.length; k++) {
 
-            if (((relationAbstraction1Formula.get(k).toString()).contains("= " + y.toString())) ||
-                ((relationAbstraction1Formula.get(k).toString()).contains("<= " + y.toString()))) {
+            if (relationAbstraction1Formula.get(k).toString().contains("= " + y.toString())
+                || relationAbstraction1Formula.get(k).toString().contains("<= " + y.toString())) {
               helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
                   (k));
 
 
             }
 
-            if (((relationAbstraction2Formula.get(k).toString()).contains("= " + y.toString())) ||
-                ((relationAbstraction1Formula.get(k).toString()).contains("<= " + y.toString()))) {
+            if (relationAbstraction2Formula.get(k).toString().contains("= " + y.toString())
+                || relationAbstraction1Formula.get(k).toString().contains("<= " + y.toString())) {
               helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
                   (k));
 
@@ -1947,7 +1948,7 @@ public class DomainSpecificAbstraction<T> {
       }
 
     }
-    if (interpolants != null && !(interpolants.isEmpty())){
+    if (interpolants != null && !interpolants.isEmpty()) {
       return interpolants;
     } else {
       return Collections.emptyList();
@@ -2012,9 +2013,8 @@ public class DomainSpecificAbstraction<T> {
 
           for (int k = 0; k < relationAbstraction1.length; k++) {
             if (relationAbstraction1[k] != null && !(s == null)) {
-              if ((relationAbstraction1[k]).contains(s + " = ") || (relationAbstraction1[k])
-                  .contains(s + " < ")
-                  ) {
+              if (relationAbstraction1[k].contains(s + " = ")
+                  || relationAbstraction1[k].contains(s + " < ")) {
                 helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
                     (k));
 
@@ -2022,8 +2022,8 @@ public class DomainSpecificAbstraction<T> {
               }
             }
             if (relationAbstraction2[k] != null && !(s == null)) {
-              if ((relationAbstraction2[k]).contains(s + " = ") || (relationAbstraction2[k])
-                  .contains(s + " < ")) {
+              if (relationAbstraction2[k].contains(s + " = ")
+                  || relationAbstraction2[k].contains(s + " < ")) {
                 helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
                     (k));
 
@@ -2084,8 +2084,8 @@ public class DomainSpecificAbstraction<T> {
       for (String s : splitOperator) {
         for (int k = 0; k < relationAbstraction1.length; k++) {
           if (relationAbstraction1[k] != null) {
-            if ((relationAbstraction1[k]).contains(s + " = ") || (relationAbstraction1[k])
-                .contains(s + " < ")) {
+            if (relationAbstraction1[k].contains(s + " = ")
+                || relationAbstraction1[k].contains(s + " < ")) {
               helperFormula1 = fmgr.makeAnd(helperFormula1, relationAbstraction1Formula.get
                   (k));
 
@@ -2093,8 +2093,8 @@ public class DomainSpecificAbstraction<T> {
             }
           }
           if (relationAbstraction2[k] != null) {
-            if ((relationAbstraction2[k]).contains(s + " = ") || (relationAbstraction2[k])
-                .contains(s + " < ")) {
+            if (relationAbstraction2[k].contains(s + " = ")
+                || relationAbstraction2[k].contains(s + " < ")) {
               helperFormula2 = fmgr.makeAnd(helperFormula2, relationAbstraction2Formula.get
                   (k));
 

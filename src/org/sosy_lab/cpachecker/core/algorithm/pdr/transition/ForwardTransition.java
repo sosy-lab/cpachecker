@@ -151,8 +151,8 @@ public class ForwardTransition {
           if (isBlockEnd) {
             blocks.add(nextBlockState);
           }
-          if (!(childARGState.getChildren().isEmpty())
-              && (visitedPredecessorStates.add(nextBlockState))) {
+          if (!childARGState.getChildren().isEmpty()
+              && visitedPredecessorStates.add(nextBlockState)) {
             currentStateQueue.offer(
                 new BlockState(isBlockStart ? child : blockState.blockStart, child));
           }

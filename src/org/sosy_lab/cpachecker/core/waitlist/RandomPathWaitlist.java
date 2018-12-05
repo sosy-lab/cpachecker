@@ -65,7 +65,7 @@ public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractStat
   public void add(AbstractState pStat) {
     super.add(pStat);
     CFANode location = AbstractStates.extractLocation(pStat);
-    if (parent == null || (!parent.hasEdgeTo(location))) {
+    if (parent == null || !parent.hasEdgeTo(location)) {
       parent = location;
       successorsOfParent = 0;
     } else {

@@ -373,7 +373,7 @@ public class ReportGenerator {
         "<table  id=\"statistics_table\" class=\"display\" style=\"width:100%;padding: 10px\" class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th scope=\"col\">Statistics Name</th><th scope=\"col\">Statistics Value</th scope=\"col\"><th>Additional Value</th></tr></thead><tbody>\n";
     writer.write(insertTableLine);
     for (String line : LINE_SPLITTER.split(statistics)) {
-      if (!line.contains(":") && !(line.trim().isEmpty()) && !line.contains("----------")) {
+      if (!line.contains(":") && !line.trim().isEmpty() && !line.contains("----------")) {
         String insertTableHead =
             "<tr class=\"table_head\" id=\"statistics-"
                 + counter

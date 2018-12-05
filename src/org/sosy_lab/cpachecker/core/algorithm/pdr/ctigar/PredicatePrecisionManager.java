@@ -212,7 +212,7 @@ public class PredicatePrecisionManager {
   private boolean areComparableSimpleTypes(CType pType1, CType pType2) {
 
     // Don't compare different types or non-CSimpleTypes
-    return (pType1.getCanonicalType().equals(pType2.getCanonicalType()))
+    return pType1.getCanonicalType().equals(pType2.getCanonicalType())
         && (pType1 instanceof CSimpleType);
   }
 

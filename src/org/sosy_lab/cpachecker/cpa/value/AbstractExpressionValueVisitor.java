@@ -1468,7 +1468,7 @@ public abstract class AbstractExpressionValueVisitor
       return numericValue.negate();
 
     case TILDE:
-      return new NumericValue(~(numericValue).longValue());
+        return new NumericValue(~numericValue.longValue());
 
     default:
       throw new AssertionError("unknown operator: " + unaryOperator);

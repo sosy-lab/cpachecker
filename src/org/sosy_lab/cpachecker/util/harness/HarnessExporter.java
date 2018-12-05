@@ -537,7 +537,7 @@ public class HarnessExporter {
         pPrevious,
         pChild,
         leftHandSide,
-        value -> (vector -> vector.addInputValue(pFunctionCallExpression.getDeclaration(), value)),
+        value -> vector -> vector.addInputValue(pFunctionCallExpression.getDeclaration(), value),
         pValueMap);
   }
 
@@ -568,7 +568,7 @@ public class HarnessExporter {
         pPrevious,
         pChild,
         leftHandSide,
-        value -> (vector -> vector.addInputValue(pVariableDeclaration, toInitializer(value))),
+        value -> vector -> vector.addInputValue(pVariableDeclaration, toInitializer(value)),
         pValueMap);
   }
 

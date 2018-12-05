@@ -199,7 +199,7 @@ class CmdLineArguments {
               boolean verbose = false;
               if (argsIt.hasNext()) {
                 final String nextArg = argsIt.next();
-                verbose = ("-v".equals(nextArg) || ("-verbose".equals(nextArg)));
+                verbose = ("-v".equals(nextArg) || "-verbose".equals(nextArg));
               }
               PrintStream out = System.out;
               OptionCollector.collectOptions(verbose, true, out);

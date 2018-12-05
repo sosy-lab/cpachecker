@@ -246,9 +246,10 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private BlockFormulas createFormulasOnPath(final ARGPath allStatesTrace,
                                                       final List<ARGState> abstractionStatesTrace)
                                                       throws CPAException, InterruptedException {
-    BlockFormulas formulas = (isRefinementSelectionEnabled())
-        ? performRefinementSelection(allStatesTrace, abstractionStatesTrace)
-        : getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirstState());
+    BlockFormulas formulas =
+        isRefinementSelectionEnabled()
+            ? performRefinementSelection(allStatesTrace, abstractionStatesTrace)
+            : getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirstState());
 
     // a user would expect "abstractionStatesTrace.size() == formulas.size()+1",
     // however we do not have the very first state in the trace,

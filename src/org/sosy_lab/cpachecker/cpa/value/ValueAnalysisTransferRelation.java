@@ -778,7 +778,7 @@ public class ValueAnalysisTransferRelation
   private boolean isMissingCExpressionInformation(ExpressionValueVisitor pEvv,
       ARightHandSide pExp) {
 
-    return pExp instanceof CExpression && (pEvv.hasMissingPointer());
+    return pExp instanceof CExpression && pEvv.hasMissingPointer();
   }
 
   @Override

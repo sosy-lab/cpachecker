@@ -165,8 +165,8 @@ public class InductiveWeakeningManager implements StatisticsProvider {
         fromStateLemmas);
 
     Set<BooleanFormula> out =
-        Sets.filter(toStateLemmas,
-            lemma -> (!toAbstract.contains(selectionInfo.inverse().get(lemma))));
+        Sets.filter(
+            toStateLemmas, lemma -> !toAbstract.contains(selectionInfo.inverse().get(lemma)));
     assert checkAllMapsTo(fromStateLemmas, startingSSA, out, transition
         .getSsa(), transition.getFormula());
     return out;
@@ -210,8 +210,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
         startingSSA, lemmas);
 
     Set<BooleanFormula> out =
-        Sets.filter(lemmas,
-            lemma -> (!toAbstract.contains(selectionInfo.inverse().get(lemma))));
+        Sets.filter(lemmas, lemma -> !toAbstract.contains(selectionInfo.inverse().get(lemma)));
     assert checkAllMapsTo(out, startingSSA, out, transition.getSsa(),
         transition.getFormula());
 

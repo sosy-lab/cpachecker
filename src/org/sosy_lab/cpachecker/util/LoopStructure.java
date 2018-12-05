@@ -982,7 +982,7 @@ public final class LoopStructure implements Serializable {
           from(nodes)
               .filter(FunctionEntryNode.class)
               .filter(entry -> entry.getNumEnteringEdges() > 1)) {
-        l.mergeWith((new Loop(entry, nodes)));
+        l.mergeWith(new Loop(entry, nodes));
       }
 
       result.add(l);

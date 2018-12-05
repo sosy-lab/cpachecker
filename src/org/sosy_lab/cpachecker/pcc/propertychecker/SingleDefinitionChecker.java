@@ -127,8 +127,8 @@ public class SingleDefinitionChecker implements PropertyChecker {
           && ((CDeclarationEdge) edge).getDeclaration() instanceof CVariableDeclaration
           && ((CVariableDeclaration) ((CDeclarationEdge) edge).getDeclaration()).getInitializer()
               != null
-          && (MemoryLocation.valueOf(((CDeclarationEdge) edge).getDeclaration().getQualifiedName())
-              .equals(varDefName))) {
+          && MemoryLocation.valueOf(((CDeclarationEdge) edge).getDeclaration().getQualifiedName())
+              .equals(varDefName)) {
         return true;
       }
     }

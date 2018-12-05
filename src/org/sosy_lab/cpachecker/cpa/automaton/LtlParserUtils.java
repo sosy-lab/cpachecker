@@ -134,7 +134,7 @@ public class LtlParserUtils {
       StoredHeader storedHeader = storedAutomaton.getStoredHeader();
 
       List<NameAndExtra<List<Object>>> accNames = storedHeader.getAcceptanceNames();
-      if (!(Iterables.getOnlyElement(accNames).name.equals("Buchi"))) {
+      if (!Iterables.getOnlyElement(accNames).name.equals("Buchi")) {
         throw new LtlParseException(
             String.format(
                 "Only 'Buchi'-acceptance is allowed, but instead the following was found: %s",

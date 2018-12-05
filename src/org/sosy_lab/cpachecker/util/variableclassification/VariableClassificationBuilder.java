@@ -791,7 +791,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
 
   static String scopeVar(@Nullable final String function, final String var) {
     checkNotNull(var);
-    return (function == null) ? (var) : (function + SCOPE_SEPARATOR + var);
+    return (function == null) ? var : (function + SCOPE_SEPARATOR + var);
   }
 
   static boolean isGlobal(CExpression exp) {
