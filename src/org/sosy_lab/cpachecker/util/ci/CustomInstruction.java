@@ -974,7 +974,7 @@ public class CustomInstruction{
       if (!ciExp.getExpressionType().equals(aciFloatExp.getExpressionType())) {
         throw new AppliedCustomInstructionParsingFailedException("The expression type of the FloatLiteralExpression of ci " + ciExp + " (" + ciExp.getExpressionType() + ") is not equal to the one of the aci " + aciFloatExp + " (" + aciFloatExp.getExpressionType() + ").");
       }
-      if (!ciExp.getValue().equals(aciFloatExp.getValue())) {
+      if (ciExp.getValue().compareTo(aciFloatExp.getValue()) != 0) {
         throw new AppliedCustomInstructionParsingFailedException("The value of the CCharLiteralExpression of ci " + ciExp + " and aci " + aciFloatExp + " are different.");
       }
       return null;

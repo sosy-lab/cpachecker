@@ -181,7 +181,7 @@ public class ExpressionValueVisitor
   public List<? extends SMGValueAndState> visit(CFloatLiteralExpression exp)
       throws CPATransferException {
 
-    boolean isZero = exp.getValue().equals(BigDecimal.ZERO);
+    boolean isZero = exp.getValue().compareTo(BigDecimal.ZERO) == 0;
 
     SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
     return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
