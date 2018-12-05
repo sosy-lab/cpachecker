@@ -88,13 +88,13 @@ public class UsageCPA extends AbstractSingleWrapperCPA
     this.stopOperator = new UsageStopOperator(pCpa.getStopOperator());
     this.mergeOperator = new UsageMergeOperator(pCpa.getMergeOperator());
 
-    LockCPA LockCPA = CPAs.retrieveCPA(this, LockCPA.class);
+    LockCPA lockCPA = CPAs.retrieveCPA(this, LockCPA.class);
     this.statistics =
         new UsageCPAStatistics(
             pConfig,
             pLogger,
             pCfa,
-            LockCPA != null ? (LockTransferRelation) LockCPA.getTransferRelation() : null);
+            lockCPA != null ? (LockTransferRelation) lockCPA.getTransferRelation() : null);
     this.precisionAdjustment = new UsagePrecisionAdjustment(pCpa.getPrecisionAdjustment());
     if (pCpa instanceof ConfigurableProgramAnalysisWithBAM) {
       Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM) pCpa).getReducer();
