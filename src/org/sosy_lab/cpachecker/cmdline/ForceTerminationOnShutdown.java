@@ -24,17 +24,14 @@
 package org.sosy_lab.cpachecker.cmdline;
 
 import com.google.common.base.Joiner;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import org.sosy_lab.common.Concurrency;
-import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
-import org.sosy_lab.common.log.LogManager;
-
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
+import org.sosy_lab.common.Concurrency;
+import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
+import org.sosy_lab.common.log.LogManager;
 
 /**
  * This class implements a mechanism to forcefully terminate CPAchecker
@@ -113,7 +110,7 @@ class ForceTerminationOnShutdown implements Runnable {
     }
   }
 
-  @SuppressWarnings("deprecation")
+  @SuppressWarnings({"deprecation", "DeprecatedThreadMethods"})
   @SuppressFBWarnings("DM_EXIT")
   @Override
   public void run() {

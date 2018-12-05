@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
-<project name="compile" basedir=".">
+<project name="compile" basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
 
     <!-- Targets for compilation. -->
 
@@ -11,27 +11,20 @@
 
     <!-- These properties can be overridden from including file. -->
     <property name="source.format" value="1.8"/>
+    <property name="source.release" value="8"/>
     <property name="source.dir" value="src"/>
     <property name="source.generated.dir" value=".apt-generated"/>
     <property name="class.format" value="1.8"/>
     <property name="class.dir" value="bin"/>
+    <!-- <property name="errorprone.disable" value=""/> --> <!-- Disable error-prone completely. -->
     <property name="errorprone.options" value=""/>
 
-    <path id="errorprone">
-        <pathelement location="${ivy.lib.dir}/build/error_prone_ant.jar"/>
-    </path>
-
-    <!-- Needs to include all annotation processors and error-prone -->
     <path id="processorpath">
         <fileset dir="${ivy.lib.dir}" includes="build/*.jar"/>
     </path>
 
-    <property name="errorprone" value="com.google.errorprone.ErrorProneAntCompilerAdapter"/>
     <condition property="java8">
-        <matches string="${ant.java.version}" pattern="8"/>
-    </condition>
-    <condition property="java.compiler" value="${errorprone}" else="modern">
-        <isset property="java8"/>
+        <equals arg1="${ant.java.version}" arg2="1.8"/>
     </condition>
 
     <!-- We use error-prone as the compiler, cf. http://errorprone.info/ -->
@@ -52,29 +45,28 @@
         <javac debug="true"
                debuglevel="source,lines,vars"
                destdir="${class.dir}"
-               source="${source.format}"
-               target="${class.format}"
+               fork="true"
                includeAntRuntime="false"
-               compiler="${java.compiler}"
                encoding="UTF-8">
+            <compilerarg value="-J-Xbootclasspath/p:${ivy.lib.dir}/build/javac.jar" if:set="java8"/>
+            <compilerarg line="-source ${source.format}" if:set="java8"/>
+            <compilerarg line="-target ${class.format}" if:set="java8"/>
+            <compilerarg line="--release ${source.release}" unless:set="java8"/>
             <src path="${source.dir}"/>
             <classpath refid="classpath"/>
             <compilerarg value="-Xlint"/>
             <compilerarg value="-Xlint:-fallthrough"/> <!-- checked by error-prone, too, and javac does not recognized $FALL-THROUGH$ -->
             <compilerarg value="-Xlint:-processing"/>
             <compilerarg value="-Xlint:-options"/> <!-- suppress warning about bootclasspath on newer JDK -->
-            <compilerarg value="-Werror"/>
-            <compilerarg compiler="${errorprone}" line="-XepDisableWarningsInGeneratedCode ${errorprone.options}"/>
-            <compilerarg compiler="modern" value="-XDcompilePolicy=simple"/> <!-- necessary for error-prone -->
-            <compilerarg compiler="modern" value="-Xplugin:ErrorProne -XepDisableWarningsInGeneratedCode ${errorprone.options}"/>
+            <compilerarg value="-XDcompilePolicy=simple"/> <!-- necessary for error-prone -->
+            <compilerarg value="-Xplugin:ErrorProne -XepDisableWarningsInGeneratedCode ${errorprone.options}" unless:set="errorprone.disable"/>
             <compilerarg value="-s"/><compilerarg value="${source.generated.dir}"/>
             <compilerarg value="-processorpath"/><compilerarg pathref="processorpath"/>
-            <compilerclasspath refid="errorprone"/>
         </javac>
     </target>
 
     <path id="ecj">
-        <pathelement location="${ivy.lib.dir}/build/ecj.jar"/>
+        <fileset dir="${ivy.lib.dir}/build" includes="ecj.jar guava.jar auto-common.jar auto-service.jar"/>
     </path>
 
     <target name="build-project-ecj" depends="build-dependencies" description="Build project with the Eclipse JDT compiler">

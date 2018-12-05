@@ -1757,8 +1757,8 @@ public class DomainSpecificAbstraction<T> {
         firstPartChanged = oldFmgr.renameFreeVariablesAndUFs(firstPart, renamer1);
         scndPartChanged = oldFmgr.renameFreeVariablesAndUFs(scndPart, renamer2);
       }
-      List<BooleanFormula> changedFomulas =
-          Lists.newArrayListWithExpectedSize(formulas.size() - 1);
+      @SuppressWarnings("ModifiedButNotUsed")
+      List<BooleanFormula> changedFomulas = Lists.newArrayListWithExpectedSize(formulas.size() - 1);
       List<BooleanFormula> changedFomulasRest1 =
           Lists.newArrayListWithExpectedSize(formulas.size() - 1);
       List<BooleanFormula> changedFomulasRest2 =
@@ -1900,6 +1900,7 @@ public class DomainSpecificAbstraction<T> {
         }
       }
 
+      @SuppressWarnings("ModifiedButNotUsed")
       List<BooleanFormula> interpolationFormulaList =
           Lists.newArrayListWithExpectedSize(formulas.size() - 1);
 
