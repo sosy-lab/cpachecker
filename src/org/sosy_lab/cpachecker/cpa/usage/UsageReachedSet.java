@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ObjectOutputStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -39,6 +42,8 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -62,6 +67,7 @@ import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
+@Options(prefix = "usage")
 @SuppressFBWarnings(justification = "No support for serialization", value = "SE_BAD_FIELD")
 public class UsageReachedSet extends PartitionedReachedSet {
 
@@ -81,6 +87,12 @@ public class UsageReachedSet extends PartitionedReachedSet {
     }
   }
 
+  @Option(
+    name = "processCoveredUsages",
+    description = "Should we process the same blocks with covered sets of locks",
+    secure = true)
+  private boolean processCoveredUsages = true;
+
   private static final RaceProperty propertyInstance = new RaceProperty();
 
   private final LogManager logger;
@@ -92,6 +104,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
     super(waitlistFactory);
     logger = pLogger;
     try {
+      pConfig.inject(this);
       container = new UsageContainer(pConfig, logger);
     } catch (InvalidConfigurationException e) {
       logger.log(Level.WARNING, "Can not create container due to wrong config");
@@ -161,12 +174,12 @@ public class UsageReachedSet extends PartitionedReachedSet {
       logger.log(Level.INFO, "Analysis is finished, start usage extraction");
       usagesExtracted = true;
       Deque<Pair<AbstractState, Multiset<LockEffect>>> waitlist = new ArrayDeque<>();
-      Set<Pair<AbstractState, Multiset<LockEffect>>> processedSets = new HashSet<>();
+      Multimap<AbstractState, Multiset<LockEffect>> processedSets = ArrayListMultimap.create();
 
       Pair<AbstractState, Multiset<LockEffect>> currentPair =
           Pair.of(getFirstState(), HashMultiset.create());
       waitlist.add(currentPair);
-      processedSets.add(currentPair);
+      processedSets.put(getFirstState(), HashMultiset.create());
 
       while (!waitlist.isEmpty()) {
         currentPair = waitlist.pop();
@@ -269,11 +282,12 @@ public class UsageReachedSet extends PartitionedReachedSet {
 
               difference.addAll(currentEffects);
 
+              AbstractState firstState = innerReached.getFirstState();
               Pair<AbstractState, Multiset<LockEffect>> newPair =
                   Pair.of(innerReached.getFirstState(), difference);
-              if (!processedSets.contains(newPair)) {
+              if (shouldContinue(processedSets.get(firstState), difference)) {
                 waitlist.add(newPair);
-                processedSets.add(newPair);
+                processedSets.put(firstState, difference);
               }
             }
           } else if (manager.hasInitialStateWithoutExit(state)) {
@@ -292,15 +306,33 @@ public class UsageReachedSet extends PartitionedReachedSet {
 
             difference.addAll(currentEffects);
 
+            AbstractState firstState = innerReached.getFirstState();
             Pair<AbstractState, Multiset<LockEffect>> newPair =
-                Pair.of(innerReached.getFirstState(), difference);
-            if (!processedSets.contains(newPair)) {
+                Pair.of(firstState, difference);
+            if (shouldContinue(processedSets.get(firstState), difference)) {
               waitlist.add(newPair);
-              processedSets.add(newPair);
+              processedSets.put(firstState, difference);
             }
           }
         }
       }
+      logger.log(Level.INFO, "Usage extraction is finished");
+    }
+  }
+
+  private boolean
+      shouldContinue(
+          Collection<Multiset<LockEffect>> processed,
+          Multiset<LockEffect> currentDifference) {
+    if (processCoveredUsages) {
+      return !processed.contains(currentDifference);
+    } else {
+      for (Multiset<LockEffect> locks : processed) {
+        if (currentDifference.containsAll(locks)) {
+          return false;
+        }
+      }
+      return true;
     }
   }
 
