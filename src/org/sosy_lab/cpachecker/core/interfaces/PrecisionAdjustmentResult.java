@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;

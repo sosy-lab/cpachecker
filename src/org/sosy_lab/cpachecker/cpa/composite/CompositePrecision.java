@@ -171,8 +171,7 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision, Seria
 
   @Override
   public boolean isEmpty() {
-    return from(precisions)
-        .transform(p -> (AdjustablePrecision) p)
+    return from(precisions).transform(p -> (AdjustablePrecision) p)
         .allMatch(AdjustablePrecision::isEmpty);
   }
 }

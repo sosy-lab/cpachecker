@@ -135,6 +135,7 @@ public class SSAMap implements Serializable {
       Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, type, idx);
 
       type = type.getCanonicalType();
+      assert !(type instanceof CFunctionType) : "Variable " + name + " has function type " + type;
       CType oldType = varTypes.get(name);
       if (oldType != null) {
         TYPE_CONFLICT_CHECKER.resolveConflict(name, oldType, type);

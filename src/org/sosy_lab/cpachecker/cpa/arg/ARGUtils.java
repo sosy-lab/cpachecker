@@ -67,7 +67,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -438,7 +438,7 @@ public class ARGUtils {
       Predicates.compose(CONTAINS_RELEVANT_LOCATION, AbstractStates::extractLocations);
 
   @SuppressWarnings("unchecked")
-  static final Predicate<ARGState> RELEVANT_STATE =
+  public static final Predicate<ARGState> RELEVANT_STATE =
       Predicates.or(
           AbstractStates.IS_TARGET_STATE,
           AT_RELEVANT_LOCATION,

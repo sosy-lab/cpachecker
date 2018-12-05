@@ -35,6 +35,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
 import java.io.BufferedReader;
@@ -48,12 +49,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
-import javax.annotation.Nullable;
+import java.util.regex.Pattern;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.configuration.Configuration;
@@ -72,8 +76,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 @Options
@@ -114,6 +120,8 @@ public class ReportGenerator {
   private final ImmutableList<String> sourceFiles;
   private final Map<Integer, Object> argNodes;
   private final Map<String, Object> argEdges;
+  private final Map<String, Object> argRelevantEdges;
+  private final Map<Integer, Object> argRelevantNodes;
 
   public ReportGenerator(
       Configuration pConfig,
@@ -128,6 +136,8 @@ public class ReportGenerator {
     sourceFiles = pSourceFiles;
     argNodes = new HashMap<>();
     argEdges = new HashMap<>();
+    argRelevantEdges = new HashMap<>();
+    argRelevantNodes = new HashMap<>();
   }
 
   public void generate(CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
@@ -149,7 +159,12 @@ public class ReportGenerator {
       return;
     }
 
-    buildArgGraphData(pReached);
+    // we cannot export the graph for some special analyses, e.g., termination analysis
+    if (!pReached.isEmpty() && pReached.getFirstState() instanceof ARGState) {
+      buildArgGraphData(pReached);
+      buildRelevantArgGraphData(pReached);
+    }
+
     DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
     PrintStream console = System.out;
     if (counterExamples.isEmpty()) {
@@ -287,6 +302,13 @@ public class ReportGenerator {
         JSON.writeJSONString(argNodes.values(), writer);
         writer.write(",\n\"edges\":");
         JSON.writeJSONString(argEdges.values(), writer);
+        writer.write("\n");
+      }
+      if(!argRelevantEdges.isEmpty() && !argRelevantNodes.isEmpty()){
+        writer.write(",\n\"relevantnodes\":");
+        JSON.writeJSONString(argRelevantNodes.values(), writer);
+        writer.write(",\n\"relevantedges\":");
+        JSON.writeJSONString(argRelevantEdges.values(), writer);
         writer.write("\n");
       }
       writer.write("}\n");
@@ -474,35 +496,50 @@ public class ReportGenerator {
 
   private void insertLog(Writer writer) throws IOException {
     if (logFile != null && Files.isReadable(logFile)) {
+      final Pattern logLinePattern = Pattern.compile("[0-9-]* [0-9:]*\t[A-Z]*\t.*\t.*");
+      final Splitter logLineSplitter = Splitter.on('\t').limit(4);
+      final Splitter logDateSplitter = Splitter.on(' ').limit(2);
+
       String insertTableLine =
-          "<table  id=\"log_table\" class=\"display\" style=\"width:100%;padding: 10px\" class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th scope=\"col\">Date</th><th scope=\"col\">Time</th><th scope=\"col\">Log Level</th><th scope=\"col\">Log Info</th><th scope=\"col\">Log Message</th></tr></thead><tbody>\n";
+          "<table  id=\"log_table\" class=\"display\" style=\"width:100%;padding: 10px\" class=\"table table-bordered\">"
+              + "<thead class=\"thead-light\"><tr>"
+              + "<th scope=\"col\">Date</th>"
+              + "<th scope=\"col\">Time</th>"
+              + "<th scope=\"col\">Level</th>"
+              + "<th scope=\"col\">Component</th>"
+              + "<th scope=\"col\">Message</th>"
+              + "</tr></thead><tbody>\n";
       writer.write(insertTableLine);
       try (BufferedReader log = Files.newBufferedReader(logFile, Charset.defaultCharset())) {
         int counter = 0;
         String line;
-        while (null != (line = log.readLine())) {
-          String getDate = line.replaceFirst("\\s", "-i-");
-          String getLogLevel = getDate.replaceFirst("\\s", "-i-");
-          String getLogInfo = getLogLevel.replaceFirst("\\s", "-i-");
-          String getLogMessage = getLogInfo.replaceFirst("\\s", "-i-");
-          List<String> splitLine = Splitter.onPattern("-i-").limit(5).splitToList(getLogMessage);
-          if (splitLine.size() == 5) {
-            line =
-                "<tr id=\"log-"
-                    + counter
-                    + "\"><th scope=\"row\">"
-                    + htmlEscaper().escape(splitLine.get(0))
-                    + "</th><td>"
-                    + htmlEscaper().escape(splitLine.get(1))
-                    + "</td><td>"
-                    + htmlEscaper().escape(splitLine.get(2))
-                    + "</td><td>"
-                    + htmlEscaper().escape(splitLine.get(3))
-                    + "</td><td>"
-                    + htmlEscaper().escape(splitLine.get(4))
-                    + "</td></tr>\n";
-            writer.write(line);
+        // If there is junk at the beginning, ignore it
+        while ((line = log.readLine()) != null && !logLinePattern.matcher(line).matches()) {}
+        while (line != null) {
+          List<String> splitLine = logLineSplitter.splitToList(line);
+          List<String> dateTime = logDateSplitter.splitToList(splitLine.get(0));
+
+          writer.write("<tr id=\"log-" + counter + "\">");
+          writer.write("<th scope=\"row\">");
+          writer.write(htmlEscaper().escape(dateTime.get(0)));
+          writer.write("</th><td>");
+          writer.write(htmlEscaper().escape(dateTime.get(1)));
+          writer.write("</td><td>");
+          writer.write(htmlEscaper().escape(splitLine.get(1)));
+          writer.write("</td><td>");
+          writer.write(htmlEscaper().escape(splitLine.get(2)).replaceAll(":", "<br>"));
+          writer.write("</td><td>");
+          writer.write(htmlEscaper().escape(splitLine.get(3)));
+
+          // peek at next line to handle multi-line log messages
+          while ((line = log.readLine()) != null && !logLinePattern.matcher(line).matches()) {
+            if (!line.isEmpty()) {
+              writer.write("<br>");
+              writer.write(htmlEscaper().escape(line));
+            }
           }
+          writer.write("</td></tr>\n");
+
           counter++;
         }
         String exitTableLine = "</tbody></table>\n";
@@ -605,36 +642,65 @@ public class ReportGenerator {
     }
   }
 
-  // Build ARG data only if the reached states are ARGStates
+  /** Build ARG data for all ARG states in the reached set. */
   private void buildArgGraphData(UnmodifiableReachedSet reached) {
-    if (!reached.isEmpty() && reached.getFirstState() instanceof ARGState) {
-      reached.asCollection().forEach(entry -> {
-        int parentStateId = ((ARGState) entry).getStateId();
-        for (CFANode node : AbstractStates.extractLocations(entry)) {
-          if (!argNodes.containsKey(parentStateId)) {
-            createArgNode(parentStateId, node, (ARGState) entry);
-          }
-          if (!((ARGState) entry).getChildren().isEmpty()) {
-            for (ARGState child : ((ARGState) entry).getChildren()) {
-              int childStateId = child.getStateId();
-              // Covered state is not contained in the reached set
-              if (child.isCovered()) {
-                String label =
-                    child.toDOTLabel().length() > 2
-                        ? child.toDOTLabel().substring(0, child.toDOTLabel().length() - 2)
-                        : "";
-                createCoveredArgNode(childStateId, child, label);
-                createCoveredArgEdge(childStateId, child.getCoveringState().getStateId());
-              }
-              createArgEdge(parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child));
+    for (AbstractState entry : reached.asCollection()) {
+      int parentStateId = ((ARGState) entry).getStateId();
+      for (CFANode node : AbstractStates.extractLocations(entry)) {
+        if (!argNodes.containsKey(parentStateId)) {
+          argNodes.put(parentStateId, createArgNode(parentStateId, node, (ARGState) entry));
+        }
+        if (!((ARGState) entry).getChildren().isEmpty()) {
+          for (ARGState child : ((ARGState) entry).getChildren()) {
+            int childStateId = child.getStateId();
+            // Covered state is not contained in the reached set
+            if (child.isCovered()) {
+              String label = child.toDOTLabel();
+              label = label.length() > 2 ? label.substring(0, label.length() - 2) : "";
+              createCoveredArgNode(childStateId, child, label);
+              createCoveredArgEdge(childStateId, child.getCoveringState().getStateId());
             }
+            argEdges.put(
+                parentStateId + "->" + childStateId,
+                createArgEdge(
+                    parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child)));
           }
         }
-      });
+      }
     }
   }
 
-  private void createArgNode(int parentStateId, CFANode node, ARGState argState) {
+  /** Build ARG data for all relevant/important ARG states in the reached set. */
+  private void buildRelevantArgGraphData(UnmodifiableReachedSet reached) {
+    SetMultimap<ARGState, ARGState> relevantSetMultimap =
+        ARGUtils.projectARG(
+            (ARGState) reached.getFirstState(), ARGState::getChildren, ARGUtils.RELEVANT_STATE);
+
+    for (Entry<ARGState, Collection<ARGState>> entry : relevantSetMultimap.asMap().entrySet()) {
+      ARGState parent = entry.getKey();
+      Collection<ARGState> children = entry.getValue();
+      int parentStateId = parent.getStateId();
+      for (CFANode node : AbstractStates.extractLocations(parent)) {
+        if (!argRelevantNodes.containsKey(parentStateId)) {
+          argRelevantNodes.put(parentStateId, createArgNode(parentStateId, node, parent));
+        }
+      }
+
+      for (ARGState child : children) {
+        int childStateId = child.getStateId();
+        for (CFANode node : AbstractStates.extractLocations(child)) {
+          if (!argRelevantNodes.containsKey(childStateId)) {
+            argRelevantNodes.put(childStateId, createArgNode(childStateId, node, child));
+          }
+          argRelevantEdges.put(
+              parentStateId + "->" + childStateId,
+              createArgEdge(parentStateId, childStateId, parent.getEdgesToChild(child)));
+        }
+      }
+    }
+  }
+
+  private Map<String, Object> createArgNode(int parentStateId, CFANode node, ARGState argState) {
     String dotLabel =
         argState.toDOTLabel().length() > 2
             ? argState.toDOTLabel().substring(0, argState.toDOTLabel().length() - 2)
@@ -646,14 +712,14 @@ public class ReportGenerator {
         "label",
         parentStateId
             + " @ "
-            + node.toString()
+            + node
             + "\n"
             + node.getFunctionName()
             + nodeTypeInNodeLabel(node)
             + "\n"
             + dotLabel);
     argNode.put("type", determineNodeType(argState));
-    argNodes.put(parentStateId, argNode);
+    return argNode;
   }
 
   private String determineNodeType(ARGState argState) {
@@ -679,7 +745,7 @@ public class ReportGenerator {
             "label",
             childStateId
                 + " @ "
-                + coveredNode.toString()
+                + coveredNode
                 + "\n"
                 + coveredNode.getFunctionName()
                 + nodeTypeInNodeLabel(coveredNode)
@@ -699,7 +765,8 @@ public class ReportGenerator {
     argEdges.put("" + coveringStateId + "->" + parentStateId, coveredEdge);
   }
 
-  private void createArgEdge(int parentStateId, int childStateId, List<CFAEdge> edges) {
+  private Map<String, Object> createArgEdge(
+      int parentStateId, int childStateId, List<CFAEdge> edges) {
     Map<String, Object> argEdge = new HashMap<>();
     argEdge.put("source", parentStateId);
     argEdge.put("target", childStateId);
@@ -739,7 +806,7 @@ public class ReportGenerator {
       argEdge.put("file", edges.get(0).getFileLocation().getFileName());
     }
     argEdge.put("label", edgeLabel.toString());
-    argEdges.put("" + parentStateId + "->" + childStateId, argEdge);
+    return argEdge;
   }
 
   // Add the node type (if it is entry or exit) to the node label

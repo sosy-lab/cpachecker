@@ -29,7 +29,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.math.BigInteger;
 import java.util.Objects;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * This class represents simple convex ranges of BigIntegers.

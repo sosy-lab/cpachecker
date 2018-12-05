@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.math.BigInteger;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -41,6 +41,9 @@ import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
  *
  * <p>If visit returns <code>Boolean.FALSE</code> the computed C code is likely to be invalid and
  * therefore it is discouraged to use it.
+ *
+ * <p>Warning: Usage of this class can be exponentially expensive, because formulas are unfolded
+ * into C code. For formulas with several shared subtrees this leads to bad performance.
  */
 public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
 
@@ -54,17 +57,15 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
 
   private boolean bvSigned = false;
 
-  private static final Set<FunctionDeclarationKind> UNARY_OPS = new HashSet<>();
-
-  static {
-    UNARY_OPS.add(FunctionDeclarationKind.UMINUS);
-    UNARY_OPS.add(FunctionDeclarationKind.NOT);
-    UNARY_OPS.add(FunctionDeclarationKind.GTE_ZERO);
-    UNARY_OPS.add(FunctionDeclarationKind.EQ_ZERO);
-    UNARY_OPS.add(FunctionDeclarationKind.FP_NEG);
-    UNARY_OPS.add(FunctionDeclarationKind.BV_NOT);
-    UNARY_OPS.add(FunctionDeclarationKind.BV_NEG);
-  }
+  private static final ImmutableSet<FunctionDeclarationKind> UNARY_OPS =
+      Sets.immutableEnumSet(
+          FunctionDeclarationKind.UMINUS,
+          FunctionDeclarationKind.NOT,
+          FunctionDeclarationKind.GTE_ZERO,
+          FunctionDeclarationKind.EQ_ZERO,
+          FunctionDeclarationKind.FP_NEG,
+          FunctionDeclarationKind.BV_NOT,
+          FunctionDeclarationKind.BV_NEG);
 
   public FormulaToCVisitor(FormulaManagerView fmgr) {
     this.fmgr = fmgr;
@@ -163,7 +164,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       bvSigned = false;
     }
 
-    switch (pFunctionDeclaration.getKind()) {
+    switch (kind) {
       case BV_ADD:
       case FP_ADD:
       case ADD:
@@ -290,17 +291,26 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       if (!fmgr.visit(pArgs.get(2), this)) {
         return Boolean.FALSE;
       }
+    } else if (pArgs.size() == 1 && UNARY_OPS.contains(kind)) {
+      builder.append(op).append(" ");
+      if (!fmgr.visit(pArgs.get(0), this)) {
+        return Boolean.FALSE;
+      }
+    } else if (kind == FunctionDeclarationKind.AND || kind == FunctionDeclarationKind.OR) {
+      for (int i = 0; i < pArgs.size(); i++) {
+        if (!fmgr.visit(pArgs.get(i), this)) {
+          return Boolean.FALSE;
+        }
+        if (i != pArgs.size() - 1) {
+          builder.append(" ").append(op).append(" ");
+        }
+      }
     } else if (pArgs.size() == 2) {
       if (!fmgr.visit(pArgs.get(0), this)) {
         return Boolean.FALSE;
       }
       builder.append(" ").append(op).append(" ");
       if (!fmgr.visit(pArgs.get(1), this)) {
-        return Boolean.FALSE;
-      }
-    } else if (pArgs.size() == 1 && UNARY_OPS.contains(kind)) {
-      builder.append(op).append(" ");
-      if (!fmgr.visit(pArgs.get(0), this)) {
         return Boolean.FALSE;
       }
     } else {

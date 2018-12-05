@@ -32,6 +32,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -91,7 +92,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
   }
 
   public static UsageInfo createUsageInfo(
-      @Nonnull Access atype, @Nonnull AbstractState state, AbstractIdentifier ident) {
+      @NonNull Access atype, @NonNull AbstractState state, AbstractIdentifier ident) {
     if (ident instanceof SingleIdentifier) {
       FluentIterable<CompatibleState> states =
           AbstractStates.asIterable(state).filter(CompatibleState.class);
@@ -102,7 +103,6 @@ public class UsageInfo implements Comparable<UsageInfo> {
                 AbstractStates.extractLocation(state),
                 (SingleIdentifier) ident,
                 states.transform(CompatibleState::prepareToStore).toList());
-        result.core.keyState = state;
         return result;
       }
     }
@@ -113,7 +113,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
     return core.node;
   }
 
-  public @Nonnull SingleIdentifier getId() {
+  public @NonNull SingleIdentifier getId() {
     assert (core.id != null);
     return core.id;
   }

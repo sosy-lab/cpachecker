@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -87,7 +87,7 @@ public final class CLangStackFrame {
       // use a plain int as return type for void functions
       returnValueObject = null;
     } else {
-      int return_value_size = pMachineModel.getSizeofInBits(returnType);
+      int return_value_size = pMachineModel.getSizeofInBits(returnType).intValueExact();
       returnValueObject = new SMGRegion(return_value_size, CLangStackFrame.RETVAL_LABEL);
     }
   }

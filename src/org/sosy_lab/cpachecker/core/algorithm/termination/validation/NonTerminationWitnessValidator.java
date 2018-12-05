@@ -44,8 +44,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -1140,7 +1140,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
     }
 
     @Override
-    public @Nonnull Set<Property> getViolatedProperties() throws IllegalStateException {
+    public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
       return NamedProperty.singleton("termination");
     }
   }

@@ -31,8 +31,8 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -289,7 +289,7 @@ class FunctionCloner implements CFAVisitor {
 
   /** clones a node: copies all content and inserts a new functionName */
   @SuppressWarnings("unchecked")
-  private <T extends CFANode> T cloneNode(@Nonnull final T node, final boolean addToMapping) {
+  private <T extends CFANode> T cloneNode(@NonNull final T node, final boolean addToMapping) {
     Preconditions.checkNotNull(node);
 
     if (nodeCache.containsKey(node)) {

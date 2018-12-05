@@ -120,7 +120,12 @@ class FunctionScope extends AbstractScope {
   public void enterFunction(CFunctionDeclaration pFuncDef) {
     checkState(currentFunction == null);
     currentFunction = checkNotNull(pFuncDef);
-    checkArgument(globalFunctions.containsKey(getCurrentFunctionName()) || localFunctions.containsKey(getCurrentFunctionName()));
+    String functionName = pFuncDef.getName();
+    checkArgument(
+        globalFunctions.containsKey(functionName) || localFunctions.containsKey(functionName),
+        String.format(
+            "function '%s' not available in global scope (%s) or local scope (%s)",
+            functionName, globalFunctions.keySet(), localFunctions.keySet()));
 
     if (currentFunction.getType().getReturnType().getCanonicalType() instanceof CVoidType) {
       returnVariable = Optional.absent();

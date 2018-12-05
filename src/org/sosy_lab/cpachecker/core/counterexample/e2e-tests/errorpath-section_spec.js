@@ -209,24 +209,32 @@ describe('Error path section in Report.js', function () {
     //     browser.actions().mouseMove(element(by.xpath('//*[@id="errpath-6"]/td[1]'))).click();
     // });
 
+
+    function findTooltipWithText(text) {
+       return $$('div.tooltip-inner').filter(function (elem) {
+           return elem.getText().then(function (elementText) {
+               return elementText.includes(text)
+           })
+       }).first()
+    }
+
     it('Prev button tooltip test', function () {
-        tooltipText = element(by.xpath('//div[@class="tooltip-inner"]'));
         browser.actions().mouseMove(element(by.xpath('//*[@id="errorpath_section"]/header/div[1]/button[1]'))).perform();
+        tooltipText = findTooltipWithText('Previous Line')
         browser.wait(EC.presenceOf(tooltipText))
         expect(tooltipText.isDisplayed()).toBeTruthy();
     });
-    browser.driver.sleep(100);
 
     it('help button tooltip test', function () {
-        tooltipText = element(by.xpath('//div[@class="tooltip-inner"]'));
         browser.actions().mouseMove(element(by.xpath('//*[@id="errorpath_section"]/header/div[2]'))).perform();
+        tooltipText = findTooltipWithText('help')
         browser.wait(EC.presenceOf(tooltipText))
         expect(tooltipText.isDisplayed()).toBeTruthy();
     });
 
     it('Next button tooltip test', function () {
-        tooltipText = element(by.xpath('//div[@class="tooltip-inner"]'));
         browser.actions().mouseMove(element(by.xpath('//*[@id="errorpath_section"]/header/div[1]/button[3]'))).perform();
+        tooltipText = findTooltipWithText('Next Line')
         browser.wait(EC.presenceOf(tooltipText))
         expect(tooltipText.isDisplayed()).toBeTruthy();
     });

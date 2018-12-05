@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multiset;
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -107,7 +108,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
       final int sizeOfType = getSizeofUncached(t.getType());
       return length * sizeOfType;
     } else {
-      return model.getSizeof(cType);
+      return model.getSizeof(cType).intValueExact();
     }
   }
 
@@ -211,11 +212,12 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
     assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
     ImmutableMap<String, Long> multiset = offsets.get(compositeType);
     if (multiset == null) {
-      Map<CCompositeTypeMemberDeclaration, Long> calculatedOffsets =
+      Map<CCompositeTypeMemberDeclaration, BigInteger> calculatedOffsets =
           machineModel.getAllFieldOffsetsInBits(compositeType);
       ImmutableMap.Builder<String, Long> memberOffsets =
           ImmutableMap.builderWithExpectedSize(calculatedOffsets.size());
-      calculatedOffsets.forEach((key, value) -> memberOffsets.put(key.getName(), value));
+      calculatedOffsets.forEach(
+          (key, value) -> memberOffsets.put(key.getName(), value.longValueExact()));
       multiset = memberOffsets.build();
       offsets.put(compositeType, multiset);
     }

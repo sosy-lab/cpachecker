@@ -35,6 +35,6 @@ STATE USEALL Init :
   MATCH {$1=_atomic_dec_and_lock($2, $3)} -> ASSUME {!$1} GOTO Init;
 
   // Check that all spinlocks were unlocked (the 'acquired_spinlocks' set is empty).
-  MATCH {ldv_linux_spinlock_check_final_state($?)} -> ASSUME {!$$acquired_spinlocks.empty} ERROR("linux:spinlock::one thread:locked at exit");
+  MATCH {ldv_check_final_state($?)} -> ASSUME {!$$acquired_spinlocks.empty} ERROR("linux:spinlock::one thread:locked at exit");
 
 END AUTOMATON

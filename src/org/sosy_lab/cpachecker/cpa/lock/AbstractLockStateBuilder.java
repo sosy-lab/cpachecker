@@ -73,7 +73,8 @@ public abstract class AbstractLockStateBuilder {
   public abstract void returnLocksExcept(LockState pRootState, Set<LockIdentifier> usedLocks);
 
   public abstract void expandLockCounters(
-      AbstractLockState pRootState, Set<LockIdentifier> pRestrictedLocks);
+      AbstractLockState pRootState,
+      Set<LockIdentifier> pRestrictedLocks);
 
   public void setRestoreState() {
     mutableToRestore = parentState;

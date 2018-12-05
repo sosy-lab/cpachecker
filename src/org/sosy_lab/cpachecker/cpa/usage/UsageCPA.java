@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
 import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
 import org.sosy_lab.cpachecker.cpa.lock.LockCPA;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
@@ -115,8 +114,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
             pConfig,
             pLogger,
             statistics,
-            (CallstackTransferRelation)
-                (CPAs.retrieveCPA(this, CallstackCPA.class)).getTransferRelation());
+            CPAs.retrieveCPA(this, CallstackCPA.class).getTransferRelation());
 
     PresisionParser parser = new PresisionParser(cfa, logger);
     localMap = parser.parse(outputFileName);

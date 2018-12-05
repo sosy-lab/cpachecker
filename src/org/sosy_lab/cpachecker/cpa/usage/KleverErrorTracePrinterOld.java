@@ -143,7 +143,9 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
     Optional<CFAEdge> warningEdge =
         from(path)
             .filter(
-                e -> e.getSuccessor() == usage.getCFANode() && e.toString().contains(pId.getName()))
+                e ->
+                e.getSuccessor() == usage.getCFANode()
+                        && e.toString().contains(pId.getName()))
             .last();
 
     CFAEdge warning;

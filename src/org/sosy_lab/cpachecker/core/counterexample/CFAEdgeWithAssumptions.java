@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -143,35 +143,13 @@ public class CFAEdgeWithAssumptions {
     return result.toString();
   }
 
-  /**
-   * Returns a message that contain information of the concrete values pertaining to
-   * this edge of the error path.
-   *
-   * @return returns a message that contain information of the concrete values pertaining to
-   * this edge of the error path.
-   */
-  public String prettyPrint() {
-    String expStmt = this.prettyPrintCode(0);
-    return expStmt + getComment();
-  }
-
-  /**
-   * Get a message that can be used inside of html.
-   *
-   * @return returns a message that contain information of the concrete values pertaining to
-   * this edge of the error path for a html page.
-   */
-  public String printForHTML() {
-    return prettyPrint().replace(System.lineSeparator(), "\n");
-  }
-
   @Override
   public String toString() {
-      StringBuilder assumption = new StringBuilder();
-      for (AExpressionStatement assum : expressionStmts) {
-          assumption.append('\n' + "\t\t" + assum);
-      }
-      return edge + " " + assumption;
+    StringBuilder str = new StringBuilder(edge.toString());
+    for (AExpressionStatement assum : expressionStmts) {
+      str.append("\n\t").append(assum);
+    }
+    return str.toString();
   }
 
   @Nullable

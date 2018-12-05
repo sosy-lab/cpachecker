@@ -43,7 +43,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
@@ -95,6 +96,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   private static final String HAS_INVALID_READS = "has-invalid-reads";
   private static final String HAS_INVALID_WRITES = "has-invalid-writes";
   private static final String HAS_LEAKS = "has-leaks";
+  private static final String HAS_HEAP_OBJECTS = "has-heap-objects";
 
   private static final Pattern externalAllocationRecursivePattern = Pattern.compile("^(r_)(\\d+)(_.*)$");
 
@@ -1385,10 +1387,20 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   @Override
-  public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    // SMG Properties:
-    // has-leaks:boolean
+  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
+    switch (pProperty) {
+      case "toString":
+        return this.toString();
+      case "heapObjects":
+        return heap.getHeapObjects();
+      default:
+        // try boolean properties
+        return checkProperty(pProperty);
+    }
+  }
 
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
     switch (pProperty) {
       case HAS_LEAKS:
         if (errorInfo.hasMemoryLeak()) {
@@ -1418,6 +1430,15 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
           return true;
         }
         return false;
+      case HAS_HEAP_OBJECTS:
+        // Having heap objects is not an error on its own.
+        // However, when combined with program exit, we can detect property MemCleanup.
+        Set<SMGObject> heapObs = heap.getHeapObjects();
+        Preconditions.checkState(
+            heapObs.size() >= 1 && heapObs.contains(SMGNullObject.INSTANCE),
+            "NULL must always be a heap object");
+        return heapObs.size() != 1;
+
       default:
         throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
     }

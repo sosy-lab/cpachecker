@@ -193,7 +193,8 @@ public class DeadLockState extends AbstractLockState {
 
     @Override
     public void expandLockCounters(
-        AbstractLockState pRootState, Set<LockIdentifier> pRestrictedLocks) {
+        AbstractLockState pRootState,
+        Set<LockIdentifier> pRestrictedLocks) {
       List<LockIdentifier> rootList = ((DeadLockState) pRootState).lockList;
       int num = getTailNum(rootList, pRestrictedLocks);
       if (num < rootList.size() - 1) {

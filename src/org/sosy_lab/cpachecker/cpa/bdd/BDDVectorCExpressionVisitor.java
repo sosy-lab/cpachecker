@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.bdd;
 
 import java.math.BigInteger;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -362,7 +362,7 @@ public class BDDVectorCExpressionVisitor
   }
 
   protected int getSize(CType pType) {
-    return machineModel.getSizeof(pType) * machineModel.getSizeofCharInBits();
+    return machineModel.getSizeofInBits(pType).intValueExact();
   }
 
   /**

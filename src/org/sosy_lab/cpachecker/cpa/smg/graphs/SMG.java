@@ -32,7 +32,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge;
@@ -535,10 +535,11 @@ public class SMG implements UnmodifiableSMG {
 
   @Override
   public boolean isCoveredByNullifiedBlocks(SMGObject pObject, long pOffset, CType pType ) {
-    return isCoveredByNullifiedBlocks(pObject, pOffset, machine_model.getSizeofInBits(pType));
+    return isCoveredByNullifiedBlocks(
+        pObject, pOffset, machine_model.getSizeofInBits(pType).longValueExact());
   }
 
-  private boolean isCoveredByNullifiedBlocks(SMGObject pObject, long pOffset, int size) {
+  private boolean isCoveredByNullifiedBlocks(SMGObject pObject, long pOffset, long size) {
     long expectedMinClear = pOffset + size;
 
     TreeMap<Long, Integer> nullEdgesOffsetToSize = getNullEdgesMapOffsetToSizeForObject(pObject);

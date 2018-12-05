@@ -34,7 +34,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -82,9 +82,8 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     super(bamCpa, pShutdownNotifier);
     algorithmFactory = pFactory;
     callstackTransfer =
-        (CallstackTransferRelation)
-            (CPAs.retrieveCPAOrFail(bamCpa, CallstackCPA.class, BAMTransferRelation.class))
-                .getTransferRelation();
+        CPAs.retrieveCPAOrFail(bamCpa, CallstackCPA.class, BAMTransferRelation.class)
+            .getTransferRelation();
     bamPccManager = pBamPccManager;
   }
 

@@ -13,34 +13,25 @@
     <includesfile>../programs/cpalien/cpalien.set</includesfile>
     <option name="-smg"/>
     <option name="-preprocess" />
-    <propertyfile>../programs/benchmarks/PropertyMemSafety.prp</propertyfile>
+    <propertyfile>../programs/cpalien/ALL.prp</propertyfile>
   </tasks>
-
-<!-- deaktivated because of missing benchmarks
-  <tasks name="cpalien-label-okay">
-    <includesfile>../programs/cpalien/cpalien-label.set</includesfile>
-    <option name="-smg-label"/>
-    <option name="-preprocess" />
-    <propertyfile>../programs/benchmarks/PropertyUnreachCall.prp</propertyfile>
-  </tasks>
--->
 
   <tasks name="HeapMemSafety">
     <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
     <option name="-smg"/>
-    <propertyfile>../programs/benchmarks/PropertyMemSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
   <tasks name="ArraysMemSafety">
     <includesfile>../programs/benchmarks/MemSafety-Arrays.set</includesfile>
     <option name="-smg"/>
-    <propertyfile>../programs/benchmarks/PropertyMemSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
   <tasks name="ExtAllocMemSafety">
     <includesfile>../programs/smg_External_Allocation_Test/ExtAlloc.set</includesfile>
     <option name="-smg"/>
-    <propertyfile>../programs/benchmarks/PropertyMemSafety.prp</propertyfile>
+    <propertyfile>../programs/smg_External_Allocation_Test/ALL.prp</propertyfile>
   </tasks>
 
   <columns>

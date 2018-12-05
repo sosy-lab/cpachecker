@@ -43,7 +43,16 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
   public CFunctionDeclaration(FileLocation pFileLocation,
       CFunctionType pType, String pName,
       List<CParameterDeclaration> parameters) {
-    super(pFileLocation, pType, checkNotNull(pName), parameters);
+    super(pFileLocation, pType, checkNotNull(pName), pName, parameters);
+  }
+
+  public CFunctionDeclaration(
+      FileLocation pFileLocation,
+      CFunctionType pType,
+      String pName,
+      String pOrigName,
+      List<CParameterDeclaration> parameters) {
+    super(pFileLocation, pType, checkNotNull(pName), checkNotNull(pOrigName), parameters);
   }
 
   @Override

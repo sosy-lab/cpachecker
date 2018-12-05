@@ -43,7 +43,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.OptionCollector;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.CmdLineArgument1;

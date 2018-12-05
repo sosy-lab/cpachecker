@@ -221,7 +221,9 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       processedUnsafes.addAll(
           Sets.intersection(precisionMap.keySet(), container.getFalseUnsafes()));
       for (AdjustablePrecision prec :
-          from(processedUnsafes).transform(precisionMap::remove).filter(Predicates.notNull())) {
+              from(processedUnsafes)
+              .transform(precisionMap::remove)
+              .filter(Predicates.notNull())) {
         finalPrecision = finalPrecision.subtract(prec);
       }
 

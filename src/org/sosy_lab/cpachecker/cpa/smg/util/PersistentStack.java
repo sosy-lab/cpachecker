@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.util;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -35,6 +36,7 @@ import org.sosy_lab.common.collect.PersistentMap;
  * A Stack-implementation based on the {@link PathCopyingPersistentTreeMap}. The runtime is
  * O(log(n)) instead of O(1) for a default stack operation.
  */
+@Immutable(containerOf = "T")
 public class PersistentStack<T> implements Iterable<T> {
 
   private final PersistentMap<Integer, T> delegate;

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,71 +23,105 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
+import com.google.common.base.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Reducer;
-import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.Builder;
+import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.UnknownTarget;
 
-
-public class FunctionPointerReducer implements Reducer {
+class FunctionPointerReducer extends GenericReducer<FunctionPointerState, Precision> {
 
   @Override
-  public AbstractState getVariableReducedState(AbstractState pExpandedState, Block pContext, CFANode pCallNode) {
-    FunctionPointerState state = (FunctionPointerState) pExpandedState;
-    FunctionPointerState.Builder builder = state.createBuilder();
-    builder.clearVariablesExceptPrefix(pCallNode.getFunctionName());
+  protected FunctionPointerState getVariableReducedState0(
+      FunctionPointerState pExpandedState, Block pContext, CFANode pCallNode) {
+    Builder builder = pExpandedState.createBuilder();
+    for (String trackedVar : pExpandedState.getTrackedVariables()) {
+      if (!pContext.getVariables().contains(trackedVar)) {
+        builder.setTarget(trackedVar, UnknownTarget.getInstance());
+      }
+    }
     return builder.build();
   }
 
   @Override
-  public AbstractState getVariableExpandedState(AbstractState pRootState, Block pReducedContext, AbstractState pReducedState) {
-    FunctionPointerState state = (FunctionPointerState) pRootState;
-    FunctionPointerState.Builder builder = state.createBuilder();
-    builder.addGlobalVariables((FunctionPointerState)pReducedState);
-    builder.clearVariablesForFunction(pReducedContext.getCallNode().getFunctionName());
-    return builder.build();
+  protected FunctionPointerState getVariableExpandedState0(
+      FunctionPointerState pRootState, Block pReducedContext, FunctionPointerState pReducedState) {
+    // the expanded state will contain:
+    // - all variables of the reduced state -> copy the state
+    // - all non-block variables of the rootState -> copy those values
+    // - not the variables of rootState used in the block -> just ignore those values
+    Builder diffElement = pReducedState.createBuilder();
+    for (String trackedVar : pRootState.getTrackedVariables()) {
+      if (!pReducedContext.getVariables().contains(trackedVar)) {
+        diffElement.setTarget(trackedVar, pRootState.getTarget(trackedVar));
+        // } else {
+        // ignore this case, the variables are part of the reduced state
+        // (or might even be deleted, then they must stay unknown)
+      }
+    }
+
+    return diffElement.build();
   }
 
   @Override
-  public Precision getVariableReducedPrecision(Precision pPrecision, Block pContext) {
+  protected Precision getVariableReducedPrecision0(Precision pPrecision, Block pContext) {
     return pPrecision;
   }
 
   @Override
-  public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext,
-      Precision pReducedPrecision) {
+  protected Precision getVariableExpandedPrecision0(
+      Precision pRootPrecision, Block pRootContext, Precision pReducedPrecision) {
     return pRootPrecision;
   }
 
   @Override
-  public Object getHashCodeForState(AbstractState pStateKey, Precision pPrecisionKey) {
-    return Pair.of(pStateKey, pPrecisionKey);
+  protected Object getHashCodeForState0(FunctionPointerState pState, Precision pPrecision) {
+    return pState;
   }
 
   @Override
-  public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
-    return 0;
+  protected FunctionPointerState rebuildStateAfterFunctionCall0(
+      FunctionPointerState pCallState,
+      FunctionPointerState entryState,
+      FunctionPointerState pExpandedState,
+      FunctionExitNode exitLocation) {
+
+    // we build a new state from:
+    // - local variables from callState,
+    // - global variables from expandedState,
+    // - the local return variable from expandedState.
+    // we copy callState and override all global values and the return variable.
+
+    Builder rebuildState = pCallState.createBuilder();
+
+    // first forget all global information
+    for (String trackedVar : pCallState.getTrackedVariables()) {
+      if (!isOnFunctionStack(trackedVar)) { // global -> delete
+        rebuildState.setTarget(trackedVar, UnknownTarget.getInstance());
+      }
+    }
+
+    // second: learn new information
+    Optional<? extends AVariableDeclaration> retval =
+        exitLocation.getEntryNode().getReturnVariable();
+    for (String trackedVar : pExpandedState.getTrackedVariables()) {
+      if (!isOnFunctionStack(trackedVar)) { // global -> override deleted value
+        rebuildState.setTarget(trackedVar, pExpandedState.getTarget(trackedVar));
+      } else if (retval.isPresent() && retval.get().getQualifiedName().equals(trackedVar)) {
+        if (pExpandedState.getTarget(trackedVar) != UnknownTarget.getInstance()) {
+          rebuildState.setTarget(trackedVar, pExpandedState.getTarget(trackedVar));
+        }
+      }
+    }
+
+    return rebuildState.build();
   }
 
-  @Override
-  public AbstractState getVariableReducedStateForProofChecking(AbstractState pExpandedState, Block pContext,
-      CFANode pCallNode) {
-    return pExpandedState;
+  private static boolean isOnFunctionStack(String var) {
+    return var.contains("::");
   }
-
-  @Override
-  public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) {
-    return pRootState;
-  }
-
-  @Override
-  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState pEntryState,
-      AbstractState pExpandedState, FunctionExitNode pExitLocation) {
-    return pExpandedState;
-  }
-
 }

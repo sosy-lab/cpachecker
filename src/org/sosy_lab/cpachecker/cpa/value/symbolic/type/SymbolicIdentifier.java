@@ -28,7 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.primitives.Longs;
 import java.util.Objects;
 import java.util.Optional;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;

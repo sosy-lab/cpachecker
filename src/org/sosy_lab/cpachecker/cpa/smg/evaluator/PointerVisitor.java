@@ -271,8 +271,10 @@ public class PointerVisitor extends ExpressionValueVisitor {
 
     CExpression lVarInBinaryExp = binaryExp.getOperand1();
     CExpression rVarInBinaryExp = binaryExp.getOperand2();
-    CType lVarInBinaryExpType = TypeUtils.getRealExpressionType(lVarInBinaryExp);
-    CType rVarInBinaryExpType = TypeUtils.getRealExpressionType(rVarInBinaryExp);
+    CType lVarInBinaryExpType =
+        TypeUtils.convertArrayToPointerType(TypeUtils.getRealExpressionType(lVarInBinaryExp));
+    CType rVarInBinaryExpType =
+        TypeUtils.convertArrayToPointerType(TypeUtils.getRealExpressionType(rVarInBinaryExp));
 
     boolean lVarIsAddress = lVarInBinaryExpType instanceof CPointerType;
     boolean rVarIsAddress = rVarInBinaryExpType instanceof CPointerType;
