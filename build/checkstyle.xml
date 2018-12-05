@@ -32,6 +32,10 @@
     <module name="IllegalImport">
       <property name="illegalPkgs" value="sun,com.google.common.testing,org.junit,junit"/>
     </module>
+    <module name="IllegalImport">
+      <property name="illegalClasses" value=".*\.(Builder|of|copyOf)$"/>
+      <property name="regexp" value="true"/>
+    </module>
     <module name="RedundantImport"/>
     <module name="CovariantEquals"/>
     <module name="EmptyStatement"/>

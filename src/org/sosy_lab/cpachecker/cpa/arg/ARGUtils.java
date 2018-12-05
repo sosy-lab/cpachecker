@@ -37,7 +37,6 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Verify;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -389,7 +388,7 @@ public class ARGUtils {
     Preconditions.checkNotNull(pTracePosition);
     Preconditions.checkNotNull(pPostfixLocation);
 
-    Builder<PathPosition> result = ImmutableList.builder();
+    ImmutableList.Builder<PathPosition> result = ImmutableList.builder();
 
     for (PathPosition p: pTracePosition) {
 

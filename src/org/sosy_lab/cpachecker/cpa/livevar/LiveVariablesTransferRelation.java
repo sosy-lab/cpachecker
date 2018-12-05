@@ -31,7 +31,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
@@ -142,8 +141,8 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     }
 
     allDeclarations = gatherAllDeclarations(pCFA);
-    Builder<Wrapper<? extends ASimpleDeclaration>, Integer> builder = ImmutableMap
-        .builder();
+    ImmutableMap.Builder<Wrapper<? extends ASimpleDeclaration>, Integer> builder =
+        ImmutableMap.builder();
     for (int i=0; i<allDeclarations.size(); i++) {
       builder.put(allDeclarations.get(i), i);
     }

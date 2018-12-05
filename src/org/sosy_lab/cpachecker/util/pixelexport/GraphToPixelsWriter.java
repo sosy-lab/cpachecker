@@ -50,7 +50,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.pixelexport.GraphLevel.Builder;
 import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Document;
 
@@ -145,7 +144,7 @@ public abstract class GraphToPixelsWriter<Node> {
 
     worklist.add(Pair.of(0, pRoot));
     int oldDistance = 0;
-    Builder<Node> levelBuilder = getLevelBuilder();
+    GraphLevel.Builder<Node> levelBuilder = getLevelBuilder();
     while (!worklist.isEmpty()) {
       Pair<Integer, Node> current = checkNotNull(worklist.poll()); // FIFO for BFS order
       if (reached.contains(current.getSecond())) {

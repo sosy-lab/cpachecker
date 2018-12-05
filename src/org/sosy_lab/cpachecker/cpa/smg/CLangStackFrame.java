@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -197,7 +196,7 @@ public final class CLangStackFrame {
    * @return a set of all objects: return value object, variables, parameters
    */
   public Set<SMGObject> getAllObjects() {
-    Builder<SMGObject> retset = ImmutableSet.builder();
+    ImmutableSet.Builder<SMGObject> retset = ImmutableSet.builder();
     retset.addAll(stack_variables.values());
     if (returnValueObject != null) {
       retset.add(returnValueObject);
