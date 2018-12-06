@@ -25,10 +25,6 @@
         classpathref="parser.generator.path"
     />
 
-    <condition property="annotation.generated.package" value="javax.annotation" else="javax.annotation.processing">
-        <equals arg1="${ant.java.version}" arg2="1.8"/>
-    </condition>
-
     <target name="echos">
         <echo>${dir.base}</echo>
         <echo>${dir.lib}</echo>
@@ -53,8 +49,6 @@
 
     <target name="generate-scanner" unless="scanner.uptodate" description="Generate automaton scanner">
         <jflex file="${dir.parser}/${scanner.source}" destdir="${dir.src}" skel="${dir.parser}/${skeleton.source}"/>
-        <property name="scanner.annotation" value="@${annotation.generated.package}.Generated(&quot;JFlex&quot;)${line.separator}"/>
-        <replace file="${dir.parser}/${scanner.target}.java" token="@SuppressWarnings" value="${scanner.annotation}@SuppressWarnings"/>
     </target>
 
     <target name="generate-parser" depends="generate-scanner" unless="parser.uptodate" description="Generate automaton parser">
@@ -68,7 +62,7 @@
         />
 
         <!-- place a more general suppressWarnings-tag in front of the generated class -->
-        <property name="parser.annotation" value="@${annotation.generated.package}.Generated(&quot;CUP&quot;)${line.separator}@SuppressWarnings(value = {&quot;all&quot;, &quot;cast&quot;, &quot;rawtypes&quot;, &quot;unchecked&quot;} )${line.separator}@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {&quot;EI_EXPOSE_REP&quot;, &quot;MS_PKGPROTECT&quot;, &quot;SIC_INNER_SHOULD_BE_STATIC&quot;})"/>
-        <replace file="${dir.parser}/${parser.target}.java" token="@SuppressWarnings({&quot;rawtypes&quot;})" value="${parser.annotation}"/>
+        <property name="annotation" value="@javax.annotation.Generated(&quot;CUP&quot;)${line.separator}@SuppressWarnings(value = {&quot;all&quot;, &quot;cast&quot;, &quot;rawtypes&quot;, &quot;unchecked&quot;} )${line.separator}@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {&quot;EI_EXPOSE_REP&quot;, &quot;MS_PKGPROTECT&quot;, &quot;SIC_INNER_SHOULD_BE_STATIC&quot;})"/>
+        <replace file="${dir.parser}/${parser.target}.java" token="@SuppressWarnings({&quot;rawtypes&quot;})" value="${annotation}"/>
     </target>
 </project>

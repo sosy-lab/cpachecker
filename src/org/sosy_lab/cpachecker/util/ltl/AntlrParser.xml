@@ -15,10 +15,6 @@
 		<echo>is antlr4 up to date? ${is.antlr4.uptodate}</echo>
 	</target>
 
-	<condition property="annotation.generated.package" value="javax.annotation" else="javax.annotation.processing">
-		<equals arg1="${ant.java.version}" arg2="1.8"/>
-	</condition>
-
 	<target name="clean" description="Delete generated files">
 		<delete dir="${ltl.generated.dir}" />
 	</target>
@@ -77,7 +73,7 @@
 				<path refid="classpath.antlr4" />
 			</classpath>
 		</java>
-		<property name="annotation" value="@${annotation.generated.package}.Generated(&quot;Antlr&quot;)${line.separator}"/>
+		<property name="annotation" value="@javax.annotation.Generated(&quot;Antlr&quot;)${line.separator}"/>
 		<replace file="${ltl.generated.dir}/${parser.source}.java" token="@SuppressWarnings" value="${annotation}@SuppressWarnings"/>
 		<echo message="Generated parser-files in ${ltl.generated.dir}/*" level="info" />
 	</target>

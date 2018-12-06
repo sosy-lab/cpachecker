@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- vim: set tabstop=8 shiftwidth=4 expandtab : -->
 <project name="CPAchecker" basedir="." default="build"
+         xmlns:unless="ant:unless"
          xmlns:ivy="antlib:org.apache.ivy.ant">
     <!-- Include a file in which all properties can be overridden.
          This file won't get checked in and can be used to change properties
@@ -105,6 +106,25 @@
     </target>
 
     <target name="build-dependencies" depends="init, resolve-dependencies, build-subprojects"/>
+
+    <target name="build-project-ecj" depends="build-dependencies" description="Build project with the Eclipse JDT compiler">
+        <condition property="java8">
+            <equals arg1="${ant.java.version}" arg2="1.8"/>
+        </condition>
+        <replace
+            dir="${source.dir}" includes="**/*Scanner.java **/*Parser.java"
+            preserveLastModified="true"
+            token="@javax.annotation.Generated"
+            value="@javax.annotation.processing.Generated"
+            unless:set="java8"/>
+        <antcall target="compile.build-project-ecj"/>
+        <replace
+            dir="${source.dir}" includes="**/*Scanner.java **/*Parser.java"
+            preserveLastModified="true"
+            token="@javax.annotation.processing.Generated"
+            value="@javax.annotation.Generated"
+            unless:set="java8"/>
+    </target>
 
     <available file=".factorypath" property="factorypath.present"/>
     <target name="-warn-factorypath" unless="factorypath.present">
