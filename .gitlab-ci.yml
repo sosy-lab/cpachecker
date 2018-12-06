@@ -180,16 +180,6 @@ unit-tests:jdk-10:
 unit-tests:jdk-11:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
 
-# compilation on newer JDK fails because of missing @Generated annotation
-build-project-ecj:jdk-9:
-  allow_failure: true
-
-build-project-ecj:jdk-10:
-  allow_failure: true
-
-build-project-ecj:jdk-11:
-  allow_failure: true
-
 # Disable some checks because they are not used for CPAchecker
 check-format:
   only: []
