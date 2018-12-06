@@ -277,8 +277,13 @@ public class LocalTransferRelation
         if (num > 0) {
           // local data are transmitted, as function parameters. F.e., allocate(&pointer);
           CExpression parameter = right.getParameterExpressions().get(num - 1);
-          // TODO How it works?
-          AbstractIdentifier rightId = createId(parameter, dereference);
+          // transmitted dereference is not related to the argument, so, add the pointer as it is
+          // and with single dereference
+          AbstractIdentifier rightId = createId(parameter, 0);
+          if (rightId.getDereference() < 1) {
+            // alloc(&var), but var is a pointer itself
+            rightId = rightId.cloneWithDereference(1);
+          }
           pSuccessor.set(rightId, DataType.LOCAL);
         }
       }
