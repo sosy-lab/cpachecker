@@ -789,8 +789,7 @@ public class CtoFormulaConverter {
   private static CExpression makeCastFromArrayToPointer(CExpression arrayExpression) {
     // array-to-pointer conversion
     CArrayType arrayType = (CArrayType)arrayExpression.getExpressionType().getCanonicalType();
-    CPointerType pointerType = new CPointerType(arrayType.isConst(),
-        arrayType.isVolatile(), arrayType.getType());
+    CPointerType pointerType = arrayType.asPointerType();
 
     return new CUnaryExpression(arrayExpression.getFileLocation(), pointerType,
         arrayExpression, UnaryOperator.AMPER);

@@ -64,6 +64,15 @@ public final class CArrayType extends AArrayType implements CType {
         : OptionalInt.empty();
   }
 
+  /**
+   * Convert this array type to a pointer type with the same target type. Note that in most cases
+   * the method {@link CTypes#adjustFunctionOrArrayType(CType)} should be used instead, which
+   * implements this conversion properly and also the similar conversion for function types.
+   */
+  public CPointerType asPointerType() {
+    return new CPointerType(isConst, isVolatile, getType());
+  }
+
   @Override
   public String toASTString(String pDeclarator) {
     return toASTString(pDeclarator, false);
