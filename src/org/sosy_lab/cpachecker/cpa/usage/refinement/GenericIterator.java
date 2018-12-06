@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 import com.google.errorprone.annotations.ForOverride;
 import java.util.ArrayList;
 import java.util.List;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -37,7 +38,7 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
   private StatTimer totalTimer = new StatTimer("Time for generic iterator");
   private StatCounter numOfIterations = new StatCounter("Number of iterations");
 
-  PredicatePrecision completePrecision;
+  AdjustablePrecision completePrecision;
 
   // Some iterations may be postponed to the end (complicated ones)
   List<O> postponedIterations = new ArrayList<>();
@@ -90,9 +91,9 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
       return result;
     }
 
-    PredicatePrecision precision = result.getPrecision();
+    AdjustablePrecision precision = result.getPrecision();
     if (precision != null) {
-      completePrecision = completePrecision.mergeWith(precision);
+      completePrecision = completePrecision.add(precision);
     }
 
     finishIteration(iteration, result);

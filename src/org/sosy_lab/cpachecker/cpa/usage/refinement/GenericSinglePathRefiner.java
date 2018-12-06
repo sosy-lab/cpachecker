@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
 import com.google.common.base.Preconditions;
 import com.google.errorprone.annotations.ForOverride;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -57,9 +57,9 @@ public abstract class GenericSinglePathRefiner extends
       if (result.isFalse()) {
         return result;
       }
-      PredicatePrecision completePrecision = result.getPrecision();
+      AdjustablePrecision completePrecision = result.getPrecision();
       result = refinePath(secondPath);
-      completePrecision = completePrecision.mergeWith(result.getPrecision());
+      completePrecision = completePrecision.add(result.getPrecision());
       if (!result.isFalse()) {
         result = wrappedRefiner.performBlockRefinement(pInput);
       }

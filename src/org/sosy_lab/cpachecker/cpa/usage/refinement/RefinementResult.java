@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 import com.google.common.base.Preconditions;
 import java.util.HashMap;
 import java.util.Map;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -40,7 +41,7 @@ public class RefinementResult {
   private final Map<Class<? extends RefinementInterface>, Object> auxiliaryInfo = new HashMap<>();
   private final Pair<UsageInfo, UsageInfo> trueRace;
   //Currently only predicate one
-  private PredicatePrecision precision;
+  private AdjustablePrecision precision;
   RefinementStatus status;
 
   private RefinementResult(RefinementStatus rStatus, UsageInfo firstUsage, UsageInfo secondUsage) {
@@ -108,11 +109,11 @@ public class RefinementResult {
     return trueRace;
   }
 
-  public void addPrecision(PredicatePrecision p) {
-    precision = precision.mergeWith(p);
+  public void addPrecision(AdjustablePrecision p) {
+    precision = precision.add(p);
   }
 
-  public PredicatePrecision getPrecision() {
+  public AdjustablePrecision getPrecision() {
     return precision;
   }
 
