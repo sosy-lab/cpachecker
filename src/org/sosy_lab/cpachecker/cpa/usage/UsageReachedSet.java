@@ -24,9 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Multiset;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ObjectOutputStream;
 import java.util.ArrayDeque;
@@ -176,18 +174,17 @@ public class UsageReachedSet extends PartitionedReachedSet {
     if (!usagesExtracted && container != null) {
       logger.log(Level.INFO, "Analysis is finished, start usage extraction");
       usagesExtracted = true;
-      Deque<Pair<AbstractState, Multiset<LockEffect>>> waitlist = new ArrayDeque<>();
-      Multimap<AbstractState, Multiset<LockEffect>> processedSets = ArrayListMultimap.create();
+      Deque<Pair<AbstractState, Set<LockEffect>>> waitlist = new ArrayDeque<>();
+      Multimap<AbstractState, Set<LockEffect>> processedSets = ArrayListMultimap.create();
 
-      Pair<AbstractState, Multiset<LockEffect>> currentPair =
-          Pair.of(getFirstState(), HashMultiset.create());
+      Pair<AbstractState, Set<LockEffect>> currentPair = Pair.of(getFirstState(), new HashSet<>());
       waitlist.add(currentPair);
-      processedSets.put(getFirstState(), HashMultiset.create());
+      processedSets.put(getFirstState(), new HashSet<>());
 
       while (!waitlist.isEmpty()) {
         currentPair = waitlist.pop();
         AbstractState state = currentPair.getFirst();
-        Multiset<LockEffect> currentEffects = currentPair.getSecond();
+        Set<LockEffect> currentEffects = currentPair.getSecond();
         processingSteps.inc();
         LockState locks, expandedLocks;
         Map<LockState, LockState> reduceToExpand = new HashMap<>();
@@ -273,50 +270,12 @@ public class UsageReachedSet extends PartitionedReachedSet {
               AbstractState reducedChild = manager.getReducedStateForExpandedState(child);
               ReachedSet innerReached = manager.getReachedSetForInitialState(state, reducedChild);
 
-              LockState rootLockState = AbstractStates.extractStateByType(child, LockState.class);
-              LockState reducedLockState =
-                  AbstractStates.extractStateByType(reducedChild, LockState.class);
-              Multiset<LockEffect> difference;
-              if (rootLockState == null || reducedLockState == null) {
-                // No LockCPA
-                difference = HashMultiset.create();
-              } else {
-                difference = reducedLockState.getDifference(rootLockState);
-              }
-
-              difference.addAll(currentEffects);
-
-              AbstractState firstState = innerReached.getFirstState();
-              Pair<AbstractState, Multiset<LockEffect>> newPair =
-                  Pair.of(innerReached.getFirstState(), difference);
-              if (shouldContinue(processedSets.get(firstState), difference)) {
-                waitlist.add(newPair);
-                processedSets.put(firstState, difference);
-              }
+              process(state, innerReached, waitlist, processedSets, currentEffects);
             }
           } else if (manager.hasInitialStateWithoutExit(state)) {
             ReachedSet innerReached = manager.getReachedSetForInitialState(state);
 
-            LockState rootLockState =
-                AbstractStates.extractStateByType(innerReached.getFirstState(), LockState.class);
-            LockState reducedLockState = AbstractStates.extractStateByType(state, LockState.class);
-            Multiset<LockEffect> difference;
-            if (rootLockState == null || reducedLockState == null) {
-              // No LockCPA
-              difference = HashMultiset.create();
-            } else {
-              difference = reducedLockState.getDifference(rootLockState);
-            }
-
-            difference.addAll(currentEffects);
-
-            AbstractState firstState = innerReached.getFirstState();
-            Pair<AbstractState, Multiset<LockEffect>> newPair =
-                Pair.of(firstState, difference);
-            if (shouldContinue(processedSets.get(firstState), difference)) {
-              waitlist.add(newPair);
-              processedSets.put(firstState, difference);
-            }
+            process(state, innerReached, waitlist, processedSets, currentEffects);
           }
         }
       }
@@ -324,14 +283,48 @@ public class UsageReachedSet extends PartitionedReachedSet {
     }
   }
 
+  private void process(
+      AbstractState rootState,
+      ReachedSet innerReached,
+      Deque<Pair<AbstractState, Set<LockEffect>>> waitlist,
+      Multimap<AbstractState, Set<LockEffect>> processedSets,
+      Set<LockEffect> currentEffects) {
+
+    AbstractState reducedState = innerReached.getFirstState();
+    LockState rootLockState = AbstractStates.extractStateByType(rootState, LockState.class);
+    LockState reducedLockState = AbstractStates.extractStateByType(reducedState, LockState.class);
+    Set<LockEffect> difference;
+    if (rootLockState == null || reducedLockState == null) {
+      // No LockCPA
+      difference = new HashSet<>();
+    } else {
+      // the same element, so do not distinguish lock[1] and lock [2]
+      difference = new HashSet<>(reducedLockState.getDifference(rootLockState).elementSet());
+    }
+
+    difference.addAll(currentEffects);
+
+    AbstractState firstState = innerReached.getFirstState();
+    Pair<AbstractState, Set<LockEffect>> newPair =
+        Pair.of(innerReached.getFirstState(), difference);
+
+    if (shouldContinue(processedSets.get(firstState), difference)) {
+      waitlist.add(newPair);
+      if (difference.isEmpty() && processedSets.containsKey(firstState)) {
+        processedSets.removeAll(firstState);
+      }
+      processedSets.put(firstState, difference);
+    }
+  }
+
   private boolean
       shouldContinue(
-          Collection<Multiset<LockEffect>> processed,
-          Multiset<LockEffect> currentDifference) {
+          Collection<Set<LockEffect>> processed,
+          Set<LockEffect> currentDifference) {
     if (processCoveredUsages) {
       return !processed.contains(currentDifference);
     } else {
-      for (Multiset<LockEffect> locks : processed) {
+      for (Set<LockEffect> locks : processed) {
         if (currentDifference.containsAll(locks)) {
           return false;
         }
