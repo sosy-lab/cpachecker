@@ -29,6 +29,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
 import static java.lang.Boolean.parseBoolean;
+import static org.junit.Assume.assumeNoException;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -251,8 +252,8 @@ public class ConfigurationFileChecks {
     try {
       config = parse(configFile).build();
     } catch (InvalidConfigurationException | IOException | URISyntaxException e) {
-      assume().fail(e.getMessage());
-      throw new AssertionError();
+      assumeNoException(e);
+      throw new AssertionError(e);
     }
     assume()
         .withMessage("Test configs (which are loaded from URL resources) may contain any option")
@@ -504,9 +505,9 @@ public class ConfigurationFileChecks {
         assume().fail("Java frontend has a bug and cannot be run twice");
       }
       throw e;
-    } catch (UnsatisfiedLinkError e) {
-      assume().fail(e.getMessage());
-      return;
+    } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
+      assumeNoException(e);
+      throw new AssertionError(e);
     }
 
     assert_()
@@ -568,8 +569,8 @@ public class ConfigurationFileChecks {
           .setOption("differential.program", createEmptyProgram(false))
           .build();
     } catch (InvalidConfigurationException | IOException | URISyntaxException e) {
-      assume().fail(e.getMessage());
-      throw new AssertionError();
+      assumeNoException(e);
+      throw new AssertionError(e);
     }
   }
 
