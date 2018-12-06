@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -77,6 +78,8 @@ public class UsageReachedSet extends PartitionedReachedSet {
 
   private final StatTimer usageProcessingTimer = new StatTimer("Time for usage processing");
   private final StatTimer usageExpandingTimer = new StatTimer("Time for usage expanding");
+  private final StatCounter processingSteps =
+      new StatCounter("Number of different reached sets with lock effects");
 
   private boolean usagesExtracted = false;
 
@@ -185,6 +188,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
         currentPair = waitlist.pop();
         AbstractState state = currentPair.getFirst();
         Multiset<LockEffect> currentEffects = currentPair.getSecond();
+        processingSteps.inc();
         LockState locks, expandedLocks;
         Map<LockState, LockState> reduceToExpand = new HashMap<>();
         Map<AbstractState, List<UsageInfo>> stateToUsage = new HashMap<>();
@@ -337,6 +341,6 @@ public class UsageReachedSet extends PartitionedReachedSet {
   }
 
   public void printStatistics(StatisticsWriter pWriter) {
-    pWriter.spacer().put(usageProcessingTimer).put(usageExpandingTimer);
+    pWriter.spacer().put(usageProcessingTimer).put(usageExpandingTimer).put(processingSteps);
   }
 }
