@@ -128,6 +128,7 @@ public class ExpressionToFormulaVisitor
   private CType getPromotedTypeForArithmetic(CExpression exp) {
     CType t = exp.getExpressionType();
     t = t.getCanonicalType();
+    t = CTypes.adjustFunctionOrArrayType(t);
     if (CTypes.isIntegerType(t)) {
       // Integer types smaller than int are promoted when an operation is performed on them.
       return conv.machineModel.applyIntegerPromotion(t);
