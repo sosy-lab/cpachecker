@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.hybrid.abstraction;
 
 import org.sosy_lab.cpachecker.cpa.hybrid.value.*;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
  * Transformer interface for visiting @see HybridValue
@@ -31,5 +32,5 @@ import org.sosy_lab.cpachecker.cpa.hybrid.value.*;
  */
 public interface HybridValueTransformer<T, TDependentObj> {
 
-    T transform(HybridValue value, TDependentObj obj);
+    T transform(Value value, TDependentObj obj);
 }

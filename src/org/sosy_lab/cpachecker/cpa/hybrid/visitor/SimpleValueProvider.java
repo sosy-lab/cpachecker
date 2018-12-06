@@ -23,20 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid.visitor;
 
+import java.util.Random;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueProvider;
-import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
-import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.StringValue;
+import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
  * This class provides a random strategy for generating actual values
@@ -46,60 +47,86 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
  */
 public class SimpleValueProvider extends HybridValueProvider{
 
-    @Override
-    public HybridValue visit(CArrayType pArrayType) throws NoException {
-        return null;
+  private final Random random;
+  private final int stringMaxLength;
+  private final int charNumberUpperBound = 255;
+
+  /**
+   * constructs a new instance of this class
+   */
+  public SimpleValueProvider(int pStringMaxLength) {
+    random = new Random();
+    stringMaxLength = pStringMaxLength;
+  }
+
+  /**
+   * Constructs a new instance of this class
+   * @param seed The seed to instantiate the random number generator with
+   */
+  public SimpleValueProvider(int pStringMaxLength, long seed) {
+    random = new Random(seed);
+    stringMaxLength = pStringMaxLength;
+  }
+
+
+  @Override
+  public Value visit(CSimpleType type) {
+
+    switch(type.getType()) {
+      case CHAR:
+      case INT: return new NumericValue(random.nextInt());
+      case FLOAT: return new NumericValue(random.nextFloat());
+      case DOUBLE: return new NumericValue(random.nextDouble());
+      case BOOL: return BooleanValue.valueOf(random.nextBoolean());
+      default: return null;
+    }
+  }
+
+  @Override
+  public Value visit(CPointerType type) {
+
+    // for now, simply handle char pointer
+    if(!type.getCanonicalType().equals(CNumericTypes.CHAR)) {
+      return null;
     }
 
-    @Override
-    public HybridValue visit(CCompositeType pCompositeType) throws NoException {
-        return null;
-    }
+    return new StringValue(nextRandomString());
+  }
 
-    @Override
-    public HybridValue visit(CElaboratedType pElaboratedType) throws NoException {
-        return null;
-    }
+  @Override
+  public Value visit(CArrayType type) {
 
-    @Override
-    public HybridValue visit(CEnumType pEnumType) throws NoException {
-        return null;
-    }
+    // evaluate the length
+    return null;
+  }
 
-    @Override
-    public HybridValue visit(CFunctionType pFunctionType) throws NoException {
-        return null;
-    }
+  @Override
+  public Value visit(CBitFieldType type) {
+    return null;
+  }
 
-    @Override
-    public HybridValue visit(CPointerType pPointerType) throws NoException {
-        return null;
-    }
+  @Override
+  public Value visit(CCompositeType type) {
+    return null;
+  }
 
-    @Override
-    public HybridValue visit(CProblemType pProblemType) throws NoException {
-        return null;
-    }
+  @Override
+  public Value visit(CTypedefType type) {
+    return null;
+  }
 
-    @Override
-    public HybridValue visit(CSimpleType pSimpleType) throws NoException {
-        return null;
-    }
+  // creates a random string of random length
+  private String nextRandomString() {
 
-    @Override
-    public HybridValue visit(CTypedefType pTypedefType) throws NoException {
-        return null;
-    }
+    // denoting the length of the string
+    final int length = random.nextInt(stringMaxLength);
 
-    @Override
-    public HybridValue visit(CVoidType pVoidType) throws NoException {
-        // probably nothing to do here
-        return null;
-    }
+    final String builder =
+        IntStream
+            .range(0, length)
+            .mapToObj(i -> String.valueOf((char) random.nextInt(charNumberUpperBound)))
+            .collect(Collectors.joining());
 
-    @Override
-    public HybridValue visit(CBitFieldType pCBitFieldType) throws NoException {
-        return null;
-    }
-
+    return builder;
+  }
 }

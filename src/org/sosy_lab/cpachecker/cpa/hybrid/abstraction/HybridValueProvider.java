@@ -23,50 +23,52 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid.abstraction;
 
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
-import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
-public abstract class HybridValueProvider implements CTypeVisitor<HybridValue, NoException> {
-    
-    public HybridValue delegateVisit(CType type) {
+public abstract class HybridValueProvider {
 
-        if(type instanceof CArrayType){
-            return visit((CArrayType)type);
-        }
-        if(type instanceof CCompositeType) {
-            return visit((CCompositeType)type);
-        }
-        if(type instanceof CElaboratedType) {
-            return visit((CElaboratedType)type);
-        }
-        if(type instanceof CEnumType) {
-            return visit((CEnumType)type);
-        }
-        if(type instanceof CPointerType) {
-            return visit((CPointerType)type);
-        }
-        if(type instanceof CSimpleType) {
-            return visit((CSimpleType)type);
-        }
-        if(type instanceof CTypedefType) {
-            return visit((CTypedefType)type);
-        }
-        if(type instanceof CBitFieldType) {
-            return visit((CBitFieldType)type);
-        }
+  @Nullable
+  public Value delegateVisit(CType type) {
 
-        // VoidType, FunctionType, CProblemType
-        throw new IllegalArgumentException("Only assignable types are applicable for a Hybrid Value Provider.");
-
+    if(type instanceof CArrayType){
+        return visit((CArrayType)type);
     }
+    if(type instanceof CCompositeType) {
+        return visit((CCompositeType)type);
+    }
+    if(type instanceof CPointerType) {
+        return visit((CPointerType)type);
+    }
+    if(type instanceof CSimpleType) {
+        return visit((CSimpleType)type);
+    }
+    if(type instanceof CTypedefType) {
+        return visit((CTypedefType)type);
+    }
+    if(type instanceof CBitFieldType) {
+        return visit((CBitFieldType)type);
+    }
+
+    return null;
+  }
+
+  public abstract Value visit(CSimpleType type);
+
+  public abstract Value visit(CPointerType type);
+
+  public abstract Value visit(CArrayType type);
+
+  public abstract Value visit(CBitFieldType type);
+
+  public abstract Value visit(CCompositeType type);
+
+  public abstract Value visit(CTypedefType type);
 }

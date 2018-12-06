@@ -61,9 +61,9 @@ import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueProvider;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.CollectionUtils;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.ExpressionUtils;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.StrengthenOperatorFactory;
-import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
 import org.sosy_lab.cpachecker.cpa.hybrid.visitor.HybridValueDeclarationTransformer;
 import org.sosy_lab.cpachecker.cpa.hybrid.visitor.HybridValueIdExpressionTransformer;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 @Options(prefix="cpa.hybrid")
@@ -171,7 +171,7 @@ public class HybridAnalysisTransferRelation
   protected @Nullable HybridAnalysisState handleDeclarationEdge(CDeclarationEdge cfaEdge, CDeclaration decl)
       throws CPATransferException {
     
-    HybridValue value = valueProvider.delegateVisit(decl.getType());
+    Value value = valueProvider.delegateVisit(decl.getType());
     CExpression newAssumption = valueDeclarationTransformer.transform(value, decl);
 
     return HybridAnalysisState.copyWithNewAssumptions(state, newAssumption);
@@ -225,7 +225,7 @@ public class HybridAnalysisTransferRelation
       // handle nondet value
       if(isNondetFunctionCall) {
 
-        HybridValue value = valueProvider.delegateVisit(statement.getLeftHandSide().getExpressionType());
+        Value value = valueProvider.delegateVisit(statement.getLeftHandSide().getExpressionType());
         CIdExpression leftHandSide = (CIdExpression) statement.getLeftHandSide(); // TODO: check if it is assignable from
         CExpression newAssumption = valueIdExpressionTransformer.transform(value, leftHandSide);
 

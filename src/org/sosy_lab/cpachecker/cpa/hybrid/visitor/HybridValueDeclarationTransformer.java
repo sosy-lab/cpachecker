@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.hybrid.visitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueTransformer;
-import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
  * A hybrid value transformer for declaration cases
@@ -35,7 +35,7 @@ public class HybridValueDeclarationTransformer
     implements HybridValueTransformer<CExpression, CDeclaration> {
 
   @Override
-  public CExpression transform(HybridValue pValue, CDeclaration pObj) {
+  public CExpression transform(Value pValue, CDeclaration pObj) {
     return null;
   }
 

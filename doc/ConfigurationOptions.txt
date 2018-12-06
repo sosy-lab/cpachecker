@@ -1388,6 +1388,9 @@ cpa.hybrid.mergeOperator = SEP
 cpa.hybrid.stopOperator = SEP
   enum:     [SEP, JOIN, NEVER]
 
+# The maximum length of provided strings.
+cpa.hybrid.stringMaxLength = 30
+
 # Determines whether to track assignments occurring within the code in the
 # hybrid analysis states.
 cpa.hybrid.trackAssignments = false

@@ -81,6 +81,11 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
             description = "The type of stop operator to use.")
     private OperatorType stopOperatorType = OperatorType.SEP;
 
+    @Option(secure = true,
+            name = "stringMaxLength",
+            description = "The maximum length of provided strings.")
+    private int stringMaxLength = 30;
+
     public static CPAFactory factory() {
         return AutomaticCPAFactory.forType(HybridAnalysisCPA.class);
     }
@@ -131,7 +136,7 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
         return new HybridAnalysisTransferRelation(
             cfa,
             logger,
-            new SimpleValueProvider(),
+            new SimpleValueProvider(stringMaxLength),
             new HybridValueDeclarationTransformer(),
             new HybridValueIdExpressionTransformer());
     }
