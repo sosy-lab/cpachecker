@@ -32,8 +32,10 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Ty
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.SCOPE_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.VARIABLE_TYPE;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -64,6 +66,8 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSObjectLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSObjectLiteralField;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSideVisitor;
@@ -595,13 +599,29 @@ public class JSToFormulaConverter {
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException {
 
+    if (edge.getDeclaration() instanceof JSFunctionDeclaration) {
+      // TODO implement without creating CFA expressions
+      return makeAssignment(
+          new JSIdExpression(FileLocation.DUMMY, edge.getDeclaration()),
+          new JSObjectLiteralExpression(
+              FileLocation.DUMMY,
+              ImmutableList.of(
+                  new JSObjectLiteralField(
+                      "prototype",
+                      new JSObjectLiteralExpression(FileLocation.DUMMY, Collections.emptyList())))),
+          edge,
+          function,
+          ssa,
+          constraints,
+          errorConditions);
+    }
     if (!(edge.getDeclaration() instanceof JSVariableDeclaration)) {
       // struct prototype, function declaration, typedef etc.
       logfOnce(Level.FINEST, edge, "Ignoring declaration");
       return bfmgr.makeTrue();
     }
 
-    JSVariableDeclaration decl = (JSVariableDeclaration)edge.getDeclaration();
+    JSVariableDeclaration decl = (JSVariableDeclaration) edge.getDeclaration();
     final String varName = decl.getQualifiedName();
 
 //    if (!isRelevantVariable(decl)) {
