@@ -38,14 +38,14 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 @Options(prefix = "cpa.lock")
 public class LockReducer extends GenericReducer<AbstractLockState, SingletonPrecision> {
 
-  public enum reduceStrategy {
+  public enum ReduceStrategy {
     NONE,
     BLOCK,
     ALL
   }
 
   @Option(description = "reduce recursive locks to a single access", secure = true)
-  private reduceStrategy reduceLockCounters = reduceStrategy.BLOCK;
+  private ReduceStrategy reduceLockCounters = ReduceStrategy.BLOCK;
 
   // Attention! Error trace may be restored incorrectly.
   // If two states with different locks are reduced to the one state,
@@ -55,9 +55,9 @@ public class LockReducer extends GenericReducer<AbstractLockState, SingletonPrec
 
   public LockReducer(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
-    if (reduceUselessLocks && reduceLockCounters == reduceStrategy.BLOCK) {
+    if (reduceUselessLocks && reduceLockCounters == ReduceStrategy.BLOCK) {
       // reducing counters in this case is useless
-      reduceLockCounters = reduceStrategy.NONE;
+      reduceLockCounters = ReduceStrategy.NONE;
     }
   }
 
