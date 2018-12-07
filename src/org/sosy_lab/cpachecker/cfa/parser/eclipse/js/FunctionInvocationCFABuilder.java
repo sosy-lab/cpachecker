@@ -30,6 +30,7 @@ import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFieldAccess;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
@@ -67,6 +68,10 @@ class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
       arguments.add(function); // function is called by unknown function caller
     }
     appendArguments(pBuilder, pNode, arguments);
+    final Optional<JSExpression> thisArg =
+        (function instanceof JSFieldAccess)
+            ? Optional.of(((JSFieldAccess) function).getObject())
+            : Optional.empty();
     final JSVariableDeclaration resultVariableDeclaration = pBuilder.declareVariable();
     final JSIdExpression resultVariableId =
         new JSIdExpression(FileLocation.DUMMY, resultVariableDeclaration);
@@ -80,7 +85,8 @@ class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
                     isKnownFunctionDeclaration ? function : unknownFunctionCallerId,
                     arguments,
                     declaration,
-                    Optional.empty()))));
+                    Optional.empty(),
+                    thisArg))));
     return resultVariableId;
   }
 

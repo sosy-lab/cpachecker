@@ -41,6 +41,7 @@ public class JSFunctionDeclaration extends AFunctionDeclaration implements JSDec
   private static final long serialVersionUID = -6049361884111627710L;
   private final Scope scope;
   private final String qualifiedName;
+  private final JSVariableDeclaration thisVariableDeclaration;
 
   public JSFunctionDeclaration(
       FileLocation pFileLocation,
@@ -57,6 +58,9 @@ public class JSFunctionDeclaration extends AFunctionDeclaration implements JSDec
         parameters);
     scope = pScope;
     qualifiedName = checkNotNull(pQualifiedName);
+    thisVariableDeclaration =
+        new JSVariableDeclaration(
+            FileLocation.DUMMY, scope, "this", "this", qualifiedName + "::this", null);
   }
 
   @Override
@@ -84,6 +88,11 @@ public class JSFunctionDeclaration extends AFunctionDeclaration implements JSDec
   @Override
   public List<JSParameterDeclaration> getParameters() {
     return (List<JSParameterDeclaration>) super.getParameters();
+  }
+
+  @Nonnull
+  public JSVariableDeclaration getThisVariableDeclaration() {
+    return thisVariableDeclaration;
   }
 
   @Override

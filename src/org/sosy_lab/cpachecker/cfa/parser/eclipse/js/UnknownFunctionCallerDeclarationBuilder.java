@@ -149,7 +149,12 @@ public class UnknownFunctionCallerDeclarationBuilder implements FunctionDeclarat
                             new JSIdExpression(FileLocation.DUMMY, jsFunctionDeclaration),
                             getParameterIds(jsFunctionDeclaration),
                             jsFunctionDeclaration,
-                            java.util.Optional.of(functionObjectParameterId)))))
+                            java.util.Optional.of(functionObjectParameterId),
+                            java.util.Optional.of(
+                                new JSIdExpression(
+                                    FileLocation.DUMMY,
+                                    getUnknownFunctionCallerDeclaration()
+                                        .getThisVariableDeclaration()))))))
             .appendEdge(exitNode, returnEdgeWithValue(resultVariableId))
             .getParseResult());
     unknownFunctionCallerCFABuilder.appendEdge(assume(condition, false));

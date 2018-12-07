@@ -156,6 +156,12 @@ public class FunctionScopeImplTest {
   }
 
   @Test
+  public void testThisBinding() {
+    Truth.assertThat(functionScope.findDeclaration("this"))
+        .isEqualTo(Optional.of(functionDeclaration.getThisVariableDeclaration()));
+  }
+
+  @Test
   public void testManagementOfDeclarations() {
     Truth.assertThat(functionScope.findDeclaration(varAlreadyDeclaredInParentScope.getOrigName()))
         .isEqualTo(Optional.of(varAlreadyDeclaredInParentScope));

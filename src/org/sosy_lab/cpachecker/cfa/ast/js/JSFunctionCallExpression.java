@@ -34,20 +34,27 @@ public class JSFunctionCallExpression extends AFunctionCallExpression implements
 
   private static final long serialVersionUID = 9202497344519251662L;
   private final Optional<JSIdExpression> functionObject;
+  private final Optional<JSExpression> thisArg;
 
   public JSFunctionCallExpression(
       final FileLocation pFileLocation,
       final JSExpression pFunctionName,
       final List<JSExpression> pParameters,
       final JSFunctionDeclaration pDeclaration,
-      final Optional<JSIdExpression> pFunctionObject) {
+      final Optional<JSIdExpression> pFunctionObject,
+      final Optional<JSExpression> pThisArg) {
 
     super(pFileLocation, JSAnyType.ANY, pFunctionName, pParameters, pDeclaration);
     functionObject = pFunctionObject;
+    thisArg = pThisArg;
   }
 
   public Optional<JSIdExpression> getFunctionObject() {
     return functionObject;
+  }
+
+  public Optional<JSExpression> getThisArg() {
+    return thisArg;
   }
 
   @Override

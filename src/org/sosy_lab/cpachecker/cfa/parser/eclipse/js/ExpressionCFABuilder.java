@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import java.util.Optional;
 import org.eclipse.wst.jsdt.core.dom.Assignment;
 import org.eclipse.wst.jsdt.core.dom.BooleanLiteral;
 import org.eclipse.wst.jsdt.core.dom.ConditionalExpression;
@@ -39,9 +40,13 @@ import org.eclipse.wst.jsdt.core.dom.PostfixExpression;
 import org.eclipse.wst.jsdt.core.dom.PrefixExpression;
 import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.eclipse.wst.jsdt.core.dom.StringLiteral;
+import org.eclipse.wst.jsdt.core.dom.ThisExpression;
 import org.eclipse.wst.jsdt.core.dom.UndefinedLiteral;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 
 class ExpressionCFABuilder implements ExpressionAppendable {
@@ -179,6 +184,14 @@ class ExpressionCFABuilder implements ExpressionAppendable {
           : simpleNameResolver.resolve(pBuilder, (SimpleName) pExpression);
     } else if (pExpression instanceof StringLiteral) {
       return stringLiteralConverter.convert(pBuilder, (StringLiteral) pExpression);
+    } else if (pExpression instanceof ThisExpression) {
+      final Optional<? extends JSSimpleDeclaration> thisVariableDeclaration =
+          pBuilder.getScope().findDeclaration("this");
+      if (!thisVariableDeclaration.isPresent()) {
+        throw new CFAGenerationRuntimeException(
+            "Variable declaration of this-expression not found");
+      }
+      return new JSIdExpression(FileLocation.DUMMY, thisVariableDeclaration.get());
     } else if (pExpression instanceof BooleanLiteral) {
       return booleanLiteralConverter.convert(pBuilder, (BooleanLiteral) pExpression);
     } else if (pExpression instanceof UndefinedLiteral) {

@@ -85,6 +85,9 @@ class FunctionScopeImpl implements FunctionScope {
   @Override
   public Optional<? extends JSSimpleDeclaration> findDeclaration(
       @Nonnull final String pIdentifier) {
+    if (pIdentifier.equals("this")) {
+      return Optional.of(functionDeclaration.getThisVariableDeclaration());
+    }
     final Optional<? extends JSSimpleDeclaration> localDeclaration =
         findLocalDeclaration(pIdentifier);
     if (localDeclaration.isPresent()) {
