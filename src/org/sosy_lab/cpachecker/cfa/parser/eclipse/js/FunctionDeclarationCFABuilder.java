@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSReturnStatementEdge;
 
@@ -64,6 +65,7 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
             functionQualifiedName,
             parameters);
     currentScope.addDeclaration(jsFunctionDeclaration);
+    pBuilder.appendEdge(JSDeclarationEdge.of(jsFunctionDeclaration));
     final FunctionScopeImpl functionScope =
         new FunctionScopeImpl(currentScope, jsFunctionDeclaration);
     final String returnVariableName = "__retval__";
