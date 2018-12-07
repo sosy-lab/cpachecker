@@ -23,10 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
-import javax.annotation.Nonnull;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
-import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 class TypedValueManager {
@@ -42,7 +40,10 @@ class TypedValueManager {
     typedValues = pTypedValues;
     typeTags = pTypeTags;
     nullValue = new TypedValue(typeTags.OBJECT, pNullValueObjectId);
-    undefinedValue = new UndefinedValue();
+    // The value of undefined is always the same.
+    // It does not matter as which value it is represented.
+    // Thus, the same value as the type tag can be used.
+    undefinedValue = new TypedValue(typeTags.UNDEFINED, typeTags.UNDEFINED);
   }
 
   TypedValue getUndefinedValue() {
@@ -71,20 +72,6 @@ class TypedValueManager {
 
   TypedValue createFunctionValue(final IntegerFormula pFunctionDeclarationId) {
     return new TypedValue(typeTags.FUNCTION, pFunctionDeclarationId);
-  }
-
-  private class UndefinedValue extends TypedValue {
-
-    UndefinedValue() {
-      super(typeTags.UNDEFINED, typeTags.UNDEFINED);
-    }
-
-    @Nonnull
-    @Override
-    public Formula getValue() {
-      throw new RuntimeException(
-          "Can not get value of 'undefined'. Check for type 'undefined' instead.");
-    }
   }
 
 }
