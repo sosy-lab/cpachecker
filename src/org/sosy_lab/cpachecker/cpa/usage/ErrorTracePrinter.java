@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -34,8 +35,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -56,6 +60,7 @@ import org.sosy_lab.cpachecker.cpa.usage.storage.RefinedUsagePointSet;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UnsafeDetector;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -63,6 +68,39 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix = "cpa.usage")
 public abstract class ErrorTracePrinter {
+
+  private static class TraceCore {
+    private final String function;
+    private final List<CompatibleNode> compatibleNodes;
+
+    private TraceCore(UsageInfo pTmpUsage) {
+      compatibleNodes = pTmpUsage.getCompatibleNodes();
+      function = pTmpUsage.getCFANode().getFunctionName();
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + Objects.hashCode(compatibleNodes);
+      result = prime * result + Objects.hashCode(function);
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null || getClass() != obj.getClass()) {
+        return false;
+      }
+      TraceCore other = (TraceCore) obj;
+      return Objects.equals(compatibleNodes, other.compatibleNodes)
+          && Objects.equals(function, other.function);
+    }
+
+  }
 
   @Option(name = "falseUnsafesOutput", description = "path to write results", secure = true)
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -74,6 +112,9 @@ public abstract class ErrorTracePrinter {
     secure = true
   )
   private boolean filterMissedFiles = false;
+
+  @Option(description = "filter unsafes, which are too similar", secure = true)
+  private boolean filterSimilarUnsafes = false;
 
   @Option(description = "print all unsafe cases in report", secure = true)
   private boolean printFalseUnsafes = false;
@@ -87,10 +128,12 @@ public abstract class ErrorTracePrinter {
   private final StatTimer preparationTimer = new StatTimer("Time for preparation");
   private final StatTimer unsafeDetectionTimer = new StatTimer("Time for unsafe detection");
   private final StatTimer writingUnsafeTimer = new StatTimer("Time for dumping the unsafes");
+  private final StatTimer filteringUnsafeTimer = new StatTimer("Time for filtering unsafes");
   private final StatCounter emptyLockSetUnsafes =
       new StatCounter("Number of unsafes with empty lock sets");
   protected final StatCounter printedUnsafes =
       new StatCounter("Number of successfully printed unsafes");
+  protected final StatCounter skippedUnsafes = new StatCounter("Number of filtered out unsafes");
 
   protected final Configuration config;
   protected final LogManager logger;
@@ -99,6 +142,8 @@ public abstract class ErrorTracePrinter {
 
   protected Predicate<CFAEdge> FILTER_EMPTY_FILE_LOCATIONS;
   private final BAMMultipleCEXSubgraphComputer subgraphComputer;
+
+  private final Map<Set<TraceCore>, AbstractIdentifier> printedTraces;
 
   public ErrorTracePrinter(
       Configuration c,
@@ -126,6 +171,7 @@ public abstract class ErrorTracePrinter {
     }
     subgraphComputer = t;
     cfa = pCfa;
+    printedTraces = new HashMap<>();
   }
 
   protected String createUniqueName(SingleIdentifier id) {
@@ -164,12 +210,16 @@ public abstract class ErrorTracePrinter {
         continue;
       }
       Pair<UsageInfo, UsageInfo> tmpPair = detector.getUnsafePair(uinfo);
+
+      unsafeDetectionTimer.stop();
+      if (filterSimilarUnsafes && shouldBeSkipped(tmpPair, id)) {
+        continue;
+      }
+
       if (tmpPair.getFirst().getLockState().getSize() == 0
           && tmpPair.getSecond().getLockState().getSize() == 0) {
         emptyLockSetUnsafes.inc();
       }
-
-      unsafeDetectionTimer.stop();
 
       writingUnsafeTimer.start();
       printUnsafe(id, tmpPair, refined);
@@ -194,13 +244,33 @@ public abstract class ErrorTracePrinter {
     finish();
   }
 
+  private boolean shouldBeSkipped(Pair<UsageInfo, UsageInfo> pTmpPair, AbstractIdentifier id) {
+    filteringUnsafeTimer.start();
+    TraceCore first = new TraceCore(pTmpPair.getFirst());
+    TraceCore second = new TraceCore(pTmpPair.getSecond());
+
+    Set<TraceCore> trace = Sets.newHashSet(first, second);
+    boolean result = printedTraces.containsKey(trace);
+    if (!result) {
+      printedTraces.put(trace, id);
+    } else {
+      logger.log(Level.INFO, "Filter out " + id + " as it similar to " + printedTraces.get(trace));
+      skippedUnsafes.inc();
+    }
+
+    filteringUnsafeTimer.stop();
+    return result;
+  }
+
   public void printStatistics(StatisticsWriter out) {
 
     out.spacer()
         .put(preparationTimer)
         .put(unsafeDetectionTimer)
         .put(writingUnsafeTimer)
+        .put(filteringUnsafeTimer)
         .put(printedUnsafes)
+        .put(skippedUnsafes)
         .put(emptyLockSetUnsafes);
 
     container.printUsagesStatistics(out);
