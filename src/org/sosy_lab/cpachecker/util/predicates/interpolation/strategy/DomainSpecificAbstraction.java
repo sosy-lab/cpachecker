@@ -1757,14 +1757,10 @@ public class DomainSpecificAbstraction<T> {
         firstPartChanged = oldFmgr.renameFreeVariablesAndUFs(firstPart, renamer1);
         scndPartChanged = oldFmgr.renameFreeVariablesAndUFs(scndPart, renamer2);
       }
-      @SuppressWarnings("ModifiedButNotUsed")
-      List<BooleanFormula> changedFomulas = Lists.newArrayListWithExpectedSize(formulas.size() - 1);
       List<BooleanFormula> changedFomulasRest1 =
           Lists.newArrayListWithExpectedSize(formulas.size() - 1);
       List<BooleanFormula> changedFomulasRest2 =
           Lists.newArrayListWithExpectedSize(formulas.size() - 1);
-      changedFomulas.add(firstPartChanged);
-      changedFomulas.add(scndPartChanged);
 
       BooleanFormula helperFormula1;
       BooleanFormula helperFormula2;
@@ -1900,12 +1896,6 @@ public class DomainSpecificAbstraction<T> {
         }
       }
 
-      @SuppressWarnings("ModifiedButNotUsed")
-      List<BooleanFormula> interpolationFormulaList =
-          Lists.newArrayListWithExpectedSize(formulas.size() - 1);
-
-      interpolationFormulaList.add(helperFormula1);
-      interpolationFormulaList.add(helperFormula2);
       try (@SuppressWarnings("unchecked")
            InterpolatingProverEnvironment<T> myItpProver =
                (InterpolatingProverEnvironment<T>) mySolver.newProverEnvironmentWithInterpolation
