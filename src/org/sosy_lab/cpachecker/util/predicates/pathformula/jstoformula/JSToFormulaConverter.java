@@ -1163,7 +1163,8 @@ public class JSToFormulaConverter {
   IntegerFormula getStringFormula(final String pValue) {
     final int id = stringIds.get(pValue);
     if (id > maxFieldNameCount) {
-      throw new RuntimeException("Reached cpa.predicate.js.maxFieldNameCount");
+      throw new RuntimeException(
+          "Reached cpa.predicate.js.maxFieldNameCount of " + maxFieldNameCount);
     }
     return fmgr.makeNumber(Types.STRING_TYPE, id);
   }
