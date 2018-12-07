@@ -1696,7 +1696,7 @@ public class CtoFormulaConverter {
       offset = 0;
       break;
     case STRUCT:
-      offset = getFieldOffset(structType, fExp.getFieldName());
+        offset = getBitFieldOffset(structType, fExp.getFieldName());
       break;
     default:
         throw new UnrecognizedCodeException("Unexpected field access", fExp);
@@ -1726,9 +1726,9 @@ public class CtoFormulaConverter {
   /**
    * Returns the offset of the given field in the given struct in bits.
    *
-   * This function does not handle UNIONs or ENUMs!
+   * <p>This function does not handle UNIONs or ENUMs!
    */
-  private int getFieldOffset(CCompositeType structType, String fieldName) {
+  private int getBitFieldOffset(CCompositeType structType, String fieldName) {
     int off = 0;
     for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
       if (member.getName().equals(fieldName)) {
