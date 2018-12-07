@@ -163,7 +163,12 @@ public class JSToFormulaConverter {
 
   /**
    * Count of string constants ist restricted to a limit to avoid quantifier in object encoding.
-   * Each string constant is mapped to
+   * Note that some string constants (like the empty sting or field names) are implicitly present
+   * in all programs and are counted, too.
+   * Each string constant is mapped to an integer (field-ID). Object fields are encoded as an array
+   * that maps field-ID to field variable. A special field variable marks a field as unset. Since
+   * the Object fields array maps all fields that might exist in the program, all field-IDs have to
+   * be known to avoid a "for all" quantifier.
    */
   @Option(
       secure = true,
