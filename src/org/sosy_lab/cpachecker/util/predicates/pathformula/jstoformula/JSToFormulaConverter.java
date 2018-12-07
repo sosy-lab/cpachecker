@@ -781,6 +781,33 @@ public class JSToFormulaConverter {
             scopeStack(currentScopeVariable),
             afmgr.store(ss, ifmgr.makeNumber(nestingLevel + 1), currentScopeVariable)));
 
+    // TODO manage global object (no variables are assigned to this dummy)
+    final JSIdExpression globalObjectId =
+        new JSIdExpression(
+            FileLocation.DUMMY,
+            new JSVariableDeclaration(
+                FileLocation.DUMMY,
+                Scope.GLOBAL,
+                "globalObject",
+                "globalObject",
+                "globalObject",
+                null));
+    // this binding, see https://www.ecma-international.org/ecma-262/5.1/#sec-10.4.3
+    result.add(
+        makeAssignment(
+            new JSIdExpression(
+                FileLocation.DUMMY,
+                functionCallExpression.getDeclaration().getThisVariableDeclaration()),
+            // TODO handle null and undefined in non strict code as described in
+            // https://www.ecma-international.org/ecma-262/5.1/#sec-10.4.3
+            functionCallExpression.getThisArg().orElse(globalObjectId),
+            edge,
+            calledFunctionName,
+            callerFunction,
+            ssa,
+            constraints,
+            errorConditions));
+
     final Iterator<JSExpression> actualParams = edge.getArguments().iterator();
 
     final JSFunctionEntryNode fn = edge.getSuccessor();
@@ -996,6 +1023,9 @@ public class JSToFormulaConverter {
       final String pCurrentFunction,
       final SSAMapBuilder pSsa,
       final Constraints pConstraints) {
+    if (pVariableDeclaration.getScope().isGlobalScope()) {
+      return;
+    }
     final String variableName = pVariableDeclaration.getQualifiedName();
     final List<Long> scopeIds =
         functionScopeManager.getScopeIds(
