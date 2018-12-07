@@ -162,6 +162,19 @@ public class JSToFormulaConverter {
   private boolean useNaN = true;
 
   /**
+   * The maximum length of an object prototype chain that is assumed. If a field is not set on an
+   * object, the field is looked up in the prototype of the object. If the field is not set on that
+   * prototype, the field is looked up in the prototype of the prototype and so on till a prototype
+   * is null. This prototype chains in JavaScript programs might be arbitrary long but it is always
+   * finite. The analysis only supports a maximum length of prototype chain. It is assumed that no
+   * prototype chain is longer as this maximum.
+   */
+  @Option(
+      secure = true,
+      description = "The maximum length of an object prototype chain that is assumed")
+  int maxPrototypeChainLength = 5;
+
+  /**
    * Count of string constants ist restricted to a limit to avoid quantifier in object encoding.
    * Note that some string constants (like the empty sting or field names) are implicitly present in
    * all programs and are counted, too. Each string constant is mapped to an integer (field-ID).

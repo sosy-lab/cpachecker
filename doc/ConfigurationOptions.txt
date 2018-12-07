@@ -1937,6 +1937,9 @@ cpa.predicate.invariants.useStrongInvariantsOnly = true
 # Maximum count of different constants used as string or field name
 cpa.predicate.js.maxFieldNameCount = 3
 
+# The maximum length of an object prototype chain that is assumed
+cpa.predicate.js.maxPrototypeChainLength = 5
+
 # Do not check for NaN in operations
 cpa.predicate.js.useNaN = true
 
