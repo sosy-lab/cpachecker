@@ -950,14 +950,18 @@ public class JSToFormulaConverter {
         typedValues.objectValue(scopedVariable(pLhsFunction, objectDeclaration, pSsa));
     final String fieldName = pLhs.getFieldName();
     final IntegerFormula field = makeFieldVariable(fieldName, pSsa);
-    // Mark field as set
-    pConstraints.addConstraint(bfmgr.not(fmgr.makeEqual(field, objectFieldNotSet)));
+    pConstraints.addConstraint(markFieldAsSet(field));
     setObjectFields(
         objectId,
         afmgr.store(getObjectFields(objectId, pSsa), getStringFormula(fieldName), field),
         pSsa,
         pConstraints);
     return makeAssignment(field, pRhsValue);
+  }
+
+  @Nonnull
+  BooleanFormula markFieldAsSet(final IntegerFormula pField) {
+    return bfmgr.not(fmgr.makeEqual(pField, objectFieldNotSet));
   }
 
   @Nonnull

@@ -351,9 +351,7 @@ public class ExpressionToFormulaVisitor
       if (fieldById.containsKey(idFormula)) {
         final JSObjectLiteralField field = fieldById.get(idFormula);
         final IntegerFormula fieldFormula = conv.makeFieldVariable(field.getFieldName(), ssa);
-        // Mark field as set
-        constraints.addConstraint(
-            conv.bfmgr.not(mgr.makeEqual(fieldFormula, conv.objectFieldNotSet)));
+        constraints.addConstraint(conv.markFieldAsSet(fieldFormula));
         constraints.addConstraint(conv.makeAssignment(fieldFormula, visit(field.getInitializer())));
         fieldValue = fieldFormula;
       } else {
