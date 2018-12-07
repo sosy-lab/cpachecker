@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -480,14 +481,17 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CCompositeType compositeType = (CCompositeType) baseType;
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        final long offset = typeHandler.getBitOffset(compositeType, memberDeclaration);
+        final OptionalLong offset = typeHandler.getOffset(compositeType, memberDeclaration);
+        if (!offset.isPresent()) {
+          continue; // TODO this loses values of bit fields
+        }
         final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
         final String newBaseName = getFieldAccessName(baseName, memberDeclaration);
         if (isRelevantField(compositeType, memberDeclaration)) {
           fields.add(CompositeField.of(compositeType, memberDeclaration));
           MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
           addValueImportConstraints(
-              fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset)),
+              fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset.getAsLong())),
               newBaseName,
               memberType,
               fields,

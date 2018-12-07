@@ -32,6 +32,7 @@ import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.OptionalLong;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -193,6 +194,25 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
       pointerNameCache.put(type, result);
       return result;
     }
+  }
+
+  /**
+   * Get the offset of a field, if it is byte-aligned. Offsets of bit fields that do not start at a
+   * byte boundary are returned as <code>OptionaLong.empty()</code>.
+   */
+  OptionalLong getOffset(CCompositeType compositeType, final String memberName) {
+    final long bitOffset = getBitOffset(compositeType, memberName);
+    if (bitOffset % machineModel.getSizeofCharInBits() == 0) {
+      return OptionalLong.of(bitOffset / machineModel.getSizeofCharInBits());
+    } else {
+      return OptionalLong.empty();
+    }
+  }
+
+  /** @see #getOffset(CCompositeType, String) */
+  OptionalLong getOffset(
+      CCompositeType compositeType, final CCompositeTypeMemberDeclaration member) {
+    return getOffset(compositeType, member.getName());
   }
 
   /** @see #getBitOffset(CCompositeType, String) */
