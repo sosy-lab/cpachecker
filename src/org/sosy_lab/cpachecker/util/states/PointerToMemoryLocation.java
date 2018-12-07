@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.states;
 
 import java.io.Serializable;
 
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class PointerToMemoryLocation extends MemoryLocation implements Comparable<MemoryLocation>, Serializable {
 

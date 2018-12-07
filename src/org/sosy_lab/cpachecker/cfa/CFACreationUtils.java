@@ -128,7 +128,7 @@ public class CFACreationUtils {
   public static boolean isReachableNode(CFANode node) {
     return (node.getNumEnteringEdges() > 0)
         || (node instanceof FunctionEntryNode)
-        || (node.isLoopStart())
+        || node.isLoopStart()
         || (node instanceof CLabelNode);
   }
 

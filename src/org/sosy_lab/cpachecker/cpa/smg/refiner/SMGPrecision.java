@@ -39,16 +39,29 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public abstract class SMGPrecision implements Precision {
 
   private final SMGPrecisionAbstractionOptions options;
-  private final int threshold = 0;
+  private final int maxLength;
+  private final int threshold = 0; // TODO always zero??
 
   public SMGPrecision(SMGPrecisionAbstractionOptions pOptions) {
     options = pOptions;
+    maxLength = 2;
+  }
+
+  public SMGPrecision(SMGPrecisionAbstractionOptions pOptions, int pMaxLength) {
+    options = pOptions;
+    maxLength = pMaxLength;
   }
 
   public static SMGPrecision createStaticPrecision(boolean pEnableHeapAbstraction) {
     SMGPrecisionAbstractionOptions options =
         new SMGPrecisionAbstractionOptions(pEnableHeapAbstraction, false, false);
     return new SMGStaticPrecision(options);
+  }
+
+  public static SMGPrecision createStaticPrecision(boolean pEnableHeapAbstraction, int pMaxLength) {
+    SMGPrecisionAbstractionOptions options =
+        new SMGPrecisionAbstractionOptions(pEnableHeapAbstraction, false, false);
+    return new SMGStaticPrecision(options, pMaxLength);
   }
 
   public abstract Precision withIncrement(Map<CFANode, SMGPrecisionIncrement> pPrecisionIncrement);
@@ -75,6 +88,26 @@ public abstract class SMGPrecision implements Precision {
 
   public SMGPrecisionAbstractionOptions getAbstractionOptions() {
     return options;
+  }
+
+  public int getMaxLength() {
+    return maxLength;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (!(o instanceof SMGPrecision)) {
+      return false;
+    }
+    SMGPrecision other = (SMGPrecision) o;
+    return threshold == other.threshold
+        && maxLength == other.maxLength
+        && options.equals(other.options);
+  }
+
+  @Override
+  public int hashCode() {
+    return options.hashCode() + maxLength;
   }
 
   public abstract Set<SMGAbstractionBlock> getAbstractionBlocks(CFANode location);
@@ -163,12 +196,34 @@ public abstract class SMGPrecision implements Precision {
           + ", trackedStackVariables=" + trackedStackVariables + ", abstractionBlocks="
           + abstractionBlocks + "]";
     }
+
+    @Override
+    public boolean equals(Object o) {
+      if (!(o instanceof SMGRefineablePrecision) && !super.equals(o)) {
+        return false;
+      }
+      SMGRefineablePrecision other = (SMGRefineablePrecision) o;
+      return trackedMemoryPaths.equals(other.trackedMemoryPaths)
+          && trackedStackVariables.equals(other.trackedStackVariables)
+          && abstractionBlocks.equals(other.abstractionBlocks);
+    }
+
+    @Override
+    public int hashCode() {
+      return super.hashCode() * 31
+          + Objects.hashCode(trackedMemoryPaths, trackedStackVariables, abstractionBlocks);
+    }
   }
 
   private static class SMGStaticPrecision extends SMGPrecision {
 
     private SMGStaticPrecision(SMGPrecisionAbstractionOptions pAllowsHeapAbstraction) {
       super(pAllowsHeapAbstraction);
+    }
+
+    public SMGStaticPrecision(
+        SMGPrecisionAbstractionOptions pAllowsHeapAbstraction, int pMaxLength) {
+      super(pAllowsHeapAbstraction, pMaxLength);
     }
 
     @Override
@@ -204,6 +259,16 @@ public abstract class SMGPrecision implements Precision {
     @Override
     public String toString() {
       return "Static precision " + getAbstractionOptions().toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof SMGStaticPrecision && super.equals(o);
+    }
+
+    @Override
+    public int hashCode() {
+      return super.hashCode();
     }
   }
 

@@ -27,7 +27,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -42,7 +41,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -1053,7 +1052,7 @@ public class ARGToCTranslator {
     public DeclarationInfo addNewDeclarationInfo(final CDeclaration dec, final String decId) {
       ImmutableMap<CDeclaration, String> newFunDecInfo;
       if (currentFuncDecInfo.containsKey(dec)) {
-        Builder<CDeclaration, String> builder = ImmutableMap.builder();
+        ImmutableMap.Builder<CDeclaration, String> builder = ImmutableMap.builder();
         builder.put(dec, decId);
         for (Entry<CDeclaration, String> entry : currentFuncDecInfo.entrySet()) {
           if (!entry.getKey().equals(dec)) {
@@ -1073,7 +1072,7 @@ public class ARGToCTranslator {
     }
 
     public DeclarationInfo fromFunctionCall(final CFunctionCallEdge callEdge, final String decId) {
-      Builder<CDeclaration, String> builder = ImmutableMap.builder();
+      ImmutableMap.Builder<CDeclaration, String> builder = ImmutableMap.builder();
 
       for (CParameterDeclaration paramDecl :
           callEdge

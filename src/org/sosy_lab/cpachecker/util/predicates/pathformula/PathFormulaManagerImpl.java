@@ -38,7 +38,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -381,22 +381,20 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return pathFormula;
   }
 
-
-  /**
-   * {@inheritDoc}
-   */
+  /** {@inheritDoc} */
   @Override
-  public Formula makeFormulaForVariable(
-      PathFormula pContext, String pVarName, CType pType, boolean forcePointerDereference) {
+  public Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType) {
     return converter.makeFormulaForVariable(
-        pContext.getSsa(),
-        pContext.getPointerTargetSet(),
-        pVarName,
-        pType,
-        forcePointerDereference);
+        pContext.getSsa(), pContext.getPointerTargetSet(), pVarName, pType);
   }
 
-
+  /** {@inheritDoc} */
+  @Override
+  public Formula makeFormulaForUninstantiatedVariable(
+      String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
+    return converter.makeFormulaForUninstantiatedVariable(
+        pVarName, pType, pContextPTS, forcePointerDereference);
+  }
 
   /**
    * Build a formula containing a predicate for all branching situations in the

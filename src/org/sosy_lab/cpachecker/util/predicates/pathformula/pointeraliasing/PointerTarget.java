@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import java.io.Serializable;
 import java.util.Objects;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import javax.annotation.concurrent.Immutable;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 

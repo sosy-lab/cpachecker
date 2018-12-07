@@ -29,7 +29,6 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
 import com.google.common.base.CharMatcher;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
@@ -42,7 +41,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -475,25 +474,35 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * Takes a variable name and its type and create the corresponding formula out of it. The
-   * <code>pContextSSA</code> is used to supply this method with the necessary {@link SSAMap}
-   * and (if necessary) the {@link PointerTargetSet} can be supplied via <code>pContextPTS</code>.
+   * Takes a variable name and its type and create the corresponding formula out of it, without
+   * adding SSA indices.
+   *
+   * @param pVarName the name of the variable
+   * @param pType the type of the variable
+   * @param pContextPTS the PointerTargetSet which should be used for formula generation
+   * @param forcePointerDereference (only used in CToFormulaConverterWithPointerAliasing)
+   * @return the created formula
+   */
+  public Formula makeFormulaForUninstantiatedVariable(
+      String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
+    // Need to call fmgr.makeVariable directly instead of makeConstant,
+    // because otherwise the variable gets marked as "never needs an SSA index"
+    return fmgr.makeVariable(getFormulaTypeFromCType(pType), pVarName);
+  }
+
+  /**
+   * Takes a variable name and its type and create the corresponding formula out of it. The <code>
+   * pContextSSA</code> is used to supply this method with the necessary {@link SSAMap} and (if
+   * necessary) the {@link PointerTargetSet} can be supplied via <code>pContextPTS</code>.
    *
    * @param pContextSSA the SSAMap indices from which the variable should be created
    * @param pContextPTS the PointerTargetSet which should be used for formula generation
    * @param pVarName the name of the variable
    * @param pType the type of the variable
-   * @param forcePointerDereference (only used in CToFormulaConverterWithPointerAliasing)
    * @return the created formula
    */
   public Formula makeFormulaForVariable(
-      SSAMap pContextSSA,
-      PointerTargetSet pContextPTS,
-      String pVarName,
-      CType pType,
-      boolean forcePointerDereference) {
-    Preconditions.checkArgument(!(pType instanceof CEnumType));
-
+      SSAMap pContextSSA, PointerTargetSet pContextPTS, String pVarName, CType pType) {
     SSAMapBuilder ssa = pContextSSA.builder();
     Formula formula = makeVariable(pVarName, pType, ssa);
 
@@ -786,8 +795,7 @@ public class CtoFormulaConverter {
   private static CExpression makeCastFromArrayToPointer(CExpression arrayExpression) {
     // array-to-pointer conversion
     CArrayType arrayType = (CArrayType)arrayExpression.getExpressionType().getCanonicalType();
-    CPointerType pointerType = new CPointerType(arrayType.isConst(),
-        arrayType.isVolatile(), arrayType.getType());
+    CPointerType pointerType = arrayType.asPointerType();
 
     return new CUnaryExpression(arrayExpression.getFileLocation(), pointerType,
         arrayExpression, UnaryOperator.AMPER);
@@ -1207,7 +1215,7 @@ public class CtoFormulaConverter {
       // If there is an initializer, all fields/elements not mentioned
       // in the initializer are set to 0 (C standard § 6.7.9 (21)
 
-      int size = machineModel.getSizeof(decl.getType());
+      long size = machineModel.getSizeof(decl.getType()).longValueExact();
       if (size > 0) {
         Formula var = makeVariable(varName, decl.getType(), ssa);
         CType elementCType = decl.getType();
@@ -1691,7 +1699,7 @@ public class CtoFormulaConverter {
       offset = 0;
       break;
     case STRUCT:
-      offset = getFieldOffset(structType, fExp.getFieldName());
+        offset = getBitFieldOffset(structType, fExp.getFieldName());
       break;
     default:
         throw new UnrecognizedCodeException("Unexpected field access", fExp);
@@ -1721,9 +1729,9 @@ public class CtoFormulaConverter {
   /**
    * Returns the offset of the given field in the given struct in bits.
    *
-   * This function does not handle UNIONs or ENUMs!
+   * <p>This function does not handle UNIONs or ENUMs!
    */
-  private int getFieldOffset(CCompositeType structType, String fieldName) {
+  private int getBitFieldOffset(CCompositeType structType, String fieldName) {
     int off = 0;
     for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
       if (member.getName().equals(fieldName)) {

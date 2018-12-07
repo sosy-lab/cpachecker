@@ -149,7 +149,7 @@ public class SymbolEncoding {
     if (cType instanceof CSimpleType && ((CSimpleType)cType).getType().isFloatingPointType()) {
       fType = FormulaType.RationalType;
     } else {
-      int length = machineModel.getSizeof(cType) * machineModel.getSizeofCharInBits();
+      int length = machineModel.getSizeofInBits(cType).intValueExact();
       fType = FormulaType.getBitvectorTypeWithSize(length);
     }
     Type<FormulaType<?>> type = new Type<>(fType);

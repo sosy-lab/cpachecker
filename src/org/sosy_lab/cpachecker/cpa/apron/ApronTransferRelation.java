@@ -37,7 +37,6 @@ import apron.Texpr0Node;
 import apron.Texpr0UnNode;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -129,7 +128,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     logger = log;
     splitDisequalities = pSplitDisequalities;
 
-    Builder<CFANode> builder = new ImmutableSet.Builder<>();
+    ImmutableSet.Builder<CFANode> builder = new ImmutableSet.Builder<>();
     for (Loop l : loops.getAllLoops()) {
       // function edges do not count as incoming/outgoing edges
           builder.addAll(l.getLoopHeads());

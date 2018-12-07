@@ -244,7 +244,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       final ARGPath allStatesTrace, final List<ARGState> abstractionStatesTrace)
       throws CPAException, InterruptedException {
     BlockFormulas formulas =
-        (isRefinementSelectionEnabled())
+        isRefinementSelectionEnabled()
             ? performRefinementSelection(allStatesTrace, abstractionStatesTrace)
             : getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirstState());
 
@@ -273,7 +273,8 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       // No branches/merges in path, it is precise.
       // We don't need to care about creating extra predicates for branching etc.
       boolean branchingOccurred = true;
-      if (elementsOnPath.size() == allStatesTrace.size()) {
+      if (elementsOnPath.size() == allStatesTrace.size()
+          && !containsBranchingInPath(elementsOnPath)) {
         elementsOnPath = Collections.emptySet();
         branchingOccurred = false;
       }
@@ -336,6 +337,27 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     } finally {
       totalRefinement.stop();
     }
+  }
+
+  /**
+   * Check whether the path contains states A, B, C with successor relations A->B, B->C, A->C.
+   * Branching like this would not be detected otherwise.
+   */
+  private boolean containsBranchingInPath(Set<ARGState> pElementsOnPath) {
+    for (ARGState state : pElementsOnPath) {
+      boolean alreadyFoundOneChild = false;
+      for (ARGState child : state.getChildren()) {
+        if (pElementsOnPath.contains(child)) {
+          if (alreadyFoundOneChild) {
+            // already found another child in the path, second child must be a branching.
+            return true;
+          } else {
+            alreadyFoundOneChild = true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   /**

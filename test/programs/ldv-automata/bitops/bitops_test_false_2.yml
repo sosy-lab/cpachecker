@@ -1,0 +1,6 @@
+format_version: "1.0"
+input_files: "bitops_test_false_2.c"
+properties:
+  - property_file: "../../../config/automata/ldv/bitops.spc"
+    expected_verdict: false
+

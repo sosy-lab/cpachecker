@@ -56,6 +56,7 @@ public abstract class SMGAbstractListCandidateSequence<C extends SMGListCandidat
     return candidate;
   }
 
+  @Override
   public int getLength() {
     return length;
   }

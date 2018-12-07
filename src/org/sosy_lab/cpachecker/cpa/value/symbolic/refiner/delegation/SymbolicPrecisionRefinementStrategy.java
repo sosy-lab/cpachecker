@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision.Increment;
-import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision.Increment.Builder;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
@@ -99,7 +98,7 @@ class SymbolicPrecisionRefinementStrategy extends PredicateAbstractionRefinement
 
     Multimap<CFANode, MemoryLocation> valuePrecInc = HashMultimap.create();
 
-    Builder constrPrecInc = Increment.builder();
+    Increment.Builder constrPrecInc = Increment.builder();
 
     for (Map.Entry<CFANode, Collection<AbstractionPredicate>> entry : localPrec.entrySet()) {
       // this is actually the predecessor of a node we will use for precision adjustment

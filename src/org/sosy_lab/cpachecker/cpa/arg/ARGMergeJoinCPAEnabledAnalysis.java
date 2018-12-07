@@ -213,7 +213,7 @@ public class ARGMergeJoinCPAEnabledAnalysis implements MergeOperator {
             if (covered != null) {
               // delete edge from current to child and introduce covering
               current.deleteChild(c);
-              (new ARGState(c.getWrappedState(),current)).setCovered(c);
+              new ARGState(c.getWrappedState(),current).setCovered(c);
               // remove coverage relation and relink
               covered.uncover();
               covered.replaceInARGWith(c);
@@ -241,7 +241,7 @@ public class ARGMergeJoinCPAEnabledAnalysis implements MergeOperator {
               // delete edge from parent and introduce covering
               assert (later.getParents().size()<=1);
               if (later.getParents().size() == 1) {
-                (new ARGState(later.getWrappedState(), later.getParents().iterator().next())).setCovered(later);
+                new ARGState(later.getWrappedState(), later.getParents().iterator().next()).setCovered(later);
                 later.getParents().iterator().next().deleteChild(later);
               }
               // remove coverage relation and relink

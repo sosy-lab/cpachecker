@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.AdaptingCExpressionVisitor;
@@ -68,7 +69,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
@@ -215,7 +215,11 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    * @return A formula for the value.
    */
   private Formula asValueFormula(final Expression e, final CType type, final boolean isSafe) {
-    if (e.isValue()) {
+    if (e.isNondetValue()) {
+      // should happen only because of bit fields that we currently do not handle
+      String nondetName = "__nondet_value_" + CTypeUtils.typeToString(type).replace(' ', '_');
+      return conv.makeNondet(nondetName, type, ssa, constraints);
+    } else if (e.isValue()) {
       return e.asValue().getValue();
     } else if (e.isAliasedLocation()) {
       MemoryRegion region = e.asAliasedLocation().getMemoryRegion();
@@ -312,7 +316,8 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                                         constraints,
                                         edge);
 
-    final Formula coeff = conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getBitSizeof(elementType));
+    final Formula coeff =
+        conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
     final Formula baseAddress = base.asAliasedLocation().getAddress();
     final Formula address = conv.fmgr.makePlus(baseAddress, conv.fmgr.makeMultiply(coeff, index));
     addEqualBaseAddressConstraint(baseAddress, address);
@@ -327,7 +332,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    * @throws UnrecognizedCodeException If the C code was unrecognizable.
    */
   @Override
-  public Location visit(CFieldReference e) throws UnrecognizedCodeException {
+  public Expression visit(CFieldReference e) throws UnrecognizedCodeException {
     e = e.withExplicitPointerDereference();
 
     BaseVisitor baseVisitor = new BaseVisitor(edge, pts, typeHandler);
@@ -342,9 +347,15 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
         final String fieldName = e.getFieldName();
         usedFields.add(CompositeField.of((CCompositeType) fieldOwnerType, fieldName));
-        final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
-                                                    typeHandler.getBitOffset((CCompositeType) fieldOwnerType, fieldName));
-
+        final OptionalLong fieldOffset =
+            typeHandler.getOffset((CCompositeType) fieldOwnerType, fieldName);
+        if (!fieldOffset.isPresent()) {
+          // TODO This looses values of bit fields.
+          // If fixed remove the condition in asValueFormula and AssignmentHandler.handleAssignment
+          return Value.nondetValue();
+        }
+        final Formula offset =
+            conv.fmgr.makeNumber(conv.voidPointerFormulaType, fieldOffset.getAsLong());
         final Formula address = conv.fmgr.makePlus(base.getAddress(), offset);
         addEqualBaseAddressConstraint(base.getAddress(), address);
         final CType fieldType = typeHandler.simplifyType(e.getExpressionType());
@@ -498,8 +509,14 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
             final CCompositeType compositeType =
                 (CCompositeType) CTypeUtils.checkIsSimplified(pointerType.getType());
             usedFields.add(CompositeField.of(compositeType, fieldName));
-            final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
-                                                        typeHandler.getBitOffset(compositeType, fieldName));
+            final long fieldOffset =
+                typeHandler
+                    .getOffset(compositeType, fieldName)
+                    .orElseThrow(
+                        () ->
+                            new UnrecognizedCodeException(
+                                "Taking address of bit fields is not allowed", e));
+            final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType, fieldOffset);
             addressExpression = AliasedLocation.ofAddress(conv.fmgr.makePlus(base, offset));
             addEqualBaseAddressConstraint(base, addressExpression.getAddress());
           }

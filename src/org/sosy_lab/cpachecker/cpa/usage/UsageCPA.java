@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
 import org.sosy_lab.cpachecker.cpa.lock.LockCPA;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -89,13 +88,13 @@ public class UsageCPA extends AbstractSingleWrapperCPA
     this.stopOperator = new UsageStopOperator(pCpa.getStopOperator());
     this.mergeOperator = new UsageMergeOperator(pCpa.getMergeOperator());
 
-    LockCPA LockCPA = CPAs.retrieveCPA(this, LockCPA.class);
+    LockCPA lockCPA = CPAs.retrieveCPA(this, LockCPA.class);
     this.statistics =
         new UsageCPAStatistics(
             pConfig,
             pLogger,
             pCfa,
-            LockCPA != null ? (LockTransferRelation) LockCPA.getTransferRelation() : null);
+            lockCPA != null ? (LockTransferRelation) lockCPA.getTransferRelation() : null);
     this.precisionAdjustment = new UsagePrecisionAdjustment(pCpa.getPrecisionAdjustment());
     if (pCpa instanceof ConfigurableProgramAnalysisWithBAM) {
       Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM) pCpa).getReducer();
@@ -110,8 +109,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
             pConfig,
             pLogger,
             statistics,
-            (CallstackTransferRelation)
-                (CPAs.retrieveCPA(this, CallstackCPA.class)).getTransferRelation());
+            CPAs.retrieveCPA(this, CallstackCPA.class).getTransferRelation());
   }
 
   @Override

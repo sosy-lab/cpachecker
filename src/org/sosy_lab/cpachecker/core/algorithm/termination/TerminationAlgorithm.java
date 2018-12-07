@@ -56,7 +56,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -255,6 +255,25 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
 
     return terminationSpecification;
+  }
+
+  public static Specification loadTerminationSpecification(
+      final Set<SpecificationProperty> pProperties,
+      final Optional<Path> pWitness,
+      final CFA pCfa,
+      final Configuration pConfig,
+      LogManager pLogger)
+      throws InvalidConfigurationException {
+    if (pWitness.isPresent()) {
+      Collection<Path> specFiles = new ArrayList<>(2);
+      specFiles.add(SPEC_FILE);
+      specFiles.add(pWitness.get());
+      terminationSpecification =
+          Specification.fromFiles(pProperties, specFiles, pCfa, pConfig, pLogger);
+      return terminationSpecification;
+    } else {
+      return loadTerminationSpecification(pProperties, pCfa, pConfig, pLogger);
+    }
   }
 
   @Override

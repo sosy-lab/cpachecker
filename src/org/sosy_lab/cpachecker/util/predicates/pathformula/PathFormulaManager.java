@@ -83,28 +83,43 @@ public interface PathFormulaManager {
   PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException;
 
   /**
-   * Takes a variable name and its type to create the corresponding formula out of it. The
-   * <code>pContext</code> is used to supply this method with the necessary {@link SSAMap}
-   * and (if necessary) the {@link PointerTargetSet}. The variable is assumed not to be a
-   * function parameter, i.e. array won't be treated as pointer variable, but as a constant representing
+   * Takes a variable name and its type to create the corresponding formula out of it. The <code>
+   * pContext</code> is used to supply this method with the necessary {@link SSAMap} and (if
+   * necessary) the {@link PointerTargetSet}. The variable is assumed not to be a function
+   * parameter, i.e. array won't be treated as pointer variable, but as a constant representing
    * starting address of the array.
    *
    * @param pContext the context in which the variable should be created
    * @param pVarName the name of the variable
    * @param pType the type of the variable
-   * @param forcePointerDereference force the formula to make a pointer dereference (e.g. *UF main:x)
    * @return the created formula, which is always <b>instantiated</b>
    */
-  Formula makeFormulaForVariable(
-      PathFormula pContext, String pVarName, CType pType, boolean forcePointerDereference);
+  Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType);
 
   /**
-   * Build a formula containing a predicate for all branching situations in the
-   * ARG. If a satisfying assignment is created for this formula, it can be used
-   * to find out which paths in the ARG are feasible.
+   * Takes a variable name and its type to create the corresponding formula out of it, without
+   * adding SSA indices. The <code>pContextPTS</code> is used to supply this method with the
+   * necessary {@link PointerTargetSet} for creating appropriate pointer variables. The variable is
+   * assumed not to be a function parameter, i.e. array won't be treated as pointer variable, but as
+   * a constant representing starting address of the array.
    *
-   * This method may be called with an empty set, in which case it does nothing
-   * and returns the formula "true".
+   * @param pVarName the name of the variable
+   * @param pType the type of the variable
+   * @param pContextPTS the context in which the variable should be created
+   * @param forcePointerDereference force the formula to make a pointer dereference (e.g. *UF
+   *     main:x)
+   * @return the created formula, which is always <b>instantiated</b>
+   */
+  Formula makeFormulaForUninstantiatedVariable(
+      String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference);
+
+  /**
+   * Build a formula containing a predicate for all branching situations in the ARG. If a satisfying
+   * assignment is created for this formula, it can be used to find out which paths in the ARG are
+   * feasible.
+   *
+   * <p>This method may be called with an empty set, in which case it does nothing and returns the
+   * formula "true".
    *
    * @param pElementsOnPath The ARG states that should be considered.
    * @return A formula containing a predicate for each branching.

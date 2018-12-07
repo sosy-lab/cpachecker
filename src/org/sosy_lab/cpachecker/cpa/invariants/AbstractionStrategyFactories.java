@@ -403,7 +403,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                         || other.wideningHints.containsAll(this.wideningHints))) {
                   return other;
                 }
-                if ((this.visitedEdges.containsAll(other.visitedEdges))
+                if (this.visitedEdges.containsAll(other.visitedEdges)
                     && this.wideningTargets.containsAll(other.wideningTargets)) {
                   return this;
                 }

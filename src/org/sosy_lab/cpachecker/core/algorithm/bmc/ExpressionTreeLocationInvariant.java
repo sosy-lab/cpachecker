@@ -28,7 +28,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.collect.FluentIterable;
 import java.util.Map;
 import java.util.Objects;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;

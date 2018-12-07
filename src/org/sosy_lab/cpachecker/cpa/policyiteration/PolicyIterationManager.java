@@ -22,7 +22,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
@@ -318,8 +318,7 @@ public class PolicyIterationManager {
 
     // Perform reachability checking, for property states, or before the abstractions.
     boolean isTarget = hasTargetState && checkTargetStates;
-    if (((isTarget) || shouldAbstract)
-        && isUnreachable(iState, extraInvariant, isTarget)) {
+    if ((isTarget || shouldAbstract) && isUnreachable(iState, extraInvariant, isTarget)) {
 
       logger.log(Level.FINE, "Returning bottom state");
       return Optional.empty();

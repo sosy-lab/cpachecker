@@ -40,6 +40,7 @@ public abstract class AFunctionDeclaration extends AbstractDeclaration {
       String pOrigName,
       List<? extends AParameterDeclaration> pParameters) {
     super(pFileLocation, true, pType, pName, pOrigName);
+
     parameters = ImmutableList.copyOf(pParameters);
   }
 

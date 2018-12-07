@@ -4,6 +4,13 @@ variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
   GH_REF: "github.com/sosy-lab/cpachecker"
 
+stages:
+  - dependencies
+  - build
+  - generate
+  - checks
+  - deploy
+
 
 .binary_check: &binary_check
   stage: checks
@@ -36,9 +43,19 @@ configuration-checks:jdk-10:
     - build-dependencies
     - build:jdk-10
   image: ${CI_REGISTRY_IMAGE}/test:jdk-10
-  # Temporarily disabled until the segmentation fault is fixe
+  # Temporarily allow failures until the segmentation fault is fixed
   # (probably related to https://github.com/sosy-lab/java-smt/issues/132)
-  only: []
+  allow_failure: true
+
+configuration-checks:jdk-11:
+  <<: *configuration-checks
+  dependencies:
+    - build-dependencies
+    - build:jdk-11
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+  # Temporarily allow failures until the segmentation fault is fixed
+  # (probably related to https://github.com/sosy-lab/java-smt/issues/132)
+  allow_failure: true
 
 
 configuration-documentation:
@@ -89,6 +106,14 @@ python-unit-tests:jdk-10:
     - build:jdk-10
   image: ${CI_REGISTRY_IMAGE}/test:jdk-10
 
+python-unit-tests:jdk-11:
+  <<: *python-unit-tests
+  dependencies:
+    - build-dependencies
+    - build:jdk-11
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+
+
 generate-sample-report:
   stage: generate
   dependencies:
@@ -118,6 +143,7 @@ javascript-unit-tests:
   artifacts:
     paths:
       - src/org/sosy_lab/cpachecker/core/counterexample/unit_testing_report
+    when: always
 
 
 javascript-e2e-tests:
@@ -137,6 +163,8 @@ javascript-e2e-tests:
   artifacts:
     paths:
       - src/org/sosy_lab/cpachecker/core/counterexample/e2e-tests-report
+    when: always
+  allow_failure: true # tests are currently racy (cf. #520)
 
 
 # No coverage is computed for CPAchecker
@@ -149,11 +177,11 @@ unit-tests:jdk-9:
 unit-tests:jdk-10:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
 
+unit-tests:jdk-11:
+  script: "ant $ANT_PROPS_CHECKS unit-tests"
+
 # Disable some checks because they are not used for CPAchecker
 check-format:
-  only: []
-
-checkstyle:
   only: []
 
 javadoc:

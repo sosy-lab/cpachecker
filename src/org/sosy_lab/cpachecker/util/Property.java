@@ -52,4 +52,26 @@ public interface Property {
       return representation;
     }
   }
+
+  public enum CommonCoverageType implements Property {
+    COVERAGE_BRANCH("COVER EDGES(@DECISIONEDGE)"),
+
+    COVERAGE_CONDITION("COVER EDGES(@CONDITIONEDGE)"),
+
+    COVERAGE_STATEMENT("COVER EDGES(@BASICBLOCKENTRY)"),
+
+    COVERAGE_ERROR("COVER EDGES(@CALL(__VERIFIER_error))"),
+    ;
+
+    private final String representation;
+
+    CommonCoverageType(String pRepresentation) {
+      representation = pRepresentation;
+    }
+
+    @Override
+    public String toString() {
+      return representation;
+    }
+  }
 }

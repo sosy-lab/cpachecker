@@ -26,10 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
@@ -67,7 +65,8 @@ enum CexTraceAnalysisDirection {
                   VariableClassification pVariableClassification,
                   LoopStructure pLoopStructure,
                   FormulaManagerView pFmgr) {
-      Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas = ImmutableList.builder();
+      ImmutableList.Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas =
+          ImmutableList.builder();
       for (int i = 0; i < traceFormulas.size(); i++) {
         orderedFormulas.add(Triple.of(traceFormulas.get(i), abstractionStates.get(i), i));
       }
@@ -86,7 +85,8 @@ enum CexTraceAnalysisDirection {
                   VariableClassification pVariableClassification,
                   LoopStructure pLoopStructure,
                   FormulaManagerView pFmgr) {
-      Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas = ImmutableList.builder();
+      ImmutableList.Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas =
+          ImmutableList.builder();
       for (int i = traceFormulas.size()-1; i >= 0; i--) {
         orderedFormulas.add(Triple.of(traceFormulas.get(i), abstractionStates.get(i), i));
       }
@@ -106,7 +106,8 @@ enum CexTraceAnalysisDirection {
                   VariableClassification pVariableClassification,
                   LoopStructure pLoopStructure,
                   FormulaManagerView pFmgr) {
-      Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas = ImmutableList.builder();
+      ImmutableList.Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas =
+          ImmutableList.builder();
       int e = traceFormulas.size() - 1;
       int s = 0;
       boolean fromStart = false;
@@ -132,7 +133,8 @@ enum CexTraceAnalysisDirection {
                   VariableClassification pVariableClassification,
                   LoopStructure pLoopStructure,
                   FormulaManagerView pFmgr) {
-      Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas = ImmutableList.builder();
+      ImmutableList.Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas =
+          ImmutableList.builder();
       Multimap<Integer, AbstractState> stateOrdering = LinkedHashMultimap.create();
       createLoopDrivenStateOrdering(abstractionStates,
                                     stateOrdering,
@@ -161,7 +163,8 @@ enum CexTraceAnalysisDirection {
                   VariableClassification pVariableClassification,
                   LoopStructure pLoopStructure,
                   FormulaManagerView pFmgr) {
-      Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas = ImmutableList.builder();
+      ImmutableList.Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas =
+          ImmutableList.builder();
       List<AbstractState> stateList = new ArrayList<>(abstractionStates);
       Collections.shuffle(stateList);
 
@@ -186,7 +189,8 @@ enum CexTraceAnalysisDirection {
                   VariableClassification pVariableClassification,
                   LoopStructure pLoopStructure,
                   FormulaManagerView pFmgr) {
-      Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas = ImmutableList.builder();
+      ImmutableList.Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas =
+          ImmutableList.builder();
       Multimap<Double, Integer> sortedFormulas = TreeMultimap.create();
 
       for (BooleanFormula formula : traceFormulas) {
@@ -220,7 +224,8 @@ enum CexTraceAnalysisDirection {
                   VariableClassification pVariableClassification,
                   LoopStructure pLoopStructure,
                   FormulaManagerView pFmgr) {
-      Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas = ImmutableList.builder();
+      ImmutableList.Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas =
+          ImmutableList.builder();
       Multimap<Double, Integer> sortedFormulas = TreeMultimap.create();
 
       for (BooleanFormula formula : traceFormulas) {
@@ -255,7 +260,8 @@ enum CexTraceAnalysisDirection {
                         VariableClassification pVariableClassification,
                         LoopStructure pLoopStructure,
                         FormulaManagerView pFmgr) {
-      Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas = ImmutableList.builder();
+      ImmutableList.Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas =
+          ImmutableList.builder();
       Multimap<Integer, AbstractState> stateOrdering = LinkedHashMultimap.create();
       createLoopDrivenStateOrdering(abstractionStates,
                                     stateOrdering,
@@ -298,20 +304,14 @@ enum CexTraceAnalysisDirection {
                                                 LoopStructure loopStructure) {
 
     Set<String> varNames = from(fmgr.extractVariableNames(formula))
-        .transform(new Function<String, String>() {
-           @Override
-           public String apply(String pInput) {
-             Pair<String, OptionalInt> name = FormulaManagerView.parseName(pInput);
-
-            // we want only variables to be in our set, and ignore everything without SSA index
-             if (name.getSecond().isPresent()) {
-               return name.getFirst();
-             } else {
-               return null;
-             }
-           }})
-        .filter(Predicates.notNull())
-        .toSet();
+            .transform(
+                variable -> {
+                  Pair<String, OptionalInt> name = FormulaManagerView.parseName(variable);
+                  // we want only variables in our set, and ignore everything without SSA index
+                  return name.getSecond().isPresent() ? name.getFirst() : null;
+                })
+            .filter(Predicates.notNull())
+            .toSet();
 
     double currentScore = 0;
     for (String variableName : varNames) {
@@ -453,8 +453,7 @@ enum CexTraceAnalysisDirection {
     while (!returnNode.getFunctionName().equals(wantedFunction)) {
       argState = argState.getParents().iterator().next();
 
-      // the function does not return to the wanted function we can skip the search
-      // here
+      // the function does not return to the wanted function we can skip the search here
       if (argState == lastState.getParents().iterator().next()) {
         return null;
       }

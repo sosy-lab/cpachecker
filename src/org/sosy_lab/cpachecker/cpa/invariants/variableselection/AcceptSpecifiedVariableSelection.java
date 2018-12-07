@@ -42,7 +42,7 @@ public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableS
   private final ImmutableSet<MemoryLocation> specifiedVariables;
 
   public AcceptSpecifiedVariableSelection(Iterable<? extends MemoryLocation> pIterable) {
-    this.specifiedVariables = ImmutableSet.copyOf((pIterable));
+    this.specifiedVariables = ImmutableSet.copyOf(pIterable);
   }
 
   @Override

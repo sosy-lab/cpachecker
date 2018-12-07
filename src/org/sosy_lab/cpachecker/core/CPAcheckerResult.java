@@ -26,10 +26,11 @@ package org.sosy_lab.cpachecker.core;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.PrintStream;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ResultProviderReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 /**
@@ -114,6 +115,9 @@ public class CPAcheckerResult {
       return;
     }
 
+    if (reached instanceof ResultProviderReachedSet) {
+      ((ResultProviderReachedSet) reached).printResults(out);
+    }
     out.println("Verification result: " + getResultString());
   }
 

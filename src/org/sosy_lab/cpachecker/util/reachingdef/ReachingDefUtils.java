@@ -142,9 +142,9 @@ public class ReachingDefUtils {
       final List<MemoryLocation> localVariables) {
     if (out.getDeclaration() instanceof CVariableDeclaration) {
       if (out.getDeclaration().isGlobal()) {
-        globalVariables.add(MemoryLocation.valueOf((out.getDeclaration()).getQualifiedName()));
+        globalVariables.add(MemoryLocation.valueOf(out.getDeclaration().getQualifiedName()));
       } else {
-        localVariables.add(MemoryLocation.valueOf((out.getDeclaration().getQualifiedName())));
+        localVariables.add(MemoryLocation.valueOf(out.getDeclaration().getQualifiedName()));
       }
     }
   }

@@ -51,7 +51,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   private final FormulaSlicingManager manager;
   private final MergeOperator mergeOperator;
   private final InductiveWeakeningManager inductiveWeakeningManager;
-  private final RCNFManager RCNFManager;
+  private final RCNFManager rcnfManager;
   private final Solver solver;
 
   private FormulaSlicingCPA(
@@ -71,14 +71,14 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
 
     inductiveWeakeningManager = new InductiveWeakeningManager(pConfiguration, solver, pLogger,
         pShutdownNotifier);
-    RCNFManager = new RCNFManager(pConfiguration);
+    rcnfManager = new RCNFManager(pConfiguration);
     manager = new FormulaSlicingManager(
         pConfiguration,
         pathFormulaManager,
         formulaManager,
         cfa,
         inductiveWeakeningManager,
-        RCNFManager,
+        rcnfManager,
         solver,
         pLogger);
     stopOperator = new StopSepOperator(this);
@@ -153,7 +153,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   public void collectStatistics(Collection<Statistics> statsCollection) {
     manager.collectStatistics(statsCollection);
     inductiveWeakeningManager.collectStatistics(statsCollection);
-    RCNFManager.collectStatistics(statsCollection);
+    rcnfManager.collectStatistics(statsCollection);
   }
 
   @Override

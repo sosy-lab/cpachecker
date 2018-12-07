@@ -9,37 +9,37 @@
 
   <tasks name="BitVectors">
     <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="ControlFlowInteger">
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="DeviceDrivers64">
     <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
 
     <option name="-64"/>
   </tasks>
   <tasks name="ECA">
     <includesfile>../programs/benchmarks/ReachSafety-ECA.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="HeapManipulation">
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="Loops">
     <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="ProductLines">
     <includesfile>../programs/benchmarks/ReachSafety-ProductLines.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="Sequentialized">
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 
   <rundefinition name="ABEl">

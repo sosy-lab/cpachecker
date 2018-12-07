@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.testtargets;
 
 import java.util.Collections;
 import java.util.Set;
-import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -47,7 +47,7 @@ public enum TestTargetState implements AbstractState, Targetable, Graphable {
   }
 
   @Override
-  public @Nonnull Set<Property> getViolatedProperties() throws IllegalStateException {
+  public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
     return Collections.emptySet();
   }
 

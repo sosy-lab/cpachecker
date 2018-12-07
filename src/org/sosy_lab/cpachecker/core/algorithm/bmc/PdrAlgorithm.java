@@ -54,7 +54,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -240,10 +240,10 @@ public class PdrAlgorithm implements Algorithm {
             fmgr,
             initialLocation,
             getNonTrivialLoopHeads().iterator(),
-            (location ->
+            location ->
                 location == initialLocation
                     ? createPartialTransitionRelation(location, pReachedSet)
-                    : createPartialTransitionRelation(location)));
+                    : createPartialTransitionRelation(location));
     for (BooleanFormula locationFormula : transitionRelation.getPredecessorLocationFormulas()) {
       abstractionStrategy.refinePrecision(pam, Collections.singleton(locationFormula));
     }

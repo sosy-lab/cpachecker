@@ -393,10 +393,7 @@ public class SymbolicValueAnalysisRefiner
       }
       CFAEdgeWithAssumptions edgeWithAssumption =
           new CFAEdgeWithAssumptions(p.getSecond().get(0), assumptions, "");
-      String cCode = edgeWithAssumption.prettyPrintCode(1);
-      if (!cCode.isEmpty()) {
-        symbolicInfo.append(edgeWithAssumption.prettyPrintCode(1));
-      }
+      symbolicInfo.append(edgeWithAssumption.prettyPrintCode(1));
       currentState = nextState;
     }
 

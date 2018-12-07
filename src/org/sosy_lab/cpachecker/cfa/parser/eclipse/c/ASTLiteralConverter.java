@@ -41,14 +41,21 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNative;
+import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI;
 
 /**
  * This Class contains functions, that convert literals (chars, numbers) from C-source into
  * CPAchecker-format.
  */
+// Deprecated because of the temporary use of the CFloatNative class. This will be replaced by
+// CFloatImpl as soon as available.
+@SuppressWarnings("deprecation")
 class ASTLiteralConverter {
 
   private final MachineModel machine;
@@ -86,28 +93,7 @@ class ASTLiteralConverter {
         return parseIntegerLiteral(fileLoc, valueStr, e);
 
     case IASTLiteralExpression.lk_float_constant:
-      BigDecimal value;
-      try {
-
-        //in Java float and double can be distinguished by the suffixes "f" (Float) and "d" (Double)
-        // in C the suffixes are "f" / "F" (Float) and "l" / "L" (Long Double)
-        if (valueStr.endsWith("L") || valueStr.endsWith("l")) {
-          valueStr = valueStr.substring(0, valueStr.length() - 1) + "d";
-        }
-
-        value = new BigDecimal(valueStr);
-      } catch (NumberFormatException nfe1) {
-        try {
-          // this might be a hex floating point literal
-          // BigDecimal doesn't support this, but Double does
-          // TODO handle hex floating point literals that are too large for Double
-          value = BigDecimal.valueOf(Double.parseDouble(valueStr));
-        } catch (NumberFormatException nfe2) {
-          throw parseContext.parseError("illegal floating point literal", e);
-        }
-      }
-
-      return new CFloatLiteralExpression(fileLoc, type, value);
+        return parseFloatLiteral(fileLoc, type, valueStr, e);
 
     case IASTLiteralExpression.lk_string_literal:
       return new CStringLiteralExpression(fileLoc, type, valueStr);
@@ -129,35 +115,14 @@ class ASTLiteralConverter {
 
 
     case IASTLiteralExpression.lk_integer_constant:
-        CLiteralExpression cLiteralExp = parseIntegerLiteral(fileLoc, valueStr, exp);
+        CLiteralExpression intLiteralExp = parseIntegerLiteral(fileLoc, valueStr, exp);
         return new CImaginaryLiteralExpression(
-            fileLoc, cLiteralExp.getExpressionType(), cLiteralExp);
+            fileLoc, intLiteralExp.getExpressionType(), intLiteralExp);
 
     case IASTLiteralExpression.lk_float_constant:
-      BigDecimal val;
-      try {
-
-        //in Java float and double can be distinguished by the suffixes "f" (Float) and "d" (Double)
-        // in C the suffixes are "f" / "F" (Float) and "l" / "L" (Long Double)
-        if (valueStr.endsWith("L") || valueStr.endsWith("l")) {
-          valueStr = valueStr.substring(0, valueStr.length()-1) + "d";
-        }
-
-        val = new BigDecimal(valueStr);
-      } catch (NumberFormatException nfe1) {
-        try {
-          // this might be a hex floating point literal
-          // BigDecimal doesn't support this, but Double does
-          // TODO handle hex floating point literals that are too large for Double
-          val = BigDecimal.valueOf(Double.parseDouble(valueStr));
-        } catch (NumberFormatException nfe2) {
-          throw parseContext.parseError("illegal floating point literal", exp);
-        }
-      }
-
-      return new CImaginaryLiteralExpression(fileLoc,
-                                             type,
-                                             new CFloatLiteralExpression(fileLoc, type, val));
+        CLiteralExpression floatLiteralExp = parseFloatLiteral(fileLoc, type, valueStr, exp);
+        return new CImaginaryLiteralExpression(
+            fileLoc, floatLiteralExp.getExpressionType(), floatLiteralExp);
 
     default:
       throw parseContext.parseError("Unknown imaginary literal", exp);
@@ -186,14 +151,80 @@ class ASTLiteralConverter {
         getLeastRepresentedTypeForValue(integerValue, machine, suffixCandiates, pExp);
 
     int bits = machine.getSizeof(actualRequiredSuffix.getType()) * machine.getSizeofCharInBits();
+    if (actualRequiredSuffix.isSigned() && integerValue.testBit(bits - 1)) {
+      throw parseContext.parseError(
+          "Type must not be signed while simultaneously having its most significant bit set", pExp);
+    }
 
-    // Assure that the bits fit into the type
-    // a BigInteger with the lowest "bits" set to one (e.g. 2^32-1 or 2^64-1)
+    // Assure that the bits of the expression fit into the computed type
+    // by comparing them against a mask whose lowest bits are set to one (e.g. 2^32-1 or 2^64-1)
     BigInteger mask = BigInteger.ZERO.setBit(bits).subtract(BigInteger.ONE);
     assert integerValue.and(mask).bitLength() <= bits;
 
-    integerValue = computeTwosComplementIfNecessary(actualRequiredSuffix, integerValue, bits);
     return new CIntegerLiteralExpression(pFileLoc, actualRequiredSuffix.getType(), integerValue);
+  }
+
+  @VisibleForTesting
+  CLiteralExpression parseFloatLiteral(
+      FileLocation pFileLoc, CType pType, String pValueStr, IASTLiteralExpression pExp) {
+
+    // According to section 6.4.4.2 "Floating constants" of the C standard,
+    // an unsuffixed floating constant has type double. If suffixed by the letter f or F, it has
+    // type float. If suffixed by the letter l or L, it has type long double.
+
+    // TODO: replace CFloatNative-class by CFloatImpl when available
+    CFloat cFloat;
+    if (pValueStr.endsWith("L") || pValueStr.endsWith("l")) {
+      cFloat = new CFloatNative(pValueStr, CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
+    } else if (pValueStr.endsWith("F") || pValueStr.endsWith("f")) {
+      cFloat = new CFloatNative(pValueStr, CFloatNativeAPI.FP_TYPE_SINGLE);
+    } else {
+      // literal has no suffix declared
+      cFloat = new CFloatNative(pValueStr, CFloatNativeAPI.FP_TYPE_DOUBLE);
+    }
+
+    if (cFloat.isInfinity()) {
+      return new CFloatLiteralExpression(pFileLoc, pType, adjustPrecision(cFloat, pType, pExp));
+    }
+
+    try {
+      BigDecimal value = new BigDecimal(cFloat.toString());
+      return new CFloatLiteralExpression(pFileLoc, pType, value);
+    } catch (NumberFormatException e) {
+      throw parseContext.parseError(
+          String.format("unable to parse floating point literal (%s)", cFloat.toString()), pExp);
+    }
+  }
+
+  private BigDecimal adjustPrecision(CFloat pCFloat, CType pType, IASTLiteralExpression pExp) {
+    // TODO: This method is a temporary hack until 'BigDecimal's are replaced by 'CFloat's in
+    // AFloatLiteralExpression class.
+    // This is necessary because CFloats are already able to return "inf" as a value, however, the
+    // BigDecimal object requires a concrete numerical value instead. The code below thus returns a
+    // placeholder value in the meantime.
+
+    BigDecimal APPROX_INFINITY =
+        BigDecimal.valueOf(Double.MAX_VALUE).add(BigDecimal.valueOf(Double.MAX_VALUE));
+
+    CBasicType basicType = ((CSimpleType) pType).getType();
+    switch (basicType) {
+      case FLOAT:
+      case DOUBLE:
+        if (pCFloat.isInfinity()) {
+          if (pCFloat.isNegative()) {
+            return APPROX_INFINITY.negate();
+          } else {
+            return APPROX_INFINITY;
+          }
+        }
+        break;
+      default:
+        // unsupported operation
+        break;
+    }
+
+    throw parseContext.parseError(
+        String.format("unable to parse floating point literal (%s)", pCFloat.toString()), pExp);
   }
 
   @VisibleForTesting
@@ -298,20 +329,6 @@ class ASTLiteralConverter {
     check(result.compareTo(BigInteger.ZERO) >= 0, "invalid number", e);
 
     return result;
-  }
-
-  private BigInteger computeTwosComplementIfNecessary(
-      Suffix pActualSuffix, BigInteger pIntegerValue, int pBits) {
-    if (pActualSuffix.isSigned() && pIntegerValue.testBit(pBits - 1)) {
-      // highest bit is set
-      pIntegerValue = pIntegerValue.clearBit(pBits - 1);
-
-      // a BigInteger for -2^(bits-1) (e.g. -2^-31 or -2^-63)
-      final BigInteger minValue = BigInteger.ZERO.setBit(pBits - 1).negate();
-
-      pIntegerValue = minValue.add(pIntegerValue);
-    }
-    return pIntegerValue;
   }
 
   private Suffix extractDenotedSuffix(String pIntegerLiteral, IASTNode pExpression) {

@@ -41,10 +41,9 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.OptionalLong;
 import java.util.Set;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -661,9 +660,12 @@ public class AssumptionToEdgeAllocator {
       if (pLValue instanceof CPointerExpression) {
         return ((CPointerExpression) pLValue).getOperand();
       }
-      CUnaryExpression unaryExpression = new CUnaryExpression(
-          pLValue.getFileLocation(), type, pLValue,
-          CUnaryExpression.UnaryOperator.AMPER);
+      CUnaryExpression unaryExpression =
+          new CUnaryExpression(
+              pLValue.getFileLocation(),
+              new CPointerType(false, false, type),
+              pLValue,
+              CUnaryExpression.UnaryOperator.AMPER);
       return unaryExpression;
     } else {
       return pLValue;
@@ -848,7 +850,7 @@ public class AssumptionToEdgeAllocator {
       return null;
     }
 
-    private @Nullable OptionalLong getFieldOffsetInBits(CFieldReference fieldReference) {
+    private @Nullable Optional<BigInteger> getFieldOffsetInBits(CFieldReference fieldReference) {
       CType fieldOwnerType = fieldReference.getFieldOwner().getExpressionType().getCanonicalType();
       return AssumptionToEdgeAllocator.getFieldOffsetInBits(
           fieldOwnerType, fieldReference.getFieldName(), machineModel);
@@ -1006,7 +1008,7 @@ public class AssumptionToEdgeAllocator {
         }
 
         BigDecimal typeSize =
-            BigDecimal.valueOf(
+            new BigDecimal(
                 machineModel.getSizeofInBits(
                     pIastArraySubscriptExpression.getExpressionType().getCanonicalType()));
 
@@ -1027,13 +1029,13 @@ public class AssumptionToEdgeAllocator {
           return lookupReferenceAddress(pIastFieldReference);
         }
 
-        OptionalLong fieldOffset = getFieldOffsetInBits(pIastFieldReference);
+        Optional<BigInteger> fieldOffset = getFieldOffsetInBits(pIastFieldReference);
 
         if (!fieldOffset.isPresent()) {
           return lookupReferenceAddress(pIastFieldReference);
         }
 
-        Address address = fieldOwnerAddress.addOffset(new BigDecimal(fieldOffset.getAsLong()));
+        Address address = fieldOwnerAddress.addOffset(fieldOffset.get());
 
         if (address.isUnknown()) {
           return lookupReferenceAddress(pIastFieldReference);
@@ -1200,7 +1202,7 @@ public class AssumptionToEdgeAllocator {
 
           BigDecimal offsetValue = new BigDecimal(offsetValueNumber.toString());
 
-              BigDecimal typeSize = BigDecimal.valueOf(machineModel.getSizeofInBits(elementType));
+          BigDecimal typeSize = new BigDecimal(machineModel.getSizeofInBits(elementType));
 
           BigDecimal pointerOffsetValue = offsetValue.multiply(typeSize);
 
@@ -1588,15 +1590,18 @@ public class AssumptionToEdgeAllocator {
             logger instanceof LogManagerWithoutDuplicates
                 ? (LogManagerWithoutDuplicates) logger
                 : new LogManagerWithoutDuplicates(logger);
-        Number number =
+        Value castValue =
             AbstractExpressionValueVisitor.castCValue(
-                    new NumericValue(pIntegerValue),
-                    pType,
-                    machineModel,
-                    logManager,
-                    FileLocation.DUMMY)
-                .asNumericValue()
-                .getNumber();
+                new NumericValue(pIntegerValue),
+                pType,
+                machineModel,
+                logManager,
+                FileLocation.DUMMY);
+        if (castValue.isUnknown()) {
+          return UnknownValueLiteral.getInstance();
+        }
+
+        Number number = castValue.asNumericValue().getNumber();
         final BigInteger valueAsBigInt;
         if (number instanceof BigInteger) {
           valueAsBigInt = (BigInteger) number;
@@ -1693,13 +1698,13 @@ public class AssumptionToEdgeAllocator {
           return;
         }
 
-        Map<CCompositeTypeMemberDeclaration, Long> offsets =
+        Map<CCompositeTypeMemberDeclaration, BigInteger> offsets =
             machineModel.getAllFieldOffsetsInBits(pCompType);
 
-        for (Map.Entry<CCompositeTypeMemberDeclaration, Long> memberOffset : offsets.entrySet()) {
+        for (Map.Entry<CCompositeTypeMemberDeclaration, BigInteger> memberOffset :
+            offsets.entrySet()) {
           CCompositeTypeMemberDeclaration memberType = memberOffset.getKey();
-          handleMemberField(
-              memberType, address.addOffset(BigInteger.valueOf(memberOffset.getValue())));
+          handleMemberField(memberType, address.addOffset(memberOffset.getValue()));
         }
       }
 
@@ -1795,21 +1800,20 @@ public class AssumptionToEdgeAllocator {
           return false;
         }
 
-        int typeSize = machineModel.getSizeofInBits(pExpectedType);
-        int subscriptOffset = pSubscript * typeSize;
+        BigInteger typeSize = machineModel.getSizeofInBits(pExpectedType);
+        BigInteger subscriptOffset = BigInteger.valueOf(pSubscript).multiply(typeSize);
 
         // Check if we are already out of array bound, if we have an array length.
         // FIXME Imprecise due to imprecise getSizeOf method
         if (!pArrayType.isIncomplete()
-            && machineModel.getSizeofInBits(pArrayType) <= subscriptOffset) {
+            && machineModel.getSizeofInBits(pArrayType).compareTo(subscriptOffset) <= 0) {
           return false;
         }
         if (pArrayType.getLength() == null) {
           return false;
         }
 
-        Address arrayAddressWithOffset =
-            pArrayAddress.addOffset(BigInteger.valueOf(subscriptOffset));
+        Address arrayAddressWithOffset = pArrayAddress.addOffset(subscriptOffset);
 
         BigInteger subscript = BigInteger.valueOf(pSubscript);
         CIntegerLiteralExpression litExp =
@@ -2229,7 +2233,7 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  private static OptionalLong getFieldOffsetInBits(
+  private static Optional<BigInteger> getFieldOffsetInBits(
       CType ownerType, String fieldName, MachineModel pMachineModel) {
 
     if (ownerType instanceof CElaboratedType) {
@@ -2237,13 +2241,12 @@ public class AssumptionToEdgeAllocator {
       CType realType = ((CElaboratedType) ownerType).getRealType();
 
       if (realType == null) {
-        return OptionalLong.empty();
+        return Optional.absent();
       }
 
       return getFieldOffsetInBits(realType.getCanonicalType(), fieldName, pMachineModel);
     } else if (ownerType instanceof CCompositeType) {
-      return OptionalLong.of(
-          pMachineModel.getFieldOffsetInBits((CCompositeType) ownerType, fieldName));
+      return Optional.<BigInteger>of(pMachineModel.getFieldOffsetInBits((CCompositeType) ownerType, fieldName));
     } else if (ownerType instanceof CPointerType) {
 
       /* We do not explicitly transform x->b,

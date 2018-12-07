@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
 import java.util.List;
 
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public abstract class AbstractCPAFactory implements CPAFactory {
 

@@ -12,16 +12,16 @@
 
   <tasks name="Overflows-BitVectors">
     <includesfile>../programs/benchmarks/NoOverflows-BitVectors.set</includesfile>
-    <propertyfile>../programs/benchmarks/NoOverflows.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     <option name="-64"/>
   </tasks>
   <tasks name="Systems_BusyBox_Overflows">
     <includesfile>../programs/benchmarks/Systems_BusyBox_NoOverflows.set</includesfile>
-    <propertyfile>../programs/benchmarks/NoOverflows.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     <option name="-64"/>
   </tasks>
   <tasks name="Overflows-Other">
     <includesfile>../programs/benchmarks/NoOverflows-Other.set</includesfile>
-    <propertyfile>../programs/benchmarks/NoOverflows.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
   </tasks>
 </benchmark>

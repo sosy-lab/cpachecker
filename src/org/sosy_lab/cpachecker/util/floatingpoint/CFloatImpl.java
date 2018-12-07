@@ -144,7 +144,7 @@ public class CFloatImpl extends CFloat {
                   & getNormalizedMantissaMask();
           break;
         case "-1":
-          exp = getSignBitMask() + (getBias());
+          exp = getSignBitMask() + getBias();
           man = (pType == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE ? getNormalizationMask() : 0L);
           break;
         case "nan":

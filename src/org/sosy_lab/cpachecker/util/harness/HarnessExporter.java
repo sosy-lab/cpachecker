@@ -49,7 +49,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -69,7 +69,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -538,7 +537,7 @@ public class HarnessExporter {
         pPrevious,
         pChild,
         leftHandSide,
-        value -> (vector -> vector.addInputValue(pFunctionCallExpression.getDeclaration(), value)),
+        value -> vector -> vector.addInputValue(pFunctionCallExpression.getDeclaration(), value),
         pValueMap);
   }
 
@@ -569,7 +568,7 @@ public class HarnessExporter {
         pPrevious,
         pChild,
         leftHandSide,
-        value -> (vector -> vector.addInputValue(pVariableDeclaration, toInitializer(value))),
+        value -> vector -> vector.addInputValue(pVariableDeclaration, toInitializer(value)),
         pValueMap);
   }
 
@@ -586,7 +585,7 @@ public class HarnessExporter {
           AbstractStates.asIterable(argState).filter(AutomatonState.class);
       for (AutomatonState automatonState : automatonStates) {
         for (AExpression assumption : automatonState.getAssumptions()) {
-          Optional<ALiteralExpression> value = getOther(assumption, pLeftHandSide);
+          Optional<AExpression> value = getOther(assumption, pLeftHandSide);
           if (value.isPresent()) {
             AExpression v = castIfNecessary(pLeftHandSide.getExpressionType(), value.get());
             return Optional.of(new State(pChild, pUpdate.apply(v).apply(pPrevious.testVector)));
@@ -600,7 +599,7 @@ public class HarnessExporter {
                 .filter(e -> e.getCFAEdge().equals(pEdge))
                 .transformAndConcat(CFAEdgeWithAssumptions::getExpStmts)
                 .transform(AExpressionStatement::getExpression)) {
-          Optional<ALiteralExpression> value = getOther(assumption, pLeftHandSide);
+          Optional<AExpression> value = getOther(assumption, pLeftHandSide);
           if (value.isPresent()) {
             AExpression v = castIfNecessary(pLeftHandSide.getExpressionType(), value.get());
             return Optional.of(new State(pChild, pUpdate.apply(v).apply(pPrevious.testVector)));
@@ -926,7 +925,7 @@ public class HarnessExporter {
     return false;
   }
 
-  private static Optional<ALiteralExpression> getOther(
+  private static Optional<AExpression> getOther(
       AExpression pAssumption, ALeftHandSide pLeftHandSide) {
     if (!(pAssumption instanceof ABinaryExpression)) {
       return Optional.empty();
@@ -937,13 +936,11 @@ public class HarnessExporter {
             != org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.EQUALS) {
       return Optional.empty();
     }
-    if (binOp.getOperand2() instanceof ALiteralExpression
-        && binOp.getOperand1().equals(pLeftHandSide)) {
-      return Optional.of((ALiteralExpression) binOp.getOperand2());
+    if (binOp.getOperand1().equals(pLeftHandSide)) {
+      return Optional.of(binOp.getOperand2());
     }
-    if (binOp.getOperand1() instanceof ALiteralExpression
-        && binOp.getOperand2().equals(pLeftHandSide)) {
-      return Optional.of((ALiteralExpression) binOp.getOperand1());
+    if (binOp.getOperand2().equals(pLeftHandSide)) {
+      return Optional.of(binOp.getOperand1());
     }
     return Optional.empty();
   }

@@ -139,6 +139,7 @@ public class SSAMap implements Serializable {
 
       if (type instanceof CType) {
         type = ((CType) type).getCanonicalType();
+        assert !(type instanceof CFunctionType) : "Variable " + name + " has function type " + type;
       }
       Type oldType = varTypes.get(name);
       if (oldType != null) {

@@ -33,7 +33,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector.ICCOperatorFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector.IICOperatorFactory;

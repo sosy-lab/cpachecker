@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.core.reachedset;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.BiConsumer;
-import javax.annotation.Nullable;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;

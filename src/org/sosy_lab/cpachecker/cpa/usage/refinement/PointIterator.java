@@ -70,9 +70,12 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
     secondPoint = secondPointIterator.next();
     assert firstPoint != null;
     assert secondPoint == firstPoint;
-    Pair<UsageInfoSet, UsageInfoSet> resultingPair = prepareIterationPair(firstPoint, secondPoint);
-    //because the points are equal
-    postpone(resultingPair);
+    if (detector.isUnsafePair(firstPoint, secondPoint)) {
+      Pair<UsageInfoSet, UsageInfoSet> resultingPair =
+          prepareIterationPair(firstPoint, secondPoint);
+      // because the points are equal
+      postpone(resultingPair);
+    }
   }
 
   @Override
@@ -121,6 +124,12 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
   }
 
   @Override
+  protected void finish(SingleIdentifier pId, RefinementResult r) {
+    toRemove.forEach(currentUsagePointSet::remove);
+    toRemove.clear();
+  }
+
+  @Override
   protected void finishIteration(Pair<UsageInfoSet, UsageInfoSet> pPair, RefinementResult r) {
     UsageInfoSet firstUsageInfoSet = pPair.getFirst();
     UsageInfoSet secondUsageInfoSet = pPair.getSecond();
@@ -148,7 +157,6 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
   @Override
   protected void handleFinishSignal(Class<? extends RefinementInterface> pCallerClass) {
     if (pCallerClass.equals(IdentifierIterator.class)) {
-      toRemove.clear();
       firstPointIterator = null;
       secondPointIterator = null;
       firstPoint = null;

@@ -59,6 +59,16 @@ body {
 	cursor: pointer;
 }
 
+.disabled-btn {
+        color: #c0c0c0;
+        border-color: #ffffff !important;
+}
+
+.disabled-btn:hover {
+        background-color: #ffffff !important;
+        color: #c0c0c0 !important;
+}
+
 .header img.logo {
 	float: left;
 	height: 40px;

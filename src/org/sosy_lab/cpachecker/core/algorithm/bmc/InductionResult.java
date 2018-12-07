@@ -29,7 +29,7 @@ import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class InductionResult<T extends CandidateInvariant> extends ProofResult {
 

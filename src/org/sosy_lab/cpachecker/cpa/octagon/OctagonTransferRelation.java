@@ -27,7 +27,6 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -133,7 +132,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
   public OctagonTransferRelation(LogManager log, LoopStructure loops) {
     logger = log;
 
-    Builder<CFANode> builder = new ImmutableSet.Builder<>();
+    ImmutableSet.Builder<CFANode> builder = new ImmutableSet.Builder<>();
     for (Loop l : loops.getAllLoops()) {
       // function edges do not count as incoming/outgoing edges
           builder.addAll(l.getLoopHeads());

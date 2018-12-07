@@ -92,6 +92,13 @@ public class PathChecker {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate dumpCounterexampleModel = PathTemplate.ofFormatString("Counterexample.%d.assignment.txt");
 
+  @Option(
+      secure = true,
+      description =
+          "An imprecise counterexample of the Predicate CPA is usually a bug,"
+              + " but expected in some configurations. Should it be treated as a bug or accepted?")
+  private boolean allowImpreciseCounterexamples = true;
+
   private final LogManager logger;
   private final PathFormulaManager pmgr;
   private final Solver solver;
@@ -206,6 +213,14 @@ public class PathChecker {
    */
   private CounterexampleInfo createImpreciseCounterexample(
       final ARGPath imprecisePath, final CounterexampleTraceInfo pInfo) {
+    if (!allowImpreciseCounterexamples) {
+      throw new AssertionError(
+          "Found imprecise counterexample in PredicateCPA. "
+              + "If this is expected for this configuration "
+              + "(e.g., because of UF-based heap encoding), "
+              + "set counterexample.export.allowImpreciseCounterexamples=true. "
+              + "Otherwise please report this as a bug.");
+    }
     CounterexampleInfo cex =
         CounterexampleInfo.feasibleImprecise(imprecisePath);
     addCounterexampleFormula(pInfo, cex);

@@ -76,8 +76,8 @@ public class ARGMergeJoin implements MergeOperator {
       HashSet<ARGState> parents2 = new HashSet<>(argElement2.getParents());
       continueMerge =
           continueMerge
-              || ((!parents2.containsAll(parents1)
-                  && wrappedDomain.isLessOrEqual(wrappedState1, wrappedState2)));
+              || (!parents2.containsAll(parents1)
+                  && wrappedDomain.isLessOrEqual(wrappedState1, wrappedState2));
     }
     if (!continueMerge) {
       return pElement2;

@@ -298,7 +298,10 @@ public class CounterexampleInfo extends AbstractAppender {
         elem.put("val", "");
       } else {
         CFAEdgeWithAssumptions edgeWithAssignment = assignments.get(iterator.getIndex());
-        elem.put("val", edgeWithAssignment.printForHTML());
+        elem.put(
+            "val",
+            edgeWithAssignment.prettyPrintCode(0).replace(System.lineSeparator(), "\n")
+                + edgeWithAssignment.getComment().replace(System.lineSeparator(), "\n"));
       }
 
       path.add(elem);
