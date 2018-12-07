@@ -51,15 +51,16 @@ class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
 
   @Override
   public JSExpression append(final JavaScriptCFABuilder pBuilder, final FunctionInvocation pNode) {
-    final JSIdExpression function =
+    final JSExpression function =
         pNode.getName() != null
             ? pBuilder.resolve(pNode.getName())
-            : (JSIdExpression) pBuilder.append(pNode.getExpression());
+            : pBuilder.append(pNode.getExpression());
     final boolean isKnownFunctionDeclaration =
-        function.getDeclaration() instanceof JSFunctionDeclaration;
+        (function instanceof JSIdExpression)
+            && (((JSIdExpression) function).getDeclaration() instanceof JSFunctionDeclaration);
     final JSFunctionDeclaration declaration =
         isKnownFunctionDeclaration
-            ? (JSFunctionDeclaration) function.getDeclaration()
+            ? (JSFunctionDeclaration) ((JSIdExpression) function).getDeclaration()
             : unknownFunctionCallerDeclaration;
     final List<JSExpression> arguments = new ArrayList<>();
     if (!isKnownFunctionDeclaration) {
