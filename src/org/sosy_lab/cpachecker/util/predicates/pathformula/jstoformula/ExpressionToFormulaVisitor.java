@@ -308,15 +308,8 @@ public class ExpressionToFormulaVisitor
             pFieldAccess, edge, function, ssa, constraints, errorConditions);
     final IntegerFormula objectId =
         conv.typedValues.objectValue(conv.scopedVariable(function, objectDeclaration, ssa));
-    final ArrayFormula<IntegerFormula, IntegerFormula> fields = conv.getObjectFields(objectId, ssa);
-    final IntegerFormula field =
-        conv.afmgr.select(fields, conv.getStringFormula(pFieldAccess.getFieldName()));
-    final BooleanFormula isObjectFieldNotSet = mgr.makeEqual(field, conv.objectFieldNotSet);
-    // TODO use undefined instead of conv.objectFieldNotSet as value
-    return new TypedValue(
-        conv.bfmgr.ifThenElse(
-            isObjectFieldNotSet, conv.typeTags.UNDEFINED, conv.typedValues.typeof(field)),
-        conv.bfmgr.ifThenElse(isObjectFieldNotSet, conv.objectFieldNotSet, field));
+    final IntegerFormula fieldName = conv.getStringFormula(pFieldAccess.getFieldName());
+    return new FieldAccessToTypedValue(conv, ssa).accessField(objectId, fieldName);
   }
 
   private TypedValue handlePredefined(final JSIdExpression pIdExpression)
