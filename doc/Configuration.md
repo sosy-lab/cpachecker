@@ -28,7 +28,7 @@ The following command-line arguments are allowed:
  - `-spec <FILE>`		sets `specification = <FILE>`
  - `-outputpath <DIR>`		sets `output.path = <DIR>`
  - `-logfile <FILE>`		sets `log.file = <FILE>`
- - `-benchmark`			sets `coverage.enabled = true` and `output.disable = true`, and `statistics.memory = false`
+ - `-benchmark`			sets `coverage.enabled = true`, `output.disable = true`, `statistics.memory = false`, and disables assertions in CPAchecker for improved performance
  - `-nolog`			sets `log.level = OFF` and `log.consoleLevel = OFF`
  - `-noout`			sets `output.disable=true`
  - `-stats`			sets `statistics.print = true`
@@ -70,8 +70,8 @@ be specified.
 
 The usual command line for running CPAchecker is to specify a configuration file
 (either with `-config FILE` or `-CONFIGFILE`) and a program file. Examples:
-`scripts/cpa.sh -predicateAnalysis doc/examples/example.c` and
-`scripts/cpa.sh -config config/predicateAnalysis.properties doc/examples/example.c`
+`scripts/cpa.sh -default doc/examples/example.c` and
+`scripts/cpa.sh -config config/default.properties doc/examples/example.c`
 
 
 Specifying the CPA(s)
@@ -82,6 +82,13 @@ where the alias is an optional unique identifier for this instance of the
 CPA. Without an alias, the class name is used as identifier. Configuration
 options that should be used for only one instance of a CPA can be prefixed
 with "alias.". Their values override the options without this prefix.
+
+For example, to set the solver logfile in the PredicateCPA, you can use
+"PredicateCPA.solver.logfile=predicate.%03d.smt2", even if the real option is
+"solver.logfile" and there is no such option in the PredicateCPA.
+The configuration framework will automatically remove the prefix alias and
+apply the renamed option for all classes that are build with the instance of
+ConfigurationOptions given as parameter to PredicateCPA.
 
 If the package name starts with `org.sosy_lab.cpachecker.`, this prefix can be
 omitted.

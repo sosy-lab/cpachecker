@@ -36,8 +36,10 @@ import logging
 import os
 import platform
 import random
+import re
 import tempfile
 import threading
+import ssl
 import zipfile
 import zlib
 
@@ -50,6 +52,7 @@ import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 from concurrent.futures import Future
+from benchexec.util import get_files
 
 try:
     import sseclient  # @UnresolvedImport
@@ -82,6 +85,8 @@ SPECIAL_RESULT_FILES = {RESULT_FILE_LOG, RESULT_FILE_STDERR, RESULT_FILE_RUN_INF
 MAX_SUBMISSION_THREADS = 5
 CONNECTION_TIMEOUT = 600  # seconds
 HASH_CODE_CACHE_PATH = os.path.join(os.path.expanduser("~"), ".verifiercloud/cache/hashCodeCache")
+
+VALID_RUN_ID = re.compile('^[A-Za-z0-9-]+$')
 
 class WebClientError(Exception):
     def _init_(self, value):
@@ -333,7 +338,12 @@ class WebInterface:
 
         self._connection = requests.Session()
         self._connection.headers.update(default_headers)
-        self._connection.verify='/etc/ssl/certs'
+        try:
+            cert_paths = ssl.get_default_verify_paths()
+            cert_path = cert_paths.cafile or cert_paths.capath # both might be None
+        except AttributeError: # not available on old Python
+            cert_path = None
+        self._connection.verify = cert_path or True # make sure that verification is enabled
         if user_pwd:
             self._connection.auth = (user_pwd.split(":")[0], user_pwd.split(":")[1])
             self._base64_user_pwd = base64.b64encode(user_pwd.encode("utf-8")).decode("utf-8")
@@ -400,15 +410,15 @@ class WebInterface:
     def tool_name(self):
         return self._tool_name
 
-    def _get_sha1_hash(self, path):
+    def _get_sha256_hash(self, path):
         path = os.path.abspath(path)
         mTime = str(os.path.getmtime(path))
         if ((path, mTime) in self._hash_code_cache):
             return self._hash_code_cache[(path, mTime)]
 
         else:
-            with open(path, 'rb') as file:
-                hashValue = hashlib.sha1(file.read()).hexdigest()
+            with open(path, 'rb') as opened_file:
+                hashValue = hashlib.sha256(opened_file.read()).hexdigest()
                 self._hash_code_cache[(path, mTime)] = hashValue
                 return hashValue
 
@@ -448,9 +458,14 @@ class WebInterface:
         paramsCompressed = zlib.compress(urllib.parse.urlencode(params, doseq=True).encode('utf-8'))
         path = "runs/witness_validation/"
 
-        (run_id, _) = self._request("POST", path, paramsCompressed, headers, user_pwd=user_pwd)
+        (response, _) = self._request("POST", path, paramsCompressed, headers, user_pwd=user_pwd)
 
-        run_id = run_id.decode("UTF-8")
+        try:
+            run_id = response.decode("UTF-8")
+        except UnicodeDecodeError as e:
+            raise WebClientError(
+                'Malformed response from server while submitting witness-validation run:\n{}'
+                    .format(response)) from e
         logging.debug('Submitted witness validation run with id %s', run_id)
 
         return self._create_and_add_run_future(run_id)
@@ -495,18 +510,18 @@ class WebInterface:
 
         for programPath in run.sourcefiles:
             norm_path = self._normalize_path_for_cloud(programPath)
-            params.append(('programTextHash', (norm_path, self._get_sha1_hash(programPath))))
-  
-        for required_file in required_files:
+            params.append(('programTextHash', (norm_path, self._get_sha256_hash(programPath))))
+
+        for required_file in get_files(required_files):
             norm_path = self._normalize_path_for_cloud(required_file)
-            params.append(('requiredFileHash', (norm_path, self._get_sha1_hash(required_file))))
+            params.append(('requiredFileHash', (norm_path, self._get_sha256_hash(required_file))))
 
         params.append(('svnBranch', svn_branch or self._svn_branch))
         params.append(('revision', svn_revision or self._svn_revision))
 
         if run.propertyfile:
-            file = self._add_file_to_params(params, 'propertyText', run.propertyfile)
-            opened_files.append(file)
+            property_file = self._add_file_to_params(params, 'propertyText', run.propertyfile)
+            opened_files.append(property_file)
 
         if MEMLIMIT in limits:
             params.append(('memoryLimitation', str(limits[MEMLIMIT])))
@@ -541,14 +556,18 @@ class WebInterface:
         # prepare request
         headers = {"Accept": "text/plain"}
         path = "runs/"
-        (run_id, statusCode) = self._request("POST", path, files=params, headers=headers, \
+        (response, statusCode) = self._request("POST", path, files=params, headers=headers, \
                                              expectedStatusCodes=[200, 412], user_pwd=user_pwd)
 
         for opened_file in opened_files:
             opened_file.close()
 
         # program files or required files given as hash value are not known by the cloud system
-        if statusCode == 412 and counter < 1:
+        if statusCode == 412:
+            if counter >= 1:
+                raise WebClientError(
+                    'Files still missing on server for run {0} even after uploading them:\n{1}'
+                        .format(run.identifier, response))
             headers = {"Content-Type": "application/octet-stream",
                    "Content-Encoding": "deflate"}
             filePath = "files/"
@@ -572,7 +591,16 @@ class WebInterface:
                                 priority, user_pwd, svn_branch, svn_revision, counter + 1)
 
         else:
-            run_id = run_id.decode("UTF-8")
+            try:
+                run_id = response.decode("UTF-8")
+            except UnicodeDecodeError as e:
+                raise WebClientError(
+                    'Malformed response from server while submitting run {0}:\n{1}'
+                        .format(run.identifier, response)) from e
+            if not VALID_RUN_ID.match(run_id):
+                raise WebClientError(
+                    'Malformed response from server while submitting run {0}:\n{1}'
+                        .format(run.identifier, run_id))
             logging.debug('Submitted run with id %s', run_id)
             return self._create_and_add_run_future(run_id)
 
@@ -590,6 +618,7 @@ class WebInterface:
 
         if run.options:
             i = iter(run.options)
+            disableAssertions = False
             while True:
                 try:
                     option = next(i)
@@ -614,7 +643,7 @@ class WebInterface:
                         # ignore, is always set by this script
                         pass
                     elif option == "-disable-java-assertions":
-                        params.append(('disableJavaAssertions', 'true'))
+                        disableAssertions = True
                     elif option == "-java":
                         params.append(("option", "language=JAVA"))
                     elif option == "-32":
@@ -635,11 +664,15 @@ class WebInterface:
                         params.append(("option", "parser.usePreprocessor=true"))
                     elif option == "-generateReport":
                         params.append(('generateReport', 'true'))
+                    elif option == "-sourcepath":
+                        params.append(("option", "java.sourcepath=" + next(i)))
+                    elif option in ["-cp", "-classpath"]:
+                        params.append(("option", "java.classpath=" + next(i)))
 
                     elif option == "-spec":
                         spec_path = next(i)
-                        file = self._add_file_to_params(params, "specificationText", spec_path)
-                        opened_files.append(file)
+                        spec_file = self._add_file_to_params(params, "specificationText", spec_path)
+                        opened_files.append(spec_file)
 
                     elif option == "-config":
                         configPath = next(i)
@@ -657,7 +690,7 @@ class WebInterface:
                         params.append(("option", "coverage.enabled=true"))
                         params.append(("option", "output.disable=true"))
                         params.append(("option", "statistics.memory=false"));
-
+                        disableAssertions = True
                     elif option[0] == '-':
                         if config:
                             raise WebClientError("More than one configuration: '{}' and '{}'".format(config, option[1:]))
@@ -670,13 +703,16 @@ class WebInterface:
                 except StopIteration:
                     break
 
+            if disableAssertions:
+              params.append(('disableJavaAssertions', 'true'))
+
         return (None, opened_files)
 
     def _add_file_to_params(self, params, name, path):
         norm_path = self._normalize_path_for_cloud(path)
-        file = open(path, 'rb')
-        params.append((name, (norm_path, file)))
-        return file
+        opened_file = open(path, 'rb')
+        params.append((name, (norm_path, opened_file)))
+        return opened_file
 
     def _normalize_path_for_cloud(self, path):
         norm_path = os.path.normpath(path)
@@ -723,7 +759,9 @@ class WebInterface:
             return state
 
         except requests.HTTPError as e:
-            logging.warning('Could not get run state %s: %s', run_id, e.response)
+            logging.warning(
+                'Could not get state for run %s: %s\n%s',
+                run_id, e.reason, e.response.content or '')
             return False
 
     def _download_result(self, run_id):
@@ -746,22 +784,22 @@ class WebInterface:
                     result_future.set_result(downloaded_result.result())
 
             else:
-                logging.info('Could not get result of run %s: %s', run_id, downloaded_result.exception())
+                attempts = self._download_attempts.pop(run_id, 1);
+                logging.info('Could not get result of run %s on attempt %d: %s', run_id, attempts, exception)
 
                 # client error
-                if type(exception) is HTTPError and exception.response and  \
-                    400 <= exception.response.status_code and exception.response.status_code <= 499:
+                #if type(exception) is HTTPError and exception.response and  \
+                #    400 <= exception.response.status_code and exception.response.status_code <= 499:
 
-                    attempts = self._download_attempts.pop(run_id, 1);
-                    if attempts < 10:
-                        self._download_attempts[run_id] = attempts + 1;
-                        self._download_result_async(run_id)
-                    else:
-                        self._run_failed(run_id)
-
-                else:
-                    # retry it
+                if attempts < 10:
+                    self._download_attempts[run_id] = attempts + 1;
                     self._download_result_async(run_id)
+                else:
+                    self._run_failed(run_id)
+
+                #else:
+                #    # retry t
+                #    self._download_result_async(run_id)
 
         if run_id not in self._downloading_result_futures.values():  # result is not downloaded
             future = self._executor.submit(self._download_result, run_id)
@@ -807,7 +845,8 @@ class WebInterface:
         try:
             self._request("DELETE", path, expectedStatusCodes=[200, 204, 404])
         except HTTPError as e:
-            logging.info("Stopping of run %s failed: %s", run_id, e.reason)
+            logging.info(
+                "Stopping of run %s failed: %s\n%s", run_id, e.reason, e.response.content or '')
 
 
     def _request(self, method, path, data=None, headers=None, files=None, expectedStatusCodes=[200], user_pwd=None):
@@ -836,7 +875,6 @@ class WebInterface:
                 return (response.content, response.status_code)
 
             else:
-                message = ""
                 if response.status_code == 401:
                     message = 'Error 401: Permission denied. Please check the URL given to --cloudMaster and specify credentials if necessary.'
 
@@ -851,9 +889,8 @@ class WebInterface:
                         continue
 
                 else:
-                    message += response.content.decode('UTF-8')
+                    message = 'Status {}'.format(response.status_code)
 
-                logging.warning(message)
                 raise requests.HTTPError(path, message, response=response)
 
 def _open_output_log(output_path):
@@ -890,9 +927,9 @@ def _handle_host_info(values):
 
 def _handle_special_files(result_zip_file, files, output_path):
     logging.info("Results are written to %s", output_path)
-    for file in SPECIAL_RESULT_FILES:
-        if file in files and file != RESULT_FILE_LOG:
-            result_zip_file.extract(file, output_path)
+    for special_file in SPECIAL_RESULT_FILES:
+        if special_file in files and special_file != RESULT_FILE_LOG:
+            result_zip_file.extract(special_file, output_path)
 
 
 def handle_result(zip_content, output_path, run_identifier, result_files_pattern=None,
@@ -978,14 +1015,14 @@ def _handle_result(resultZipFile, output_path,
 
     return return_value
 
-def _parse_cloud_file(file):
+def _parse_cloud_file(info_file):
     """
     Parses a file containing key value pairs in each line.
     @return:  a dict of the parsed key value pairs.
     """
     values = {}
 
-    for line in file:
+    for line in info_file:
         (key, value) = line.decode('utf-8').split("=", 1)
         value = value.strip()
         values[key] = value

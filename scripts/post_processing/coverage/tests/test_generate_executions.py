@@ -25,7 +25,7 @@ class TestCoverage(unittest.TestCase):
         script_path, os.pardir, os.pardir, os.pardir, os.pardir)
     default_spec = os.path.join(
         cpachecker_root, 'config', 'specification', 'ErrorLabel.spc')
-    default_timelimit = 10
+    default_timelimit = 20
     temp_folder = os.path.join(script_path, 'temp_folder')
 
     def setUp(self):
@@ -61,7 +61,8 @@ class TestGenerateOnlyPossibleExecution(TestGenerateExecutions):
                 timelimit=self.default_timelimit,
                 logger=self.logger,
                 aa_file=aa_file,
-                start_time=self.start_time)
+                start_time=self.start_time,
+                timer=generate_coverage.Timer())
             cex_generated = len(list(g.generate_executions()))
             mock_logger.assert_called_once_with('Generated 1 executions.')
 
@@ -87,7 +88,8 @@ class TestGenerateExceptionFoundBug(TestGenerateExecutions):
                     timelimit=self.default_timelimit,
                     logger=self.logger,
                     aa_file=aa_file,
-                    start_time=self.start_time)
+                    start_time=self.start_time,
+                    timer=generate_coverage.Timer())
                 cex_generated = len(list(g.generate_executions()))
                 self.fail('Should have raised FoundBugException.')
             except generate_coverage.FoundBugException as e:
@@ -118,7 +120,8 @@ class TestGenerateAllPaths(TestGenerateExecutions):
                 timelimit=self.default_timelimit,
                 logger=self.logger,
                 aa_file=aa_file,
-                start_time=self.start_time)
+                start_time=self.start_time,
+                timer=generate_coverage.Timer())
             cex_generated = len(list(g.generate_executions()))
             mock_info.assert_called_once_with('Generated 3 executions.')
 
@@ -146,7 +149,8 @@ class TestDocumentExpectedShortcoming(TestGenerateExecutions):
                 timelimit=self.default_timelimit,
                 logger=self.logger,
                 aa_file=aa_file,
-                start_time=self.start_time)
+                start_time=self.start_time,
+                timer=generate_coverage.Timer())
             cex_generated = len(list(g.generate_executions()))
             mock_info.assert_called_once_with('Generated 1 executions.')
 
@@ -161,9 +165,8 @@ class TestCoverageAAIsPrefixFromExistingPath(TestCoverage):
             self.aux_root, 'aa_three_paths_else_return_not_covered.spc')
         specs_dir = os.path.join(
             self.aux_root, 'cex_three_paths', 'outer_else_block')
-        
+
         with patch.object(self.logger, 'info') as mock_info:
-            self.logger.setLevel(logging.DEBUG)
             c = generate_coverage.CollectFromExistingExecutions(
                 instance=instance,
                 cex_dir=specs_dir,
@@ -171,7 +174,8 @@ class TestCoverageAAIsPrefixFromExistingPath(TestCoverage):
                 timelimit=None,
                 logger=self.logger,
                 aa_file=aa_file,
-                start_time=self.start_time)
+                start_time=self.start_time,
+                timer=generate_coverage.Timer())
             lines_covered, lines_to_cover = \
                 c.collect_coverage()
             expected_calls =  [
@@ -193,7 +197,6 @@ class TestCoveragePathAAFixPoint(TestCoverage):
         aa_file = os.path.join(
             self.aux_root, 'aa_three_paths_else_return_not_covered.spc')
         with patch.object(self.logger, 'info') as mock_info:
-            self.logger.setLevel(logging.DEBUG)
             c = generate_coverage.FixPointOnCoveredLines(
                 instance=instance,
                 output_dir=self.temp_folder,
@@ -203,7 +206,8 @@ class TestCoveragePathAAFixPoint(TestCoverage):
                 timelimit=None,
                 logger=self.logger,
                 aa_file=aa_file,
-                start_time=self.start_time)
+                start_time=self.start_time,
+                timer=generate_coverage.Timer())
             lines_covered, lines_to_cover = \
                 c.collect_coverage()
             expected_calls =  [
@@ -236,7 +240,8 @@ class TestCoverageTreeAAAndExisting2Paths(TestCoverage):
                 timelimit=None,
                 logger=self.logger,
                 aa_file=aa_file,
-                start_time=self.start_time)
+                start_time=self.start_time,
+                timer=generate_coverage.Timer())
             lines_covered, lines_to_cover = \
                 c.collect_coverage()
             expected_calls =  [
@@ -272,7 +277,8 @@ class TestCoverageFixPointProducesExecutions(TestCoverage):
                 timelimit=None,
                 logger=self.logger,
                 aa_file=aa_file,
-                start_time=self.start_time)
+                start_time=self.start_time,
+                timer=generate_coverage.Timer())
             cex_generated = list(g.generate_executions())
             expected_calls =  [
                 call('Generated 1 executions.'),
@@ -298,7 +304,8 @@ class TestCoverageFixPointProducesAllPossibleExecutions(TestCoverage):
                 timelimit=None,
                 logger=self.logger,
                 aa_file=aa_file,
-                start_time=self.start_time)
+                start_time=self.start_time,
+                timer=generate_coverage.Timer())
             cex_generated = [next(g.generate_executions())]
             # Updating covered lines, to force the generator to cover
             # other lines.
@@ -334,7 +341,8 @@ class TestCoverageFixPointWithinAssumptionAutomatonPath(TestCoverage):
                 timelimit=None,
                 logger=self.logger,
                 aa_file=aa_file,
-                start_time=self.start_time)
+                start_time=self.start_time,
+                timer=generate_coverage.Timer())
             # Updating covered lines, to force the generator to cover
             # the only other possible path.
             g.lines_covered.update([3,4,5,9])
@@ -367,7 +375,8 @@ class TestCoverageFixPointAlreadyReached(TestCoverage):
                 timelimit=None,
                 logger=self.logger,
                 aa_file=aa_file,
-                start_time=self.start_time)
+                start_time=self.start_time,
+                timer=generate_coverage.Timer())
             # Updating covered lines such that it is impossible to
             # cover more lines.
             g.lines_covered.update([3,4,5,6,9])
@@ -487,32 +496,53 @@ class TestCoverageIntegrationFixPoint(TestCoverage):
 class TestOutputParsingNoBugFound(unittest.TestCase):
     output = """Error path found and confirmed by counterexample check with CPACHECKER. (CounterexampleCheckAlgorithm.checkCounterexample, INFO)\n\nStopping analysis ... (CPAchecker.runAlgorithm, INFO)\n\nVerification result: FALSE. Property violation (Found covering test case) found by chosen configuration.\nMore details about the verification run can be found in the directory "/home/doc/files/tools/cpachecker/svn/scripts/post_processing/coverage/temp_dir_coverage".\nGraphical representation included in the "Report.html" file."""
     def test(self):
-        cpachecker_result = generate_coverage.parse_result(self.output)
+        logger = logging.getLogger()
+        with patch.object(logger, 'error') as mock_error:
+            cpachecker_result = generate_coverage.parse_result(self.output, logger)
+            self.assertEqual(mock_error.mock_calls, [])
         self.assertFalse(cpachecker_result.found_bug())
         self.assertTrue(cpachecker_result.found_property_violation())
 
 class TestOutputParsingFoundBug(unittest.TestCase):
     output = """Error path found and confirmed by counterexample check with CPACHECKER. (CounterexampleCheckAlgorithm.checkCounterexample, INFO)\n\nStopping analysis ... (CPAchecker.runAlgorithm, INFO)\n\nVerification result: FALSE. Property violation (Found covering test case, some error in line 4) found by chosen configuration.\nMore details about the verification run can be found in the directory "/home/doc/files/tools/cpachecker/svn/scripts/post_processing/coverage/temp_dir_coverage".\nGraphical representation included in the "Report.html" file."""
     def test(self):
-        cpachecker_result = generate_coverage.parse_result(self.output)
+        logger = logging.getLogger()
+        with patch.object(logger, 'error') as mock_error:
+            cpachecker_result = generate_coverage.parse_result(self.output, logger)
+            self.assertEqual(mock_error.mock_calls, [])
         self.assertTrue(cpachecker_result.found_bug())
         self.assertTrue(cpachecker_result.found_property_violation())
 
 class TestOutputParsingWithoutPropertyViolation(unittest.TestCase):
     output = """Error path found and confirmed by counterexample check with CPACHECKER. (CounterexampleCheckAlgorithm.checkCounterexample, INFO)\n\nStopping analysis ... (CPAchecker.runAlgorithm, INFO)\n\nVerification result: TRUE. No property violation found by chosen configuration.\nMore details about the verification run can be found in the directory "/home/doc/files/tools/cpachecker/svn/scripts/post_processing/coverage/temp_dir_coverage".\nGraphical representation included in the "Report.html" file."""
     def test(self):
-        cpachecker_result = generate_coverage.parse_result(self.output)
+        logger = logging.getLogger()
+        with patch.object(logger, 'error') as mock_error:
+            cpachecker_result = generate_coverage.parse_result(self.output, logger)
+            self.assertEqual(mock_error.mock_calls, [])
         self.assertFalse(cpachecker_result.found_property_violation())
 
 class TestOutputParsingExceptionThrown(unittest.TestCase):
     output = """Error path found and confirmed by counterexample check with CPACHECKER. (CounterexampleCheckAlgorithm.checkCounterexample, INFO)\n\nStopping analysis ... (CPAchecker.runAlgorithm, INFO)\n\nVerification result: TRUE. No property violation found by chosen configuration.\nMore details about the verification run can be found in the directory "/home/doc/files/tools/cpachecker/svn/scripts/post_processing/coverage/temp_dir_coverage".\nGraphical representation included in the "Report.html" file."""
     def test(self):
-        cpachecker_result = generate_coverage.parse_result(self.output)
+        logger = logging.getLogger()
+        with patch.object(logger, 'error') as mock_error:
+            cpachecker_result = generate_coverage.parse_result(self.output, logger)
+            self.assertEqual(mock_error.mock_calls, [])
         try:
             cpachecker_result.found_bug()
             self.fail()
         except:
             pass
+
+class TestOutputParsingIncompleteOutput(unittest.TestCase):
+    output = """Output ending prematurely... (result cannot be parsed)"""
+    def test(self):
+        logger = logging.getLogger()
+        with patch.object(logger, 'error') as mock_error:
+            cpachecker_result = generate_coverage.parse_result(self.output, logger)
+            mock_error.assert_called_with("Failed to parse CPAchecker output.")
+        self.assertFalse(cpachecker_result.found_property_violation())
 
 class TestCoverageIntegrationCexCountOptional(TestCoverage):
     def test(self):
@@ -524,7 +554,7 @@ class TestCoverageIntegrationCexCountOptional(TestCoverage):
             '-assumption_automaton_file', aa_file,
             '-cex_dir', non_existent_dir,
             '-spec', self.default_spec,
-            '-timelimit', str(30),
+            '-timelimit', str(900),
             '-generator_type', 'fixpoint',
             instance
         ]]
@@ -556,12 +586,19 @@ class TestCoverageIntegrationCexCountOptional(TestCoverage):
             ]
             self.assertEqual(mock_info.mock_calls, expected_calls)
 
+class MockAdd10SecTimer():
+    def __init__(self, time_constant):
+        self.time_constant = time_constant
+    def time(self):
+        self.time_constant += 10
+        return self.time_constant
+
 class TestCoverageIntegrationTimeout(TestCoverage):
     def test(self):
         instance = os.path.join(self.aux_root, 'loop_many_paths.c')
         aa_file = os.path.join(self.aux_root, 'true_aa.spc')
         non_existent_dir = self.temp_folder
-        timelimit = 10
+        timelimit = 20
         argv = [ str(x) for x in [
             '-assumption_automaton_file', aa_file,
             '-cex_dir', non_existent_dir,
@@ -572,21 +609,25 @@ class TestCoverageIntegrationTimeout(TestCoverage):
         ]]
         start_time = time.time()
         lines_covered = 0
+        log = []
         def side_effect(info_msg):
+            log.append(info_msg)
             import re
             nonlocal lines_covered
             m = re.search(pattern="Total lines covered: (.*)", string=info_msg)
             if m:
                 lines_covered = int(m.group(1))
-
+        # Will allow only one terminating execution to be generated,
+        # since the timer adds 10 second for each call to method 'time'.
+        timer = MockAdd10SecTimer(start_time)
         with patch.object(self.logger, 'info') as mock_info, patch.object(self.logger, 'error') as mock_error:
             mock_info.side_effect = side_effect
-            generate_coverage.main(argv, self.logger)
-            mock_error.assert_not_called()
-        self.assertGreater(lines_covered, 0)
-        self.assertGreater(25, lines_covered)
+            generate_coverage.main(argv, self.logger, timer=timer)
+            self.assertEqual(mock_error.mock_calls, [])
         elapsed_time = time.time() - start_time
-        self.assertGreater(2 * timelimit, elapsed_time)
+        self.assertGreater(2 * timelimit, elapsed_time, msg="Timeout occured, log was:\n" + "\n".join(log))
+        self.assertGreater(lines_covered, 0, msg="Unexpected negative number for line coverage, log was:\n" + "\n".join(log))
+        self.assertGreater(25, lines_covered, msg="Unexpectedly low number of covered lines , log was:\n" + "\n".join(log))
 
 if __name__ == '__main__':
     unittest.main()
