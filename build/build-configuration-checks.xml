@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="configuration-check" basedir=".">
+
+    <property name="configuration-checks.dir" value="configuration-checks"/>
+
+    <target name="init-configuration-checks">
+        <!-- Provide default classpath if none is specified. -->
+        <path id="classpath.junit">
+            <path refid="classpath"/>
+        </path>
+        <delete dir="${configuration-checks.dir}"/>
+        <mkdir dir="${configuration-checks.dir}"/>
+    </target>
+
+    <target name="configuration-checks" depends="build, load-junit, init-configuration-checks" description="Run configuration checks">
+        <junit fork="true" printSummary="true" showOutput="false" failureproperty="configuration-checks.failed" timeout="1000000">
+            <sysproperty key="java.awt.headless" value="true" />
+            <assertions><enable/></assertions>
+            <formatter type="xml"/>
+            <classpath refid="classpath.junit"/>
+            <batchtest fork="true" todir="${configuration-checks.dir}">
+                <fileset dir="${class.dir}">
+                    <include name="org/sosy_lab/cpachecker/cmdline/ConfigurationFileChecks.*"/>
+                </fileset>
+            </batchtest>
+        </junit>
+        <junitreport todir="${configuration-checks.dir}">
+            <fileset dir="${configuration-checks.dir}" includes="TEST-*.xml"/>
+            <report format="noframes"/>
+        </junitreport>
+        <move file="junit-noframes.html" tofile="ConfigurationChecks.html"/>
+        <fail if="configuration-checks.failed" message="ConfigurationUnit tests failed, look at ConfigurationChecks.html"/>
+    </target>
+</project>

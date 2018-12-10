@@ -9,7 +9,7 @@
     <rundefinition>
         <tasks>
             <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
-            <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
     </rundefinition>
 

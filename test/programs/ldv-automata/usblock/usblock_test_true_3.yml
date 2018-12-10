@@ -1,0 +1,6 @@
+format_version: "1.0"
+input_files: "usblock_test_true_3.c"
+properties:
+  - property_file: "../../../config/automata/ldv/usblock.spc"
+    expected_verdict: true
+

@@ -19,7 +19,7 @@ Install CPAchecker -- Binary
 Install CPAchecker -- Source
 ----------------------------
 
-1. Install a Java SDK which is at least Java 8 compatible
+1. Install a Java SDK which is Java 8 compatible
    (e.g., Oracle JDK, OpenJDK).
    Cf. http://java.oracle.com/ or install a package from your distribution.
    (Ubuntu: `sudo apt-get install openjdk-8-jdk`)

@@ -7,7 +7,7 @@
 
   <rundefinition/>
 
-  <propertyfile>../programs/benchmarks/ConcurrencySafety.prp</propertyfile>
+  <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
 
   <tasks name="value-concurrency">
     <option name="-valueAnalysis-concurrency"/>
