@@ -38,6 +38,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
 import org.sosy_lab.cpachecker.cpa.local.LocalTransferRelation;
+import org.sosy_lab.cpachecker.cpa.lock.LockCPA;
+import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.cpa.usage.UsageCPA;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageInfoSet;
@@ -58,7 +60,8 @@ public class RefinementBlockFactory {
     PredicateRefiner(currentInnerBlockType.ExtendedARGPath),
     CallstackFilter(currentInnerBlockType.ExtendedARGPath),
     ProbeFilter(currentInnerBlockType.ExtendedARGPath),
-    SharedRefiner(currentInnerBlockType.ExtendedARGPath);
+    SharedRefiner(currentInnerBlockType.ExtendedARGPath),
+    LockFilter(currentInnerBlockType.ExtendedARGPath);
 
     public final currentInnerBlockType innerType;
 
@@ -191,6 +194,17 @@ public class RefinementBlockFactory {
             LocalTransferRelation RelationForSharedRefiner = new LocalTransferRelation(config);
 
             currentBlock = new SharedRefiner((ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock, RelationForSharedRefiner);
+
+            break;
+
+          case LockFilter:
+            LockTransferRelation lockTransfer =
+                (LockTransferRelation) CPAs.retrieveCPA(cpa, LockCPA.class).getTransferRelation();
+
+            currentBlock =
+                new ReducedPathFilter(
+                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
+                    lockTransfer);
 
             break;
 
