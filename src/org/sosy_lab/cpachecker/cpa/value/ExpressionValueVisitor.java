@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import java.math.BigInteger;
 import java.util.OptionalLong;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -242,15 +243,15 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   }
 
   /**
-   * Returns the {@link MemoryLocation} of a struct member.
-   * It is assumed that the struct of the given type begins at the given memory location.
+   * Returns the {@link MemoryLocation} of a struct member. It is assumed that the struct of the
+   * given type begins at the given memory location.
    *
    * @param pStartLocation the start location of the struct
    * @param pMemberName the name of the member to return the memory location for
    * @param pStructType the type of the struct
    * @return the memory location of the struct member
    */
-  public MemoryLocation evaluateRelativeMemLocForStructMember(
+  public @Nullable MemoryLocation evaluateRelativeMemLocForStructMember(
       MemoryLocation pStartLocation, String pMemberName, CCompositeType pStructType)
       throws UnrecognizedCodeException {
 
@@ -351,7 +352,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
           fieldOwner.getExpressionType());
     }
 
-    protected MemoryLocation getStructureFieldLocationFromRelativePoint(
+    protected @Nullable MemoryLocation getStructureFieldLocationFromRelativePoint(
         MemoryLocation pStartLocation, String pFieldName, CType pOwnerType)
         throws UnrecognizedCodeException {
 
