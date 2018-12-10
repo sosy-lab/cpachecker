@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import java.math.BigInteger;
 import java.util.OptionalLong;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -143,7 +144,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
                   readType.getCanonicalType(), valueAndType);
             }
           }
-          
+
           return UnknownValue.getInstance();
         }
 
@@ -313,7 +314,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return null;
       }
 
-      long typeSize = evv.getMachineModel().getSizeofInBits(elementType).longValueExact();
+      long typeSize = evv.getMachineModel().getSizeof(elementType).longValueExact();
 
       long subscriptOffset = subscriptValue.asNumericValue().longValue() * typeSize;
 
@@ -380,10 +381,8 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       if (ownerType instanceof CElaboratedType) {
         return getFieldOffsetInBits(((CElaboratedType) ownerType).getRealType(), fieldName);
       } else if (ownerType instanceof CCompositeType) {
-        return OptionalLong.of(
-            evv.getMachineModel()
-                .getFieldOffsetInBits((CCompositeType) ownerType, fieldName)
-                .longValueExact());
+        return bitsToByte(
+            evv.getMachineModel().getFieldOffsetInBits((CCompositeType) ownerType, fieldName));
       } else if (ownerType instanceof CPointerType) {
         evv.missingPointer = true;
         return OptionalLong.empty();
@@ -403,12 +402,21 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       throw new AssertionError();
     }
 
+    private OptionalLong bitsToByte(BigInteger bits) {
+      BigInteger charSizeInBits = BigInteger.valueOf(evv.getMachineModel().getSizeofCharInBits());
+      BigInteger[] divAndRemainder = bits.divideAndRemainder(charSizeInBits);
+      if (divAndRemainder[1].equals(BigInteger.ZERO)) {
+        return OptionalLong.of(divAndRemainder[0].longValueExact());
+      }
+      return OptionalLong.empty();
+    }
+
     protected MemoryLocation getArraySlotLocationFromArrayStart(
         final MemoryLocation pArrayStartLocation,
         final int pSlotNumber,
         final CArrayType pArrayType) {
 
-      long typeSize = evv.getMachineModel().getSizeofInBits(pArrayType.getType()).longValueExact();
+      long typeSize = evv.getMachineModel().getSizeof(pArrayType.getType()).longValueExact();
       long offset = typeSize * pSlotNumber;
       long baseOffset = pArrayStartLocation.isReference() ? pArrayStartLocation.getOffset() : 0;
 
