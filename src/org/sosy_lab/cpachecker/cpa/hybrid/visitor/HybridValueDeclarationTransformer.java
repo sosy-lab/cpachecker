@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid.visitor;
 
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueTransformer;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
@@ -32,10 +35,16 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
  * A hybrid value transformer for declaration cases
  */
 public class HybridValueDeclarationTransformer
-    implements HybridValueTransformer<CExpression, CDeclaration> {
+    extends HybridValueTransformer<CExpression, CDeclaration> {
+
+  public HybridValueDeclarationTransformer(
+      MachineModel pMachineModel,
+      LogManager pLogger) {
+    super(pMachineModel, pLogger);
+  }
 
   @Override
-  public CExpression transform(Value pValue, CDeclaration pObj) {
+  public CExpression transform(Value pValue, CDeclaration pObj, BinaryOperator pOperator) {
     return null;
   }
 

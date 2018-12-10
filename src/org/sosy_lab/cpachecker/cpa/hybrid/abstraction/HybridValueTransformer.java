@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid.abstraction;
 
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.*;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
@@ -30,7 +34,13 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
  * Transformer interface for visiting @see HybridValue
  * @param <T> the type to return on visit
  */
-public interface HybridValueTransformer<T, TDependentObj> {
+public abstract class HybridValueTransformer<T, TDependentObj> {
 
-    T transform(Value value, TDependentObj obj);
+    protected final CBinaryExpressionBuilder binaryExpressionBuilder;
+
+    protected HybridValueTransformer(MachineModel pMachineModel, LogManager pLogger) {
+      this.binaryExpressionBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
+    }
+
+    public abstract T transform(Value value, TDependentObj obj, BinaryOperator pOperator);
 }

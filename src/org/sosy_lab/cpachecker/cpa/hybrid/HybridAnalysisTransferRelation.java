@@ -38,6 +38,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -172,7 +173,7 @@ public class HybridAnalysisTransferRelation
       throws CPATransferException {
     
     Value value = valueProvider.delegateVisit(decl.getType());
-    CExpression newAssumption = valueDeclarationTransformer.transform(value, decl);
+    CExpression newAssumption = valueDeclarationTransformer.transform(value, decl, BinaryOperator.EQUALS);
 
     return HybridAnalysisState.copyWithNewAssumptions(state, newAssumption);
   }
@@ -227,7 +228,7 @@ public class HybridAnalysisTransferRelation
 
         Value value = valueProvider.delegateVisit(statement.getLeftHandSide().getExpressionType());
         CIdExpression leftHandSide = (CIdExpression) statement.getLeftHandSide(); // TODO: check if it is assignable from
-        CExpression newAssumption = valueIdExpressionTransformer.transform(value, leftHandSide);
+        CExpression newAssumption = valueIdExpressionTransformer.transform(value, leftHandSide, BinaryOperator.EQUALS);
 
         return HybridAnalysisState.copyWithNewAssumptions(state, newAssumption);
       }

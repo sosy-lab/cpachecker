@@ -23,23 +23,88 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid.visitor;
 
+import org.mockito.internal.matchers.Null;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueTransformer;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.CompositeValue;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.StringValue;
+import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
  * A hybrid value transformer for non deterministic function assignments to variable
  */
 public class HybridValueIdExpressionTransformer
-    implements HybridValueTransformer<CExpression, CIdExpression> {
+    extends HybridValueTransformer<CExpression, CIdExpression> {
+
+  public HybridValueIdExpressionTransformer(
+      MachineModel pMachineModel,
+      LogManager pLogger) {
+    super(pMachineModel, pLogger);
+  }
 
   /**
    * @param pValue The value to transform
    * @param pCIdExpression The variable expression to assign the given value to
    */
   @Override
-  public CExpression transform(Value pValue, CIdExpression pCIdExpression) {
+  public CExpression transform(Value pValue, CIdExpression pCIdExpression, BinaryOperator pOperator) {
+
+    CExpression rightHandSide = null;
+
+    if(pValue instanceof NumericValue) {
+      rightHandSide = transform((NumericValue)pValue);
+    }
+    else if(pValue instanceof BooleanValue) {
+      rightHandSide = transform((BooleanValue)pValue);
+    }
+    else if(pValue instanceof StringValue) {
+      rightHandSide = transform((StringValue)pValue);
+    }
+    else if(pValue instanceof CompositeValue) {
+      rightHandSide = transform((CompositeValue)pValue);
+    }
+    else if(pValue instanceof NullValue) {
+      rightHandSide = transform((NullValue)pValue);
+    }
+
+    if(rightHandSide == null) {
+      // this should never happen
+      throw new AssertionError("Unable to create assumption for Hybrid Value with given variable and operator.");
+    }
+
+    // this is safe to call
+    return binaryExpressionBuilder.buildBinaryExpressionUnchecked(pCIdExpression, rightHandSide, pOperator);
+  }
+
+  protected CExpression transform(CompositeValue pValue) {
+    return null;
+  }
+
+
+  protected CExpression transform(NumericValue pNumericValue) {
+    return null;
+  }
+
+  protected CExpression transform(BooleanValue pBooleanValue) {
+    return null;
+  }
+
+  protected CExpression transform(StringValue pStringValue) {
+    return new CStringLiteralExpression(FileLocation.DUMMY, CPointerType.POINTER_TO_CHAR, pStringValue.getValue());
+  }
+
+  protected CExpression transform(NullValue pNullValue) {
     return null;
   }
 

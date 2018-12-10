@@ -137,8 +137,8 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
             cfa,
             logger,
             new SimpleValueProvider(stringMaxLength),
-            new HybridValueDeclarationTransformer(),
-            new HybridValueIdExpressionTransformer());
+            new HybridValueDeclarationTransformer(cfa.getMachineModel(), logger),
+            new HybridValueIdExpressionTransformer(cfa.getMachineModel(), logger));
     }
 
     @Override
