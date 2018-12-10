@@ -24,15 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.hybrid.visitor;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -112,37 +109,47 @@ public class SimpleValueProvider extends HybridValueProvider{
     if(!lengthOpt.isPresent()) {
       // handle nondet array length via configuration
       // like : provideValueForArraysOfNondetLength
-      // TODO: return - don't walk the other path
+      return null;
     }
 
-    final int length = lengthOpt.getAsInt();
-
     final CType elementType = type.getType();
-    // TODO: explore the type
 
-    List elements = new ArrayList<>();
+    if(!isApplicableForValue(elementType)) {
+      // type cannot be handled
+      return null;
+    }
+
+    List<Value> elements = new ArrayList<>(); 
+
+    final int length = lengthOpt.getAsInt();
 
     for(int i = 0; i < length; i++) {
       elements.add(delegateVisit(elementType));
     }
 
-    // TODO: provide values
-    return new CompositeValue(Collections.emptyList());
-
+    return new CompositeValue(elements);
   }
 
   @Override
   public Value visit(CBitFieldType type) {
-    return null;
+
+    final CType innerType = type.getType();
+    if(!isApplicableForValue(innerType)) {
+      return null;
+    }
+
+    return delegateVisit(innerType);
   }
 
   @Override
   public Value visit(CCompositeType type) {
+    // not implemented in simple value provider
     return null;
   }
 
   @Override
   public Value visit(CTypedefType type) {
+    // not implemented in simple value provider
     return null;
   }
 

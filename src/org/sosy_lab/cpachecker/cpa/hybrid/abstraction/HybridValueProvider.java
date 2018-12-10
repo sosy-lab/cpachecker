@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 public abstract class HybridValueProvider {
@@ -61,16 +63,22 @@ public abstract class HybridValueProvider {
     return null;
   }
 
+  @Nullable
   protected abstract Value visit(CSimpleType type);
 
+  @Nullable
   protected abstract Value visit(CPointerType type);
 
+  @Nullable
   protected abstract Value visit(CArrayType type);
 
+  @Nullable
   protected abstract Value visit(CBitFieldType type);
 
+  @Nullable
   protected abstract Value visit(CCompositeType type);
 
+  @Nullable
   protected abstract Value visit(CTypedefType type);
 
   /**
@@ -81,13 +89,18 @@ public abstract class HybridValueProvider {
    */
   protected boolean isApplicableForValue(CType pType) {
 
-    if(pType instanceof CSimpleType || pType instanceof CBitFieldType) {
+    if(pType instanceof CSimpleType) {
         return true;
+    }
+
+    if(pType instanceof CBitFieldType) {
+        // in sub-classes a check for CEnumType and CElaborateType might be sensible
+        return ((CBitFieldType) pType).getType().getCanonicalType() instanceof CSimpleType;
     }
 
     if(pType instanceof CPointerType) {
         // basic behaviour, because all value providers should be able to provide a value for a char pointer
-        return ((CPointerType) pType).getType().equals(CNumericTypes.CHAR);
+        return ((CPointerType) pType).getType() == CNumericTypes.CHAR;
     }
 
     if(pType instanceof CArrayType) {
@@ -98,5 +111,43 @@ public abstract class HybridValueProvider {
 
     // in deriving classes this checks can be expanded
     return false;
+  }
+
+  @Nullable
+  protected Class<? extends Value> getClassForCType(CType pType) {
+
+    if(pType instanceof CSimpleType) {
+        return getSimpleClassForType((CSimpleType)pType);
+    }
+
+    if(pType instanceof CBitFieldType) {
+        CBitFieldType bitFieldType = (CBitFieldType) pType;
+        CType typeOfBitField = bitFieldType.getType();
+        if(typeOfBitField instanceof CSimpleType) {
+            return getSimpleClassForType((CSimpleType) typeOfBitField);
+        }
+    }
+
+    if(pType instanceof CPointerType) {
+        return getClassForCType(((CPointerType)pType).getType());
+    }
+
+    if(pType instanceof CArrayType) {
+        return getClassForCType(((CArrayType)pType).getType());
+    }
+
+    return null;
+  } 
+
+  @Nullable
+  protected Class<? extends Value> getSimpleClassForType(CSimpleType pSimpleType) {
+    switch(pSimpleType.getType()) {
+        case BOOL : return BooleanValue.class;
+        case INT : 
+        case FLOAT : 
+        case DOUBLE : 
+        case CHAR : return NumericValue.class;
+        default: return null;
+    }
   }
 }

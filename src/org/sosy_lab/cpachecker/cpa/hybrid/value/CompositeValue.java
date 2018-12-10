@@ -34,14 +34,14 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.ValueVisitor;
 
-public class CompositeValue<TValue extends Value> implements Value {
+public class CompositeValue implements Value {
 
     private static final long serialVersionUID = 254736985412L;
 
     // list instead of set, because the same value could occur several times 
-    private final List<TValue> values;
+    private final List<Value> values;
 
-    public CompositeValue(Collection<TValue> pValues) {
+    public CompositeValue(Collection<Value> pValues) {
         this.values = new ArrayList<>(pValues);
     }
 
@@ -79,7 +79,7 @@ public class CompositeValue<TValue extends Value> implements Value {
    * Creates a returns an immutable copy of the internal values
    * @return The values held by this composite value
    */
-  public Collection<TValue> getValues() {
+  public Collection<Value> getValues() {
       return ImmutableList.copyOf(values);
   }
 
