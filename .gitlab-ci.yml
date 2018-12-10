@@ -128,6 +128,7 @@ javascript-unit-tests:
 javascript-e2e-tests:
   stage: checks
   dependencies:
+    - build-dependencies
     - build:jdk-8
   image: ${CI_REGISTRY_IMAGE}/test:java-node
   before_script:
