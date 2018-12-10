@@ -73,7 +73,8 @@ public class SimpleValueProvider extends HybridValueProvider{
   public Value visit(CSimpleType type) {
 
     switch(type.getType()) {
-      case CHAR:
+      // char can be represented by a number - better use upper bound
+      case CHAR: return new NumericValue(random.nextInt(charNumberUpperBound));
       case INT: return new NumericValue(random.nextInt());
       case FLOAT: return new NumericValue(random.nextFloat());
       case DOUBLE: return new NumericValue(random.nextDouble());
