@@ -32,7 +32,6 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
-import org.sosy_lab.cpachecker.core.interfaces.Exitable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
@@ -42,7 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
  * one CPA.
  */
 public abstract class AbstractSingleWrapperState
-    implements AbstractWrapperState, Targetable, Exitable, Partitionable, PseudoPartitionable, Serializable {
+    implements AbstractWrapperState, Targetable, Partitionable, PseudoPartitionable, Serializable {
 
   private static final long serialVersionUID = -332757795984736107L;
 
@@ -112,14 +111,5 @@ public abstract class AbstractSingleWrapperState
   @Override
   public ImmutableList<AbstractState> getWrappedStates() {
     return ImmutableList.of(wrappedState);
-  }
-
-  @Override
-  public boolean isExitState() {
-    if (wrappedState instanceof Exitable) {
-      return ((Exitable) wrappedState).isExitState();
-    } else {
-      return false;
-    }
   }
 }

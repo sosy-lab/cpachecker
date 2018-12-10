@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -64,6 +65,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 
 @Options(prefix = "cpa.usage")
@@ -94,8 +96,6 @@ public class UsageTransferRelation implements TransferRelation {
   private final Map<String, BinderFunctionInfo> binderFunctionInfo;
 
   private final LogManager logger;
-
-  private UsageState newState;
 
   public UsageTransferRelation(
       TransferRelation pWrappedTransfer,
@@ -153,7 +153,7 @@ public class UsageTransferRelation implements TransferRelation {
     CFAEdge currentEdge = pCfaEdge;
     UsageState oldState = (UsageState) pState;
 
-    if (oldState.isExitState()) {
+    if (abortFunctions.contains(pCfaEdge.getSuccessor().getFunctionName())) {
       statistics.transferRelationTimer.stop();
       return Collections.emptySet();
     }
@@ -161,9 +161,9 @@ public class UsageTransferRelation implements TransferRelation {
     currentEdge = changeIfNeccessary(pCfaEdge);
 
     AbstractState oldWrappedState = oldState.getWrappedState();
-    newState = oldState.copy();
     statistics.usagePreparationTimer.start();
-    handleEdge(currentEdge);
+    Optional<Pair<AbstractIdentifier, AbstractIdentifier>> newLinks =
+        handleEdge(oldState, currentEdge);
     statistics.usagePreparationTimer.stop();
 
     statistics.innerAnalysisTimer.start();
@@ -173,13 +173,17 @@ public class UsageTransferRelation implements TransferRelation {
 
     // Do not know why, but replacing the loop into lambda greatly decreases the speed
     for (AbstractState newWrappedState : newWrappedStates) {
-      result.add(newState.copy(newWrappedState));
+      UsageState newState = oldState.copy(newWrappedState);
+      if (newLinks.isPresent()) {
+        Pair<AbstractIdentifier, AbstractIdentifier> pair = newLinks.get();
+        newState.put(pair.getFirst(), pair.getSecond());
+      }
+      result.add(newState);
     }
 
     if (currentEdge != pCfaEdge) {
       callstackTransfer.disableRecursiveContext();
     }
-    newState = null;
     statistics.transferRelationTimer.stop();
     return result;
   }
@@ -199,7 +203,8 @@ public class UsageTransferRelation implements TransferRelation {
     return pCfaEdge;
   }
 
-  private void handleEdge(CFAEdge pCfaEdge) throws CPATransferException {
+  private Optional<Pair<AbstractIdentifier, AbstractIdentifier>>
+      handleEdge(UsageState oldState, CFAEdge pCfaEdge) throws CPATransferException {
 
     switch (pCfaEdge.getEdgeType()) {
 
@@ -207,14 +212,12 @@ public class UsageTransferRelation implements TransferRelation {
       case StatementEdge:
         {
           CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
-          handleStatement(statementEdge.getStatement());
-          break;
+        return handleStatement(oldState, statementEdge.getStatement());
         }
 
       case FunctionCallEdge:
         {
-          handleFunctionCall((CFunctionCallEdge) pCfaEdge);
-          break;
+        return handleFunctionCall(oldState, (CFunctionCallEdge) pCfaEdge);
         }
 
       case AssumeEdge:
@@ -224,7 +227,7 @@ public class UsageTransferRelation implements TransferRelation {
       case BlankEdge:
       case CallToReturnEdge:
         {
-          break;
+        return Optional.empty();
         }
 
       default:
@@ -232,7 +235,9 @@ public class UsageTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleFunctionCall(CFunctionCallEdge edge) throws HandleCodeException {
+  private Optional<Pair<AbstractIdentifier, AbstractIdentifier>>
+      handleFunctionCall(UsageState oldState, CFunctionCallEdge edge)
+      throws HandleCodeException {
     CStatement statement = edge.getRawAST().get();
 
     if (statement instanceof CFunctionCallAssignmentStatement) {
@@ -244,10 +249,11 @@ public class UsageTransferRelation implements TransferRelation {
       CExpression variable = ((CFunctionCallAssignmentStatement) statement).getLeftHandSide();
 
       // expression - only name of function
-      handleFunctionCallExpression(variable, right);
+      return handleFunctionCallExpression(oldState, variable, right);
 
     } else if (statement instanceof CFunctionCallStatement) {
-      handleFunctionCallExpression(
+      return handleFunctionCallExpression(
+          oldState,
           null, ((CFunctionCallStatement) statement).getFunctionCallExpression());
 
     } else {
@@ -255,22 +261,37 @@ public class UsageTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleFunctionCallExpression(
+  private Optional<Pair<AbstractIdentifier, AbstractIdentifier>> handleFunctionCallExpression(
+      UsageState newState,
       final CExpression left, final CFunctionCallExpression fcExpression) {
 
     String functionCallName = fcExpression.getFunctionNameExpression().toASTString();
     if (binderFunctionInfo.containsKey(functionCallName)) {
-      BinderFunctionInfo currentInfo = binderFunctionInfo.get(functionCallName);
-      List<CExpression> params = fcExpression.getParameterExpressions();
+      BinderFunctionInfo bInfo = binderFunctionInfo.get(functionCallName);
 
-      linkVariables(left, params, currentInfo);
-
-    } else if (abortFunctions.contains(functionCallName)) {
-      newState.asExitable();
+      if (bInfo.shouldBeLinked()) {
+        List<CExpression> params = fcExpression.getParameterExpressions();
+        // Sometimes these functions are used not only for linkings.
+        // For example, sdlGetFirst also deletes element.
+        // So, if we can't link (no left side), we skip it
+        AbstractIdentifier idIn, idFrom;
+        idIn = bInfo.constructFirstIdentifier(left, params, getCurrentFunction(newState));
+        idFrom = bInfo.constructSecondIdentifier(left, params, getCurrentFunction(newState));
+        if (idIn == null || idFrom == null) {
+          return Optional.empty();
+        }
+        if (newState.containsLinks(idFrom)) {
+          idFrom = newState.getLinksIfNecessary(idFrom);
+        }
+        logger.log(Level.FINEST, "Link " + idIn + " and " + idFrom);
+        return Optional.of(Pair.of(idIn, idFrom));
+      }
     }
+    return Optional.empty();
   }
 
-  private void handleStatement(final CStatement pStatement) {
+  private Optional<Pair<AbstractIdentifier, AbstractIdentifier>>
+      handleStatement(UsageState oldState, final CStatement pStatement) {
 
     if (pStatement instanceof CAssignment) {
       // assignment like "a = b" or "a = foo()"
@@ -279,38 +300,19 @@ public class UsageTransferRelation implements TransferRelation {
       CRightHandSide right = assignment.getRightHandSide();
 
       if (right instanceof CFunctionCallExpression) {
-        handleFunctionCallExpression(left, (CFunctionCallExpression) right);
+        return handleFunctionCallExpression(oldState, left, (CFunctionCallExpression) right);
       }
 
     } else if (pStatement instanceof CFunctionCallStatement) {
-      handleFunctionCallExpression(
+      return handleFunctionCallExpression(
+          oldState,
           null, ((CFunctionCallStatement) pStatement).getFunctionCallExpression());
 
     }
+    return Optional.empty();
   }
 
-  private void linkVariables(
-      final CExpression left, final List<CExpression> params, final BinderFunctionInfo bInfo) {
-
-    if (bInfo.shouldBeLinked()) {
-      // Sometimes these functions are used not only for linkings.
-      // For example, sdlGetFirst also deletes element.
-      // So, if we can't link (no left side), we skip it
-      AbstractIdentifier idIn, idFrom;
-      idIn = bInfo.constructFirstIdentifier(left, params, getCurrentFunction());
-      idFrom = bInfo.constructSecondIdentifier(left, params, getCurrentFunction());
-      if (idIn == null || idFrom == null) {
-        return;
-      }
-      if (newState.containsLinks(idFrom)) {
-        idFrom = newState.getLinksIfNecessary(idFrom);
-      }
-      logger.log(Level.FINEST, "Link " + idIn + " and " + idFrom);
-      newState.put(idIn, idFrom);
-    }
-  }
-
-  private String getCurrentFunction() {
+  private String getCurrentFunction(UsageState newState) {
     return AbstractStates.extractStateByType(newState, CallstackState.class).getCurrentFunction();
   }
 

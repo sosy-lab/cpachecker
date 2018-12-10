@@ -54,21 +54,11 @@ public class UsageReducer implements Reducer {
       throws InterruptedException {
     UsageState funRootState = (UsageState) pRootElement;
     UsageState funReducedState = (UsageState) pReducedElement;
-    AbstractState exp;
-    if (!funReducedState.isExitState()) {
-      exp =
+    AbstractState exp =
           wrappedReducer.getVariableExpandedState(
               funRootState.getWrappedState(), pReducedContext, funReducedState.getWrappedState());
-    } else {
-      //Predicate analysis can not expand a random state - only abstract ones,
-      // and Exitable one can occur at any moment
-      exp = funReducedState.getWrappedState();
-    }
-    UsageState result = funRootState.copy(exp);
-    if (funReducedState.isExitState()) {
-      result.asExitable();
-    }
-    return result;
+
+    return funRootState.copy(exp);
   }
 
   @Override
