@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -60,15 +61,42 @@ public abstract class HybridValueProvider {
     return null;
   }
 
-  public abstract Value visit(CSimpleType type);
+  protected abstract Value visit(CSimpleType type);
 
-  public abstract Value visit(CPointerType type);
+  protected abstract Value visit(CPointerType type);
 
-  public abstract Value visit(CArrayType type);
+  protected abstract Value visit(CArrayType type);
 
-  public abstract Value visit(CBitFieldType type);
+  protected abstract Value visit(CBitFieldType type);
 
-  public abstract Value visit(CCompositeType type);
+  protected abstract Value visit(CCompositeType type);
 
-  public abstract Value visit(CTypedefType type);
+  protected abstract Value visit(CTypedefType type);
+
+  /**
+   * Checks whether a value for this type can be generated 
+   * For fine grained behaviour this basic methid should be overridden by the sub-classes
+   * @param pType The type to check
+   * @return True, if the value provider can create a value for the given type, else false
+   */
+  protected boolean isApplicableForValue(CType pType) {
+
+    if(pType instanceof CSimpleType || pType instanceof CBitFieldType) {
+        return true;
+    }
+
+    if(pType instanceof CPointerType) {
+        // basic behaviour, because all value providers should be able to provide a value for a char pointer
+        return ((CPointerType) pType).getType().equals(CNumericTypes.CHAR);
+    }
+
+    if(pType instanceof CArrayType) {
+        CType type = ((CArrayType) pType).getType();
+        // for arrays containing the basic types, also every provider should be able to create values
+        return CSimpleType.class.isInstance(type);
+    }
+
+    // in deriving classes this checks can be expanded
+    return false;
+  }
 }

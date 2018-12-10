@@ -23,17 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid.visitor;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.OptionalInt;
 import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueProvider;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.CompositeValue;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.StringValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -43,7 +52,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
  * This class provides a random strategy for generating actual values
  * for simple c types
  * 
- * Mind: no support of structs, arrays ...
+ * Mind: no support for complex types
  */
 public class SimpleValueProvider extends HybridValueProvider{
 
@@ -87,18 +96,39 @@ public class SimpleValueProvider extends HybridValueProvider{
   public Value visit(CPointerType type) {
 
     // for now, simply handle char pointer
-    if(!type.getCanonicalType().equals(CNumericTypes.CHAR)) {
+    if(!type.getType().equals(CNumericTypes.CHAR)) {
       return null;
     }
 
-    return new StringValue(nextRandomString());
+    return new StringValue(nextRandomString(stringMaxLength));
   }
 
   @Override
   public Value visit(CArrayType type) {
 
     // evaluate the length
-    return null;
+    OptionalInt lengthOpt = type.getLengthAsInt();
+
+    if(!lengthOpt.isPresent()) {
+      // handle nondet array length via configuration
+      // like : provideValueForArraysOfNondetLength
+      // TODO: return - don't walk the other path
+    }
+
+    final int length = lengthOpt.getAsInt();
+
+    final CType elementType = type.getType();
+    // TODO: explore the type
+
+    List elements = new ArrayList<>();
+
+    for(int i = 0; i < length; i++) {
+      elements.add(delegateVisit(elementType));
+    }
+
+    // TODO: provide values
+    return new CompositeValue(Collections.emptyList());
+
   }
 
   @Override
@@ -117,10 +147,10 @@ public class SimpleValueProvider extends HybridValueProvider{
   }
 
   // creates a random string of random length
-  private String nextRandomString() {
+  private String nextRandomString(final int maxLength) {
 
-    // denoting the length of the string
-    final int length = random.nextInt(stringMaxLength);
+    // the length of the string
+    final int length = random.nextInt(maxLength);
 
     final String builder =
         IntStream
