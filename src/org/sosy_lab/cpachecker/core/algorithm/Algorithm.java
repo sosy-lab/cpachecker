@@ -56,17 +56,17 @@ public interface Algorithm {
    * has been cross-checked by concrete interpretation.
    */
   final class AlgorithmStatus {
-    private final boolean isPrecise;
     private final boolean isSound;
+    private final boolean isPrecise;
 
     public static final AlgorithmStatus SOUND_AND_PRECISE = new AlgorithmStatus(true, true);
-    public static final AlgorithmStatus UNSOUND_AND_PRECISE = new AlgorithmStatus(true, false);
-    public static final AlgorithmStatus SOUND_AND_IMPRECISE = new AlgorithmStatus(false, true);
+    public static final AlgorithmStatus UNSOUND_AND_PRECISE = new AlgorithmStatus(false, true);
+    public static final AlgorithmStatus SOUND_AND_IMPRECISE = new AlgorithmStatus(true, false);
     public static final AlgorithmStatus UNSOUND_AND_IMPRECISE = new AlgorithmStatus(false, false);
 
-    private AlgorithmStatus(boolean pIsPrecise, boolean pIsSound) {
-      isPrecise = pIsPrecise;
+    private AlgorithmStatus(boolean pIsSound, boolean pIsPrecise) {
       isSound = pIsSound;
+      isPrecise = pIsPrecise;
     }
 
     /**
@@ -76,8 +76,8 @@ public interface Algorithm {
     @CheckReturnValue
     public AlgorithmStatus update(AlgorithmStatus other) {
       return new AlgorithmStatus(
-          isPrecise && other.isPrecise,
-          isSound && other.isSound
+          isSound && other.isSound,
+          isPrecise && other.isPrecise
       );
     }
 
@@ -87,7 +87,7 @@ public interface Algorithm {
      */
     @CheckReturnValue
     public AlgorithmStatus withSound(boolean pIsSound) {
-      return new AlgorithmStatus(isPrecise, pIsSound);
+      return new AlgorithmStatus(pIsSound, isPrecise);
     }
 
     /**
@@ -96,7 +96,7 @@ public interface Algorithm {
      */
     @CheckReturnValue
     public AlgorithmStatus withPrecise(boolean pIsPrecise) {
-      return new AlgorithmStatus(pIsPrecise, isSound);
+      return new AlgorithmStatus(isSound, pIsPrecise);
     }
 
     public boolean isSound() {
@@ -111,8 +111,8 @@ public interface Algorithm {
     public int hashCode() {
       final int prime = 31;
       int result = 1;
-      result = prime * result + (isPrecise ? 1231 : 1237);
       result = prime * result + (isSound ? 1231 : 1237);
+      result = prime * result + (isPrecise ? 1231 : 1237);
       return result;
     }
 
@@ -125,13 +125,12 @@ public interface Algorithm {
         return false;
       }
       AlgorithmStatus other = (AlgorithmStatus) obj;
-      return isPrecise == other.isPrecise
-          && isSound == other.isSound;
+      return isSound == other.isSound && isPrecise == other.isPrecise;
     }
 
     @Override
     public String toString() {
-      return "AlgorithmStatus [isPrecise=" + isPrecise + ", isSound=" + isSound + "]";
+      return "AlgorithmStatus [isSound=" + isSound + ", isPrecise=\" + isPrecise]";
     }
   }
 
