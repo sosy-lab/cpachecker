@@ -75,16 +75,20 @@ public class LocalState implements LatticeAbstractState<LocalState> {
     alwaysLocalData = localData;
   }
 
+  private LocalState(LocalState state, ImmutableSet<String> localData) {
+    this(new HashMap<>(), state, localData);
+  }
+
   public static LocalState createInitialLocalState(Set<String> localData) {
-    return new LocalState(new HashMap<>(), null, ImmutableSet.copyOf(localData));
+    return new LocalState(null, ImmutableSet.copyOf(localData));
   }
 
   public static LocalState createInitialLocalState(LocalState state) {
-    return new LocalState(new HashMap<>(), null, state.alwaysLocalData);
+    return new LocalState(null, state.alwaysLocalData);
   }
 
   public static LocalState createNextLocalState(LocalState state) {
-    return new LocalState(new HashMap<>(), state, state.alwaysLocalData);
+    return new LocalState(state, state.alwaysLocalData);
   }
 
   public LocalState getClonedPreviousState() {
@@ -103,7 +107,7 @@ public class LocalState implements LatticeAbstractState<LocalState> {
     return this.clone(rootState.previousState);
   }
 
-  private boolean checkIsAlwaysLocal(AbstractIdentifier name) {
+  public boolean checkIsAlwaysLocal(AbstractIdentifier name) {
     if (name instanceof SingleIdentifier) {
       return alwaysLocalData.contains(((SingleIdentifier) name).getName());
     }

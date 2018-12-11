@@ -403,7 +403,7 @@ public class LocalTransferRelation
 
   private void alias(
       LocalState pSuccessor, AbstractIdentifier leftId, AbstractIdentifier rightId) {
-    if (leftId.isGlobal()) {
+    if (leftId.isGlobal() && !pSuccessor.checkIsAlwaysLocal(leftId)) {
       // Variable is global, not memory location!
       // So, we should set the type of 'right' to global
       pSuccessor.set(rightId, DataType.GLOBAL);
