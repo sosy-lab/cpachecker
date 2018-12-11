@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueProvider;
+import org.sosy_lab.cpachecker.cpa.hybrid.exception.InvalidAssumptionException;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.CollectionUtils;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.ExpressionUtils;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.StrengthenOperatorFactory;
@@ -130,7 +131,7 @@ public class HybridAnalysisTransferRelation
       CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
       throws CPATransferException {
 
-    // HybridAnalysis can only handle binary Assumptions
+    // HybridAnalysis can only handle binary expressions as assumptions
     assert expression instanceof CBinaryExpression;
 
     // if the edge does not introduce a new assumption or assumptions should not be tracked at all
@@ -173,9 +174,14 @@ public class HybridAnalysisTransferRelation
       throws CPATransferException {
     
     Value value = valueProvider.delegateVisit(decl.getType());
-    CExpression newAssumption = valueDeclarationTransformer.transform(value, decl, BinaryOperator.EQUALS);
+    try {
 
-    return HybridAnalysisState.copyWithNewAssumptions(state, newAssumption);
+      CExpression newAssumption = valueDeclarationTransformer.transform(value, decl, BinaryOperator.EQUALS);
+      return HybridAnalysisState.copyWithNewAssumptions(state, newAssumption);
+
+    } catch(InvalidAssumptionException iae) {
+      throw new CPATransferException("Unable to transform the created value and the given declaration expression into an assumption.", iae);
+    }
   }
 
   @Override
@@ -228,12 +234,18 @@ public class HybridAnalysisTransferRelation
 
         Value value = valueProvider.delegateVisit(statement.getLeftHandSide().getExpressionType());
         CIdExpression leftHandSide = (CIdExpression) statement.getLeftHandSide(); // TODO: check if it is assignable from
-        CExpression newAssumption = valueIdExpressionTransformer.transform(value, leftHandSide, BinaryOperator.EQUALS);
 
-        return HybridAnalysisState.copyWithNewAssumptions(state, newAssumption);
+        try {
+
+          CExpression newAssumption = valueIdExpressionTransformer.transform(value, leftHandSide, BinaryOperator.EQUALS);
+          return HybridAnalysisState.copyWithNewAssumptions(state, newAssumption);
+
+        } catch(InvalidAssumptionException iae) {
+          throw new CPATransferException("Unable to transform the created hybrid value and the given varibale expression into an assumption.", iae);
+        }
+        
       }
     }
-
 
     return HybridAnalysisState.copyOf(state);
   }

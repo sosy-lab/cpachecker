@@ -25,10 +25,13 @@ package org.sosy_lab.cpachecker.cpa.hybrid.visitor;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueTransformer;
+import org.sosy_lab.cpachecker.cpa.hybrid.exception.InvalidAssumptionException;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
@@ -37,16 +40,28 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 public class HybridValueDeclarationTransformer
     extends HybridValueTransformer<CExpression, CDeclaration> {
 
+  private final HybridValueTransformer<CExpression, CIdExpression> idExpressionTransformer;
+
   public HybridValueDeclarationTransformer(
       MachineModel pMachineModel,
       LogManager pLogger) {
     super(pMachineModel, pLogger);
+
+    this.idExpressionTransformer = new HybridValueIdExpressionTransformer(pMachineModel, pLogger);
   }
 
   @Override
-  public CExpression transform(Value pValue, CDeclaration pObj, BinaryOperator pOperator) {
-    return null;
+  public CExpression transform(Value pValue, CDeclaration pCDeclaration, BinaryOperator pOperator) 
+    throws InvalidAssumptionException{
+    
+    // we just build a CIdExpression and pass it to the internal transformer object
+    CIdExpression variableExpression = new CIdExpression(
+      FileLocation.DUMMY,
+      pCDeclaration.getType(),
+      pCDeclaration.getQualifiedName(), // check, if we need the qualified name or ::getName()
+      pCDeclaration);
+      
+    return idExpressionTransformer.transform(pValue, variableExpression, pOperator);
   }
-
 
 }

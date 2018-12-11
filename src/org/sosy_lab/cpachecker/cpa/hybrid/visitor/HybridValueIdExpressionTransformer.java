@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueTransformer;
+import org.sosy_lab.cpachecker.cpa.hybrid.exception.InvalidAssumptionException;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.CompositeValue;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.StringValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
@@ -54,7 +55,8 @@ public class HybridValueIdExpressionTransformer
    * @exception AssertionError Thrown if 
    */
   @Override
-  public CExpression transform(Value pValue, CIdExpression pCIdExpression, BinaryOperator pOperator) {
+  public CExpression transform(Value pValue, CIdExpression pCIdExpression, BinaryOperator pOperator) 
+    throws InvalidAssumptionException{
 
     CExpression rightHandSide = null;
 
@@ -76,7 +78,7 @@ public class HybridValueIdExpressionTransformer
 
     if(rightHandSide == null) {
       // this should never happen
-      throw new AssertionError("Unable to create assumption for Hybrid Value with given variable and operator.");
+      throw new InvalidAssumptionException("Unable to create assumption for Hybrid Value with given variable and operator.");
     }
 
     // this is safe to call

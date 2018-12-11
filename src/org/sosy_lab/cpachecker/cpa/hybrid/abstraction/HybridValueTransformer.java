@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cpa.hybrid.exception.InvalidAssumptionException;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.CompositeValue;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.StringValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
@@ -43,7 +44,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
  * Base class for transformation of hybrid values into assumptions
- * @param <T> the type to return on visit
+ * @param <T> the type to return on transformation
  */
 public abstract class HybridValueTransformer<T, TDependentObj> {
 
@@ -53,10 +54,11 @@ public abstract class HybridValueTransformer<T, TDependentObj> {
     this.binaryExpressionBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
   }
 
-  public abstract T transform(Value value, TDependentObj obj, BinaryOperator pOperator);
+  public abstract T transform(Value pValue, TDependentObj pObj, BinaryOperator pOperator)
+    throws InvalidAssumptionException;
 
   protected CExpression transform(CompositeValue pValue) {
-    return null;
+    return null; //TODO
   }
 
   protected CExpression transform(NumericValue pNumericValue) {
@@ -82,6 +84,6 @@ public abstract class HybridValueTransformer<T, TDependentObj> {
   }
 
   protected CExpression transform(NullValue pNullValue) {
-    return null;
+    return null; //TODO: consider, if needed, delete or implement
   }
 }
