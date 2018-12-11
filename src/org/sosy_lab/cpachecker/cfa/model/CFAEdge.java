@@ -38,7 +38,6 @@ public interface CFAEdge extends Serializable {
   CFANode getSuccessor();
 
   Optional<? extends AAstNode> getRawAST();
-
   int getLineNumber();
 
   FileLocation getFileLocation();

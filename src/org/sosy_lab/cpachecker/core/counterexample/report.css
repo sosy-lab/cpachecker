@@ -59,6 +59,16 @@ body {
 	cursor: pointer;
 }
 
+.disabled-btn {
+        color: #c0c0c0;
+        border-color: #ffffff !important;
+}
+
+.disabled-btn:hover {
+        background-color: #ffffff !important;
+        color: #c0c0c0 !important;
+}
+
 .header img.logo {
 	float: left;
 	height: 40px;
@@ -178,7 +188,7 @@ input:checked+.slider:before {
 }
 
 #errorpath_section .fileContent {
-	height: calc(100% - 110px);
+	height: calc(100% - 185px);
 	margin: 5px;
 	overflow: auto;
 }
@@ -257,6 +267,11 @@ input:checked+.slider:before {
 	outline: #df80ff solid 2px;
 }
 
+.important {
+        background-color: #ffc107;
+        outline: #ffc107 solid 2px;
+}
+
 .marked-source-line {
 	background-color: #df80ff !important;
 }
@@ -314,7 +329,7 @@ input:checked+.slider:before {
 }
 
 #externalFiles_section .fileContent {
-	height: calc(100% - 50px);
+	height: calc(100% - 160px);
 	width: 100%;
 	margin: 5px;
 	position: relative;
@@ -332,6 +347,7 @@ input:checked+.slider:before {
 #externalFiles_section div.cfa-content {
 	overflow: scroll;
 	position: absolute;
+	height: calc(100% - 250px);
 	top: 200px;
 	bottom: 5px;
 	left: 5px;
@@ -341,6 +357,7 @@ input:checked+.slider:before {
 #externalFiles_section div.arg-content {
 	overflow: scroll;
 	position: absolute;
+	height: calc(100% - 250px);
 	top: 200px;
 	bottom: 5px;
 	left: 5px;
@@ -641,3 +658,4 @@ text {
 .bold {
 	font-weight: bold;
 }
+

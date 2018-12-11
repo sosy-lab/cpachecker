@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -46,15 +47,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
+import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
-import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
@@ -75,22 +71,29 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTran
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecisionAdjustment;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecisionAdjustment.SymbolicStatistics;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
 @Options(prefix = "cpa.value")
-public class ValueAnalysisCPA
-    implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofCheckerCPA,
+public class ValueAnalysisCPA extends AbstractCPA
+    implements ConfigurableProgramAnalysisWithBAM,
+        StatisticsProvider,
+        ProofCheckerCPA,
         ConfigurableProgramAnalysisWithConcreteCex {
 
   @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
       description="which merge operator to use for ValueAnalysisCPA")
   private String mergeType = "SEP";
 
-  @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "JOIN", "NEVER"},
-      description="which stop operator to use for ValueAnalysisCPA")
+  @Option(
+      secure = true,
+      name = "stop",
+      toUppercase = true,
+      values = {"SEP", "JOIN", "NEVER", "EQUALS"},
+      description = "which stop operator to use for ValueAnalysisCPA")
   private String stopType = "SEP";
 
   @Option(secure=true, description="get an initial precision from file")
@@ -108,8 +111,6 @@ public class ValueAnalysisCPA
     return AutomaticCPAFactory.forType(ValueAnalysisCPA.class);
   }
 
-  private final AbstractDomain abstractDomain =
-      DelegateAbstractDomain.<ValueAnalysisState>getInstance();
   private VariableTrackingPrecision precision;
   private final ValueAnalysisCPAStatistics statistics;
   private final StateToFormulaWriter writer;
@@ -124,19 +125,20 @@ public class ValueAnalysisCPA
 
   private MemoryLocationValueHandler unknownValueHandler;
   private final ConstraintsStrengthenOperator constraintsStrengthenOperator;
-  private final PrecisionAdjustment precisionAdjustmentOperator;
   private final ValueTransferOptions transferOptions;
   private final PrecAdjustmentOptions precisionAdjustmentOptions;
   private final PrecAdjustmentStatistics precisionAdjustmentStatistics;
+  private final SymbolicStatistics symbolicStats;
 
   private ValueAnalysisCPA(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
+    super(DelegateAbstractDomain.<ValueAnalysisState>getInstance(), null);
     this.config           = config;
     this.logger           = logger;
     this.shutdownNotifier = pShutdownNotifier;
     this.cfa              = cfa;
 
-    config.inject(this);
+    config.inject(this, ValueAnalysisCPA.class);
 
     precision           = initializePrecision(config, cfa);
     statistics          = new ValueAnalysisCPAStatistics(this, config);
@@ -145,24 +147,17 @@ public class ValueAnalysisCPA
 
     if (useSymbolicValues) {
       unknownValueHandler = new SymbolicValueAssigner(config);
+      symbolicStats = new SymbolicStatistics();
     } else {
       unknownValueHandler = new UnknownValueAssigner();
+      symbolicStats = null;
     }
 
     constraintsStrengthenOperator =
-        new ConstraintsStrengthenOperator(config, logger, cfa.getMachineModel());
+        new ConstraintsStrengthenOperator(config, logger);
     transferOptions = new ValueTransferOptions(config);
     precisionAdjustmentOptions = new PrecAdjustmentOptions(config, cfa);
     precisionAdjustmentStatistics = new PrecAdjustmentStatistics();
-
-    if (useSymbolicValues) {
-      precisionAdjustmentOperator = new SymbolicValueAnalysisPrecisionAdjustment(
-          statistics, cfa, precisionAdjustmentOptions, precisionAdjustmentStatistics);
-
-    } else {
-      precisionAdjustmentOperator = new ValueAnalysisPrecisionAdjustment(
-          statistics, cfa, precisionAdjustmentOptions, precisionAdjustmentStatistics);
-    }
   }
 
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa) throws InvalidConfigurationException {
@@ -238,39 +233,13 @@ public class ValueAnalysisCPA
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
-    return abstractDomain;
-  }
-
-  @Override
   public MergeOperator getMergeOperator() {
-    switch (mergeType) {
-      case "SEP":
-        return MergeSepOperator.getInstance();
-
-      case "JOIN":
-        return new MergeJoinOperator(getAbstractDomain());
-
-      default:
-        throw new AssertionError("unknown merge operator");
-    }
+    return buildMergeOperator(mergeType);
   }
 
   @Override
   public StopOperator getStopOperator() {
-    switch (stopType) {
-      case "SEP":
-        return new StopSepOperator(getAbstractDomain());
-
-      case "JOIN":
-        return new StopJoinOperator(getAbstractDomain());
-
-      case "NEVER":
-        return new StopNeverOperator();
-
-      default:
-        throw new AssertionError("unknown stop operator");
-    }
+    return buildStopOperator(stopType);
   }
 
   @Override
@@ -294,13 +263,19 @@ public class ValueAnalysisCPA
     return precision;
   }
 
-  VariableTrackingPrecision getPrecision() {
-    return precision;
-  }
-
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustmentOperator;
+    if (useSymbolicValues) {
+      return new SymbolicValueAnalysisPrecisionAdjustment(
+          statistics,
+          cfa,
+          precisionAdjustmentOptions,
+          precisionAdjustmentStatistics,
+          Preconditions.checkNotNull(symbolicStats));
+    } else {
+      return new ValueAnalysisPrecisionAdjustment(
+          statistics, cfa, precisionAdjustmentOptions, precisionAdjustmentStatistics);
+    }
   }
 
   public Configuration getConfiguration() {
@@ -328,9 +303,10 @@ public class ValueAnalysisCPA
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
     pStatsCollection.add(precisionAdjustmentStatistics);
-    if (precisionAdjustmentOperator instanceof StatisticsProvider) {
-      ((StatisticsProvider) precisionAdjustmentOperator).collectStatistics(pStatsCollection);
+    if (symbolicStats != null) {
+      pStatsCollection.add(symbolicStats);
     }
+    pStatsCollection.add(constraintsStrengthenOperator);
     writer.collectStatistics(pStatsCollection);
   }
 

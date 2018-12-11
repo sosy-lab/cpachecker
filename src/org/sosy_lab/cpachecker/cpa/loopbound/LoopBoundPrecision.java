@@ -27,7 +27,7 @@ import com.google.common.base.Preconditions;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
-public class LoopBoundPrecision implements Precision {
+class LoopBoundPrecision implements Precision {
 
   private final boolean trackStack;
 
@@ -35,7 +35,7 @@ public class LoopBoundPrecision implements Precision {
 
   private final int loopIterationsBeforeAbstraction;
 
-  public LoopBoundPrecision(boolean pStack, int pMaxLoopIterations, int pLoopIterationsBeforeAbstraction) {
+  LoopBoundPrecision(boolean pStack, int pMaxLoopIterations, int pLoopIterationsBeforeAbstraction) {
     Preconditions.checkArgument(pMaxLoopIterations >= 0);
     Preconditions.checkArgument(pLoopIterationsBeforeAbstraction >= 0);
     trackStack = pStack;
@@ -43,26 +43,26 @@ public class LoopBoundPrecision implements Precision {
     loopIterationsBeforeAbstraction = pLoopIterationsBeforeAbstraction;
   }
 
-  public boolean shouldTrackStack() {
+  boolean shouldTrackStack() {
     return trackStack;
   }
 
-  public int getMaxLoopIterations() {
+  int getMaxLoopIterations() {
     return maxLoopIterations;
   }
 
-  public int getLoopIterationsBeforeAbstraction() {
+  int getLoopIterationsBeforeAbstraction() {
     return loopIterationsBeforeAbstraction;
   }
 
-  public LoopBoundPrecision withMaxLoopIterations(int pMaxLoopIterations) {
+  LoopBoundPrecision withMaxLoopIterations(int pMaxLoopIterations) {
     if (pMaxLoopIterations == maxLoopIterations) {
       return this;
     }
     return new LoopBoundPrecision(trackStack, pMaxLoopIterations, loopIterationsBeforeAbstraction);
   }
 
-  public LoopBoundPrecision withLoopIterationsBeforeAbstraction(int pLoopIterationsBeforeAbstraction) {
+  LoopBoundPrecision withLoopIterationsBeforeAbstraction(int pLoopIterationsBeforeAbstraction) {
     if (pLoopIterationsBeforeAbstraction == loopIterationsBeforeAbstraction) {
       return this;
     }

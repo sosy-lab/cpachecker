@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,6 +48,7 @@ import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
@@ -62,6 +64,7 @@ public class CounterexampleInfo extends AbstractAppender {
   private final boolean isPreciseCounterExample;
 
   private final ARGPath targetPath;
+
   private final CFAPathWithAssumptions assignments;
   private final CFAPathWithAdditionalInfo additionalInfo;
 
@@ -233,14 +236,14 @@ public class CounterexampleInfo extends AbstractAppender {
 
   public Map<ARGState, CFAEdgeWithAdditionalInfo> getAdditionalInfoMapping() {
     return additionalInfo.isEmpty()
-        ? ImmutableMap.of()
-        : additionalInfo.getAdditionalInfoMapping(targetPath);
+           ? ImmutableMap.of()
+           : additionalInfo.getAdditionalInfoMapping(targetPath);
   }
 
   public Set<AdditionalInfoConverter> getAdditionalInfoConverters() {
     return additionalInfo.isEmpty()
-        ? ImmutableSet.of()
-        : additionalInfo.getAdditionalInfoConverters();
+           ? ImmutableSet.of()
+           : additionalInfo.getAdditionalInfoConverters();
   }
 
   /**
@@ -253,6 +256,15 @@ public class CounterexampleInfo extends AbstractAppender {
     int pathLength = targetPath.getFullPath().size();
     List<Map<?, ?>> path = new ArrayList<>(pathLength);
 
+    ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
+    List<Pair<CFAEdgeWithAssumptions, Boolean>> shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath, assignments);
+    //Create Iterator for ShrinkedErrorPath
+    Iterator<Pair<CFAEdgeWithAssumptions, Boolean>> shrinkedErrorPathIterator = null;
+    if (shrinkedErrorPath != null) {
+      //checkState(shrinkedErrorPath.size() == targetPath.size(), "Size of shrinkedErrorPath not identical to the length of the targetPath!");
+      shrinkedErrorPathIterator = shrinkedErrorPath.iterator();
+    }
+
     PathIterator iterator = targetPath.fullPathIterator();
     while (iterator.hasNext()) {
       Map<String, Object> elem = new HashMap<>();
@@ -260,6 +272,18 @@ public class CounterexampleInfo extends AbstractAppender {
       if (edge == null) {
         continue; // in this case we do not need the edge
       }
+
+      // compare path from counterexample with shrinkedErrorPath to identify the important edges
+      elem.put("importance", 0);
+      if(shrinkedErrorPathIterator != null && shrinkedErrorPathIterator.hasNext()) {
+        Pair<CFAEdgeWithAssumptions, Boolean> shrinkedEdge = shrinkedErrorPathIterator.next();
+        if (edge.equals(shrinkedEdge.getFirst().getCFAEdge())) {
+          if (shrinkedEdge.getSecond()) {
+            elem.put("importance", 1);
+          }
+        }
+      }
+
       if (iterator.isPositionWithState()) {
         elem.put("argelem", iterator.getAbstractState().getStateId());
       }
@@ -274,7 +298,10 @@ public class CounterexampleInfo extends AbstractAppender {
         elem.put("val", "");
       } else {
         CFAEdgeWithAssumptions edgeWithAssignment = assignments.get(iterator.getIndex());
-        elem.put("val", edgeWithAssignment.printForHTML());
+        elem.put(
+            "val",
+            edgeWithAssignment.prettyPrintCode(0).replace(System.lineSeparator(), "\n")
+                + edgeWithAssignment.getComment().replace(System.lineSeparator(), "\n"));
       }
 
       path.add(elem);

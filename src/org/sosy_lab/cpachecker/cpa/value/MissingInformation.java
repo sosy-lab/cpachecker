@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class MissingInformation {
+class MissingInformation {
 
   /**
    * This field stores the Expression of the Memory Location that

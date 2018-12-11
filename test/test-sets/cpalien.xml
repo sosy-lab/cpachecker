@@ -10,20 +10,20 @@
     <includesfile>../programs/cpalien/cpalien.set</includesfile>
     <option name="-CPAlien"/>
     <option name="-preprocess" />
-    <propertyfile>../programs/benchmarks/PropertyMemSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
   <tasks name="cpalien-label-okay">
     <includesfile>../programs/cpalien/cpalien-label.set</includesfile>
     <option name="-CPAlien-label"/>
     <option name="-preprocess" />
-    <propertyfile>../programs/benchmarks/PropertyUnreachCall.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 
   <tasks name="MemorySafety">
     <includesfile>../programs/benchmarks/HeapMemSafety.set</includesfile>
     <option name="-svcomp14"/>
-    <propertyfile>../programs/benchmarks/HeapMemSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <rundefinition/>
 </benchmark>

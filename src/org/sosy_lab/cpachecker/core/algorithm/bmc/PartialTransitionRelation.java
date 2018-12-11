@@ -42,7 +42,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -272,10 +272,12 @@ public class PartialTransitionRelation implements Comparable<PartialTransitionRe
                       .filter(name -> !name.startsWith("*"))
                       .map(
                           name -> {
-                            return pmgr.makeFormulaForVariable(
-                                pathFormula, name, ssaMap.getType(name), false);
-                          })
-                      .map(fmgr::uninstantiate);
+                            return pmgr.makeFormulaForUninstantiatedVariable(
+                                name,
+                                ssaMap.getType(name),
+                                pathFormula.getPointerTargetSet(),
+                                false);
+                          });
                 })
             .distinct()
             .collect(
@@ -322,7 +324,7 @@ public class PartialTransitionRelation implements Comparable<PartialTransitionRe
     ReachedSet reached = reachedSet.getReachedSet();
     Set<AbstractState> states =
         filterIterationsUpTo(
-                pStateFilter.apply((pAssertion.filterApplicable(reached))), getDesiredK())
+                pStateFilter.apply(pAssertion.filterApplicable(reached)), getDesiredK())
             .toSet();
 
     BooleanFormula stateAssertionFormula = bfmgr.makeTrue();

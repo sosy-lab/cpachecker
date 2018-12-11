@@ -213,7 +213,7 @@ public class ConstraintManager {
 
 
   public static ArrayList<Constraint> getConstraint(AssumeEdge ae) {
-    CBinaryExpression c = (CBinaryExpression)(ae.getExpression());
+    CBinaryExpression c = (CBinaryExpression) ae.getExpression();
     Collection<Pair<Term,ArrayList<Term>>> acList;
     ArrayList<Constraint> cns = new ArrayList<>(2);
 

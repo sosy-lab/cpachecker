@@ -46,10 +46,9 @@ commit to the SVN repository (with `git svn dcommit`)
 while still using Git to fetch the commits:
 
 ```
-git clone -n -o mirror https://svn.sosy-lab.org/git/software/cpachecker.git/
+git clone -o mirror https://svn.sosy-lab.org/software/cpachecker.git/
 cd cpachecker
 git svn init --prefix=mirror/ -s https://svn.sosy-lab.org/software/cpachecker
-git checkout -t mirror/trunk
 ```
 
 This also works with GitHub.

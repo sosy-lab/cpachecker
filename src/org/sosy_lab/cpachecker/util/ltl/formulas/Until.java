@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.ltl.formulas;
 
+import org.sosy_lab.cpachecker.util.ltl.LtlFormulaVisitor;
+
 /** Strong Until. */
 public final class Until extends BinaryFormula {
 
@@ -54,5 +56,10 @@ public final class Until extends BinaryFormula {
   @Override
   public Release not() {
     return new Release(left.not(), right.not());
+  }
+
+  @Override
+  public String accept(LtlFormulaVisitor v) {
+    return v.visit(this);
   }
 }

@@ -166,7 +166,7 @@ public abstract class SMGAbstractionFinder {
         SMGEdgePointsTo reachedObjectSubSmgPTEdge = pInputSmg.getPointer(subDlsValue);
         SMGObject reachedObjectSubSmg = reachedObjectSubSmgPTEdge.getObject();
 
-        if ((!pObjects.contains(reachedObjectSubSmg))) {
+        if (!pObjects.contains(reachedObjectSubSmg)) {
           pObjects.add(reachedObjectSubSmg);
           pToBeChecked.add(reachedObjectSubSmg);
         }

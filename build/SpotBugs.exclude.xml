@@ -1,4 +1,7 @@
 <FindBugsFilter>
+    <!-- SpotBugs does not support @org.checkerframework.checker.nullness.qual.Nullable
+         (cf. https://github.com/spotbugs/spotbugs/issues/643) -->
+    <Match><Bug code="NP,RCN"/></Match>
     <Match><And>
         <!-- PackageSanityTest wants @Nullable on equals(Object) parameter,
              SpotBugs does not. -->

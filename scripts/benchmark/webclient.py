@@ -39,6 +39,7 @@ import random
 import re
 import tempfile
 import threading
+import ssl
 import zipfile
 import zlib
 
@@ -51,6 +52,7 @@ import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 from concurrent.futures import Future
+from benchexec.util import get_files
 
 try:
     import sseclient  # @UnresolvedImport
@@ -336,7 +338,12 @@ class WebInterface:
 
         self._connection = requests.Session()
         self._connection.headers.update(default_headers)
-        self._connection.verify='/etc/ssl/certs'
+        try:
+            cert_paths = ssl.get_default_verify_paths()
+            cert_path = cert_paths.cafile or cert_paths.capath # both might be None
+        except AttributeError: # not available on old Python
+            cert_path = None
+        self._connection.verify = cert_path or True # make sure that verification is enabled
         if user_pwd:
             self._connection.auth = (user_pwd.split(":")[0], user_pwd.split(":")[1])
             self._base64_user_pwd = base64.b64encode(user_pwd.encode("utf-8")).decode("utf-8")
@@ -410,8 +417,8 @@ class WebInterface:
             return self._hash_code_cache[(path, mTime)]
 
         else:
-            with open(path, 'rb') as file:
-                hashValue = hashlib.sha256(file.read()).hexdigest()
+            with open(path, 'rb') as opened_file:
+                hashValue = hashlib.sha256(opened_file.read()).hexdigest()
                 self._hash_code_cache[(path, mTime)] = hashValue
                 return hashValue
 
@@ -505,7 +512,7 @@ class WebInterface:
             norm_path = self._normalize_path_for_cloud(programPath)
             params.append(('programTextHash', (norm_path, self._get_sha256_hash(programPath))))
 
-        for required_file in required_files:
+        for required_file in get_files(required_files):
             norm_path = self._normalize_path_for_cloud(required_file)
             params.append(('requiredFileHash', (norm_path, self._get_sha256_hash(required_file))))
 
@@ -513,8 +520,8 @@ class WebInterface:
         params.append(('revision', svn_revision or self._svn_revision))
 
         if run.propertyfile:
-            file = self._add_file_to_params(params, 'propertyText', run.propertyfile)
-            opened_files.append(file)
+            property_file = self._add_file_to_params(params, 'propertyText', run.propertyfile)
+            opened_files.append(property_file)
 
         if MEMLIMIT in limits:
             params.append(('memoryLimitation', str(limits[MEMLIMIT])))
@@ -657,11 +664,15 @@ class WebInterface:
                         params.append(("option", "parser.usePreprocessor=true"))
                     elif option == "-generateReport":
                         params.append(('generateReport', 'true'))
+                    elif option == "-sourcepath":
+                        params.append(("option", "java.sourcepath=" + next(i)))
+                    elif option in ["-cp", "-classpath"]:
+                        params.append(("option", "java.classpath=" + next(i)))
 
                     elif option == "-spec":
                         spec_path = next(i)
-                        file = self._add_file_to_params(params, "specificationText", spec_path)
-                        opened_files.append(file)
+                        spec_file = self._add_file_to_params(params, "specificationText", spec_path)
+                        opened_files.append(spec_file)
 
                     elif option == "-config":
                         configPath = next(i)
@@ -699,9 +710,9 @@ class WebInterface:
 
     def _add_file_to_params(self, params, name, path):
         norm_path = self._normalize_path_for_cloud(path)
-        file = open(path, 'rb')
-        params.append((name, (norm_path, file)))
-        return file
+        opened_file = open(path, 'rb')
+        params.append((name, (norm_path, opened_file)))
+        return opened_file
 
     def _normalize_path_for_cloud(self, path):
         norm_path = os.path.normpath(path)
@@ -773,22 +784,22 @@ class WebInterface:
                     result_future.set_result(downloaded_result.result())
 
             else:
-                logging.info('Could not get result of run %s: %s', run_id, downloaded_result.exception())
+                attempts = self._download_attempts.pop(run_id, 1);
+                logging.info('Could not get result of run %s on attempt %d: %s', run_id, attempts, exception)
 
                 # client error
-                if type(exception) is HTTPError and exception.response and  \
-                    400 <= exception.response.status_code and exception.response.status_code <= 499:
+                #if type(exception) is HTTPError and exception.response and  \
+                #    400 <= exception.response.status_code and exception.response.status_code <= 499:
 
-                    attempts = self._download_attempts.pop(run_id, 1);
-                    if attempts < 10:
-                        self._download_attempts[run_id] = attempts + 1;
-                        self._download_result_async(run_id)
-                    else:
-                        self._run_failed(run_id)
-
-                else:
-                    # retry it
+                if attempts < 10:
+                    self._download_attempts[run_id] = attempts + 1;
                     self._download_result_async(run_id)
+                else:
+                    self._run_failed(run_id)
+
+                #else:
+                #    # retry t
+                #    self._download_result_async(run_id)
 
         if run_id not in self._downloading_result_futures.values():  # result is not downloaded
             future = self._executor.submit(self._download_result, run_id)
@@ -916,9 +927,9 @@ def _handle_host_info(values):
 
 def _handle_special_files(result_zip_file, files, output_path):
     logging.info("Results are written to %s", output_path)
-    for file in SPECIAL_RESULT_FILES:
-        if file in files and file != RESULT_FILE_LOG:
-            result_zip_file.extract(file, output_path)
+    for special_file in SPECIAL_RESULT_FILES:
+        if special_file in files and special_file != RESULT_FILE_LOG:
+            result_zip_file.extract(special_file, output_path)
 
 
 def handle_result(zip_content, output_path, run_identifier, result_files_pattern=None,
@@ -1004,14 +1015,14 @@ def _handle_result(resultZipFile, output_path,
 
     return return_value
 
-def _parse_cloud_file(file):
+def _parse_cloud_file(info_file):
     """
     Parses a file containing key value pairs in each line.
     @return:  a dict of the parsed key value pairs.
     """
     values = {}
 
-    for line in file:
+    for line in info_file:
         (key, value) = line.decode('utf-8').split("=", 1)
         value = value.strip()
         values[key] = value

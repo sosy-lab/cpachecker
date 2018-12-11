@@ -37,7 +37,6 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Verify;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -67,7 +66,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -389,7 +388,7 @@ public class ARGUtils {
     Preconditions.checkNotNull(pTracePosition);
     Preconditions.checkNotNull(pPostfixLocation);
 
-    Builder<PathPosition> result = ImmutableList.builder();
+    ImmutableList.Builder<PathPosition> result = ImmutableList.builder();
 
     for (PathPosition p: pTracePosition) {
 
@@ -438,7 +437,7 @@ public class ARGUtils {
       Predicates.compose(CONTAINS_RELEVANT_LOCATION, AbstractStates::extractLocations);
 
   @SuppressWarnings("unchecked")
-  static final Predicate<ARGState> RELEVANT_STATE =
+  public static final Predicate<ARGState> RELEVANT_STATE =
       Predicates.or(
           AbstractStates.IS_TARGET_STATE,
           AT_RELEVANT_LOCATION,
@@ -736,7 +735,7 @@ public class ARGUtils {
     Function<ARGState, String> getLocationName =
         s -> Joiner.on("_OR_").join(AbstractStates.extractLocations(s));
     Function<Integer, Function<ARGState, String>> getStateNameFunction =
-        i -> (s -> "S" + i + "at" + getLocationName.apply(s));
+        i -> s -> "S" + i + "at" + getLocationName.apply(s);
 
     sb.append("CONTROL AUTOMATON " + name + "\n\n");
     String stateName = getStateNameFunction.apply(index).apply(rootState);

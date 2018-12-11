@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.exceptions;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Strings;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
 /**
@@ -44,6 +44,7 @@ public class RefinementFailedException extends CPAException {
     RepeatedPathPrefix("Error path prefix could not be ruled out and was used again"),
     TooMuchUnrolling("Too much unrolling"),
     InfeasibleCounterexample("External tool verified counterexample as infeasible"),
+    SequenceOfAssertionsToWeak("Sequence of assertions is too weak to cover error trace"),
     TIMEOUT("SMT-solver timed out");
 
     private final String humanReableReason;

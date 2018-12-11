@@ -36,7 +36,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -205,7 +205,7 @@ class FlowDependenceTransferRelation
    */
   private FlowDependenceState handleOperation(
       CFAEdge pCfaEdge,
-      Optional<MemoryLocation> pDef,
+      Optional<MemoryLocation> pNewDeclaration,
       Set<MemoryLocation> pUses,
       FlowDependenceState pNextState,
       ReachingDefState pReachDefState) {
@@ -229,7 +229,7 @@ class FlowDependenceTransferRelation
       dependences = FlowDependence.create(defs);
     }
     if (dependences.isUnknownPointerDependence() || !dependences.isEmpty()) {
-      pNextState.addDependence(pCfaEdge, pDef, dependences);
+      pNextState.addDependence(pCfaEdge, pNewDeclaration, dependences);
     }
 
     return pNextState;
@@ -316,6 +316,7 @@ class FlowDependenceTransferRelation
       ReachingDefState pReachDefState,
       PointerState pPointerState)
       throws CPATransferException {
+
     return handleOperation(
         cfaEdge,
         Optional.empty(),

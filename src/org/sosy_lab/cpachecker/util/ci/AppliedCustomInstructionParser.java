@@ -27,7 +27,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -98,7 +97,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-
 public class AppliedCustomInstructionParser {
 
   private final ShutdownNotifier shutdownNotifier;
@@ -145,7 +143,15 @@ public class AppliedCustomInstructionParser {
     try (Writer br = IO.openOutputFile(signatureFile, Charset.defaultCharset())) {
       br.write(ci.getSignature() + "\n");
       String ciString = ci.getFakeSMTDescription().getSecond();
-      br.write(ciString.substring(ciString.indexOf("a")-1,ciString.length()-1) + ";");
+      int index = ciString.indexOf("a");
+      if (index == -1 || ciString.charAt(index - 1) != '(') {
+        index = ciString.indexOf("(", ciString.indexOf("B"));
+      } else {
+        index--; // also write ( in front of first a
+      }
+      if (index != -1) {
+        br.write(ciString.substring(index, ciString.length() - 1) + ";");
+      }
     }
   }
 
@@ -159,7 +165,7 @@ public class AppliedCustomInstructionParser {
 
   private CustomInstructionApplications parseACIs(final BufferedReader br, final CustomInstruction ci)
       throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException {
-    Builder<CFANode, AppliedCustomInstruction> map = new ImmutableMap.Builder<>();
+    ImmutableMap.Builder<CFANode, AppliedCustomInstruction> map = new ImmutableMap.Builder<>();
     CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
 
     CFANode startNode;
@@ -225,7 +231,7 @@ public class AppliedCustomInstructionParser {
     }
 
     CFANode ciStartNode = null;
-    Collection<CFANode> ciEndNodes = new HashSet<>();
+    Set<CFANode> ciEndNodes = new HashSet<>();
 
     Set<CFANode> visitedNodes = new HashSet<>();
     Queue<CFANode> queue = new ArrayDeque<>();

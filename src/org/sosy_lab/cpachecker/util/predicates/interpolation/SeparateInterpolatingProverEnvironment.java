@@ -98,7 +98,7 @@ public class SeparateInterpolatingProverEnvironment<T>
   }
 
   @Override
-  public BooleanFormula getInterpolant(List<T> pFormulasOfA)
+  public BooleanFormula getInterpolant(Collection<T> pFormulasOfA)
       throws SolverException, InterruptedException {
     BooleanFormula itpF = itpEnv.getInterpolant(pFormulasOfA);
     return convertToMain(itpF);

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,7 +28,6 @@ import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -53,7 +52,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.matheclipse.core.util.WriterOutputStream;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownManager;
@@ -78,10 +77,13 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
+import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetType;
+import org.sosy_lab.cpachecker.util.Property;
+import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
+import org.sosy_lab.cpachecker.util.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.util.PropertyFileParser;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
-import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -210,6 +212,15 @@ public class CPAMain {
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path memsafetyConfig = null;
 
+    @Option(
+        secure = true,
+        name = "memorycleanup.config",
+        description =
+            "When checking for memory cleanup properties, "
+                + "use this configuration file instead of the current one.")
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path memcleanupConfig = null;
+
     @Option(secure=true, name="overflow.config",
         description="When checking for the overflow property, "
             + "use this configuration file instead of the current one.")
@@ -272,9 +283,11 @@ public class CPAMain {
     }
   }
 
-  private static final ImmutableSet<PropertyType> MEMSAFETY_PROPERTY_TYPES =
+  private static final ImmutableSet<? extends Property> MEMSAFETY_PROPERTY_TYPES =
       Sets.immutableEnumSet(
-          PropertyType.VALID_DEREF, PropertyType.VALID_FREE, PropertyType.VALID_MEMTRACK);
+          CommonPropertyType.VALID_DEREF,
+          CommonPropertyType.VALID_FREE,
+          CommonPropertyType.VALID_MEMTRACK);
 
   /**
    * Parse the command line, read the configuration file, and setup the program-wide base paths.
@@ -342,52 +355,68 @@ public class CPAMain {
     return new Config(config, outputDirectory, properties);
   }
 
+  private static final ImmutableMap<Property, TestTargetType> TARGET_TYPES =
+      ImmutableMap.<Property, TestTargetType>builder()
+          .put(CommonCoverageType.COVERAGE_BRANCH, TestTargetType.ASSUME)
+          .put(CommonCoverageType.COVERAGE_CONDITION, TestTargetType.ASSUME)
+          .put(CommonCoverageType.COVERAGE_ERROR, TestTargetType.ERROR_CALL)
+          .put(CommonCoverageType.COVERAGE_STATEMENT, TestTargetType.STATEMENT)
+          .build();
+
   private static Configuration handlePropertyOptions(
       Configuration config,
       BootstrapOptions options,
       Map<String, String> cmdLineOptions,
-      Set<SpecificationProperty> properties)
+      Set<SpecificationProperty> pProperties)
       throws InvalidConfigurationException, IOException {
-    Set<PropertyType> propertyTypes =
-        Sets.immutableEnumSet(
-            Collections2.transform(properties, SpecificationProperty::getPropertyType));
+    Set<Property> properties =
+        pProperties.stream().map(p -> p.getProperty()).collect(ImmutableSet.toImmutableSet());
 
-    Path alternateConfigFile = null;
+    final Path alternateConfigFile;
 
-    if (!Collections.disjoint(propertyTypes, MEMSAFETY_PROPERTY_TYPES)) {
-      if (!MEMSAFETY_PROPERTY_TYPES.containsAll(propertyTypes)) {
+    if (!Collections.disjoint(properties, MEMSAFETY_PROPERTY_TYPES)) {
+      if (!MEMSAFETY_PROPERTY_TYPES.containsAll(properties)) {
         // Memsafety property cannot be checked with others in combination
         throw new InvalidConfigurationException(
-            "Unsupported combination of properties: " + propertyTypes);
+            "Unsupported combination of properties: " + properties);
       }
-      if (options.memsafetyConfig == null) {
-        throw new InvalidConfigurationException("Verifying memory safety is not supported if option memorysafety.config is not specified.");
+      alternateConfigFile = check(options.memsafetyConfig, "memory safety", "memorysafety.config");
+    } else if (properties.contains(CommonPropertyType.VALID_MEMCLEANUP)) {
+      if (properties.size() != 1) {
+        // MemCleanup property cannot be checked with others in combination
+        throw new InvalidConfigurationException(
+            "Unsupported combination of properties: " + properties);
       }
-      alternateConfigFile = options.memsafetyConfig;
-    }
-    if (propertyTypes.contains(PropertyType.OVERFLOW)) {
-      if (propertyTypes.size() != 1) {
+      alternateConfigFile = check(options.memcleanupConfig, "memory cleanup", "memorycleanup.config");
+    } else if (properties.contains(CommonPropertyType.OVERFLOW)) {
+      if (properties.size() != 1) {
         // Overflow property cannot be checked with others in combination
         throw new InvalidConfigurationException(
-            "Unsupported combination of properties: " + propertyTypes);
+            "Unsupported combination of properties: " + properties);
       }
-      if (options.overflowConfig == null) {
-
-        throw new InvalidConfigurationException("Verifying overflows is not supported if option overflow.config is not specified.");
-      }
-      alternateConfigFile = options.overflowConfig;
-    }
-    if (propertyTypes.contains(PropertyType.TERMINATION)) {
+      alternateConfigFile = check(options.overflowConfig, "overflows", "overflow.config");
+    } else if (properties.contains(CommonPropertyType.TERMINATION)) {
       // Termination property cannot be checked with others in combination
-      if (propertyTypes.size() != 1) {
+      if (properties.size() != 1) {
         throw new InvalidConfigurationException(
-            "Unsupported combination of properties: " + propertyTypes);
+            "Unsupported combination of properties: " + properties);
       }
-      if (options.terminationConfig == null) {
+      alternateConfigFile = check(options.terminationConfig, "termination", "termination.config");
+    } else if (properties.contains(CommonCoverageType.COVERAGE_ERROR)
+        || properties.contains(CommonCoverageType.COVERAGE_BRANCH)
+        || properties.contains(CommonCoverageType.COVERAGE_CONDITION)
+        || properties.contains(CommonCoverageType.COVERAGE_STATEMENT)) {
+      // coverage criterion cannot be checked with other properties in combination
+      if (properties.size() != 1) {
         throw new InvalidConfigurationException(
-            "Verifying termination is not supported if option termination.config is not specified.");
+            "Unsupported combination of properties: " + properties);
       }
-      alternateConfigFile = options.terminationConfig;
+      return Configuration.builder()
+          .copyFrom(config)
+          .setOption("testcase.targets.type", TARGET_TYPES.get(properties.iterator().next()).name())
+          .build();
+    } else {
+      alternateConfigFile = null;
     }
 
     if (alternateConfigFile != null) {
@@ -395,6 +424,7 @@ public class CPAMain {
           .loadFromFile(alternateConfigFile)
           .setOptions(cmdLineOptions)
           .clearOption("memorysafety.config")
+          .clearOption("memorycleanup.config")
           .clearOption("overflow.config")
           .clearOption("termination.config")
           .clearOption("output.disable")
@@ -406,16 +436,28 @@ public class CPAMain {
     return config;
   }
 
-  private static final ImmutableMap<PropertyType, String> SPECIFICATION_FILES =
-      ImmutableMap.<PropertyType, String>builder()
-          .put(PropertyType.REACHABILITY_LABEL, "sv-comp-errorlabel")
-          .put(PropertyType.REACHABILITY, "sv-comp-reachability")
-          .put(PropertyType.VALID_FREE, "sv-comp-memorysafety")
-          .put(PropertyType.VALID_DEREF, "sv-comp-memorysafety")
-          .put(PropertyType.VALID_MEMTRACK, "sv-comp-memorysafety")
-          .put(PropertyType.OVERFLOW, "sv-comp-overflow")
-          .put(PropertyType.DEADLOCK, "deadlock")
-          //.put(PropertyType.TERMINATION, "none needed")
+  private static Path check(Path config, String verificationTarget, String optionName)
+      throws InvalidConfigurationException {
+    if (config == null) {
+      throw new InvalidConfigurationException(
+          String.format(
+              "Verifying %s is not supported if option %s is not specified.",
+              verificationTarget, optionName));
+    }
+    return config;
+  }
+
+  private static final ImmutableMap<Property, String> SPECIFICATION_FILES =
+      ImmutableMap.<Property, String>builder()
+          .put(CommonPropertyType.REACHABILITY_LABEL, "sv-comp-errorlabel")
+          .put(CommonPropertyType.REACHABILITY, "sv-comp-reachability")
+          .put(CommonPropertyType.VALID_FREE, "sv-comp-memorysafety")
+          .put(CommonPropertyType.VALID_DEREF, "sv-comp-memorysafety")
+          .put(CommonPropertyType.VALID_MEMTRACK, "sv-comp-memorysafety")
+          .put(CommonPropertyType.VALID_MEMCLEANUP, "sv-comp-memorycleanup")
+          .put(CommonPropertyType.OVERFLOW, "sv-comp-overflow")
+          .put(CommonPropertyType.DEADLOCK, "deadlock")
+          // .put(CommonPropertyType.TERMINATION, "none needed")
           .build();
 
   private static Set<SpecificationProperty> handlePropertyFile(Map<String, String> cmdLineOptions)

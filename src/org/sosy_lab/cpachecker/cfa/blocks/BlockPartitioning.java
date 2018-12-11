@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -85,12 +84,6 @@ public class BlockPartitioning {
 
   public boolean isReturnNode(CFANode node) {
     return returnNodeToBlock.containsKey(node);
-  }
-
-  @Deprecated
-  // reason for deprecation: there can be several blocks for the same return-node
-  public Block getBlockForReturnNode(CFANode pCurrentNode) {
-    return Iterables.getFirst(returnNodeToBlock.get(pCurrentNode), null);
   }
 
   public ImmutableCollection<Block> getBlocksForReturnNode(CFANode pCurrentNode) {

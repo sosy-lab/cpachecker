@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 import java.util.Collections;
 import java.util.Map;
 import java.util.OptionalLong;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;

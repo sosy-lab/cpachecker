@@ -79,7 +79,7 @@ public class ReachingDefCPA extends AbstractCPA implements ProofCheckerCPA {
   private ReachingDefCPA(LogManager logger, Configuration config, ShutdownNotifier shutdownNotifier) throws InvalidConfigurationException {
     super(
         DelegateAbstractDomain.getInstance(),
-        new ReachingDefTransferRelation(logger, shutdownNotifier));
+        new ReachingDefTransferRelation(logger, shutdownNotifier, config));
     config.inject(this);
     this.logger = logger;
   }

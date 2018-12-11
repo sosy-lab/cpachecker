@@ -34,6 +34,7 @@ import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
 import com.google.common.io.CharStreams;
 import com.google.common.io.MoreFiles;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
@@ -48,7 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -191,8 +192,13 @@ public class AutomatonGraphmlCommon {
       this(id, pKeyFor, attrName, attrType, null);
     }
 
+    // because of https://github.com/spotbugs/spotbugs/issues/616
+    @SuppressFBWarnings("NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE")
     KeyDef(
-        String id, ElementType pKeyFor, String attrName, String attrType,
+        String id,
+        ElementType pKeyFor,
+        String attrName,
+        String attrType,
         @Nullable Object defaultValue) {
       this.id = Preconditions.checkNotNull(id);
       this.keyFor = Preconditions.checkNotNull(pKeyFor);
@@ -541,6 +547,9 @@ public class AutomatonGraphmlCommon {
       }
       if (edge.getSuccessor() instanceof FunctionExitNode) {
         return isEmptyStub(((FunctionExitNode) edge.getSuccessor()).getEntryNode());
+      }
+      if (AutomatonGraphmlCommon.treatAsWhileTrue(edge)) {
+        return false;
       }
       return true;
     } else if (edge instanceof CFunctionCallEdge) {
@@ -910,12 +919,25 @@ public class AutomatonGraphmlCommon {
               return false;
             }
           }
-          if (successorEdge instanceof AStatementEdge) {
-            intermediateDeclarationsExpected = false;
-            AStatementEdge statementEdge = (AStatementEdge) successorEdge;
-            if (statementEdge.getFileLocation().equals(pEdge.getFileLocation())
-                && statementEdge.getStatement() instanceof AAssignment) {
-              AAssignment assignment = (AAssignment) statementEdge.getStatement();
+
+          if (successorEdge.getFileLocation().equals(pEdge.getFileLocation())) {
+            AAssignment assignment = null;
+            if (successorEdge instanceof FunctionCallEdge) {
+              FunctionCallEdge functionCallEdge = (FunctionCallEdge) successorEdge;
+              FunctionSummaryEdge summaryEdge = functionCallEdge.getSummaryEdge();
+              AFunctionCall functionCall = summaryEdge.getExpression();
+              if (functionCall instanceof AAssignment) {
+                assignment = (AAssignment) functionCall;
+                successorEdge = summaryEdge;
+              }
+            } else if (successorEdge instanceof AStatementEdge) {
+              intermediateDeclarationsExpected = false;
+              AStatementEdge statementEdge = (AStatementEdge) successorEdge;
+              if (statementEdge.getStatement() instanceof AAssignment) {
+                assignment = (AAssignment) statementEdge.getStatement();
+              }
+            }
+            if (assignment != null) {
               ALeftHandSide leftHandSide = assignment.getLeftHandSide();
               if (leftHandSide instanceof AIdExpression) {
                 AIdExpression lhs = (AIdExpression) leftHandSide;
@@ -928,8 +950,9 @@ public class AutomatonGraphmlCommon {
                 successor = successorEdge.getSuccessor();
               }
             }
-          } else if (intermediateDeclarationsExpected
-              && successorEdge instanceof ADeclarationEdge) {
+          }
+
+          if (intermediateDeclarationsExpected && successorEdge instanceof ADeclarationEdge) {
             ADeclarationEdge otherDeclEdge = (ADeclarationEdge) successorEdge;
             if (otherDeclEdge.getDeclaration() instanceof AVariableDeclaration) {
               // The current edge may just be the matching declaration of a preceding
@@ -1090,5 +1113,14 @@ public class AutomatonGraphmlCommon {
       return false;
     }
     return pEntryNode.getExitNode().equals(defaultReturnEdge.getSuccessor());
+  }
+
+  public static boolean treatAsWhileTrue(CFAEdge pEdge) {
+    CFANode pred = pEdge.getPredecessor();
+    return pEdge instanceof BlankEdge
+        && pred.getNumLeavingEdges() == 1
+        && CFAUtils.enteringEdges(pred)
+            .filter(BlankEdge.class)
+            .anyMatch(e -> e.getDescription().equals("while"));
   }
 }

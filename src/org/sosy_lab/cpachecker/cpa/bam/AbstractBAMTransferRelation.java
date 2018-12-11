@@ -31,7 +31,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -59,9 +59,9 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
   protected final LogManager logger;
   protected final TransferRelation wrappedTransfer;
   protected final Reducer wrappedReducer;
-  protected final ShutdownNotifier shutdownNotifier;
+  private final ShutdownNotifier shutdownNotifier;
 
-  protected final boolean useDynamicAdjustment;
+  private final boolean useDynamicAdjustment;
 
   protected AbstractBAMTransferRelation(
       AbstractBAMCPA pBamCPA, ShutdownNotifier pShutdownNotifier) {

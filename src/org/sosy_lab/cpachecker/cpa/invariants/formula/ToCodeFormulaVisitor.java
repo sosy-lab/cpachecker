@@ -25,13 +25,14 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.math.BigInteger;
 import java.util.Map;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundFloatingPointInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.FloatingPointTypeInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
 import org.sosy_lab.cpachecker.util.expressions.And;
@@ -101,6 +102,17 @@ public class ToCodeFormulaVisitor
         }
       }
       return CNumericTypes.INT;
+    } else if (pTypeInfo instanceof FloatingPointTypeInfo) {
+      FloatingPointTypeInfo fpTypeInfo = (FloatingPointTypeInfo) pTypeInfo;
+      switch (fpTypeInfo) {
+        case FLOAT:
+          return CNumericTypes.FLOAT;
+        case DOUBLE:
+          return CNumericTypes.DOUBLE;
+        default:
+          // do nothing and throw the AssertionError below
+          break;
+      }
     }
     throw new AssertionError("Unsupported type: " + pTypeInfo);
   }

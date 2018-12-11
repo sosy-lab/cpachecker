@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.ltl.formulas;
 
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.util.ltl.LtlFormulaVisitor;
 
 /** Finally. */
 public final class Finally extends UnaryFormula {
@@ -72,5 +73,10 @@ public final class Finally extends UnaryFormula {
   @Override
   public Globally not() {
     return new Globally(operand.not());
+  }
+
+  @Override
+  public String accept(LtlFormulaVisitor v) {
+    return v.visit(this);
   }
 }

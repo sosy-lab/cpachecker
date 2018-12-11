@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
@@ -39,7 +39,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -76,11 +76,12 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
 
   // The following options will be forced in the counterexample check
   // to have the same value as in the actual analysis.
-  private static final ImmutableSet<String> OVERWRITE_OPTIONS = ImmutableSet.of(
-      "analysis.machineModel",
-      "cpa.predicate.handlePointerAliasing",
-      "cpa.predicate.memoryAllocationsAlwaysSucceed"
-      );
+  private static final ImmutableSet<String> OVERWRITE_OPTIONS =
+      ImmutableSet.of(
+          "analysis.machineModel",
+          "cpa.predicate.handlePointerAliasing",
+          "cpa.predicate.memoryAllocationsAlwaysSucceed",
+          "testcase.targets.type");
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -171,7 +172,8 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
           getCounterexampleInfo.apply(pErrorState).orElse(null));
     }
 
-    CFANode entryNode = extractLocation(pRootState);
+    // We assume only one initial node for an analysis, even for mutli-threaded tasks.
+    CFANode entryNode = Iterables.getOnlyElement(extractLocations(pRootState));
     LogManager lLogger = logger.withComponentName("CounterexampleCheck");
 
     try {

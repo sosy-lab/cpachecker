@@ -80,7 +80,7 @@ public class SMGEdgeHasValueFilter {
     if (value != null) {
       if (valueComplement && pEdge.getValue().equals(value)) {
         return false;
-      } else if ((!valueComplement) && !pEdge.getValue().equals(value)) {
+      } else if (!valueComplement && !pEdge.getValue().equals(value)) {
         return false;
       }
     }
@@ -117,5 +117,12 @@ public class SMGEdgeHasValueFilter {
 
   public static SMGEdgeHasValueFilter valueFilter(SMGValue pValue) {
     return new SMGEdgeHasValueFilter().filterHavingValue(pValue);
+  }
+
+  @Override
+  public String toString() {
+    return String.format(
+        "Filter %s<object=%s@%d, value=%s, type=%s>",
+        valueComplement ? "" : "NOT", object, offset, value, type);
   }
 }

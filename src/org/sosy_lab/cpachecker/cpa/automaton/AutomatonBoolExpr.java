@@ -39,7 +39,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -287,9 +288,15 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
         @Override
         public TraversalProcess visitNode(CFANode pNode) {
-          return continueAtBranching || pNode.getNumEnteringEdges() < 2
-              ? TraversalProcess.CONTINUE
-              : TraversalProcess.SKIP;
+          if (continueAtBranching) {
+            return TraversalProcess.CONTINUE;
+          }
+          if (forward && pNode.getNumLeavingEdges() < 2) {
+            return TraversalProcess.CONTINUE;
+          } else if (!forward && pNode.getNumEnteringEdges() < 2) {
+            return TraversalProcess.CONTINUE;
+          }
+          return TraversalProcess.SKIP;
         }
       }
       EpsilonMatchVisitor epsilonMatchVisitor = new EpsilonMatchVisitor(eval);
@@ -646,7 +653,16 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
         throws UnrecognizedCFAEdgeException {
-      Optional<?> ast = pArgs.getCfaEdge().getRawAST();
+      Optional<?> ast = Optional.absent();
+      CFAEdge edge = pArgs.getCfaEdge();
+      if (edge.getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
+        // Ignore this edge, FunctionReturnEdge will be taken instead.
+        return CONST_FALSE;
+      } else if (edge.getEdgeType().equals(CFAEdgeType.FunctionReturnEdge)) {
+        ast = Optional.of(((FunctionReturnEdge) edge).getSummaryEdge().getExpression());
+      } else {
+        ast = edge.getRawAST();
+      }
       if (ast.isPresent()) {
         if (!(ast.get() instanceof CAstNode)) {
           throw new UnrecognizedCFAEdgeException(pArgs.getCfaEdge());
@@ -778,13 +794,18 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      if (pArgs.getCfaEdge() instanceof AssumeEdge) {
+      CFAEdge edge = pArgs.getCfaEdge();
+      if (edge instanceof AssumeEdge) {
         AssumeEdge a = (AssumeEdge) pArgs.getCfaEdge();
         boolean actualBranchInSource = a.getTruthAssumption() != a.isSwapped();
         if (matchPositiveCase == actualBranchInSource) {
           return CONST_TRUE;
         }
       }
+      if (matchPositiveCase && AutomatonGraphmlCommon.treatAsWhileTrue(edge)) {
+        return CONST_TRUE;
+      }
+
       return CONST_FALSE;
     }
 
@@ -1307,14 +1328,14 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   /** Tests the equality of the values of two instances of {@link AutomatonIntExpr}. */
   static class IntEqTest extends IntBinaryTest {
     public IntEqTest(AutomatonIntExpr pA, AutomatonIntExpr pB) {
-      super(pA, pB, ((a, b) -> a.equals(b)), "==");
+      super(pA, pB, (a, b) -> a.equals(b), "==");
     }
   }
 
   /** Tests whether two instances of {@link AutomatonIntExpr} evaluate to different integers. */
   static class IntNotEqTest extends IntBinaryTest {
     public IntNotEqTest(AutomatonIntExpr pA, AutomatonIntExpr pB) {
-      super(pA, pB, ((a, b) -> a.equals(b)), "!=");
+      super(pA, pB, (a, b) -> !a.equals(b), "!=");
     }
   }
 
@@ -1335,7 +1356,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       ResultValue<Boolean> resA = a.eval(pArgs);
       if (resA.canNotEvaluate()) {
         ResultValue<Boolean> resB = b.eval(pArgs);
-        if ((!resB.canNotEvaluate()) && resB.getValue().equals(Boolean.TRUE)) {
+        if (!resB.canNotEvaluate() && resB.getValue().equals(Boolean.TRUE)) {
           return resB;
         } else {
           return resA;
@@ -1376,7 +1397,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       ResultValue<Boolean> resA = a.eval(pArgs);
       if (resA.canNotEvaluate()) {
         ResultValue<Boolean> resB = b.eval(pArgs);
-        if ((!resB.canNotEvaluate()) && resB.getValue().equals(Boolean.FALSE)) {
+        if (!resB.canNotEvaluate() && resB.getValue().equals(Boolean.FALSE)) {
           return resB;
         } else {
           return resA;
@@ -1509,14 +1530,14 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   /** Boolean Equality */
   static class BoolEqTest extends BoolBinaryTest {
     public BoolEqTest(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
-      super(pA, pB, ((a, b) -> a.equals(b)), "==");
+      super(pA, pB, (a, b) -> a.equals(b), "==");
     }
   }
 
   /** Boolean != */
   static class BoolNotEqTest extends BoolBinaryTest {
     public BoolNotEqTest(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
-      super(pA, pB, ((a, b) -> !a.equals(b)), "!=");
+      super(pA, pB, (a, b) -> !a.equals(b), "!=");
     }
   }
 }

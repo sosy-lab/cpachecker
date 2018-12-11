@@ -52,7 +52,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -555,8 +555,6 @@ public class FormulaManagerView {
     Formula t;
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.modulo((IntegerFormula) pF1, (IntegerFormula) pF2);
-    } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
-      t = getRationalFormulaManager().modulo((NumeralFormula) pF1, (NumeralFormula) pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.modulo((BitvectorFormula) pF1, (BitvectorFormula) pF2, pSigned);
     } else {
@@ -568,6 +566,11 @@ public class FormulaManagerView {
 
   public <T extends Formula> BooleanFormula makeModularCongruence(
       T pF1, T pF2, long pModulo, boolean pSigned) {
+    return makeModularCongruence(pF1, pF2, BigInteger.valueOf(pModulo), pSigned);
+  }
+
+  public <T extends Formula> BooleanFormula makeModularCongruence(
+      T pF1, T pF2, BigInteger pModulo, boolean pSigned) {
     BooleanFormula t;
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.modularCongruence((IntegerFormula) pF1, (IntegerFormula) pF2, pModulo);
@@ -1075,6 +1078,8 @@ public class FormulaManagerView {
     toProcess.push(pFormula);
 
     FormulaVisitor<Void> process = new FormulaVisitor<Void>() {
+      // This visitor works with unwrapped formulas.
+      // After calls to other methods that might return wrapped formulas we need to unwrap them.
 
       @Override
       public Void visitFreeVariable(Formula f, String name) {
@@ -1129,11 +1134,10 @@ public class FormulaManagerView {
           Formula out;
           if (decl.getKind() == FunctionDeclarationKind.UF) {
 
-            out = functionFormulaManager.declareAndCallUF(
-                pRenameFunction.apply(decl.getName()),
-                getFormulaType(f),
-                newArgs
-            );
+            out =
+                unwrap(
+                    functionFormulaManager.declareAndCallUF(
+                        pRenameFunction.apply(decl.getName()), getFormulaType(f), newArgs));
 
           } else {
             out = manager.makeApplication(decl, newArgs);

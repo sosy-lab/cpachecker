@@ -143,6 +143,9 @@ analysis.algorithm.CBMC = false
 # Currently all refiner require the use of the ARGCPA.
 analysis.algorithm.CEGAR = false
 
+# use MPV algorithm for checking multiple properties
+analysis.algorithm.MPV = false
+
 # use a analysis which proves if the program satisfies a specified property
 # with the help of an enabler CPA to separate differnt program paths
 analysis.algorithm.analysisWithEnabler = false
@@ -435,6 +438,12 @@ assumptions.automatonIgnoreAssumptions = false
 
 # compress the produced assumption automaton using GZIP compression.
 assumptions.compressAutomaton = false
+
+# export assumptions as automaton to dot file
+assumptions.dotExport = false
+
+# write collected assumptions as automaton to dot file
+assumptions.dotFile = "AssumptionAutomaton.dot"
 
 # write collected assumptions to file
 assumptions.export = true
@@ -768,6 +777,10 @@ counterexample.concrete.timelimit = 0ms
 # second check
 counterexample.continueAfterInfeasibleError = true
 
+# An imprecise counterexample of the Predicate CPA is usually a bug, but
+# expected in some configurations. Should it be treated as a bug or accepted?
+counterexample.export.allowImpreciseCounterexamples = true
+
 # If the option assumeLinearArithmetics is set, this option can be used to
 # allow division and modulo by constants.
 counterexample.export.assumptions.allowDivisionAndModuloByConstants = false
@@ -801,6 +814,13 @@ counterexample.export.core = "Counterexample.%d.core.txt"
 
 # export counterexample to file, if one is found
 counterexample.export.enabled = true
+
+# export error paths to files immediately after they were found, including
+# spurious error-paths before executing a refinement. Note that we do not
+# track already exported error-paths and export them at every refinement as
+# long as they are not removed from the reached-set. Most helpful for
+# debugging refinements.
+counterexample.export.exportAllFoundErrorPaths = false
 
 # export counterexample as source file
 counterexample.export.exportAsSource = true
@@ -998,9 +1018,8 @@ cpa.arg.keepCoveredStatesInReached = false
 cpa.arg.logARGs = false
 
 # If this option is enabled, ARG states will also be merged if the first
-# wrapped state is 
-#  subsumed by the second wrapped state (and the parents are not yet
-# subsumed).
+# wrapped state is subsumed by the second wrapped state (and the parents are
+# not yet subsumed).
 cpa.arg.mergeOnWrappedSubsumption = false
 
 # Export final ARG as pixel graphic to the given file name. The suffix is
@@ -1156,6 +1175,9 @@ cpa.bam.maximalDepthForExplicitRecursion = -1
 
 # export used parts of blocked ARG as .dot file
 cpa.bam.simplifiedArgFile = "BlockedARGSimplified.dot"
+
+# Should the nested CPA-algorithm be wrapped with CEGAR within BAM?
+cpa.bam.useCEGAR = false
 
 # This flag determines which refinement procedure we should use. We can
 # choose between an in-place refinement and a copy-on-write refinement.
@@ -2042,6 +2064,10 @@ cpa.predicate.refinement.cexTraceCheckDirection = FORWARDS
 # BDDs as they are.
 cpa.predicate.refinement.doAbstractionComputation = false
 
+# use variant described in the Guiding Craig Interpolation Paper leading to a
+# different routine
+cpa.predicate.refinement.domainSpecificAbstractions = false
+
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
 
@@ -2073,6 +2099,10 @@ cpa.predicate.refinement.includePartialInvariants = true
 # infeasible prefix
 cpa.predicate.refinement.incrementalCexTraceCheck = false
 
+# additional variation to domainSpecificAbstractions using inequalities
+# instead of equalities
+cpa.predicate.refinement.inequalityInterpolationAbstractions = false
+
 # Max. number of prefixes to extract
 cpa.predicate.refinement.maxPrefixCount = 64
 
@@ -2084,23 +2114,23 @@ cpa.predicate.refinement.maxPrefixLength = 1024
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
 
-# Activate fallback to interpolation. Typically in case of a repeated
-# counterexample.
-cpa.predicate.refinement.newtonrefinement.fallbackToInterpolation = false
-
 # sets the level of the pathformulas to use for abstraction. 
 #   EDGE : Based on Pathformulas of every edge in ARGPath
 #   BLOCK: Based on Pathformulas at Abstractionstates
-cpa.predicate.refinement.newtonrefinement.pathFormulaAbstractionLevel = BLOCK
+cpa.predicate.refinement.newtonrefinement.abstractionLevel = BLOCK
   enum:     [BLOCK, EDGE]
 
-# use live variables in order to abstract the predicates produced while
-# NewtonRefinement
-cpa.predicate.refinement.newtonrefinement.useLiveVariables = true
+# Activate fallback to interpolation. Typically in case of a repeated
+# counterexample.
+cpa.predicate.refinement.newtonrefinement.fallback = false
 
 # use unsatisfiable Core in order to abstract the predicates produced while
 # NewtonRefinement
-cpa.predicate.refinement.newtonrefinement.useUnsatCore = true
+cpa.predicate.refinement.newtonrefinement.infeasibleCore = true
+
+# use live variables in order to abstract the predicates produced while
+# NewtonRefinement
+cpa.predicate.refinement.newtonrefinement.liveVariables = true
 
 # use heuristic to extract predicates from the CFA statically on first
 # refinement
@@ -2311,6 +2341,10 @@ cpa.propertychecker.className = org.sosy_lab.cpachecker.pcc.propertychecker.Defa
 # empty string represents an empty parameter list.
 cpa.propertychecker.parameters = ""
 
+# Whether to consider constraints on program variables (e.g., x > 10) as
+# definitions)
+cpa.reachdef.constraintIsDef = false
+
 # which merge operator to use for ReachingDefCPA
 cpa.reachdef.merge = "JOIN"
   allowed values: [SEP, JOIN, IGNORECALLSTACK]
@@ -2340,6 +2374,12 @@ cpa.slicing.applyLBETransformation = true
 # Check target states reachability
 cpa.slicing.checkTargetStates = true
 
+# Whether to export the final slice to a file
+cpa.slicing.exportSlice = true
+
+# File to export final slice to
+cpa.slicing.exportSliceFile = "ProgramSlice.txt"
+
 # Filter lemmas by liveness
 cpa.slicing.filterByLiveness = true
 
@@ -2348,6 +2388,14 @@ cpa.slicing.leastRemovalsDepthLimit = 2
 
 # Pre-run syntactic weakening
 cpa.slicing.preRunSyntacticWeakening = true
+
+# Whether to use a refinable slicing precision that starts with an empty
+# slice, or a statically computed, fixed slicing precision
+cpa.slicing.refinableSlice = false
+
+# Add all assumptions of an infeasible target path to the slice, in addition
+# to the original slice
+cpa.slicing.refinement.addCexConstraintsToSlice = true
 
 # Allow counterexamples that are valid only on the program slice. If you set
 # this to `false`, you may have to set takeEagerSlice=true to avoid failed
@@ -2359,10 +2407,9 @@ cpa.slicing.refinement.counterexampleCheckOnSlice = false
 cpa.slicing.refinement.restartStrategy = PIVOT
   enum:     [PIVOT, ROOT]
 
-# Use all assumptions of a target path as counterexamples, not just the edge
-# to the target location. Always set this to `true` if you use
-# SlicingDelegatingRefiner.
-cpa.slicing.refinement.takeEagerSlice = true
+# Use all assumptions of a target path as slicing criteria, not just the edge
+# to the target location.
+cpa.slicing.refinement.takeEagerSlice = false
 
 # Strategy for abstracting children during CEX weakening
 cpa.slicing.removalSelectionStrategy = ALL
@@ -2431,7 +2478,7 @@ cpa.smg.handleUnknownFunctions = STRICT
   enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
 
 # Memory allocation functions
-cpa.smg.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc"}
+cpa.smg.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc", "realloc"}
 
 # Size parameter of memory allocation functions
 cpa.smg.memoryAllocationFunctionsSizeParameter = 0
@@ -2461,7 +2508,7 @@ cpa.smg.refinement.exportInterpolationTree = "NEVER"
   allowed values: [NEVER, FINAL, ALWAYS]
 
 # export interpolant smgs for every path interpolation to this path template
-cpa.smg.refinement.exportRefinmentSMGs = "smg/refinment-%d/smg-%s"
+cpa.smg.refinement.exportRefinementSMGs = "smg/refinement-%d/smg-%s"
 
 # export interpolation trees to this file template
 cpa.smg.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
@@ -2611,6 +2658,9 @@ cpa.usage.falseUnsafesOutput = "FalseUnsafes"
 # if a file do not exist, do not include the corresponding edge
 cpa.usage.filterMissedFiles = true
 
+# filtered unsafes, which can not be removed using precision, may be hidden
+cpa.usage.hideFilteredUnsafes = false
+
 # The functions, which cannot be executed in parallel with themselves
 cpa.usage.notSelfParallelFunctions = new HashSet<>()
 
@@ -2633,6 +2683,9 @@ cpa.usage.printFalseUnsafes = false
 
 # output only true unsafes
 cpa.usage.printOnlyTrueUnsafes = false
+
+# print found unsafes in case of unknown verdict
+cpa.usage.printUnsafesIfUnknown = true
 
 # The order of refinement blocks
 cpa.usage.refinementChain = no default value
@@ -2709,10 +2762,8 @@ cpa.value.abstraction.iterationThreshold = -1
 # leaving edge
 cpa.value.abstraction.onlyAtNonLinearCFA = false
 
-# Whether to replace symbolic values with a concrete value when only one
-# value is possible for an assumption to be true (e.g. for (x == 1) set x to
-# 1, even if x is a symbolic expression).
-cpa.value.assignSymbolicAssumptionVars = false
+# Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
+cpa.value.assignEqualityAssumptions = true
 
 # Track or not function pointer values
 cpa.value.ignoreFunctionValue = true
@@ -2782,8 +2833,7 @@ cpa.value.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
 # from them
 cpa.value.refinement.itpSortedTargets = false
 
-# File to which path constraints should be written. If null, no path
-# constraints are written
+# File to which path constraints should be written.
 cpa.value.refinement.pathConstraintsFile = "Counterexample.%d.symbolic-trace.txt"
 
 # whether or not to perform path slicing before interpolation
@@ -2815,12 +2865,13 @@ cpa.value.refinement.trackConstraints = true
 # interpolation strategy
 cpa.value.refinement.useTopDownInterpolationStrategy = true
 
+# Whether to write symbolic trace (including path constraints) for found
+# erexamples
+cpa.value.refinement.writePathConstraints = true
+
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"
-  allowed values: [SEP, JOIN, NEVER]
-
-# Whether to adopt definite assignments computed by the ConstraintsCPA
-cpa.value.symbolic.adoptDefinites = true
+  allowed values: [SEP, JOIN, NEVER, EQUALS]
 
 # Default size of arrays whose length can't be determined.
 cpa.value.symbolic.defaultArraySize = 20
@@ -2899,12 +2950,34 @@ custominstructions.requirementsStateClassName = no default value
 cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
   enum:     [ALL_LOOPS, ONLY_LAST_LOOP]
 
+# Whether to take an assumption edge 'p' as control dependence if edge 'not
+# p' is a control dependence. This creates a larger slice, but may reduce the
+# size of the state space for deterministic programs. This behavior is also
+# closer to the static program slicing based on control-flow graphs (CFGs),
+# where branching is represented by a single assumption (with true- and
+# false-edges)
+dependencegraph.controldeps.considerInverseAssumption = false
+
+# Whether to consider control dependencies.
+dependencegraph.controldeps.use = true
+
 # File to export dependence graph to. If `null`, dependence graph will not be
 # exported as dot.
-dependenceGraph.exportDot = "DependenceGraph.dot"
+dependencegraph.exportDot = "DependenceGraph.dot"
 
 # Run flow dependence analysis with constant propagation
 dependencegraph.flowdep.constantPropagation = false
+
+# Whether to consider constraints on program variables (e.g., x > 10) as
+# definitions.
+dependencegraph.flowdep.constraintIsDef = false
+
+# Whether to consider (data-)flow dependencies.
+dependencegraph.flowdeps.use = true
+
+# ignore declarations when detecting modifications, be careful when variables
+# are renamed (could be unsound)
+differential.ignoreDeclarations = false
 
 # Program to check against
 differential.program = no default value
@@ -2942,6 +3015,15 @@ heuristicSelection.loopFreeConfig = no default value
 
 # Configuration for programs containing only relevant bool vars.
 heuristicSelection.onlyBoolConfig = no default value
+
+# Configuration for preliminary algorithm.
+heuristicSelection.preAnalysisAlgorithmConfig = no default value
+
+# Configuration for programs containing recursion.
+heuristicSelection.recursionConfig = no default value
+
+# Usage of an preliminary algorithm analysis.
+heuristicSelection.usePreAnalysisAlgorithm = false
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
@@ -2984,7 +3066,8 @@ invariantGeneration.config = no default value
 invariantGeneration.kInduction.async = true
 
 # Guess some candidates for the k-induction invariant generator from the CFA.
-invariantGeneration.kInduction.guessCandidatesFromCFA = true
+invariantGeneration.kInduction.guessCandidatesFromCFA = ASSUME_EDGES_PLAIN
+  enum:     [NONE, ASSUME_EDGES_PLAIN, ASSUME_EDGE_TEMPLATES, LINEAR_TEMPLATES]
 
 # Provides additional candidate invariants to the k-induction invariant
 # generator.
@@ -3057,6 +3140,10 @@ locmapper.dumpTokenizedProgramToFile = no default value
 # all used options are printed
 log.usedOptions.export = false
 
+# When checking for memory cleanup properties, use this configuration file
+# instead of the current one.
+memorycleanup.config = no default value
+
 # When checking for memory safety properties, use this configuration file
 # instead of the current one.
 memorysafety.config = no default value
@@ -3064,6 +3151,59 @@ memorysafety.config = no default value
 # which merge operator to use for LiveVariablesCPA
 merge = "JOIN"
   allowed values: [SEP, JOIN]
+
+# Find all violations of each checked property.
+mpv.findAllViolations = false
+
+# Ignore exceptions, which may be caused by checking of some properties, to
+# successfully check the others.
+mpv.ignoreInnerExceptions = false
+
+# Adjust resource limitations during the analysis.
+# - NONE: do not adjust resource limitations (default).
+# - DISTRIBUTE_REMAINING: distribute resources, which were allocated for some
+# already checked property, but were not fully spent, between other
+# properties, which are still checking.
+# - DISTRIBUTE_BY_PROPERTY: scale resources for each property in accordance
+# with the given ratio in the property distribution file.
+mpv.limits.adjustmentStrategy = NONE
+  enum:     [NONE, DISTRIBUTE_REMAINING, DISTRIBUTE_BY_PROPERTY]
+
+# Set CPU time limit per each property in multi-property verification (use
+# seconds or specify a unit; -1 to disable)
+mpv.limits.cpuTimePerProperty = -1ns
+
+# Change resource limitations for the first partition by the given ratio.
+# This option will be ignored if NONE limits adjustment strategy is used.
+mpv.limits.firstPartitionRatio = 1.0
+
+# The ratio of CPU time limit in the first phase of Joint partitioning
+# operator to CPU time limit per each property.
+mpv.limits.joint.firstPhaseRatio = 1.3
+
+# Get a resource limitation distribution per property from file. This option
+# should be used only together with DISTRIBUTE_BY_PROPERTY limits adjustment
+# strategy. The following format should be used in the file:
+# '<property name>':<ratio>
+mpv.limits.propertyDistributionFile = no default value
+
+# The ratio of CPU time limit in the first phase of Relevance partitioning
+# operator to CPU time limit per each property.
+mpv.limits.relevance.firstPhaseRatio = 0.2
+
+# The ratio of CPU time limit in the second phase of Relevance partitioning
+# operator to CPU time limit per each property.
+mpv.limits.relevance.secondPhaseRatio = 1.3
+
+# Partitioning operator for multi-property verification.
+mpv.partitionOperator = no default value
+
+# Specifies how to separate a single property.
+# - FILE: each .spc file represent a single property (i.e., property is
+# represented by several automata).
+# - AUTOMATON: each automaton represent a single property.
+mpv.propertySeparator = FILE
+  enum:     [FILE, AUTOMATON]
 
 # When checking for the overflow property, use this configuration file
 # instead of the current one.
@@ -3081,8 +3221,8 @@ overflow.trackLeftShifts = true
 # Track overflows in multiplication operations.
 overflow.trackMultiplications = true
 
-# Track overflow for signed integers.
-overflow.trackSignedIntegers = true
+# Track overflows in binary expressions involving pointers.
+overflow.trackPointers = false
 
 # Only check live variables for overflow, as compiler can remove dead
 # variables.
@@ -3407,6 +3547,10 @@ program.splitter.heuristic = no default value
 # maximal number
 program.splitter.max = 2
 
+# Whether to create slices that are behaviorally equivalent not only to the
+# target location, but also on the paths to that target location.
+programSlice.preserveTargetPaths = false
+
 # Quantifier elimination strategy
 rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP
   enum:     [QE_LIGHT_THEN_DROP, QE, DROP]
@@ -3564,6 +3708,9 @@ stop = "SEP"
 # instead of the current one.
 termination.config = no default value
 
+# enable to also analyze whether recursive calls terminate
+termination.considerRecursion = false
+
 # Number of generalized eigenvectors in the geometric nontermination
 # argument.
 termination.lassoAnalysis.eigenvectors = 3
@@ -3626,26 +3773,59 @@ termination.violation.witness = "nontermination_witness.graphml"
 # Use the counterexample model to provide test-vector values
 testHarnessExport.useModel = true
 
+# zip all exported test cases into a single file
+testcase.compress = false
+
 # export test harness to file as code
 testcase.file = no default value
+
+# set to true if run multiple test case generation instances in parallel
+testcase.generate.parallel = false
 
 # display all test targets and non-covered test targets in statistics
 testcase.inStats = false
 
-# export undefined functions as C file
-undefFuncCollectorAlgorithm.file = "env.c"
+# when generating tests covering error call stop as soon as generated one
+# test case and report false (only possible in combination with error call
+# property specification
+testcase.reportCoveredErrorCallAsError = false
+
+# Which CFA edges to use as test targets
+testcase.targets.type = ASSUME
+  enum:     [ASSUME, ERROR_CALL, STATEMENT]
+
+# export test values to file (line separated)
+testcase.values = no default value
+
+# export test cases to xm file (Test-Comp format)
+testcase.xml = no default value
+
+# Zip file into which all test case files are bundled
+testcase.zip.file = no default value
+
+# Ignore functions that are defined by C11
+undefinedFunctionsCollector.allowC11Functions = true
+
+# Ignore functions that are defined by GNU C and not by C11/POSIX
+undefinedFunctionsCollector.allowGnuCFunctions = true
+
+# Ignore functions that are defined by POSIX
+undefinedFunctionsCollector.allowPosixFunctions = true
 
 # Set of functions that should be ignored
-undefFuncCollectorAlgorithm.ignoreFunctions = {"memset", "kfree", "free", "calloc", "malloc"}
+undefinedFunctionsCollector.allowedFunctions = ImmutableSet.of(
 
-# On-demand memory allocation function
-undefFuncCollectorAlgorithm.odmAllocFunction = "external_alloc"
+# Regexp matching function names that are allowed to be undefined
+undefinedFunctionsCollector.allowedFunctionsRegexp = "^(__VERIFIER|pthread)_[a-zA-Z0-9_]*"
 
-# Set of functions that are defined by pthread.h and should be ignored
-undefFuncCollectorAlgorithm.pthreadFunctionsRegexp = "^pthread_[a-zA-Z0-9_]*"
+# Regexp matching function names that need not be declared
+undefinedFunctionsCollector.allowedUndeclaredFunctionsRegexp = "^__builtin_[a-zA-Z0-9_]*"
 
-# Set of functions that are defined by SV-COMP rules and should be ignored
-undefFuncCollectorAlgorithm.svcompFunctionsRegexp = "^__VERIFIER_[a-zA-Z0-9_]*"
+# Memory-allocation function that will be used in stubs
+undefinedFunctionsCollector.externAllocFunction = "external_alloc"
+
+# export undefined functions as C file
+undefinedFunctionsCollector.stubsFile = "stubs.c"
 
 # File for exporting the witness automaton in DOT format.
 witness.automatonDumpFile = no default value

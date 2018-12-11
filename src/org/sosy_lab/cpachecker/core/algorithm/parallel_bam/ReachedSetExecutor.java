@@ -361,8 +361,7 @@ class ReachedSetExecutor {
     AbstractState reducedInitialState = rs.getFirstState();
     Precision reducedInitialPrecision = rs.getPrecision(reducedInitialState);
     Block innerBlock = getBlockForState(reducedInitialState);
-    final Collection<AbstractState> exitStates =
-        extractExitStates(pEndsWithTargetState, innerBlock);
+    final List<AbstractState> exitStates = extractExitStates(pEndsWithTargetState, innerBlock);
     BAMCacheEntry entry =
         bamcpa.getCache().get(reducedInitialState, reducedInitialPrecision, innerBlock);
     assert entry.getReachedSet() == rs
@@ -381,7 +380,7 @@ class ReachedSetExecutor {
     }
   }
 
-  private Collection<AbstractState> extractExitStates(boolean pEndsWithTargetState, Block pBlock) {
+  private List<AbstractState> extractExitStates(boolean pEndsWithTargetState, Block pBlock) {
     if (pEndsWithTargetState) {
       assert AbstractStates.isTargetState(rs.getLastState());
       return Collections.singletonList(rs.getLastState());

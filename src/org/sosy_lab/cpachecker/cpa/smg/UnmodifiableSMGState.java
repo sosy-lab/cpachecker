@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
@@ -158,7 +158,7 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
    * @return Address of the given field, or NULL, if such an address does not yet exist in the SMG.
    */
   @Nullable
-  public SMGSymbolicValue getAddress(SMGObject memory, long offset, SMGTargetSpecifier tg);
+  SMGSymbolicValue getAddress(SMGObject memory, long offset, SMGTargetSpecifier tg);
 
   Collection<Object> getInvalidChain();
 

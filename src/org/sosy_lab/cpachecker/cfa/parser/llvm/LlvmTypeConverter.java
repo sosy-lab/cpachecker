@@ -53,7 +53,7 @@ import org.sosy_lab.llvm_j.TypeRef.TypeKind;
 public class LlvmTypeConverter {
 
   private static final String PREFIX_LITERAL_STRUCT = "lit_struc_";
-  private static final String PREFIX_STRUCT_MEMBER = ".mem_";
+  private static final String PREFIX_STRUCT_MEMBER = "elem_";
   private static final CSimpleType ARRAY_LENGTH_TYPE = CNumericTypes.LONG_LONG_INT;
 
   private static int structCount = 0;
@@ -163,7 +163,7 @@ public class LlvmTypeConverter {
     List<CCompositeTypeMemberDeclaration> members = new ArrayList<>(memberTypes.size());
 
     for (int i = 0; i < memberTypes.size(); i++) {
-      String memberName = getMemberName(structName, i);
+      String memberName = getMemberName(i);
       TypeRef memType = memberTypes.get(i);
       CType cMemType = getCType(memType);
       CCompositeTypeMemberDeclaration memDecl =
@@ -177,7 +177,9 @@ public class LlvmTypeConverter {
 
   private String getStructName(TypeRef pStructType) {
     if (pStructType.isStructNamed()) {
-      return pStructType.getStructName();
+      /* . is not a valid character for a name in C (but in LLVM yes),
+       * so replace it by _ */
+      return pStructType.getStructName().replace(".", "_");
 
     } else {
       return getLiteralStructName();
@@ -189,8 +191,8 @@ public class LlvmTypeConverter {
     return PREFIX_LITERAL_STRUCT + structCount;
   }
 
-  private String getMemberName(String pStructName, int pI) {
-    return pStructName + PREFIX_STRUCT_MEMBER + pI;
+  private String getMemberName(int pI) {
+    return PREFIX_STRUCT_MEMBER + pI;
   }
 
   private CType getFunctionType(TypeRef pFuncType) {

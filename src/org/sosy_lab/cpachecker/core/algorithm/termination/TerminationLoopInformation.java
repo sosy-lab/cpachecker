@@ -34,7 +34,6 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.Iterator;
@@ -196,7 +195,7 @@ public class TerminationLoopInformation {
 
     String functionName = pLoop.getLoopHeads().iterator().next().getFunctionName();
     ImmutableList.Builder<CFANode> intermediateStates = ImmutableList.builder();
-    Builder<CExpression, CVariableDeclaration> builder = ImmutableMap.builder();
+    ImmutableMap.Builder<CExpression, CVariableDeclaration> builder = ImmutableMap.builder();
 
     for (CVariableDeclaration relevantVariable : pRelevantVariables) {
       CExpression unprimedVariable = new CIdExpression(DUMMY, relevantVariable);

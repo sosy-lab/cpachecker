@@ -29,7 +29,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Predicate;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 
-final class PredefinedTypes {
+public final class PredefinedTypes {
 
   private PredefinedTypes() {
 
@@ -70,6 +70,16 @@ final class PredefinedTypes {
         || isSwprintf(pDeclaration)
         || isWcstombs(pDeclaration)
         || isDiv(pDeclaration)
+        || isVerifierError(pDeclaration)
+        || isVerifierAssume(pDeclaration);
+  }
+
+  public static boolean isKnownTestFunction(@Nullable AFunctionDeclaration pDeclaration) {
+    return isMalloc(pDeclaration)
+        || isFree(pDeclaration)
+        || isExit(pDeclaration)
+        || isAbort(pDeclaration)
+        || isPrintf(pDeclaration)
         || isVerifierError(pDeclaration)
         || isVerifierAssume(pDeclaration);
   }

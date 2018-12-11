@@ -2,7 +2,6 @@ package org.sosy_lab.cpachecker.cpa.usage.storage;
 
 
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
-import org.sosy_lab.cpachecker.cpa.usage.UsageState;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class RefinedUsagePointSet implements AbstractUsagePointSet {
@@ -23,19 +22,6 @@ public class RefinedUsagePointSet implements AbstractUsagePointSet {
     @Override
     public Pair<UsageInfo, UsageInfo> getUnsafePair() {
       return Pair.of(target, target2);
-    }
-
-    @Override
-    public UsageInfoSet getUsageInfo(UsagePoint point) {
-      UsageInfoSet result = super.getUsageInfo(point);
-      if (result != null) {
-        return result;
-      }
-      UsagePoint p = target2.createUsagePoint();
-      if (p.equals(point)) {
-        return new UsageInfoSet(target2);
-      }
-      return null;
     }
   }
 
@@ -59,27 +45,8 @@ public class RefinedUsagePointSet implements AbstractUsagePointSet {
     return 1;
   }
 
-  @Override
-  public UsageInfoSet getUsageInfo(UsagePoint point) {
-    UsagePoint p = target.createUsagePoint();
-    if (p.equals(point)) {
-      return new UsageInfoSet(target);
-    }
-    return null;
-  }
-
-  @Override
-  public int getNumberOfTopUsagePoints() {
-    return size();
-  }
-
   public Pair<UsageInfo, UsageInfo> getUnsafePair() {
     return Pair.of(target, target);
-  }
-
-  @Override
-  public void remove(UsageState pUstate) {
-    // Do nothing, we don't delete true usages
   }
 
 }

@@ -62,33 +62,41 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-@Options
-public class ARGCPA extends AbstractSingleWrapperCPA implements
-    ConfigurableProgramAnalysisWithBAM, ProofChecker {
+@Options(prefix = "cpa.arg")
+public class ARGCPA extends AbstractSingleWrapperCPA
+    implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ARGCPA.class);
   }
 
-  @Option(secure=true, name="cpa.arg.inCPAEnabledAnalysis",
-  description="inform ARG CPA if it is run in an analysis with enabler CPA because then it must "
-    + "behave differently during merge.")
+  @Option(
+      secure = true,
+      description =
+          "inform ARG CPA if it is run in an analysis with enabler CPA because then it must "
+              + "behave differently during merge.")
   private boolean inCPAEnabledAnalysis = false;
 
-  @Option(secure=true, name="cpa.arg.deleteInCPAEnabledAnalysis",
-      description="inform merge operator in CPA enabled analysis that it should delete the subgraph of the merged node "
-        + "which is required to get at most one successor per CFA edge.")
-      private boolean deleteInCPAEnabledAnalysis = false;
+  @Option(
+      secure = true,
+      description =
+          "inform merge operator in CPA enabled analysis that it should delete the subgraph "
+              + "of the merged node which is required to get at most one successor per CFA edge.")
+  private boolean deleteInCPAEnabledAnalysis = false;
 
   @Option(
     secure = true,
-    name = "cpa.arg.keepCoveredStatesInReached",
     description =
         "whether to keep covered states in the reached set as addition to keeping them in the ARG"
   )
   private boolean keepCoveredStatesInReached = false;
 
-  private final MergeOperator merge;
+  @Option(
+      secure = true,
+      description =
+          "If this option is enabled, ARG states will also be merged if the first wrapped state "
+              + "is subsumed by the second wrapped state (and the parents are not yet subsumed).")
+  private boolean mergeOnWrappedSubsumption = false;
 
   private final LogManager logger;
 
@@ -104,16 +112,6 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     super(cpa);
     config.inject(this);
     this.logger = logger;
-
-    MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
-    if (wrappedMergeOperator == MergeSepOperator.getInstance()) {
-      merge =  MergeSepOperator.getInstance();
-    } else if (inCPAEnabledAnalysis) {
-      merge =  new ARGMergeJoinCPAEnabledAnalysis(wrappedMergeOperator, deleteInCPAEnabledAnalysis);
-    } else {
-      merge = new ARGMergeJoin(wrappedMergeOperator, cpa.getAbstractDomain(), config);
-    }
-
     stats = new ARGStatistics(config, logger, this, pSpecification, cfa);
   }
 
@@ -129,7 +127,15 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   @Override
   public MergeOperator getMergeOperator() {
-    return merge;
+    MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
+    if (wrappedMergeOperator == MergeSepOperator.getInstance()) {
+      return MergeSepOperator.getInstance();
+    } else if (inCPAEnabledAnalysis) {
+      return new ARGMergeJoinCPAEnabledAnalysis(wrappedMergeOperator, deleteInCPAEnabledAnalysis);
+    } else {
+      return new ARGMergeJoin(
+          wrappedMergeOperator, getWrappedCpa().getAbstractDomain(), mergeOnWrappedSubsumption);
+    }
   }
 
   @Override
@@ -162,7 +168,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
-    // TODO some code relies on the fact that this method is called only one and the result is the root of the ARG
+    // TODO some code relies on the fact that this method is called only once and the result is the root of the ARG
     return new ARGState(getWrappedCpa().getInitialState(pNode, pPartition), null);
   }
 

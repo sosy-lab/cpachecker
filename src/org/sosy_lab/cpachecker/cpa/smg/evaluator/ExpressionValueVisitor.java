@@ -75,7 +75,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * result of this evaluation is a {@link SMGSymbolicValue}. The value represents a symbolic value of
  * the SMG.
  */
-public class ExpressionValueVisitor
+class ExpressionValueVisitor
     extends DefaultCExpressionVisitor<List<? extends SMGValueAndState>, CPATransferException>
     implements CRightHandSideVisitor<List<? extends SMGValueAndState>, CPATransferException> {
 
@@ -181,7 +181,7 @@ public class ExpressionValueVisitor
   public List<? extends SMGValueAndState> visit(CFloatLiteralExpression exp)
       throws CPATransferException {
 
-    boolean isZero = exp.getValue().equals(BigDecimal.ZERO);
+    boolean isZero = exp.getValue().compareTo(BigDecimal.ZERO) == 0;
 
     SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
     return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
@@ -207,17 +207,21 @@ public class ExpressionValueVisitor
       SMGObject variableObject =
           smgState.getHeap().getObjectForVisibleVariable(idExpression.getName());
 
-      smgState.addElementToCurrentChain(variableObject);
-      SMGValueAndState result =
-          smgExpressionEvaluator.readValue(
-              smgState,
-              variableObject,
-              SMGZeroValue.INSTANCE,
-              TypeUtils.getRealExpressionType(idExpression),
-              cfaEdge);
-      result.getSmgState().addElementToCurrentChain(result.getObject());
+      if (variableObject != null) {
+        // Witness validation cannot compute an assignment for some cases.
+        // Then the variableObject can be NULL. TODO when exactly does this happen?
+        smgState.addElementToCurrentChain(variableObject);
+        SMGValueAndState result =
+            smgExpressionEvaluator.readValue(
+                smgState,
+                variableObject,
+                SMGZeroValue.INSTANCE,
+                TypeUtils.getRealExpressionType(idExpression),
+                cfaEdge);
+        result.getSmgState().addElementToCurrentChain(result.getObject());
 
-      return singletonList(result);
+        return singletonList(result);
+      }
     }
 
     return singletonList(SMGValueAndState.of(getInitialSmgState()));
@@ -381,7 +385,7 @@ public class ExpressionValueVisitor
 
           case MINUS:
           case MODULO:
-            isZero = (lVal.equals(rVal));
+              isZero = lVal.equals(rVal);
               val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
               return singletonList(SMGValueAndState.of(newState, val));
 

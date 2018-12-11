@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -112,8 +112,6 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
@@ -140,8 +138,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
 public class ValueAnalysisTransferRelation
-    extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisState, VariableTrackingPrecision>
-    implements StatisticsProvider {
+    extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisState, VariableTrackingPrecision> {
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
   private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
@@ -157,15 +154,6 @@ public class ValueAnalysisTransferRelation
               + "when the true-branch is handled."
     )
     private boolean initAssumptionVars = false;
-
-    @Option(
-      secure = true,
-      description =
-          "Whether to replace symbolic values with a concrete value"
-              + " when only one value is possible for an assumption to be true"
-              + " (e.g. for (x == 1) set x to 1, even if x is a symbolic expression)."
-    )
-    private boolean assignSymbolicAssumptionVars = false;
 
     @Option(
       secure = true,
@@ -185,6 +173,9 @@ public class ValueAnalysisTransferRelation
     @Option(secure=true, description="Track or not function pointer values")
     private boolean ignoreFunctionValue = true;
 
+    @Option(secure = true, description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
+    private boolean assignEqualityAssumptions = true;
+
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
@@ -193,8 +184,8 @@ public class ValueAnalysisTransferRelation
       return initAssumptionVars;
     }
 
-    boolean isAssignSymbolicAssumptionVars() {
-      return assignSymbolicAssumptionVars;
+    boolean isAssignEqualityAssumptions() {
+      return assignEqualityAssumptions;
     }
 
     boolean isOptimizeBooleanVariables() {
@@ -787,7 +778,7 @@ public class ValueAnalysisTransferRelation
   private boolean isMissingCExpressionInformation(ExpressionValueVisitor pEvv,
       ARightHandSide pExp) {
 
-    return pExp instanceof CExpression && (pEvv.hasMissingPointer());
+    return pExp instanceof CExpression && pEvv.hasMissingPointer();
   }
 
   @Override
@@ -1066,7 +1057,7 @@ public class ValueAnalysisTransferRelation
       CCompositeType pLType, CExpression pExp,
       ExpressionValueVisitor pVisitor) throws UnrecognizedCodeException {
 
-    int offset = 0;
+    long offset = 0L;
     for (CCompositeType.CCompositeTypeMemberDeclaration memberType : pLType.getMembers()) {
       MemoryLocation assignedField = createFieldMemoryLocation(pAssignedVar, offset);
       CExpression owner = null;
@@ -1077,11 +1068,11 @@ public class ValueAnalysisTransferRelation
           new CFieldReference(pExp.getFileLocation(), memberType.getType(), memberType.getName(), owner, false);
       handleAssignmentToVariable(pNewElement, assignedField, memberType.getType(), fieldReference, pVisitor);
 
-      offset = offset + machineModel.getSizeof(memberType.getType());
+      offset = offset + machineModel.getSizeof(memberType.getType()).longValueExact();
     }
   }
 
-  private MemoryLocation createFieldMemoryLocation(MemoryLocation pStruct, int pOffset) {
+  private MemoryLocation createFieldMemoryLocation(MemoryLocation pStruct, long pOffset) {
 
     long baseOffset = pStruct.isReference() ? pStruct.getOffset() : 0;
 
@@ -1189,11 +1180,6 @@ public class ValueAnalysisTransferRelation
         assignUnknownValueToEnclosingInstanceOfArray(enclosingSubscriptExpression);
       }
     }
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.add(constraintsStrengthenOperator);
   }
 
   private class  FieldAccessExpressionValueVisitor extends ExpressionValueVisitor {

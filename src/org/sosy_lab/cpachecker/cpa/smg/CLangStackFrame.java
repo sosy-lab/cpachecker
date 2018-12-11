@@ -26,12 +26,11 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -47,7 +46,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
  * <p>This is an immutable class.
  */
 public final class CLangStackFrame {
-  static final String RETVAL_LABEL = "___cpa_temp_result_var_";
+  public static final String RETVAL_LABEL = "___cpa_temp_result_var_";
 
   /**
    * Function to which this stack frame belongs
@@ -87,7 +86,7 @@ public final class CLangStackFrame {
       // use a plain int as return type for void functions
       returnValueObject = null;
     } else {
-      int return_value_size = pMachineModel.getSizeofInBits(returnType);
+      int return_value_size = pMachineModel.getSizeofInBits(returnType).intValueExact();
       returnValueObject = new SMGRegion(return_value_size, CLangStackFrame.RETVAL_LABEL);
     }
   }
@@ -197,7 +196,7 @@ public final class CLangStackFrame {
    * @return a set of all objects: return value object, variables, parameters
    */
   public Set<SMGObject> getAllObjects() {
-    Builder<SMGObject> retset = ImmutableSet.builder();
+    ImmutableSet.Builder<SMGObject> retset = ImmutableSet.builder();
     retset.addAll(stack_variables.values());
     if (returnValueObject != null) {
       retset.add(returnValueObject);

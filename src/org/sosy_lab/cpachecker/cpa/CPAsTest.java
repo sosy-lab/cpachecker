@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assert_;
-import static com.google.common.truth.TruthJUnit.assume;
+import static org.junit.Assume.assumeNoException;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.ClassPath;
@@ -193,7 +193,8 @@ public class CPAsTest {
               .set(new AggregatedReachedSets(), AggregatedReachedSets.class)
               .createInstance();
     } catch (LinkageError e) {
-      assume().fail(e.getMessage());
+      assumeNoException(e);
+      throw new AssertionError(e);
     }
   }
 
@@ -220,8 +221,8 @@ public class CPAsTest {
     try {
       joined = cpa.getAbstractDomain().join(initial, initial);
     } catch (UnsupportedOperationException e) {
-      assume().fail(e.getMessage());
-      return;
+      assumeNoException(e);
+      throw new AssertionError(e);
     }
     assertThat(joined).named("result of join").isNotNull();
     assert_()
@@ -269,8 +270,8 @@ public class CPAsTest {
     try {
       return cpa.getAbstractDomain().isLessOrEqual(s1, s2);
     } catch (UnsupportedOperationException e) {
-      assume().fail(e.getMessage());
-      return false;
+      assumeNoException(e);
+      throw new AssertionError(e);
     }
   }
 }
