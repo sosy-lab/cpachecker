@@ -25,22 +25,63 @@ package org.sosy_lab.cpachecker.cpa.hybrid.abstraction;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.hybrid.value.*;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.CompositeValue;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.StringValue;
+import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
- * Transformer interface for visiting @see HybridValue
+ * Base class for transformation of hybrid values into assumptions
  * @param <T> the type to return on visit
  */
 public abstract class HybridValueTransformer<T, TDependentObj> {
 
-    protected final CBinaryExpressionBuilder binaryExpressionBuilder;
+  protected final CBinaryExpressionBuilder binaryExpressionBuilder;
 
-    protected HybridValueTransformer(MachineModel pMachineModel, LogManager pLogger) {
-      this.binaryExpressionBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
+  protected HybridValueTransformer(MachineModel pMachineModel, LogManager pLogger) {
+    this.binaryExpressionBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
+  }
+
+  public abstract T transform(Value value, TDependentObj obj, BinaryOperator pOperator);
+
+  protected CExpression transform(CompositeValue pValue) {
+    return null;
+  }
+
+  protected CExpression transform(NumericValue pNumericValue) {
+    
+    // check different Numeric types
+    final float value = pNumericValue.floatValue();
+    if(value == (int)value) {
+      // the numeric value is actually an integer
+      return CIntegerLiteralExpression.createDummyLiteral(pNumericValue.longValue(), CNumericTypes.INT);
+
+    } else {
+      return CFloatLiteralExpression.createDummyLiteral(pNumericValue.floatValue(), CNumericTypes.FLOAT);
     }
+  }
 
-    public abstract T transform(Value value, TDependentObj obj, BinaryOperator pOperator);
+  protected CExpression transform(BooleanValue pBooleanValue) {
+    final long boolAsInt = pBooleanValue.isTrue() ? 1L : 0L;
+    return CIntegerLiteralExpression.createDummyLiteral(boolAsInt, CNumericTypes.BOOL); 
+  }
+
+  protected CExpression transform(StringValue pStringValue) {
+    return new CStringLiteralExpression(FileLocation.DUMMY, CPointerType.POINTER_TO_CHAR, pStringValue.getValue());
+  }
+
+  protected CExpression transform(NullValue pNullValue) {
+    return null;
+  }
 }

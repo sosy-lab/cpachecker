@@ -35,6 +35,10 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression imple
   private static final long serialVersionUID = 5021145411123854111L;
   private static final BigDecimal APPROX_INFINITY = BigDecimal.valueOf(Double.MAX_VALUE).add(BigDecimal.valueOf(Double.MAX_VALUE));
 
+  public static CFloatLiteralExpression createDummyLiteral(float value, CType pType) {
+    return new CFloatLiteralExpression(FileLocation.DUMMY, pType, BigDecimal.valueOf(value));
+  }
+
   public CFloatLiteralExpression(FileLocation pFileLocation,
                                     CType pType,
                                     BigDecimal pValue) {

@@ -23,16 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid.visitor;
 
-import org.mockito.internal.matchers.Null;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueTransformer;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.CompositeValue;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.StringValue;
@@ -56,6 +51,7 @@ public class HybridValueIdExpressionTransformer
   /**
    * @param pValue The value to transform
    * @param pCIdExpression The variable expression to assign the given value to
+   * @exception AssertionError Thrown if 
    */
   @Override
   public CExpression transform(Value pValue, CIdExpression pCIdExpression, BinaryOperator pOperator) {
@@ -87,26 +83,7 @@ public class HybridValueIdExpressionTransformer
     return binaryExpressionBuilder.buildBinaryExpressionUnchecked(pCIdExpression, rightHandSide, pOperator);
   }
 
-  protected CExpression transform(CompositeValue pValue) {
-    return null;
-  }
-
-
-  protected CExpression transform(NumericValue pNumericValue) {
-    return null;
-  }
-
-  protected CExpression transform(BooleanValue pBooleanValue) {
-    return null;
-  }
-
-  protected CExpression transform(StringValue pStringValue) {
-    return new CStringLiteralExpression(FileLocation.DUMMY, CPointerType.POINTER_TO_CHAR, pStringValue.getValue());
-  }
-
-  protected CExpression transform(NullValue pNullValue) {
-    return null;
-  }
+  
 
 
 }
