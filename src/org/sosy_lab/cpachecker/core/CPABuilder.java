@@ -178,9 +178,7 @@ public class CPABuilder {
             pAggregatedReachedSets);
 
     if (cpas != null && !cpas.isEmpty()) {
-      logger.log(
-          Level.WARNING,
-          "Option specification gave specification automata, but no CompositeCPA was used");
+      throw new InvalidConfigurationException("Option specification gave specification automata, but no CompositeCPA was used");
     }
     if (optionName.equals(CPA_OPTION_NAME)
         && cpaClass.equals(CompositeCPA.class)
