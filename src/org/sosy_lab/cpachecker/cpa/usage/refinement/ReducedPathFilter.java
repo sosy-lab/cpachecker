@@ -47,13 +47,13 @@ public class ReducedPathFilter extends GenericSinglePathRefiner {
   protected RefinementResult call(ExtendedARGPath pPath) throws CPAException, InterruptedException {
 
     ARGState initialState = pPath.getFirstState();
-    ARGState lastState = pPath.getLastState();
-    List<CFAEdge> edges = pPath.getInnerEdges();
-
     AbstractLockState initialLockState =
         AbstractStates.extractStateByType(initialState, AbstractLockState.class);
-    AbstractLockState lastLockState =
-        AbstractStates.extractStateByType(lastState, AbstractLockState.class);
+    // We cannot use last arg state, as it is not expanded!
+    // LockState in Usage is correct
+    AbstractLockState lastLockState = pPath.getUsageInfo().getLockState();
+    List<CFAEdge> edges = pPath.getInnerEdges();
+
     AbstractLockState currentState = initialLockState;
 
     for (CFAEdge edge : edges) {
