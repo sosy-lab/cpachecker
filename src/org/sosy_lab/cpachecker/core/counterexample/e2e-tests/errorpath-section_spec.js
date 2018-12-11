@@ -211,32 +211,36 @@ describe('Error path section in Report.js', function () {
 
 
     function findTooltipWithText(text) {
+
        return $$('div.tooltip-inner').filter(function (elem) {
            return elem.getText().then(function (elementText) {
                return elementText.includes(text)
-           })
-       }).first()
+           });
+       }).first();
     }
 
-    it('Prev button tooltip test', function () {
-        browser.actions().mouseMove(element(by.xpath('//*[@id="errorpath_section"]/header/div[1]/button[1]'))).perform();
-        tooltipText = findTooltipWithText('Previous Line')
-        browser.wait(EC.presenceOf(tooltipText))
-        expect(tooltipText.isDisplayed()).toBeTruthy();
-    });
+    describe('Button Group tooltip test', function () {
+        it('Prev button tooltip test', async function () {
+            browser.actions().mouseMove(element(by.xpath('//*[@id="errorpath_section"]/header/div[1]/button[1]'))).perform();
+            tooltipText = findTooltipWithText('Previous Line')
+            browser.wait(EC.presenceOf(tooltipText))
+            expect(tooltipText.isDisplayed()).toBeTruthy();
 
-    it('help button tooltip test', function () {
-        browser.actions().mouseMove(element(by.xpath('//*[@id="errorpath_section"]/header/div[2]'))).perform();
-        tooltipText = findTooltipWithText('help')
-        browser.wait(EC.presenceOf(tooltipText))
-        expect(tooltipText.isDisplayed()).toBeTruthy();
-    });
+        });
 
-    it('Next button tooltip test', function () {
-        browser.actions().mouseMove(element(by.xpath('//*[@id="errorpath_section"]/header/div[1]/button[3]'))).perform();
-        tooltipText = findTooltipWithText('Next Line')
-        browser.wait(EC.presenceOf(tooltipText))
-        expect(tooltipText.isDisplayed()).toBeTruthy();
+        it('help button tooltip test', async function () {
+            browser.actions().mouseMove(element(by.xpath('//*[@id="errorpath_section"]/header/div[2]'))).perform();
+            tooltipText = findTooltipWithText('help')
+            browser.wait(EC.presenceOf(tooltipText))
+            expect(tooltipText.isDisplayed()).toBeTruthy();
+        });
+
+        it('Next button tooltip test', async function () {
+            browser.actions().mouseMove(element(by.xpath('//*[@id="errorpath_section"]/header/div[1]/button[3]'))).perform();
+            tooltipText = findTooltipWithText('Next Line')
+            browser.wait(EC.presenceOf(tooltipText))
+            expect(tooltipText.isDisplayed()).toBeTruthy();
+        });
     });
 
 });
