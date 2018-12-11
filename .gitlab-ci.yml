@@ -144,6 +144,7 @@ javascript-e2e-tests:
     - src/org/sosy_lab/cpachecker/core/counterexample/node_modules/
   artifacts:
     paths:
+      - outout/Counterexample.1.html
       - src/org/sosy_lab/cpachecker/core/counterexample/e2e-tests-report
     when: always
   allow_failure: true # tests are currently racy (cf. #520)
