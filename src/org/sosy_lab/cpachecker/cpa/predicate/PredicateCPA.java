@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -226,7 +227,7 @@ public class PredicateCPA
   }
 
   @Override
-  public PredicateTransferRelation getTransferRelation() {
+  public TransferRelation getTransferRelation() {
     return new PredicateTransferRelation(
         logger,
         direction,
@@ -327,7 +328,7 @@ public class PredicateCPA
   @Override
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     try {
-      return getTransferRelation()
+      return ((PredicateTransferRelation) getTransferRelation())
           .areAbstractSuccessors(pElement, pCfaEdge, pSuccessors, computedPathFormulaePcc);
     } catch (SolverException e) {
       throw new CPATransferException("Solver failed during abstract-successor check", e);
