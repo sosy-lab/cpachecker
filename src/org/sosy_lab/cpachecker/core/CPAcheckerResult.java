@@ -38,13 +38,19 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
  */
 public class CPAcheckerResult {
 
-  /**
-   * Enum for the possible outcomes of a CPAchecker analysis:
-   * - UNKNOWN: analysis did not terminate
-   * - FALSE: bug found
-   * - TRUE: no bug found
-   */
-  public enum Result { NOT_YET_STARTED, UNKNOWN, FALSE, TRUE }
+  /** Enum for the possible outcomes of a CPAchecker analysis */
+  public enum Result {
+    /** Aborted during analysis setup */
+    NOT_YET_STARTED,
+    /** Terminated but no property should be checked */
+    DONE,
+    /** Not possible to determine whether property holds */
+    UNKNOWN,
+    /** Property violation found */
+    FALSE,
+    /** Property holds */
+    TRUE,
+  }
 
   private final Result result;
 
@@ -118,7 +124,11 @@ public class CPAcheckerResult {
     if (reached instanceof ResultProviderReachedSet) {
       ((ResultProviderReachedSet) reached).printResults(out);
     }
-    out.println("Verification result: " + getResultString());
+    if (result == Result.DONE) {
+      out.println("Finished.");
+    } else {
+      out.println("Verification result: " + getResultString());
+    }
   }
 
   public String getResultString() {
@@ -136,7 +146,7 @@ public class CPAcheckerResult {
       case TRUE:
         return "TRUE. No property violation found by chosen configuration.";
       default:
-        return "UNKNOWN result: " + result;
+        throw new AssertionError(result);
     }
   }
 }
