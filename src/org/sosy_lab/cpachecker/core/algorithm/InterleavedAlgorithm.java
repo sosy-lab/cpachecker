@@ -48,9 +48,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import javax.management.JMException;
 import javax.xml.transform.TransformerException;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
@@ -540,7 +540,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
       if (e2.getCause() instanceof TransformerException || e2 instanceof IllegalStateException) {
         logger.logUserException(
             Level.FINE, e2, "Problem with one one the analysis, try to save result");
-        return AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
+        return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
       } else {
         throw e2;
       }

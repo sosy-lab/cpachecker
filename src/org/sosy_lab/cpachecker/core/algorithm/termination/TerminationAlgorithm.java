@@ -305,11 +305,11 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     if (cfa.getLanguage() != Language.C) {
       logger.log(WARNING, "Termination analysis supports only C.");
-      return AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
+      return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
     }
 
     CFANode initialLocation = AbstractStates.extractLocation(pReachedSet.getFirstState());
-    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE.withPrecise(false);
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_IMPRECISE;
 
     List<Loop> allLoops = Lists.newArrayList(cfa.getLoopStructure().get().getAllLoops());
     Collections.sort(allLoops, comparingInt(l -> l.getInnerLoopEdges().size()));

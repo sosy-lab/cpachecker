@@ -256,7 +256,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm, StatisticsProvid
         shutdown.shutdownIfNecessary();
 
         logger.log(Level.FINE, "Run verification algorithm");
-        AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
+        AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
         try {
           stats.residAnalysis.start();
           status = algorithm.run(reachedSet);

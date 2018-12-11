@@ -237,7 +237,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
         assert ARGUtils.checkARG(pReached);
         assert (from(pReached).filter(IS_TARGET_STATE).isEmpty());
 
-        AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
+        AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
         try {
           status = algorithm.run(pReached);
 

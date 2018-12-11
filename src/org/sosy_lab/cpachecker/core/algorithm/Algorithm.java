@@ -61,6 +61,8 @@ public interface Algorithm {
 
     public static final AlgorithmStatus SOUND_AND_PRECISE = new AlgorithmStatus(true, true);
     public static final AlgorithmStatus UNSOUND_AND_PRECISE = new AlgorithmStatus(true, false);
+    public static final AlgorithmStatus SOUND_AND_IMPRECISE = new AlgorithmStatus(false, true);
+    public static final AlgorithmStatus UNSOUND_AND_IMPRECISE = new AlgorithmStatus(false, false);
 
     private AlgorithmStatus(boolean pIsPrecise, boolean pIsSound) {
       isPrecise = pIsPrecise;
