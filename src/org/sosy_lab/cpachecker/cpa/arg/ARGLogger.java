@@ -37,6 +37,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.slab.SLARGState;
+import org.sosy_lab.cpachecker.cpa.slab.SLARGToDotWriter;
 
 @Options(prefix = "cpa.arg")
 public class ARGLogger {
