@@ -536,7 +536,6 @@ public class ConfigurationFileChecks {
               "Failure in CPAchecker run with following log\n%s\n",
               formatLogRecords(logHandler.getStoredLogRecords()))
           .that(result.getResult())
-          .named("analysis result '%s'", result.getResultString())
           .isNotEqualTo(CPAcheckerResult.Result.NOT_YET_STARTED);
     }
 
