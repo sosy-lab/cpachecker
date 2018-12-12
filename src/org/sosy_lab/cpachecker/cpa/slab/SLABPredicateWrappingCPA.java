@@ -23,53 +23,47 @@
  */
 package org.sosy_lab.cpachecker.cpa.slab;
 
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.SymbolicLocationsUtility;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
-public class SLABPredicateCPA extends PredicateCPA {
+public class SLABPredicateWrappingCPA extends AbstractSingleWrapperCPA {
 
   SLABPredicateTransferRelation transferRelation;
   PredicateAbstractState startState;
+  private PredicateCPA predicateCPA;
 
-  protected SLABPredicateCPA(
-      Configuration pConfig,
-      LogManager pLogger,
-      BlockOperator pBlk,
-      CFA pCfa,
-      ShutdownNotifier pShutdownNotifier,
-      Specification pSpecification,
-      AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
-    super(pConfig, pLogger, pBlk, pCfa, pShutdownNotifier, pSpecification, pAggregatedReachedSets);
-    transferRelation = new SLABPredicateTransferRelation(this, pSpecification);
+  protected SLABPredicateWrappingCPA(Specification pSpecification, ConfigurableProgramAnalysis pCpa)
+      throws CPAException {
+    super(pCpa);
+    // this will give a class-cast exception if a config tries to insert s.th. else than a
+    // PredicateCPA, so no need for an extra warning:
+    predicateCPA = (PredicateCPA) getWrappedCpa();
+    transferRelation = new SLABPredicateTransferRelation(predicateCPA, pSpecification);
 
     // it is not allowed to throw InterruptedException if we want to use AutomaticCPAFactory:
     try {
       startState =
-          new SymbolicLocationsUtility(this, pSpecification).makePredicateState(true, false);
+          new SymbolicLocationsUtility(predicateCPA, pSpecification)
+              .makePredicateState(true, false);
     } catch (InterruptedException e) {
       throw new CPAException("Building of initial state was interrupted!", e);
     }
   }
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(SLABPredicateCPA.class).withOptions(BlockOperator.class);
+    return AutomaticCPAFactory.forType(SLABPredicateWrappingCPA.class).withOptions(BlockOperator.class);
   }
 
   @Override
