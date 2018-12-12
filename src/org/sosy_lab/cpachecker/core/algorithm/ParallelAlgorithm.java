@@ -556,7 +556,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       return (status.isPrecise() && from(reached).anyMatch(AbstractStates::isTargetState))
-          || (status.isSound()
+          || ((status.isSound() || !status.wasPropertyChecked())
               && !reached.hasWaitingState()
               && !from(reached)
                   .anyMatch(or(AbstractStates::hasAssumptions, AbstractStates::isTargetState)));
