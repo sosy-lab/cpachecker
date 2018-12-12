@@ -31,10 +31,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class BAMSubgraphIterator {
 
@@ -46,7 +49,7 @@ public class BAMSubgraphIterator {
   //First state of previously constructed path
   private BackwardARGState firstState;
   //Iterators for branching points
-  private Map<BackwardARGState, Iterator<ARGState>> toCallerStatesIterator = new HashMap<>();
+  private Map<ARGState, Iterator<ARGState>> toCallerStatesIterator = new HashMap<>();
   private boolean hasNextPath;
 
   BAMSubgraphIterator(
@@ -76,11 +79,26 @@ public class BAMSubgraphIterator {
     do {
       //Determine next branching point
       nextParent = null;
+      // Set<ARGState> processed = new HashSet<>();
+
       while (nextParent == null && forkIterator.hasNext()) {
-        //This is a backward state, which displays the following state after reduced ARG state, which we want to found
+        // This is a backward state, which displays the following state after reduced ARG state,
+        // which we want to found
         childOfReducedState = forkIterator.next();
 
         nextParent = findNextExpandedState(childOfReducedState);
+
+        // The following code is correct, but takes a lot of time
+
+        // if (nextParent == null) {
+        // processed.add(childOfReducedState.getARGState());
+        // } else {
+          // Reset all iterators if we switch to the next branching point,
+          // so all upper points should be reexplored
+        // processed.forEach(s -> toCallerStatesIterator.remove(s));
+        // processed.clear();
+        // }
+
       }
 
       if (nextParent == null) {
@@ -91,10 +109,10 @@ public class BAMSubgraphIterator {
       BackwardARGState rootOfTheClonedPath = cloneTheRestOfPath(childOfReducedState);
       BackwardARGState nextBranchingParentOnPath = new BackwardARGState(nextParent);
       rootOfTheClonedPath.addParent(nextBranchingParentOnPath);
-      //Restore the new path from branching point
+      // Restore the new path from branching point
       newPath = subgraphComputer.restorePathFrom(nextBranchingParentOnPath, pRefinedStates);
 
-    } while (newPath != null);
+    } while (newPath == null);
 
     return newPath;
   }
@@ -124,25 +142,24 @@ public class BAMSubgraphIterator {
 
 
     Iterator<ARGState> iterator;
-    //It is important to put a backward state in map, because we can find the same real state during exploration
-    //but for it a new backward state will be created
-    if (toCallerStatesIterator.containsKey(forkChildInPath)) {
+    ARGState forkChildInARG = forkChildInPath.getARGState();
+
+    if (toCallerStatesIterator.containsKey(forkChildInARG)) {
       //Means we have already handled this state, just get the next one
-      iterator = toCallerStatesIterator.get(forkChildInPath);
+      iterator = toCallerStatesIterator.get(forkChildInARG);
     } else {
-      ARGState forkChildInARG = forkChildInPath.getARGState();
       // assert forkChildInARG.getParents().size() == 1;
       ARGState reducedStateInARG = forkChildInARG.getParents().iterator().next();
 
       iterator =
-          from(data.getNonReducedInitialStates(reducedStateInARG))
+          from(new TreeSet<>(data.getNonReducedInitialStates(reducedStateInARG)))
               .skip(1) // skip already traversed parent of forkState
               .transform(s -> (ARGState) s)
               .iterator();
 
       //We get this fork the second time (the first one was from path computer)
       //Found the caller, we have explored the first time
-      toCallerStatesIterator.put(forkChildInPath, iterator);
+      toCallerStatesIterator.put(forkChildInARG, iterator);
     }
 
     if (iterator.hasNext()) {
@@ -181,6 +198,7 @@ public class BAMSubgraphIterator {
 
       if (data.getNonReducedInitialStates(parentInARG).size() > 1) {
         assert parentInARG.getParents().size() == 0;
+        assert AbstractStates.extractLocation(parentInARG) instanceof FunctionEntryNode;
 
         //Now we should check, that there is no corresponding exit state in the path
         //only in this case this is a real fork
