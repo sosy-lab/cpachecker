@@ -3035,6 +3035,9 @@ interleavedAlgorithm.initCondition = false
 interleavedAlgorithm.intermediateStatistics = NONE
   enum:     [EXECUTE, NONE, PRINT]
 
+# Enable when interleaved algorithm is used to check a specification
+interleavedAlgorithm.propertyChecked = true
+
 # let each analysis part of the interleaved algorithm write output files and
 # not only the last one that is executed
 interleavedAlgorithm.writeIntermediateOutputFiles = true
