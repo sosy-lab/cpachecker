@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.bmc;
+package org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;

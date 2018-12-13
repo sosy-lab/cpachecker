@@ -34,6 +34,7 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 
 public class StaticCandidateProvider implements CandidateGenerator {
 

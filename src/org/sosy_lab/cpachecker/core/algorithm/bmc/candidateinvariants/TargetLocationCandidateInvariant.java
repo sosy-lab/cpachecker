@@ -21,12 +21,13 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.bmc;
+package org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants;
 
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;

@@ -21,14 +21,11 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.bmc;
-
-import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-
-public interface AssertCandidate {
-
-  BooleanFormula assertCandidate(CandidateInvariant pCandidate)
-      throws CPATransferException, InterruptedException;
-}
+/**
+ * {@link org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant} and
+ * implementations
+ */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
+package org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants;
