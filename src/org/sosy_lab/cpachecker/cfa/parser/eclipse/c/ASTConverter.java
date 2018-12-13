@@ -98,7 +98,6 @@ import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTCompositeTypeSpecifier;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTDeclarator;
-import org.eclipse.cdt.internal.core.dom.parser.c.CASTDesignatedInitializer;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTFunctionCallExpression;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTLiteralExpression;
 import org.sosy_lab.common.log.LogManager;
@@ -2307,34 +2306,12 @@ class ASTConverter {
         if (result != null) {
           return convert(result, type, declaration);
         }
-      } else if (type instanceof CArrayType) {
-        CType innerType = ((CArrayType) type).getType().getCanonicalType();
-        IASTInitializerClause result = iList.getClauses()[0];
-
-        if (!(result instanceof CASTDesignatedInitializer)) {
-          if (innerType instanceof CSimpleType && result instanceof IASTInitializerList) {
-            result = unpackBracedInitializer((IASTInitializerList) result);
-          } else if (innerType instanceof CArrayType || innerType instanceof CComplexType) {
-            CVariableDeclaration nestedDeclaration =
-                new CVariableDeclaration(
-                    declaration.getFileLocation(),
-                    declaration.isGlobal(),
-                    declaration.getCStorageClass(),
-                    innerType,
-                    declaration.getName(),
-                    declaration.getOrigName(),
-                    declaration.getQualifiedName(),
-                    null);
-
-            initializerList.add(convert(result, innerType, nestedDeclaration));
-            return new CInitializerList(initializerList.get(0).getFileLocation(), initializerList);
-          }
-
-          if (result != null) {
-            return convert(result, type, declaration);
-          }
-        }
       }
+    }
+
+    // TODO: we might need do to something similar for more types
+    if (type instanceof CArrayType) {
+      type = ((CArrayType) type).getType();
     }
 
     for (IASTInitializerClause i : iList.getClauses()) {
