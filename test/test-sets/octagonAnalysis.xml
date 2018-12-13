@@ -75,15 +75,15 @@
 <!-- Analyses with a sequential combination of runs -->
  <rundefinition name="octagonAnalysis-restart-int-refiner-widening-100_400">
     <option name="-octagonAnalysis-restart-int"/>
-    <option name="-setprop">restartAlgorithm.configFiles=config/octagonAnalysis-mergeWidening-cexCheck-restart-int-100.properties,config/octagonAnalysis-refiner-restart-int.properties</option>
+    <option name="-setprop">restartAlgorithm.configFiles=config/unmaintained/octagonAnalysis-mergeWidening-cexCheck-restart-int-100.properties,config/unmaintained/octagonAnalysis-refiner-restart-int.properties</option>
  </rundefinition>
  <rundefinition name="octagonAnalysis-restart-int-refiner-widening-100_350_50">
     <option name="-octagonAnalysis-restart-int"/>
-    <option name="-setprop">restartAlgorithm.configFiles=config/octagonAnalysis-mergeWidening-cexCheck-restart-int-100.properties,config/octagonAnalysis-refiner-restart-int-350.properties,config/octagonAnalysis.properties</option>
+    <option name="-setprop">restartAlgorithm.configFiles=config/unmaintained/octagonAnalysis-mergeWidening-cexCheck-restart-int-100.properties,config/unmaintained/octagonAnalysis-refiner-restart-int-350.properties,config/unmaintained/octagonAnalysis.properties</option>
  </rundefinition>
  <rundefinition name="octagonAnalysis-restart-int-refiner-join">
     <option name="-octagonAnalysis-restart-int"/>
-    <option name="-setprop">restartAlgorithm.configFiles=config/octagonAnalysis-mergeJoin-cexCheck.properties,config/octagonAnalysis-refiner-restart-int.properties</option>
+    <option name="-setprop">restartAlgorithm.configFiles=config/unmaintained/octagonAnalysis-mergeJoin-cexCheck.properties,config/unmaintained/octagonAnalysis-refiner-restart-int.properties</option>
  </rundefinition>
  <rundefinition name="octagonanalysis-restart-int-refiner-widening-250_250">
    <option name="-octagonAnalysis-restart-int"/>
