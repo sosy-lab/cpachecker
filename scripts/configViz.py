@@ -262,7 +262,7 @@ Examples:
     # graph showing everything included in or depending on 'predicateAnalysis.properties':
     python3 scripts/configViz.py --root config/predicateAnalysis.properties --depend config/predicateAnalysis.properties > graph.dot
     """)
-    parser.add_argument("--dir", metavar="DIRECTORY", default=['config/', 'test/config'], action="append",
+    parser.add_argument("--dir", metavar="DIRECTORY", default=['config/', 'test/config'], nargs='+',
         help="directory where the configuration files reside")
     parser.add_argument("--root", metavar="ROOT", default=None,
         help="configuration file for which a graph should be generated. " +
