@@ -117,8 +117,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
             + "  EDGE : Based on Pathformulas of every edge in ARGPath\n"
             + "  BLOCK: Based on Pathformulas at Abstractionstates"
   )
-  private PathFormulaAbstractionLevel abstractionLevel =
-      PathFormulaAbstractionLevel.BLOCK;
+  private PathFormulaAbstractionLevel abstractionLevel = PathFormulaAbstractionLevel.EDGE;
 
   public enum PathFormulaAbstractionLevel {
     BLOCK, //Abstracts the whole Block(between abstraction states) at once
