@@ -77,11 +77,6 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathFile = PathTemplate.ofFormatString("witness.%s.graphml");
 
-  @Option(
-    secure = true,
-    description = "add identifier name to the witness file name")
-  private boolean encodeIdentifier = false;
-
   private static final String WARNING_MESSAGE = "Access was not found";
 
   private static class ThreadIterator implements Iterator<Integer> {
@@ -139,7 +134,6 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   }
 
   private int idCounter = 0;
-  private int witnessNum = 0;
   private ThreadIterator threadIterator;
   private Element currentNode;
 
@@ -231,16 +225,12 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       builder.addDataElementChild(currentNode, NodeFlag.ISVIOLATION.key, "true");
 
       Path currentPath;
-      if (encodeIdentifier) {
-        String fileName = createUniqueName(pId).replace(" ", "_");
-        currentPath = errorPathFile.getPath(fileName);
-        int i = 0;
+      String fileName = createUniqueName(pId).replace(" ", "_");
+      currentPath = errorPathFile.getPath(fileName);
+      int i = 0;
 
-        while (Files.exists(currentPath)) {
-          currentPath = errorPathFile.getPath(fileName.concat("__" + i++));
-        }
-      } else {
-        currentPath = errorPathFile.getPath(witnessNum);
+      while (Files.exists(currentPath)) {
+        currentPath = errorPathFile.getPath(fileName.concat("__" + i++));
       }
       IO.writeFile(currentPath, Charset.defaultCharset(), (Appender) a -> builder.appendTo(a));
       printedUnsafes.inc();
@@ -254,7 +244,6 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     } catch (InvalidConfigurationException e1) {
       logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e1.getMessage());
     }
-    witnessNum++;
   }
 
   private void printPath(UsageInfo usage, Iterator<CFAEdge> iterator, GraphMlBuilder builder) {
