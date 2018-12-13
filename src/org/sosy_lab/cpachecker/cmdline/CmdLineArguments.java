@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.FileNotFoundException;
@@ -77,10 +80,16 @@ class CmdLineArguments {
   private static final Pattern DEFAULT_CONFIG_FILES_PATTERN = Pattern.compile("^[a-zA-Z0-9-+]+$");
 
   /**
-   * The directory where to look for configuration files for options like
-   * "-predicateAbstraction" that get translated into a config file name.
+   * The directories where to look for configuration files for options like "-predicateAbstraction"
+   * that get translated into a config file name. The directories will be checked in the order they
+   * are added here, and the first hit will be taken. Each directory can be mapped to an optional
+   * warning that should be shown if the configuration is found there (empty string for no warning).
    */
-  private static final String DEFAULT_CONFIG_FILES_DIR = "config/%s.properties";
+  private static final ImmutableMap<String, String> DEFAULT_CONFIG_FILES_TEMPLATES =
+      ImmutableMap.of(
+          "config/%s.properties", "", // no warning
+          "config/unmaintained/%s.properties",
+              "The configuration %s is unmaintained and may not work correctly.");
 
   static final String CONFIGURATION_FILE_OPTION = "configuration.file";
 
@@ -248,7 +257,7 @@ class CmdLineArguments {
       } else if (arg.startsWith("-") && Files.notExists(Paths.get(arg))) {
         String argName = arg.substring(1); // remove "-"
         if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches()) {
-          Path configFile = findFile(DEFAULT_CONFIG_FILES_DIR, argName);
+          @Nullable Path configFile = resolveConfigFile(argName);
 
           if (configFile != null) {
             try {
@@ -261,7 +270,7 @@ class CmdLineArguments {
             throw Output.fatalErrorWithHelptext(
                 "Invalid option %s\n"
                     + "If you meant to specify a configuration file, the file %s does not exist.",
-                arg, String.format(DEFAULT_CONFIG_FILES_DIR, argName));
+                arg, String.format(from(DEFAULT_CONFIG_FILES_TEMPLATES.keySet()).get(0), argName));
           }
         } else {
           throw Output.fatalErrorWithHelptext("Invalid option %s", arg);
@@ -290,7 +299,7 @@ class CmdLineArguments {
       // replace "predicateAnalysis" with config/predicateAnalysis.properties etc.
       if (DEFAULT_CONFIG_FILES_PATTERN.matcher(newValue).matches()
           && Files.notExists(Paths.get(newValue))) {
-        Path configFile = findFile(DEFAULT_CONFIG_FILES_DIR, newValue);
+        @Nullable Path configFile = resolveConfigFile(newValue);
 
         if (configFile != null) {
           newValue = configFile.toString();
@@ -359,6 +368,20 @@ class CmdLineArguments {
     }
     throw Output.fatalError(
         "Checking for property %s is currently not supported by CPAchecker.", pSpecification);
+  }
+
+  @SuppressWarnings("FormatStringAnnotation")
+  static @Nullable Path resolveConfigFile(String pName) {
+    for (Map.Entry<String, String> template : DEFAULT_CONFIG_FILES_TEMPLATES.entrySet()) {
+      Path file = findFile(template.getKey(), pName);
+      if (file != null) {
+        if (!template.getValue().isEmpty()) {
+          Output.warning(template.getValue(), pName);
+        }
+        return file;
+      }
+    }
+    return null;
   }
 
   /**
