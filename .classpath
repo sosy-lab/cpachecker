@@ -45,7 +45,7 @@
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.jdt.core.jar" sourcepath="lib/java-contrib/org.eclipse.jdt.core-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.osgi.jar"/>
 	<classpathentry kind="lib" path="lib/meconsole010.jar"/>
-	<classpathentry kind="lib" path="lib/java/runtime/javasmt.jar" sourcepath="lib/java-contrib/javasmt-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/java-smt.jar" sourcepath="lib/java-contrib/java-smt-sources.jar"/>
 	<classpathentry kind="src" path=".apt-generated">
 		<attributes>
 			<attribute name="optional" value="true"/>
