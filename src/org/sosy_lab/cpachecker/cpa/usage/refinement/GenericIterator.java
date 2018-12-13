@@ -27,7 +27,6 @@ import com.google.errorprone.annotations.ForOverride;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -38,7 +37,7 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
   private StatTimer totalTimer = new StatTimer("Time for generic iterator");
   private StatCounter numOfIterations = new StatCounter("Number of iterations");
 
-  AdjustablePrecision completePrecision;
+  List<AdjustablePrecision> completePrecisions;
 
   // Some iterations may be postponed to the end (complicated ones)
   List<O> postponedIterations = new ArrayList<>();
@@ -53,7 +52,7 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
     O iteration;
 
     totalTimer.start();
-    completePrecision = PredicatePrecision.empty();
+    completePrecisions = new ArrayList<>();
     RefinementResult result = RefinementResult.createFalse();
     init(pInput);
 
@@ -71,7 +70,7 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
           return result;
         }
       }
-      result.addPrecision(completePrecision);
+      result.addPrecisions(completePrecisions);
       return result;
     } finally {
       finish(pInput, result);
@@ -87,13 +86,13 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
 
     if (result.isTrue()) {
       //Finish iteration, the race is found
-      result.addPrecision(completePrecision);
+      result.addPrecisions(completePrecisions);
       return result;
     }
 
-    AdjustablePrecision precision = result.getPrecision();
-    if (precision != null) {
-      completePrecision = completePrecision.add(precision);
+    List<AdjustablePrecision> precisions = result.getPrecisions();
+    if (!precisions.isEmpty()) {
+      completePrecisions.addAll(precisions);
     }
 
     finishIteration(iteration, result);

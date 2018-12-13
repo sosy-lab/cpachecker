@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -168,18 +169,22 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       RefinementResult result = wrappedRefiner.performBlockRefinement(currentId);
       newPrecisionFound |= result.isFalse();
 
-      AdjustablePrecision info = result.getPrecision();
+      List<AdjustablePrecision> info = result.getPrecisions();
 
       if (!info.isEmpty()) {
-        AdjustablePrecision updatedPrecision;
-        if (precisionMap.containsKey(currentId)) {
-          updatedPrecision = precisionMap.get(currentId).add(info);
-        } else {
-          updatedPrecision = info;
+        for (AdjustablePrecision p : info) {
+          if (!p.isEmpty()) {
+            AdjustablePrecision updatedPrecision;
+            if (precisionMap.containsKey(currentId)) {
+              updatedPrecision = precisionMap.get(currentId).add(p);
+            } else {
+              updatedPrecision = p;
+            }
+            precisionMap.put(currentId, updatedPrecision);
+            finalPrecision = finalPrecision.add(updatedPrecision);
+            isPrecisionChanged = true;
+          }
         }
-        precisionMap.put(currentId, updatedPrecision);
-        finalPrecision = finalPrecision.add(updatedPrecision);
-        isPrecisionChanged = true;
       }
 
       if (result.isTrue()) {
