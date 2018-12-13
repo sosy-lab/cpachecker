@@ -1410,8 +1410,7 @@ class ASTConverter {
     // It is similar to Java array instantiations with "new String[]{...}".
     FileLocation fileLoc = getLocation(e);
     CType type = convert(e.getTypeId());
-    // TODO: declaration needed for convert(initializer)?
-    CInitializer initializer = convert(e.getInitializer(), null);
+    CInitializer initializer = convert(e.getInitializer(), type, null);
 
     return createInitializedTemporaryVariable(fileLoc, type, initializer);
   }
@@ -1707,7 +1706,7 @@ class ASTConverter {
       // actually binds to the left "x"!
       // int x = x;
 
-      declaration.addInitializer(convert(initializer, declaration));
+      declaration.addInitializer(convert(initializer, declaration.getType(), declaration));
 
       return declaration;
 
@@ -2231,39 +2230,42 @@ class ASTConverter {
     throw parseContext.parseError("Initializer clause in unexpected location", i);
   }
 
-  private CInitializer convert(IASTInitializerClause i, @Nullable CVariableDeclaration declaration) {
+  private CInitializer convert(
+      IASTInitializerClause i, CType type, @Nullable CVariableDeclaration declaration) {
     if (i instanceof IASTExpression) {
       CExpression exp = convertExpressionWithoutSideEffects((IASTExpression)i);
       return new CInitializerExpression(exp.getFileLocation(), exp);
     } else if (i instanceof IASTInitializerList) {
-      return convert((IASTInitializerList)i, declaration);
+      return convert((IASTInitializerList) i, type, declaration);
     } else if (i instanceof ICASTDesignatedInitializer) {
-      return convert((ICASTDesignatedInitializer)i, declaration);
+      return convert((ICASTDesignatedInitializer) i, type, declaration);
     } else {
       throw parseContext.parseError(
           "unknown initializer claus: " + i.getClass().getSimpleName(), i);
     }
   }
 
-  private CInitializer convert(IASTInitializer i, @Nullable CVariableDeclaration declaration) {
+  private CInitializer convert(
+      IASTInitializer i, CType type, @Nullable CVariableDeclaration declaration) {
     if (i == null) {
       return null;
 
     } else if (i instanceof IASTInitializerList) {
-      return convert((IASTInitializerList)i, declaration);
+      return convert((IASTInitializerList) i, type, declaration);
     } else if (i instanceof IASTEqualsInitializer) {
-      return convert((IASTEqualsInitializer)i, declaration);
+      return convert((IASTEqualsInitializer) i, type, declaration);
     } else if (i instanceof ICASTDesignatedInitializer) {
-      return convert((ICASTDesignatedInitializer)i, declaration);
+      return convert((ICASTDesignatedInitializer) i, type, declaration);
     } else {
       throw parseContext.parseError("unknown initializer: " + i.getClass().getSimpleName(), i);
     }
   }
 
-  private CInitializer convert(ICASTDesignatedInitializer init, @Nullable CVariableDeclaration declaration) {
+  private CInitializer convert(
+      ICASTDesignatedInitializer init, CType type, @Nullable CVariableDeclaration declaration) {
     ICASTDesignator[] desInit = init.getDesignators();
 
-    CInitializer cInit = convert(init.getOperand(), declaration);
+    CInitializer cInit = convert(init.getOperand(), type, declaration);
 
     FileLocation fileLoc = cInit.getFileLocation();
 
@@ -2295,17 +2297,15 @@ class ASTConverter {
   }
 
   private CInitializer convert(
-      IASTInitializerList iList, @Nullable CVariableDeclaration declaration) {
+      IASTInitializerList iList, CType type, @Nullable CVariableDeclaration declaration) {
 
     List<CInitializer> initializerList = new ArrayList<>();
 
     if (declaration != null && iList.getSize() == 1) {
-      CType type = declaration.getType();
-
       if (type instanceof CSimpleType || type instanceof CPointerType) {
         IASTInitializerClause result = unpackBracedInitializer(iList);
         if (result != null) {
-          return convert(result, declaration);
+          return convert(result, type, declaration);
         }
       } else if (type instanceof CArrayType) {
         CType innerType = ((CArrayType) type).getType().getCanonicalType();
@@ -2326,19 +2326,19 @@ class ASTConverter {
                     declaration.getQualifiedName(),
                     null);
 
-            initializerList.add(convert(result, nestedDeclaration));
+            initializerList.add(convert(result, innerType, nestedDeclaration));
             return new CInitializerList(initializerList.get(0).getFileLocation(), initializerList);
           }
 
           if (result != null) {
-            return convert(result, declaration);
+            return convert(result, type, declaration);
           }
         }
       }
     }
 
     for (IASTInitializerClause i : iList.getClauses()) {
-      CInitializer newI = convert(i, declaration);
+      CInitializer newI = convert(i, type, declaration);
       if (newI != null) {
         initializerList.add(newI);
       }
@@ -2358,7 +2358,8 @@ class ASTConverter {
     return null;
   }
 
-  private CInitializer convert(IASTEqualsInitializer i, @Nullable CVariableDeclaration declaration) {
+  private CInitializer convert(
+      IASTEqualsInitializer i, CType type, @Nullable CVariableDeclaration declaration) {
     IASTInitializerClause ic = i.getInitializerClause();
     if (ic instanceof IASTExpression) {
       IASTExpression e = (IASTExpression)ic;
@@ -2431,7 +2432,7 @@ class ASTConverter {
       return result;
 
     } else if (ic instanceof IASTInitializerList) {
-      return convert((IASTInitializerList)ic, declaration);
+      return convert((IASTInitializerList) ic, type, declaration);
     } else {
       throw parseContext.parseError("unknown initializer: " + i.getClass().getSimpleName(), i);
     }
