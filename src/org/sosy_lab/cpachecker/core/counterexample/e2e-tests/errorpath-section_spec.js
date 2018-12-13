@@ -225,8 +225,8 @@ describe('Error path section in Report.js', function () {
             tooltipText = findTooltipWithText('Previous Line')
             browser.wait(EC.presenceOf(tooltipText))
             expect(tooltipText.isDisplayed()).toBeTruthy();
-
         });
+        browser.driver.sleep(100);
 
         it('help button tooltip test', async function () {
             browser.actions().mouseMove(element(by.xpath('//*[@id="errorpath_section"]/header/div[2]'))).perform();
@@ -234,6 +234,7 @@ describe('Error path section in Report.js', function () {
             browser.wait(EC.presenceOf(tooltipText))
             expect(tooltipText.isDisplayed()).toBeTruthy();
         });
+        browser.driver.sleep(100);
 
         it('Next button tooltip test', async function () {
             browser.actions().mouseMove(element(by.xpath('//*[@id="errorpath_section"]/header/div[1]/button[3]'))).perform();
@@ -241,6 +242,7 @@ describe('Error path section in Report.js', function () {
             browser.wait(EC.presenceOf(tooltipText))
             expect(tooltipText.isDisplayed()).toBeTruthy();
         });
+        browser.driver.sleep(100);
     });
 
 });
