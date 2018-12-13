@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
-import static org.sosy_lab.cpachecker.cmdline.CPAMain.ERROR_EXIT_CODE;
-import static org.sosy_lab.cpachecker.cmdline.CPAMain.ERROR_OUTPUT;
-
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSortedSet;
@@ -78,7 +75,6 @@ class CmdLineArguments {
   private CmdLineArguments() { } // prevent instantiation, this is a static helper class
 
   private static final Pattern DEFAULT_CONFIG_FILES_PATTERN = Pattern.compile("^[a-zA-Z0-9-+]+$");
-
 
   /**
    * The directory where to look for configuration files for options like
@@ -259,22 +255,16 @@ class CmdLineArguments {
               IO.checkReadableFile(configFile);
               putIfNotExistent(properties, CONFIGURATION_FILE_OPTION, configFile.toString());
             } catch (FileNotFoundException e) {
-              ERROR_OUTPUT.println("Invalid configuration " + argName + " (" + e.getMessage() + ")");
-              System.exit(ERROR_EXIT_CODE);
+              throw Output.fatalError("Invalid configuration %s (%s)", argName, e.getMessage());
             }
           } else {
-            ERROR_OUTPUT.println("Invalid option " + arg);
-            ERROR_OUTPUT.println("If you meant to specify a configuration file, the file "
-                + String.format(DEFAULT_CONFIG_FILES_DIR, argName) + " does not exist.");
-            ERROR_OUTPUT.println("");
-            printHelp(ERROR_OUTPUT);
-            System.exit(ERROR_EXIT_CODE);
+            throw Output.fatalErrorWithHelptext(
+                "Invalid option %s\n"
+                    + "If you meant to specify a configuration file, the file %s does not exist.",
+                arg, String.format(DEFAULT_CONFIG_FILES_DIR, argName));
           }
         } else {
-          ERROR_OUTPUT.println("Invalid option " + arg);
-          ERROR_OUTPUT.println("");
-          printHelp(ERROR_OUTPUT);
-          System.exit(ERROR_EXIT_CODE);
+          throw Output.fatalErrorWithHelptext("Invalid option %s", arg);
         }
 
       } else {
@@ -320,7 +310,8 @@ class CmdLineArguments {
     }
   }
 
-  private static void printHelp(PrintStream out) {
+  static void printHelp(PrintStream out) {
+    out.println();
     out.println("CPAchecker " + CPAchecker.getVersion());
     out.println();
     out.println("OPTIONS:");
@@ -366,10 +357,8 @@ class CmdLineArguments {
     if (specFile != null) {
       return specFile.toString();
     }
-    ERROR_OUTPUT.println(
-        "Checking for property " + pSpecification + " is currently not supported by CPAchecker.");
-    System.exit(ERROR_EXIT_CODE);
-    return pSpecification;
+    throw Output.fatalError(
+        "Checking for property %s is currently not supported by CPAchecker.", pSpecification);
   }
 
   /**
@@ -403,8 +392,8 @@ class CmdLineArguments {
           Paths.get(
               CmdLineArguments.class.getProtectionDomain().getCodeSource().getLocation().toURI());
     } catch (SecurityException | URISyntaxException e) {
-      ERROR_OUTPUT.println(
-          "Cannot resolve paths relative to project directory of CPAchecker: " + e.getMessage());
+      Output.warning(
+          "Cannot resolve paths relative to project directory of CPAchecker: %s", e.getMessage());
       return null;
     }
     file = codeLocation.resolveSibling(fileName);
