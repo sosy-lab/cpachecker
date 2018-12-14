@@ -28,6 +28,7 @@ import argparse
 import os
 import re
 import sys
+from collections import defaultdict
 from enum import Enum
 
 class EdgeType(Enum):
@@ -133,7 +134,9 @@ def listFiles(paths):
           yield os.path.normpath(os.path.join(root,item))
 
 
-def writeDot(nodes, out, showChildDependencies = True, showParentDependencies = True, markDependencies = True):
+def writeDot(nodes, out, showChildDependencies = True,
+    showParentDependencies = True, markDependencies = True,
+    clusterNodes = False):
   '''print dot file for limited set of nodes'''
 
   out.write('digraph configs {\n')
@@ -142,9 +145,21 @@ def writeDot(nodes, out, showChildDependencies = True, showParentDependencies = 
 
   allNodesDict,childDependencyNodes,parentDependencyNodes = determineDependencies(nodes, showChildDependencies, showParentDependencies)
 
-  for name,node in sorted(allNodesDict.items()):
-    isDependency = name in childDependencyNodes or name in parentDependencyNodes
-    out.write(determineNode(node,dependencyNode = isDependency and markDependencies))
+  if clusterNodes:
+    folderMapping = defaultdict(dict)
+    for name,node in sorted(allNodesDict.items()):
+      folderMapping[normPath(os.path.dirname(node.name))][name] = node
+    for index,(folder,folderNodesDict) in enumerate(sorted(folderMapping.items())):
+      out.write('subgraph cluster_%s {' % index)
+      out.write('label = "%s";' % folder)
+      for name,node in sorted(folderNodesDict.items()):
+        isDependency = name in childDependencyNodes or name in parentDependencyNodes
+        out.write(determineNode(node,dependencyNode = isDependency and markDependencies))
+      out.write('}')
+  else:
+    for name,node in sorted(allNodesDict.items()):
+      isDependency = name in childDependencyNodes or name in parentDependencyNodes
+      out.write(determineNode(node,dependencyNode = isDependency and markDependencies))
 
   if not markDependencies:
     nodes = allNodesDict
@@ -290,6 +305,8 @@ Examples:
         help="Show parents of selected nodes")
     parser.add_argument("--samedep", action="store_true",
         help="Make dependency nodes look like regular nodes")
+    parser.add_argument("--clusterNodes", action="store_true",
+        help="Cluster nodes by their directory")
     return parser.parse_args()
 
 
@@ -400,7 +417,7 @@ if __name__ == "__main__":
   # write dot-output
   out = sys.stdout #open("configViz.dot","w")
   if not args.rsf:
-    writeDot(nodes, out, args.showChildren, args.showParents, not args.samedep)
+    writeDot(nodes, out, args.showChildren, args.showParents, not args.samedep, args.clusterNodes)
   else:
     writeRSF(nodes, out, args.showChildren, args.showParents)
 
