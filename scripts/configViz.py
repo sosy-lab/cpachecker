@@ -275,6 +275,9 @@ Examples:
     parser.add_argument("--filter", metavar="FILTER", default=None,
         help="String to filter nodes. " +
             "When specified, only matching nodes are shown")
+    parser.add_argument("--excludeFilter", metavar="EXCLUDE_FILTER", default=None,
+        help="String to filter nodes. " +
+            "When specified, only non-matching nodes are shown")
     parser.add_argument("--ranksep", metavar="NUM", default=3,
         help="ranksep to use in the graphviz output file")
     parser.add_argument("--logLevel", metavar="LEVEL", default=1,
@@ -389,6 +392,10 @@ if __name__ == "__main__":
   if args.filter != None:
     nodes = dict((k,v) for k,v in nodes.items()
         if args.filter in k)
+
+  if args.excludeFilter != None:
+    nodes = dict((k,v) for k,v in nodes.items()
+        if not args.excludeFilter in k)
 
   # write dot-output
   out = sys.stdout #open("configViz.dot","w")
