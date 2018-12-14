@@ -224,7 +224,9 @@ def determineNode(node, dependencyNode = False):
 
 def determineColor(node):
   color = None
-  if os.path.splitext(node.name)[1] != ".properties":
+  if "unmaintained/" in node.name:
+    color = "magenta"
+  elif os.path.splitext(node.name)[1] != ".properties":
     color = "gold"
   elif not node.parents or (len(node.parents) == 1 and node.parents[0] == node.name):
     color = "forestgreen"
