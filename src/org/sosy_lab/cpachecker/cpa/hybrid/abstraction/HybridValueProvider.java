@@ -99,8 +99,8 @@ public abstract class HybridValueProvider {
     }
 
     if(pType instanceof CPointerType) {
-        // basic behaviour, because all value providers should be able to provide a value for a char pointer
-        return ((CPointerType) pType).getType() == CNumericTypes.CHAR;
+        // basic behaviour, because all value providers should be able to provide a value for pointers to simple types
+        return ((CPointerType) pType).getType() instanceof CSimpleType;
     }
 
     if(pType instanceof CArrayType) {

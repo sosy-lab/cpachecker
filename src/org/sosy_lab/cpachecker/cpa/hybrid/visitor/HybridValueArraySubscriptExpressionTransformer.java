@@ -24,26 +24,16 @@
 package org.sosy_lab.cpachecker.cpa.hybrid.visitor;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueTransformer;
-import org.sosy_lab.cpachecker.cpa.hybrid.exception.InvalidAssumptionException;
-import org.sosy_lab.cpachecker.cpa.hybrid.value.CompositeValue;
-import org.sosy_lab.cpachecker.cpa.hybrid.value.StringValue;
-import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
-import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
- * Implementation marker for CIdExpressions
+ * Implementation marker for CArraySubscriptExpressions
  */
-public class HybridValueIdExpressionTransformer
-    extends HybridValueExpressionTransformer<CIdExpression> {
+public class HybridValueArraySubscriptExpressionTransformer
+    extends HybridValueExpressionTransformer<CArraySubscriptExpression> {
 
-  public HybridValueIdExpressionTransformer(
+  public HybridValueArraySubscriptExpressionTransformer(
       MachineModel pMachineModel,
       LogManager pLogger) {
     super(pMachineModel, pLogger);

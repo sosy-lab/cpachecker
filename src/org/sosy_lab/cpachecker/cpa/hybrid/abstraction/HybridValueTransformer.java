@@ -24,13 +24,13 @@
 package org.sosy_lab.cpachecker.cpa.hybrid.abstraction;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cpa.hybrid.exception.InvalidAssumptionException;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.CompositeValue;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.StringValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
-import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
@@ -83,7 +82,4 @@ public abstract class HybridValueTransformer<T, TDependentObj> {
     return new CStringLiteralExpression(FileLocation.DUMMY, CPointerType.POINTER_TO_CHAR, pStringValue.getValue());
   }
 
-  protected CExpression transform(NullValue pNullValue) {
-    return null; //TODO: consider, if needed, delete or implement
-  }
 }

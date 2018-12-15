@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public final class CArraySubscriptExpression extends AArraySubscriptExpression implements CLeftHandSide {
 
 
-
   private static final long serialVersionUID = 129923340158722862L;
 
   public CArraySubscriptExpression(final FileLocation pFileLocation,

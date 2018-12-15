@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -81,10 +82,7 @@ public class HybridAnalysisTransferRelation
   private final CFA cfa;
   private final LogManager logger;
 
-  // the value provider is not final, because the strategy might change over time
-  private HybridValueProvider valueProvider;
-  private final HybridValueDeclarationTransformer valueDeclarationTransformer;
-  private final HybridValueIdExpressionTransformer valueIdExpressionTransformer;
+  private final AssumptionGenerator assumptionGenerator;
 
 
   public HybridAnalysisTransferRelation(
@@ -96,9 +94,10 @@ public class HybridAnalysisTransferRelation
   {
     this.cfa = pCfa;
     this.logger = pLogger;
-    this.valueProvider = pValueProvider;
-    this.valueDeclarationTransformer = pHybridValueDeclarationTransformer;
-    this.valueIdExpressionTransformer = pHybridValueIdExpressionTransformer;
+    this.assumptionGenerator = new AssumptionGenerator(
+        cfa.getMachineModel(),
+        pLogger,
+        pValueProvider);
   }
 
   @Override
@@ -170,33 +169,45 @@ public class HybridAnalysisTransferRelation
   }
 
   @Override
-  protected @Nullable HybridAnalysisState handleDeclarationEdge(CDeclarationEdge cfaEdge, CDeclaration decl)
+  protected HybridAnalysisState handleDeclarationEdge(
+      CDeclarationEdge cfaEdge,
+      CDeclaration pCDeclaration)
       throws CPATransferException {
-    
-    Value value = valueProvider.delegateVisit(decl.getType());
+
     try {
 
-      CExpression newAssumption = valueDeclarationTransformer.transform(value, decl, BinaryOperator.EQUALS);
+      @Nullable CExpression newAssumption = assumptionGenerator.generateAssumption(pCDeclaration);
+      if(newAssumption == null) {
+        return HybridAnalysisState.copyOf(state);
+      }
+
       return HybridAnalysisState.copyWithNewAssumptions(state, newAssumption);
 
     } catch(InvalidAssumptionException iae) {
-      throw new CPATransferException("Unable to transform the created value and the given declaration expression into an assumption.", iae);
+      throw new CPATransferException(
+          "Unable to transform the created value and the given declaration expression into an assumption.",
+          iae);
     }
   }
 
   @Override
-  protected HybridAnalysisState handleStatementEdge(CStatementEdge pCStatementEdge, CStatement pCStatement)
+  protected HybridAnalysisState handleStatementEdge(
+      CStatementEdge pCStatementEdge,
+      CStatement pCStatement)
     throws  CPATransferException {
 
     if(pCStatement instanceof CExpressionStatement || pCStatement instanceof CFunctionCallStatement) {
       return HybridAnalysisState.copyOf(state);
     }
 
+    // simple assignment
     if(pCStatement instanceof CExpressionAssignmentStatement) {
 
+      // we don't want to track assignments
       if(!trackAssignments) {
         return HybridAnalysisState.copyOf(state);
       }
+
       // handle assignment
       Collection<CStatement> singletonList = Collections.singleton(pCStatement);
       try {
@@ -217,37 +228,51 @@ public class HybridAnalysisTransferRelation
       }
     }
 
+    // function call assignment
     if(pCStatement instanceof CFunctionCallAssignmentStatement) {
 
       CFunctionCallAssignmentStatement statement = (CFunctionCallAssignmentStatement) pCStatement;
       CExpression functionNameExpression = statement.getFunctionCallExpression().getFunctionNameExpression();
 
-      boolean isNondetFunctionCall = false;
-
+      boolean isNondetCall = false;
       if(functionNameExpression instanceof CIdExpression) {
-        String name = ((CIdExpression) functionNameExpression).getName();
-        isNondetFunctionCall = name.startsWith("__VERIFIER_nondet");
+
+        isNondetCall = isVerifierNondet(((CIdExpression) functionNameExpression).getName());
+      } else if(functionNameExpression instanceof CArraySubscriptExpression) {
+
+        CArraySubscriptExpression arraySubscriptExpression = (CArraySubscriptExpression) functionNameExpression;
+        CExpression arrayIdentifierExpression = arraySubscriptExpression.getArrayExpression();
+        if(arrayIdentifierExpression instanceof CIdExpression) {
+
+          isNondetCall = isVerifierNondet(((CIdExpression) arrayIdentifierExpression).getName());
+        }
       }
 
-      // handle nondet value
-      if(isNondetFunctionCall) {
+      if(isNondetCall) {
 
-        Value value = valueProvider.delegateVisit(statement.getLeftHandSide().getExpressionType());
-        CIdExpression leftHandSide = (CIdExpression) statement.getLeftHandSide(); // TODO: check if it is assignable from
-
+        // function call is actually nondet
         try {
 
-          CExpression newAssumption = valueIdExpressionTransformer.transform(value, leftHandSide, BinaryOperator.EQUALS);
-          return HybridAnalysisState.copyWithNewAssumptions(state, newAssumption);
+          @Nullable CExpression newAssumption = assumptionGenerator.generateAssumption(functionNameExpression);
+          if(newAssumption == null) {
+            return HybridAnalysisState.copyOf(state);
+          }
 
-        } catch(InvalidAssumptionException iae) {
-          throw new CPATransferException("Unable to transform the created hybrid value and the given varibale expression into an assumption.", iae);
+          return HybridAnalysisState.copyWithNewAssumptions(state, newAssumption);
+        } catch (InvalidAssumptionException iae) {
+          throw new CPATransferException(
+              String.format("Unable to generate assumption for function call assignment %s", statement),
+              iae);
         }
-        
       }
     }
 
     return HybridAnalysisState.copyOf(state);
+  }
+
+  // to determine whether the identifier name contains nondet-prefix
+  private boolean isVerifierNondet(final String pVerifierName) {
+    return pVerifierName.startsWith("__VERIFIER_nondet");
   }
 
 }
