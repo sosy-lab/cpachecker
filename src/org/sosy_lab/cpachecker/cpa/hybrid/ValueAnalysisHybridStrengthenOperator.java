@@ -23,31 +23,84 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
+import com.google.common.collect.Sets;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * This class provides the strengthening for a HybridAnalysisState via a ValueAnalysisState
  */
 public class ValueAnalysisHybridStrengthenOperator
-        implements HybridStrengthenOperator {
+    implements HybridStrengthenOperator {
 
-    @Override
-    public HybridAnalysisState strengthen(
-            HybridAnalysisState pStateToStrengthen,
-            AbstractState pStrengtheningInformationState,
-            CFAEdge pEdge) {
+  @Override
+  public HybridAnalysisState strengthen(
+          HybridAnalysisState pStateToStrengthen,
+          AbstractState pStrengtheningState,
+          CFAEdge pEdge) {
 
-        // operator only excepts ValueAnalysisStates
-        assert pStrengtheningInformationState instanceof ValueAnalysisState;
+    // operator only excepts ValueAnalysisStates
+    assert pStrengtheningState instanceof ValueAnalysisState;
 
-        ValueAnalysisState strengtheningState = (ValueAnalysisState) pStrengtheningInformationState;
+    ValueAnalysisState strengtheningState = (ValueAnalysisState) pStrengtheningState;
 
-        
+    // check for assumptions containing a variable that is also tracked by the ValueAnalysis and remove them
+    Set<CBinaryExpression> assumptions = Sets.newHashSet(
+        pStateToStrengthen.getExplicitAssumptions());
+    Set<MemoryLocation> trackedVariables = strengtheningState.getTrackedMemoryLocations();
 
-        return pStateToStrengthen;
+    for(CBinaryExpression binaryExpression : assumptions) {
+
+      CExpression leftHandSide = binaryExpression.getOperand1();
+      if(leftHandSide instanceof CIdExpression) {
+
+        // simple variable definition
+
+      } else if(leftHandSide instanceof CArraySubscriptExpression) {
+
+        CArraySubscriptExpression subscriptExpression = (CArraySubscriptExpression) leftHandSide;
+        CExpression arrayExpression = subscriptExpression.getArrayExpression();
+
+        // now we need to check, if we can
+        if(arrayExpression instanceof CIdExpression) {
+
+
+        }
+      }
     }
+
+
+    return pStateToStrengthen;
+  }
+
+  private boolean compareNames(
+      String pAssumptionVarName,
+      MemoryLocation pMemoryLocation,
+      boolean keepOffset) {
+
+    StringBuilder nameBuilder = new StringBuilder();
+
+    if(pAssumptionVarName.contains("::")) {
+      nameBuilder.append(pMemoryLocation.getFunctionName()).append("::");
+    }
+
+    nameBuilder.append(pMemoryLocation.getIdentifier());
+
+    if(keepOffset) {
+      nameBuilder.append("/").append(pMemoryLocation.getOffset());
+    }
+
+    return pAssumptionVarName.equals(nameBuilder.toString());
+  }
 
 }
