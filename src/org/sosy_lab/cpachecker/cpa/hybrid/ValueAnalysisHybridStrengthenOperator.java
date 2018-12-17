@@ -23,15 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
-import com.google.common.collect.Sets;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import com.google.common.collect.Sets;
+
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -40,14 +41,13 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /**
  * This class provides the strengthening for a HybridAnalysisState via a ValueAnalysisState
  */
-public class ValueAnalysisHybridStrengthenOperator
-    implements HybridStrengthenOperator {
+public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOperator {
 
   @Override
   public HybridAnalysisState strengthen(
-          HybridAnalysisState pStateToStrengthen,
-          AbstractState pStrengtheningState,
-          CFAEdge pEdge) {
+      HybridAnalysisState pStateToStrengthen,
+      AbstractState pStrengtheningState,
+      CFAEdge pEdge) {
 
     // operator only excepts ValueAnalysisStates
     assert pStrengtheningState instanceof ValueAnalysisState;
@@ -57,7 +57,10 @@ public class ValueAnalysisHybridStrengthenOperator
     // check for assumptions containing a variable that is also tracked by the ValueAnalysis and remove them
     Set<CBinaryExpression> assumptions = Sets.newHashSet(
         pStateToStrengthen.getExplicitAssumptions());
-    Set<MemoryLocation> trackedVariables = strengtheningState.getTrackedMemoryLocations();
+    Set<MemoryLocation> trackedVariables = Sets.newHashSet(strengtheningState.getTrackedMemoryLocations());
+
+    // used to collect all binary expressions, that are already tracked by the value analysis and thus can be removed
+    Set<CBinaryExpression> removeableAssumptions = Sets.newHashSet();
 
     for(CBinaryExpression binaryExpression : assumptions) {
 
@@ -65,32 +68,50 @@ public class ValueAnalysisHybridStrengthenOperator
       if(leftHandSide instanceof CIdExpression) {
 
         // simple variable definition
+        final String name = ((CIdExpression) leftHandSide).getName();
+        final boolean checkResult = checkMemoryLocations(trackedVariables, name, false);
+        if(checkResult) {
+          removeableAssumptions.add(binaryExpression);
+        }
 
       } else if(leftHandSide instanceof CArraySubscriptExpression) {
 
         CArraySubscriptExpression subscriptExpression = (CArraySubscriptExpression) leftHandSide;
         CExpression arrayExpression = subscriptExpression.getArrayExpression();
 
-        // now we need to check, if we can
+        // now we need to check, if we can retrieve the name
         if(arrayExpression instanceof CIdExpression) {
 
-
+          final String name = ((CIdExpression) arrayExpression).getName();
+          // TODO: handle the offset !!!
+          final boolean checkResult = checkMemoryLocations(trackedVariables, name, true);
+          if(checkResult) {
+            removeableAssumptions.add(binaryExpression);
+          }
         }
       }
     }
 
+    // remove unnecessary assumptions
+    assumptions.removeAll(removeableAssumptions);
 
-    return pStateToStrengthen;
+    // build collection with variable identifiers for the internal var cache
+    Set<CExpression> variableIdentifiers = assumptions
+      .stream()
+      .map(assumption -> assumption.getOperand1())
+      .collect(Collectors.toSet());
+    
+    return new HybridAnalysisState(assumptions, variableIdentifiers);
   }
 
   private boolean compareNames(
-      String pAssumptionVarName,
+      String pVariableName,
       MemoryLocation pMemoryLocation,
       boolean keepOffset) {
 
     StringBuilder nameBuilder = new StringBuilder();
 
-    if(pAssumptionVarName.contains("::")) {
+    if(pVariableName.contains("::")) {
       nameBuilder.append(pMemoryLocation.getFunctionName()).append("::");
     }
 
@@ -100,7 +121,30 @@ public class ValueAnalysisHybridStrengthenOperator
       nameBuilder.append("/").append(pMemoryLocation.getOffset());
     }
 
-    return pAssumptionVarName.equals(nameBuilder.toString());
+    return pVariableName.equals(nameBuilder.toString());
+  }
+
+  // checks whether the variable is tracked by the value analysis, or not
+  private boolean checkMemoryLocations(
+    Set<MemoryLocation> pLocations, 
+    final String pVariableName, 
+    final boolean keepOffset) {
+
+    boolean match = false;
+    Set<MemoryLocation> seenLocations = Sets.newHashSet();
+
+    for(MemoryLocation location : pLocations) {
+      
+      if(compareNames(pVariableName, location, keepOffset)) {
+        match = true;
+        seenLocations.add(location);
+      }
+    }
+
+    // remove seen locations from the set, hybrid value analysis tracks exactly one value per variable
+    pLocations.removeAll(seenLocations);
+
+    return match;
   }
 
 }

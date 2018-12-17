@@ -49,13 +49,13 @@ public class HybridAnalysisState implements LatticeAbstractState<HybridAnalysisS
     private ImmutableSet<CBinaryExpression> assumptions;
 
     // variable cache
-    private ImmutableSet<CIdExpression> trackedVariables;
+    private ImmutableSet<CExpression> trackedVariables;
 
     public HybridAnalysisState() {
         this(Collections.emptySet());
     }
 
-    public HybridAnalysisState(Set<CExpression> pAssumptions) {
+    public HybridAnalysisState(Collection<CExpression> pAssumptions) {
         this.assumptions = ImmutableSet.copyOf(
             CollectionUtils.ofType(pAssumptions, CBinaryExpression.class));
         
@@ -66,16 +66,10 @@ public class HybridAnalysisState implements LatticeAbstractState<HybridAnalysisS
                 .collect(Collectors.toSet()));
     }
 
-    protected HybridAnalysisState(Set<CExpression> pAssumptions, Set<CIdExpression> pVariables) {
-      this.assumptions = ImmutableSet.copyOf(
-          CollectionUtils.ofType(pAssumptions, CBinaryExpression.class));
+    protected HybridAnalysisState(Set<CBinaryExpression> pAssumptions, Set<CExpression> pVariables) {
+      this.assumptions = ImmutableSet.copyOf(pAssumptions);
 
       this.trackedVariables = ImmutableSet.copyOf(pVariables);
-    }
-
-    private HybridAnalysisState(Collection<CExpression> pAssumptions)
-    {
-        this(Sets.newHashSet(pAssumptions));
     }
 
     // creates an exact copy of the given state in terms of assumptions
@@ -171,8 +165,8 @@ public class HybridAnalysisState implements LatticeAbstractState<HybridAnalysisS
 
     /**
      *
-     * @param pCIdExpression
-     * @return
+     * @param pCIdExpression The repsective variable expression
+     * @return Whether the state tracks an assumption for this variable
      */
     public boolean tracksVariable(CIdExpression pCIdExpression) {
       return trackedVariables.contains(pCIdExpression);
