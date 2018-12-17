@@ -104,7 +104,7 @@ public final class DelegatingARGBasedRefiner implements ARGBasedRefiner, Statist
         // ignore and try the next refiner
         if (i == refiners.size() - 1) {
           logger.logf(
-              Level.FINE,
+              Level.WARNING,
               "refinement %d of %d reported repeated counterexample, "
                   + "exiting refiner and possibly using cex from previous refiner",
               i + 1,
