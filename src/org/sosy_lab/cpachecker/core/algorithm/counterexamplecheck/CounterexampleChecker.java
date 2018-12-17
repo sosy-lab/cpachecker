@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 

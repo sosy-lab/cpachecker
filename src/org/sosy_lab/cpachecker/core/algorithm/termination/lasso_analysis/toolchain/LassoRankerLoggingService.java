@@ -24,13 +24,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.toolchain;
 
 import com.google.common.base.Preconditions;
-
-import org.sosy_lab.common.log.LogManager;
-
-import java.io.Writer;
-
 import de.uni_freiburg.informatik.ultimate.core.model.services.ILogger;
 import de.uni_freiburg.informatik.ultimate.core.model.services.ILoggingService;
+import java.io.Writer;
+import org.sosy_lab.common.log.LogManager;
 
 public class LassoRankerLoggingService implements ILoggingService {
 

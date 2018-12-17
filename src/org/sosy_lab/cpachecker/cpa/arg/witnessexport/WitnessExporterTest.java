@@ -127,8 +127,7 @@ public class WitnessExporterTest {
         "counterexample.export.graphml", pWitnessPath.uncompressedFilePath.toString());
     if (pGenerationConfig.equals(WitnessGenerationConfig.K_INDUCTION)) {
       overrideOptions.put("bmc.invariantsExport", pWitnessPath.uncompressedFilePath.toString());
-      Path origInvGenConfigFile =
-          Paths.get("config/components/invariantGeneration-witness.properties");
+      Path origInvGenConfigFile = Paths.get("test/config/invariantGeneration-witness.properties");
       Path invGenConfigFile =
           origInvGenConfigFile.resolveSibling(
               pWitnessPath.uncompressedFilePath.getFileName() + ".properties");

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;

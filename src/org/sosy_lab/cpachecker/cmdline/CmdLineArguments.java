@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
-import static org.sosy_lab.cpachecker.cmdline.CPAMain.ERROR_EXIT_CODE;
-import static org.sosy_lab.cpachecker.cmdline.CPAMain.ERROR_OUTPUT;
+import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.FileNotFoundException;
@@ -43,7 +43,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.OptionCollector;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.CmdLineArgument1;
@@ -79,12 +79,17 @@ class CmdLineArguments {
 
   private static final Pattern DEFAULT_CONFIG_FILES_PATTERN = Pattern.compile("^[a-zA-Z0-9-+]+$");
 
-
   /**
-   * The directory where to look for configuration files for options like
-   * "-predicateAbstraction" that get translated into a config file name.
+   * The directories where to look for configuration files for options like "-predicateAbstraction"
+   * that get translated into a config file name. The directories will be checked in the order they
+   * are added here, and the first hit will be taken. Each directory can be mapped to an optional
+   * warning that should be shown if the configuration is found there (empty string for no warning).
    */
-  private static final String DEFAULT_CONFIG_FILES_DIR = "config/%s.properties";
+  private static final ImmutableMap<String, String> DEFAULT_CONFIG_FILES_TEMPLATES =
+      ImmutableMap.of(
+          "config/%s.properties", "", // no warning
+          "config/unmaintained/%s.properties",
+              "The configuration %s is unmaintained and may not work correctly.");
 
   static final String CONFIGURATION_FILE_OPTION = "configuration.file";
 
@@ -136,8 +141,7 @@ class CmdLineArguments {
               .withDescription("set the classpath for the analysis of Java programs"),
           new CmdLineArgument1("-spec", "specification") {
             @Override
-            void handleArg(Map<String, String> properties, String arg)
-                throws InvalidCmdlineArgumentException {
+            void handleArg(Map<String, String> properties, String arg) {
               if (SPECIFICATION_FILES_PATTERN.matcher(arg).matches()) {
                 arg = resolveSpecificationFileOrExit(arg);
               }
@@ -195,12 +199,12 @@ class CmdLineArguments {
 
             @SuppressFBWarnings("DM_EXIT")
             @Override
-            void apply0(Map<String, String> properties, String pCurrentArg, Iterator<String> argsIt)
-                throws InvalidCmdlineArgumentException {
+            void apply0(
+                Map<String, String> properties, String pCurrentArg, Iterator<String> argsIt) {
               boolean verbose = false;
               if (argsIt.hasNext()) {
                 final String nextArg = argsIt.next();
-                verbose = ("-v".equals(nextArg) || ("-verbose".equals(nextArg)));
+                verbose = ("-v".equals(nextArg) || "-verbose".equals(nextArg));
               }
               PrintStream out = System.out;
               OptionCollector.collectOptions(verbose, true, out);
@@ -217,8 +221,7 @@ class CmdLineArguments {
             @SuppressFBWarnings("DM_EXIT")
             @Override
             void apply0(
-                Map<String, String> pProperties, String pCurrentArg, Iterator<String> pArgsIt)
-                throws InvalidCmdlineArgumentException {
+                Map<String, String> pProperties, String pCurrentArg, Iterator<String> pArgsIt) {
               printHelp(System.out);
               System.exit(0);
             }
@@ -254,29 +257,23 @@ class CmdLineArguments {
       } else if (arg.startsWith("-") && Files.notExists(Paths.get(arg))) {
         String argName = arg.substring(1); // remove "-"
         if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches()) {
-          Path configFile = findFile(DEFAULT_CONFIG_FILES_DIR, argName);
+          @Nullable Path configFile = resolveConfigFile(argName);
 
           if (configFile != null) {
             try {
               IO.checkReadableFile(configFile);
               putIfNotExistent(properties, CONFIGURATION_FILE_OPTION, configFile.toString());
             } catch (FileNotFoundException e) {
-              ERROR_OUTPUT.println("Invalid configuration " + argName + " (" + e.getMessage() + ")");
-              System.exit(ERROR_EXIT_CODE);
+              throw Output.fatalError("Invalid configuration %s (%s)", argName, e.getMessage());
             }
           } else {
-            ERROR_OUTPUT.println("Invalid option " + arg);
-            ERROR_OUTPUT.println("If you meant to specify a configuration file, the file "
-                + String.format(DEFAULT_CONFIG_FILES_DIR, argName) + " does not exist.");
-            ERROR_OUTPUT.println("");
-            printHelp(ERROR_OUTPUT);
-            System.exit(ERROR_EXIT_CODE);
+            throw Output.fatalErrorWithHelptext(
+                "Invalid option %s\n"
+                    + "If you meant to specify a configuration file, the file %s does not exist.",
+                arg, String.format(from(DEFAULT_CONFIG_FILES_TEMPLATES.keySet()).get(0), argName));
           }
         } else {
-          ERROR_OUTPUT.println("Invalid option " + arg);
-          ERROR_OUTPUT.println("");
-          printHelp(ERROR_OUTPUT);
-          System.exit(ERROR_EXIT_CODE);
+          throw Output.fatalErrorWithHelptext("Invalid option %s", arg);
         }
 
       } else {
@@ -302,7 +299,7 @@ class CmdLineArguments {
       // replace "predicateAnalysis" with config/predicateAnalysis.properties etc.
       if (DEFAULT_CONFIG_FILES_PATTERN.matcher(newValue).matches()
           && Files.notExists(Paths.get(newValue))) {
-        Path configFile = findFile(DEFAULT_CONFIG_FILES_DIR, newValue);
+        @Nullable Path configFile = resolveConfigFile(newValue);
 
         if (configFile != null) {
           newValue = configFile.toString();
@@ -322,7 +319,8 @@ class CmdLineArguments {
     }
   }
 
-  private static void printHelp(PrintStream out) {
+  static void printHelp(PrintStream out) {
+    out.println();
     out.println("CPAchecker " + CPAchecker.getVersion());
     out.println();
     out.println("OPTIONS:");
@@ -368,10 +366,22 @@ class CmdLineArguments {
     if (specFile != null) {
       return specFile.toString();
     }
-    ERROR_OUTPUT.println(
-        "Checking for property " + pSpecification + " is currently not supported by CPAchecker.");
-    System.exit(ERROR_EXIT_CODE);
-    return pSpecification;
+    throw Output.fatalError(
+        "Checking for property %s is currently not supported by CPAchecker.", pSpecification);
+  }
+
+  @SuppressWarnings("FormatStringAnnotation")
+  static @Nullable Path resolveConfigFile(String pName) {
+    for (Map.Entry<String, String> template : DEFAULT_CONFIG_FILES_TEMPLATES.entrySet()) {
+      Path file = findFile(template.getKey(), pName);
+      if (file != null) {
+        if (!template.getValue().isEmpty()) {
+          Output.warning(template.getValue(), pName);
+        }
+        return file;
+      }
+    }
+    return null;
   }
 
   /**
@@ -405,8 +415,8 @@ class CmdLineArguments {
           Paths.get(
               CmdLineArguments.class.getProtectionDomain().getCodeSource().getLocation().toURI());
     } catch (SecurityException | URISyntaxException e) {
-      ERROR_OUTPUT.println(
-          "Cannot resolve paths relative to project directory of CPAchecker: " + e.getMessage());
+      Output.warning(
+          "Cannot resolve paths relative to project directory of CPAchecker: %s", e.getMessage());
       return null;
     }
     file = codeLocation.resolveSibling(fileName);

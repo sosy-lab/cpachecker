@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import com.google.common.base.Preconditions;
 
 /**
  * A generic representation of a predicate

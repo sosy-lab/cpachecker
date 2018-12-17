@@ -5,7 +5,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Optional;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
@@ -118,7 +118,7 @@ public final class PolicyIntermediateState extends PolicyState {
 
   @Override
   public String toString() {
-    return pathFormula.toString() + "\nLength: " + pathFormula.getLength();
+    return pathFormula + "\nLength: " + pathFormula.getLength();
   }
 
   @Override

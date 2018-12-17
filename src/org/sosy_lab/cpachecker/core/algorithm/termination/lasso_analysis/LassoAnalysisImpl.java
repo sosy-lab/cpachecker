@@ -106,7 +106,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
 
     private final AnalysisType analysisType;
 
-    private LassoAnalysisType(AnalysisType pAnalysisType) {
+    LassoAnalysisType(AnalysisType pAnalysisType) {
       analysisType = pAnalysisType;
     }
 
@@ -201,7 +201,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
 
   private final LassoRankerToolchainStorage toolchainStorage;
 
-  private final Collection<RankingTemplate> rankingTemplates;
+  private final ImmutableList<RankingTemplate> rankingTemplates;
 
   @SuppressWarnings("unchecked")
   public LassoAnalysisImpl(
@@ -231,14 +231,19 @@ public class LassoAnalysisImpl implements LassoAnalysis {
             pCfa,
             AnalysisDirection.FORWARD);
 
-    lassoBuilder = new LassoBuilder(
+    lassoBuilder =
+        new LassoBuilder(
             pConfig,
             pLogger,
             shutdownNotifier,
             formulaManager,
             formulaManagerView,
-            () -> solverContext.newProverEnvironment(), // Eclipse compiler crashes if a method reference is used here.
-            pathFormulaManager);
+            () ->
+                solverContext
+                    .newProverEnvironment(), // Eclipse compiler crashes if a method reference is
+                                             // used here.
+            pathFormulaManager,
+            statistics);
     rankingRelationBuilder =
         new RankingRelationBuilder(
             pCfa.getMachineModel(),
@@ -272,7 +277,7 @@ public class LassoAnalysisImpl implements LassoAnalysis {
     rankingTemplates = createTemplates(maxTemplateFunctions);
   }
 
-  private static Collection<RankingTemplate> createTemplates(int pMaxTemplateFunctions) {
+  private static ImmutableList<RankingTemplate> createTemplates(int pMaxTemplateFunctions) {
     ImmutableList.Builder<RankingTemplate> rankingTemplates = ImmutableList.builder();
 
     rankingTemplates.add(new AffineTemplate());

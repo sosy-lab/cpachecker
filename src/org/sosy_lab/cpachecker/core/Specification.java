@@ -26,13 +26,13 @@ package org.sosy_lab.cpachecker.core;
 import static java.util.stream.Collectors.joining;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -46,8 +46,9 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
+import org.sosy_lab.cpachecker.util.Property;
+import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
-import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 
 /**
  * Class that encapsulates the specification that should be used for an analysis.
@@ -58,10 +59,7 @@ import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 public final class Specification {
 
   private final Set<SpecificationProperty> properties;
-
-  private final Set<Path> specFiles;
-
-  private final ImmutableList<Automaton> specificationAutomata;
+  private final ImmutableListMultimap<Path, Automaton> pathToSpecificationAutomata;
 
   public static Specification alwaysSatisfied() {
     return new Specification(ImmutableList.of());
@@ -73,12 +71,15 @@ public final class Specification {
 
   public static Specification fromFiles(
       Set<SpecificationProperty> pProperties,
-      Collection<Path> specFiles,
+      Iterable<Path> specFiles,
       CFA cfa,
       Configuration config,
       LogManager logger)
       throws InvalidConfigurationException {
-    if (specFiles.isEmpty()) {
+    if (Iterables.isEmpty(specFiles)) {
+      if (pProperties.stream().anyMatch(p -> p.getProperty() instanceof CommonCoverageType)) {
+        return new Specification(pProperties, ImmutableListMultimap.of());
+      }
       return Specification.alwaysSatisfied();
     }
 
@@ -92,12 +93,11 @@ public final class Specification {
         break;
     }
 
-    Set<PropertyType> propertyTypes = Sets.newHashSetWithExpectedSize(pProperties.size());
-    for (SpecificationProperty property : pProperties) {
-      propertyTypes.add(property.getPropertyType());
-    }
+    Set<Property> properties =
+        pProperties.stream().map(p -> p.getProperty()).collect(ImmutableSet.toImmutableSet());
 
-    List<Automaton> allAutomata = new ArrayList<>();
+    ImmutableListMultimap.Builder<Path, Automaton> multiplePropertiesBuilder =
+        ImmutableListMultimap.builder();
 
     for (Path specFile : specFiles) {
       List<Automaton> automata = ImmutableList.of();
@@ -114,7 +114,7 @@ public final class Specification {
       if (AutomatonGraphmlParser.isGraphmlAutomatonFromConfiguration(specFile)) {
         AutomatonGraphmlParser graphmlParser =
             new AutomatonGraphmlParser(config, logger, cfa, scope);
-        automata = graphmlParser.parseAutomatonFile(specFile, propertyTypes);
+        automata = graphmlParser.parseAutomatonFile(specFile, properties);
 
       } else {
         automata =
@@ -134,34 +134,36 @@ public final class Specification {
             automaton.getName(),
             automaton.getNumberOfStates());
       }
-      allAutomata.addAll(automata);
+      multiplePropertiesBuilder.putAll(specFile, automata);
     }
-    return new Specification(pProperties, specFiles, allAutomata);
+    return new Specification(pProperties, multiplePropertiesBuilder.build());
   }
 
   private Specification(Iterable<Automaton> pSpecificationAutomata) {
-    this(ImmutableSet.of(), ImmutableSet.of(), pSpecificationAutomata);
+    properties = ImmutableSet.of();
+    ImmutableListMultimap.Builder<Path, Automaton> multiplePropertiesBuilder =
+        ImmutableListMultimap.builder();
+    multiplePropertiesBuilder.putAll(Paths.get(""), ImmutableList.copyOf(pSpecificationAutomata));
+    pathToSpecificationAutomata = multiplePropertiesBuilder.build();
   }
 
   private Specification(
       Set<SpecificationProperty> pProperties,
-      Collection<Path> pSpecFiles,
-      Iterable<Automaton> pSpecificationAutomata) {
+      ImmutableListMultimap<Path, Automaton> pSpecification) {
     properties = ImmutableSet.copyOf(pProperties);
-    specFiles = ImmutableSet.copyOf(pSpecFiles);
-    specificationAutomata = ImmutableList.copyOf(pSpecificationAutomata);
+    pathToSpecificationAutomata = pSpecification;
   }
 
   /**
    * This is not public by intention! Only CPABuilder should need to access this method.
    */
   ImmutableList<Automaton> getSpecificationAutomata() {
-    return specificationAutomata;
+    return ImmutableList.copyOf(pathToSpecificationAutomata.values());
   }
 
   @Override
   public int hashCode() {
-    return specificationAutomata.hashCode();
+    return pathToSpecificationAutomata.hashCode();
   }
 
   @Override
@@ -173,13 +175,17 @@ public final class Specification {
       return false;
     }
     Specification other = (Specification) obj;
-    return specificationAutomata.equals(other.specificationAutomata);
+    return pathToSpecificationAutomata.equals(other.pathToSpecificationAutomata);
   }
 
   @Override
   public String toString() {
     return "Specification"
-        + specificationAutomata.stream().map(Automaton::getName).collect(joining(", ", "[", "]"));
+        + pathToSpecificationAutomata
+            .values()
+            .stream()
+            .map(Automaton::getName)
+            .collect(joining(", ", "[", "]"));
   }
 
   /**
@@ -200,6 +206,10 @@ public final class Specification {
    *     automata.
    */
   public Set<Path> getSpecFiles() {
-    return specFiles;
+    return pathToSpecificationAutomata.keySet();
+  }
+
+  public ImmutableListMultimap<Path, Automaton> getPathToSpecificationAutomata() {
+    return pathToSpecificationAutomata;
   }
 }

@@ -23,18 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.cache;
 
+import com.google.common.base.Function;
 import java.util.HashMap;
 import java.util.Map;
-
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import com.google.common.base.Function;
-import java.util.Optional;
 
 /*
  * CAUTION: The cache for precision adjustment is only correct for CPAs that do

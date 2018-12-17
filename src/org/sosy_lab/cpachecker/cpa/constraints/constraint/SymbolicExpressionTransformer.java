@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -78,16 +77,12 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
  * Transforms {@link SymbolicExpression}s into {@link CExpression}s.
+ *
+ * @see org.sosy_lab.cpachecker.cpa.value.symbolic.ExpressionTransformer
  */
 public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpression> {
 
   private static final FileLocation DUMMY_LOCATION = FileLocation.DUMMY;
-
-  private final IdentifierAssignment definiteAssignment;
-
-  public SymbolicExpressionTransformer(IdentifierAssignment pDefiniteAssignment) {
-    definiteAssignment = pDefiniteAssignment;
-  }
 
   @Override
   public CExpression visit(SymbolicIdentifier pValue) {
@@ -226,20 +221,11 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
   }
 
   private CExpression getIdentifierCExpression(SymbolicIdentifier pIdentifier, CType pType) {
+    String name = SymbolicIdentifier.Converter.getInstance().convertToStringEncoding(
+        pIdentifier);
+    CSimpleDeclaration declaration = getIdentifierDeclaration(name, pType);
 
-    if (definiteAssignment.containsKey(pIdentifier)) {
-      Value concreteValue = definiteAssignment.get(pIdentifier);
-      assert !(concreteValue instanceof SymbolicIdentifier);
-
-      return transformValue(concreteValue, pType);
-
-    } else {
-      String name = SymbolicIdentifier.Converter.getInstance().convertToStringEncoding(
-          pIdentifier);
-      CSimpleDeclaration declaration = getIdentifierDeclaration(name, pType);
-
-      return new CIdExpression(DUMMY_LOCATION, pType, name, declaration);
-    }
+    return new CIdExpression(DUMMY_LOCATION, pType, name, declaration);
   }
 
   private CVariableDeclaration getIdentifierDeclaration(String pIdentifierName, CType pType) {

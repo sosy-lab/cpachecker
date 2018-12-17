@@ -31,7 +31,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
@@ -167,7 +167,7 @@ public final class CEnumType implements CComplexType {
 
       CEnumerator other = (CEnumerator) obj;
 
-      return Objects.equals(value, other.value) && (qualifiedName.equals(other.qualifiedName));
+      return Objects.equals(value, other.value) && qualifiedName.equals(other.qualifiedName);
       // do not compare the enumType, comparing it with == is wrong because types which
       // are the same but not identical would lead to wrong results
       // comparing it with equals is no good choice, too. This would lead to a stack
@@ -177,13 +177,7 @@ public final class CEnumType implements CComplexType {
 
     @Override
     public int hashCode() {
-      final int prime = 31;
-      int result = 7;
-      result = prime * result + Objects.hashCode(value);
-      result = prime * result + Objects.hashCode(enumType);
-      result = prime * result + Objects.hashCode(qualifiedName);
-      result = prime * result + super.hashCode();
-      return result ;
+      return Objects.hash(value, enumType, qualifiedName) * 31 + super.hashCode();
     }
 
     /**
@@ -215,7 +209,7 @@ public final class CEnumType implements CComplexType {
 
     @Override
     public String toASTString() {
-      return getName()
+      return getQualifiedName().replace("::", "__")
           + (hasValue() ? " = " + String.valueOf(value) : "");
     }
 
@@ -238,12 +232,7 @@ public final class CEnumType implements CComplexType {
   @Override
   public int hashCode() {
     if (hashCache == 0) {
-      final int prime = 31;
-      int result = 7;
-      result = prime * result + Objects.hashCode(isConst);
-      result = prime * result + Objects.hashCode(isVolatile);
-      result = prime * result + Objects.hashCode(name);
-      hashCache = result;
+      hashCache = Objects.hash(isConst, isVolatile, name);
     }
     return hashCache;
   }

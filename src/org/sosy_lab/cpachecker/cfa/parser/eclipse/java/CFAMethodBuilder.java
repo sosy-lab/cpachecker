@@ -1246,9 +1246,14 @@ private void handleTernaryExpression(ConditionalExpression condExp,
             fileLocation, prevNode, lastNode);
         addToCFA(edge);
       } else if (exp instanceof JMethodInvocationExpression) {
-        edge = new JStatementEdge(condExp.toString(),
-            (new JMethodInvocationStatement(astCreator.getFileLocation(condExp), (JMethodInvocationExpression) exp)),
-            fileLocation, prevNode, lastNode);
+        edge =
+            new JStatementEdge(
+                condExp.toString(),
+                new JMethodInvocationStatement(
+                    astCreator.getFileLocation(condExp), (JMethodInvocationExpression) exp),
+                fileLocation,
+                prevNode,
+                lastNode);
         addToCFA(edge);
       } else {
         CFANode middle = new CFANode(cfa.getFunctionName());
@@ -1373,7 +1378,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     }
   }
 
-  private static enum CONDITION {
+  private enum CONDITION {
     NORMAL,
     ALWAYS_FALSE,
     ALWAYS_TRUE
@@ -1691,7 +1696,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
         .convertExpressionWithoutSideEffects(statement.getExpression());
 
     // TODO rawSignature ok in that way?
-    String rawSignature = "switch (" + statement.getExpression().toString() + ")";
+    String rawSignature = "switch (" + statement.getExpression() + ")";
     String description = "switch (" + switchExpression.toASTString() + ")";
 
     BlankEdge firstSwitchEdge = new BlankEdge(rawSignature, fileloc,
@@ -1722,7 +1727,8 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     final CFANode lastNotCaseNode = switchCaseStack.pop();
     switchExprStack.pop(); // switchExpr is not needed after this point
 
-    assert postSwitchNode == loopNextStack.pop();
+    assert postSwitchNode == loopNextStack.peek();
+    loopNextStack.pop();
     assert postSwitchNode == locStack.peek();
     assert switchExprStack.size() == switchCaseStack.size();
 
@@ -1999,7 +2005,8 @@ private void handleTernaryExpression(ConditionalExpression condExp,
         fileloc, lastNodeInLoop, loopStart, "");
     addToCFA(loopEndToStart);
 
-    assert postLoopNode == loopNextStack.pop();
+    assert postLoopNode == loopNextStack.peek();
+    loopNextStack.pop();
     assert postLoopNode == locStack.peek();
 
     scope.leaveBlock();
@@ -2109,8 +2116,10 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     createLastNodesAndEdgeForForLoop(updateBlock, fileloc,
                                         lastNodeInLoop, loopStart);
 
-    assert lastNodeInLoop == loopStartStack.pop();
-    assert postLoopNode == loopNextStack.pop();
+    assert lastNodeInLoop == loopStartStack.peek();
+    loopStartStack.pop();
+    assert postLoopNode == loopNextStack.peek();
+    loopNextStack.pop();
     assert postLoopNode == locStack.peek();
 
     scope.leaveBlock();

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.interfaces.pcc;
 
 import java.util.List;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 
 /**
@@ -42,6 +41,6 @@ public interface WeightedBalancedGraphPartitioner extends BalancedGraphPartition
    * @param wGraph - directed, weighted  graph whose nodes should be partitioned
    * @return the partitioning, each set contains the indices of the nodes which it contains
    */
-  public List<Set<Integer>> computePartitioning(int pNumPartitions, WeightedGraph wGraph)
+  List<Set<Integer>> computePartitioning(int pNumPartitions, WeightedGraph wGraph)
       throws InterruptedException;
 }

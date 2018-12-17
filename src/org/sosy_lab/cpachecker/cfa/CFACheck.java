@@ -30,7 +30,11 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import com.google.common.base.VerifyException;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -41,13 +45,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Set;
-
-import javax.annotation.Nullable;
 
 public class CFACheck {
 
@@ -88,15 +85,24 @@ public class CFACheck {
     return true;
   }
 
-  private static String debugFormat(CFANode node) {
-    // try to get some information about location from node
-    FileLocation location = FileLocation.DUMMY;
-    if (node.getNumEnteringEdges() > 0) {
-      location = node.getEnteringEdge(0).getFileLocation();
-    } else if (node.getNumLeavingEdges() > 0) {
-      location = node.getLeavingEdge(0).getFileLocation();
-    }
-    return node.getFunctionName() + ":" + node + " (" + location + ")";
+  /**
+   * This method returns a lazy object where {@link Object#toString} can be called.
+   * In most cases we do not need to build the String, thus we can avoid some overhead here.
+   */
+  private static Object debugFormat(CFANode node) {
+    return new Object() {
+      @Override
+      public String toString() {
+        // try to get some information about location from node
+        FileLocation location = FileLocation.DUMMY;
+        if (node.getNumEnteringEdges() > 0) {
+          location = node.getEnteringEdge(0).getFileLocation();
+        } else if (node.getNumLeavingEdges() > 0) {
+          location = node.getLeavingEdge(0).getFileLocation();
+        }
+        return node.getFunctionName() + ":" + node + " (" + location + ")";
+      }
+    };
   }
 
   /**

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.goals.targetgraph;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.filter.Filter;
 
 public class FilterEvaluationCache {

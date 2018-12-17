@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPGuard;
 
 public abstract class GuardedLabel implements Iterable<ECPGuard> {

@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -74,6 +74,8 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 @Options(deprecatedPrefix="cpa.predicate.solver", prefix="solver")
 public final class Solver implements AutoCloseable {
+
+  private static final String SOLVER_OPTION_NON_LINEAR_ARITHMETIC = "solver.nonLinearArithmetic";
 
   @Option(secure=true, name="checkUFs",
       description="improve sat-checks with additional constraints for UFs")
@@ -205,12 +207,26 @@ public final class Solver implements AutoCloseable {
   }
 
   /**
-   * Load and instantiate an SMT solver.
-   * The returned instance should be closed by calling {@link #close}
-   * when it is not used anymore.
+   * Load and instantiate an SMT solver. The returned instance should be closed by calling {@link
+   * #close} when it is not used anymore.
    */
-  public static Solver create(Configuration config, LogManager logger,
-      ShutdownNotifier shutdownNotifier) throws InvalidConfigurationException {
+  @SuppressWarnings("deprecation")
+  public static Solver create(
+      Configuration config, LogManager logger, ShutdownNotifier shutdownNotifier)
+      throws InvalidConfigurationException {
+    if (!config.hasProperty(SOLVER_OPTION_NON_LINEAR_ARITHMETIC)) {
+      // Set a default for solver.nonLinearArithmetic, because with JavaSMT's default CPAchecker
+      // would crash with UnsupportedOperationExceptions depending on which solver is used.
+      // We could use APPROXIMATE_FALLBACK as default, but this would make comparisons between
+      // solvers unfair, and at least small experiments showed no benefit in practice
+      // (if non-linear arithmetic is useful, it would be better to use bitvectors than linear
+      // approximation anyway).
+      config =
+          Configuration.builder()
+              .copyFrom(config)
+              .setOption(SOLVER_OPTION_NON_LINEAR_ARITHMETIC, "APPROXIMATE_ALWAYS")
+              .build();
+    }
     SolverContextFactory factory = new SolverContextFactory(config, logger, shutdownNotifier);
     return new Solver(factory, config, logger);
   }
@@ -253,8 +269,10 @@ public final class Solver implements AutoCloseable {
    * This environment needs to be closed after it is used by calling {@link InterpolatingProverEnvironment#close()}.
    * It is recommended to use the try-with-resources syntax.
    */
-  public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation() {
-    InterpolatingProverEnvironment<?> ipe = interpolatingContext.newProverEnvironmentWithInterpolation();
+  public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(
+      ProverOptions... options) {
+    InterpolatingProverEnvironment<?> ipe =
+        interpolatingContext.newProverEnvironmentWithInterpolation(options);
 
     if (solvingContext != interpolatingContext) {
       // If interpolatingContext is not the normal solver,
@@ -284,7 +302,8 @@ public final class Solver implements AutoCloseable {
    * It is recommended to use the try-with-resources syntax.
    */
   public OptimizationProverEnvironment newOptEnvironment() {
-    OptimizationProverEnvironment environment = solvingContext.newOptimizationProverEnvironment();
+    OptimizationProverEnvironment environment =
+        solvingContext.newOptimizationProverEnvironment(ProverOptions.GENERATE_MODELS);
     environment = new OptimizationProverEnvironmentView(environment, fmgr);
     return environment;
   }
@@ -418,8 +437,14 @@ public final class Solver implements AutoCloseable {
   public List<BooleanFormula> unsatCore(BooleanFormula constraints)
       throws SolverException, InterruptedException {
 
+    return unsatCore(bfmgr.toConjunctionArgs(constraints, true));
+  }
+
+  public List<BooleanFormula> unsatCore(Set<BooleanFormula> constraints)
+      throws SolverException, InterruptedException {
+
     try (ProverEnvironment prover = newProverEnvironment(GENERATE_UNSAT_CORE)) {
-      for (BooleanFormula constraint : bfmgr.toConjunctionArgs(constraints, true)) {
+      for (BooleanFormula constraint : constraints) {
         prover.addConstraint(constraint);
       }
       Verify.verify(prover.isUnsat());

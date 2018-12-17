@@ -23,14 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import org.sosy_lab.common.NativeLibraries;
-
 import apron.Box;
 import apron.Manager;
 import apron.Octagon;
 import apron.Polka;
 import apron.PolkaEq;
 import apron.SetUp;
+import org.sosy_lab.common.NativeLibraries;
 
 public class ApronManager {
 

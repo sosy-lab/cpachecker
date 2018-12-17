@@ -28,7 +28,6 @@ import static org.sosy_lab.cpachecker.cfa.parser.eclipse.java.NameConverter.conv
 
 import java.util.HashSet;
 import java.util.Set;
-
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.ASTConverter.ModifierBean;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.TypeHierarchy.THTypeTable;

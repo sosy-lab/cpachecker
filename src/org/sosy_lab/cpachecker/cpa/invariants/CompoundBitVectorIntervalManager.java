@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.invariants;
 
 import com.google.common.base.Preconditions;
-
 import java.math.BigInteger;
 import java.util.Objects;
 

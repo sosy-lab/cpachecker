@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.composite;
 
 import com.google.common.collect.ImmutableList;
-
 import org.sosy_lab.cpachecker.core.defaults.BreakOnTargetsPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;

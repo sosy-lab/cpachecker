@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.invariants.operators.mathematical;
 import static org.junit.Assert.assertEquals;
 
 import java.math.BigInteger;
-
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 

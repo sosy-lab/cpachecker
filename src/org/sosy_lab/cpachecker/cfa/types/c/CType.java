@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
@@ -39,25 +39,25 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 @SuppressWarnings("serial")
 public interface CType extends Type {
 
-  public boolean isConst();
+  boolean isConst();
 
   @Override
-  public abstract String toString();
+  String toString();
 
-  public boolean isVolatile();
+  boolean isVolatile();
 
   /**
    * Check whether the current type is *incomplete* as defined by the C standard in § 6.2.5 (1).
    * Incomplete types miss some information (e.g., <code>struct s;</code>),
    * and for example their size cannot be computed.
    */
-  public boolean isIncomplete();
+  boolean isIncomplete();
 
   /**
    * Will throw a UnsupportedOperationException
    */
   @Override
-  public int hashCode();
+  int hashCode();
 
   /**
    * Be careful, this method compares the CType as it is to the given object,
@@ -65,13 +65,13 @@ public interface CType extends Type {
    * typedefs in it use #getCanonicalType().equals()
    */
   @Override
-  public boolean equals(@Nullable Object obj);
+  boolean equals(@Nullable Object obj);
 
-  public abstract <R, X extends Exception> R accept(CTypeVisitor<R, X> visitor) throws X;
+  <R, X extends Exception> R accept(CTypeVisitor<R, X> visitor) throws X;
 
-  public CType getCanonicalType();
+  CType getCanonicalType();
 
-  public CType getCanonicalType(boolean forceConst, boolean forceVolatile);
+  CType getCanonicalType(boolean forceConst, boolean forceVolatile);
 
   /**
    * Implements assignment compatibility for simple assignments (=)

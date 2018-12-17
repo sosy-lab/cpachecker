@@ -23,11 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.monitor;
 
+import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.io.NotSerializableException;
-
-import javax.annotation.Nullable;
-
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
@@ -36,8 +35,6 @@ import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Keeps track of the resources spent on a path.

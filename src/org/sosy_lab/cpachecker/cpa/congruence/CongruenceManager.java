@@ -74,9 +74,9 @@ public class CongruenceManager implements
       Configuration config,
       Solver pSolver,
       TemplateToFormulaConversionManager pTemplateToFormulaConversionManager,
-      FormulaManagerView pFmgr,
+      FormulaManagerView pFormulaManager,
       CongruenceStatistics pStatistics,
-      PathFormulaManager pPfmgr,
+      PathFormulaManager pPathFormulaManager,
       LogManager logger,
       CFA pCFA,
       ShutdownNotifier pShutdownNotifier)
@@ -87,11 +87,11 @@ public class CongruenceManager implements
     logManager = logger;
     configuration = config;
     solver = pSolver;
-    fmgr = pFmgr;
+    fmgr = pFormulaManager;
     bfmgr = fmgr.getBooleanFormulaManager();
     statistics = pStatistics;
     bvfmgr = fmgr.getBitvectorFormulaManager();
-    pfmgr = pPfmgr;
+    pfmgr = pPathFormulaManager;
     precision = new TemplatePrecision(logger, config, cfa,
         pTemplateToFormulaConversionManager);
     shutdownNotifier = pShutdownNotifier;
@@ -116,21 +116,23 @@ public class CongruenceManager implements
   @Override
   public PrecisionAdjustmentResult performAbstraction(
       ABEIntermediateState<CongruenceState> pIntermediateState,
-      TemplatePrecision precision,
+      TemplatePrecision pPrecision,
       UnmodifiableReachedSet states,
       AbstractState fullState)
       throws CPATransferException, InterruptedException {
-    return PrecisionAdjustmentResult.create(performAbstraction(
+    return PrecisionAdjustmentResult.create(
+        performAbstraction(
         pIntermediateState.getNode(),
         pIntermediateState.getPathFormula(),
         pIntermediateState.getBackpointerState().instantiate(),
-        precision,
+            pPrecision,
         pIntermediateState.getPathFormula().getPointerTargetSet(),
         pIntermediateState.getPathFormula().getSsa(),
         pIntermediateState,
         states,
-        fullState
-    ), precision, Action.CONTINUE);
+            fullState),
+        pPrecision,
+        Action.CONTINUE);
   }
 
   public CongruenceState performAbstraction(
@@ -210,41 +212,36 @@ public class CongruenceManager implements
   }
 
   public BooleanFormula toFormulaUninstantiated(
-      CongruenceState state,
-      FormulaManagerView fmgr
-      ) {
+      CongruenceState state, FormulaManagerView pFormulaManager) {
     PathFormulaManager pfmgrv;
     try {
-      pfmgrv = new PathFormulaManagerImpl(
-          fmgr,
+      pfmgrv =
+          new PathFormulaManagerImpl(
+              pFormulaManager,
           configuration,
           logManager,
           shutdownNotifier,
           cfa,
-          AnalysisDirection.FORWARD
-      );
+              AnalysisDirection.FORWARD);
     } catch (InvalidConfigurationException pE) {
       throw new UnsupportedOperationException("Could not construct path "
           + "formula manager", pE);
     }
-    return fmgr.uninstantiate(
+    return pFormulaManager.uninstantiate(
         toFormula(
             pfmgrv,
-            fmgr,
+            pFormulaManager,
             state,
             new PathFormula(
-                fmgr.getBooleanFormulaManager().makeTrue(),
+                pFormulaManager.getBooleanFormulaManager().makeTrue(),
                 state.getSSAMap(),
                 state.getPointerTargetSet(),
-                1
-            )
-        )
-    );
+                1)));
   }
 
   public BooleanFormula toFormula(
-      PathFormulaManager pfmgr,
-      FormulaManagerView fmgr,
+      PathFormulaManager pPathFormulaManager,
+      FormulaManagerView pFormulaManager,
       CongruenceState state,
       PathFormula ref) {
     Map<Template, Congruence> abstraction = state.getAbstraction();
@@ -255,22 +252,25 @@ public class CongruenceManager implements
       Template template = entry.getKey();
       Congruence congruence = entry.getValue();
 
-      Formula formula = templateToFormulaConversionManager.toFormula(pfmgr, fmgr, template, ref);
+      Formula formula =
+          templateToFormulaConversionManager.toFormula(
+              pPathFormulaManager, pFormulaManager, template, ref);
       Formula remainder;
       switch (congruence) {
         case ODD:
-          remainder = makeBv(fmgr.getBitvectorFormulaManager(), formula, 1);
+          remainder = makeBv(pFormulaManager.getBitvectorFormulaManager(), formula, 1);
           break;
         case EVEN:
-          remainder = makeBv(fmgr.getBitvectorFormulaManager(), formula, 0);
+          remainder = makeBv(pFormulaManager.getBitvectorFormulaManager(), formula, 0);
           break;
         default:
           throw new AssertionError("Unexpected case");
       }
 
-      constraints.add(fmgr.makeModularCongruence(formula, remainder, 2, !template.isUnsigned()));
+      constraints.add(
+          pFormulaManager.makeModularCongruence(formula, remainder, 2, !template.isUnsigned()));
     }
-    return fmgr.getBooleanFormulaManager().and(constraints);
+    return pFormulaManager.getBooleanFormulaManager().and(constraints);
   }
 
   private boolean shouldUseTemplate(Template template) {
@@ -280,10 +280,8 @@ public class CongruenceManager implements
     );
   }
 
-  private Formula makeBv(BitvectorFormulaManager bvfmgr, Formula other, int value) {
-    return bvfmgr.makeBitvector(
-        bvfmgr.getLength((BitvectorFormula) other),
-        value);
+  private Formula makeBv(BitvectorFormulaManager pBvfmgr, Formula other, int value) {
+    return pBvfmgr.makeBitvector(pBvfmgr.getLength((BitvectorFormula) other), value);
   }
 
   @Override

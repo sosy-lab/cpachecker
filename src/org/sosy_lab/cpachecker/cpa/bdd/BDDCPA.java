@@ -87,11 +87,9 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
   @Option(
     secure = true,
-    name = "merge",
-    values = {"SEP", "JOIN"},
-    toUppercase = true,
-    description = "which merge operator to use for bdd cpa (usually join should be used)")
-  private String merge = "JOIN";
+    description = "mergeType",
+    values = {"sep", "join"})
+  private String merge = "join";
 
   @Option(secure = true, name = "logfile", description = "Dump tracked variables to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -139,9 +137,14 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
   @Override
   public MergeOperator getMergeOperator() {
-    return (merge.equals("SEP"))
-        ? MergeSepOperator.getInstance()
-        : new MergeJoinOperator(getAbstractDomain());
+    switch (merge) {
+      case "sep":
+        return MergeSepOperator.getInstance();
+      case "join":
+        return new MergeJoinOperator(getAbstractDomain());
+      default:
+        throw new AssertionError("unexpected operator: " + merge);
+    }
   }
 
   @Override
@@ -192,7 +195,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
                 new TreeSet<>(); // TreeSet for nicer output through ordering
             Collection<String> trackedIntEq = new TreeSet<>();
             Collection<String> trackedIntAdd = new TreeSet<>();
-            for (String var : predmgr.getTrackedVars().keySet()) {
+            for (String var : predmgr.getTrackedVars()) {
               if (varClass.getIntBoolVars().contains(var)) {
                 trackedIntBool.add(var);
               } else if (varClass.getIntEqualVars().contains(var)) {
@@ -250,7 +253,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
   @Override
   public Reducer getReducer() {
-    return new BDDReducer(predmgr);
+    return new BDDReducer();
   }
 
   public Configuration getConfiguration() {

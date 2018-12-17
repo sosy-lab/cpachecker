@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.resources;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.concurrent.TimeUnit;
-
 import org.sosy_lab.common.time.TimeSpan;
 
 /**

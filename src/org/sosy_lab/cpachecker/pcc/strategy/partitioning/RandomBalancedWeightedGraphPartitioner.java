@@ -28,11 +28,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.core.interfaces.pcc.WeightedBalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
-import org.sosy_lab.cpachecker.util.RandomProvider;
-
 
 public class RandomBalancedWeightedGraphPartitioner extends RandomBalancedGraphPartitioner
     implements WeightedBalancedGraphPartitioner {
@@ -57,7 +54,7 @@ public class RandomBalancedWeightedGraphPartitioner extends RandomBalancedGraphP
       partitioning.add(new HashSet<>());
     }
 
-    Random randomGen = RandomProvider.get();
+    Random randomGen = new Random(0);
 
     for (int i = 0; i < wGraph.getNumNodes(); i++) {
       partitioning.get(randomGen.nextInt(pNumPartitions)).add(i);

@@ -23,13 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 
+import java.util.Collection;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-
-import java.util.Collection;
-import java.util.Set;
 
 
 /**

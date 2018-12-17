@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public class EmptyECPEdgeSet implements ECPEdgeSet {

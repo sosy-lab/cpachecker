@@ -33,7 +33,7 @@ import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public final class CCompositeType implements CComplexType {
 
@@ -228,8 +228,7 @@ public final class CCompositeType implements CComplexType {
     }
 
     public String toASTString() {
-      String name = Strings.nullToEmpty(getName());
-      return getType().toASTString(name) + ";";
+      return getType().toASTString(Strings.nullToEmpty(getName())) + ";";
     }
 
     @Override
@@ -256,13 +255,7 @@ public final class CCompositeType implements CComplexType {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    result = prime * result + Objects.hashCode(isConst);
-    result = prime * result + Objects.hashCode(isVolatile);
-    result = prime * result + Objects.hashCode(kind);
-    result = prime * result + Objects.hashCode(name);
-    return result;
+    return Objects.hash(isConst, isVolatile, kind, name);
   }
 
   /**

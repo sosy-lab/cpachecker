@@ -1,9 +1,8 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-
-import java.util.Objects;
 
 /**
  * Intermediate state: a formula describing all possible executions at a point.

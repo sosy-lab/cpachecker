@@ -2,17 +2,15 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
-
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.templates.Template;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Policy with a local bound.

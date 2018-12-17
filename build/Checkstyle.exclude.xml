@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN" "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+
+<suppressions>
+
+  <!-- The following packages are unmaintained -->
+  <suppress files="/cpa/cfapath/" checks=".*"/>
+  <suppress files="/cpa/chc/" checks=".*"/>
+  <suppress files="/cpa/ldd/" checks=".*"/>
+  <suppress files="/cpa/statistics/" checks=".*"/>
+
+  <!-- Non-suppressible warnings that do not apply to this class -->
+  <suppress files="/cmdline/ConfigurationFileChecks\.java$" checks="\.(ForbidAnnotation|IllegalImport)Check$"/>
+
+  <!-- Needs to run, but produces false alarms that are not suppressible -->
+  <suppress checks="SuppressWarningsHolder"/>
+
+  <!-- Generated code gets excluded -->
+  <suppress files="/generated/" checks=".*"/>
+</suppressions>

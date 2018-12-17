@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation.ExplicitRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation.SymbolicRelation;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -74,34 +75,23 @@ public class SMGPredicateManager {
   }
 
   private BooleanFormula createBooleanFormula(
-      Formula pFormulaOne,
-      Formula pFormulaTwo,
-      BinaryOperator pOp) {
-    BooleanFormula result;
+      Formula pFormulaOne, Formula pFormulaTwo, BinaryOperator pOp) {
     switch (pOp) {
       case GREATER_THAN:
-        result = fmgr.makeGreaterThan(pFormulaOne, pFormulaTwo, true);
-        break;
+        return fmgr.makeGreaterThan(pFormulaOne, pFormulaTwo, true);
       case GREATER_EQUAL:
-        result = fmgr.makeGreaterOrEqual(pFormulaOne, pFormulaTwo, true);
-        break;
+        return fmgr.makeGreaterOrEqual(pFormulaOne, pFormulaTwo, true);
       case LESS_THAN:
-        result = fmgr.makeLessThan(pFormulaOne, pFormulaTwo, true);
-        break;
+        return fmgr.makeLessThan(pFormulaOne, pFormulaTwo, true);
       case LESS_EQUAL:
-        result = fmgr.makeLessOrEqual(pFormulaOne, pFormulaTwo, true);
-        break;
+        return fmgr.makeLessOrEqual(pFormulaOne, pFormulaTwo, true);
       case EQUALS:
-        result = fmgr.makeEqual(pFormulaOne, pFormulaTwo);
-        break;
+        return fmgr.makeEqual(pFormulaOne, pFormulaTwo);
       case NOT_EQUALS:
-        result = bfmgr.not(fmgr.makeEqual(pFormulaOne, pFormulaTwo));
-        break;
+        return bfmgr.not(fmgr.makeEqual(pFormulaOne, pFormulaTwo));
       default:
         throw new AssertionError();
-
     }
-    return result;
   }
 
   private BooleanFormula addPredicateToFormula(BooleanFormula pFormula, ExplicitRelation
@@ -134,15 +124,21 @@ public class SMGPredicateManager {
     String nameTwo = SYM_NAME + pRelation.getSecondValue();
     Integer firstSize = pPredRelation.getSymbolicSize(pRelation.getFirstValue());
     Integer secondSize = pPredRelation.getSymbolicSize(pRelation.getSecondValue());
-    //Special case for NULL value
-    if (pRelation.getFirstValue() == 0) {
+    BitvectorFormula formulaOne;
+    BitvectorFormula formulaTwo;
+    // Special case for NULL value
+    if (pRelation.getFirstValue().isZero()) {
       firstSize = secondSize;
+      formulaOne = efmgr.makeBitvector(firstSize, 0);
+    } else {
+      formulaOne = efmgr.makeVariable(firstSize, nameOne);
     }
-    if (pRelation.getSecondValue() == 0) {
+    if (pRelation.getSecondValue().isZero()) {
       secondSize = firstSize;
+      formulaTwo = efmgr.makeBitvector(firstSize, 0);
+    } else {
+      formulaTwo = efmgr.makeVariable(secondSize, nameTwo);
     }
-    BitvectorFormula formulaOne = efmgr.makeVariable(firstSize, nameOne);
-    BitvectorFormula formulaTwo = efmgr.makeVariable(secondSize, nameTwo);
     if (!firstSize.equals(secondSize)) {
       if (firstSize > secondSize) {
         formulaTwo = efmgr.extend(formulaTwo, firstSize - secondSize, true);
@@ -178,8 +174,8 @@ public class SMGPredicateManager {
       return result;
     }
 
-    for (Entry<Pair<Integer, Integer>, SymbolicRelation> entry: pRelation.getValuesRelations()) {
-      if (entry.getKey().getSecond() > entry.getKey().getFirst()) {
+    for (Entry<Pair<SMGValue, SMGValue>, SymbolicRelation> entry : pRelation.getValuesRelations()) {
+      if (entry.getKey().getSecond().compareTo(entry.getKey().getFirst()) > 0) {
         SymbolicRelation value = entry.getValue();
         result = addPredicateToFormula(result, value, pRelation, conjunction);
       }
@@ -203,7 +199,7 @@ public class SMGPredicateManager {
     }
   }
 
-  public boolean isErrorPathFeasible(SMGState pState) {
+  public boolean isErrorPathFeasible(UnmodifiableSMGState pState) {
     if (!verifyPredicates) {
       return false;
     }

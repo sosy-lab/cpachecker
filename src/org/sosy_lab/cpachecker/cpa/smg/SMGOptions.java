@@ -60,7 +60,7 @@ public class SMGOptions {
       description = "Sets how unknown functions are handled.")
   private UnknownFunctionHandling handleUnknownFunctions = UnknownFunctionHandling.STRICT;
 
-  public static enum UnknownFunctionHandling {
+  public enum UnknownFunctionHandling {
     STRICT,
     ASSUME_SAFE,
     ASSUME_EXTERNAL_ALLOCATED
@@ -83,7 +83,8 @@ public class SMGOptions {
       secure = true,
       name = "memoryAllocationFunctions",
       description = "Memory allocation functions")
-  private ImmutableSet<String> memoryAllocationFunctions = ImmutableSet.of("malloc", "__kmalloc", "kmalloc");
+  private ImmutableSet<String> memoryAllocationFunctions =
+      ImmutableSet.of("malloc", "__kmalloc", "kmalloc", "realloc");
 
   @Option(
     secure = true,
@@ -146,6 +147,15 @@ public class SMGOptions {
 
   @Option(
       secure = true,
+    name = "handleUnknownDereferenceAsSafe",
+    description =
+        "Handle unknown dereference as safe and check error based on error predicate, "
+            + "depends on trackPredicates"
+  )
+  private boolean handleUnknownDereferenceAsSafe = false;
+
+  @Option(
+      secure = true,
       description = "with this option enabled, heap abstraction will be enabled.")
   private boolean enableHeapAbstraction = false;
 
@@ -187,7 +197,7 @@ public class SMGOptions {
       description = "Handle extern variables with incomplete type (extern int array[]) as external allocation")
   private boolean handleExternVariableAsExternalAllocation = false;
 
-  public static enum SMGExportLevel {
+  public enum SMGExportLevel {
     NEVER,
     LEAF,
     INTERESTING,
@@ -292,5 +302,9 @@ public class SMGOptions {
 
   public boolean isHandleExternVariableAsExternalAllocation() {
     return handleExternVariableAsExternalAllocation;
+  }
+
+  public boolean isHandleUnknownDereferenceAsSafe() {
+    return handleUnknownDereferenceAsSafe;
   }
 }

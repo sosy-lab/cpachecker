@@ -23,11 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.toolchain;
 
-import org.sosy_lab.common.log.LogManager;
-
-import java.util.logging.Level;
-
 import de.uni_freiburg.informatik.ultimate.core.model.services.ILogger;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 
 public class LassoRankerLogger implements ILogger {
 

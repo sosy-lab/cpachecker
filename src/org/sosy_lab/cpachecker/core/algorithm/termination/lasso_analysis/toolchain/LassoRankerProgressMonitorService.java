@@ -23,11 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.toolchain;
 
-import org.sosy_lab.common.ShutdownManager;
-import org.sosy_lab.common.ShutdownNotifier;
-
 import de.uni_freiburg.informatik.ultimate.core.model.services.IProgressAwareTimer;
 import de.uni_freiburg.informatik.ultimate.core.model.services.IProgressMonitorService;
+import org.sosy_lab.common.ShutdownManager;
+import org.sosy_lab.common.ShutdownNotifier;
 
 public class LassoRankerProgressMonitorService implements IProgressMonitorService {
 

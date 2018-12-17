@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser;
 
 import java.io.StringReader;
-
 import org.junit.Assert;
 import org.junit.Test;
 

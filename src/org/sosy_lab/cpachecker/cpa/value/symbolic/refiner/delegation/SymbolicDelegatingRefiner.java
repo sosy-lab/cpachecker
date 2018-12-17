@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.delegation;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -34,13 +34,14 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.RefinableConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
@@ -56,7 +57,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicIn
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolantManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.EdgeInterpolator;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.GenericEdgeInterpolator;
@@ -71,7 +71,7 @@ import org.sosy_lab.cpachecker.util.refinement.PathInterpolator;
  * {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}
  * that tries to refine precision using only the {@link ValueAnalysisCPA}, first.
  */
-public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
+public class SymbolicDelegatingRefiner implements ARGBasedRefiner, StatisticsProvider {
 
   private final SymbolicValueAnalysisRefiner explicitRefiner;
   private final SymbolicValueAnalysisRefiner symbolicRefiner;
@@ -89,8 +89,6 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
   public static SymbolicDelegatingRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
-    final ARGCPA argCpa =
-        CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SymbolicValueAnalysisRefiner.class);
     final ValueAnalysisCPA valueAnalysisCpa =
         CPAs.retrieveCPAOrFail(pCpa, ValueAnalysisCPA.class, SymbolicValueAnalysisRefiner.class);
     final ConstraintsCPA constraintsCpa =
@@ -105,10 +103,9 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
     final CFA cfa = valueAnalysisCpa.getCFA();
     final ShutdownNotifier shutdownNotifier = valueAnalysisCpa.getShutdownNotifier();
 
-    final Solver solver = Solver.create(config, logger, shutdownNotifier);
-
     final SymbolicStrongestPostOperator symbolicStrongestPost =
-        new ValueTransferBasedStrongestPostOperator(solver, logger, config, cfa, shutdownNotifier);
+        new ValueTransferBasedStrongestPostOperator(constraintsCpa.getSolver(), logger, config,
+            cfa);
 
     final SymbolicFeasibilityChecker feasibilityChecker =
         new SymbolicValueAnalysisFeasibilityChecker(symbolicStrongestPost,
@@ -185,73 +182,50 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
             SymbolicInterpolantManager.getInstance(),
             config, logger, shutdownNotifier, cfa);
 
-    return new SymbolicDelegatingRefiner(argCpa,
+    return new SymbolicDelegatingRefiner(
         feasibilityChecker,
+        cfa,
         pathInterpolator,
         explicitFeasibilityChecker,
+        symbolicStrongestPost,
         explicitPathInterpolator,
         config,
         logger);
   }
 
-
-  public SymbolicDelegatingRefiner(final ARGCPA pArgCPA,
+  public SymbolicDelegatingRefiner(
       final SymbolicFeasibilityChecker pSymbolicFeasibilityChecker,
+      final CFA pCfa,
       final SymbolicPathInterpolator pSymbolicInterpolator,
       final FeasibilityChecker<ForgettingCompositeState> pExplicitFeasibilityChecker,
+      final SymbolicStrongestPostOperator pSymbolicStrongestPost,
       final PathInterpolator<SymbolicInterpolant> pExplicitInterpolator,
       final Configuration pConfig,
-      final LogManager pLogger) throws InvalidConfigurationException {
+      final LogManager pLogger)
+      throws InvalidConfigurationException {
 
     // Two different instances of PathExtractor have to be used, otherwise,
     // RepeatedCounterexample error will occur when symbolicRefiner starts refinement.
-    symbolicRefiner = new SymbolicValueAnalysisRefiner(pArgCPA,
-                                                       pSymbolicFeasibilityChecker,
-                                                       pSymbolicInterpolator,
-                                                       new PathExtractor(pLogger, pConfig),
-                                                       pConfig,
-                                                       pLogger);
+    symbolicRefiner =
+        new SymbolicValueAnalysisRefiner(
+            pCfa,
+            pSymbolicFeasibilityChecker,
+            pSymbolicStrongestPost,
+            pSymbolicInterpolator,
+            new PathExtractor(pLogger, pConfig),
+            pConfig,
+            pLogger);
 
-    explicitRefiner = new SymbolicValueAnalysisRefiner(pArgCPA,
-                                                       pExplicitFeasibilityChecker,
-                                                       pExplicitInterpolator,
-                                                       new PathExtractor(pLogger, pConfig),
-                                                       pConfig,
-                                                       pLogger);
+    explicitRefiner =
+        new SymbolicValueAnalysisRefiner(
+            pCfa,
+            pExplicitFeasibilityChecker,
+            pSymbolicStrongestPost,
+            pExplicitInterpolator,
+            new PathExtractor(pLogger, pConfig),
+            pConfig,
+            pLogger);
     logger = pLogger;
-  }
-
-  @Override
-  public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
-    logger.log(Level.FINER, "Trying to refine using explicit refiner only");
-    explicitRefinements++;
-    explicitRefinementTime.start();
-
-    boolean refinementSuccessful = explicitRefiner.performRefinement(pReached);
-
-    explicitRefinementTime.stop();
-
-    if (!refinementSuccessful) {
-      logger.log(Level.FINER, "Refinement using explicit refiner only failed");
-      logger.log(Level.FINER, "Trying to refine using symbolic refiner");
-      symbolicRefinements++;
-      symbolicRefinementTime.start();
-
-      refinementSuccessful = symbolicRefiner.performRefinement(pReached);
-
-      symbolicRefinementTime.stop();
-      logger.logf(Level.FINER,
-          "Refinement using symbolic refiner finished with status %s", refinementSuccessful);
-
-      if (refinementSuccessful) {
-        successfulSymbolicRefinements++;
-      }
-    } else {
-      logger.log(Level.FINER, "Refinement using explicit refiner only successful");
-      successfulExplicitRefinements++;
-    }
-
-    return refinementSuccessful;
   }
 
   @Override
@@ -275,5 +249,41 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
         return SymbolicDelegatingRefiner.class.getSimpleName();
       }
     });
+
+    symbolicRefiner.collectStatistics(statsCollection);
+  }
+
+  @Override
+  public CounterexampleInfo performRefinementForPath(
+      ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException {
+    logger.log(Level.FINER, "Trying to refine using explicit refiner only");
+    explicitRefinements++;
+    explicitRefinementTime.start();
+
+    CounterexampleInfo cex = explicitRefiner.performRefinementForPath(pReached, pPath);
+
+    explicitRefinementTime.stop();
+
+    if (!cex.isSpurious()) {
+      logger.log(Level.FINER, "Refinement using explicit refiner only failed");
+      logger.log(Level.FINER, "Trying to refine using symbolic refiner");
+      symbolicRefinements++;
+      symbolicRefinementTime.start();
+
+      cex = symbolicRefiner.performRefinementForPath(pReached, pPath);
+
+      symbolicRefinementTime.stop();
+      logger.logf(Level.FINER,
+          "Refinement using symbolic refiner finished with status %s", cex.isSpurious());
+
+      if (cex.isSpurious()) {
+        successfulSymbolicRefinements++;
+      }
+    } else {
+      logger.log(Level.FINER, "Refinement using explicit refiner only successful");
+      successfulExplicitRefinements++;
+    }
+
+    return cex;
   }
 }

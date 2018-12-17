@@ -49,4 +49,9 @@ public class Constraints {
   public BooleanFormula get() {
     return bfmgr.and(constraints);
   }
+
+  @Override
+  public String toString() {
+    return constraints.toString();
+  }
 }

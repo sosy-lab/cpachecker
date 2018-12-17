@@ -78,14 +78,14 @@ public class OctagonIntervalCoefficients extends AOctagonCoefficients {
   }
 
   @Override
-  public OctagonIntervalCoefficients expandToSize(int size, OctagonState oct) {
-    Preconditions.checkArgument(this.size <= size, "new size too small");
+  public OctagonIntervalCoefficients expandToSize(int pSize, OctagonState pOct) {
+    Preconditions.checkArgument(this.size <= pSize, "new size too small");
 
-    if (this.size == size) {
+    if (this.size == pSize) {
       return this;
     }
 
-    OctagonIntervalCoefficients newCoeffs = new OctagonIntervalCoefficients(size, oct);
+    OctagonIntervalCoefficients newCoeffs = new OctagonIntervalCoefficients(pSize, pOct);
 
     for (int i = 0; i < coefficients.length-1; i++) {
       newCoeffs.coefficients[i] = coefficients[i];
@@ -390,9 +390,10 @@ public class OctagonIntervalCoefficients extends AOctagonCoefficients {
       return false;
     }
 
-    OctagonIntervalCoefficients oct = (OctagonIntervalCoefficients) other;
+    OctagonIntervalCoefficients octCoefficients = (OctagonIntervalCoefficients) other;
 
-    return Arrays.equals(coefficients, oct.coefficients) && size == oct.size;
+    return Arrays.equals(coefficients, octCoefficients.coefficients)
+        && size == octCoefficients.size;
   }
 
   @Override

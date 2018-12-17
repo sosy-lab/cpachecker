@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.core.interfaces.pcc.FiducciaMattheysesOptimizer;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedNode;

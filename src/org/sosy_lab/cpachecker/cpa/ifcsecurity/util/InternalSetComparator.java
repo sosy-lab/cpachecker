@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.util;
 
 import com.google.common.collect.Ordering;
-
 import java.io.Serializable;
 import java.util.Comparator;
 import java.util.SortedSet;

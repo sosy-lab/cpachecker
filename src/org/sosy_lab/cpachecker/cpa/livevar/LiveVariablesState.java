@@ -27,13 +27,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
-
+import java.util.BitSet;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.LiveVariables;
-
-import java.util.BitSet;
-import java.util.Objects;
 
 
 class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Graphable {

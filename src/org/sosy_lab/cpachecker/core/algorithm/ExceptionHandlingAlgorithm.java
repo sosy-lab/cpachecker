@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import static com.google.common.collect.ImmutableList.copyOf;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -47,9 +47,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -358,7 +358,7 @@ public class ExceptionHandlingAlgorithm
     }
 
     // this includes the errorState and its siblings
-    List<ARGState> siblings = copyOf(parent.getChildren());
+    List<ARGState> siblings = ImmutableList.copyOf(parent.getChildren());
     for (ARGState toRemove : siblings) {
 
       assert toRemove.getChildren().isEmpty();
@@ -370,7 +370,7 @@ public class ExceptionHandlingAlgorithm
       toRemove.removeFromARG();
     }
 
-    List<ARGState> coveredByParent = copyOf(parent.getCoveredByThis());
+    List<ARGState> coveredByParent = ImmutableList.copyOf(parent.getCoveredByThis());
     for (ARGState covered : coveredByParent) {
       assert covered.getChildren().isEmpty();
       assert covered.getCoveredByThis().isEmpty();

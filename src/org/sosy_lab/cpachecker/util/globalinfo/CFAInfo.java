@@ -23,24 +23,23 @@
  */
 package org.sosy_lab.cpachecker.util.globalinfo;
 
-import java.util.HashMap;
-import java.util.Map;
-
+import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
 
-
 public class CFAInfo {
-  private final Map<Integer, CFANode> nodeNumberToNode;
+  private final ImmutableMap<Integer, CFANode> nodeNumberToNode;
   private LocationStateFactory locationStateFactory;
+  private final CFA cfa;
 
   CFAInfo(CFA cfa) {
-    Map<Integer, CFANode> nodeNumberToNode = new HashMap<>();
+    ImmutableMap.Builder<Integer, CFANode> nodeNumberToNode0 = ImmutableMap.builder();
     for (CFANode node : cfa.getAllNodes()) {
-      nodeNumberToNode.put(node.getNodeNumber(), node);
+      nodeNumberToNode0.put(node.getNodeNumber(), node);
     }
-    this.nodeNumberToNode = nodeNumberToNode;
+    this.nodeNumberToNode = nodeNumberToNode0.build();
+    this.cfa = cfa;
   }
 
   public CFANode getNodeByNodeNumber(int nodeNumber) {
@@ -53,5 +52,9 @@ public class CFAInfo {
 
   public LocationStateFactory getLocationStateFactory() {
     return locationStateFactory;
+  }
+
+  public CFA getCFA() {
+    return cfa;
   }
 }

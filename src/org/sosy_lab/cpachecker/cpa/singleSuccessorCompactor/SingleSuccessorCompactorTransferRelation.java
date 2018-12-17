@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.List;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -67,7 +67,7 @@ public class SingleSuccessorCompactorTransferRelation implements TransferRelatio
    * includes the first state (given as parameter) until (exclusive) the last states that are
    * returned directly.
    */
-  Collection<? extends AbstractState> getAbstractSuccessorsWithList(
+  private Collection<? extends AbstractState> getAbstractSuccessorsWithList(
       AbstractState state, final Precision precision, final @Nullable List<AbstractState> lst)
       throws CPATransferException, InterruptedException {
 
@@ -106,8 +106,7 @@ public class SingleSuccessorCompactorTransferRelation implements TransferRelatio
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
-      throws CPATransferException, InterruptedException {
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
     throw new UnsupportedOperationException();
   }
 }

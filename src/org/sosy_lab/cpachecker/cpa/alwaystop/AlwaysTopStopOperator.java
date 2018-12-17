@@ -23,14 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.alwaystop;
 
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
 import java.util.Collection;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
 
 enum AlwaysTopStopOperator implements StopOperator {
 

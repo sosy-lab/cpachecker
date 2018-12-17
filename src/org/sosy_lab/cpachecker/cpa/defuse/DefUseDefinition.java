@@ -23,12 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.defuse;
 
+import com.google.common.base.Preconditions;
 import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-
-import com.google.common.base.Preconditions;
 
 public class DefUseDefinition implements AbstractState {
     private final String variableName;

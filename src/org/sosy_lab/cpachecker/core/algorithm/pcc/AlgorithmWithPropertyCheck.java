@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
 import java.util.Collection;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;

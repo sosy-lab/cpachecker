@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.policies;
 
+import java.util.SortedSet;
+import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies.AggregationFlow;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies.ConglomeratePolicy;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies.PolicyAlgebra;
-
-import java.util.SortedSet;
-import java.util.TreeSet;
 
 /**
  * Class, that offers some common Policies and SecurityClasses.

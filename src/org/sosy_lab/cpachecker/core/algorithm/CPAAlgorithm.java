@@ -35,7 +35,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
@@ -137,16 +137,15 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  @Options(prefix="cpa")
-  public static class CPAAlgorithmFactory {
+  @Options(prefix = "cpa")
+  public static class CPAAlgorithmFactory implements AlgorithmFactory {
 
     @Option(
-      secure = true,
-      description = "Which strategy to use for forced coverings (empty for none)",
-      name = "forcedCovering"
-    )
+        secure = true,
+        description = "Which strategy to use for forced coverings (empty for none)",
+        name = "forcedCovering")
     @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
-    private @Nullable ForcedCovering.Factory forcedCoveringClass = null;
+    private ForcedCovering.@Nullable Factory forcedCoveringClass = null;
 
     @Option(secure=true, description="Do not report 'False' result, return UNKNOWN instead. "
         + " Useful for incomplete analysis with no counterexample checking.")
@@ -174,6 +173,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
     }
 
+    @Override
     public CPAAlgorithm newInstance() {
       return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering, reportFalseAsUnknown);
     }
@@ -356,7 +356,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       try {
         Optional<PrecisionAdjustmentResult> precAdjustmentOptional =
             precisionAdjustment.prec(
-                successor, precision, reachedSet, Functions.<AbstractState>identity(), successor);
+                successor, precision, reachedSet, Functions.identity(), successor);
         if (!precAdjustmentOptional.isPresent()) {
           continue;
         }

@@ -23,15 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.alwaystop;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 
 enum AlwaysTopTransferRelation implements TransferRelation {
 

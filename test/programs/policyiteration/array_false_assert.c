@@ -1,4 +1,4 @@
-#include<assert.h>
+void assert(int cond) { if (!cond) { ERROR: return; } }
 
 int main() {
     int a[3] = {0, 1, 2};

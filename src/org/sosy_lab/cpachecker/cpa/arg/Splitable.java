@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import java.util.Collection;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.pointer2;
 
 import java.util.Map.Entry;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;

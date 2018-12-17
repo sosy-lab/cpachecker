@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.variableclassification;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -34,8 +36,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableSet;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TreeSet;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -53,8 +55,10 @@ public class Partition implements Comparable<Partition>, Serializable {
   /** we use an index to track the "age" of a partition. */
   private final int index;
 
-  private final SortedSet<String> vars = new TreeSet<>();
-  private final SortedSet<BigInteger> values = new TreeSet<>();
+  private final NavigableSet<String> vars = new TreeSet<>();
+  private final NavigableSet<BigInteger> values = new TreeSet<>();
+
+  @SuppressFBWarnings("SE_BAD_FIELD")
   private final Multimap<CFAEdge, Integer> edges = HashMultimap.create();
 
   private final Map<String, Partition> varToPartition;
@@ -64,17 +68,17 @@ public class Partition implements Comparable<Partition>, Serializable {
 
   Partition(
       Map<String, Partition> varToPartition, Table<CFAEdge, Integer, Partition> edgeToPartition) {
-    this.varToPartition = varToPartition;
-    this.edgeToPartition = edgeToPartition;
+    this.varToPartition = checkNotNull(varToPartition);
+    this.edgeToPartition = checkNotNull(edgeToPartition);
     index = idGenerator.getFreshId();
   }
 
-  public SortedSet<String> getVars() {
-    return Collections.unmodifiableSortedSet(vars);
+  public NavigableSet<String> getVars() {
+    return Collections.unmodifiableNavigableSet(vars);
   }
 
-  public SortedSet<BigInteger> getValues() {
-    return Collections.unmodifiableSortedSet(values);
+  public NavigableSet<BigInteger> getValues() {
+    return Collections.unmodifiableNavigableSet(values);
   }
 
   public Multimap<CFAEdge, Integer> getEdges() {
@@ -91,9 +95,9 @@ public class Partition implements Comparable<Partition>, Serializable {
     values.addAll(newValues);
   }
 
-  void addEdge(CFAEdge edge, int index) {
-    edges.put(edge, index);
-    edgeToPartition.put(edge, index, this);
+  void addEdge(CFAEdge edge, int pIndex) {
+    edges.put(edge, pIndex);
+    edgeToPartition.put(edge, pIndex, this);
   }
 
   /** copies all data from other to current partition */
@@ -127,7 +131,7 @@ public class Partition implements Comparable<Partition>, Serializable {
 
   @Override
   public String toString() {
-    return vars.toString() + " --> " + Arrays.toString(values.toArray());
+    return vars + " --> " + Arrays.toString(values.toArray());
   }
 
   @Override

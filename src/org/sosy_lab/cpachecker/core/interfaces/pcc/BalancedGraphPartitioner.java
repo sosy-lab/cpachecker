@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.interfaces.pcc;
 
 import java.util.List;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 
 /**
@@ -42,6 +41,6 @@ public interface BalancedGraphPartitioner {
    * @param pGraph - directed graph whose nodes should be partitioned
    * @return the partitioning, each set contains the indices of the nodes which it contains
    */
-  public List<Set<Integer>> computePartitioning(int pNumPartitions, PartialReachedSetDirectedGraph pGraph)
+  List<Set<Integer>> computePartitioning(int pNumPartitions, PartialReachedSetDirectedGraph pGraph)
       throws InterruptedException;
 }

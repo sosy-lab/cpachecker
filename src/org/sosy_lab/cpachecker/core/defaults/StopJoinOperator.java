@@ -23,14 +23,13 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
+import java.util.Collection;
+import java.util.Iterator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import java.util.Collection;
-import java.util.Iterator;
 
 /**
  * Standard stop-join operator that first joins all states

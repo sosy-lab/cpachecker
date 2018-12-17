@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.expressions;
 
-import java.util.Map;
-
 import com.google.common.collect.Maps;
+import java.util.Map;
 
 
 public abstract class CachingVisitor<LeafType, T, E extends Throwable> extends DefaultExpressionTreeVisitor<LeafType, T, E> {

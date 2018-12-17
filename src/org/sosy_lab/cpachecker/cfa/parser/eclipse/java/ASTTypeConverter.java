@@ -23,11 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
+import com.google.common.base.Preconditions;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
-
-import com.google.common.base.Preconditions;
 
 
 class ASTTypeConverter extends TypeConverter {

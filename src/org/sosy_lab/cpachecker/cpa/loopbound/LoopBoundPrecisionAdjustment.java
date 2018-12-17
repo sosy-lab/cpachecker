@@ -69,16 +69,16 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
     logger = pLogger;
   }
 
-  public int getMaxLoopIterations() {
+  int getMaxLoopIterations() {
     return maxLoopIterations;
   }
 
-  public void setMaxLoopIterations(int pMaxLoopIterations) {
+  void setMaxLoopIterations(int pMaxLoopIterations) {
     Preconditions.checkArgument(pMaxLoopIterations >= 0);
     maxLoopIterations = pMaxLoopIterations;
   }
 
-  public int getLoopIterationsBeforeAbstraction() {
+  int getLoopIterationsBeforeAbstraction() {
     return loopIterationsBeforeAbstraction == 0 ? Integer.MAX_VALUE : loopIterationsBeforeAbstraction;
   }
 
@@ -87,7 +87,7 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
     loopIterationsBeforeAbstraction = pLoopIterationsBeforeAbstraction;
   }
 
-  public void incrementLoopIterationsBeforeAbstraction() {
+  void incrementLoopIterationsBeforeAbstraction() {
     setLoopIterationsBeforeAbstraction(getLoopIterationsBeforeAbstraction() + 1);
   }
 
@@ -221,9 +221,9 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
   public boolean nextState() {
     MaxLoopIterationAdjuster maxLoopIterationAdjuster = this.maxLoopIterationAdjusterFactory.getMaxLoopIterationAdjuster(this);
     if (maxLoopIterationAdjuster.canAdjust(getMaxLoopIterations())) {
-      int maxLoopIterations = maxLoopIterationAdjuster.adjust(getMaxLoopIterations());
-      logger.log(Level.INFO, "Adjusting maxLoopIterations to " + maxLoopIterations);
-      setMaxLoopIterations(maxLoopIterations);
+      int adjustedMaxLoopIterations = maxLoopIterationAdjuster.adjust(getMaxLoopIterations());
+      logger.log(Level.INFO, "Adjusting maxLoopIterations to " + adjustedMaxLoopIterations);
+      setMaxLoopIterations(adjustedMaxLoopIterations);
       return true;
     }
     return false;

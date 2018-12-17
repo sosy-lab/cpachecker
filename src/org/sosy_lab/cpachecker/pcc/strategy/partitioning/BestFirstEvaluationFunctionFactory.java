@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BestFirstEvaluationFunction;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedNode;

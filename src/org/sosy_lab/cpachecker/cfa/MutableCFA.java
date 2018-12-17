@@ -30,22 +30,22 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.NavigableMap;
+import java.util.NavigableSet;
 import java.util.Optional;
-import java.util.Set;
-import java.util.SortedMap;
 import java.util.SortedSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 public class MutableCFA implements CFA {
 
   private final MachineModel machineModel;
-  private final SortedMap<String, FunctionEntryNode> functions;
+  private final NavigableMap<String, FunctionEntryNode> functions;
   private final SortedSetMultimap<String, CFANode> allNodes;
   private final FunctionEntryNode mainFunction;
   private final List<Path> fileNames;
@@ -55,7 +55,7 @@ public class MutableCFA implements CFA {
 
   public MutableCFA(
       MachineModel pMachineModel,
-      SortedMap<String, FunctionEntryNode> pFunctions,
+      NavigableMap<String, FunctionEntryNode> pFunctions,
       SortedSetMultimap<String, CFANode> pAllNodes,
       FunctionEntryNode pMainFunction,
       List<Path> pFileNames,
@@ -108,8 +108,8 @@ public class MutableCFA implements CFA {
   }
 
   @Override
-  public Set<String> getAllFunctionNames() {
-    return Collections.unmodifiableSet(functions.keySet());
+  public NavigableSet<String> getAllFunctionNames() {
+    return Collections.unmodifiableNavigableSet(functions.navigableKeySet());
   }
 
   @Override
@@ -123,8 +123,8 @@ public class MutableCFA implements CFA {
   }
 
   @Override
-  public Map<String, FunctionEntryNode> getAllFunctions() {
-    return Collections.unmodifiableMap(functions);
+  public NavigableMap<String, FunctionEntryNode> getAllFunctions() {
+    return Collections.unmodifiableNavigableMap(functions);
   }
 
   public SortedSet<CFANode> getFunctionNodes(String pName) {
@@ -158,7 +158,9 @@ public class MutableCFA implements CFA {
     return Optional.empty();
   }
 
-  public ImmutableCFA makeImmutableCFA(Optional<VariableClassification> pVarClassification) {
+  public ImmutableCFA makeImmutableCFA(
+      Optional<VariableClassification> pVarClassification,
+      Optional<DependenceGraph> pDependenceGraph) {
     return new ImmutableCFA(
         machineModel,
         functions,
@@ -167,6 +169,7 @@ public class MutableCFA implements CFA {
         loopStructure,
         pVarClassification,
         liveVariables,
+        pDependenceGraph,
         fileNames,
         language);
   }
@@ -183,6 +186,11 @@ public class MutableCFA implements CFA {
 
   public void setLiveVariables(LiveVariables pLiveVariables) {
     liveVariables = Optional.of(pLiveVariables);
+  }
+
+  @Override
+  public Optional<DependenceGraph> getDependenceGraph() {
+    return Optional.empty();
   }
 
   @Override

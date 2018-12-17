@@ -27,7 +27,6 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.MatchingGenerator;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedEdge;

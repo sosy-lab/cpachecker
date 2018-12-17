@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.MoreFiles;
+import com.google.errorprone.annotations.MustBeClosed;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
@@ -37,8 +38,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -206,6 +207,8 @@ class EclipseJavaParser implements Parser {
     return astsOfFoundFiles;
   }
 
+  @MustBeClosed
+  @SuppressWarnings("StreamResourceLeak") // https://github.com/google/error-prone/issues/893
   private Stream<Path> getJavaFilesInPath(Path mainDirectory) throws IOException {
     return Files.walk(mainDirectory, FileVisitOption.FOLLOW_LINKS)
         .filter(Files::isRegularFile)
@@ -240,7 +243,7 @@ class EclipseJavaParser implements Parser {
 
     // Set Compliance Options to support Version
     @SuppressWarnings("unchecked")
-    Hashtable<String, String> options = JavaCore.getOptions();
+    Map<String, String> options = JavaCore.getOptions();
     JavaCore.setComplianceOptions(version, options);
     parser.setCompilerOptions(options);
 

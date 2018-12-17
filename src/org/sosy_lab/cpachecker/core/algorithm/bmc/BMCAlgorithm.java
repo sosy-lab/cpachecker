@@ -24,14 +24,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterAncestors;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -39,12 +37,13 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -54,7 +53,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -62,6 +60,8 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -73,9 +73,9 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.InvariantProvider;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -96,7 +96,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix="bmc")
@@ -171,7 +170,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     try {
       return super.run(reachedSet);
     } catch (SolverException e) {
-      throw new CPAException("Solver Failure", e);
+      throw new CPAException("Solver Failure " + e.getMessage(), e);
     } finally {
       invariantGenerator.cancel();
     }
@@ -182,14 +181,17 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     if (getTargetLocations().isEmpty() || !cfa.getAllLoopHeads().isPresent()) {
       return CandidateGenerator.EMPTY_GENERATOR;
     } else {
-      Set<CFANode> loopHeads = getLoopHeads();
       return new StaticCandidateProvider(
-          Sets.<CandidateInvariant>newHashSet(new TargetLocationCandidateInvariant(loopHeads)));
+          Collections.singleton(TargetLocationCandidateInvariant.INSTANCE));
     }
   }
 
   @Override
-  protected boolean boundedModelCheck(final ReachedSet pReachedSet, final ProverEnvironment pProver, CandidateInvariant pInductionProblem) throws CPATransferException, InterruptedException, SolverException {
+  protected boolean boundedModelCheck(
+      final ReachedSet pReachedSet,
+      final ProverEnvironmentWithFallback pProver,
+      CandidateInvariant pInductionProblem)
+      throws CPATransferException, InterruptedException, SolverException {
     if (!checkTargetStates) {
       return true;
     }
@@ -198,14 +200,15 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * This method tries to find a feasible path to (one of) the target state(s).
-   * It does so by asking the solver for a satisfying assignment.
+   * This method tries to find a feasible path to (one of) the target state(s). It does so by asking
+   * the solver for a satisfying assignment.
    */
+  @SuppressWarnings("resource")
   @Override
   protected void analyzeCounterexample(
       final BooleanFormula pCounterexampleFormula,
       final ReachedSet pReachedSet,
-      final ProverEnvironment pProver)
+      final ProverEnvironmentWithFallback pProver)
       throws CPATransferException, InterruptedException {
     if (!(cpa instanceof ARGCPA)) {
       logger.log(Level.INFO, "Error found, but error path cannot be created without ARGCPA");
@@ -217,7 +220,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       logger.log(Level.INFO, "Error found, creating error path");
 
       Set<ARGState> targetStates = from(pReachedSet).filter(IS_TARGET_STATE).filter(ARGState.class).toSet();
-      Set<ARGState> redundantStates = redundantStates(targetStates);
+      Set<ARGState> redundantStates = filterAncestors(targetStates, IS_TARGET_STATE);
       redundantStates.forEach(state -> {
         state.removeFromARG();
       });
@@ -297,19 +300,27 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       // replay error path for a more precise satisfying assignment
       PathChecker pathChecker;
       try {
-        Solver solver = this.solver;
-        PathFormulaManager pmgr = this.pmgr;
+        Solver solverForPathChecker = this.solver;
+        PathFormulaManager pmgrForPathChecker = this.pmgr;
 
-        if (solver.getVersion().toLowerCase().contains("smtinterpol")) {
+        if (solverForPathChecker.getVersion().toLowerCase().contains("smtinterpol")) {
           // SMTInterpol does not support reusing the same solver
-          solver = Solver.create(config, logger, shutdownNotifier);
-          FormulaManagerView formulaManager = solver.getFormulaManager();
-          pmgr = new PathFormulaManagerImpl(formulaManager, config, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
+          solverForPathChecker = Solver.create(config, logger, shutdownNotifier);
+          FormulaManagerView formulaManager = solverForPathChecker.getFormulaManager();
+          pmgrForPathChecker =
+              new PathFormulaManagerImpl(
+                  formulaManager, config, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
           // cannot dump pCounterexampleFormula, PathChecker would use wrong FormulaManager for it
-          cexFormula = solver.getFormulaManager().getBooleanFormulaManager().makeTrue();
+          cexFormula = solverForPathChecker.getFormulaManager().getBooleanFormulaManager().makeTrue();
         }
 
-        pathChecker = new PathChecker(config, logger, pmgr, solver, assignmentToPathAllocator);
+        pathChecker =
+            new PathChecker(
+                config,
+                logger,
+                pmgrForPathChecker,
+                solverForPathChecker,
+                assignmentToPathAllocator);
 
       } catch (InvalidConfigurationException e) {
         // Configuration has somehow changed and can no longer be used to create the solver and path formula manager
@@ -319,36 +330,13 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
       CounterexampleTraceInfo cexInfo =
           CounterexampleTraceInfo.feasible(
-              ImmutableList.<BooleanFormula>of(cexFormula), model, branchingInformation);
-      CounterexampleInfo counterexample =
-          pathChecker.createCounterexample(targetPath, cexInfo, shouldCheckBranching);
+              ImmutableList.of(cexFormula), model, branchingInformation);
+      CounterexampleInfo counterexample = pathChecker.createCounterexample(targetPath, cexInfo);
       counterexample.getTargetState().addCounterexampleInformation(counterexample);
 
     } finally {
       stats.errorPathCreation.stop();
     }
-  }
-
-  private Set<ARGState> redundantStates(Iterable<ARGState> pStates) {
-    Multimap<ARGState, ARGState> parentToTarget = HashMultimap.create();
-    for (ARGState state : FluentIterable.from(pStates).filter(AbstractStates.IS_TARGET_STATE)) {
-      if (state.getChildren().isEmpty()) {
-        Collection<ARGState> parents = state.getParents();
-        for (ARGState parent : parents) {
-          parentToTarget.put(parent, state);
-        }
-      }
-    }
-    Set<ARGState> redundantStates = Sets.newHashSet();
-    for (Map.Entry<ARGState, Collection<ARGState>> family : parentToTarget.asMap().entrySet()) {
-      ARGState parent = family.getKey();
-      Collection<ARGState> children = family.getValue();
-      Set<CFAEdge> edges = FluentIterable.from(children).transformAndConcat(parent::getEdgesToChild).toSet();
-      if (edges.size() == 1 && !(edges.iterator().next() instanceof AssumeEdge)) {
-        Iterables.addAll(redundantStates, Iterables.skip(children, 1));
-      }
-    }
-    return redundantStates;
   }
 
   @Override

@@ -64,9 +64,9 @@ public class LDDAbstractionCPA implements ConfigurableProgramAnalysis {
   private final ImmutableMap<String, Integer> variables;
 
   public LDDAbstractionCPA(CFA cfa) {
-    Map<String, Integer> variables = getVariables(cfa);
-    this.regionManager = new LDDRegionManager(variables.size());
-    this.variables = ImmutableMap.copyOf(variables);
+    Map<String, Integer> variablesFromCfa = getVariables(cfa);
+    this.regionManager = new LDDRegionManager(variablesFromCfa.size());
+    this.variables = ImmutableMap.copyOf(variablesFromCfa);
   }
 
   private static Map<String, Integer> getVariables(CFA cfa) {

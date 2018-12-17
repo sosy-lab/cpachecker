@@ -36,6 +36,7 @@ import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.cpa.apron.ApronState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateCPA;
@@ -47,6 +48,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ci.translators.AbstractRequirementsTranslator;
+import org.sosy_lab.cpachecker.util.ci.translators.ApronRequirementsTranslator;
 import org.sosy_lab.cpachecker.util.ci.translators.IntervalRequirementsTranslator;
 import org.sosy_lab.cpachecker.util.ci.translators.PredicateRequirementsTranslator;
 import org.sosy_lab.cpachecker.util.ci.translators.SignRequirementsTranslator;
@@ -139,6 +141,8 @@ public class CustomInstructionRequirementsWriter {
           "Cannot extract analysis which was responsible for construction PredicateAbstract States"); }
       abstractReqTranslator =
           new PredicateRequirementsTranslator(pCpa.getSolver().getFormulaManager());
+    } else if (requirementsState.equals(ApronState.class)) {
+      abstractReqTranslator = new ApronRequirementsTranslator(ApronState.class, logger);
     } else {
       throw new CPAException("There is no suitable requirementTranslator available.");
     }

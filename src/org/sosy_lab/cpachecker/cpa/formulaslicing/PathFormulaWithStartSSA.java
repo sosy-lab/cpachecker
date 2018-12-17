@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-
-import java.util.Objects;
 
 public final class PathFormulaWithStartSSA {
   private final PathFormula pathFormula;

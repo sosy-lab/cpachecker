@@ -36,7 +36,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -151,8 +151,8 @@ public class ForwardTransition {
           if (isBlockEnd) {
             blocks.add(nextBlockState);
           }
-          if (!(childARGState.getChildren().isEmpty())
-              && (visitedPredecessorStates.add(nextBlockState))) {
+          if (!childARGState.getChildren().isEmpty()
+              && visitedPredecessorStates.add(nextBlockState)) {
             currentStateQueue.offer(
                 new BlockState(isBlockStart ? child : blockState.blockStart, child));
           }
@@ -400,7 +400,7 @@ public class ForwardTransition {
                 CType type = ssaMap.getType(variable);
                 if (type != null) {
                   Formula varFormula =
-                      pathFormulaManager.makeFormulaForVariable(pathFormula, variable, type, false);
+                      pathFormulaManager.makeFormulaForVariable(pathFormula, variable, type);
                   nondeterministicVariables.add(varFormula);
                 }
               }

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import java.util.logging.Level;
-
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.ClassInstanceCreation;

@@ -21,7 +21,6 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
 import java.util.Optional;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 
 public interface PropertyInstance<I, P extends Property> {
 

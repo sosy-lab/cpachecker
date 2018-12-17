@@ -31,7 +31,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -58,16 +58,23 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 @Options
 public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class ResultCheckStatistics implements Statistics {
 
+    private final LogManager logger;
     private Timer checkTimer = new Timer();
     private Timer analysisTimer = new Timer();
     private @Nullable StatisticsProvider checkingStatsProvider = null;
+    private final Collection<Statistics> checkingStats = new ArrayList<>();
     private @Nullable Statistics proofGenStats = null;
+
+    ResultCheckStatistics(LogManager pLogger) {
+      logger = checkNotNull(pLogger);
+    }
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
@@ -79,14 +86,30 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       if(proofGenStats != null) {
-        proofGenStats.printStatistics(pOut, pResult, pReached);
+        StatisticsUtils.printStatistics(proofGenStats, pOut, logger, pResult, pReached);
       }
 
       if(checkingStatsProvider != null) {
-        Collection<Statistics> checkingStats = new ArrayList<>();
-        checkingStatsProvider.collectStatistics(checkingStats);
+        if (checkingStats.isEmpty()) {
+          checkingStatsProvider.collectStatistics(checkingStats);
+        }
         for(Statistics stats: checkingStats) {
-          stats.printStatistics(pOut, pResult, pReached);
+          StatisticsUtils.printStatistics(stats, pOut, logger, pResult, pReached);
+        }
+      }
+    }
+
+    @Override
+    public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+      if (proofGenStats != null) {
+        StatisticsUtils.writeOutputFiles(proofGenStats, logger, pResult, pReached);
+      }
+      if (checkingStatsProvider != null) {
+        if (checkingStats.isEmpty()) {
+          checkingStatsProvider.collectStatistics(checkingStats);
+        }
+        for (Statistics stats : checkingStats) {
+          StatisticsUtils.writeOutputFiles(stats, logger, pResult, pReached);
         }
       }
     }
@@ -133,7 +156,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
     config = pConfig;
     shutdownNotifier = pShutdownNotifier;
     specification = checkNotNull(pSpecification);
-    stats = new ResultCheckStatistics();
+    stats = new ResultCheckStatistics(pLogger);
   }
 
   @Override
@@ -234,14 +257,14 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
     if(checkerConfig != null) {
       try {
         checkConfig = Configuration.builder().copyFrom(config).loadFromFile(checkerConfig).build();
-        ReachedSetFactory factory = new ReachedSetFactory(checkConfig);
+        ReachedSetFactory factory = new ReachedSetFactory(checkConfig, logger);
         checkerCPA =
             new CPABuilder(checkConfig, logger, shutdownNotifier, factory)
                 .buildCPAs(analyzedProgram, specification, new AggregatedReachedSets());
 
       } catch (IOException e) {
         logger.log(Level.SEVERE,"Cannot read proof checking configuration.");
-        return AlgorithmStatus.SOUND_AND_PRECISE.withSound(false);
+        return AlgorithmStatus.UNSOUND_AND_PRECISE;
       }
     }
 

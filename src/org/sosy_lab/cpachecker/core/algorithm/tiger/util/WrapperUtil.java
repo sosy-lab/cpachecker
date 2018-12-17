@@ -35,7 +35,7 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.SortedMap;
+import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -147,7 +147,7 @@ public class WrapperUtil {
     ParseResult wrapperParseResult = cParser.parseFile(tmpList, sourceOriginMapping);
 
     // TODO add checks for consistency
-    SortedMap<String, FunctionEntryNode> mergedFunctions = new TreeMap<>();
+    NavigableMap<String, FunctionEntryNode> mergedFunctions = new TreeMap<>();
     mergedFunctions.putAll(tmpParseResult.getFunctions());
     mergedFunctions.putAll(wrapperParseResult.getFunctions());
 

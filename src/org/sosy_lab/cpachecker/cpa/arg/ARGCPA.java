@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.AbstractStates.getOutgoingEdges;
 
 import com.google.common.base.Preconditions;
@@ -32,10 +31,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-import java.util.WeakHashMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -46,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.Specification;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -68,9 +62,9 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-@Options
-public class ARGCPA extends AbstractSingleWrapperCPA implements
-    ConfigurableProgramAnalysisWithBAM, ProofChecker {
+@Options(prefix = "cpa.arg")
+public class ARGCPA extends AbstractSingleWrapperCPA
+    implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ARGCPA.class);
@@ -78,31 +72,30 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   @Option(
       secure = true,
-      name = "cpa.arg.inCPAEnabledAnalysis",
-      description = "inform ARG CPA if it is run in an analysis with enabler CPA because then it must "
-          + "behave differently during merge.")
+    description = "inform ARG CPA if it is run in an analysis with enabler CPA because then it must "
+        + "behave differently during merge.")
   private boolean inCPAEnabledAnalysis = false;
 
   @Option(
       secure = true,
-      name = "cpa.arg.deleteInCPAEnabledAnalysis",
-      description = "inform merge operator in CPA enabled analysis that it should delete the subgraph of the merged node "
-          + "which is required to get at most one successor per CFA edge.")
+    description = "inform merge operator in CPA enabled analysis that it should delete the subgraph "
+        + "of the merged node which is required to get at most one successor per CFA edge.")
   private boolean deleteInCPAEnabledAnalysis = false;
 
   @Option(
-      secure = true,
-      name = "cpa.arg.keepCoveredStatesInReached",
-      description = "whether to keep covered states in the reached set as addition to keeping them in the ARG")
+    secure = true,
+    description = "whether to keep covered states in the reached set as addition to keeping them in the ARG")
   private boolean keepCoveredStatesInReached = false;
 
-  private final MergeOperator merge;
+  @Option(
+    secure = true,
+    description = "If this option is enabled, ARG states will also be merged if the first wrapped state "
+        + "is subsumed by the second wrapped state (and the parents are not yet subsumed).")
+  private boolean mergeOnWrappedSubsumption = false;
 
   private final LogManager logger;
 
   private final ARGStatistics stats;
-
-  private final Map<ARGState, CounterexampleInfo> counterexamples = new WeakHashMap<>();
 
   private ARGCPA(
       ConfigurableProgramAnalysis cpa,
@@ -114,16 +107,6 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     super(cpa);
     config.inject(this);
     this.logger = logger;
-
-    MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
-    if (wrappedMergeOperator == MergeSepOperator.getInstance()) {
-      merge =  MergeSepOperator.getInstance();
-    } else if (inCPAEnabledAnalysis) {
-      merge =  new ARGMergeJoinCPAEnabledAnalysis(wrappedMergeOperator, deleteInCPAEnabledAnalysis);
-    } else {
-      merge = new ARGMergeJoin(wrappedMergeOperator, cpa.getAbstractDomain(), config);
-    }
-
     stats = new ARGStatistics(config, logger, this, pSpecification, cfa);
   }
 
@@ -139,7 +122,17 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   @Override
   public MergeOperator getMergeOperator() {
-    return merge;
+    MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
+    if (wrappedMergeOperator == MergeSepOperator.getInstance()) {
+      return MergeSepOperator.getInstance();
+    } else if (inCPAEnabledAnalysis) {
+      return new ARGMergeJoinCPAEnabledAnalysis(wrappedMergeOperator, deleteInCPAEnabledAnalysis);
+    } else {
+      return new ARGMergeJoin(
+          wrappedMergeOperator,
+          getWrappedCpa().getAbstractDomain(),
+          mergeOnWrappedSubsumption);
+    }
   }
 
   @Override
@@ -173,7 +166,8 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    // TODO some code relies on the fact that this method is called only one and the result is the root of the ARG
+    // TODO some code relies on the fact that this method is called only once and the result is the
+    // root of the ARG
     return new ARGState(getWrappedCpa().getInitialState(pNode, pPartition), null);
   }
 
@@ -193,7 +187,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     super.collectStatistics(pStatsCollection);
   }
 
-  ARGStatistics getARGExporter() {
+  public ARGStatistics getARGExporter() {
     return stats;
   }
 
@@ -216,12 +210,18 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
       wrappedSuccessors.put(element.getEdgeToChild(successorElem), successorElem.getWrappedState());
     }
 
-    if (pCfaEdge != null) { return wrappedProofChecker.areAbstractSuccessors(
-        wrappedState, pCfaEdge, wrappedSuccessors.get(pCfaEdge)); }
+    if (pCfaEdge != null) {
+      return wrappedProofChecker
+          .areAbstractSuccessors(wrappedState, pCfaEdge, wrappedSuccessors.get(pCfaEdge));
+    }
 
     for (CFAEdge edge : getOutgoingEdges(element)) {
       if (!wrappedProofChecker.areAbstractSuccessors(
-          wrappedState, edge, wrappedSuccessors.get(edge))) { return false; }
+          wrappedState,
+          edge,
+          wrappedSuccessors.get(edge))) {
+        return false;
+      }
     }
     return true;
   }
@@ -251,34 +251,5 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     return ((ConfigurableProgramAnalysisWithBAM) getWrappedCpa())
         .isCoveredByRecursiveState(
             ((ARGState) state1).getWrappedState(), ((ARGState) state2).getWrappedState());
-  }
-
-  public Map<ARGState, CounterexampleInfo> getCounterexamples() {
-    return Collections.unmodifiableMap(counterexamples);
-  }
-
-  public void addCounterexample(ARGState targetState, CounterexampleInfo pCounterexample) {
-    checkArgument(targetState.isTarget());
-    checkArgument(!pCounterexample.isSpurious());
-    if (pCounterexample.getTargetPath() != null) {
-      // With BAM, the targetState and the last state of the path
-      // may actually be not identical.
-      checkArgument(pCounterexample.getTargetPath().getLastState().isTarget());
-    }
-    counterexamples.put(targetState, pCounterexample);
-  }
-
-  public void clearCounterexamples(Set<ARGState> toRemove) {
-    // Actually the goal would be that this method is not necessary
-    // because the GC automatically removes counterexamples when the ARGState
-    // is removed from the ReachedSet.
-    // However, counterexamples may reference their target state through
-    // the target path attribute, so the GC may not remove the counterexample.
-    // While this is not a problem for correctness
-    // (we check in the end which counterexamples are still valid),
-    // it may be a memory leak.
-    // Thus this method.
-
-    counterexamples.keySet().removeAll(toRemove);
   }
 }

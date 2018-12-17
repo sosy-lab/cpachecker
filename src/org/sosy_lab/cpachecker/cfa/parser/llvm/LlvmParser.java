@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.file.Path;
@@ -39,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.LLVMParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.llvm_j.Context;
 import org.sosy_lab.llvm_j.LLVMException;
 import org.sosy_lab.llvm_j.Module;
 
@@ -61,28 +61,11 @@ public class LlvmParser implements Parser {
   }
 
   @Override
-  public ParseResult parseFile(final String pFilename)
-      throws ParserException, IOException, InterruptedException {
-    Module llvmModule;
+  public ParseResult parseFile(final String pFilename) throws ParserException {
+    addLlvmLookupDirs();
+    try (Context llvmContext = Context.create();
+        Module llvmModule = Module.parseIR(pFilename, llvmContext)) {
     parseTimer.start();
-    try {
-      addLlvmLookupDirs();
-      llvmModule = Module.parseIR(pFilename);
-
-    } catch (LLVMException pE) {
-      throw new LLVMParserException("Input program has invalid bitcode signature or is no bitcode "
-          + "file");
-
-    } finally {
-      parseTimer.stop();
-    }
-
-    if (llvmModule == null) {
-      throw new LLVMParserException("Unknown error while parsing");
-    }
-    // TODO: Handle/show errors in parser
-
-    try {
       return buildCfa(llvmModule, pFilename);
 
     } catch (LLVMException pE) {
@@ -108,6 +91,9 @@ public class LlvmParser implements Parser {
       if (cpacheckerDir != null) {
         Path runtimeLibDir = Paths.get(cpacheckerDir.toString(), "lib", "java", "runtime");
         libDirs.add(runtimeLibDir);
+      } else {
+        logger.log(Level.INFO,
+            "Base path % of CPAchecker seems to have no parent directory", decodedBasePath);
       }
 
     } catch (UnsupportedEncodingException e) {
@@ -125,8 +111,7 @@ public class LlvmParser implements Parser {
   }
 
   @Override
-  public ParseResult parseString(final String pFilename, final String pCode)
-      throws ParserException {
+  public ParseResult parseString(final String pFilename, final String pCode) {
     return null;
   }
 

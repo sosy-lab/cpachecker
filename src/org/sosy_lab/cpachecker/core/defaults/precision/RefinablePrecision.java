@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public abstract class RefinablePrecision extends VariableTrackingPrecision {
 
+  private static final long serialVersionUID = 1L;
+
   private final VariableTrackingPrecision baseline;
 
   protected RefinablePrecision(VariableTrackingPrecision pBaseline) {
@@ -64,8 +66,7 @@ public abstract class RefinablePrecision extends VariableTrackingPrecision {
 
   @Override
   public boolean equals(Object other) {
-    return other != null
-        && other instanceof RefinablePrecision
+    return other instanceof RefinablePrecision
         && baseline.equals(((RefinablePrecision) other).baseline);
   }
 

@@ -25,13 +25,11 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 
 import com.google.common.base.Function;
-
+import java.util.List;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-
-import java.util.List;
-import java.util.Optional;
 
 /**
  * Interface for the precision adjustment operator.

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.goals.targetgraph;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Predicate;
 

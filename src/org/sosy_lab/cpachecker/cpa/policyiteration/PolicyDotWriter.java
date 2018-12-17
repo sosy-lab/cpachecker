@@ -1,13 +1,12 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 import org.sosy_lab.common.rationals.LinearExpression;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.templates.Template;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
 
 /**
  * Converts a set of invariants to the pretty text representation.

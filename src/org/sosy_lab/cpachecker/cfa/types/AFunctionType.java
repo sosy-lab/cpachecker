@@ -25,11 +25,10 @@ package org.sosy_lab.cpachecker.cfa.types;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.List;
-import java.util.Objects;
-
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import java.util.List;
+import java.util.Objects;
 
 
 public class AFunctionType implements IAFunctionType {

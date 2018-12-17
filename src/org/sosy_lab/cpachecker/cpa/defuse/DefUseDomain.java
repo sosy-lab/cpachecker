@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.defuse;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 

@@ -59,10 +59,11 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankVar;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -115,6 +116,8 @@ public class LassoBuilder {
   private final NotEqualAndNotInequalityElimination notEqualAndNotInequalityElimination;
   private final DnfTransformation dnfTransformation;
 
+  private final TerminationStatistics stats;
+
   public LassoBuilder(
       Configuration pConfig,
       LogManager pLogger,
@@ -122,7 +125,8 @@ public class LassoBuilder {
       AbstractFormulaManager<Term, ?, ?, ?> pFormulaManager,
       FormulaManagerView pFormulaManagerView,
       Supplier<ProverEnvironment> pProverEnvironmentSupplier,
-      PathFormulaManager pPathFormulaManager)
+      PathFormulaManager pPathFormulaManager,
+      final TerminationStatistics pTermStats)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = checkNotNull(pLogger);
@@ -141,6 +145,8 @@ public class LassoBuilder {
     notEqualAndNotInequalityElimination = new NotEqualAndNotInequalityElimination(fmgrView);
     dnfTransformation =
         new DnfTransformation(logger, shutdownNotifier, fmgrView, proverEnvironmentSupplier);
+
+    stats = pTermStats;
   }
 
   protected static boolean isMetaVariable(String variableName) {
@@ -150,12 +156,20 @@ public class LassoBuilder {
   public Collection<Lasso> buildLasso(
       CounterexampleInfo pCounterexampleInfo, Set<CVariableDeclaration> pRelevantVariables)
       throws CPATransferException, InterruptedException, TermException, SolverException {
+
+    stats.stemAndLoopConstructionStarted();
     StemAndLoop stemAndLoop = createStemAndLoop(pCounterexampleInfo);
     shutdownNotifier.shutdownIfNecessary();
+    stats.stemAndLoopConstructionFinished();
 
-    Map<String, CVariableDeclaration> relevantVariables =
+    ImmutableMap<String, CVariableDeclaration> relevantVariables =
         Maps.uniqueIndex(pRelevantVariables, AVariableDeclaration::getQualifiedName);
+    try {
+      stats.lassosCreationStarted();
     return createLassos(stemAndLoop, relevantVariables);
+    } finally {
+      stats.lassosCreationFinished();
+  }
   }
 
   private StemAndLoop createStemAndLoop(CounterexampleInfo pCounterexampleInfo)
@@ -221,7 +235,7 @@ public class LassoBuilder {
   }
 
   private Collection<Lasso> createLassos(
-      StemAndLoop pStemAndLoop, Map<String, CVariableDeclaration> pRelevantVariables)
+      StemAndLoop pStemAndLoop, ImmutableMap<String, CVariableDeclaration> pRelevantVariables)
       throws InterruptedException, TermException, SolverException {
     Dnf stemDnf = toDnf(pStemAndLoop.getStem(), Result.empty(fmgr));
     Dnf loopDnf = toDnf(pStemAndLoop.getLoop(), stemDnf.getUfEliminationResult());
@@ -307,7 +321,8 @@ public class LassoBuilder {
         transformRecursively(notEqualAndNotInequalityElimination, nnf);
     BooleanFormula equalEliminated = transformRecursively(equalElimination, notEqualEliminated);
     BooleanFormula dnf = transformRecursively(dnfTransformation, equalEliminated);
-    Set<BooleanFormula> clauses = bfmrView.toDisjunctionArgs(dnf, true);
+    ImmutableSet<BooleanFormula> clauses =
+        ImmutableSet.copyOf(bfmrView.toDisjunctionArgs(dnf, true));
 
     return new Dnf(clauses, ufEliminationResult);
   }
@@ -320,22 +335,26 @@ public class LassoBuilder {
   }
 
   private InOutVariables extractRankVars(
-      Dnf pDnf, SSAMap inSsa, SSAMap outSsa, Map<String, CVariableDeclaration> pRelevantVariables) {
-    Map<Formula, Formula> subsitution = pDnf.getUfEliminationResult().getSubstitution();
+      Dnf pDnf,
+      SSAMap inSsa,
+      SSAMap outSsa,
+      ImmutableMap<String, CVariableDeclaration> pRelevantVariables) {
+    ImmutableMap<Formula, Formula> subsitution =
+        ImmutableMap.copyOf(pDnf.getUfEliminationResult().getSubstitution());
     InOutVariablesCollector veriablesCollector =
         new InOutVariablesCollector(
             fmgrView, inSsa, outSsa, pRelevantVariables.keySet(), subsitution);
     fmgrView.visitRecursively(pDnf.getUfEliminationResult().getFormula(), veriablesCollector);
 
-    Map<RankVar, Term> inRankVars =
+    ImmutableMap<RankVar, Term> inRankVars =
         createRankVars(veriablesCollector.getInVariables(), pRelevantVariables, subsitution);
-    Map<RankVar, Term> outRankVars =
+    ImmutableMap<RankVar, Term> outRankVars =
         createRankVars(veriablesCollector.getOutVariables(), pRelevantVariables, subsitution);
 
     return new InOutVariables(inRankVars, outRankVars);
   }
 
-  private Map<RankVar, Term> createRankVars(
+  private ImmutableMap<RankVar, Term> createRankVars(
       Set<Formula> variables,
       Map<String, CVariableDeclaration> pRelevantVariables,
       Map<Formula, Formula> substitution) {
@@ -377,19 +396,20 @@ public class LassoBuilder {
 
   private static class InOutVariables {
 
-    private final Map<RankVar, Term> inVars;
-    private final Map<RankVar, Term> outVars;
+    private final ImmutableMap<RankVar, Term> inVars;
+    private final ImmutableMap<RankVar, Term> outVars;
 
-    public InOutVariables(Map<RankVar, Term> pInVars, Map<RankVar, Term> pOutVars) {
+    public InOutVariables(
+        ImmutableMap<RankVar, Term> pInVars, ImmutableMap<RankVar, Term> pOutVars) {
       inVars = checkNotNull(pInVars);
       outVars = checkNotNull(pOutVars);
     }
 
-    public Map<IProgramVar, Term> getInVars() {
+    public ImmutableMap<IProgramVar, Term> getInVars() {
       return ImmutableMap.copyOf(inVars);
     }
 
-    public Map<IProgramVar, Term> getOutVars() {
+    public ImmutableMap<IProgramVar, Term> getOutVars() {
       return ImmutableMap.copyOf(outVars);
     }
   }
@@ -433,15 +453,15 @@ public class LassoBuilder {
 
   private static class Dnf {
 
-    private Collection<BooleanFormula> clauses;
-    private Result ufEliminationResult;
+    private final ImmutableSet<BooleanFormula> clauses;
+    private final Result ufEliminationResult;
 
-    Dnf(Collection<BooleanFormula> pClauses, Result p) {
+    Dnf(ImmutableSet<BooleanFormula> pClauses, Result p) {
       clauses = checkNotNull(pClauses);
       ufEliminationResult = checkNotNull(p);
     }
 
-    public Collection<BooleanFormula> getClauses() {
+    public ImmutableSet<BooleanFormula> getClauses() {
       return clauses;
     }
 

@@ -29,7 +29,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.util.Pair;
 
 class MergeNode {

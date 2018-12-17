@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.util.predicates.simpleformulas.Constant;
 import org.sosy_lab.cpachecker.util.predicates.simpleformulas.Predicate;
 import org.sosy_lab.cpachecker.util.predicates.simpleformulas.TermVisitor;

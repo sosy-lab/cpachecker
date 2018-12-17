@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
@@ -54,8 +55,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-
-import java.util.Optional;
 
 /**
  * Class for transforming {@link JExpression} objects into their {@link SymbolicExpression} representation.

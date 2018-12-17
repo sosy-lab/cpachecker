@@ -119,7 +119,12 @@ public class ARTReuse {
     return set;
   }
 
-  private static void modifyART(ReachedSet pReachedSet, ARGReachedSet pARTReachedSet, int pProductAutomatonIndex, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> pFrontierEdges) {
+  private static void modifyART(
+      ReachedSet pReachedSet,
+      ARGReachedSet pARTReachedSet,
+      int pProductAutomatonIndex,
+      Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> pFrontierEdges)
+      throws InterruptedException {
     //Set<Pair<ARTElement, ARTElement>> lPathEdges = Collections.emptySet();
     //ARTStatistics.dumpARTToDotFile(new File("/home/andreas/art01.dot"), lARTCPA, pReachedSet, lPathEdges);
 
@@ -175,15 +180,18 @@ public class ARTReuse {
 
   /**
    * Like {@link modifyART}, but returns the roots of the removed subgraphs.
+   *
    * @param pReachedSet
    * @param pARTReachedSet
    * @param pProductAutomatonIndex
    * @param pFrontierEdges
    * @return
+   * @throws InterruptedException
    */
   @SuppressWarnings("javadoc")
   private static Set<AbstractState> modifyART2(ReachedSet pReachedSet, ARGReachedSet pARTReachedSet, int pProductAutomatonIndex,
-      Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> pFrontierEdges) {
+      Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> pFrontierEdges)
+      throws InterruptedException {
     //Set<Pair<ARTElement, ARTElement>> lPathEdges = Collections.emptySet();
     //ARTStatistics.dumpARTToDotFile(new File("/home/andreas/art01.dot"), lARTCPA, pReachedSet, lPathEdges);
 
@@ -301,12 +309,16 @@ public class ARTReuse {
   }*/
 
   /**
-   * Removes all children of the element from the reached set and adds the element it to the worklist.
+   * Removes all children of the element from the reached set and adds the element it to the
+   * worklist.
+   *
    * @param lARTElement
    * @param pARTReachedSet
+   * @throws InterruptedException
    */
   @SuppressWarnings("javadoc")
-  private static void removeElement(ARGState lARTElement, ARGReachedSet pARTReachedSet) {
+  private static void removeElement(ARGState lARTElement, ARGReachedSet pARTReachedSet)
+      throws InterruptedException {
     while (!lARTElement.getChildren().isEmpty()) {
       ARGState lChildElement = lARTElement.getChildren().iterator().next();
 
@@ -315,7 +327,13 @@ public class ARTReuse {
 
   }
 
-  private static void modifyART(ReachedSet pReachedSet, ARGCPA pARTCPA, int pProductAutomatonIndex, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) {
+  private static void modifyART(
+      ReachedSet pReachedSet,
+      ARGCPA pARTCPA,
+      int pProductAutomatonIndex,
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton,
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton)
+      throws InterruptedException {
     ARGReachedSet lARTReachedSet = new ARGReachedSet(pReachedSet, pARTCPA);
 
     Pair<Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>> lFrontier = determineFrontier(pPreviousAutomaton, pCurrentAutomaton);
@@ -327,15 +345,23 @@ public class ARTReuse {
 
   /**
    * Like {@link modifyART}, but returns the roots of the removed subgraphs.
+   * 
    * @param pReachedSet
    * @param pARTCPA
    * @param pProductAutomatonIndex
    * @param pPreviousAutomaton
    * @param pCurrentAutomaton
    * @return
+   * @throws InterruptedException
    */
   @SuppressWarnings("javadoc")
-  private static Set<AbstractState> modifyART2(ReachedSet pReachedSet, ARGCPA pARTCPA, int pProductAutomatonIndex, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) {
+  private static Set<AbstractState> modifyART2(
+      ReachedSet pReachedSet,
+      ARGCPA pARTCPA,
+      int pProductAutomatonIndex,
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton,
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton)
+      throws InterruptedException {
     Set<AbstractState> set = new HashSet<>();
 
     ARGReachedSet lARTReachedSet = new ARGReachedSet(pReachedSet, pARTCPA);

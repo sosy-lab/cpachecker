@@ -41,34 +41,6 @@ import static org.sosy_lab.cpachecker.core.algorithm.termination.TerminationUtil
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.FormulaType;
-import org.sosy_lab.java_smt.api.NumeralFormula;
-import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.java_smt.basicimpl.FormulaCreator;
-
-import java.math.BigInteger;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.AffineFunction;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.SupportingInvariant;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
@@ -80,6 +52,31 @@ import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.modelcheckerutils.cfg.variables.IProgramVar;
+import java.math.BigInteger;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.NumeralFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.basicimpl.FormulaCreator;
 
 class RankingRelationBuilder {
 
@@ -118,7 +115,7 @@ class RankingRelationBuilder {
     try {
       rankingRelation =
           fromRankingFunction(pRelevantVariables, pTerminationArgument.getRankingFunction());
-    } catch (UnrecognizedCCodeException e) {
+    } catch (UnrecognizedCodeException e) {
       throw new RankingRelationException(e);
     }
 
@@ -155,7 +152,7 @@ class RankingRelationBuilder {
 
   private RankingRelation fromRankingFunction(
       Set<CVariableDeclaration> pRelevantVariables, RankingFunction rankingFunction)
-      throws UnrecognizedCCodeException, RankingRelationException {
+      throws UnrecognizedCodeException, RankingRelationException {
     if (rankingFunction instanceof LinearRankingFunction) {
       AffineFunction function = ((LinearRankingFunction) rankingFunction).getComponent();
       return fromAffineFunction(pRelevantVariables, function);
@@ -174,7 +171,7 @@ class RankingRelationBuilder {
 
   private RankingRelation fromLexicographicRankingFunction(
       LexicographicRankingFunction rankingFunction, Set<CVariableDeclaration> pRelevantVariables)
-      throws UnrecognizedCCodeException, RankingRelationException {
+      throws UnrecognizedCodeException, RankingRelationException {
 
     CExpression cExpression = CIntegerLiteralExpression.ZERO;
     List<BooleanFormula> formulas = Lists.newArrayList();
@@ -193,7 +190,7 @@ class RankingRelationBuilder {
 
   private RankingRelation fromNestedRankingFunction(
       NestedRankingFunction pRankingFunction, Set<CVariableDeclaration> pRelevantVariables)
-      throws UnrecognizedCCodeException, RankingRelationException {
+      throws UnrecognizedCodeException, RankingRelationException {
     Preconditions.checkArgument(pRankingFunction.getComponents().length > 0);
 
     BooleanFormula phaseConditionFormula = bfmgr.makeTrue();
@@ -243,7 +240,7 @@ class RankingRelationBuilder {
 
   private RankingRelation fromAffineFunction(
       Set<CVariableDeclaration> pRelevantVariables, AffineFunction function)
-      throws UnrecognizedCCodeException, RankingRelationException {
+      throws UnrecognizedCodeException, RankingRelationException {
     RankingRelationComponents components =
         createRankingRelationComponents(function, pRelevantVariables);
 
@@ -254,7 +251,7 @@ class RankingRelationBuilder {
   }
 
   private Optional<CExpression> createRankingRelationExpression(
-      RankingRelationComponents components) throws UnrecognizedCCodeException {
+      RankingRelationComponents components) throws UnrecognizedCodeException {
     Optional<CExpression> unprimedFunction = components.getUnprimedExpression();
     Optional<CExpression> primedFunction = components.getPrimedExpression();
 
@@ -304,7 +301,7 @@ class RankingRelationBuilder {
           unprimedFunction =
               Optional.of(addSummand(unprimedFunction.get(), cCoefficient.get(), variable));
 
-        } catch (UnrecognizedCCodeException e) {
+        } catch (UnrecognizedCodeException e) {
           // some ranking function cannot be represented by C expressions
           // e.g. multiplication of pointers
           primedFunction = Optional.empty();
@@ -329,7 +326,7 @@ class RankingRelationBuilder {
   }
 
   private CExpression addSummand(CExpression pSum, CExpression pCoefficient, CExpression pVariable)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
 
     CExpression summand;
     if (pCoefficient.equals(ONE)) {

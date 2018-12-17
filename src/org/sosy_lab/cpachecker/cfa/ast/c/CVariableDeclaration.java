@@ -91,15 +91,19 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(boolean pQualified) {
     StringBuilder lASTString = new StringBuilder();
 
     lASTString.append(cStorageClass.toASTString());
-    lASTString.append(getType().toASTString(getName()));
+    if (pQualified) {
+      lASTString.append(getType().toASTString(getQualifiedName().replace("::", "__")));
+    } else {
+      lASTString.append(getType().toASTString(getName()));
+    }
 
     if (getInitializer() != null) {
       lASTString.append(" = ");
-      lASTString.append(getInitializer().toASTString());
+      lASTString.append(getInitializer().toASTString(pQualified));
     }
 
     lASTString.append(";");

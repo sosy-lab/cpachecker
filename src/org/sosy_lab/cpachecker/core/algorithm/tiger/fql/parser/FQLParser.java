@@ -6,6 +6,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser;
 
+import java.io.InputStream;
+import java.io.Reader;
+import java.io.StringReader;
+import java.util.LinkedList;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Edges;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Nodes;
@@ -15,7 +19,6 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.coveragespecificatio
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.coveragespecification.CoverageSpecification;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.coveragespecification.Quotation;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.coveragespecification.ScopePropagator;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.filter.Union;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.filter.BasicBlockEntry;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.filter.Column;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.filter.Complement;
@@ -39,14 +42,11 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.filter.Line;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.filter.Predication;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.filter.RegularExpression;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.filter.SetMinus;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.filter.Union;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.pathpattern.PathPattern;
 import org.sosy_lab.cpachecker.util.predicates.simpleformulas.Constant;
 import org.sosy_lab.cpachecker.util.predicates.simpleformulas.Term;
 import org.sosy_lab.cpachecker.util.predicates.simpleformulas.Variable;
-import java.io.Reader;
-import java.io.InputStream;
-import java.io.StringReader;
-import java.util.LinkedList;
 
 /** CUP v0.11a beta 20060608 generated parser.
   * @version Tue Aug 04 10:56:52 CEST 2015

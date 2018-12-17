@@ -27,6 +27,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.MapsDifference.collectMapsDifferenceTo;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.NONDET_FLAG_VARIABLE;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -38,9 +40,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class SSAMapMerger {
 

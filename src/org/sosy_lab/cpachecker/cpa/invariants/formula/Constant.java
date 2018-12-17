@@ -24,11 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import com.google.common.base.Preconditions;
-
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.Typed;
-
-import java.util.Objects;
 
 /**
  * Instances of this class represent constants within invariants formulae.

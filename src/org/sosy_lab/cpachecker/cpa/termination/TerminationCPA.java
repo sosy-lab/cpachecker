@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.termination;
 
 import com.google.common.base.Preconditions;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -67,7 +66,7 @@ public class TerminationCPA extends AbstractSingleWrapperCPA {
         new TerminationTransferRelation(
             pCpa.getTransferRelation(), terminationInformation, pLogger);
     abstractDomain = new TerminationAbstractDomain(pCpa.getAbstractDomain());
-    stopOperator = new TerminationStopOperator(pCpa.getStopOperator());
+    stopOperator = new TerminationStopOperator(pCpa.getStopOperator(), terminationInformation);
     mergeOperator = new TerminationMergeOperator(pCpa.getMergeOperator());
     precisionAdjustment = new TerminationPrecisionAdjustment(pCpa.getPrecisionAdjustment());
   }

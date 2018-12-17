@@ -26,11 +26,11 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.equalTo;
 
-import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -50,9 +50,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -77,16 +79,19 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator.RegionBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.java_smt.api.BasicProverEnvironment.AllSatCallback;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
-import org.sosy_lab.java_smt.api.ProverEnvironment.AllSatCallback;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.predicate")
@@ -135,12 +140,14 @@ public class PredicateAbstractionManager {
   private final PathFormulaManager pfmgr;
   private final Solver solver;
   private final InvariantSupplier invariantSupplier;
+  private final @Nullable InductiveWeakeningManager weakeningManager;
   private final ShutdownNotifier shutdownNotifier;
 
   private static final Set<Integer> noAbstractionReuse = ImmutableSet.of();
 
   private static enum AbstractionType {
     CARTESIAN,
+    CARTESIAN_BY_WEAKENING,
     BOOLEAN,
     COMBINED,
     ELIMINATION;
@@ -186,7 +193,8 @@ public class PredicateAbstractionManager {
 
   private boolean abstractionReuseDisabledBecauseOfAmbiguity = false;
 
-  private final Map<Pair<BooleanFormula, ImmutableSet<AbstractionPredicate>>, AbstractionFormula> abstractionCache;
+  private final Map<Pair<BooleanFormula, ImmutableSet<BooleanFormula>>, AbstractionFormula>
+      abstractionCache;
 
   // Cache for satisfiability queries: if formula is contained, it is unsat
   private final Set<BooleanFormula> unsatisfiabilityCache;
@@ -223,6 +231,12 @@ public class PredicateAbstractionManager {
     }
     if (abstractionType == AbstractionType.COMBINED) {
       warnedOfCartesianAbstraction = true; // warning is not necessary
+    }
+    if (abstractionType == AbstractionType.CARTESIAN_BY_WEAKENING) {
+      weakeningManager =
+          new InductiveWeakeningManager(pConfig, pSolver, pLogger, pShutdownNotifier);
+    } else {
+      weakeningManager = null;
     }
 
     if (useCache) {
@@ -277,6 +291,12 @@ public class PredicateAbstractionManager {
         noAbstractionReuse);
   }
 
+  public void clear() {
+    if (useCache) {
+      abstractionCache.clear();
+      unsatisfiabilityCache.clear();
+    }
+  }
   /**
    * Compute an abstraction of the conjunction of an AbstractionFormula and
    * a PathFormula. The AbstractionFormula will be used in its instantiated form,
@@ -304,7 +324,6 @@ public class PredicateAbstractionManager {
 
     final BooleanFormula absFormula = abstractionFormula.asInstantiatedFormula();
     final BooleanFormula symbFormula = getFormulaFromPathFormula(pathFormula);
-    final BooleanFormula f;
     BooleanFormula primaryFormula = bfmgr.and(absFormula, symbFormula);
     final SSAMap ssa = pathFormula.getSsa();
 
@@ -340,12 +359,15 @@ public class PredicateAbstractionManager {
       }
     }
 
-    f = primaryFormula;
+    final BooleanFormula f = primaryFormula;
 
     // caching
-    Pair<BooleanFormula, ImmutableSet<AbstractionPredicate>> absKey = null;
+    Pair<BooleanFormula, ImmutableSet<BooleanFormula>> absKey = null;
     if (useCache) {
-      absKey = Pair.of(f, ImmutableSet.copyOf(remainingPredicates));
+      ImmutableSet<BooleanFormula> instantiatedPreds =
+          Collections3.transformedImmutableSetCopy(
+              remainingPredicates, pred -> instantiator.apply(pred.getSymbolicAtom()));
+      absKey = Pair.of(f, instantiatedPreds);
       AbstractionFormula result = abstractionCache.get(absKey);
 
       if (result != null) {
@@ -407,6 +429,8 @@ public class PredicateAbstractionManager {
       } finally {
         stats.quantifierEliminationTime.stop();
       }
+    } else if (abstractionType == AbstractionType.CARTESIAN_BY_WEAKENING) {
+      abs = rmgr.makeAnd(abs, buildCartesianAbstractionUsingWeakening(f, ssa, remainingPredicates));
 
     } else {
       abs = rmgr.makeAnd(abs, computeAbstraction(f, remainingPredicates, instantiator));
@@ -735,7 +759,8 @@ public class PredicateAbstractionManager {
       throws SolverException, InterruptedException {
     Region abs = rmgr.makeTrue();
 
-    try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
+    try (ProverEnvironment thmProver =
+        solver.newProverEnvironment(ProverOptions.GENERATE_ALL_SAT)) {
       thmProver.push(f);
 
       if (remainingPredicates.isEmpty()) {
@@ -904,6 +929,57 @@ public class PredicateAbstractionManager {
     } finally {
       stats.abstractionEnumTime.stopOuter();
     }
+  }
+
+  /** Build cartesian abstraction using the inductive weakening approach. */
+  private Region buildCartesianAbstractionUsingWeakening(
+      final BooleanFormula f, final SSAMap ssa, final Collection<AbstractionPredicate> pPredicates)
+      throws SolverException, InterruptedException {
+
+    stats.abstractionSolveTime.start();
+    boolean feasibility;
+    try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
+      thmProver.push(f);
+      feasibility = !thmProver.isUnsat();
+    } finally {
+      stats.abstractionSolveTime.stop();
+    }
+
+    if (!feasibility) {
+      // abstract post leads to false, we can return immediately
+      return rmgr.makeFalse();
+    }
+
+    ImmutableMap.Builder<BooleanFormula, Region> infoBuilder = ImmutableMap.builder();
+    for (AbstractionPredicate a : pPredicates) {
+      BooleanFormula lemma = a.getSymbolicAtom();
+      Region r = a.getAbstractVariable();
+      infoBuilder.put(lemma, r);
+      // BooleanFormula negated = bfmgr.not(lemma);
+      // info.put(negated, rmgr.makeNot(r));
+    }
+
+    Map<BooleanFormula, Region> info = infoBuilder.build();
+    Set<BooleanFormula> toStateLemmas = info.keySet();
+    Set<BooleanFormula> filteredLemmas;
+    stats.cartesianAbstractionTime.start();
+    try {
+      filteredLemmas =
+          weakeningManager.findInductiveWeakeningForRCNF(
+              SSAMap.emptySSAMap(),
+              ImmutableSet.of(),
+              new PathFormula(f, ssa, PointerTargetSet.emptyPointerTargetSet(), 0),
+              toStateLemmas);
+    } finally {
+      stats.cartesianAbstractionTime.stop();
+    }
+
+    Region out = rmgr.makeTrue();
+    for (BooleanFormula lemma : filteredLemmas) {
+      out = rmgr.makeAnd(out, info.get(lemma));
+    }
+
+    return out;
   }
 
   /**
@@ -1170,11 +1246,11 @@ public class PredicateAbstractionManager {
   public AbstractionFormula reduce(AbstractionFormula oldAbstraction,
       Collection<AbstractionPredicate> removePredicates, SSAMap ssaMap)
       throws InterruptedException {
-    RegionCreator rmgr = amgr.getRegionCreator();
+    RegionCreator rManager = amgr.getRegionCreator();
 
     Region newRegion = oldAbstraction.asRegion();
     for (AbstractionPredicate predicate : removePredicates) {
-      newRegion = rmgr.makeExists(newRegion, predicate.getAbstractVariable());
+      newRegion = rManager.makeExists(newRegion, predicate.getAbstractVariable());
     }
 
     return makeAbstractionFormula(newRegion, ssaMap, oldAbstraction.getBlockFormula());
@@ -1192,14 +1268,13 @@ public class PredicateAbstractionManager {
   public AbstractionFormula expand(Region reducedAbstraction, Region sourceAbstraction,
       Collection<AbstractionPredicate> relevantPredicates, SSAMap newSSA, PathFormula blockFormula)
       throws InterruptedException {
-    RegionCreator rmgr = amgr.getRegionCreator();
+    RegionCreator rManager = amgr.getRegionCreator();
 
     for (AbstractionPredicate predicate : relevantPredicates) {
-      sourceAbstraction = rmgr.makeExists(sourceAbstraction,
-          predicate.getAbstractVariable());
+      sourceAbstraction = rManager.makeExists(sourceAbstraction, predicate.getAbstractVariable());
     }
 
-    Region expandedRegion = rmgr.makeAnd(reducedAbstraction, sourceAbstraction);
+    Region expandedRegion = rManager.makeAnd(reducedAbstraction, sourceAbstraction);
 
     return makeAbstractionFormula(expandedRegion, newSSA, blockFormula);
   }

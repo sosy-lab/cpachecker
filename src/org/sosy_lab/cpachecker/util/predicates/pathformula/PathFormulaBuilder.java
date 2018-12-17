@@ -46,11 +46,6 @@ public class PathFormulaBuilder {
     }
 
     @Override
-    public PathFormula build(PathFormulaManager pPfmgr, SSAMap pSsaMap) throws CPATransferException, InterruptedException {
-      return pPfmgr.makeAnd(previousPathFormula.build(pPfmgr, pSsaMap), edge);
-    }
-
-    @Override
     public PathFormula build(PathFormulaManager pPfmgr, PathFormula pathFormula) throws CPATransferException, InterruptedException {
       return pPfmgr.makeAnd(previousPathFormula.build(pPfmgr, pathFormula), edge);
     }
@@ -68,11 +63,6 @@ public class PathFormulaBuilder {
     }
 
     @Override
-    public PathFormula build(PathFormulaManager pPfmgr, SSAMap pSsaMap) throws CPATransferException, InterruptedException {
-      return pPfmgr.makeOr(first.build(pPfmgr, pSsaMap),second.build(pPfmgr, pSsaMap));
-    }
-
-    @Override
     public PathFormula build(PathFormulaManager pPfmgr, PathFormula pathFormula) throws CPATransferException, InterruptedException {
       PathFormula result = pPfmgr.makeOr(first.build(pPfmgr, pathFormula),second.build(pPfmgr, pathFormula));
       return result;
@@ -87,14 +77,6 @@ public class PathFormulaBuilder {
    public PathFormulaBuilder makeAnd(CFAEdge pEdge) {
      return new PathFormulaAndBuilder(this, pEdge);
    }
-
-  /**
-   * @throws CPATransferException PathFormulaManager could not create PathFormula
-   * @throws InterruptedException PathFormulaManager was interrupted
-   */
-  public PathFormula build(PathFormulaManager pPfmgr, SSAMap ssaMap) throws CPATransferException,InterruptedException{
-    return pPfmgr.makeNewPathFormula(pPfmgr.makeEmptyPathFormula(), ssaMap);
-  }
 
   /**
    * @throws CPATransferException PathFormulaManager could not create PathFormula

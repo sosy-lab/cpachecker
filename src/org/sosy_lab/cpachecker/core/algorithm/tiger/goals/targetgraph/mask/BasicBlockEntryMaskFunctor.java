@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.goals.targetgraph.mask;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import org.jgrapht.graph.MaskFunctor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;

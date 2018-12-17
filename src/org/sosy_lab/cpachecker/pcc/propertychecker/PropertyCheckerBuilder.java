@@ -23,11 +23,10 @@
  */
 package org.sosy_lab.cpachecker.pcc.propertychecker;
 
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
-
 import java.lang.reflect.Constructor;
 import java.util.Arrays;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 
 
 public class PropertyCheckerBuilder {

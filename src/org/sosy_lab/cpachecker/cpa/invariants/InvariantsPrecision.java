@@ -24,15 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.invariants;
 
 import com.google.common.collect.ImmutableSet;
-
+import java.util.Collections;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.util.ArrayDeque;
-import java.util.Collections;
-import java.util.Queue;
-import java.util.Set;
 
 
 public class InvariantsPrecision implements Precision {
@@ -43,7 +39,8 @@ public class InvariantsPrecision implements Precision {
         Collections.<CFAEdge>emptySet(),
         Collections.<MemoryLocation>emptySet(),
         0,
-        pAbstractionStrategy) {
+        pAbstractionStrategy,
+        false) {
 
       @Override
       public boolean isRelevant(CFAEdge pEdge) {
@@ -54,7 +51,6 @@ public class InvariantsPrecision implements Precision {
       public String toString() {
         return "no precision";
       }
-
     };
   }
 
@@ -66,22 +62,33 @@ public class InvariantsPrecision implements Precision {
 
   private final AbstractionStrategy abstractionStrategy;
 
-  public InvariantsPrecision(Set<CFAEdge> pRelevantEdges,
-      Set<MemoryLocation> pInterestingVariables, int pMaximumFormulaDepth,
-      AbstractionStrategy pAbstractionStrategy) {
-    this(asImmutableRelevantEdges(pRelevantEdges),
+  private final boolean useMod2Template;
+
+  public InvariantsPrecision(
+      Set<CFAEdge> pRelevantEdges,
+      Set<MemoryLocation> pInterestingVariables,
+      int pMaximumFormulaDepth,
+      AbstractionStrategy pAbstractionStrategy,
+      boolean pUseMod2Template) {
+    this(
+        pRelevantEdges == null ? null : ImmutableSet.copyOf(pRelevantEdges),
         ImmutableSet.<MemoryLocation>copyOf(pInterestingVariables),
         pMaximumFormulaDepth,
-        pAbstractionStrategy);
+        pAbstractionStrategy,
+        pUseMod2Template);
   }
 
-  public InvariantsPrecision(ImmutableSet<CFAEdge> pRelevantEdges,
-      ImmutableSet<MemoryLocation> pInterestingVariables, int pMaximumFormulaDepth,
-      AbstractionStrategy pAbstractionStrategy) {
+  public InvariantsPrecision(
+      ImmutableSet<CFAEdge> pRelevantEdges,
+      ImmutableSet<MemoryLocation> pInterestingVariables,
+      int pMaximumFormulaDepth,
+      AbstractionStrategy pAbstractionStrategy,
+      boolean pUseMod2Template) {
     this.relevantEdges = pRelevantEdges;
     this.interestingVariables = pInterestingVariables;
     this.maximumFormulaDepth = pMaximumFormulaDepth;
     this.abstractionStrategy = pAbstractionStrategy;
+    this.useMod2Template = pUseMod2Template;
   }
 
   public boolean isRelevant(CFAEdge pEdge) {
@@ -124,17 +131,7 @@ public class InvariantsPrecision implements Precision {
     return this.abstractionStrategy;
   }
 
-  private static ImmutableSet<CFAEdge> asImmutableRelevantEdges(Set<CFAEdge> pRelevantEdges) {
-    if (pRelevantEdges == null) {
-      return null;
-    }
-    ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
-    Queue<CFAEdge> waitlist = new ArrayDeque<>(pRelevantEdges);
-    while (!waitlist.isEmpty()) {
-      CFAEdge relevantEdge = waitlist.poll();
-      builder.add(relevantEdge);
-    }
-    return builder.build();
+  public boolean shouldUseMod2Template() {
+    return useMod2Template;
   }
-
 }

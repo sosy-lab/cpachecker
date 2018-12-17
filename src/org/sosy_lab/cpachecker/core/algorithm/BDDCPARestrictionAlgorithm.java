@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.collect.ImmutableList;
-
+import java.util.Collection;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -49,9 +50,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
-
-import java.util.Collection;
-import java.util.logging.Level;
 
 @Options(prefix="counterexample.export", deprecatedPrefix="counterexample")
 public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider {

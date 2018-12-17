@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 
 enum EmptyAbstractionCandidate implements SMGAbstractionCandidate {
 
@@ -35,17 +36,22 @@ enum EmptyAbstractionCandidate implements SMGAbstractionCandidate {
   }
 
   @Override
+  public int getLength() {
+    return 0;
+  }
+
+  @Override
   public int getScore() {
     return 0;
   }
 
   @Override
-  public CLangSMG execute(CLangSMG pSMG, SMGState pSmgState) throws SMGInconsistentException {
+  public UnmodifiableCLangSMG execute(CLangSMG pSMG, SMGState pSmgState) {
     return pSMG;
   }
 
   @Override
-  public SMGAbstractionBlock createAbstractionBlock(SMGState pSmgState) {
+  public SMGAbstractionBlock createAbstractionBlock(UnmodifiableSMGState pSmgState) {
     throw new IllegalArgumentException(
         "Can't create abstraction block of empty abstraction candidate.");
   }

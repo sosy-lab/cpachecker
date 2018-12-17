@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.pcc.strategy.partialcertificate;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,8 +32,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Store and access a weighted graph structure

@@ -28,16 +28,14 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
-
+import java.util.Collections;
+import java.util.Iterator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import java.util.Collections;
-import java.util.Iterator;
 
 /**
  * Provides a MergeOperator implementation that delegates to the component CPA.

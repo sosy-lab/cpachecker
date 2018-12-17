@@ -99,7 +99,7 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.rationals.Rational;
 
@@ -566,7 +566,7 @@ public class AssignmentToEdgeAllocator {
             "could not be correctly evaluated while calculating the concrete values "
             + "in the counterexample path.");
         return null;
-      } catch (UnrecognizedCCodeException e1) {
+      } catch (UnrecognizedCodeException e1) {
         throw new IllegalArgumentException(e1);
       }
 
@@ -676,14 +676,16 @@ public class AssignmentToEdgeAllocator {
 
       List<CCompositeTypeMemberDeclaration> membersOfType = ownerType.getMembers();
 
-      int offset = 0;
+      BigInteger offset = BigInteger.ZERO;
 
       for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
         String memberName = typeMember.getName();
-        if (memberName.equals(fieldName)) { return BigDecimal.valueOf(offset); }
+        if (memberName.equals(fieldName)) {
+          return new BigDecimal(offset);
+        }
 
         if (!(ownerType.getKind() == ComplexTypeKind.UNION)) {
-          offset = offset + machineModel.getSizeof(typeMember.getType().getCanonicalType());
+          offset = machineModel.getSizeof(typeMember.getType().getCanonicalType()).add(offset);
         }
       }
       return null;
@@ -816,7 +818,9 @@ public class AssignmentToEdgeAllocator {
 
         BigDecimal subscriptValue = new BigDecimal(subscriptValueNumber.toString());
 
-        BigDecimal typeSize = BigDecimal.valueOf(machineModel
+        BigDecimal typeSize =
+            new BigDecimal(
+                machineModel
             .getSizeof(pIastArraySubscriptExpression.getExpressionType().getCanonicalType()));
 
         BigDecimal subscriptOffset = subscriptValue.multiply(typeSize);
@@ -884,7 +888,7 @@ public class AssignmentToEdgeAllocator {
       }
 
       @Override
-      public Value visit(CBinaryExpression binaryExp) throws UnrecognizedCCodeException {
+      public Value visit(CBinaryExpression binaryExp) throws UnrecognizedCodeException {
 
         CExpression lVarInBinaryExp = binaryExp.getOperand1();
         CExpression rVarInBinaryExp = binaryExp.getOperand2();
@@ -942,7 +946,7 @@ public class AssignmentToEdgeAllocator {
 
             BigDecimal offsetValue = new BigDecimal(offsetValueNumber.toString());
 
-            BigDecimal typeSize = BigDecimal.valueOf(getSizeof(elementType));
+            BigDecimal typeSize = new BigDecimal(getSizeof(elementType));
 
             BigDecimal pointerOffsetValue = offsetValue.multiply(typeSize);
 
@@ -953,7 +957,8 @@ public class AssignmentToEdgeAllocator {
                 if (lVarIsAddress) {
                   return new NumericValue(addressValue.subtract(pointerOffsetValue));
                 } else {
-                  throw new UnrecognizedCCodeException("Expected pointer arithmetic "
+                  throw new UnrecognizedCodeException(
+                      "Expected pointer arithmetic "
                       + " with + or - but found " + binaryExp.toASTString(), binaryExp);
                 }
               default:
@@ -967,7 +972,7 @@ public class AssignmentToEdgeAllocator {
       }
 
       @Override
-      public Value visit(CUnaryExpression pUnaryExpression) throws UnrecognizedCCodeException {
+      public Value visit(CUnaryExpression pUnaryExpression) throws UnrecognizedCodeException {
 
         if (pUnaryExpression.getOperator() == UnaryOperator.AMPER) {
 
@@ -993,7 +998,7 @@ public class AssignmentToEdgeAllocator {
 
       @Override
       protected Value evaluateCPointerExpression(CPointerExpression pCPointerExpression)
-          throws UnrecognizedCCodeException {
+          throws UnrecognizedCodeException {
         Object value = LModelValueVisitor.this.visit(pCPointerExpression);
 
         if (value == null
@@ -1004,7 +1009,7 @@ public class AssignmentToEdgeAllocator {
 
       @Override
       protected Value evaluateCIdExpression(CIdExpression pCIdExpression)
-          throws UnrecognizedCCodeException {
+          throws UnrecognizedCodeException {
 
         Object value = LModelValueVisitor.this.visit(pCIdExpression);
 
@@ -1021,7 +1026,7 @@ public class AssignmentToEdgeAllocator {
 
       @Override
       protected Value evaluateCFieldReference(CFieldReference pLValue)
-          throws UnrecognizedCCodeException {
+          throws UnrecognizedCodeException {
         Object value = LModelValueVisitor.this.visit(pLValue);
 
         if (value == null
@@ -1032,7 +1037,7 @@ public class AssignmentToEdgeAllocator {
 
       @Override
       protected Value evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
-          throws UnrecognizedCCodeException {
+          throws UnrecognizedCodeException {
         Object value = LModelValueVisitor.this.visit(pLValue);
 
         if (value == null
@@ -1369,9 +1374,9 @@ public class AssignmentToEdgeAllocator {
         for (CCompositeType.CCompositeTypeMemberDeclaration memberType : pCompType.getMembers()) {
 
           handleMemberField(memberType, fieldAddress, pCompType);
-          int offsetToNextField = machineModel.getSizeof(memberType.getType());
+          BigInteger offsetToNextField = machineModel.getSizeof(memberType.getType());
 
-          fieldAddress = fieldAddress.addOffset(BigInteger.valueOf(offsetToNextField));
+          fieldAddress = fieldAddress.addOffset(offsetToNextField);
         }
       }
 
@@ -1460,10 +1465,10 @@ public class AssignmentToEdgeAllocator {
           int pSubscript, CType pExpectedType,
           CArrayType pArrayType) {
 
-        int typeSize = machineModel.getSizeof(pExpectedType);
-        int subscriptOffset = pSubscript * typeSize;
+        BigInteger typeSize = machineModel.getSizeof(pExpectedType);
+        BigInteger subscriptOffset = typeSize.multiply(BigInteger.valueOf(pSubscript));
 
-        Address address = pArrayAddress.addOffset(BigInteger.valueOf(subscriptOffset));
+        Address address = pArrayAddress.addOffset(subscriptOffset);
 
         BigInteger subscript = BigInteger.valueOf(pSubscript);
         CIntegerLiteralExpression litExp =
@@ -1472,7 +1477,7 @@ public class AssignmentToEdgeAllocator {
             new CArraySubscriptExpression(subExpression.getFileLocation(), pExpectedType,
                 subExpression, litExp);
 
-        int arraySize = machineModel.getSizeof(pArrayType);
+        BigInteger arraySize = machineModel.getSizeof(pArrayType);
 
         if (isStructOrUnionType(pExpectedType) || pExpectedType instanceof CArrayType) {
           // Arrays and structs are represented as addresses
@@ -1480,7 +1485,7 @@ public class AssignmentToEdgeAllocator {
           ValueLiteralVisitor v =
               new ValueLiteralVisitor(address, valueLiterals, arraySubscript, visited);
           pExpectedType.accept(v);
-          return subscriptOffset < arraySize;
+          return subscriptOffset.compareTo(arraySize) < 0;
         }
 
         Object value = modelAtEdge.getValueFromMemory(arraySubscript, address);
@@ -1502,7 +1507,7 @@ public class AssignmentToEdgeAllocator {
 
         boolean contin = false;
 
-        if (!valueLiteral.isUnknown() && subscriptOffset < arraySize) {
+        if (!valueLiteral.isUnknown() && subscriptOffset.compareTo(arraySize) < 0) {
 
           SubExpressionValueLiteral subExpressionValueLiteral =
               new SubExpressionValueLiteral(valueLiteral, arraySubscript);
@@ -1513,7 +1518,7 @@ public class AssignmentToEdgeAllocator {
           contin = true;
         }
 
-        if (valueAddress != null && subscriptOffset < arraySize) {
+        if (valueAddress != null && subscriptOffset.compareTo(arraySize) < 0) {
           Pair<CType, Address> visits = Pair.of(pExpectedType, valueAddress);
 
           if (visited.contains(visits)) { return false; }

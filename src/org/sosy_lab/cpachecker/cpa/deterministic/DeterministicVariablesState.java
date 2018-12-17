@@ -26,20 +26,18 @@ package org.sosy_lab.cpachecker.cpa.deterministic;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.LiveVariables;
-
-import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 
 public class DeterministicVariablesState implements LatticeAbstractState<DeterministicVariablesState>, Graphable {
 

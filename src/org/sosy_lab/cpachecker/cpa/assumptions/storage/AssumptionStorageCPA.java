@@ -56,30 +56,28 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 /**
  * CPA used to capture the assumptions that ought to be dumped.
  *
- * Note that once the CPA algorithm has finished running, a call
- * to dumpInvariants() is needed to process the reachable states
- * and produce the actual invariants.
+ * <p>Note that once the CPA algorithm has finished running, a call to dumpInvariants() is needed to
+ * process the reachable states and produce the actual invariants.
  */
-public class AssumptionStorageCPA implements ConfigurableProgramAnalysis, ProofChecker {
+public class AssumptionStorageCPA
+    implements ConfigurableProgramAnalysis, ProofChecker, AutoCloseable {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(AssumptionStorageCPA.class);
   }
 
-  private final AbstractDomain abstractDomain;
-  private final StopOperator stopOperator;
   private final AssumptionStorageTransferRelation transferRelation;
   private final FormulaManagerView formulaManager;
   private final AssumptionStorageState topState;
 
+  private final Solver solver;
+
   private AssumptionStorageCPA(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
-    Solver solver = Solver.create(config, logger, pShutdownNotifier);
+    solver = Solver.create(config, logger, pShutdownNotifier);
     formulaManager = solver.getFormulaManager();
     FormulaEncodingOptions options = new FormulaEncodingOptions(config);
     CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(logger, cfa.getMachineModel());
     CtoFormulaConverter converter = new CtoFormulaConverter(options, formulaManager, cfa.getMachineModel(), cfa.getVarClassification(), logger, pShutdownNotifier, typeHandler, AnalysisDirection.FORWARD);
-    abstractDomain = new AssumptionStorageDomain(formulaManager);
-    stopOperator = new AssumptionStorageStop();
     BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
     topState = new AssumptionStorageState(formulaManager, bfmgr.makeTrue(), bfmgr.makeTrue());
     transferRelation = new AssumptionStorageTransferRelation(converter, formulaManager, topState);
@@ -91,7 +89,7 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis, ProofC
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return abstractDomain;
+    return new AssumptionStorageDomain();
   }
 
   @Override
@@ -106,7 +104,7 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis, ProofC
 
   @Override
   public StopOperator getStopOperator() {
-    return stopOperator;
+    return new AssumptionStorageStop();
   }
 
   @Override
@@ -130,5 +128,10 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis, ProofC
   public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
     // always assume is covered, only write and read states that have true assumptions, stop formulae
     return true;
+  }
+
+  @Override
+  public void close() {
+    solver.close();
   }
 }

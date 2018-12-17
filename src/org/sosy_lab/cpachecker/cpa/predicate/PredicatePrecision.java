@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -35,16 +36,15 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
-
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 /**
  * This class represents the precision of the PredicateCPA.
@@ -56,7 +56,7 @@ import java.util.Set;
  *
  * All instances of this class are immutable.
  */
-public class PredicatePrecision implements Precision {
+public final class PredicatePrecision implements AdjustablePrecision {
 
   /**
    * This class identifies a position in the ARG where predicates can be applied.
@@ -146,7 +146,7 @@ public class PredicatePrecision implements Precision {
         pGlobalPredicates);
   }
 
-  public PredicatePrecision(
+  private PredicatePrecision(
       Iterable<Map.Entry<LocationInstance, AbstractionPredicate>> pLocationInstancePredicates,
       Iterable<Map.Entry<CFANode, AbstractionPredicate>> pLocalPredicates,
       Iterable<Map.Entry<String, AbstractionPredicate>> pFunctionPredicates,
@@ -414,6 +414,7 @@ public class PredicatePrecision implements Precision {
     return difference;
   }
 
+  @Override
   public boolean isEmpty() {
     return getGlobalPredicates().isEmpty()
         && getFunctionPredicates().isEmpty()
@@ -435,7 +436,7 @@ public class PredicatePrecision implements Precision {
       return true;
     } else if (pObj == null) {
       return false;
-    } else if (!(pObj.getClass().equals(this.getClass()))) {
+    } else if (!pObj.getClass().equals(this.getClass())) {
       return false;
     } else {
       PredicatePrecision other = (PredicatePrecision)pObj;
@@ -480,5 +481,23 @@ public class PredicatePrecision implements Precision {
     } else {
       return sb.toString();
     }
+  }
+
+  @Override
+  public AdjustablePrecision add(AdjustablePrecision pOtherPrecision) {
+    Preconditions.checkArgument(pOtherPrecision instanceof PredicatePrecision);
+    return mergeWith((PredicatePrecision) pOtherPrecision);
+  }
+
+  @Override
+  public AdjustablePrecision subtract(AdjustablePrecision pOtherPrecision) {
+    Preconditions.checkArgument(pOtherPrecision instanceof PredicatePrecision);
+    PredicatePrecision other = (PredicatePrecision) pOtherPrecision;
+
+    return new PredicatePrecision(
+        Sets.difference(mLocationInstancePredicates.entries(), other.getLocationInstancePredicates().entries()),
+        Sets.difference(mLocalPredicates.entries(), other.getLocalPredicates().entries()),
+        Sets.difference(mFunctionPredicates.entries(), other.getFunctionPredicates().entries()),
+        Sets.difference(this.getGlobalPredicates(), other.getGlobalPredicates()));
   }
 }

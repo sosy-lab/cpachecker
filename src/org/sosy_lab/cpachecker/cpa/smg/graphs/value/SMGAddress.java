@@ -25,12 +25,16 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Objects;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 /** A class to represent an Address. This class is mainly used to store Address Information. */
-public class SMGAddress {
+public final class SMGAddress {
 
-  public static final SMGAddress UNKNOWN = new SMGAddress(null, SMGUnknownValue.getInstance());
+  public static final SMGAddress UNKNOWN = new SMGAddress(null, SMGUnknownValue.INSTANCE);
+  public static final SMGAddress ZERO =
+      new SMGAddress(SMGNullObject.INSTANCE, SMGZeroValue.INSTANCE);
 
   /** The SMGObject representing the Memory this address belongs to. */
   private final SMGObject object;
@@ -76,12 +80,24 @@ public class SMGAddress {
 
   @Override
   public final String toString() {
-
     if (isUnknown()) {
       return "Unkown";
     }
-
     return "Object: " + object + " Offset: " + offset;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(object, offset);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (!(o instanceof SMGAddress)) {
+      return false;
+    }
+    SMGAddress other = (SMGAddress) o;
+    return Objects.equals(object, other.object) && Objects.equals(offset, other.offset);
   }
 
   public static SMGAddress valueOf(SMGObject pObj, int pOffset) {

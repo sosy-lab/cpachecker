@@ -46,11 +46,11 @@ class SourceLocationMatcher {
       if (!originFileName.isPresent()) {
         return true;
       }
-      String originFileName = this.originFileName.get();
+      String fileName = this.originFileName.get();
       String fileLocationFileName = pFileLocation.getFileName();
-      originFileName = getBaseName(originFileName);
+      fileName = getBaseName(fileName);
       fileLocationFileName = getBaseName(fileLocationFileName);
-      return originFileName.equals(fileLocationFileName);
+      return fileName.equals(fileLocationFileName);
     }
 
     private String getBaseName(String pOf) {

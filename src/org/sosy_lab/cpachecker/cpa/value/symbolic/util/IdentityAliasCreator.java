@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.util;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 

@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.validvars;
 
 import com.google.common.collect.ImmutableSet;
-
+import java.util.Collection;
+import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -35,9 +36,6 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-
-import java.util.Collection;
-import java.util.Collections;
 
 
 public class ValidVarsTransferRelation extends SingleEdgeTransferRelation {

@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * This visitor evaluates the address of a LValue. It is predominantly
@@ -44,11 +44,13 @@ public class LValueAssignmentVisitor extends AddressVisitor {
 
   @Override
   public List<SMGAddressAndState> visit(CUnaryExpression lValue) throws CPATransferException {
-    throw new UnrecognizedCCodeException(lValue.toASTString() + " is not an lValue", getCfaEdge(), lValue);
+    throw new UnrecognizedCodeException(
+        lValue.toASTString() + " is not an lValue", getCfaEdge(), lValue);
   }
 
   @Override
   public List<SMGAddressAndState> visit(CFunctionCallExpression lValue) throws CPATransferException {
-    throw new UnrecognizedCCodeException(lValue.toASTString() + " is not a lValue", getCfaEdge(), lValue);
+    throw new UnrecognizedCodeException(
+        lValue.toASTString() + " is not a lValue", getCfaEdge(), lValue);
   }
 }

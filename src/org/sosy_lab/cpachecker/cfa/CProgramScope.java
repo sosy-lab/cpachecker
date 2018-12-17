@@ -30,6 +30,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
+import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
@@ -49,7 +50,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -85,6 +86,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -331,7 +333,9 @@ public class CProgramScope implements Scope {
 
     Iterable<Supplier<Iterable<CSimpleDeclaration>>> filteredAndUnfiltered =
         Iterables.concat(
-            Iterables.transform(lookups, s -> (() -> FluentIterable.from(s.get()).filter(d -> getLocationFilter().test(d)))),
+            Iterables.transform(
+                lookups,
+                s -> () -> FluentIterable.from(s.get()).filter(d -> getLocationFilter().test(d))),
             lookups);
 
     Iterator<Supplier<Iterable<CSimpleDeclaration>>> lookupSupplierIterator = filteredAndUnfiltered.iterator();
@@ -483,7 +487,7 @@ public class CProgramScope implements Scope {
   }
 
   private static boolean equals(CType pA, CType pB) {
-    return equals(pA, pB, Sets.<Pair<CType, CType>>newHashSet());
+    return equals(pA, pB, Sets.newHashSet());
   }
 
   private static boolean equals(@Nullable CType pA, @Nullable CType pB, Set<Pair<CType, CType>> pResolved) {
@@ -614,16 +618,17 @@ public class CProgramScope implements Scope {
   }
 
   private static Iterable<? extends AAstNode> getAstNodesFromCfaEdge(CFAEdge pEdge) {
+    Iterable<? extends AAstNode> nodes =
+        FluentIterable.from(CFAUtils.getAstNodesFromCfaEdge(pEdge))
+            .transformAndConcat(CFAUtils::traverseRecursively);
     if (pEdge instanceof ADeclarationEdge) {
       ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
       ADeclaration declaration = declarationEdge.getDeclaration();
       if (declaration instanceof AFunctionDeclaration) {
-        return Iterables.concat(
-            CFAUtils.getAstNodesFromCfaEdge(pEdge),
-            ((AFunctionDeclaration) declaration).getParameters());
+        nodes = Iterables.concat(nodes, ((AFunctionDeclaration) declaration).getParameters());
       }
     }
-    return CFAUtils.getAstNodesFromCfaEdge(pEdge);
+    return nodes;
   }
 
   private static Multimap<CAstNode, FileLocation> extractVarUseLocations(Collection<CFANode> pNodes) {
@@ -632,7 +637,7 @@ public class CProgramScope implements Scope {
         .transformAndConcat(CFAUtils::leavingEdges)
         .transformAndConcat(CProgramScope::getAstNodesFromCfaEdge)
         .filter(CAstNode.class)
-        .filter((astNode -> astNode instanceof CIdExpression || astNode instanceof CSimpleDeclaration))
+        .filter(astNode -> astNode instanceof CIdExpression || astNode instanceof CSimpleDeclaration)
         .filter(astNode -> {
           if (astNode instanceof CIdExpression) {
             return ((CIdExpression) astNode).getDeclaration() != null;
@@ -717,7 +722,7 @@ public class CProgramScope implements Scope {
     return null;
   }
 
-  private static class TypeCollector extends DefaultCTypeVisitor<Void, RuntimeException> {
+  private static class TypeCollector extends DefaultCTypeVisitor<Void, NoException> {
 
     private final Set<CType> collectedTypes;
 
@@ -797,7 +802,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public @Nullable Void visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+    public @Nullable Void visit(CBitFieldType pCBitFieldType) {
       if (collectedTypes.add(pCBitFieldType)) {
         pCBitFieldType.getType().accept(this);
       }
@@ -841,11 +846,11 @@ public class CProgramScope implements Scope {
       return false;
     }
     String qualifiedName = pCIdExpression.getDeclaration().getQualifiedName();
-    String[] parts = qualifiedName.split("::");
-    if (parts.length < 2) {
+    List<String> parts = Splitter.on("::").splitToList(qualifiedName);
+    if (parts.size() < 2) {
       return false;
     }
-    return parts[1].equals(ARTIFICIAL_RETVAL_NAME + parts[0] + "__");
+    return parts.get(1).equals(ARTIFICIAL_RETVAL_NAME + parts.get(0) + "__");
   }
 
   public static String getFunctionNameOfArtificialReturnVar(CIdExpression pCIdExpression) {

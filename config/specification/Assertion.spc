@@ -6,6 +6,9 @@ INITIAL STATE Init;
 
 STATE USEFIRST Init :
    // matches if assert_fail or assert_funct is called with any number of parameters
+   MATCH {__assert_fail($1, $2, $3, $4)}
+    -> ERROR("assertion in $location: Condition $1 failed in $2, line $3");
+
    MATCH {__assert_fail($?)} || MATCH {__assert_func($?)}
    -> ERROR("assertion in $location");
 

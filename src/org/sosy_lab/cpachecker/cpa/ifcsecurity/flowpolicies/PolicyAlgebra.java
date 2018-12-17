@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies;
 
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
-
 import java.util.SortedSet;
 import java.util.TreeSet;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
 
 
 /**

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.io.IOException;
@@ -48,62 +47,6 @@ import org.sosy_lab.java_smt.api.Formula;
 
 @Immutable
 public final class PointerTargetSet implements Serializable {
-
-  /**
-   * The objects of the class are used to keep the set of currently tracked fields in a {@link PersistentSortedMap}.
-   * Objects of {@link CompositeField} are used as keys and place-holders of type {@link Boolean} are used as values.
-   * <p>
-   * This allows one to check if a particular field is tracked using a temporary object of {@link CompositeField} and
-   * keep the set of currently tracked fields in rather simple way (no special-case merging is required).
-   * </p>
-   */
-  @Immutable
-  static class CompositeField implements Comparable<CompositeField>, Serializable {
-
-    private static final long serialVersionUID = -5194535211223682619L;
-
-    private CompositeField(final String compositeType, final String fieldName) {
-      this.compositeType = compositeType;
-      this.fieldName = fieldName;
-    }
-
-    static CompositeField of(final String compositeType, final String fieldName) {
-      return new CompositeField(compositeType, fieldName);
-    }
-
-    @Override
-    public String toString() {
-      return compositeType + "." + fieldName;
-    }
-
-    @Override
-    public int compareTo(final CompositeField other) {
-      return ComparisonChain.start()
-          .compare(this.compositeType, other.compositeType)
-          .compare(this.fieldName, other.fieldName)
-          .result();
-    }
-
-    @Override
-    public boolean equals(final Object obj) {
-      if (this == obj) {
-        return true;
-      } else if (!(obj instanceof CompositeField)) {
-        return false;
-      } else {
-        CompositeField other = (CompositeField) obj;
-        return compositeType.equals(other.compositeType) && fieldName.equals(other.fieldName);
-      }
-    }
-
-    @Override
-    public int hashCode() {
-      return compositeType.hashCode() * 17 + fieldName.hashCode();
-    }
-
-    private final String compositeType;
-    private final String fieldName;
-  }
 
   static String getBaseName(final String name) {
     return BASE_PREFIX + name;
@@ -232,10 +175,10 @@ public final class PointerTargetSet implements Serializable {
 
   private static final PointerTargetSet EMPTY_INSTANCE =
       new PointerTargetSet(
-          PathCopyingPersistentTreeMap.<String, CType>of(),
-          PathCopyingPersistentTreeMap.<CompositeField, Boolean>of(),
-          PersistentLinkedList.<Pair<String, DeferredAllocation>>of(),
-          PathCopyingPersistentTreeMap.<String, PersistentList<PointerTarget>>of(),
+          PathCopyingPersistentTreeMap.of(),
+          PathCopyingPersistentTreeMap.of(),
+          PersistentLinkedList.of(),
+          PathCopyingPersistentTreeMap.of(),
           PersistentLinkedList.of(),
           0);
 
@@ -296,15 +239,12 @@ public final class PointerTargetSet implements Serializable {
     private SerializationProxy(PointerTargetSet pts) {
       bases = pts.bases;
       fields = pts.fields;
-      List<Pair<String, DeferredAllocation>> deferredAllocations =
-          Lists.newArrayList(pts.deferredAllocations);
-      this.deferredAllocations = deferredAllocations;
+      this.deferredAllocations = Lists.newArrayList(pts.deferredAllocations);
       this.targets = new HashMap<>(Maps.transformValues(pts.targets, Lists::newArrayList));
       FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
       highestAllocatedAddresses =
           new ArrayList<>(
-              Lists.<Formula, String>transform(
-                  pts.highestAllocatedAddresses, mgr::dumpArbitraryFormula));
+              Lists.transform(pts.highestAllocatedAddresses, mgr::dumpArbitraryFormula));
       allocationCount = pts.allocationCount;
     }
 
@@ -313,8 +253,7 @@ public final class PointerTargetSet implements Serializable {
       FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
       PersistentList<Formula> highestAllocatedAddressesFormulas =
           PersistentLinkedList.copyOf(
-              Lists.<String, Formula>transform(
-                  highestAllocatedAddresses, mgr::parseArbitraryFormula));
+              Lists.transform(highestAllocatedAddresses, mgr::parseArbitraryFormula));
 
       return new PointerTargetSet(
           bases,

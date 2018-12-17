@@ -27,12 +27,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Predicate;
 import java.io.Serializable;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
 
@@ -72,7 +72,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
       final TypeHandlerWithPointerAliasing pTypeHandler,
       final CFAEdge pCfaEdge,
       final PointerTargetSetBuilder pPts)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     LvalueToPointerTargetPatternVisitor v =
         new LvalueToPointerTargetPatternVisitor(pTypeHandler, pCfaEdge, pPts);
     return lhs.accept(v).build();
@@ -193,18 +193,18 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     @Nullable
     Long getRemainingOffset(TypeHandlerWithPointerAliasing typeHandler) {
       if (containerType != null && containerOffset != null && properOffset != null) {
-        return typeHandler.getBitSizeof(containerType) - properOffset;
+        return typeHandler.getSizeof(containerType) - properOffset;
       } else {
         return null;
       }
     }
 
     /**
-     * Increase containerOffset by properOffset, unset properOffset and set containerType.
-     * Useful for array subscript visitors.
+     * Increase containerOffset by properOffset, unset properOffset and set containerType. Useful
+     * for array subscript visitors.
      */
-    void shift(final CType containerType) {
-      this.containerType = containerType;
+    void shift(final CType pContainerType) {
+      this.containerType = pContainerType;
       if (containerOffset != null) {
         if (properOffset != null) {
           containerOffset += properOffset;
@@ -216,12 +216,12 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     }
 
     /**
-     * Increase containerOffset by properOffset, set properOffset and containerType.
-     * Useful for field access visitors.
+     * Increase containerOffset by properOffset, set properOffset and containerType. Useful for
+     * field access visitors.
      */
-    void shift(final CType containerType, final long properOffset) {
-      shift(containerType);
-      this.properOffset = properOffset;
+    void shift(final CType pContainerType, final long pProperOffset) {
+      shift(pContainerType);
+      this.properOffset = pProperOffset;
     }
 
     /**

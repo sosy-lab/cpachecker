@@ -25,18 +25,16 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Preconditions;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
-
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-
-import com.google.common.base.Preconditions;
+import org.sosy_lab.cpachecker.util.Pair;
 
 
 class Sideassignments {

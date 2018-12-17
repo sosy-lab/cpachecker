@@ -29,6 +29,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -40,6 +41,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -95,6 +97,7 @@ import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
  * This is a CPA for collecting simple invariants about integer variables.
@@ -147,6 +150,9 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     @Option(secure=true, description="use pointer-alias information in strengthening, if available.")
     private boolean usePointerAliasStrengthening = true;
+
+    @Option(secure = true, description = "use modulo-2 template during widening if applicable.")
+    public boolean useMod2Template = false;
   }
 
   /**
@@ -270,7 +276,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
         compoundIntervalManagerFactory,
         machineModel,
         options.allowOverapproximationOfUnsupportedFeatures,
-        options.usePointerAliasStrengthening);
+        options.usePointerAliasStrengthening,
+        cfa.getVarClassification());
   }
 
   @Override
@@ -371,33 +378,32 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     relevantVariableLimitReached = interestingVariableLimit < 0 || interestingVariableLimit > interestingVariables.size();
 
-    InvariantsPrecision precision = new InvariantsPrecision(relevantEdges,
-        ImmutableSet.copyOf(limit(interestingVariables, interestingVariableLimit)),
-        options.maximumFormulaDepth,
-        options.abstractionStateFactory.createStrategy(
-            compoundIntervalManagerFactory,
-            machineModel));
+    InvariantsPrecision precision =
+        new InvariantsPrecision(
+            relevantEdges,
+            ImmutableSet.copyOf(limit(interestingVariables, interestingVariableLimit)),
+            options.maximumFormulaDepth,
+            options.abstractionStateFactory.createStrategy(
+                compoundIntervalManagerFactory, machineModel),
+            options.useMod2Template);
 
     initialPrecisionMap.put(pNode, precision);
 
+    // Create the configured initial state
+    InvariantsState state =
+        new InvariantsState(
+            variableSelection,
+            compoundIntervalManagerFactory,
+            machineModel,
+            abstractionState,
+            options.includeTypeInformation);
+
     BooleanFormula<CompoundInterval> invariant = invariants.get(pNode);
     if (invariant != null) {
-      InvariantsState state = new InvariantsState(
-          variableSelection,
-          compoundIntervalManagerFactory,
-          machineModel,
-          abstractionState,
-          options.includeTypeInformation);
       state = state.assume(invariant);
     }
 
-    // Create the configured initial state
-    return new InvariantsState(
-        variableSelection,
-        compoundIntervalManagerFactory,
-        machineModel,
-        abstractionState,
-        options.includeTypeInformation);
+    return state;
   }
 
   @Override
@@ -469,6 +475,10 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   @Override
   public void adjustReachedSet(ReachedSet pReachedSet) {
     conditionAdjuster.adjustReachedSet(pReachedSet);
+  }
+
+  public boolean isLikelyLongRunning() {
+    return this.options.abstractionStateFactory == AbstractionStrategyFactories.NEVER;
   }
 
   private static <T> boolean reachesLimit(Collection<T> pCollection, int pLimit) {
@@ -680,6 +690,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   private static class CompoundConditionAdjuster implements ConditionAdjuster {
 
+    private final InvariantsCPA cpa;
+
     private Timer timer = new Timer();
 
     private TimeSpan previousTimeSpan = null;
@@ -689,6 +701,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     private ConditionAdjuster defaultInner;
 
     public CompoundConditionAdjuster(InvariantsCPA pCPA) {
+      cpa = Objects.requireNonNull(pCPA);
       innerAdjusters.add(new InterestingVariableLimitAdjuster(pCPA));
       innerAdjusters.add(new FormulaDepthAdjuster(pCPA));
       defaultInner = new AbstractionStrategyAdjuster(pCPA);
@@ -700,7 +713,27 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
         return defaultInner.adjustConditions();
       }
       ValueIncreasingAdjuster inner = getCurrentInner();
-      if (previousTimeSpan != null) {
+      boolean onlyIntVars = false;
+      boolean pointersRelevant = true;
+      if (inner instanceof InterestingVariableLimitAdjuster
+          && cpa.cfa.getVarClassification().isPresent()) {
+        VariableClassification classification = cpa.cfa.getVarClassification().get();
+        if (classification.getAddressedVariables().isEmpty()
+            && classification.getAddressedFields().isEmpty()) {
+          pointersRelevant = false;
+        }
+        Set<String> intVars =
+            Sets.union(classification.getIntAddVars(), classification.getIntBoolVars());
+        intVars = Sets.union(intVars, classification.getIntEqualVars());
+        onlyIntVars = intVars.containsAll(classification.getRelevantVariables());
+      }
+      if (previousTimeSpan == null && !pointersRelevant && onlyIntVars) {
+        if (timer.isRunning()) {
+          timer.stop();
+          previousTimeSpan = timer.getLengthOfLastInterval();
+        }
+        inner.setInc(6);
+      } else if (previousTimeSpan != null) {
         timer.stop();
         TimeSpan sinceLastAdjustment = timer.getLengthOfLastInterval();
         int comp = sinceLastAdjustment.compareTo(previousTimeSpan);

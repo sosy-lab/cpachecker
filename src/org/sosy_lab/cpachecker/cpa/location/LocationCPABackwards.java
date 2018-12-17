@@ -32,24 +32,24 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 public class LocationCPABackwards extends AbstractCPA {
 
   private final LocationStateFactory stateFactory;
 
-  public LocationCPABackwards(CFA pCfa, Configuration pConfig) throws InvalidConfigurationException {
-    super("sep", "sep", null /* lazy initialization */);
-    stateFactory = new LocationStateFactory(pCfa, AnalysisDirection.BACKWARD, pConfig);
+  private LocationCPABackwards(LocationStateFactory pStateFactory) {
+    super("sep", "sep", new LocationTransferRelationBackwards(pStateFactory));
+    stateFactory = pStateFactory;
   }
 
   public static CPAFactory factory() {
     return new LocationCPAFactory(AnalysisDirection.BACKWARD);
   }
 
-  @Override
-  public TransferRelation getTransferRelation() {
-    return new LocationTransferRelationBackwards(stateFactory);
+  public static LocationCPABackwards create(CFA pCFA, Configuration pConfig)
+      throws InvalidConfigurationException {
+    return new LocationCPABackwards(
+        new LocationStateFactory(pCFA, AnalysisDirection.BACKWARD, pConfig));
   }
 
   @Override

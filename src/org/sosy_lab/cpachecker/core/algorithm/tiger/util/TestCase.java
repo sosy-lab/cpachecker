@@ -32,16 +32,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
-import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 
@@ -51,7 +50,7 @@ public class TestCase {
   private Map<String, BigInteger> inputs;
   private Map<String, BigInteger> outputs;
   private List<CFAEdge> path;
-  private List<CFAEdge> errorPath;
+  private List<Pair<CFAEdgeWithAssumptions, Boolean>> errorPath;
   private Region presenceCondition;
   private ARGPath argPath;
   private BDDUtils bddUtils;
@@ -61,7 +60,7 @@ public class TestCase {
       Map<String, BigInteger> pInputs,
       Map<String, BigInteger> pOutputs,
       List<CFAEdge> pPath,
-      List<CFAEdge> pShrinkedErrorPath,
+      List<Pair<CFAEdgeWithAssumptions, Boolean>> pShrinkedErrorPath,
       Region pPresenceCondition,
       BDDUtils pBddUtils) {
     inputs = pInputs;
@@ -78,20 +77,6 @@ public class TestCase {
     return pc.replaceAll("@[0-9]+", "").replace(" & TRUE", "");
   }
 
-  public TestCase(int pI, @SuppressWarnings("unused") List<TestStep> pTestSteps,
-      ARGPath pTargetPath, List<CFAEdge> pList,
-      Region pPresenceCondition,
-      @SuppressWarnings("unused") BDDUtils pBddUtils,
-      Map<String, BigInteger> pInputValues,
-      @SuppressWarnings("unused") Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> pInputsAndOutputs) {
-    id = pI;
-    argPath = pTargetPath;
-    errorPath = pList;
-    presenceCondition = pPresenceCondition;
-    inputs = pInputValues;
-    bddUtils = pBddUtils;
-  }
-
   public int getId() {
     return id;
   }
@@ -104,7 +89,7 @@ public class TestCase {
     return argPath;
   }
 
-  public List<CFAEdge> getErrorPath() {
+  public List<Pair<CFAEdgeWithAssumptions, Boolean>> getErrorPath() {
     return errorPath;
   }
 

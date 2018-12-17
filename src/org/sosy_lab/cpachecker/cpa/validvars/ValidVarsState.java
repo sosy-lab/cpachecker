@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.validvars;
 
+import java.io.Serializable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-
-import java.io.Serializable;
 
 
 public class ValidVarsState implements AbstractState, AbstractQueryableState, Graphable, Serializable {

@@ -23,17 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util.blocking;
 
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.Table;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Multiset;
-import com.google.common.collect.Table;
 
 class ReducedFunction {
   private final Table<ReducedNode, ReducedNode, Set<ReducedEdge>> cfaEdges;

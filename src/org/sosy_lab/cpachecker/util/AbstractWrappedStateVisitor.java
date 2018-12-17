@@ -24,10 +24,9 @@
 
 package org.sosy_lab.cpachecker.util;
 
+import com.google.errorprone.annotations.ForOverride;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
-
-import com.google.errorprone.annotations.ForOverride;
 
 /**
  * Utility class to visit all wrapped abstract states

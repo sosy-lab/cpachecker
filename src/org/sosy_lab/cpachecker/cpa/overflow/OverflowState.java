@@ -25,13 +25,13 @@ package org.sosy_lab.cpachecker.cpa.overflow;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import java.util.List;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
@@ -128,10 +128,14 @@ class OverflowState implements AbstractStateWithAssumptions,
 
   @Override
   public PathFormula getPreviousPathFormula(PathFormula pPathFormula) {
-    // TODO: The following assertion is needed because this is a hack and needs refactoring.
+    // TODO: The following assertions are needed because this is a hack and needs refactoring.
     // For now we need to get the previous path formula somehow,
     // and communicating it via strengthening operators allows to do this
     // locally here where it is needed, separating concerns
+    assert alreadyStrengthened
+        : "previous path formula is not availabe before the method OverflowState.updatePathFormulas is called"
+            + " (preferably through strengthening in the transfer relation)!"
+            + " Maybe you are using PredicateCPA before OverflowCPA? (order is important here)";
     assert pPathFormula.getSsa()
         .equals(currentPathFormula.getSsa()) : "supplied path formula does not match!" +
             " Most likely this means strengthen of the PredicateCPA is called before strengthen of the OverflowCPA!";

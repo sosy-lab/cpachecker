@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
+import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -64,10 +65,14 @@ public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandida
       SMGEdgeHasValue nextEdge = Iterables.getOnlyElement(pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(prevObject).filterAtOffset(nfo)));
       SMGObject nextObject = pSMG.getPointer(nextEdge.getValue()).getObject();
 
+      if (nextObject == prevObject) {
+        throw new AssertionError("Invalid candidate sequence: Attempt to merge object with itself");
+      }
+
       if (length > 1) {
         SMGJoinSubSMGsForAbstraction jointest =
-            new SMGJoinSubSMGsForAbstraction(new CLangSMG(pSMG), prevObject, nextObject, candidate,
-                pSmgState);
+            new SMGJoinSubSMGsForAbstraction(
+                pSMG.copyOf(), prevObject, nextObject, candidate, pSmgState);
 
         if (!jointest.isDefined()) {
           return pSMG;
@@ -112,6 +117,8 @@ public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandida
       SMGEdgeHasValue nfoHve = new SMGEdgeHasValue(nextObj2hve.getType(), nextObj2hve.getOffset(), newAbsObj, nextObj2hve.getValue());
       pSMG.addHasValueEdge(nfoHve);
       pSmgState.pruneUnreachable();
+
+      replaceSourceValues(pSMG, newAbsObj);
     }
 
     return pSMG;
@@ -123,8 +130,8 @@ public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandida
   }
 
   @Override
-  public SMGAbstractionBlock createAbstractionBlock(SMGState pSmgState) {
-    Map<SMGObject, SMGMemoryPath> map = pSmgState.getHeapObjectMemoryPaths();
+  public SMGAbstractionBlock createAbstractionBlock(UnmodifiableSMGState pSmgState) {
+    Map<SMGObject, SMGMemoryPath> map = pSmgState.getHeap().getHeapObjectMemoryPaths();
     SMGMemoryPath pPointerToStartObject = map.get(candidate.getStartObject());
     return new SMGSingleLinkedListCandidateSequenceBlock(candidate.getShape(), length,
         pPointerToStartObject);

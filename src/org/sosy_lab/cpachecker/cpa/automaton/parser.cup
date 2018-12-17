@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -51,6 +51,7 @@ import java_cup.runtime.SymbolFactory;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.DummyParser;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.Language;
+
 
 import com.google.common.base.Throwables;
 
@@ -175,9 +177,9 @@ parser code {:
 terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS,
     CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE,
     ERROR, STOP, EXIT, ENTRY, BREAK, ASSERT, ASSUME, MATCH, LABEL, CHECK, EVAL,
-    MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS,
+    MODIFY, DO, PRINT, PRINTONCE, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS,
     MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST,
-    TARGET, IS_TARGET_STATE, COVERS_LINES ;
+    TARGET, IS_TARGET_STATE, COVERS_LINES, OPEN_ANGLE_BRACKETS, CLOSE_ANGLE_BRACKETS ;
 non terminal List<Automaton> initial ;  
 non terminal Automaton Specification ;
 non terminal Automaton Automaton ;
@@ -198,14 +200,15 @@ non terminal Boolean StateNonDetDef ;
 non terminal AutomatonTransition Transition ;
 non terminal AutomatonBoolExpr Assertion ;
 non terminal AutomatonAction Action ;
+non terminal Boolean SetValue ;
 
-non terminal List<AutomatonExpression> PrintArguments ;
+non terminal List<AutomatonExpression<?>> PrintArguments ;
 
 non terminal AutomatonIntExpr.Constant ConstantInt ;
 non terminal AutomatonIntExpr Int ;
 non terminal AutomatonIntExpr InnerInt ;
 non terminal AutomatonBoolExpr Bool ;
-non terminal AutomatonExpression Expression ;
+non terminal AutomatonExpression<?> Expression ;
 
 precedence left PLUS, MINUS;
 precedence left AND, OR;
@@ -241,9 +244,15 @@ LocalDefs ::= LocalDef:d LocalDefs:lst {: lst.put(d.getName(), d); RESULT = lst;
               | /* empty */ {: RESULT = new HashMap<String, AutomatonVariable>(); :}
               ;
 
-LocalDef  ::= LOCAL IDENTIFIER:type IDENTIFIER:name  SEMICOLON {: RESULT = new AutomatonVariable(type.toString(), name.toString()); :}
+LocalDef  ::= LOCAL IDENTIFIER:type IDENTIFIER:name  SEMICOLON {: RESULT = AutomatonVariable.createAutomatonVariable(type.toString(), name.toString()); :}
+            | LOCAL IDENTIFIER:type OPEN_ANGLE_BRACKETS IDENTIFIER:elemType CLOSE_ANGLE_BRACKETS IDENTIFIER:name SEMICOLON {: RESULT = AutomatonVariable.createAutomatonVariable(type.toString(), name.toString(), elemType.toString()); :}
+            | LOCAL IDENTIFIER:type OPEN_ANGLE_BRACKETS IDENTIFIER:elemType CLOSE_ANGLE_BRACKETS IDENTIFIER:name EQ SQUAREEXPR:expr SEMICOLON 
+              {: RESULT = AutomatonVariable.createAutomatonVariable(type.toString(), name.toString(), elemType.toString(), expr.toString()); :}
             | LOCAL IDENTIFIER:type IDENTIFIER:name  EQ ConstantInt:ci SEMICOLON 
-            {: RESULT = new AutomatonVariable(type.toString(), name.toString()); RESULT.setValue(ci.getIntValue()); :}
+              {: RESULT = AutomatonVariable.createAutomatonVariable(type.toString(), name.toString()); 
+                 if (RESULT instanceof AutomatonIntVariable) ((AutomatonIntVariable) RESULT).setValue(ci.getIntValue());
+                 else throw new InvalidConfigurationException("Cannot initialize automaton variable of type '" + RESULT.getType() + "' with integer expression");
+              :}
             ;
 
 StateDefs ::= StateDef:s StateDefs:lst  {: lst.add(0, s); RESULT = lst; :}
@@ -292,16 +301,21 @@ Actions   ::= Action:a Actions:lst {: lst.add(0,a); RESULT = lst; :} // insert a
             ;
 Action    ::= DO  IDENTIFIER:var EQ InnerInt:i   {: RESULT = new AutomatonAction.Assignment(var.toString(), i); :}
                         // InnerInt in this position allows for x = EVAL(..) Statements
+            | DO IDENTIFIER:var SQUAREEXPR:expr EQ SetValue:val {: RESULT = new AutomatonAction.SetAssignment(var.toString(), expr.toString(), val); :}
             | PRINT PrintArguments:args {: RESULT = new AutomatonAction.Print(args); :}
-/*next statement is deprecated*/            
+            | PRINTONCE PrintArguments:args {: RESULT = new AutomatonAction.PrintOnce(args); :}
+/*next statement is deprecated*/
             | MODIFY OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
               {: RESULT = new AutomatonAction.CPAModification(cpa.toString(), query.toString()); :}
             | MODIFY OPEN_BRACKETS IDENTIFIER:cpa COMMA STRING_LITERAL:query CLOSE_BRACKETS
               {: RESULT = new AutomatonAction.CPAModification(cpa.toString(), query.toString()); :}
             ;
-            
+
+SetValue  ::= TRUE {: RESULT = true; :}
+            | FALSE {: RESULT = false; :};
+
 PrintArguments ::= Expression:a PrintArguments:lst {: lst.add(0,a); RESULT = lst; :}
-             | /* empty */ {: RESULT = new LinkedList<AutomatonExpression>(); :}
+             | /* empty */ {: RESULT = new LinkedList<AutomatonExpression<?>>(); :}
              ;
             
 Int       ::= ConstantInt:c  {: RESULT = c; :}
@@ -345,7 +359,7 @@ Bool      ::= TRUE  {: RESULT = AutomatonBoolExpr.TRUE; :}
             | MATCH LABEL SQUAREEXPR:expr
               {: RESULT = new AutomatonBoolExpr.MatchLabelRegEx(expr.toString()); :}
             | MATCH ASSERT
-              {: RESULT = new AutomatonBoolExpr.MatchJavaAssert(); :}
+              {: RESULT = AutomatonBoolExpr.MatchJavaAssert.INSTANCE; :}
             | MATCH EXIT
               {: RESULT = AutomatonBoolExpr.MatchProgramExit.INSTANCE; :}
             | MATCH ENTRY

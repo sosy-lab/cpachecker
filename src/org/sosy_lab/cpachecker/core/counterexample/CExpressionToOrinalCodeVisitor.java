@@ -48,9 +48,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public class CExpressionToOrinalCodeVisitor
-    implements CExpressionVisitor<String, RuntimeException> {
+    implements CExpressionVisitor<String, NoException> {
 
   public static final CExpressionToOrinalCodeVisitor BASIC_TRANSFORMER =
       new CExpressionToOrinalCodeVisitor();
@@ -117,6 +118,9 @@ public class CExpressionToOrinalCodeVisitor
     String substitute = subsitution.get(pIdExpression);
     if (substitute != null) {
       return substitute;
+    }
+    if (pIdExpression.getDeclaration() == null) {
+      return pIdExpression.getName();
     }
     return pIdExpression.getDeclaration().getOrigName();
   }
@@ -253,7 +257,7 @@ public class CExpressionToOrinalCodeVisitor
     if (substitute != null) {
       return substitute;
     }
-    return pLiteralExpression.getValue().toString() + "i";
+    return pLiteralExpression.getValue() + "i";
   }
 
   @Override

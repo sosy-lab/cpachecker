@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic;
 
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 public class SMGEdgePointsToTemplate extends SMGEdgeTemplate {
 
-  public SMGEdgePointsToTemplate(SMGObjectTemplate pAbstractObject,
-      int pAbstractPointerValue,
-      long pOffset) {
+  public SMGEdgePointsToTemplate(
+      SMGObjectTemplate pAbstractObject, SMGValue pAbstractPointerValue, long pOffset) {
     super(pAbstractObject, pAbstractPointerValue, pOffset);
   }
 

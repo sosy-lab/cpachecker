@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import java.util.Objects;
-
 import com.google.common.base.Preconditions;
+import java.util.Objects;
 
 public class IfThenElse<ConstantType> extends AbstractFormula<ConstantType> {
 

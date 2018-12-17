@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.type;
 
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
  * This class represents a boolean value.
@@ -175,6 +174,11 @@ public class BooleanValue implements Value {
   @Override
   public Long asLong(CType pType) {
     throw new AssertionError("This method is not implemented");
+  }
+
+  @Override
+  public <T> T accept(ValueVisitor<T> pVisitor) {
+    return pVisitor.visit(this);
   }
 
   /**

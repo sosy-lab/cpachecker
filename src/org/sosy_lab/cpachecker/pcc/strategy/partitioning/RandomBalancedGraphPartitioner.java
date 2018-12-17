@@ -30,8 +30,6 @@ import java.util.Random;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
-import org.sosy_lab.cpachecker.util.RandomProvider;
-
 
 public class RandomBalancedGraphPartitioner implements BalancedGraphPartitioner{
 
@@ -45,7 +43,7 @@ public class RandomBalancedGraphPartitioner implements BalancedGraphPartitioner{
       partitioning.add(new HashSet<Integer>());
     }
 
-    Random randomGen = RandomProvider.get();
+    Random randomGen = new Random(0);
 
     for (int i = 0; i < pGraph.getNumNodes(); i++) {
       partitioning.get(randomGen.nextInt(pNumPartitions)).add(i);

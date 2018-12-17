@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
+import java.math.BigInteger;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -32,18 +33,22 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
 
 class RHSCSizeOfVisitor extends CSizeOfVisitor {
 
-  private final SMGRightHandSideEvaluator smgRightHandSideEvaluator;
+  private final SMGTransferRelationKind kind;
 
-  public RHSCSizeOfVisitor(SMGRightHandSideEvaluator pSmgRightHandSideEvaluator,
-      CFAEdge pEdge, SMGState pState, Optional<CExpression> pExpression) {
+  public RHSCSizeOfVisitor(
+      SMGRightHandSideEvaluator pSmgRightHandSideEvaluator,
+      CFAEdge pEdge,
+      SMGState pState,
+      Optional<CExpression> pExpression,
+      SMGTransferRelationKind pKind) {
     super(pSmgRightHandSideEvaluator, pEdge, pState, pExpression);
-    smgRightHandSideEvaluator = pSmgRightHandSideEvaluator;
+    kind = pKind;
   }
 
   @Override
-  protected int handleUnkownArrayLengthValue(CArrayType pArrayType) {
-    if (smgRightHandSideEvaluator.smgTransferRelation.kind == SMGTransferRelationKind.REFINEMENT) {
-      return 0;
+  protected BigInteger handleUnkownArrayLengthValue(CArrayType pArrayType) {
+    if (kind == SMGTransferRelationKind.REFINEMENT) {
+      return BigInteger.ZERO;
     } else {
       return super.handleUnkownArrayLengthValue(pArrayType);
     }

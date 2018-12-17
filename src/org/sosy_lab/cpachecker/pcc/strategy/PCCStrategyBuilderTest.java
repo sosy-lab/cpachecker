@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.pcc.strategy;
 
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ClassInfo;
-
+import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.eclipse.jdt.core.dom.Modifier;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,10 +37,6 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnsuitedClassException;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @RunWith(Parameterized.class)
 public class PCCStrategyBuilderTest {

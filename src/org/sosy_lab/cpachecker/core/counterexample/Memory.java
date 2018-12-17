@@ -23,12 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import java.util.Map;
-
-import org.sosy_lab.cpachecker.cfa.CFA;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import java.util.Map;
+import org.sosy_lab.cpachecker.cfa.CFA;
 
 /**
  * This class represent the memory of a concrete State.

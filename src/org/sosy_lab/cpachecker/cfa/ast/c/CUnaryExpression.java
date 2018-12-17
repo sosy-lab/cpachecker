@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class CUnaryExpression extends AUnaryExpression implements CExpression {
@@ -37,7 +38,8 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
                              final CType pType, final CExpression pOperand,
                              final UnaryOperator pOperator) {
     super(pFileLocation, pType, pOperand, pOperator);
-
+    assert pOperator != UnaryOperator.AMPER || pType.getCanonicalType() instanceof CPointerType
+        : "Expression " + this + " has unexpected non-pointer type " + pType;
   }
 
   @Override
@@ -56,11 +58,11 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString(boolean pQualified) {
     if (getOperator() == UnaryOperator.SIZEOF) {
-      return getOperator().getOperator() + "(" + getOperand().toASTString() + ")";
+      return getOperator().getOperator() + "(" + getOperand().toASTString(pQualified) + ")";
     } else {
-      return getOperator().getOperator() + getOperand().toParenthesizedASTString();
+      return getOperator().getOperator() + getOperand().toParenthesizedASTString(pQualified);
     }
   }
 
@@ -79,7 +81,7 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
     return pV.visit(this);
   }
 
-  public static enum UnaryOperator implements AUnaryExpression.AUnaryOperator {
+  public enum UnaryOperator implements AUnaryExpression.AUnaryOperator {
     MINUS  ("-"),
     AMPER  ("&"),
     TILDE  ("~"),
@@ -89,7 +91,7 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
 
     private final String mOp;
 
-    private UnaryOperator(String pOp) {
+    UnaryOperator(String pOp) {
       mOp = pOp;
     }
 
@@ -104,9 +106,7 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
 
   @Override
   public int hashCode() {
-    int prime = 31;
-    int result = 7;
-    return prime * result + super.hashCode();
+    return super.hashCode();
   }
 
   @Override

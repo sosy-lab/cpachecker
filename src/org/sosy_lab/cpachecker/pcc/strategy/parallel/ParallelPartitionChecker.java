@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.parallel;
 
+import com.google.common.collect.Multimap;
 import java.util.Collection;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -39,8 +39,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartitioningCheckingHelper;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
-
-import com.google.common.collect.Multimap;
 
 
 public class ParallelPartitionChecker implements Runnable, PartitioningCheckingHelper {

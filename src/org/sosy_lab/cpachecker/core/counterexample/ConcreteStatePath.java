@@ -116,7 +116,7 @@ public final class ConcreteStatePath implements Iterable<ConcreteStatePathNode> 
 
     @Override
     public String toString() {
-      return "[" + getCfaEdge().toString() + " " + concreteState.toString() + "]";
+      return "[" + getCfaEdge() + " " + concreteState + "]";
     }
   }
 

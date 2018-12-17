@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.refinement;
 
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 

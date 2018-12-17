@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.type;
 
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-
 import java.io.Serializable;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class FunctionValue  implements Value, Serializable  {
 
@@ -73,6 +72,11 @@ public class FunctionValue  implements Value, Serializable  {
   @Override
   public Long asLong(CType pType) {
     return null;
+  }
+
+  @Override
+  public <T> T accept(ValueVisitor<T> pVisitor) {
+    return pVisitor.visit(this);
   }
 
   @Override

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
@@ -33,6 +32,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -69,9 +69,11 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
@@ -95,12 +97,12 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * This class provides the refinement strategy for the classical predicate
- * abstraction (adding the predicates from the interpolant to the precision
- * and removing the relevant parts of the ARG).
+ * This class provides the refinement strategy for the classical predicate abstraction (adding the
+ * predicates from the interpolant to the precision and removing the relevant parts of the ARG).
  */
-@Options(prefix="cpa.predicate")
-public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
+@Options(prefix = "cpa.predicate")
+public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
+    implements StatisticsProvider {
 
   @Option(secure=true, name="precision.sharing",
       description="Where to apply the found predicates to?")
@@ -210,7 +212,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
         .put(argUpdate)
         .spacer();
 
-      basicRefinementStatistics.printStatistics(out, pResult, pReached);
+      PredicateAbstractionRefinementStrategy.this.printStatistics(out);
 
       w0.put(numberOfRefinementsWithStrategy2)
         .ifUpdatedAtLeastOnce(itpSimplification)
@@ -335,7 +337,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   @Override
-  protected final void finishRefinementOfPath(
+  protected void finishRefinementOfPath(
       ARGState pUnreachableState,
       List<ARGState> pAffectedStates,
       ARGReachedSet pReached,
@@ -414,6 +416,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     PredicatePrecision newPrecision = addPredicatesToPrecision(basePrecision);
 
     logger.log(Level.ALL, "Predicate map now is", newPrecision);
+    logger.log(Level.ALL, "Difference of predicates is", newPrecision.subtract(basePrecision));
 
     assert basePrecision.calculateDifferenceTo(newPrecision) == 0
         : "We forgot predicates during refinement!";
@@ -479,7 +482,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     return basePrecision;
   }
 
-  private PredicatePrecision addPredicatesToPrecision(PredicatePrecision basePrecision) {
+  protected PredicatePrecision addPredicatesToPrecision(PredicatePrecision basePrecision) {
     PredicatePrecision newPrecision;
     switch (predicateSharing) {
     case GLOBAL:
@@ -549,7 +552,17 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     // Both work, so this is a heuristics question to get the best performance.
     // My benchmark showed, that at least for the benchmarks-lbe examples it is
     // best to use strategy one iff newPredicatesFound.
-    boolean newPredicatesFound = !targetStatePrecision.getLocalPredicates().entries().containsAll(newPredicates.entries());
+    // TODO right now this works only with location-specific predicates, not with other values of
+    // cpa.predicate.precision.sharing
+    boolean newPredicatesFound = false;
+    for (Map.Entry<LocationInstance, AbstractionPredicate> entry : newPredicates.entries()) {
+      if (!targetStatePrecision
+          .getLocalPredicates()
+          .containsEntry(entry.getKey().getLocation(), entry.getValue())) {
+        newPredicatesFound = true;
+        break;
+      }
+    }
 
     ARGState firstInterpolationPoint = pAffectedStates.get(0);
     if (!newPredicatesFound) {
@@ -588,9 +601,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   public static PredicatePrecision findAllPredicatesFromSubgraph(
       ARGState refinementRoot, UnmodifiableReachedSet reached) {
     return PredicatePrecision.unionOf(
-        from(refinementRoot.getSubgraph())
-            .filter(not(ARGState::isCovered))
-            .transform(reached::getPrecision));
+        Collections2.transform(
+            ARGUtils.getNonCoveredStatesInSubgraph(refinementRoot), reached::getPrecision));
   }
 
   private void dumpNewPredicates() {
@@ -623,11 +635,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     // find all distinct precisions to merge them
     Set<Precision> precisions = Sets.newIdentityHashSet();
-    for (ARGState state : refinementRoot.getSubgraph()) {
-      if (!state.isCovered()) {
-        // covered states are not in reached set
-        precisions.add(reached.getPrecision(state));
-      }
+    for (ARGState state : ARGUtils.getNonCoveredStatesInSubgraph(refinementRoot)) {
+      // covered states are not in reached set
+      precisions.add(reached.getPrecision(state));
     }
 
     for (Precision prec : precisions) {
@@ -639,8 +649,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   @Override
-  public Statistics getStatistics() {
-    return new Stats();
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(new Stats());
   }
 
   private static Iterable<Map.Entry<String, AbstractionPredicate>> mergePredicatesPerFunction(

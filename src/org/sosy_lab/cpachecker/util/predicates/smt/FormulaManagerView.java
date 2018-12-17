@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
@@ -51,8 +50,9 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -80,7 +80,6 @@ import org.sosy_lab.java_smt.api.FormulaManager;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
-import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
@@ -163,10 +162,6 @@ public class FormulaManagerView {
       + " This can be used for solvers that do not support floating-point arithmetic, or for increased performance.")
   private Theory encodeFloatAs = Theory.FLOAT;
 
-  @Option(secure=true, description="Enable fallback to UFs if a solver does not "
-      + "support non-linear arithmetics. This option only effects MULT, MOD and DIV.")
-  private boolean useUFsForNonLinearArithmetic = true;
-
   @VisibleForTesting
   public FormulaManagerView(FormulaManager pFormulaManager, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, FormulaManagerView.class);
@@ -201,7 +196,8 @@ public class FormulaManagerView {
     floatingPointFormulaManager =
         new FloatingPointFormulaManagerView(
             wrappingHandler, rawFloatingPointFormulaManager, manager.getUFManager());
-    integerFormulaManager = new IntegerFormulaManagerView(wrappingHandler, getIntegerFormulaManager0());
+    integerFormulaManager =
+        new IntegerFormulaManagerView(wrappingHandler, manager.getIntegerFormulaManager());
 
     try {
       quantifiedFormulaManager =
@@ -240,14 +236,14 @@ public class FormulaManagerView {
     case INTEGER:
       rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
           manager.getBooleanFormulaManager(),
-          getIntegerFormulaManager0(),
+          manager.getIntegerFormulaManager(),
           manager.getUFManager(),
           new ReplaceBitvectorEncodingOptions(config));
       break;
     case RATIONAL:
       NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
       try {
-        rmgr = getRationalFormulaManager0();
+        rmgr = manager.getRationalFormulaManager();
       } catch (UnsupportedOperationException e) {
         throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of rationals, "
             + "please choose another SMT solver "
@@ -287,14 +283,17 @@ public class FormulaManagerView {
       }
       break;
     case INTEGER:
-      rawFloatingPointFormulaManager = new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
-          wrappingHandler, getIntegerFormulaManager0(), manager.getUFManager(),
-          manager.getBooleanFormulaManager());
+        rawFloatingPointFormulaManager =
+            new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
+                wrappingHandler,
+                manager.getIntegerFormulaManager(),
+                manager.getUFManager(),
+                manager.getBooleanFormulaManager());
       break;
     case RATIONAL:
       NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
       try {
-        rmgr = getRationalFormulaManager0();
+        rmgr = manager.getRationalFormulaManager();
       } catch (UnsupportedOperationException e) {
         throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of rationals, "
             + "please choose another SMT solver "
@@ -312,24 +311,6 @@ public class FormulaManagerView {
       throw new AssertionError();
     }
     return rawFloatingPointFormulaManager;
-  }
-
-  private IntegerFormulaManager getIntegerFormulaManager0() {
-    IntegerFormulaManager ifmgr = manager.getIntegerFormulaManager();
-    if (useUFsForNonLinearArithmetic) {
-      ifmgr = new IntegerNonLinearUFNumeralFormulaManager(
-          wrappingHandler, ifmgr, functionFormulaManager);
-    }
-    return ifmgr;
-  }
-
-  private NumeralFormulaManager<NumeralFormula, RationalFormula> getRationalFormulaManager0() {
-    NumeralFormulaManager<NumeralFormula, RationalFormula> rfmgr = manager.getRationalFormulaManager();
-    if (useUFsForNonLinearArithmetic) {
-      rfmgr = new NonLinearUFNumeralFormulaManager<>(
-          wrappingHandler, rfmgr, functionFormulaManager);
-    }
-    return rfmgr;
   }
 
   FormulaWrappingHandler getFormulaWrappingHandler() {
@@ -574,8 +555,6 @@ public class FormulaManagerView {
     Formula t;
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.modulo((IntegerFormula) pF1, (IntegerFormula) pF2);
-    } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
-      t = getRationalFormulaManager().modulo((NumeralFormula) pF1, (NumeralFormula) pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.modulo((BitvectorFormula) pF1, (BitvectorFormula) pF2, pSigned);
     } else {
@@ -587,6 +566,11 @@ public class FormulaManagerView {
 
   public <T extends Formula> BooleanFormula makeModularCongruence(
       T pF1, T pF2, long pModulo, boolean pSigned) {
+    return makeModularCongruence(pF1, pF2, BigInteger.valueOf(pModulo), pSigned);
+  }
+
+  public <T extends Formula> BooleanFormula makeModularCongruence(
+      T pF1, T pF2, BigInteger pModulo, boolean pSigned) {
     BooleanFormula t;
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.modularCongruence((IntegerFormula) pF1, (IntegerFormula) pF2, pModulo);
@@ -701,6 +685,7 @@ public class FormulaManagerView {
   public <T extends Formula> T makeExtract(T pFormula, int pMsb, int pLsb, boolean signed) {
     checkArgument(pLsb >= 0);
     checkArgument(pMsb >= pLsb);
+    checkNotNull(pFormula);
     Formula t;
     if (pFormula instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.extract((BitvectorFormula)pFormula, pMsb, pLsb, signed);
@@ -893,7 +878,8 @@ public class FormulaManagerView {
 
   public RationalFormulaManagerView getRationalFormulaManager() {
     if (rationalFormulaManager == null) {
-      rationalFormulaManager = new RationalFormulaManagerView(wrappingHandler, getRationalFormulaManager0());
+      rationalFormulaManager =
+          new RationalFormulaManagerView(wrappingHandler, manager.getRationalFormulaManager());
     }
     return rationalFormulaManager;
   }
@@ -1092,6 +1078,8 @@ public class FormulaManagerView {
     toProcess.push(pFormula);
 
     FormulaVisitor<Void> process = new FormulaVisitor<Void>() {
+      // This visitor works with unwrapped formulas.
+      // After calls to other methods that might return wrapped formulas we need to unwrap them.
 
       @Override
       public Void visitFreeVariable(Formula f, String name) {
@@ -1146,11 +1134,10 @@ public class FormulaManagerView {
           Formula out;
           if (decl.getKind() == FunctionDeclarationKind.UF) {
 
-            out = functionFormulaManager.declareAndCallUF(
-                pRenameFunction.apply(decl.getName()),
-                getFormulaType(f),
-                newArgs
-            );
+            out =
+                unwrap(
+                    functionFormulaManager.declareAndCallUF(
+                        pRenameFunction.apply(decl.getName()), getFormulaType(f), newArgs));
 
           } else {
             out = manager.makeApplication(decl, newArgs);
@@ -1316,13 +1303,13 @@ public class FormulaManagerView {
     final AtomicBoolean isPurelyAtomic = new AtomicBoolean(true);
     visitRecursively(f, new DefaultFormulaVisitor<TraversalProcess>() {
       @Override
-      protected TraversalProcess visitDefault(Formula f) {
+      protected TraversalProcess visitDefault(Formula pF) {
         return TraversalProcess.CONTINUE;
       }
 
       @Override
       public TraversalProcess visitFunction(
-          Formula f,
+          Formula pF,
           List<Formula> args,
           FunctionDeclaration<?> decl) {
         if (decl.getKind() == FunctionDeclarationKind.UF) {
@@ -1335,6 +1322,19 @@ public class FormulaManagerView {
     result = isPurelyAtomic.get();
     arithCache.put(f, result);
     return result;
+  }
+
+  /**
+   * Extract the Variables in a given Formula
+   *
+   * <p>Has the advantage compared to extractVariableNames, that the Type information still is
+   * intact in the formula.
+   *
+   * @param pFormula The formula to extract the variables from
+   * @return A Map of the variable names to their corresponding formulas.
+   */
+  public Map<String, Formula> extractVariables(Formula pFormula) {
+    return manager.extractVariables(pFormula);
   }
 
   /**
@@ -1404,13 +1404,13 @@ public class FormulaManagerView {
     final AtomicBoolean containsITE = new AtomicBoolean(false);
     visitRecursively(f, new DefaultFormulaVisitor<TraversalProcess>() {
       @Override
-      protected TraversalProcess visitDefault(Formula f) {
+      protected TraversalProcess visitDefault(Formula pF) {
         return TraversalProcess.CONTINUE;
       }
 
       @Override
       public TraversalProcess visitFunction(
-          Formula f,
+          Formula pF,
           List<Formula> args,
           FunctionDeclaration<?> decl) {
         if (decl.getKind() == FunctionDeclarationKind.ITE) {
@@ -1439,21 +1439,21 @@ public class FormulaManagerView {
 
     visitRecursively(f, new DefaultFormulaVisitor<TraversalProcess>() {
       @Override
-      protected TraversalProcess visitDefault(Formula f) {
+      protected TraversalProcess visitDefault(Formula pF) {
         return TraversalProcess.CONTINUE;
       }
 
       @Override
-      public TraversalProcess visitConstant(Formula f, Object value) {
+      public TraversalProcess visitConstant(Formula pF, Object value) {
         if (value instanceof Number) {
-          allLiterals.add(f);
+          allLiterals.add(pF);
         }
         return TraversalProcess.CONTINUE;
       }
 
       @Override
       public TraversalProcess visitFunction(
-          Formula f,
+          Formula pF,
           List<Formula> args,
           FunctionDeclaration<?> decl) {
         if (decl.getKind() == FunctionDeclarationKind.UF

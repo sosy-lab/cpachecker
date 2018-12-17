@@ -32,10 +32,10 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions.SMGExportLevel;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.refinement.EdgeInterpolator;
@@ -117,7 +117,8 @@ public class SMGPathInterpolator {
    * @param pErrorPathPrefix the possible shorter error path prefix
    * @param pInterpolants the current interpolant map
    */
-  private final void propagateFalseInterpolant(final ARGPath errorPath,
+  private void propagateFalseInterpolant(
+      final ARGPath errorPath,
       final ARGPath pErrorPathPrefix,
       final Map<ARGState, SMGInterpolant> pInterpolants) {
     if (pErrorPathPrefix.size() < errorPath.size()) {

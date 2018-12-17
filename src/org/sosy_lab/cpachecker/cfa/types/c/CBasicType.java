@@ -35,7 +35,7 @@ public enum CBasicType {
 
   private final String code;
 
-  private CBasicType(String pCode) {
+  CBasicType(String pCode) {
     code = pCode;
   }
 

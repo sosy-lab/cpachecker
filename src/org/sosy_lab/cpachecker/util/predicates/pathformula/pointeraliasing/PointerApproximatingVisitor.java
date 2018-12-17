@@ -42,11 +42,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 class PointerApproximatingVisitor
-    extends DefaultCExpressionVisitor<Optional<String>, UnrecognizedCCodeException>
-    implements CRightHandSideVisitor<Optional<String>, UnrecognizedCCodeException> {
+    extends DefaultCExpressionVisitor<Optional<String>, UnrecognizedCodeException>
+    implements CRightHandSideVisitor<Optional<String>, UnrecognizedCodeException> {
 
   private final TypeHandlerWithPointerAliasing typeHandler;
   private final CFAEdge edge;
@@ -57,12 +57,12 @@ class PointerApproximatingVisitor
   }
 
   @Override
-  public Optional<String> visit(CArraySubscriptExpression e) throws UnrecognizedCCodeException {
+  public Optional<String> visit(CArraySubscriptExpression e) throws UnrecognizedCodeException {
     return e.getArrayExpression().accept(this);
   }
 
   @Override
-  public Optional<String> visit(CBinaryExpression e) throws UnrecognizedCCodeException {
+  public Optional<String> visit(CBinaryExpression e) throws UnrecognizedCodeException {
     final CType t = typeHandler.getSimplifiedType(e);
     if (t instanceof CPointerType || t instanceof CArrayType) {
       return e.getOperand1().accept(this);
@@ -71,42 +71,42 @@ class PointerApproximatingVisitor
   }
 
   @Override
-  public Optional<String> visit(CCastExpression e) throws UnrecognizedCCodeException {
+  public Optional<String> visit(CCastExpression e) throws UnrecognizedCodeException {
     return e.getOperand().accept(this);
   }
 
   @Override
-  public Optional<String> visit(final CFieldReference e) throws UnrecognizedCCodeException {
+  public Optional<String> visit(final CFieldReference e) throws UnrecognizedCodeException {
     CType t = typeHandler.getSimplifiedType(e.withExplicitPointerDereference().getFieldOwner());
     if (t instanceof CCompositeType) {
       return Optional.of(getFieldAccessName(((CCompositeType) t).getQualifiedName(), e));
     } else {
-      throw new UnrecognizedCCodeException("Field owner of a non-composite type", edge, e);
+      throw new UnrecognizedCodeException("Field owner of a non-composite type", edge, e);
     }
   }
 
   @Override
-  public Optional<String> visit(CIdExpression e) throws UnrecognizedCCodeException {
+  public Optional<String> visit(CIdExpression e) throws UnrecognizedCodeException {
     return Optional.of(e.getDeclaration().getQualifiedName());
   }
 
   @Override
-  public Optional<String> visit(CPointerExpression e) throws UnrecognizedCCodeException {
+  public Optional<String> visit(CPointerExpression e) throws UnrecognizedCodeException {
     return e.getOperand().accept(this);
   }
 
   @Override
-  public Optional<String> visit(CUnaryExpression e) throws UnrecognizedCCodeException {
+  public Optional<String> visit(CUnaryExpression e) throws UnrecognizedCodeException {
     return e.getOperand().accept(this);
   }
 
   @Override
-  protected Optional<String> visitDefault(CExpression pExp) throws RuntimeException {
+  protected Optional<String> visitDefault(CExpression pExp) {
     return Optional.empty();
   }
 
   @Override
-  public Optional<String> visit(CFunctionCallExpression call) throws UnrecognizedCCodeException {
+  public Optional<String> visit(CFunctionCallExpression call) throws UnrecognizedCodeException {
     return Optional.empty();
   }
 }

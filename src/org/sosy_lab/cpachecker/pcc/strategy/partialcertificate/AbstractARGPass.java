@@ -27,7 +27,6 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 

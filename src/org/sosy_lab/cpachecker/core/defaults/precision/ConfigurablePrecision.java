@@ -26,7 +26,11 @@ package org.sosy_lab.cpachecker.core.defaults.precision;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Multimap;
-
+import java.io.IOException;
+import java.io.Writer;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -36,16 +40,14 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
-import java.io.IOException;
-import java.io.Writer;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.regex.Pattern;
 
 @Options(prefix = "precision")
 public class ConfigurablePrecision extends VariableTrackingPrecision {
+
+  private static final long serialVersionUID = 1L;
 
   @Option(
     secure = true,
@@ -106,7 +108,15 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   )
   private boolean trackVariablesBesidesEqAddBool = true;
 
-  private final Optional<VariableClassification> vc;
+  @Option(
+      secure = true,
+      description =
+          "If this option is used, variables that are irrelevant"
+              + "are also tracked."
+  )
+  private boolean trackIrrelevantVariables = true;
+
+  private transient Optional<VariableClassification> vc;
   private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
 
   ConfigurablePrecision(
@@ -122,7 +132,9 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
 
   @Override
   public boolean allowsAbstraction() {
-    return !trackBooleanVariables
+    return
+        !trackIrrelevantVariables
+        || !trackBooleanVariables
         || !trackIntEqualVariables
         || !trackIntAddVariables
         || !trackAddressedVariables
@@ -136,17 +148,33 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
       return isTracking(pVariable);
     } else {
       return !((pType instanceof CSimpleType
-                  && (((CSimpleType) pType).getType().isFloatingPointType()))
+                  && ((CSimpleType) pType).getType().isFloatingPointType())
               || (pType instanceof JSimpleType
-                  && (((JSimpleType) pType).getType().isFloatingPointType())))
+                  && ((JSimpleType) pType).getType().isFloatingPointType()))
           && isTracking(pVariable);
     }
   }
 
   private boolean isTracking(MemoryLocation pVariable) {
-    return isOnWhitelist(pVariable.getIdentifier())
-        || (!isOnBlacklist(pVariable.getIdentifier())
-            && isInTrackedVarClass(pVariable.getAsSimpleString()));
+    if (isOnWhitelist(pVariable.getIdentifier())) {
+      return true;
+    }
+
+    if (isOnBlacklist(pVariable.getIdentifier())) {
+      return false;
+    }
+
+    if (pVariable.isReference()) {
+      MemoryLocation owner;
+      if (pVariable.isOnFunctionStack()) {
+        owner = MemoryLocation.valueOf(pVariable.getFunctionName(), pVariable.getIdentifier());
+      } else {
+        owner = MemoryLocation.valueOf(pVariable.getIdentifier());
+      }
+      return isInTrackedVarClass(owner.getAsSimpleString());
+    } else {
+      return isInTrackedVarClass(pVariable.getAsSimpleString());
+    }
   }
 
   private boolean isOnBlacklist(String variable) {
@@ -175,13 +203,30 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     if (varIsAddressed && !trackAddressedVariables) {
       return false;
 
+      // If we don't track irrelevant variables, check whether this is the case
+    } else if (!trackIrrelevantVariables
+        && !varClass.getRelevantVariables().contains(variableName)) {
+      return false;
+
       // in this case addressed variables can at most be included in the
       // tracking variables and the rest of the variable classification is
       // the limiting factor
     } else {
+
       final boolean varIsBoolean = varClass.getIntBoolVars().contains(variableName);
+      if (trackBooleanVariables && varIsBoolean) {
+        return true;
+      }
+
       final boolean varIsIntEqual = varClass.getIntEqualVars().contains(variableName);
+      if (trackIntEqualVariables && varIsIntEqual) {
+        return true;
+      }
+
       final boolean varIsIntAdd = varClass.getIntAddVars().contains(variableName);
+      if (trackIntAddVariables && varIsIntAdd) {
+        return true;
+      }
 
       // if the variable is not in a matching classification we have to check
       // if other variables should be tracked
@@ -189,11 +234,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
         return trackVariablesBesidesEqAddBool;
       }
 
-      final boolean isTrackedBoolean = trackBooleanVariables && varIsBoolean;
-      final boolean isTrackedIntEqual = trackIntEqualVariables && varIsIntEqual;
-      final boolean isTrackedIntAdd = trackIntAddVariables && varIsIntAdd;
-
-      return isTrackedBoolean || isTrackedIntAdd || isTrackedIntEqual;
+      return false;
     }
   }
 
@@ -209,7 +250,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
 
   @Override
   public VariableTrackingPrecision join(VariableTrackingPrecision consolidatedPrecision) {
-    Preconditions.checkArgument((getClass().equals(consolidatedPrecision.getClass())));
+    Preconditions.checkArgument(getClass().equals(consolidatedPrecision.getClass()));
     return this;
   }
 
@@ -294,5 +335,10 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
         .add("trackFloatVariables", trackFloatVariables)
         .add("trackAddressedVariables", trackAddressedVariables)
         .toString();
+  }
+
+  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+    vc = GlobalInfo.getInstance().getCFAInfo().get().getCFA().getVarClassification();
   }
 }

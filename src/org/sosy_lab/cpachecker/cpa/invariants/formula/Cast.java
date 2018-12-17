@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
-
 import java.util.Objects;
+import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
 
 public class Cast<ConstantType> extends AbstractFormula<ConstantType> {
 

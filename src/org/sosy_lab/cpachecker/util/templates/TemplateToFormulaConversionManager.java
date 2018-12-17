@@ -23,6 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.templates;
 
+import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -35,18 +40,12 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.Formula;
-
-import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
 
 /**
  * Converting {@link Template} to {@link Formula}.
@@ -98,7 +97,7 @@ public class TemplateToFormulaConversionManager {
         Formula f = pfmgr.expressionToFormula(
             contextFormula, declaration, dummyEdge);
         item = normalizeLength(f, maxBitvectorSize, fmgr);
-      } catch (UnrecognizedCCodeException e) {
+      } catch (UnrecognizedCodeException e) {
         throw new UnsupportedOperationException();
       }
 
@@ -172,7 +171,7 @@ public class TemplateToFormulaConversionManager {
       try {
         item = pfmgr.expressionToFormula(
             contextFormula, entry.getKey(), dummyEdge);
-      } catch (UnrecognizedCCodeException e) {
+      } catch (UnrecognizedCodeException e) {
         throw new UnsupportedOperationException();
       }
       if (!(item instanceof BitvectorFormula)) {

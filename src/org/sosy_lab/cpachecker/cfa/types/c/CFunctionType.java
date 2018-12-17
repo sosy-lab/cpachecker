@@ -31,7 +31,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.List;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
 public class CFunctionType extends AFunctionType implements CType {
@@ -39,7 +39,7 @@ public class CFunctionType extends AFunctionType implements CType {
   private static final long serialVersionUID = 4154771254170820716L;
 
   public static CFunctionType functionTypeWithReturnType(CType pReturnType) {
-    return new CFunctionType(checkNotNull(pReturnType), ImmutableList.<CType>of(), false);
+    return new CFunctionType(checkNotNull(pReturnType), ImmutableList.of(), false);
   }
 
   public final static CFunctionType NO_ARGS_VOID_FUNCTION = functionTypeWithReturnType(CVoidType.VOID);

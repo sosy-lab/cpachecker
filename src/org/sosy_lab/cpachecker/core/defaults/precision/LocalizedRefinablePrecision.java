@@ -29,19 +29,24 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.TreeMultimap;
-
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Map.Entry;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 class LocalizedRefinablePrecision extends RefinablePrecision {
+
+  private static final long serialVersionUID = 1L;
+
   /**
-   * the collection that determines which variables are tracked at a specific location - if it is null, all variables are tracked
+   * the immutable collection that determines which variables are tracked at a specific location -
+   * if it is null, all variables are tracked
    */
-  private final ImmutableMultimap<CFANode, MemoryLocation> rawPrecision;
+  private transient ImmutableMultimap<CFANode, MemoryLocation> rawPrecision;
 
   LocalizedRefinablePrecision(VariableTrackingPrecision pBaseline) {
     super(pBaseline);
@@ -131,5 +136,26 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
   @Override
   public int hashCode() {
     return super.hashCode() * 31 + rawPrecision.hashCode();
+  }
+
+  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+    out.defaultWriteObject();
+
+    out.writeInt(rawPrecision.size());
+    for (Entry<CFANode, MemoryLocation> e : rawPrecision.entries()) {
+      out.writeInt(e.getKey().getNodeNumber());
+      out.writeObject(e.getValue());
+    }
+  }
+
+  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+    CFAInfo cfa = GlobalInfo.getInstance().getCFAInfo().get();
+    ImmutableMultimap.Builder<CFANode, MemoryLocation> precisionBuilder =
+        ImmutableMultimap.builder();
+    for (int i = 0; i < in.readInt(); i++) {
+      precisionBuilder.put(cfa.getNodeByNodeNumber(in.readInt()), (MemoryLocation) in.readObject());
+    }
+    rawPrecision = precisionBuilder.build();
   }
 }

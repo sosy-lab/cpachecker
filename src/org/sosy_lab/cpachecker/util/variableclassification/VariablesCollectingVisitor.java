@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.variableclassification;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.Set;
@@ -44,19 +46,20 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /**
  * This Visitor evaluates an Expression. It collects all variables. a visit of IdExpression or
  * CFieldReference returns a collection containing the varName, other visits return the inner
  * visit-results. The Visitor also collects all numbers used in the expression.
  */
-class VariablesCollectingVisitor implements CExpressionVisitor<Set<String>, RuntimeException> {
+class VariablesCollectingVisitor implements CExpressionVisitor<Set<String>, NoException> {
 
   private CFANode predecessor;
   private Set<BigInteger> values = new TreeSet<>();
 
   public VariablesCollectingVisitor(CFANode pre) {
-    this.predecessor = pre;
+    this.predecessor = checkNotNull(pre);
   }
 
   public Set<BigInteger> getValues() {
@@ -65,6 +68,7 @@ class VariablesCollectingVisitor implements CExpressionVisitor<Set<String>, Runt
 
   @Override
   public Set<String> visit(CArraySubscriptExpression exp) {
+    checkNotNull(exp);
     return null;
   }
 
@@ -146,11 +150,13 @@ class VariablesCollectingVisitor implements CExpressionVisitor<Set<String>, Runt
 
   @Override
   public Set<String> visit(CCharLiteralExpression exp) {
+    checkNotNull(exp);
     return null;
   }
 
   @Override
   public Set<String> visit(CFloatLiteralExpression exp) {
+    checkNotNull(exp);
     return null;
   }
 
@@ -167,11 +173,13 @@ class VariablesCollectingVisitor implements CExpressionVisitor<Set<String>, Runt
 
   @Override
   public Set<String> visit(CStringLiteralExpression exp) {
+    checkNotNull(exp);
     return null;
   }
 
   @Override
   public Set<String> visit(CTypeIdExpression exp) {
+    checkNotNull(exp);
     return null;
   }
 
@@ -199,6 +207,7 @@ class VariablesCollectingVisitor implements CExpressionVisitor<Set<String>, Runt
 
   @Override
   public Set<String> visit(CAddressOfLabelExpression exp) {
+    checkNotNull(exp);
     return null;
   }
 }

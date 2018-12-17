@@ -23,12 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.operators.mathematical;
 
+import java.math.BigInteger;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
-
-import java.math.BigInteger;
-
-import javax.annotation.Nullable;
 
 /**
  * Instances of implementations of this interface are operators that can

@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assert_;
-import static com.google.common.truth.TruthJUnit.assume;
+import static org.junit.Assume.assumeNoException;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.ClassPath;
@@ -69,14 +69,17 @@ import org.sosy_lab.cpachecker.cpa.abe.ABECPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.argReplay.ARGReplayCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
-import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithoutReachedSetCreation;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithBreakOnMissingBlock;
 import org.sosy_lab.cpachecker.cpa.cache.CacheCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.monitor.MonitorCPA;
 import org.sosy_lab.cpachecker.cpa.powerset.PowerSetCPA;
 import org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor.SingleSuccessorCompactorCPA;
+import org.sosy_lab.cpachecker.cpa.slicing.SlicingCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
+import org.sosy_lab.cpachecker.cpa.usage.UsageCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
@@ -101,13 +104,16 @@ public class CPAsTest {
     // Filter CPAs that need child CPAs.
     cpas.remove(ARGCPA.class);
     cpas.remove(BAMCPA.class);
-    cpas.remove(BAMCPAWithoutReachedSetCreation.class);
+    cpas.remove(BAMCPAWithBreakOnMissingBlock.class);
     cpas.remove(CacheCPA.class);
+    cpas.remove(UsageCPA.class);
     cpas.remove(CompositeCPA.class);
     cpas.remove(MonitorCPA.class);
     cpas.remove(PropertyCheckerCPA.class);
     cpas.remove(SingleSuccessorCompactorCPA.class);
     cpas.remove(PowerSetCPA.class);
+    cpas.remove(FlowDependenceCPA.class);
+    cpas.remove(SlicingCPA.class);
 
     cpas.remove(ARGReplayCPA.class); // needs ARG to be replayed
     cpas.remove(ABECPA.class); // Shouldn't be used by itself.
@@ -138,12 +144,17 @@ public class CPAsTest {
                 .setOption("output.disable", "true")
                 .setOption("rootDirectory", tempFolder.getRoot().toString())
                 .build());
+    Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
+
+    String cProgram = TestDataTools.getEmptyProgram(tempFolder, false);
+
     config =
         Configuration.builder()
             .addConverter(FileOption.class, fileTypeConverter)
             .setOption("cfa.findLiveVariables", "true")
             .setOption("cpa.conditions.path.condition", "PathLengthCondition")
             .setOption("cpa.automaton.inputFile", "test/config/automata/AssumptionAutomaton.spc")
+            .setOption("differential.program", cProgram)
             .build();
 
     // Create dummy files necessary for PolicyEnforcementCPA
@@ -174,19 +185,20 @@ public class CPAsTest {
               .setLogger(logManager)
               .setConfiguration(config)
               .setShutdownNotifier(shutdownNotifier)
-              .set(new ReachedSetFactory(config), ReachedSetFactory.class)
+              .set(new ReachedSetFactory(config, logManager), ReachedSetFactory.class)
               .set(cfa, CFA.class)
               .set(Specification.alwaysSatisfied(), Specification.class)
               .set(new AggregatedReachedSets(), AggregatedReachedSets.class)
               .createInstance();
     } catch (LinkageError e) {
-      assume().fail(e.getMessage());
+      assumeNoException(e);
+      throw new AssertionError(e);
     }
   }
 
-  private Optional<ConfigurableProgramAnalysis> createChildCpaIfNecessary(Class<?> cpaClass)
+  private Optional<ConfigurableProgramAnalysis> createChildCpaIfNecessary(Class<?> pCpaClass)
       throws InvalidConfigurationException, CPAException {
-    if (cpaClass.equals(TerminationCPA.class)) {
+    if (pCpaClass.equals(TerminationCPA.class)) {
       return Optional.of(
           LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance());
 
@@ -207,8 +219,8 @@ public class CPAsTest {
     try {
       joined = cpa.getAbstractDomain().join(initial, initial);
     } catch (UnsupportedOperationException e) {
-      assume().fail(e.getMessage());
-      return;
+      assumeNoException(e);
+      throw new AssertionError(e);
     }
     assertThat(joined).named("result of join").isNotNull();
     assert_()
@@ -256,8 +268,8 @@ public class CPAsTest {
     try {
       return cpa.getAbstractDomain().isLessOrEqual(s1, s2);
     } catch (UnsupportedOperationException e) {
-      assume().fail(e.getMessage());
-      return false;
+      assumeNoException(e);
+      throw new AssertionError(e);
     }
   }
 }

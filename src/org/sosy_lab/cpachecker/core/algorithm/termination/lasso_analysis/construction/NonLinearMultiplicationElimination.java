@@ -29,7 +29,9 @@ import static org.sosy_lab.java_smt.api.FunctionDeclarationKind.UF;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
@@ -41,10 +43,6 @@ import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVisitor {
 
@@ -80,7 +78,7 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
     private final FormulaManagerView fmgrView;
     private final FormulaManager fmgr;
 
-    private final Collection<BooleanFormula> additionalAxioms;
+    private final List<BooleanFormula> additionalAxioms;
 
     private NonLinearMultiplicationTransformation(
         FormulaManagerView pFmgrView, FormulaManager pFmgr) {
@@ -125,13 +123,13 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
           new DefaultFormulaVisitor<TraversalProcess>() {
 
             @Override
-            protected TraversalProcess visitDefault(Formula pF) {
+            protected TraversalProcess visitDefault(Formula pFormula) {
               constant.set(false);
               return TraversalProcess.ABORT;
             }
 
             @Override
-            public TraversalProcess visitConstant(Formula pF, Object pValue) {
+            public TraversalProcess visitConstant(Formula pFormula, Object pValue) {
               return TraversalProcess.CONTINUE;
             }
           });

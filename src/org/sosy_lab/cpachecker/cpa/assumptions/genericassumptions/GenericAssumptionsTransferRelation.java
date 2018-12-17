@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -37,10 +39,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.ArithmeticOverflowAssumptionBuilder;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Transfer relation for the generic assumption generator.

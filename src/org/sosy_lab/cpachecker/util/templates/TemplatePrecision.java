@@ -309,7 +309,7 @@ public class TemplatePrecision implements Precision {
     // {@code maxExpressionSize} as well.
     return product
         .stream()
-        .map(HashSet<CIdExpression>::new)
+        .map(HashSet::new)
         .distinct() // Eliminate duplicates, and ensure that all combinations are unique.
         .flatMap(
             variables -> {
@@ -712,7 +712,7 @@ public class TemplatePrecision implements Precision {
   private Collection<ASimpleDeclaration> getVarsForNode(CFANode node) {
     if (varFiltering == VarFilteringStrategy.ALL_LIVE) {
       return Sets.union(
-          cfa.getLiveVariables().get().getLiveVariablesForNode(node).toSet(),
+          cfa.getLiveVariables().get().getLiveVariablesForNode(node),
           functionParameters.get(node.getFunctionName()));
     } else if (varFiltering == VarFilteringStrategy.INTERPOLATION_BASED) {
       return varsInInterpolant.get(node);

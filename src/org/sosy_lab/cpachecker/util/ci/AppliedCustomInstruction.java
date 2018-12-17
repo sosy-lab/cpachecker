@@ -23,17 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.ci;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.List;
-
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-
-import com.google.common.collect.ImmutableSet;
 
 
 

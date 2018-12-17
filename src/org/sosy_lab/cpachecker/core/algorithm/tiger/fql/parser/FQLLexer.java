@@ -26,10 +26,57 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser;
 
-import java_cup.runtime.*;
-import java.io.IOException;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_ALTERNATIVE;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_BASICBLOCKENTRY;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_CALL;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_CALLS;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_COLUMN;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_COMMA;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_COMPLEMENT;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_COMPOSE;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_CONCAT;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_CONDITIONEDGE;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_CONDITIONGRAPH;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_COVER;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_C_IDENT;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_DECISIONEDGE;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_EDGECOV;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_ENCLOSING_SCOPES;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_ENTRY;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_EQ;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_EXIT;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_EXPR;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_FILE;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_FUNC;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_GREATER;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_GREATER_OR_EQ;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_IDENTITY;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_IN;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_INTERSECT;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_KLEENE;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_LABEL;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_LESS;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_LESS_OR_EQ;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_LINE;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_LINE_ABBREV;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_L_BRACE;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_L_PARENTHESIS;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_NAT_NUMBER;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_NEQ;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_NODECOV;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_PASSING;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_PATHCOV;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_PREDICATION;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_QUOTE;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_QUOTED_STRING;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_REGEXP;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_R_BRACE;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_R_PARENTHESIS;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_SETMINUS;
+import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.TOK_UNION;
 
-import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.*;
+import java.io.IOException;
+import java_cup.runtime.Symbol;
 
 @SuppressWarnings("all")
 

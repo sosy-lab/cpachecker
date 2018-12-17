@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPConcatenation;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPNodeSet;

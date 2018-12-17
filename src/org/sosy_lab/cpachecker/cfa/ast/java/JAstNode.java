@@ -44,7 +44,7 @@ public interface JAstNode extends AAstNode {
           X1 extends Exception,
           X2 extends Exception,
           V extends CAstNodeVisitor<R1, X1> & JAstNodeVisitor<R2, X2>>
-      R accept_(V pV) throws X1, X2 {
-    return accept((JAstNodeVisitor<R2, X2>) pV);
+      R accept_(V pV) throws X2 {
+    return accept(pV);
   }
 }

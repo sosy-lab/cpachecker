@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.cwriter;
 
+import com.google.common.base.Splitter;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -57,7 +58,9 @@ public class FormulaToCExpressionConverter {
   }
 
   private String recFormulaToCExpression(Formula invariant) {
-    return fmgr.visit(invariant, new DefaultFormulaVisitor<String>() {
+    return fmgr.visit(
+        invariant,
+        new DefaultFormulaVisitor<String>() {
 
       @Override
       protected String visitDefault(Formula f) {
@@ -68,7 +71,7 @@ public class FormulaToCExpressionConverter {
       public String visitFreeVariable(Formula f, String name) {
 
         if (name.contains(FUNCTION_NAME_SEPARATOR)) {
-          return name.split(FUNCTION_NAME_SEPARATOR)[1];
+              return Splitter.on(FUNCTION_NAME_SEPARATOR).splitToList(name).get(1);
         }
         return name;
       }
@@ -80,13 +83,12 @@ public class FormulaToCExpressionConverter {
 
       @Override
       public String visitFunction(
-          Formula f,
-          List<Formula> args,
-          FunctionDeclaration<?> functionDeclaration) {
+              Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
         switch (functionDeclaration.getKind()) {
           case NOT:
           case UMINUS:
-            return String.format("%s(%s)",
+                return String.format(
+                    "%s(%s)",
                 operatorFromFunctionDeclaration(functionDeclaration),
                 recFormulaToCExpression(args.get(0)));
           default:
@@ -132,7 +134,7 @@ public class FormulaToCExpressionConverter {
 
       private String joinWithSeparator(String separator, List<Formula> args) {
         return args.stream()
-            .map(c -> recFormulaToCExpression(c).toString())
+                .map(c -> recFormulaToCExpression(c))
             .collect(Collectors.joining(separator, "(", ")"));
       }
     });

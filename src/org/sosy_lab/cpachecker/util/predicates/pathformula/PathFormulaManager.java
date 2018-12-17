@@ -33,7 +33,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -48,10 +49,10 @@ public interface PathFormulaManager {
   PathFormula makeEmptyPathFormula(PathFormula oldFormula);
 
   /**
-   * Creates a new path formula representing an OR of the two arguments. Differently
-   * from {@link BooleanFormulaManager#or(BooleanFormula, BooleanFormula)},
-   * it also merges the SSA maps and creates the necessary adjustments to the
-   * formulas if the two SSA maps contain different values for the same variables.
+   * Creates a new path formula representing an OR of the two arguments. Differently from {@link
+   * BooleanFormulaManager#or(BooleanFormula, BooleanFormula)}, it also merges the SSA maps and
+   * creates the necessary adjustments to the formulas if the two SSA maps contain different values
+   * for the same variables.
    *
    * @param pF1 a PathFormula
    * @param pF2 a PathFormula
@@ -68,33 +69,57 @@ public interface PathFormulaManager {
 
   Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula oldFormula, CFAEdge edge) throws CPATransferException, InterruptedException;
 
+  /**
+   * Create a copy of a PathFormula but with the given SSAMap. Note that this is almost always the
+   * wrong method to call: if you need to use a specific SSAMap, you probably also need to use a
+   * specific PointerTargetSet! So better call {@link #makeNewPathFormula(PathFormula, SSAMap,
+   * PointerTargetSet)}.
+   */
+  @Deprecated
   PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM);
+
+  PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM, PointerTargetSet pPts);
 
   PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException;
 
   /**
-   * Takes a variable name and its type to create the corresponding formula out of it. The
-   * <code>pContext</code> is used to supply this method with the necessary {@link SSAMap}
-   * and (if necessary) the {@link PointerTargetSet}. The variable is assumed not to be a
-   * function parameter, i.e. array won't be treated as pointer variable, but as a constant representing
+   * Takes a variable name and its type to create the corresponding formula out of it. The <code>
+   * pContext</code> is used to supply this method with the necessary {@link SSAMap} and (if
+   * necessary) the {@link PointerTargetSet}. The variable is assumed not to be a function
+   * parameter, i.e. array won't be treated as pointer variable, but as a constant representing
    * starting address of the array.
    *
    * @param pContext the context in which the variable should be created
    * @param pVarName the name of the variable
    * @param pType the type of the variable
-   * @param forcePointerDereference force the formula to make a pointer dereference (e.g. *UF main:x)
    * @return the created formula, which is always <b>instantiated</b>
    */
-  Formula makeFormulaForVariable(
-      PathFormula pContext, String pVarName, CType pType, boolean forcePointerDereference);
+  Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType);
 
   /**
-   * Build a formula containing a predicate for all branching situations in the
-   * ARG. If a satisfying assignment is created for this formula, it can be used
-   * to find out which paths in the ARG are feasible.
+   * Takes a variable name and its type to create the corresponding formula out of it, without
+   * adding SSA indices. The <code>pContextPTS</code> is used to supply this method with the
+   * necessary {@link PointerTargetSet} for creating appropriate pointer variables. The variable is
+   * assumed not to be a function parameter, i.e. array won't be treated as pointer variable, but as
+   * a constant representing starting address of the array.
    *
-   * This method may be called with an empty set, in which case it does nothing
-   * and returns the formula "true".
+   * @param pVarName the name of the variable
+   * @param pType the type of the variable
+   * @param pContextPTS the context in which the variable should be created
+   * @param forcePointerDereference force the formula to make a pointer dereference (e.g. *UF
+   *     main:x)
+   * @return the created formula, which is always <b>instantiated</b>
+   */
+  Formula makeFormulaForUninstantiatedVariable(
+      String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference);
+
+  /**
+   * Build a formula containing a predicate for all branching situations in the ARG. If a satisfying
+   * assignment is created for this formula, it can be used to find out which paths in the ARG are
+   * feasible.
+   *
+   * <p>This method may be called with an empty set, in which case it does nothing and returns the
+   * formula "true".
    *
    * @param pElementsOnPath The ARG states that should be considered.
    * @return A formula containing a predicate for each branching.
@@ -114,7 +139,9 @@ public interface PathFormulaManager {
    * @param parentFormulasOnPath TODO.
    * @return A formula containing a predicate for each branching.
    */
-  public BooleanFormula buildBranchingFormula(Set<ARGState> elementsOnPath, Map<Pair<ARGState,CFAEdge>, PathFormula> parentFormulasOnPath)
+  BooleanFormula buildBranchingFormula(
+      Set<ARGState> elementsOnPath,
+      Map<Pair<ARGState, CFAEdge>, PathFormula> parentFormulasOnPath)
       throws CPATransferException, InterruptedException;
 
   /**
@@ -130,6 +157,13 @@ public interface PathFormulaManager {
   Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Iterable<ValueAssignment> pModel);
 
   /**
+   * Clear all internal caches.
+   * Some launches are so huge, that may lead to memory limit,
+   * so, in some case it ise useful to reset outdated (and, maybe, necessary) information
+   */
+  void clearCaches();
+
+  /**
    * Convert a simple C expression to a formula consistent with the
    * current state of the {@code pFormula}.
    *
@@ -138,9 +172,8 @@ public interface PathFormulaManager {
    * @param edge Reference edge, used for log messages only.
    * @return Created formula.
    */
-  public Formula expressionToFormula(PathFormula pFormula,
-      CIdExpression expr,
-      CFAEdge edge) throws UnrecognizedCCodeException;
+  Formula expressionToFormula(PathFormula pFormula, CIdExpression expr, CFAEdge edge)
+      throws UnrecognizedCodeException;
 
   /**
    * Builds test for PCC that pF1 is covered by more abstract path formula pF2.
@@ -154,14 +187,24 @@ public interface PathFormulaManager {
    * @param pF2 path formula which covers
    * @return pF1.getFormula() and assumptions and not pF2.getFormula()
    */
-  public BooleanFormula buildImplicationTestAsUnsat(PathFormula pF1, PathFormula pF2) throws InterruptedException;
+  BooleanFormula buildImplicationTestAsUnsat(PathFormula pF1, PathFormula pF2) throws InterruptedException;
 
   /**
    * Prints some information about the PathFormulaManager.
    */
-  public void printStatistics(PrintStream out);
+  void printStatistics(PrintStream out);
 
-  public BooleanFormula addBitwiseAxiomsIfNeeded(BooleanFormula pMainFormula, BooleanFormula pEsxtractionFormula);
+  BooleanFormula addBitwiseAxiomsIfNeeded(
+      BooleanFormula pMainFormula,
+      BooleanFormula pEsxtractionFormula);
 
-  PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM, PointerTargetSet pPts);
+  /**
+   * Builds a weakest precondition for the given edge and the postcondition
+   *
+   * @param pEdge Edge containing the statement for the precondition to be built
+   * @param pPostcond Postcondition
+   * @return Created precondition
+   */
+  BooleanFormula buildWeakestPrecondition(CFAEdge pEdge, BooleanFormula pPostcond)
+      throws UnrecognizedCFAEdgeException, UnrecognizedCodeException, InterruptedException;
 }

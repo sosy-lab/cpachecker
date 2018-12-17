@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.PropertyChecker;
 
 import com.google.common.base.Preconditions;
-
+import java.util.Collection;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -43,8 +43,6 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.pcc.propertychecker.PropertyCheckerBuilder;
-
-import java.util.Collection;
 
 @Options(prefix="cpa.propertychecker")
 public class PropertyCheckerCPA extends AbstractSingleWrapperCPA implements ProofChecker {

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPGuard;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPNodeSet;

@@ -32,6 +32,8 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -43,14 +45,18 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -70,6 +76,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -94,12 +101,13 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationState;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
@@ -111,8 +119,8 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
-import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 
 /**
  * Algorithm that uses a safety-analysis to prove (non-)termination.
@@ -153,6 +161,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         "consider counterexamples for loops for which only pointer variables are relevant or which check that pointer is unequal to null pointer to be imprecise"
   )
   private boolean useCexImpreciseHeuristic = false;
+
+  @Option(secure = true, description = "enable to also analyze whether recursive calls terminate")
+  private boolean considerRecursion = false;
 
   private final TerminationStatistics statistics;
 
@@ -219,10 +230,10 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     // rebuild termination specification for witness export
     Set<SpecificationProperty> property =
-        Sets.newHashSet(
+        ImmutableSet.of(
             new SpecificationProperty(
                 pCfa.getMainFunction().getFunctionName(),
-                PropertyType.TERMINATION,
+                CommonPropertyType.TERMINATION,
                 Optional.of(SPEC_FILE.toString())));
     Specification termSpec =
         Specification.fromFiles(property, Collections.singleton(SPEC_FILE), pCfa, pConfig, pLogger);
@@ -244,6 +255,25 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
 
     return terminationSpecification;
+  }
+
+  public static Specification loadTerminationSpecification(
+      final Set<SpecificationProperty> pProperties,
+      final Optional<Path> pWitness,
+      final CFA pCfa,
+      final Configuration pConfig,
+      LogManager pLogger)
+      throws InvalidConfigurationException {
+    if (pWitness.isPresent()) {
+      Collection<Path> specFiles = new ArrayList<>(2);
+      specFiles.add(SPEC_FILE);
+      specFiles.add(pWitness.get());
+      terminationSpecification =
+          Specification.fromFiles(pProperties, specFiles, pCfa, pConfig, pLogger);
+      return terminationSpecification;
+    } else {
+      return loadTerminationSpecification(pProperties, pCfa, pConfig, pLogger);
+    }
   }
 
   @Override
@@ -275,18 +305,28 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     if (cfa.getLanguage() != Language.C) {
       logger.log(WARNING, "Termination analysis supports only C.");
-      return AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
+      return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
     }
 
     CFANode initialLocation = AbstractStates.extractLocation(pReachedSet.getFirstState());
-    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE.withPrecise(false);
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_IMPRECISE;
 
     List<Loop> allLoops = Lists.newArrayList(cfa.getLoopStructure().get().getAllLoops());
     Collections.sort(allLoops, comparingInt(l -> l.getInnerLoopEdges().size()));
+
+    if (considerRecursion) {
+      List<Loop> allRecursions = new ArrayList<>(LoopStructure.getRecursions(cfa));
+      Collections.sort(allRecursions, comparingInt(l -> l.getInnerLoopEdges().size()));
+      allLoops.addAll(allRecursions);
+    }
+
     for (Loop loop : allLoops) {
       shutdownNotifier.shutdownIfNecessary();
       statistics.analysisOfLoopStarted(loop);
 
+      if (considerRecursion) {
+        setExplicitAbstractionNodes(ImmutableSet.of());
+      }
       resetReachedSet(pReachedSet, initialLocation);
       CPAcheckerResult.Result loopTermiantion =
           prooveLoopTermination(pReachedSet, loop, initialLocation);
@@ -303,7 +343,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       statistics.analysisOfLoopFinished(loop);
     }
 
-    if (status.isSound()) {
+    if (status.isSound() && !considerRecursion) {
       status = status.update(checkRecursion(initialLocation));
     }
 
@@ -326,6 +366,10 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     // Pass current loop and relevant variables to TerminationCPA.
     Set<CVariableDeclaration> relevantVariables = getRelevantVariables(pLoop);
     terminationInformation.setProcessedLoop(pLoop, relevantVariables);
+
+    if (considerRecursion) {
+      setExplicitAbstractionNodes(pLoop);
+    }
 
     Result result = Result.TRUE;
     while (pReachedSet.hasWaitingState() && result != Result.FALSE) {
@@ -474,13 +518,26 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   private Set<CVariableDeclaration> getRelevantVariables(Loop pLoop) {
-    String function = pLoop.getLoopHeads().iterator().next().getFunctionName();
-    Set<CVariableDeclaration> relevantVariabels =
-        ImmutableSet.<CVariableDeclaration>builder()
-            .addAll(globalDeclaration)
-            .addAll(localDeclarations.get(function))
-            .build();
-    return relevantVariabels;
+    CFANode firstLoopHead = pLoop.getLoopHeads().iterator().next();
+    if (firstLoopHead instanceof FunctionEntryNode) {
+      ImmutableSet.Builder<CVariableDeclaration> relVarBuilder =
+          ImmutableSet.<CVariableDeclaration>builder();
+      relVarBuilder.addAll(globalDeclaration);
+      for (CFANode entryNode :
+          FluentIterable.from(pLoop.getLoopNodes())
+              .filter(Predicates.instanceOf(FunctionEntryNode.class))) {
+        relVarBuilder.addAll(localDeclarations.get(entryNode.getFunctionName()));
+      }
+      return relVarBuilder.build();
+    } else {
+      String function = firstLoopHead.getFunctionName();
+      Set<CVariableDeclaration> relevantVariabels =
+          ImmutableSet.<CVariableDeclaration>builder()
+              .addAll(globalDeclaration)
+              .addAll(localDeclarations.get(function))
+              .build();
+      return relevantVariabels;
+    }
   }
 
   private void removeIntermediateStates(ReachedSet pReachedSet, AbstractState pTargetState) {
@@ -612,14 +669,20 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     pTargetState.removeFromARG();
   }
 
-  private void removeLoop(ReachedSet pReachedSet, ARGState pTargetState) {
-    Set<ARGState> workList = Sets.newHashSet(pTargetState);
-    Set<ARGState> firstLoopStates = Sets.newHashSet();
+  private void removeLoop(ReachedSet pReachedSet, ARGState pTargetState)
+      throws InterruptedException {
+    Deque<ARGState> workList = new ArrayDeque<>();
+    workList.add(pTargetState);
+    Set<ARGState> seen = new HashSet<>();
+    List<ARGState> firstLoopStates = new ArrayList<>();
 
     // get all loop states having only stem predecessors
     while (!workList.isEmpty()) {
-      ARGState next = workList.iterator().next();
-      workList.remove(next);
+      shutdownNotifier.shutdownIfNecessary();
+      ARGState next = workList.poll();
+      if (!seen.add(next)) {
+        continue; // already seen
+      }
 
       Collection<ARGState> parentLoopStates =
           next.getParents()
@@ -635,7 +698,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     }
 
     ARGReachedSet argReachedSet = new ARGReachedSet(pReachedSet);
-    firstLoopStates.forEach(argReachedSet::removeSubtree);
+    for (ARGState state : firstLoopStates) {
+      argReachedSet.removeSubtree(state);
+    }
   }
 
   private void resetReachedSet(ReachedSet pReachedSet, CFANode pInitialLocation)
@@ -645,6 +710,20 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         safetyCPA.getInitialPrecision(pInitialLocation, getDefaultPartition());
     pReachedSet.clear();
     pReachedSet.add(initialState, initialPrecision);
+  }
+
+  private void setExplicitAbstractionNodes(final Loop pLoop) {
+    CFANode firstLoopHead = pLoop.getLoopHeads().iterator().next();
+    if (firstLoopHead instanceof FunctionEntryNode) {
+      setExplicitAbstractionNodes(ImmutableSet.of(firstLoopHead));
+    }
+  }
+
+  private void setExplicitAbstractionNodes(final ImmutableSet<CFANode> newAbsLocs) {
+    PredicateCPA predCPA = CPAs.retrieveCPA(safetyCPA, PredicateCPA.class);
+    if (predCPA != null) {
+      predCPA.changeExplicitAbstractionNodes(newAbsLocs);
+    }
   }
 
   private static class DeclarationCollectionCFAVisitor extends DefaultCFAVisitor {

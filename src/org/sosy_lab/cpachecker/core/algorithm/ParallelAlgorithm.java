@@ -25,14 +25,14 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.or;
-import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition.getDefaultPartition;
 
-import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -44,17 +44,18 @@ import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.AnnotatedValue;
@@ -82,16 +83,16 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CompoundException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.ThreadCpuTimeLimit;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 @Options(prefix = "parallelAlgorithm")
 public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
-
-  public static final String UNEXPECTED_EXCEPTION_MSG = "An unexpected exception occured";
 
   @Option(
     secure = true,
@@ -116,11 +117,14 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   private final ShutdownManager shutdownManager;
   private final CFA cfa;
   private final Specification specification;
-  private final ParallelAlgorithmStatistics stats = new ParallelAlgorithmStatistics();
+  private final ParallelAlgorithmStatistics stats;
 
   private ParallelAnalysisResult finalResult = null;
   private CFANode mainEntryNode = null;
   private final AggregatedReachedSetManager aggregatedReachedSetManager;
+
+  private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
+      new CopyOnWriteArrayList<>();
 
   public ParallelAlgorithm(
       Configuration config,
@@ -132,6 +136,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       throws InvalidConfigurationException {
     config.inject(this);
 
+    stats = new ParallelAlgorithmStatistics(pLogger);
     globalConfig = config;
     logger = checkNotNull(pLogger);
     shutdownManager = ShutdownManager.createWithParent(checkNotNull(pShutdownNotifier));
@@ -157,14 +162,18 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     // shutdown the executor service,
     exec.shutdown();
 
-    handleFutureResults(futures);
+    try {
+      handleFutureResults(futures);
 
-    // wait some time so that all threads are shut down and have (hopefully) finished their logging
-    if (!exec.awaitTermination(10, TimeUnit.SECONDS)) {
-      logger.log(Level.WARNING, "Not all threads are terminated although we have a result.");
+    } finally {
+      // Wait some time so that all threads are shut down and we have a happens-before relation
+      // (necessary for statistics).
+      if (!awaitTermination(exec, 10, TimeUnit.SECONDS)) {
+        logger.log(Level.WARNING, "Not all threads are terminated although we have a result.");
+      }
+
+      exec.shutdownNow();
     }
-
-    exec.shutdownNow();
 
     if (finalResult != null) {
       forwardingReachedSet.setDelegate(finalResult.getReached());
@@ -172,6 +181,28 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
+  }
+
+  private static boolean awaitTermination(
+      ListeningExecutorService exec, long timeout, TimeUnit unit) {
+    long timeoutNanos = unit.toNanos(timeout);
+    long endNanos = System.nanoTime() + timeoutNanos;
+
+    boolean interrupted = Thread.interrupted();
+    try {
+      while (true) {
+        try {
+          return exec.awaitTermination(timeoutNanos, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+          interrupted = false;
+          timeoutNanos = Math.max(0, endNanos - System.nanoTime());
+        }
+      }
+    } finally {
+      if (interrupted) {
+        Thread.currentThread().interrupt();
+      }
+    }
   }
 
   private void handleFutureResults(List<ListenableFuture<ParallelAnalysisResult>> futures)
@@ -209,7 +240,10 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           // cancel other computations
           futures.forEach(future -> future.cancel(true));
           shutdownManager.requestShutdown("cancelling all remaining analyses");
-          throw new CPAException(UNEXPECTED_EXCEPTION_MSG, cause);
+          Throwables.throwIfUnchecked(cause);
+          // probably we need to handle IOException, ParserException,
+          // InvalidConfigurationException, and InterruptedException here (#326)
+          throw new UnexpectedCheckedException("analysis", cause);
         }
       } catch (CancellationException e) {
         // do nothing, this is normal if we cancel other analyses
@@ -280,7 +314,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     final ReachedSet reached = coreComponents.createReachedSet();
 
     AtomicBoolean terminated = new AtomicBoolean(false);
-    Collection<Statistics> subStats =
+    StatisticsEntry statisticsEntry =
         stats.getNewSubStatistics(
             reached,
             singleConfigFileName.toString(),
@@ -291,7 +325,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     return () -> {
       final Algorithm algorithm;
       final ConfigurableProgramAnalysis cpa;
-      singleAnalysisOverallLimit.start();
 
       cpa = coreComponents.createCPA(cfa, specification);
 
@@ -300,13 +333,18 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
       algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
+      if (algorithm instanceof ConditionAdjustmentEventSubscriber) {
+        conditionAdjustmentEventSubscribers.add((ConditionAdjustmentEventSubscriber) algorithm);
+      }
+
+      singleAnalysisOverallLimit.start();
 
       if (cpa instanceof StatisticsProvider) {
-        ((StatisticsProvider) cpa).collectStatistics(subStats);
+        ((StatisticsProvider) cpa).collectStatistics(statisticsEntry.subStatistics);
       }
 
       if (algorithm instanceof StatisticsProvider) {
-        ((StatisticsProvider) algorithm).collectStatistics(subStats);
+        ((StatisticsProvider) algorithm).collectStatistics(statisticsEntry.subStatistics);
       }
 
       try {
@@ -327,7 +365,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
               cpa,
               supplyReached,
               supplyRefinableReached,
-              coreComponents);
+              coreComponents,
+              statisticsEntry);
       terminated.set(true);
       return r;
     };
@@ -341,7 +380,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       final ConfigurableProgramAnalysis cpa,
       final boolean supplyReached,
       final boolean supplyRefinableReached,
-      final CoreComponentsFactory coreComponents)
+      final CoreComponentsFactory coreComponents,
+      final StatisticsEntry pStatisticsEntry)
       throws CPAException {
     try {
       AlgorithmStatus status = null;
@@ -357,17 +397,17 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
               public void updated(ReachedSet pReachedSet) {
                 singleLogger.log(Level.INFO, "Updating reached set provided to other analyses");
                 ReachedSet oldReachedSet = oldReached.get();
-                ReachedSet currentReached = coreComponents.createReachedSet();
+                ReachedSet newReached = coreComponents.createReachedSet();
                 for (AbstractState as : pReachedSet) {
-                  currentReached.add(as, pReachedSet.getPrecision(as));
-                  currentReached.removeOnlyFromWaitlist(as);
+                  newReached.add(as, pReachedSet.getPrecision(as));
+                  newReached.removeOnlyFromWaitlist(as);
                 }
                 if (oldReachedSet != null) {
-                  aggregatedReachedSetManager.updateReachedSet(oldReachedSet, currentReached);
+                  aggregatedReachedSetManager.updateReachedSet(oldReachedSet, newReached);
                 } else {
-                  aggregatedReachedSetManager.addReachedSet(currentReached);
+                  aggregatedReachedSetManager.addReachedSet(newReached);
                 }
-                oldReached.set(currentReached);
+                oldReached.set(newReached);
               }
             });
       }
@@ -385,6 +425,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
               break;
             }
           }
+
+          Preconditions.checkState(status != null, "algorithm should run at least once.");
 
           // check if we could prove the program to be safe
           if (status.isSound()
@@ -405,7 +447,16 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
               CPAs.asIterable(cpa).filter(ReachedSetAdjustingCPA.class)) {
             if (innerCpa.adjustPrecision()) {
               singleLogger.log(Level.INFO, "Adjusting precision for CPA", innerCpa);
+
               stopAnalysis = false;
+            }
+          }
+          for (ConditionAdjustmentEventSubscriber conditionAdjustmentEventSubscriber :
+              conditionAdjustmentEventSubscribers) {
+            if (stopAnalysis) {
+              conditionAdjustmentEventSubscriber.adjustmentRefused(cpa);
+            } else {
+              conditionAdjustmentEventSubscriber.adjustmentSuccessful(cpa);
             }
           }
 
@@ -422,6 +473,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
           if (!stopAnalysis) {
             currentReached = coreComponents.createReachedSet();
+            pStatisticsEntry.reachedSet.set(currentReached);
             initializeReachedSet(cpa, mainEntryNode, currentReached);
           }
         } while (!stopAnalysis);
@@ -445,7 +497,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Nullable
-  private Configuration createSingleConfig(Path singleConfigFileName, LogManager logger) {
+  private Configuration createSingleConfig(Path singleConfigFileName, LogManager pLogger) {
     try {
       ConfigurationBuilder singleConfigBuilder = Configuration.builder();
       singleConfigBuilder.copyFrom(globalConfig);
@@ -454,11 +506,11 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       singleConfigBuilder.loadFromFile(singleConfigFileName);
 
       Configuration singleConfig = singleConfigBuilder.build();
-
+      RestartAlgorithm.checkConfigs(globalConfig, singleConfig, singleConfigFileName, logger);
       return singleConfig;
 
     } catch (IOException | InvalidConfigurationException e) {
-      logger.logUserException(
+      pLogger.logUserException(
           Level.WARNING,
           e,
           "Skipping one analysis because the configuration file "
@@ -474,24 +526,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     AbstractState initialState = cpa.getInitialState(mainFunction, getDefaultPartition());
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction, getDefaultPartition());
     reached.add(initialState, initialPrecision);
-  }
-
-  public static class CompoundException extends CPAException {
-
-    private static final long serialVersionUID = -8880889342586540115L;
-
-    private final List<CPAException> exceptions;
-
-    public CompoundException(List<CPAException> pExceptions) {
-      super(
-          "Several exceptions occured during the analysis:\n -> "
-              + Joiner.on("\n -> ").join(Lists.transform(pExceptions, e -> e.getMessage())));
-      exceptions = Collections.unmodifiableList(pExceptions);
-    }
-
-    public List<CPAException> getExceptions() {
-      return exceptions;
-    }
   }
 
   private static class ParallelAnalysisResult {
@@ -522,7 +556,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       return (status.isPrecise() && from(reached).anyMatch(AbstractStates::isTargetState))
-          || (status.isSound()
+          || ((status.isSound() || !status.wasPropertyChecked())
               && !reached.hasWaitingState()
               && !from(reached)
                   .anyMatch(or(AbstractStates::hasAssumptions, AbstractStates::isTargetState)));
@@ -543,16 +577,21 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class ParallelAlgorithmStatistics implements Statistics {
 
+    private final LogManager logger;
     private final List<StatisticsEntry> allAnalysesStats = Lists.newCopyOnWriteArrayList();
     private int noOfAlgorithmsUsed = 0;
     private String successfulAnalysisName = null;
 
-    public synchronized Collection<Statistics> getNewSubStatistics(
+    ParallelAlgorithmStatistics(LogManager pLogger) {
+      logger = checkNotNull(pLogger);
+    }
+
+    public synchronized StatisticsEntry getNewSubStatistics(
         ReachedSet pReached, String pName, @Nullable ThreadCpuTimeLimit pRLimit, AtomicBoolean pTerminated) {
       Collection<Statistics> subStats = Lists.newCopyOnWriteArrayList();
       StatisticsEntry entry = new StatisticsEntry(subStats, pReached, pName, pRLimit, pTerminated);
       allAnalysesStats.add(entry);
-      return subStats;
+      return entry;
     }
 
     @Override
@@ -575,7 +614,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
         pOut.println();
         String title = "Statistics for: " + subStats.name;
         pOut.println(title);
-        pOut.println(String.format(String.format("%%%ds", title.length()), " ").replace(" ", "="));
+        pOut.println(Strings.repeat("=", title.length()));
         if (subStats.rLimit != null) {
           pOut.println(
               "Time spent in analysis thread "
@@ -585,27 +624,56 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
         }
         boolean terminated = subStats.terminated.get();
         if (terminated) {
-          Result result = pResult;
-          if (successfulAnalysisName != null && !successfulAnalysisName.equals(subStats.name)) {
-            result = Result.UNKNOWN;
-          }
+          Result result = determineAnalysisResult(pResult, subStats.name);
           for (Statistics s : subStats.subStatistics) {
-            String name = s.getName();
-            if (!isNullOrEmpty(name)) {
-              name = name + " statistics";
-              pOut.println("");
-              pOut.println(name);
-              pOut.println(Strings.repeat("-", name.length()));
-            }
-            s.printStatistics(pOut, result, subStats.reachedSet);
+            StatisticsUtils.printStatistics(s, pOut, logger, result, subStats.reachedSet.get());
           }
         } else {
-          pOut.println("Cannot print statistics for this analysis because it is still running.");
+          logger.log(
+              Level.INFO,
+              "Cannot print statistics for",
+              subStats.name,
+              "because it is still running.");
         }
       }
       pOut.println("\n");
       pOut.println("Other statistics");
       pOut.println("================");
+    }
+
+    @Override
+    public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+      StatisticsEntry successfullAnalysisStats = null;
+      for (StatisticsEntry subStats : allAnalysesStats) {
+        if (isSuccessfulAnalysis(subStats.name)) {
+          successfullAnalysisStats = subStats;
+        } else {
+          writeSubOutputFiles(pResult, subStats);
+        }
+      }
+      if (successfullAnalysisStats != null) {
+        writeSubOutputFiles(pResult, successfullAnalysisStats);
+      }
+    }
+
+    private void writeSubOutputFiles(Result pResult, StatisticsEntry pSubStats) {
+      if (pSubStats.terminated.get()) {
+        Result result = determineAnalysisResult(pResult, pSubStats.name);
+        for (Statistics s : pSubStats.subStatistics) {
+          StatisticsUtils.writeOutputFiles(s, logger, result, pSubStats.reachedSet.get());
+        }
+      }
+    }
+
+    private boolean isSuccessfulAnalysis(String pAnalysisName) {
+      return successfulAnalysisName != null && successfulAnalysisName.equals(pAnalysisName);
+    }
+
+    private Result determineAnalysisResult(Result pResult, String pActualAnalysisName) {
+      if (successfulAnalysisName != null && !successfulAnalysisName.equals(pActualAnalysisName)) {
+        return Result.UNKNOWN;
+      }
+      return pResult;
     }
   }
 
@@ -618,7 +686,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
     private final Collection<Statistics> subStatistics;
 
-    private final ReachedSet reachedSet;
+    private final AtomicReference<ReachedSet> reachedSet;
 
     private final String name;
 
@@ -628,7 +696,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
     public StatisticsEntry(Collection<Statistics> pSubStatistics, ReachedSet pReachedSet, String pName, @Nullable ThreadCpuTimeLimit pRLimit, AtomicBoolean pTerminated) {
       subStatistics = Objects.requireNonNull(pSubStatistics);
-      reachedSet = Objects.requireNonNull(pReachedSet);
+      reachedSet = new AtomicReference<>(Objects.requireNonNull(pReachedSet));
       name = Objects.requireNonNull(pName);
       rLimit = pRLimit;
       terminated = Objects.requireNonNull(pTerminated);
@@ -636,16 +704,23 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  public static interface ReachedSetUpdateListener {
+  public interface ReachedSetUpdateListener {
 
     void updated(ReachedSet pReachedSet);
   }
 
-  public static interface ReachedSetUpdater {
+  public interface ReachedSetUpdater {
 
     void register(ReachedSetUpdateListener pReachedSetUpdateListener);
 
     void unregister(ReachedSetUpdateListener pReachedSetUpdateListener);
 
+  }
+
+  public interface ConditionAdjustmentEventSubscriber {
+
+    void adjustmentSuccessful(ConfigurableProgramAnalysis pCpa);
+
+    void adjustmentRefused(ConfigurableProgramAnalysis pCpa);
   }
 }

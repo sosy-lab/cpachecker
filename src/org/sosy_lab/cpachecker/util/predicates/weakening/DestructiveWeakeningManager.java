@@ -84,8 +84,9 @@ public class DestructiveWeakeningManager {
   ) throws SolverException, InterruptedException {
     Set<BooleanFormula> selectorsToAbstractOverApproximation;
     if (preRunSyntacticWeakening) {
-      selectorsToAbstractOverApproximation = swmgr.performWeakening(
-          fromSSA, selectionsVarsInfo, transition, pFromStateLemmas);
+      selectorsToAbstractOverApproximation =
+          swmgr.performWeakening(
+              fromSSA, selectionsVarsInfo, transition.getSsa(), pFromStateLemmas);
     } else {
       selectorsToAbstractOverApproximation = selectionsVarsInfo.keySet();
     }

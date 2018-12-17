@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.core.interfaces.pcc;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -50,7 +50,7 @@ public interface PCCStrategy {
    *
    * @param pReached - save overapproximation of state space
    */
-  public void writeProof(UnmodifiableReachedSet pReached);
+  void writeProof(UnmodifiableReachedSet pReached);
 
   /**
    * Constructs the proof/certificate from the given save overapproximation and saves it in its internal data structures.
@@ -62,7 +62,7 @@ public interface PCCStrategy {
    * <li>if class does not support direct checking of analysis result</li></ul>
    * @throws InterruptedException if construction took longer than remaining time available for CPAchecker execution
    */
-  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) throws InvalidConfigurationException, InterruptedException;
+  void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) throws InvalidConfigurationException, InterruptedException;
 
   /**
    * Reads the certificate from disk, stream, etc. and stores it internally.
@@ -71,7 +71,7 @@ public interface PCCStrategy {
    * @throws ClassNotFoundException if reading correct object from stream fails
    * @throws InvalidConfigurationException if format of abstract state does not match expectation of PCC strategy
    */
-  public void readProof() throws IOException, ClassNotFoundException, InvalidConfigurationException;
+  void readProof() throws IOException, ClassNotFoundException, InvalidConfigurationException;
 
   /**
    * Checks the certificate. The certificate is not given and must be available internally, e.g. because method
@@ -87,14 +87,14 @@ public interface PCCStrategy {
    * @throws CPAException if e.g. recomputation of successor or coverage check fails
    * @throws InterruptedException if thread is interrupted while checking
    */
-  public boolean checkCertificate(final ReachedSet reachedSet) throws CPAException, InterruptedException;
+  boolean checkCertificate(final ReachedSet reachedSet) throws CPAException, InterruptedException;
 
   /**
    * Ask strategy for additional statistics information which should be displayed with statistics of proof generation.
    *
    * @return additional statistics which should be displayed with proof generation statistics
    */
-  public Collection<Statistics> getAdditionalProofGenerationStatistics();
+  Collection<Statistics> getAdditionalProofGenerationStatistics();
 
   interface Factory {
     PCCStrategy create(

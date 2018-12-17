@@ -44,9 +44,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
 
-  final boolean doPrecisionRefinementForMostInnerBlock;
+  private final boolean doPrecisionRefinementForMostInnerBlock;
 
   public ARGCopyOnWriteSubtreeRemover(AbstractBAMCPA bamCpa, StatTimer pRemoveCachedSubtreeTimer) {
     super(bamCpa, pRemoveCachedSubtreeTimer);
@@ -197,7 +197,7 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
     ReachedSet clone = cloneReachedSetPartially(reached, cutState, pPrecisionsLst);
     Block block = partitioning.getBlockForCallNode(AbstractStates.extractLocation(rootState));
 
-    data.getCache().remove(clone.getFirstState(), clone.getPrecision(clone.getFirstState()), block);
+    // override existing cache-entry
     data.getCache()
         .put(clone.getFirstState(), clone.getPrecision(clone.getFirstState()), block, clone);
   }

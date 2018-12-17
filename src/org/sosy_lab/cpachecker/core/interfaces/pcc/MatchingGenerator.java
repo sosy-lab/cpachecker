@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.interfaces.pcc;
 
 import java.util.Map;
-
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 
 /**
@@ -39,5 +38,5 @@ public interface MatchingGenerator {
    * @param wGraph the graph, on which a matching is computed
    * @return  the computed matching
    */
-  public Map<Integer, Integer> computeMatching(WeightedGraph wGraph);
+  Map<Integer, Integer> computeMatching(WeightedGraph wGraph);
 }

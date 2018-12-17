@@ -29,7 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
@@ -81,8 +81,9 @@ import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.NoException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
@@ -129,15 +130,14 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
   }
 
-
   @Override
-  protected Collection<BDDState> preCheck(BDDState state, VariableTrackingPrecision precision) {
+  protected Collection<BDDState> preCheck(BDDState pState, VariableTrackingPrecision pPrecision) {
     // no variables should be tracked
-    if (precision.isEmpty()) {
-      return Collections.singleton(state);
+    if (pPrecision.isEmpty()) {
+      return Collections.singleton(pState);
     }
     // the path is not fulfilled
-    if (rmgr.makeAnd(globalConstraint, state.getRegion()).isFalse()) {
+    if (rmgr.makeAnd(globalConstraint, pState.getRegion()).isFalse()) {
       return Collections.emptyList();
     }
 
@@ -152,7 +152,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * calls of external functions. */
   @Override
   protected BDDState handleStatementEdge(final CStatementEdge cfaEdge, final CStatement statement)
-      throws UnsupportedCCodeException {
+      throws UnsupportedCodeException {
 
     BDDState result = state;
 
@@ -180,15 +180,17 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * Then this region is assigned to the variable at the left side.
    * This equality is added to the BDDstate to get the next state. */
   private BDDState handleAssignment(CAssignment assignment, CFANode successor, CFAEdge edge)
-      throws UnsupportedCCodeException {
+      throws UnsupportedCodeException {
     CExpression lhs = assignment.getLeftHandSide();
 
-    if (!(lhs instanceof CIdExpression)) {
-      return state;
+    final String varName;
+    if (lhs instanceof CIdExpression) {
+      varName = ((CIdExpression) lhs).getDeclaration().getQualifiedName();
+    } else {
+      varName = functionName + "::" + lhs.toString();
     }
 
     final CType targetType = lhs.getExpressionType();
-    final String varName = ((CIdExpression) lhs).getDeclaration().getQualifiedName();
 
     // next line is a shortcut, not necessary
     if (!precision.isTracking(MemoryLocation.valueOf(varName), targetType, successor)) {
@@ -204,7 +206,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       if (isUsedInExpression(varName, exp)) {
         // make tmp for assignment,
         // this is done to handle assignments like "a = !a;" as "tmp = !a; a = tmp;"
-        String tmpVarName = predmgr.getTmpVariableForVars(partition.getVars());
+        String tmpVarName = predmgr.getTmpVariableForPartition(partition);
         final Region[] tmp = predmgr.createPredicateWithoutPrecisionCheck(tmpVarName, getBitsize(partition, targetType));
 
         // make region for RIGHT SIDE and build equality of var and region
@@ -285,7 +287,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * These equalities are added to the BDDstate to get the next state. */
   @Override
   protected BDDState handleDeclarationEdge(CDeclarationEdge cfaEdge, CDeclaration decl)
-      throws UnsupportedCCodeException {
+      throws UnsupportedCodeException {
 
     if (decl instanceof CVariableDeclaration) {
       CVariableDeclaration vdecl = (CVariableDeclaration) decl;
@@ -333,7 +335,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       List<CExpression> args,
       List<CParameterDeclaration> params,
       String calledFunction)
-      throws UnsupportedCCodeException {
+      throws UnsupportedCodeException {
     BDDState newState = state;
 
     // var_args cannot be handled: func(int x, ...) --> we only handle the first n parameters
@@ -387,9 +389,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       // remove returnVar from state,
       // all other function-variables were removed earlier (see handleReturnStatementEdge()).
       // --> now the state does not contain any variable from scope of called function.
-      if  (predmgr.getTrackedVars().containsKey(returnVar)) {
-        newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(
-                returnVar, predmgr.getTrackedVars().get(returnVar)));
+      if (predmgr.getTrackedVars().contains(returnVar)) {
+        newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(returnVar));
       }
 
     } else {
@@ -407,7 +408,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * evaluated right side ("x") is added to the new state. */
   @Override
   protected BDDState handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
-      throws UnsupportedCCodeException {
+      throws UnsupportedCodeException {
     BDDState newState = state;
     String returnVar = "";
 
@@ -431,9 +432,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     // delete variables from returning function,
     // we do not need them after this location, because the next edge is the functionReturnEdge.
     // this results in a smaller BDD and allows to call a function twice.
-    for (String var : predmgr.getTrackedVars().keySet()) {
+    for (String var : predmgr.getTrackedVars()) {
       if (isLocalVariableForFunction(var, functionName) && !returnVar.equals(var)) {
-        newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var, predmgr.getTrackedVars().get(var)));
+        newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var));
       }
     }
     if (rmgr.makeAnd(globalConstraint, newState.getRegion()).isFalse()) {
@@ -454,9 +455,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       // we do not need them after this location, because the next edge is the functionReturnEdge.
       // this results in a smaller BDD and allows to call a function twice.
       BDDState newState = state;
-      for (String var : predmgr.getTrackedVars().keySet()) {
+      for (String var : predmgr.getTrackedVars()) {
         if (isLocalVariableForFunction(var, functionName)) {
-          newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var, predmgr.getTrackedVars().get(var)));
+          newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var));
         }
       }
       if (rmgr.makeAnd(globalConstraint, newState.getRegion()).isFalse()) {
@@ -477,7 +478,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   @Override
   protected BDDState handleAssumption(
       CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
-      throws UnsupportedCCodeException {
+      throws UnsupportedCodeException {
 
     Partition partition = varClass.getPartitionForEdge(cfaEdge);
     final Region[] operand = evaluateVectorExpression(partition, expression, CNumericTypes.INT, cfaEdge.getSuccessor());
@@ -505,7 +506,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       CExpression expression,
       boolean truthAssumption,
       PointerState pPointerInfo)
-      throws UnsupportedCCodeException {
+      throws UnsupportedCodeException {
 
     Partition partition = varClass.getPartitionForEdge(cfaEdge);
     final Region[] operand =
@@ -533,7 +534,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * The partition chooses the compression of the bitvector. */
   private @Nullable Region[] evaluateVectorExpression(
       final Partition partition, final CExpression exp, CType targetType, final CFANode location)
-      throws UnsupportedCCodeException {
+      throws UnsupportedCodeException {
     final boolean compress = (partition != null) && compressIntEqual
             && varClass.getIntEqualPartitions().contains(partition);
     if (varClass.getIntBoolPartitions().contains(partition)) {
@@ -568,7 +569,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       CType targetType,
       final CFANode location,
       final PointerState pPointerInfo)
-      throws UnsupportedCCodeException {
+      throws UnsupportedCodeException {
     final boolean compress =
         (partition != null)
             && compressIntEqual
@@ -614,12 +615,11 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     return exp.accept(new VarCExpressionVisitor(varName));
   }
 
-  private static String scopeVar(final CExpression exp) {
+  private String scopeVar(final CExpression exp) {
     if (exp instanceof CIdExpression) {
       return ((CIdExpression) exp).getDeclaration().getQualifiedName();
     } else {
-      // TODO function name?
-      return exp.toASTString();
+      return functionName + "::" + exp.toASTString();
     }
   }
 
@@ -657,13 +657,33 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       int M = partition.getVars().size();
       return (int) Math.ceil(Math.log(N + M) / Math.log(2));
     } else {
-      return machineModel.getSizeof(type) * machineModel.getSizeofCharInBits();
+      return machineModel.getSizeofInBits(type).intValueExact();
+    }
+  }
+
+  /**
+   * returns a canonical representation of a field reference, including functionname. return NULL if
+   * the canonical name could not determined.
+   */
+  static @Nullable String getCanonicalName(CExpression expr) {
+    String name = "";
+    while (true) {
+      if (expr instanceof CIdExpression) {
+        return ((CIdExpression) expr).getDeclaration().getQualifiedName() + name;
+      } else if (expr instanceof CFieldReference) {
+        CFieldReference fieldRef = (CFieldReference) expr;
+        name = (fieldRef.isPointerDereference() ? "->" : ".") + fieldRef.getFieldName() + name;
+        expr = fieldRef.getFieldOwner();
+      } else {
+        return null;
+      }
     }
   }
 
   /** This Visitor evaluates the visited expression and
    * returns iff the given variable is used in it. */
-  private static class VarCExpressionVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeException> {
+  private static class VarCExpressionVisitor
+      extends DefaultCExpressionVisitor<Boolean, NoException> {
 
     private String varName;
 
@@ -672,7 +692,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
 
     private Boolean handle(CExpression exp) {
-      return varName.equals(exp.toASTString());
+      String name = getCanonicalName(exp);
+      return varName.equals(name == null ? exp.toASTString() : name);
     }
 
     @Override
@@ -725,14 +746,17 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
   @Override
   public Collection<? extends AbstractState> strengthen(
-      AbstractState state, List<AbstractState> states, CFAEdge cfaEdge, Precision precision)
+      AbstractState pState,
+      List<AbstractState> states,
+      CFAEdge cfaEdge,
+      Precision pPrecision)
       throws CPATransferException {
-    BDDState bddState = (BDDState) state;
+    BDDState bddState = (BDDState) pState;
 
     for (AbstractState otherState : states) {
       if (otherState instanceof PointerState) {
-        super.setInfo(bddState, precision, cfaEdge);
-        bddState = strengthenWithPointerInformation(bddState, (PointerState) otherState, cfaEdge);
+        super.setInfo(bddState, pPrecision, cfaEdge);
+        bddState = strengthenWithPointerInformation((PointerState) otherState, cfaEdge);
         super.resetInfo();
         if (bddState == null) {
           return Collections.emptyList();
@@ -742,9 +766,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     return Collections.singleton(bddState);
   }
 
-  private BDDState strengthenWithPointerInformation(
-      BDDState bddState, PointerState pPointerInfo, CFAEdge cfaEdge)
-      throws UnrecognizedCCodeException {
+  private BDDState strengthenWithPointerInformation(PointerState pPointerInfo, CFAEdge cfaEdge)
+      throws UnrecognizedCodeException {
 
     if (cfaEdge instanceof CAssumeEdge) {
       CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
@@ -769,7 +792,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     // without a target, nothing can be done.
     if (target == null) {
-      return bddState;
+      return state;
     }
 
     // get value for RHS
@@ -788,7 +811,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     // without a value, nothing can be done.
     if (value == null) {
-      return bddState;
+      return state;
     }
 
     final Partition partition = varClass.getPartitionForEdge(cfaEdge);
@@ -801,13 +824,15 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     final Region[] evaluation =
         predmgr.createPredicate(
             value.getAsSimpleString(), valueType, cfaEdge.getSuccessor(), size, precision);
-    BDDState newState = bddState.forget(rhs);
+    BDDState newState = state.forget(rhs);
     return newState.addAssignment(rhs, evaluation);
   }
 
   /** get all possible explicit targets for a pointer, or NULL if they are unknown. */
   static @Nullable ExplicitLocationSet getLocationsForLhs(
-      PointerState pPointerInfo, CPointerExpression pPointer) throws UnrecognizedCCodeException {
+      PointerState pPointerInfo,
+      CPointerExpression pPointer)
+      throws UnrecognizedCodeException {
     LocationSet directLocation = PointerTransferRelation.asLocations(pPointer, pPointerInfo);
     if (!(directLocation instanceof ExplicitLocationSet)) {
       LocationSet indirectLocation =
@@ -826,7 +851,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   }
 
   static @Nullable MemoryLocation getLocationForRhs(
-      PointerState pPointerInfo, CPointerExpression pPointer) throws UnrecognizedCCodeException {
+      PointerState pPointerInfo,
+      CPointerExpression pPointer)
+      throws UnrecognizedCodeException {
     LocationSet fullSet = PointerTransferRelation.asLocations(pPointer.getOperand(), pPointerInfo);
     if (fullSet instanceof ExplicitLocationSet) {
       ExplicitLocationSet explicitSet = (ExplicitLocationSet) fullSet;

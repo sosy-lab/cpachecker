@@ -29,6 +29,8 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
@@ -36,16 +38,20 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class CounterexampleInfo extends AbstractAppender {
@@ -58,19 +64,27 @@ public class CounterexampleInfo extends AbstractAppender {
   private final boolean isPreciseCounterExample;
 
   private final ARGPath targetPath;
+
   private final CFAPathWithAssumptions assignments;
+  private final CFAPathWithAdditionalInfo additionalInfo;
 
   // list with additional information about the counterexample
   private final Collection<Pair<Object, PathTemplate>> furtherInfo;
 
-  private static final CounterexampleInfo SPURIOUS = new CounterexampleInfo(true, null, null, false);
+  private static final CounterexampleInfo SPURIOUS =
+      new CounterexampleInfo(true, null, null, false, CFAPathWithAdditionalInfo.empty());
 
-  private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath,
-      CFAPathWithAssumptions pAssignments, boolean pIsPreciseCEX) {
+  private CounterexampleInfo(
+      boolean pSpurious,
+      ARGPath pTargetPath,
+      CFAPathWithAssumptions pAssignments,
+      boolean pIsPreciseCEX,
+      CFAPathWithAdditionalInfo pAdditionalInfo) {
     uniqueId = ID_GENERATOR.getFreshId();
     spurious = pSpurious;
     targetPath = pTargetPath;
     assignments = pAssignments;
+    additionalInfo = pAdditionalInfo;
     isPreciseCounterExample = pIsPreciseCEX;
 
     if (!spurious) {
@@ -112,7 +126,13 @@ public class CounterexampleInfo extends AbstractAppender {
    *     and unreliable representation of the path from the first state to the target state.
    */
   public static CounterexampleInfo feasibleImprecise(ARGPath pTargetPath) {
-    return new CounterexampleInfo(false, checkNotNull(pTargetPath), null, false);
+    return feasibleImprecise(checkNotNull(pTargetPath), CFAPathWithAdditionalInfo.empty());
+  }
+
+  public static CounterexampleInfo feasibleImprecise(
+      ARGPath pTargetPath, CFAPathWithAdditionalInfo pAdditionalInfo) {
+    return new CounterexampleInfo(
+        false, checkNotNull(pTargetPath), null, false, checkNotNull(pAdditionalInfo));
   }
 
   /**
@@ -132,9 +152,18 @@ public class CounterexampleInfo extends AbstractAppender {
    */
   public static CounterexampleInfo feasiblePrecise(
       ARGPath pTargetPath, CFAPathWithAssumptions pAssignments) {
+    return feasiblePrecise(
+        checkNotNull(pTargetPath), pAssignments, CFAPathWithAdditionalInfo.empty());
+  }
+
+  public static CounterexampleInfo feasiblePrecise(
+      ARGPath pTargetPath,
+      CFAPathWithAssumptions pAssignments,
+      CFAPathWithAdditionalInfo pAdditionalInfo) {
     checkArgument(!pAssignments.isEmpty());
     checkArgument(pAssignments.fitsPath(pTargetPath.getFullPath()));
-    return new CounterexampleInfo(false, checkNotNull(pTargetPath), pAssignments, true);
+    return new CounterexampleInfo(
+        false, checkNotNull(pTargetPath), pAssignments, true, checkNotNull(pAdditionalInfo));
   }
 
   public boolean isSpurious() {
@@ -205,6 +234,18 @@ public class CounterexampleInfo extends AbstractAppender {
     return assignments.getExactVariableValues(targetPath);
   }
 
+  public Map<ARGState, CFAEdgeWithAdditionalInfo> getAdditionalInfoMapping() {
+    return additionalInfo.isEmpty()
+           ? ImmutableMap.of()
+           : additionalInfo.getAdditionalInfoMapping(targetPath);
+  }
+
+  public Set<AdditionalInfoConverter> getAdditionalInfoConverters() {
+    return additionalInfo.isEmpty()
+           ? ImmutableSet.of()
+           : additionalInfo.getAdditionalInfoConverters();
+  }
+
   /**
    * Create a JSON representation of this counterexample,
    * which is used for the HTML report.
@@ -215,6 +256,15 @@ public class CounterexampleInfo extends AbstractAppender {
     int pathLength = targetPath.getFullPath().size();
     List<Map<?, ?>> path = new ArrayList<>(pathLength);
 
+    ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
+    List<Pair<CFAEdgeWithAssumptions, Boolean>> shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath, assignments);
+    //Create Iterator for ShrinkedErrorPath
+    Iterator<Pair<CFAEdgeWithAssumptions, Boolean>> shrinkedErrorPathIterator = null;
+    if (shrinkedErrorPath != null) {
+      //checkState(shrinkedErrorPath.size() == targetPath.size(), "Size of shrinkedErrorPath not identical to the length of the targetPath!");
+      shrinkedErrorPathIterator = shrinkedErrorPath.iterator();
+    }
+
     PathIterator iterator = targetPath.fullPathIterator();
     while (iterator.hasNext()) {
       Map<String, Object> elem = new HashMap<>();
@@ -222,6 +272,18 @@ public class CounterexampleInfo extends AbstractAppender {
       if (edge == null) {
         continue; // in this case we do not need the edge
       }
+
+      // compare path from counterexample with shrinkedErrorPath to identify the important edges
+      elem.put("importance", 0);
+      if(shrinkedErrorPathIterator != null && shrinkedErrorPathIterator.hasNext()) {
+        Pair<CFAEdgeWithAssumptions, Boolean> shrinkedEdge = shrinkedErrorPathIterator.next();
+        if (edge.equals(shrinkedEdge.getFirst().getCFAEdge())) {
+          if (shrinkedEdge.getSecond()) {
+            elem.put("importance", 1);
+          }
+        }
+      }
+
       if (iterator.isPositionWithState()) {
         elem.put("argelem", iterator.getAbstractState().getStateId());
       }
@@ -236,7 +298,10 @@ public class CounterexampleInfo extends AbstractAppender {
         elem.put("val", "");
       } else {
         CFAEdgeWithAssumptions edgeWithAssignment = assignments.get(iterator.getIndex());
-        elem.put("val", edgeWithAssignment.printForHTML());
+        elem.put(
+            "val",
+            edgeWithAssignment.prettyPrintCode(0).replace(System.lineSeparator(), "\n")
+                + edgeWithAssignment.getComment().replace(System.lineSeparator(), "\n"));
       }
 
       path.add(elem);

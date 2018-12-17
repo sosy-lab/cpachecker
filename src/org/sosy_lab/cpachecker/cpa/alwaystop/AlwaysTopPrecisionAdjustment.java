@@ -23,15 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.alwaystop;
 
+import com.google.common.base.Function;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-
-import com.google.common.base.Function;
-import java.util.Optional;
 
 enum AlwaysTopPrecisionAdjustment implements PrecisionAdjustment {
 

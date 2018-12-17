@@ -40,7 +40,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
@@ -73,7 +73,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 public class PDRSmt {
 
-  private static enum ReductionMode {
+  private enum ReductionMode {
     CONSECUTION,
     LIFTING
   }
@@ -96,8 +96,8 @@ public class PDRSmt {
    *
    * @param pFrameSet The frames relative to which the induction queries are formed.
    * @param pSolver The solver that is used in all queries.
-   * @param pFmgr The formula manager used for instantiating formulas.
-   * @param pPfmgr The path formula manager used for creating variables.
+   * @param pFormulaManager The formula manager used for instantiating formulas.
+   * @param pPathFormulaManager The path formula manager used for creating variables.
    * @param pAbstractionManager The component that handles predicate abstraction.
    * @param pTransition The transition system that defines the transition formula.
    * @param pCompStats The statistics delegator that this class should be registered at. It takes
@@ -110,8 +110,8 @@ public class PDRSmt {
   public PDRSmt(
       FrameSet pFrameSet,
       Solver pSolver,
-      FormulaManagerView pFmgr,
-      PathFormulaManager pPfmgr,
+      FormulaManagerView pFormulaManager,
+      PathFormulaManager pPathFormulaManager,
       PredicatePrecisionManager pAbstractionManager,
       TransitionSystem pTransition,
       StatisticsDelegator pCompStats,
@@ -124,9 +124,9 @@ public class PDRSmt {
 
     this.frameSet = Objects.requireNonNull(pFrameSet);
     this.solver = Objects.requireNonNull(pSolver);
-    this.fmgr = Objects.requireNonNull(pFmgr);
+    this.fmgr = Objects.requireNonNull(pFormulaManager);
     this.bfmgr = fmgr.getBooleanFormulaManager();
-    this.pfmgr = Objects.requireNonNull(pPfmgr);
+    this.pfmgr = Objects.requireNonNull(pPathFormulaManager);
     this.abstractionManager = Objects.requireNonNull(pAbstractionManager);
     this.transition = Objects.requireNonNull(pTransition);
     this.logger = Objects.requireNonNull(pLogger);
@@ -747,8 +747,7 @@ public class PDRSmt {
       // Make variable
       CType type = unprimedContext.getSsa().getType(variableName);
       BitvectorFormula unprimedVar =
-          (BitvectorFormula)
-              pfmgr.makeFormulaForVariable(unprimedContext, variableName, type, false);
+          (BitvectorFormula) pfmgr.makeFormulaForVariable(unprimedContext, variableName, type);
 
       // Make value
       BigInteger val = pModel.evaluate(unprimedVar);
@@ -762,8 +761,7 @@ public class PDRSmt {
       if (val == null) {
         BitvectorFormula primedVar =
             (BitvectorFormula)
-                pfmgr.makeFormulaForVariable(
-                    transition.getPrimedContext(), variableName, type, false);
+                pfmgr.makeFormulaForVariable(transition.getPrimedContext(), variableName, type);
         val = pModel.evaluate(primedVar);
       }
 

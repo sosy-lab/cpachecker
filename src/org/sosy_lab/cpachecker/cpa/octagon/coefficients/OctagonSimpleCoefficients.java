@@ -79,19 +79,19 @@ public class OctagonSimpleCoefficients extends AOctagonCoefficients {
   }
 
   @Override
-  public OctagonSimpleCoefficients expandToSize(int size, OctagonState oct) {
-    Preconditions.checkArgument(this.size <= size, "new size too small");
+  public OctagonSimpleCoefficients expandToSize(int pSize, OctagonState pOct) {
+    Preconditions.checkArgument(this.size <= pSize, "new size too small");
 
-    if (this.size == size) {
+    if (this.size == pSize) {
       return this;
     }
 
-    OctagonSimpleCoefficients newCoeffs = new OctagonSimpleCoefficients(size, oct);
+    OctagonSimpleCoefficients newCoeffs = new OctagonSimpleCoefficients(pSize, pOct);
 
     for (int i = 0; i < coefficients.length-1; i++) {
       newCoeffs.coefficients[i] = coefficients[i];
     }
-    newCoeffs.coefficients[size] = coefficients[this.size];
+    newCoeffs.coefficients[pSize] = coefficients[this.size];
 
     return newCoeffs;
   }
@@ -414,9 +414,10 @@ public class OctagonSimpleCoefficients extends AOctagonCoefficients {
       return false;
     }
 
-    OctagonSimpleCoefficients oct = (OctagonSimpleCoefficients) other;
+    OctagonSimpleCoefficients octCoefficients = (OctagonSimpleCoefficients) other;
 
-    return Arrays.equals(coefficients, oct.coefficients) && size == oct.size;
+    return Arrays.equals(coefficients, octCoefficients.coefficients)
+        && size == octCoefficients.size;
   }
 
   @Override

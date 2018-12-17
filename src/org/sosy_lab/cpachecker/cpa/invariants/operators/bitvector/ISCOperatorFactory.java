@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector;
 
 import java.math.BigInteger;
-
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.OverflowEventHandler;

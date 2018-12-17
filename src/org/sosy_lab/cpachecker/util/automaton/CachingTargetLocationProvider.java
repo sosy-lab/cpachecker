@@ -27,14 +27,12 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableSet;
-
+import java.util.Objects;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.Specification;
-
-import java.util.Objects;
 
 public class CachingTargetLocationProvider implements TargetLocationProvider {
 
@@ -44,7 +42,7 @@ public class CachingTargetLocationProvider implements TargetLocationProvider {
       CacheBuilder.newBuilder()
           .weakKeys()
           .weakValues()
-          .<CacheKey, ImmutableSet<CFANode>>build(
+          .build(
               new CacheLoader<CacheKey, ImmutableSet<CFANode>>() {
 
                 @Override

@@ -25,11 +25,10 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import static org.mockito.Mockito.mock;
 
+import com.google.common.testing.ClassSanityTester;
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
-
-import com.google.common.testing.ClassSanityTester;
 
 public class PrecisionAdjustmentResultTest {
 

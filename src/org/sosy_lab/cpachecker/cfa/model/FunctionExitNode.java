@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.model;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 
 public class FunctionExitNode extends CFANode {

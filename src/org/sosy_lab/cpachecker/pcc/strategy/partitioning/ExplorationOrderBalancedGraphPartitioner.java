@@ -23,19 +23,17 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Deque;
 import java.util.List;
 import java.util.Set;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 
 
 public class ExplorationOrderBalancedGraphPartitioner implements BalancedGraphPartitioner {

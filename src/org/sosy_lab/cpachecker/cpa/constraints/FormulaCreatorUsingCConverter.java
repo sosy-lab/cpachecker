@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.constraints;
 
 import com.google.common.base.Optional;
-import org.sosy_lab.common.rationals.Rational;
+import java.util.HashMap;
+import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -32,24 +33,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionTransformer;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.NumeralFormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FormulaType;
-import org.sosy_lab.java_smt.api.NumeralFormula;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Creator for {@link Formula}s using a given {@link CtoFormulaConverter} for creating
@@ -62,144 +53,29 @@ import java.util.Map;
  */
 public class FormulaCreatorUsingCConverter implements FormulaCreator {
 
-  private final FormulaManagerView formulaManager;
   private final CtoFormulaConverter toFormulaTransformer;
 
   private final String functionName;
 
   public FormulaCreatorUsingCConverter(
-      final FormulaManagerView pFormulaManager,
       final CtoFormulaConverter pConverter,
       final String pFunctionName
   ) {
-    formulaManager = pFormulaManager;
     toFormulaTransformer = pConverter;
     functionName = pFunctionName;
   }
 
   @Override
   public BooleanFormula createFormula(final Constraint pConstraint)
-      throws UnrecognizedCCodeException, InterruptedException {
-
-    return createFormula(pConstraint, new IdentifierAssignment());
-  }
-
-
-  @Override
-  public BooleanFormula createFormula(
-      final Constraint pConstraint,
-      final IdentifierAssignment pDefiniteAssignment
-  ) throws UnrecognizedCCodeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
 
     final SymbolicExpressionTransformer toExpressionTransformer =
-        new SymbolicExpressionTransformer(pDefiniteAssignment);
+        new SymbolicExpressionTransformer();
 
     CExpression constraintExpression = pConstraint.accept(toExpressionTransformer);
 
     return toFormulaTransformer.makePredicate(
         constraintExpression, getDummyEdge(), functionName, getSsaMapBuilder());
-  }
-
-  @Override
-  public BooleanFormula transformAssignment(
-      final Formula pVariable,
-      final Object pTermAssignment
-  ) {
-    FormulaType<?> variableType = formulaManager.getFormulaType(pVariable);
-    Formula rightFormula = null;
-
-    final NumeralFormulaManagerView<NumeralFormula, NumeralFormula.RationalFormula>
-        rationalFormulaManager = formulaManager.getRationalFormulaManager();
-
-    if (pTermAssignment instanceof Number) {
-
-      BigInteger integerValue = null;
-      BigDecimal decimalValue = null;
-
-      if (pTermAssignment instanceof Long) {
-        integerValue = BigInteger.valueOf((long) pTermAssignment);
-
-      } else if (pTermAssignment instanceof BigInteger) {
-        integerValue = (BigInteger) pTermAssignment;
-
-      } else if (pTermAssignment instanceof BigDecimal) {
-        decimalValue = (BigDecimal) pTermAssignment;
-
-      } else if (pTermAssignment instanceof Float || pTermAssignment instanceof Double) {
-        assert variableType.isFloatingPointType();
-        final FloatingPointFormula variableAsFloat = (FloatingPointFormula)pVariable;
-        final Double assignmentAsDouble;
-
-        if (pTermAssignment instanceof Float) {
-          assignmentAsDouble = ((Float)pTermAssignment).doubleValue();
-        } else {
-          assignmentAsDouble = (Double)pTermAssignment;
-        }
-
-        if (assignmentAsDouble.isNaN()) {
-          return getNanFormula(variableAsFloat);
-
-        } else if (assignmentAsDouble.equals(Double.POSITIVE_INFINITY)) {
-          return getPositiveInfinityFormula(variableAsFloat);
-
-        } else if (assignmentAsDouble.equals(Double.NEGATIVE_INFINITY)) {
-          return getNegativeInfinityFormula(variableAsFloat);
-
-        } else {
-          decimalValue = BigDecimal.valueOf(assignmentAsDouble);
-        }
-
-      } else if (pTermAssignment instanceof Rational) {
-        rightFormula = rationalFormulaManager.makeNumber((Rational) pTermAssignment);
-      } else {
-        throw new AssertionError("Unhandled assignment number " + pTermAssignment);
-      }
-
-      if (integerValue != null) {
-        rightFormula = formulaManager.makeNumber(variableType, integerValue);
-
-      } else if (decimalValue != null) {
-
-        if (variableType.isRationalType()) {
-          rightFormula = rationalFormulaManager.makeNumber(decimalValue);
-        } else {
-          assert variableType.isFloatingPointType();
-          FormulaType.FloatingPointType variableTypeCastToFloatType =
-              (FormulaType.FloatingPointType) variableType;
-
-          rightFormula =
-              formulaManager.getFloatingPointFormulaManager().makeNumber(
-                  decimalValue, variableTypeCastToFloatType);
-        }
-      }
-
-    } else {
-      throw new AssertionError("Unhandled assignment object " + pTermAssignment);
-    }
-
-    assert rightFormula != null;
-    return formulaManager.makeEqual(pVariable, rightFormula);
-  }
-
-  private BooleanFormula getNanFormula(FloatingPointFormula pFormula) {
-    return formulaManager.getFloatingPointFormulaManager().isNaN(pFormula);
-  }
-
-  private BooleanFormula getPositiveInfinityFormula(FloatingPointFormula pFormula) {
-    FormulaType.FloatingPointType formulaType =
-        (FormulaType.FloatingPointType) formulaManager.getFormulaType(pFormula);
-    Formula infinityFormula =
-        formulaManager.getFloatingPointFormulaManager().makePlusInfinity(formulaType);
-    return formulaManager.makeEqual(pFormula, infinityFormula);
-  }
-
-  private BooleanFormula getNegativeInfinityFormula(FloatingPointFormula pFormula) {
-    FormulaType.FloatingPointType formulaType =
-        (FormulaType.FloatingPointType) formulaManager.getFormulaType(pFormula);
-    Formula infinityFormula =
-        formulaManager.getFloatingPointFormulaManager().makeMinusInfinity(formulaType);
-
-    return formulaManager.makeEqual(pFormula, infinityFormula);
   }
 
   private CFAEdge getDummyEdge() {

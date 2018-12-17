@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
+import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -33,8 +34,6 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationStatistics;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-
-import java.util.Set;
 
 public interface LassoAnalysis {
 

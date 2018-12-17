@@ -23,15 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import static com.google.common.base.Predicates.not;
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy.findAllPredicatesFromSubgraph;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
@@ -60,12 +57,14 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -141,10 +140,13 @@ public class ValueAnalysisRefiner
   private final StatCounter rootRelocations = new StatCounter("Number of root relocations");
   private final StatCounter repeatedRefinements = new StatCounter("Number of similar, repeated refinements");
 
-  public static ValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
+  public static Refiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
+    return AbstractARGBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa);
+  }
 
-    final ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, ValueAnalysisRefiner.class);
+  public static ARGBasedRefiner create0(final ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
     final ValueAnalysisCPA valueAnalysisCpa =
         CPAs.retrieveCPAOrFail(pCpa, ValueAnalysisCPA.class, ValueAnalysisRefiner.class);
 
@@ -164,8 +166,7 @@ public class ValueAnalysisRefiner
         new ValueAnalysisPrefixProvider(
             logger, cfa, config, valueAnalysisCpa.getShutdownNotifier());
 
-    return new ValueAnalysisRefiner(argCpa,
-        checker,
+    return new ValueAnalysisRefiner(checker,
         strongestPostOp,
         new PathExtractor(logger, config),
         prefixProvider,
@@ -175,7 +176,7 @@ public class ValueAnalysisRefiner
         cfa);
   }
 
-  ValueAnalysisRefiner(final ARGCPA pArgCPA,
+  ValueAnalysisRefiner(
       final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
       final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
       final PathExtractor pPathExtractor,
@@ -184,8 +185,7 @@ public class ValueAnalysisRefiner
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
       throws InvalidConfigurationException {
 
-    super(pArgCPA,
-        pFeasibilityChecker,
+    super(pFeasibilityChecker,
         new ValueAnalysisPathInterpolator(pFeasibilityChecker,
             pStrongestPostOperator,
             pPrefixProvider,
@@ -277,8 +277,7 @@ public class ValueAnalysisRefiner
       final ARGState pRefinementRoot, final UnmodifiableReachedSet pReached) {
     // get all unique precisions from the subtree
     Set<VariableTrackingPrecision> uniquePrecisions = Sets.newIdentityHashSet();
-    for (ARGState descendant :
-        from(pRefinementRoot.getSubgraph()).filter(not(ARGState::isCovered))) {
+    for (ARGState descendant : ARGUtils.getNonCoveredStatesInSubgraph(pRefinementRoot)) {
       uniquePrecisions.add(extractValuePrecision(pReached.getPrecision(descendant)));
     }
 
@@ -379,7 +378,6 @@ public class ValueAnalysisRefiner
       return pRefinementRoot;
     }
 
-    Map<ARGState, ARGState> predecessorRelation = Maps.newHashMap();
     SetMultimap<ARGState, ARGState> successorRelation = LinkedHashMultimap.create();
 
     Deque<ARGState> todo = new ArrayDeque<>(coveredStates);
@@ -393,7 +391,6 @@ public class ValueAnalysisRefiner
       if (currentState.getParents().iterator().hasNext()) {
         ARGState parentState = currentState.getParents().iterator().next();
         todo.add(parentState);
-        predecessorRelation.put(currentState, parentState);
         successorRelation.put(parentState, currentState);
 
       } else if (coverageTreeRoot == null) {

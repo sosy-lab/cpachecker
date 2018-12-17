@@ -9,7 +9,7 @@
 
   <tasks name="Locks">
     <include>../programs/benchmarks/locks/test_locks_*.c</include>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 <!--
   <tasks name="Loops">
@@ -17,17 +17,17 @@
     <include>../programs/benchmarks/loops/terminator_*.i</include>
     <include>../programs/benchmarks/loops/trex*.i</include>
     <include>../programs/benchmarks/loops/while_*.i</include>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="Loops-new">
     <include>../programs/benchmarks/loop-new/count_*.i</include>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="Loop-acceleration">
     <include>../programs/benchmarks/loop-acceleration/const_*.i</include>
     <include>../programs/benchmarks/loop-acceleration/multivar_*.i</include>
     <include>../programs/benchmarks/loop-acceleration/underapprox_*.i</include>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="Loop-lit">
     <include>../programs/benchmarks/loop-lit/afnp2014_true-unreach-call_true-termination.c.i</include>
@@ -38,7 +38,7 @@
     <include>../programs/benchmarks/loop-lit/gsv2008_true-unreach-call_true-termination.c.i</include>
     <include>../programs/benchmarks/loop-lit/hhk2008_true-unreach-call_true-termination.c.i</include>
     <include>../programs/benchmarks/loop-lit/jm2006*_true-unreach-call_true-termination.c.i</include>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="Loop-invgen">
     <include>../programs/benchmarks/loop-invgen/down_true-unreach-call_true-termination.i</include>
@@ -46,11 +46,11 @@
     <include>../programs/benchmarks/loop-invgen/id_build_*.i</include>
     <include>../programs/benchmarks/loop-invgen/nest-if3_true-unreach-call_true-termination.i</include>
     <include>../programs/benchmarks/loop-invgen/NetBSD_loop_true-unreach-call_true-termination.i</include>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="Product-lines">
     <include>../programs/benchmarks/product-lines/minepump_spec1_*.cil.i</include>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 -->
 

@@ -23,25 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cpa.reachdef;
 
+import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState.DefinitionPoint;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import com.google.common.collect.Sets;
-
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class StopIgnoringCallstack implements StopOperator{
 
   @Override
-  public boolean stop(AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision)
-      throws CPAException {
+  public boolean stop(
+      AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision) {
     try {
       ReachingDefState e1 = (ReachingDefState) pState;
       ReachingDefState e2;
@@ -57,12 +54,14 @@ public class StopIgnoringCallstack implements StopOperator{
     return false;
   }
 
-  private boolean isSubsetOf(Map<String, Set<DefinitionPoint>> subset, Map<String, Set<DefinitionPoint>> superset) {
+  private boolean isSubsetOf(
+      Map<MemoryLocation, Set<DefinitionPoint>> subset,
+      Map<MemoryLocation, Set<DefinitionPoint>> superset) {
     Set<DefinitionPoint> setSub, setSuper;
     if (subset == superset) {
       return true;
     }
-    for (Entry<String, Set<DefinitionPoint>> entry : subset.entrySet()) {
+    for (Entry<MemoryLocation, Set<DefinitionPoint>> entry : subset.entrySet()) {
       setSub = entry.getValue();
       setSuper = superset.get(entry.getKey());
       if (setSub == setSuper) {

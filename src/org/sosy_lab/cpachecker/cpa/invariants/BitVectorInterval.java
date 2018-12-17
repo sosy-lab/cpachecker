@@ -136,25 +136,16 @@ public class BitVectorInterval implements BitVectorType {
       return pOther;
     }
     // The lower bound of this interval is a candidate for the new lower bound
-    BigInteger lowerBound = this.lowerBound;
-
     // The lower bound of the other interval is a candidate as well
-    BigInteger otherLowerBound = pOther.getLowerBound();
-    /*
-     *  The new lower bound is the maximum of both lower bounds.
-     */
-    lowerBound = lowerBound.max(otherLowerBound);
+    // The new lower bound is the maximum of both lower bounds.
+    BigInteger newLowerBound = this.lowerBound.max(pOther.getLowerBound());
 
     // The upper bound of this interval is a candidate for the new lower bound
-    BigInteger upperBound = this.upperBound;
     // The upper bound of the other interval is a candidate as well
-    BigInteger otherUpperBound = pOther.getUpperBound();
-    /*
-     *  The new upper bound is the minimum of both upper bounds.
-     */
-    upperBound = upperBound.min(otherUpperBound);
+    // The new upper bound is the minimum of both upper bounds.
+    BigInteger newUpperBound = this.upperBound.min(pOther.getUpperBound());
 
-    return new BitVectorInterval(info, lowerBound, upperBound);
+    return new BitVectorInterval(info, newLowerBound, newUpperBound);
   }
 
   public BitVectorInterval getNegativePart() {

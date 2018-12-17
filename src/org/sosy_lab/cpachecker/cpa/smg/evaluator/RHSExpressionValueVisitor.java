@@ -23,27 +23,34 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.smg.SMGBuiltins;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
-import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndStateList;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 class RHSExpressionValueVisitor extends ExpressionValueVisitor {
 
-  private final SMGRightHandSideEvaluator smgRightHandSideEvaluator;
+  private final SMGBuiltins builtins;
+  private final SMGTransferRelationKind kind;
 
-  public RHSExpressionValueVisitor(SMGRightHandSideEvaluator pSmgRightHandSideEvaluator,
-      CFAEdge pEdge, SMGState pSmgState) {
+  public RHSExpressionValueVisitor(
+      SMGRightHandSideEvaluator pSmgRightHandSideEvaluator,
+      SMGBuiltins pBuiltins,
+      CFAEdge pEdge,
+      SMGState pSmgState,
+      SMGTransferRelationKind pKind) {
     super(pSmgRightHandSideEvaluator, pEdge, pSmgState);
-    smgRightHandSideEvaluator = pSmgRightHandSideEvaluator;
+    builtins = pBuiltins;
+    kind = pKind;
   }
 
   @Override
-  public SMGValueAndStateList visit(CFunctionCallExpression pIastFunctionCallExpression)
+  public List<SMGAddressValueAndState> visit(CFunctionCallExpression pIastFunctionCallExpression)
       throws CPATransferException {
 
     CExpression fileNameExpression = pIastFunctionCallExpression.getFunctionNameExpression();
@@ -53,47 +60,16 @@ class RHSExpressionValueVisitor extends ExpressionValueVisitor {
 
     // If Calloc and Malloc have not been properly declared,
     // they may be shown to return void
-    SMGBuiltins builtins = smgRightHandSideEvaluator.smgTransferRelation.builtins;
     if (builtins.isABuiltIn(functionName)) {
       if (builtins.isConfigurableAllocationFunction(functionName)) {
-        smgRightHandSideEvaluator.smgTransferRelation.possibleMallocFail = true;
-        SMGAddressValueAndStateList configAllocEdge = builtins.evaluateConfigurableAllocationFunction(
-            pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
-        return configAllocEdge;
+        return builtins.evaluateConfigurableAllocationFunction(
+            pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge(), kind);
       }
-      if (builtins.isExternalAllocationFunction(functionName)) {
-        SMGAddressValueAndStateList extAllocEdge = builtins.evaluateExternalAllocation(
-            pIastFunctionCallExpression, getInitialSmgState());
-        return extAllocEdge;
-      }
-      switch (functionName) {
-      case "__VERIFIER_BUILTIN_PLOT":
-        builtins.evaluateVBPlot(pIastFunctionCallExpression, getInitialSmgState());
-        break;
-      case "__builtin_alloca":
-        smgRightHandSideEvaluator.smgTransferRelation.possibleMallocFail = true;
-        SMGAddressValueAndStateList allocEdge = builtins.evaluateAlloca(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
-        return allocEdge;
-      case "printf":
-        return SMGValueAndStateList.of(getInitialSmgState());
-      default:
-        if (builtins.isNondetBuiltin(functionName)) {
-          return SMGValueAndStateList.of(getInitialSmgState());
+      return builtins.handleBuiltinFunctionCall(
+          getCfaEdge(), pIastFunctionCallExpression, functionName, getInitialSmgState(), kind);
         } else {
-          throw new AssertionError("Unexpected function handled as a builtin: " + functionName);
+      return builtins.handleUnknownFunction(
+          getCfaEdge(), pIastFunctionCallExpression, functionName, getInitialSmgState());
         }
       }
-    } else {
-      switch (smgRightHandSideEvaluator.options.getHandleUnknownFunctions()) {
-      case STRICT:
-        throw new CPATransferException("Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
-      case ASSUME_SAFE:
-        return SMGValueAndStateList.of(getInitialSmgState());
-      default:
-        throw new AssertionError("Unhandled enum value in switch: " + smgRightHandSideEvaluator.options.getHandleUnknownFunctions());
-      }
-    }
-
-    return SMGValueAndStateList.of(getInitialSmgState());
-  }
 }

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
+import java.util.List;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -35,15 +36,14 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
-import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndStateList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 class ForceExplicitValueVisitor extends ExplicitValueVisitor {
 
@@ -52,56 +52,56 @@ class ForceExplicitValueVisitor extends ExplicitValueVisitor {
 
   public ForceExplicitValueVisitor(
       SMGRightHandSideEvaluator pSmgRightHandSideEvaluator,
-      SMGExpressionEvaluator pSmgExpressionEvaluator,
       SMGState pSmgState,
       String pFunctionName,
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates pLogger,
       CFAEdge pEdge,
       SMGOptions pOptions) {
-    super(pSmgExpressionEvaluator, pSmgState, pFunctionName, pMachineModel, pLogger, pEdge);
+    super(pSmgRightHandSideEvaluator, pSmgState, pFunctionName, pMachineModel, pLogger, pEdge);
     smgRightHandSideEvaluator = pSmgRightHandSideEvaluator;
     guessSize = SMGKnownExpValue.valueOf(pOptions.getGuessSize());
   }
 
   @Override
   protected Value evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     Value result = super.evaluateCArraySubscriptExpression(pLValue);
     return returnValueOrGuess(result, pLValue);
   }
 
   @Override
   protected Value evaluateCIdExpression(CIdExpression pCIdExpression)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     Value result = super.evaluateCIdExpression(pCIdExpression);
     return returnValueOrGuess(result, pCIdExpression);
   }
 
   @Override
-  protected Value evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
+  protected Value evaluateCFieldReference(CFieldReference pLValue)
+      throws UnrecognizedCodeException {
     Value result = super.evaluateCFieldReference(pLValue);
     return returnValueOrGuess(result, pLValue);
   }
 
   @Override
   protected Value evaluateCPointerExpression(CPointerExpression pCPointerExpression)
-      throws UnrecognizedCCodeException {
+      throws UnrecognizedCodeException {
     Value result = super.evaluateCPointerExpression(pCPointerExpression);
     return returnValueOrGuess(result, pCPointerExpression);
   }
 
-  private Value returnValueOrGuess(Value value, CLeftHandSide exp) throws UnrecognizedCCodeException {
+  private Value returnValueOrGuess(Value value, CLeftHandSide exp)
+      throws UnrecognizedCodeException {
     return value.isUnknown() ? guessLHS(exp) : value;
   }
 
-  private Value guessLHS(CLeftHandSide exp)
-      throws UnrecognizedCCodeException {
+  private Value guessLHS(CLeftHandSide exp) throws UnrecognizedCodeException {
 
     SMGValueAndState symbolicValueAndState;
 
     try {
-      SMGValueAndStateList symbolicValueAndStates =
+      List<? extends SMGValueAndState> symbolicValueAndStates =
           smgRightHandSideEvaluator.evaluateExpressionValue(getNewState(), getEdge(), exp);
 
       if (symbolicValueAndStates.size() != 1) {
@@ -110,10 +110,11 @@ class ForceExplicitValueVisitor extends ExplicitValueVisitor {
                 + " already being evaluated once in this transfer-relation step.");
       }
 
-      symbolicValueAndState = symbolicValueAndStates.getValueAndStateList().get(0);
+      symbolicValueAndState = symbolicValueAndStates.get(0);
 
     } catch (CPATransferException e) {
-      UnrecognizedCCodeException e2 = new UnrecognizedCCodeException(
+      UnrecognizedCodeException e2 =
+          new UnrecognizedCodeException(
           "SMG cannot get symbolic value of : " + exp.toASTString(), exp);
       e2.initCause(e);
       throw e2;
@@ -126,8 +127,8 @@ class ForceExplicitValueVisitor extends ExplicitValueVisitor {
       return UnknownValue.getInstance();
     }
 
-    getNewState().putExplicit((SMGKnownSymValue) value, guessSize);
+    getNewState().putExplicit((SMGKnownSymbolicValue) value, guessSize);
 
-    return new NumericValue(guessSize.getValue());
+    return new NumericValue(guessSize.getAsInt());
   }
 }

@@ -24,13 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.composite;
 
 import com.google.common.collect.ImmutableList;
-
+import java.util.Iterator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import java.util.Iterator;
 
 /**
  * Provides a MergeOperator implementation that just delegates to the component

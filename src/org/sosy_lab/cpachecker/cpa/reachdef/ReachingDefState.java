@@ -24,24 +24,26 @@
 package org.sosy_lab.cpachecker.cpa.reachdef;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ReachingDefState implements AbstractState, Serializable,
     LatticeAbstractState<ReachingDefState>, Graphable {
@@ -52,76 +54,100 @@ public class ReachingDefState implements AbstractState, Serializable,
 
   public static final ReachingDefState topElement = new ReachingDefState();
 
-  private ReachingDefState stateOnLastFunctionCall;
+  private transient Map<MemoryLocation, Set<DefinitionPoint>> localReachDefs;
 
-  private transient Map<String, Set<DefinitionPoint>> localReachDefs;
+  private transient Map<MemoryLocation, Set<DefinitionPoint>> globalReachDefs;
 
-  private transient Map<String, Set<DefinitionPoint>> globalReachDefs;
+  private Map<CExpression, ProgramDefinitionPoint> unhandled = new HashMap<>();
 
   private ReachingDefState() {}
 
-  public ReachingDefState(Set<String> globalVariableNames) {
-    stateOnLastFunctionCall = null;
+  public ReachingDefState(Set<MemoryLocation> globalVariableNames) {
     localReachDefs = new HashMap<>();
     globalReachDefs = new HashMap<>();
     addVariables(globalReachDefs, globalVariableNames, UninitializedDefinitionPoint.getInstance());
   }
 
-  public ReachingDefState(Map<String, Set<DefinitionPoint>> pLocalReachDefs,
-      Map<String, Set<DefinitionPoint>> pGlobalReachDefs, ReachingDefState stateLastFuncCall) {
-    stateOnLastFunctionCall = stateLastFuncCall;
+  public ReachingDefState(
+      Map<MemoryLocation, Set<DefinitionPoint>> pLocalReachDefs,
+      Map<MemoryLocation, Set<DefinitionPoint>> pGlobalReachDefs) {
     localReachDefs = pLocalReachDefs;
     globalReachDefs = pGlobalReachDefs;
   }
 
-  public ReachingDefState addLocalReachDef(String variableName, CFANode pEntry, CFANode pExit) {
+  public ReachingDefState addLocalReachDef(
+      MemoryLocation variableName, CFANode pEntry, CFANode pExit) {
     ProgramDefinitionPoint definition = new ProgramDefinitionPoint(pEntry, pExit);
-    return new ReachingDefState(replaceReachDef(localReachDefs, variableName, definition), globalReachDefs,
-        stateOnLastFunctionCall);
+    return new ReachingDefState(
+        replaceReachDef(localReachDefs, variableName, definition), globalReachDefs);
   }
 
-  public ReachingDefState addGlobalReachDef(String variableName, CFANode pEntry, CFANode pExit) {
+  public ReachingDefState addGlobalReachDef(
+      MemoryLocation variableName, CFANode pEntry, CFANode pExit) {
     ProgramDefinitionPoint definition = new ProgramDefinitionPoint(pEntry, pExit);
-    return new ReachingDefState(localReachDefs, replaceReachDef(globalReachDefs, variableName, definition),
-        stateOnLastFunctionCall);
+    return new ReachingDefState(
+        localReachDefs, replaceReachDef(globalReachDefs, variableName, definition));
   }
 
-  private Map<String, Set<DefinitionPoint>> replaceReachDef(Map<String, Set<DefinitionPoint>> toChange,
-      String variableName,
+  void addUnhandled(CExpression pExp, CFANode pEntry, CFANode pExit) {
+    ProgramDefinitionPoint def = new ProgramDefinitionPoint(pEntry, pExit);
+    unhandled.put(pExp, def);
+  }
+
+  Map<CExpression, ProgramDefinitionPoint> getAndResetUnhandled() {
+    Map<CExpression, ProgramDefinitionPoint> unhandledExpressions = unhandled;
+    unhandled = new HashMap<>();
+    return unhandledExpressions;
+  }
+
+  private Map<MemoryLocation, Set<DefinitionPoint>> replaceReachDef(
+      Map<MemoryLocation, Set<DefinitionPoint>> toChange,
+      MemoryLocation variableName,
       ProgramDefinitionPoint definition) {
-    Map<String, Set<DefinitionPoint>> changed = new HashMap<>(toChange);
-    ImmutableSet<DefinitionPoint> insert = ImmutableSet.of((DefinitionPoint) definition);
+    Map<MemoryLocation, Set<DefinitionPoint>> changed = new HashMap<>(toChange);
+    ImmutableSet<DefinitionPoint> insert = ImmutableSet.of(definition);
     changed.put(variableName, insert);
     return changed;
   }
 
-  public ReachingDefState initVariables(Set<String> uninitVariableNames, Set<String> parameters,
-      CFANode pEntry, CFANode pExit) {
+  public ReachingDefState initVariables(
+      Set<MemoryLocation> uninitVariableNames,
+      Set<MemoryLocation> parameters,
+      CFANode pEntry,
+      CFANode pExit) {
     ProgramDefinitionPoint definition = new ProgramDefinitionPoint(pEntry, pExit);
-    Map<String, Set<DefinitionPoint>> localVarsDef = new HashMap<>();
+    Map<MemoryLocation, Set<DefinitionPoint>> localVarsDef = new HashMap<>(localReachDefs);
     addVariables(localVarsDef, uninitVariableNames, UninitializedDefinitionPoint.getInstance());
     addVariables(localVarsDef, parameters, definition);
-    return new ReachingDefState(localVarsDef, globalReachDefs, this);
+    return new ReachingDefState(localVarsDef, globalReachDefs);
   }
 
-  private void addVariables(Map<String, Set<DefinitionPoint>> addTo, Set<String> variableNames,
+  private void addVariables(
+      Map<MemoryLocation, Set<DefinitionPoint>> addTo,
+      Set<MemoryLocation> variableNames,
       DefinitionPoint definition) {
     ImmutableSet<DefinitionPoint> insert = ImmutableSet.of(definition);
-    for (String name : variableNames) {
+    for (MemoryLocation name : variableNames) {
       addTo.put(name, insert);
     }
   }
 
-  public ReachingDefState pop() {
-    return new ReachingDefState(stateOnLastFunctionCall.localReachDefs, globalReachDefs,
-        stateOnLastFunctionCall.stateOnLastFunctionCall);
+  public ReachingDefState pop(String pFunctionName) {
+    Map<MemoryLocation, Set<DefinitionPoint>> newLocalReachs = new HashMap<>(localReachDefs);
+    for (MemoryLocation var : localReachDefs.keySet()) {
+      if (var.isOnFunctionStack(pFunctionName)) {
+        newLocalReachs.remove(var);
+      }
+    }
+
+    return new ReachingDefState(newLocalReachs, globalReachDefs);
   }
 
-  public Map<String, Set<DefinitionPoint>> getLocalReachingDefinitions() {
+  public Map<MemoryLocation, Set<DefinitionPoint>> getLocalReachingDefinitions() {
     return this == topElement ? null : localReachDefs;
   }
 
-  public Map<String, Set<DefinitionPoint>> getGlobalReachingDefinitions() {
+  public Map<MemoryLocation, Set<DefinitionPoint>> getGlobalReachingDefinitions() {
     return this == topElement ? null : globalReachDefs;
   }
 
@@ -130,41 +156,46 @@ public class ReachingDefState implements AbstractState, Serializable,
     if (superset == this || superset == topElement) {
       return true;
     }
-    if (stateOnLastFunctionCall != superset.stateOnLastFunctionCall
-        && !compareStackStates(stateOnLastFunctionCall, superset.stateOnLastFunctionCall)) {
-      return false;
-    }
     boolean isLocalSubset;
     isLocalSubset = isSubsetOf(localReachDefs, superset.localReachDefs);
     return isLocalSubset && isSubsetOf(globalReachDefs, superset.globalReachDefs);
   }
 
-  private boolean compareStackStates(ReachingDefState sub, ReachingDefState sup) {
-    boolean result;
-    do {
-      if (sub == null || sup == null) {
-        return false;
-      }
-      result = isSubsetOf(sub.getLocalReachingDefinitions(), sup.getLocalReachingDefinitions());
-      result = result && isSubsetOf(sub.getGlobalReachingDefinitions(), sup.getGlobalReachingDefinitions());
-      sub = sub.stateOnLastFunctionCall;
-      sup = sup.stateOnLastFunctionCall;
-    } while (sub != sup && result);
-    return result;
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(globalReachDefs, localReachDefs);
   }
 
-  private boolean isSubsetOf(Map<String, Set<DefinitionPoint>> subset, Map<String, Set<DefinitionPoint>> superset) {
+  @Override
+  public boolean equals(Object pO) {
+    if (pO instanceof ReachingDefState) {
+      ReachingDefState other = (ReachingDefState) pO;
+      return Objects.equal(globalReachDefs, other.globalReachDefs)
+          && Objects.equal(localReachDefs, other.localReachDefs);
+    } else {
+      return false;
+    }
+  }
+
+  @Override
+  public String toString() {
+    return toDOTLabel();
+  }
+
+  private boolean isSubsetOf(
+      Map<MemoryLocation, Set<DefinitionPoint>> subset,
+      Map<MemoryLocation, Set<DefinitionPoint>> superset) {
     Set<DefinitionPoint> setSub, setSuper;
     if (subset == superset) {
       return true;
     }
-    for (Entry<String, Set<DefinitionPoint>> entry : subset.entrySet()) {
+    for (Entry<MemoryLocation, Set<DefinitionPoint>> entry : subset.entrySet()) {
       setSub = entry.getValue();
       setSuper = superset.get(entry.getKey());
       if (setSub == setSuper) {
         continue;
       }
-      if (setSuper == null || Sets.intersection(setSub, setSuper).size()!=setSub.size()) {
+      if (setSuper == null || Sets.intersection(setSub, setSuper).size() != setSub.size()) {
         return false;
       }
     }
@@ -173,30 +204,16 @@ public class ReachingDefState implements AbstractState, Serializable,
 
   @Override
   public ReachingDefState join(ReachingDefState toJoin) {
-    Map<String, Set<DefinitionPoint>> newLocal = null;
+    Map<MemoryLocation, Set<DefinitionPoint>> newLocal;
     boolean changed = false;
-    ReachingDefState lastFunctionCall;
     if (toJoin == this) {
       return this;
     }
     if (toJoin == topElement || this == topElement) {
       return topElement;
     }
-    if (stateOnLastFunctionCall != toJoin.stateOnLastFunctionCall) {
-      lastFunctionCall = mergeStackStates(stateOnLastFunctionCall, toJoin.stateOnLastFunctionCall);
-      if (lastFunctionCall == topElement) {
-        return topElement;
-      }
-      if (lastFunctionCall != stateOnLastFunctionCall) {
-        changed = true;
-      } else {
-        lastFunctionCall = toJoin.stateOnLastFunctionCall;
-      }
-    } else {
-      lastFunctionCall = toJoin.stateOnLastFunctionCall;
-    }
 
-    Map<String, Set<DefinitionPoint>> resultOfMapUnion;
+    Map<MemoryLocation, Set<DefinitionPoint>> resultOfMapUnion;
     resultOfMapUnion = unionMaps(localReachDefs, toJoin.localReachDefs);
     if (resultOfMapUnion == localReachDefs) {
       newLocal = toJoin.localReachDefs;
@@ -214,77 +231,44 @@ public class ReachingDefState implements AbstractState, Serializable,
 
     if (changed) {
       assert (newLocal != null);
-      return new ReachingDefState(newLocal, resultOfMapUnion, lastFunctionCall);
+      return new ReachingDefState(newLocal, resultOfMapUnion);
     }
     return toJoin;
   }
 
-  private ReachingDefState mergeStackStates(ReachingDefState e1, ReachingDefState e2) {
-    List<ReachingDefState> statesToMerge = new ArrayList<>();
-    do {
-      if (e1.stateOnLastFunctionCall == null || e2.stateOnLastFunctionCall == null) {
-        return topElement;
-      }
-      statesToMerge.add(e1);
-      statesToMerge.add(e2);
-      e1 = e1.stateOnLastFunctionCall;
-      e2 = e2.stateOnLastFunctionCall;
-    } while (e1 != e2);
-
-    boolean changed = false;
-    Map<String, Set<DefinitionPoint>> resultOfMapUnion;
-    Map<String, Set<DefinitionPoint>> newLocal;
-    ReachingDefState newStateOnLastFunctionCall = e1;
-
-    for (int i = statesToMerge.size() - 1; i >= 0; i = i - 2) {
-      resultOfMapUnion = unionMaps(statesToMerge.get(i - 1).localReachDefs, statesToMerge.get(i).localReachDefs);
-      if (resultOfMapUnion != statesToMerge.get(i - 1).localReachDefs) {
-        changed = true;
-        newLocal = resultOfMapUnion;
-      } else {
-        newLocal = statesToMerge.get(i).localReachDefs;
-      }
-
-      resultOfMapUnion = unionMaps(statesToMerge.get(i - 1).globalReachDefs, statesToMerge.get(i).globalReachDefs);
-      if (resultOfMapUnion != statesToMerge.get(i - 1).globalReachDefs) {
-        changed = true;
-      } else {
-        resultOfMapUnion = statesToMerge.get(i).globalReachDefs;
-      }
-      if (!isSubsetOf(statesToMerge.get(i).globalReachDefs, resultOfMapUnion)) {
-        isSubsetOf(statesToMerge.get(i).globalReachDefs, resultOfMapUnion);
-      }
-      newStateOnLastFunctionCall = new ReachingDefState(newLocal, resultOfMapUnion, newStateOnLastFunctionCall);
-    }
-
-    if (changed) { return newStateOnLastFunctionCall; }
-    return statesToMerge.get(0);
-  }
-
-  private Map<String, Set<DefinitionPoint>> unionMaps(Map<String, Set<DefinitionPoint>> map1,
-      Map<String, Set<DefinitionPoint>> map2) {
-    Map<String, Set<DefinitionPoint>> newMap = new HashMap<>();
-    // every declared local variable of a function, global variable occurs in respective map, possibly undefined
-    assert (map1.keySet().equals(map2.keySet()));
+  private Map<MemoryLocation, Set<DefinitionPoint>> unionMaps(
+      Map<MemoryLocation, Set<DefinitionPoint>> map1,
+      Map<MemoryLocation, Set<DefinitionPoint>> map2) {
+    Map<MemoryLocation, Set<DefinitionPoint>> newMap = new HashMap<>();
     if (map1==map2) {
       return map1;
     }
     Set<DefinitionPoint> unionResult;
     boolean changed = false;
-    for (Entry<String, Set<DefinitionPoint>> entry : map1.entrySet()) {
-      String var = entry.getKey();
+    Set<MemoryLocation> variableUnion = Sets.union(map1.keySet(), map2.keySet());
+    for (MemoryLocation var : variableUnion) {
+      Set<DefinitionPoint> defPoints1 = map1.get(var);
+      Set<DefinitionPoint> defPoints2 = map2.get(var);
       // decrease merge time, avoid building union if unnecessary
-      if (entry.getValue() == map2.get(var)) {
-        newMap.put(var, map2.get(var));
+      if (defPoints1 == defPoints2) {
+        assert defPoints1 != null;
+        newMap.put(var, defPoints1);
         continue;
       }
-      unionResult = unionSets(entry.getValue(), map2.get(var));
-      if (unionResult.size() != map2.get(var).size()) {
+      if (defPoints1 == null) {
+        defPoints1 = Collections.emptySet();
+      } else if (defPoints2 == null) {
+        defPoints2 = Collections.emptySet();
+      }
+      unionResult = unionSets(defPoints1, defPoints2);
+      if (unionResult.size() != defPoints1.size() || unionResult.size() != defPoints2.size()) {
+        assert unionResult.size() >= defPoints1.size()
+            && unionResult.size() >= defPoints2
+                .size() : "Union of map1 and map2 shouldn't be able to shrink!";
         changed = true;
       }
       newMap.put(var, unionResult);
     }
-    assert (map1.keySet().equals(newMap.keySet()));
     if (changed) { return newMap; }
     return map1;
   }
@@ -309,13 +293,13 @@ public class ReachingDefState implements AbstractState, Serializable,
     out.defaultWriteObject();
 
     out.writeInt(localReachDefs.size());
-    for(Entry<String, Set<DefinitionPoint>> localReach : localReachDefs.entrySet()){
+    for (Entry<MemoryLocation, Set<DefinitionPoint>> localReach : localReachDefs.entrySet()) {
       out.writeObject(localReach.getKey());
       out.writeObject(localReach.getValue());
     }
 
     out.writeInt(globalReachDefs.size());
-    for(Entry<String, Set<DefinitionPoint>> globalReach : globalReachDefs.entrySet()){
+    for (Entry<MemoryLocation, Set<DefinitionPoint>> globalReach : globalReachDefs.entrySet()) {
       out.writeObject(globalReach.getKey());
       out.writeObject(globalReach.getValue());
     }
@@ -330,14 +314,14 @@ public class ReachingDefState implements AbstractState, Serializable,
     localReachDefs = Maps.newHashMapWithExpectedSize(size);
 
     for(int i=0;i<size;i++){
-      localReachDefs.put((String) in.readObject(), (Set<DefinitionPoint>)in.readObject());
+      localReachDefs.put((MemoryLocation) in.readObject(), (Set<DefinitionPoint>) in.readObject());
     }
 
     size = in.readInt();
     globalReachDefs = Maps.newHashMapWithExpectedSize(size);
 
     for(int i=0;i<size;i++){
-      globalReachDefs.put((String) in.readObject(), (Set<DefinitionPoint>)in.readObject());
+      globalReachDefs.put((MemoryLocation) in.readObject(), (Set<DefinitionPoint>) in.readObject());
     }
   }
 
@@ -376,6 +360,16 @@ public class ReachingDefState implements AbstractState, Serializable,
 
     private Object writeReplace() {
       return writeReplace;
+    }
+
+    @Override
+    public int hashCode() {
+      return 0;
+    }
+
+    @Override
+    public boolean equals(Object pO) {
+      return pO instanceof UninitializedDefinitionPoint;
     }
 
     private static class SerialProxy implements Serializable {
@@ -488,21 +482,18 @@ public class ReachingDefState implements AbstractState, Serializable,
     sb.append(createStringOfMap(localReachDefs));
     sb.append("\\n");
 
-    sb.append(System.identityHashCode(stateOnLastFunctionCall));
-    sb.append("\\n");
-
     sb.append("}");
 
     return sb.toString();
   }
 
-  private String createStringOfMap(Map<String, Set<DefinitionPoint>> map) {
+  private String createStringOfMap(Map<MemoryLocation, Set<DefinitionPoint>> map) {
     StringBuilder sb = new StringBuilder();
     sb.append(" [");
 
     boolean first=true;
 
-    for (Entry<String, Set<DefinitionPoint>> entry : map.entrySet()) {
+    for (Entry<MemoryLocation, Set<DefinitionPoint>> entry : map.entrySet()) {
       if (first) {
         first = false;
       } else {

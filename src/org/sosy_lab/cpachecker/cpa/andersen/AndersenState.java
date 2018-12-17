@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.andersen;
 
 import java.util.Map;
-
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.cpa.andersen.util.BaseConstraint;
 import org.sosy_lab.cpachecker.cpa.andersen.util.ComplexConstraint;

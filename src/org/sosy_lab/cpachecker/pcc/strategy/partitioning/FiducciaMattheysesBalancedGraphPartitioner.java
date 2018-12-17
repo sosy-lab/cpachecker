@@ -28,7 +28,6 @@ package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;

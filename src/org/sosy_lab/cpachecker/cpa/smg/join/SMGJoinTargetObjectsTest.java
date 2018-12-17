@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,14 +27,15 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 
 public class SMGJoinTargetObjectsTest {
   private SMG smg1;
@@ -45,11 +46,11 @@ public class SMGJoinTargetObjectsTest {
   private SMGNodeMapping mapping2;
 
   final private SMGObject obj1 = new SMGRegion(64, "ze label");
-  final private Integer value1 = SMGValueFactory.getNewValue();
+  private final SMGSymbolicValue value1 = SMGKnownSymValue.of();
   final private SMGEdgePointsTo pt1 = new SMGEdgePointsTo(value1, obj1, 0);
 
   final private SMGObject obj2 = new SMGRegion(64, "ze label");
-  final private Integer value2 = SMGValueFactory.getNewValue();
+  private final SMGSymbolicValue value2 = SMGKnownSymValue.of();
   final private SMGEdgePointsTo pt2 = new SMGEdgePointsTo(value2, obj2, 0);
 
   final private SMGObject destObj = new SMGRegion(64, "destination");
@@ -75,11 +76,11 @@ public class SMGJoinTargetObjectsTest {
     smg2.addPointsToEdge(pt2);
 
     SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0,0, 0, false, null, null);
-    Assert.assertSame(jto.getMapping1().get(obj1), jto.getMapping2().get(obj2));
-    //TODO investigate why they should not be the same, regions are immutable
-    //Assert.assertNotSame(jto.getMapping1().get(obj1), obj1);
-    Assert.assertEquals(((SMGRegion)jto.getMapping1().get(obj1)).getLabel(), ((SMGRegion)obj1).getLabel());
-    Assert.assertEquals(((SMGRegion)jto.getMapping1().get(obj1)).getSize(), ((SMGRegion)obj1).getSize());
+    Assert.assertSame(jto.mapping1.get(obj1), jto.mapping2.get(obj2));
+    // TODO investigate why they should not be the same, regions are immutable
+    // Assert.assertNotSame(jto.mapping1.get(obj1), obj1);
+    Assert.assertEquals(jto.mapping1.get(obj1).getLabel(), obj1.getLabel());
+    Assert.assertEquals(jto.mapping1.get(obj1).getSize(), obj1.getSize());
   }
 
   @Test
@@ -90,7 +91,23 @@ public class SMGJoinTargetObjectsTest {
 
     SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, obj1, SMGNullObject.INSTANCE);
     Assert.assertFalse(mo.isDefined());
-    SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, SMG.NULL_ADDRESS, 0, 0, 0, false, null, null);
+    SMGJoinTargetObjects jto =
+        new SMGJoinTargetObjects(
+            SMGJoinStatus.EQUAL,
+            smg1,
+            smg2,
+            destSMG,
+            mapping1,
+            mapping2,
+            SMGLevelMapping.createDefaultLevelMap(),
+            value1,
+            SMGZeroValue.INSTANCE,
+            0,
+            0,
+            0,
+            false,
+            null,
+            null);
     Assert.assertFalse(jto.isDefined());
     Assert.assertTrue(jto.isRecoverable());
   }
@@ -126,17 +143,23 @@ public class SMGJoinTargetObjectsTest {
     smg1.addPointsToEdge(pt1null);
     smg2.addPointsToEdge(pt2null);
 
-    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(new SMG(smg1), new SMG(smg2), new SMG(destSMG), new SMGNodeMapping(mapping1),
-                                                      new SMGNodeMapping(mapping2), value1,
-                                                      value2);
+    SMGJoinMapTargetAddress mta =
+        new SMGJoinMapTargetAddress(
+            smg1.copyOf(),
+            smg2.copyOf(),
+            destSMG.copyOf(),
+            new SMGNodeMapping(mapping1),
+            new SMGNodeMapping(mapping2),
+            value1,
+            value2);
     SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0, 0, 0, false, null, null);
     Assert.assertTrue(jto.isDefined());
     Assert.assertEquals(SMGJoinStatus.EQUAL, jto.getStatus());
     Assert.assertSame(smg1, jto.getInputSMG1());
     Assert.assertSame(smg2, jto.getInputSMG2());
     Assert.assertEquals(mta.getSMG(), jto.getDestinationSMG());
-    Assert.assertEquals(mta.getMapping1(), jto.getMapping1());
-    Assert.assertEquals(mta.getMapping2(), jto.getMapping2());
+    Assert.assertEquals(mta.mapping1, jto.mapping1);
+    Assert.assertEquals(mta.mapping2, jto.mapping2);
     Assert.assertEquals(mta.getValue(), jto.getValue());
   }
 
@@ -166,12 +189,12 @@ public class SMGJoinTargetObjectsTest {
     Assert.assertSame(smg2, jto.getInputSMG2());
     // TODO: Not equal, but isomorphic (newly created values differ in mta and jto)
     //       But we currently do not have isomorphism
-    //Assert.assertEquals(mta.getSMG(), jto.getDestinationSMG());
+    // Assert.assertEquals(mta.getSMG(), jto.getDestinationSMG());
 
-    Assert.assertTrue(jto.getMapping1().containsKey(value1));
-    Assert.assertEquals(jto.getMapping1().get(value1), jto.getValue());
+    Assert.assertTrue(jto.mapping1.containsKey(value1));
+    Assert.assertEquals(jto.mapping1.get(value1), jto.getValue());
 
-    Assert.assertTrue(jto.getMapping2().containsKey(value2));
-    Assert.assertEquals(jto.getMapping2().get(value2), jto.getValue());
+    Assert.assertTrue(jto.mapping2.containsKey(value2));
+    Assert.assertEquals(jto.mapping2.get(value2), jto.getValue());
   }
 }

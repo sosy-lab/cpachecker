@@ -20,8 +20,11 @@
         <!-- Dependencies needed for benchmarking. -->
         <conf name="benchmark" />
 
-        <!-- Dependencies needed for running FindBugs. -->
-        <conf name="findbugs" />
+        <!-- Dependencies needed for running SpotBugs. -->
+        <conf name="spotbugs" />
+
+        <!-- Dependencies needed for running CheckStyle. -->
+        <conf name="checkstyle" />
 
         <!-- Additional files like JavaDocs or source code that will help developers.
              These are not downloaded by default, but only when "ant install-contrib" is called. -->
@@ -31,14 +34,13 @@
     <dependencies>
 
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.3000-187-g5f3c28a" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.3000-343-gafbf75e" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="23.4-jre" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava" rev="27.0.1-jre" conf="runtime->default; contrib->sources"/>
 
-        <!-- Temporary dependency on llvm-lib will be replaced by llvm-j -->
-        <dependency org="org.sosy_lab" name="llvm-lib" rev="3.9.1" conf="runtime->llvm;"/>
+        <dependency org="org.sosy_lab" name="llvm-j" rev="0.3.1-15-gdb8139f" conf="runtime->runtime; contrib->sources"/>
 
         <!-- JavaBDD
              Java BDD library for predicate abstraction (uses CUDD). -->
@@ -52,9 +54,12 @@
              Change version number in build/build-ivy.xml for upgrading. -->
         <dependency org="org.apache.ivy" name="ivy" rev="${ivy.target_version}" conf="build->default"/>
 
+        <!-- Annotations we use for @Nullable etc. -->
+        <dependency org="org.checkerframework" name="checker-qual" rev="2.5.2" conf="runtime->default; contrib->sources"/>
+
         <!-- JFlex Scanner generator
              Used for generating automaton and FQL scanners. -->
-        <dependency org="de.jflex" name="jflex" rev="1.6.1" conf="build->default" transitive="false"/>
+        <dependency org="de.jflex" name="jflex" rev="1.7.0" conf="build->default" transitive="false"/>
 
         <!-- CUP LALR Parser Generator for Java
              Used for generating automaton and FQL parsers. -->
@@ -71,52 +76,75 @@
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="2.12.0" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="2.23.4" conf="test->default"/>
+
+        <!-- Antlr
+             Parser generator. -->
+        <dependency org="org.antlr" name="antlr4" rev="4.7.1" conf="build->default; contrib->sources"/>
+        <dependency org="org.antlr" name="antlr4-runtime" rev="4.7.1" conf="runtime->default"/>
+
+        <!-- JHOAFParser
+             Library for parsing strings and files in 'Hanoi Omega-Automata' (HOA) format. -->
+        <dependency org="jhoafparser" name="jhoafparser" rev="1.1.1" conf="runtime->runtime"/>
 
         <!-- Truth
              Library for writing literal assertions. -->
-        <dependency org="com.google.truth" name="truth" rev="0.36" conf="test->default; contrib->sources"/>
-        <dependency org="com.google.truth.extensions" name="truth-java8-extension" rev="0.36" conf="test->default; contrib->sources"/>
+        <dependency org="com.google.truth" name="truth" rev="0.42" conf="test->default; contrib->sources"/>
+        <dependency org="com.google.truth.extensions" name="truth-java8-extension" rev="0.42" conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
-        <dependency org="com.google.guava" name="guava-testlib" rev="23.4-jre" conf="test->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava-testlib" rev="27.0.1-jre" conf="test->default; contrib->sources"/>
 
         <!-- Eclipse CDT and JDT
              Used for parsing C and Java code. -->
-        <dependency org="org.eclipse.cdt" name="core" rev="5.11.0.201602051005" conf="runtime->default; contrib->sources"/>
-        <dependency org="org.eclipse.jdt" name="core" rev="3.11.0.v20150602-1242" conf="runtime->default; contrib->sources"/>
+        <dependency org="org.eclipse.cdt" name="core" rev="6.4.0.201802122019" conf="runtime->default; contrib->sources"/>
+        <dependency org="org.eclipse.jdt" name="core" rev="3.13.100.v20171123-1049" conf="runtime->default; contrib->sources"/>
 
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->
-        <dependency org="com.google.errorprone" name="error_prone_ant" rev="2.1.2" transitive="false" conf="build->default" />
-        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.1.2" conf="build->default; contrib->sources" />
+        <dependency org="com.google.errorprone" name="error_prone_core" rev="2.3.2" conf="build->default" />
+        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.3.2" conf="build->default; contrib->sources" />
 
         <!-- Eclipse JDT Compiler
              For additional compiler warnings. -->
-        <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.7" conf="build->default"/>
+        <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.9" conf="build->default"/>
 
         <!-- google-java-format
              A source-code formatter for Java -->
-        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.5" conf="format-source->default"/>
+        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.6" conf="format-source->default"/>
 
-        <!-- FindBugs -->
-        <dependency org="com.google.code.findbugs" name="findbugs" rev="3.0.1" conf="findbugs->default"/>
-        <dependency org="com.google.code.findbugs" name="annotations" rev="3.0.1" conf="build->default"/>
+        <!-- SpotBugs -->
+        <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="3.1.9" conf="spotbugs->default"/>
+        <!-- JAR with annotations needs to be present at runtime because we use Nullable.class -->
+        <dependency org="com.github.spotbugs" name="spotbugs-annotations" rev="3.1.9" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.google.code.findbugs" name="jsr305" rev="3.0.2" conf="runtime->default; contrib->sources"/>
+
+        <!-- Checkstyle -->
+        <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.32.0" conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="javasmt" rev="1.0.1-170-g4e63747" conf="runtime->runtime; contrib->sources">
-          <!-- Old version of java-cup conflicts with our newer version of java-cup-runtime -->
-          <exclude org="net.sf.squirrel-sql.thirdparty-non-maven" module="java-cup"/>
-        </dependency>
+        <dependency org="org.sosy_lab" name="java-smt" rev="2.0.0-alpha-266-g80711a5" conf="runtime->runtime; contrib->sources"/>
 
         <!-- LassoRanker
              Synthesis of ranking functions for termination analysis. -->
         <dependency org="de.uni-freiburg.informatik.ultimate" name="lasso-ranker" rev="2016-09-06-rd1adfdb" conf="runtime->runtime; contrib->sources"/>
 
+        <dependency org="org.apache.xmlgraphics" name="batik-svggen" rev="1.9.1" conf="runtime->default; contrib->sources">
+            <exclude org="org.apache.xmlgraphics" module="xmlgraphics-commons"/>
+        </dependency>
+        <dependency org="org.apache.xmlgraphics" name="batik-dom" rev="1.9.1" conf="runtime->default; contrib->sources">
+            <exclude org="xml-apis" module="xml-apis-ext"/>
+            <exclude org="xml-apis" module="xml-apis"/>
+            <exclude org="xalan" module="xalan"/>
+            <exclude org="org.apache.xmlgraphics" module="batik-css"/>
+            <exclude org="org.apache.xmlgraphics" module="batik-util"/>
+        </dependency>
+
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
-        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.1.2"/>
+        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.3.2"/>
+
     </dependencies>
 </ivy-module>

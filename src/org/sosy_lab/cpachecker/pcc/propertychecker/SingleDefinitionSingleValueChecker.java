@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.pcc.propertychecker;
 
 import java.util.Collection;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PropertyChecker;
 

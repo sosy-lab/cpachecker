@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.blocking;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 class ReducedEdge {

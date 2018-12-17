@@ -23,16 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
+import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.logging.Level;
-
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
@@ -41,7 +42,6 @@ import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
@@ -49,9 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-
-import com.google.common.collect.SortedSetMultimap;
-import com.google.common.collect.TreeMultimap;
+import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * Builder to traverse AST. This Class has to be reusable for more ASTs.
@@ -67,7 +65,7 @@ class CFABuilder extends ASTVisitor {
 
   // Data structures for handling method declarations
   // private Queue<MethodDeclaration> methodDeclarations = new LinkedList<>();
-  private final SortedMap<String, FunctionEntryNode> cfas = new TreeMap<>();
+  private final NavigableMap<String, FunctionEntryNode> cfas = new TreeMap<>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
   private final Scope scope;
@@ -83,9 +81,10 @@ class CFABuilder extends ASTVisitor {
 
   /**
    * Retrieves list of all methods and constructors of program
+   *
    * @return all CFAs in the program
    */
-  public SortedMap<String, FunctionEntryNode> getCFAs() {
+  public NavigableMap<String, FunctionEntryNode> getCFAs() {
     return cfas;
   }
 

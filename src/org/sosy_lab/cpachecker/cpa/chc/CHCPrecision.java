@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.chc;
 
 import java.util.ArrayList;
-
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 

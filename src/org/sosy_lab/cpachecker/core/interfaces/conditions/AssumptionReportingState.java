@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.interfaces.conditions;
 
 import java.util.List;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
 
@@ -43,6 +42,6 @@ public interface AssumptionReportingState {
    *         representing the assumptions to generate
    *         for the given state
    */
-  public List<CExpression> getAssumptions();
+  List<CExpression> getAssumptions();
 
 }

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.Lists;
-
 import java.util.Collections;
 import java.util.List;
 

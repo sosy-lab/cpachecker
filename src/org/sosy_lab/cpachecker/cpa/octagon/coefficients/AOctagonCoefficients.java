@@ -51,8 +51,8 @@ public abstract class AOctagonCoefficients implements IOctagonCoefficients {
     return prime * result;
   }
 
-  abstract protected IOctagonCoefficients mulInner(IOctagonCoefficients oct);
-  abstract protected IOctagonCoefficients divInner(IOctagonCoefficients oct);
+  abstract protected IOctagonCoefficients mulInner(IOctagonCoefficients pOct);
+  abstract protected IOctagonCoefficients divInner(IOctagonCoefficients pOct);
 
   @Override
   final public IOctagonCoefficients mul(IOctagonCoefficients other) {

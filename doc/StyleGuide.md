@@ -4,7 +4,7 @@ Style & Coding Guide
 The style guide of this project is the [Google Java Style](https://google.github.io/styleguide/javaguide.html).
 
 Further guidelines that are worth reading:
-- Bloch: [Effective Java, 2nd Edition](http://www.amazon.com/Effective-Java-Edition-Joshua-Bloch/dp/0321356683/)
+- Bloch: [Effective Java, 3rd Edition](https://www.amazon.com/Effective-Java-3rd-Joshua-Bloch/dp/0134685997)
 - [Guava User Guide](https://github.com/google/guava/wiki)
 
 Some additional information can be found in other files

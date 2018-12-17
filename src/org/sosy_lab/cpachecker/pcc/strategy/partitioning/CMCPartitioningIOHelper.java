@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 
+import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -32,10 +33,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
-
-import javax.annotation.Nullable;
-
-import org.sosy_lab.cpachecker.util.Pair;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -44,8 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy.PCStrategyStatistics;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
-
-import com.google.common.base.Preconditions;
+import org.sosy_lab.cpachecker.util.Pair;
 
 
 public class CMCPartitioningIOHelper extends PartitioningIOHelper{

@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorklistEntryComparator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -91,11 +92,11 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
@@ -481,9 +482,6 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
         logger.log(Level.INFO, "cexi is Present");
       }
 
-      @SuppressWarnings("unused")
-      Map<ARGState, CounterexampleInfo> counterexamples = lARTCPA.getCounterexamples();
-
       Region testCasePresenceCondition = bddUtils.getRegionFromWrappedBDDstate(lastState);
 
       if (!cexi.isPresent()/* counterexamples.isEmpty() */) {
@@ -675,7 +673,9 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
     Map<String, BigInteger> inputValues = values.extractInputValues(cex);
     Map<String, BigInteger> outputValus = values.extractOutputValues(cex);
     // calcualte shrinked error path
-    List<CFAEdge> shrinkedErrorPath = new ErrorPathShrinker().shrinkErrorPath(cex.getTargetPath());
+    List<Pair<CFAEdgeWithAssumptions, Boolean>> shrinkedErrorPath =
+        new ErrorPathShrinker()
+            .shrinkErrorPath(cex.getTargetPath(), cex.getCFAPathWithAssignments());
     TestCase testcase =
         new TestCase(
             currentTestCaseID,
@@ -951,10 +951,10 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
     // Try to reconstruct a trace in the ARG and shrink it
     ARGState argState = AbstractStates.extractStateByType(lastState, ARGState.class);
     ARGPath path = ARGUtils.getOnePathTo(argState);
-    List<CFAEdge> shrinkedErrorPath = null;
-
+    // List<CFAEdge> shrinkedErrorPath = null;
     if (path != null) {
-      shrinkedErrorPath = new ErrorPathShrinker().shrinkErrorPath(path);
+      // cannot shrink error path without conterexample
+      // shrinkedErrorPath = new ErrorPathShrinker().shrinkErrorPath(path);
     }
 
     Collection<ARGState> parents;
@@ -992,7 +992,7 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
             inputValues,
             outputValues,
             trace,
-            shrinkedErrorPath,
+            null,
             pPresenceCondition,
             bddUtils);
     currentTestCaseID++;

@@ -48,8 +48,7 @@ class CParserWithPreprocessor implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(String pFilename)
-      throws ParserException, IOException, InterruptedException {
+  public ParseResult parseFile(String pFilename) throws ParserException, InterruptedException {
     String programCode = preprocessor.preprocess(pFilename);
     if (programCode.isEmpty()) {
       throw new CParserException("Preprocessor returned empty program");
@@ -74,8 +73,7 @@ class CParserWithPreprocessor implements CParser {
 
   @Override
   public ParseResult parseString(
-      String pFilename, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
-      throws CParserException {
+      String pFilename, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope) {
     // TODO
     throw new UnsupportedOperationException();
   }
@@ -92,7 +90,7 @@ class CParserWithPreprocessor implements CParser {
 
   @Override
   public ParseResult parseFile(List<String> pFilenames)
-      throws CParserException, IOException, InterruptedException {
+      throws CParserException, InterruptedException {
 
     List<FileContentToParse> programs = new ArrayList<>(pFilenames.size());
     for (String f : pFilenames) {
@@ -107,8 +105,7 @@ class CParserWithPreprocessor implements CParser {
 
   @Override
   public ParseResult parseString(
-      List<FileContentToParse> pCode, CSourceOriginMapping sourceOriginMapping)
-      throws CParserException {
+      List<FileContentToParse> pCode, CSourceOriginMapping sourceOriginMapping) {
     // TODO
     throw new UnsupportedOperationException();
   }

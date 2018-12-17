@@ -78,7 +78,7 @@ public final class CTypeIdExpression extends AbstractExpression implements CExpr
 
     private final String cRepresentation;
 
-    private TypeIdOperator(String pCRepresentation) {
+    TypeIdOperator(String pCRepresentation) {
       cRepresentation = pCRepresentation;
     }
 
@@ -91,6 +91,11 @@ public final class CTypeIdExpression extends AbstractExpression implements CExpr
   }
 
   @Override
+  public String toASTString(boolean pQualified) {
+    return toASTString();
+  }
+
+  @Override
   public String toASTString() {
     return operator.getOperator() + "(" + type.toASTString("") + ")";
   }
@@ -100,12 +105,7 @@ public final class CTypeIdExpression extends AbstractExpression implements CExpr
    */
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    result = prime * result + Objects.hashCode(operator);
-    result = prime * result + Objects.hashCode(type);
-    result = prime * result + super.hashCode();
-    return result;
+    return Objects.hash(operator, type) * 31 + super.hashCode();
   }
 
   /* (non-Javadoc)

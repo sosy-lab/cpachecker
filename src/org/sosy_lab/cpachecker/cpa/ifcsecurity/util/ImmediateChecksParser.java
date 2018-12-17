@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.util;
 
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Variable;
-
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -34,6 +31,8 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Variable;
 
 /**
  * Used for Parsing those Variables/functions that should be checked for security violation at every state and not only at the end.

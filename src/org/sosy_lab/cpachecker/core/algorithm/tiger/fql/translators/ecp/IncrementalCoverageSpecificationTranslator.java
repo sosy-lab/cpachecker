@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
-
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Atom;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Paths;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.coveragespecification.Concatenation;

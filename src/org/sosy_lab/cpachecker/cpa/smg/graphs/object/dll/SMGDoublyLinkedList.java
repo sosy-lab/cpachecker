@@ -75,7 +75,6 @@ public class SMGDoublyLinkedList extends SMGAbstractList<SMGDoublyLinkedListShap
 
   @Override
   protected SMGDoublyLinkedList copy(int newLength, int newLevel) {
-    return new SMGDoublyLinkedList(
-        new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), newLength, newLevel));
+    return new SMGDoublyLinkedList(getSize(), getHfo(), getNfo(), getPfo(), newLength, newLevel);
   }
 }

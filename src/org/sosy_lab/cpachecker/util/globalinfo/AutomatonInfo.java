@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.globalinfo;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;

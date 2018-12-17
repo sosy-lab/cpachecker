@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,13 +27,13 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
 /**
  * Prints some BAM related statistics
  */
-class BAMCPAStatistics extends AbstractStatistics {
+class BAMCPAStatistics implements Statistics {
 
   private final AbstractBAMCPA cpa;
   private List<BAMBasedRefiner> refiners = new ArrayList<>();
@@ -54,13 +54,12 @@ class BAMCPAStatistics extends AbstractStatistics {
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
 
-    TimedReducer reducer = cpa.getReducer();
     put(out, "Number of blocks", cpa.getBlockPartitioning().getBlocks().size());
     put(out, "Time for building block partitioning", cpa.blockPartitioningTimer);
-    put(out, 0, reducer.reduceTime);
-    put(out, 0, reducer.expandTime);
-    put(out, 0, reducer.reducePrecisionTime);
-    put(out, 0, reducer.expandPrecisionTime);
+    put(out, 0, cpa.reducerStatistics.reduceTime);
+    put(out, 0, cpa.reducerStatistics.expandTime);
+    put(out, 0, cpa.reducerStatistics.reducePrecisionTime);
+    put(out, 0, cpa.reducerStatistics.expandPrecisionTime);
 
     for (BAMBasedRefiner refiner : refiners) {
       // TODO We print these statistics also for use-cases of BAM-refiners, that never use timers. Can we ignore them?

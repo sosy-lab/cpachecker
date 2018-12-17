@@ -24,11 +24,14 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -43,27 +46,29 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class BlockFormulaStrategy {
 
   public static class BlockFormulas {
-    private List<BooleanFormula> formulas;
-    private BooleanFormula branchingFormula;
+    private final ImmutableList<BooleanFormula> formulas;
+    private @Nullable BooleanFormula branchingFormula;
 
     public BlockFormulas(List<BooleanFormula> pFormulas) {
-      this.formulas = pFormulas;
+      this.formulas = ImmutableList.copyOf(pFormulas);
     }
 
     public BlockFormulas(List<BooleanFormula> pFormulas, BooleanFormula pBranchingFormula) {
-      this.formulas = pFormulas;
+      this(pFormulas);
       this.branchingFormula = pBranchingFormula;
     }
 
     public BlockFormulas withBranchingFormula(BooleanFormula pBranchingFormula) {
+      checkState(branchingFormula == null);
       return new BlockFormulas(this.formulas, pBranchingFormula);
     }
 
-    public List<BooleanFormula> getFormulas() {
+    public ImmutableList<BooleanFormula> getFormulas() {
       return formulas;
     }
 
     public BooleanFormula getBranchingFormula() {
+      checkState(branchingFormula != null);
       return branchingFormula;
     }
 
@@ -73,6 +78,11 @@ public class BlockFormulaStrategy {
 
     public boolean hasBranchingFormula() {
       return branchingFormula != null;
+    }
+
+    @Override
+    public String toString() {
+      return "BlockFormulas " + getFormulas();
     }
   }
 

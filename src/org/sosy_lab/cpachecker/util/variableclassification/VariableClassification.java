@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.variableclassification;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -56,6 +57,7 @@ public class VariableClassification implements Serializable {
   private final Set<String> intBoolVars;
   private final Set<String> intEqualVars;
   private final Set<String> intAddVars;
+  private final Set<String> intOverflowVars;
 
   /** These sets contain all variables even ones of array, pointer or structure types.
    *  Such variables cannot be classified even as Int, so they are only kept in these sets in order
@@ -90,6 +92,7 @@ public class VariableClassification implements Serializable {
       Set<String> pIntBoolVars,
       Set<String> pIntEqualVars,
       Set<String> pIntAddVars,
+      Set<String> pIntOverflowVars,
       Set<String> pRelevantVariables,
       Set<String> pAddressedVariables,
       Multimap<CCompositeType, String> pRelevantFields,
@@ -106,6 +109,7 @@ public class VariableClassification implements Serializable {
     intBoolVars = ImmutableSet.copyOf(pIntBoolVars);
     intEqualVars = ImmutableSet.copyOf(pIntEqualVars);
     intAddVars = ImmutableSet.copyOf(pIntAddVars);
+    intOverflowVars = ImmutableSet.copyOf(pIntOverflowVars);
     relevantVariables = ImmutableSet.copyOf(pRelevantVariables);
     addressedVariables = ImmutableSet.copyOf(pAddressedVariables);
     relevantFields = ImmutableSetMultimap.copyOf(pRelevantFields);
@@ -124,20 +128,21 @@ public class VariableClassification implements Serializable {
   public static VariableClassification empty(LogManager pLogger) {
     return new VariableClassification(
         false,
-        ImmutableSet.<String>of(),
-        ImmutableSet.<String>of(),
-        ImmutableSet.<String>of(),
-        ImmutableSet.<String>of(),
-        ImmutableSet.<String>of(),
-        ImmutableSetMultimap.<CCompositeType, String>of(),
-        ImmutableSetMultimap.<CCompositeType, String>of(),
-        ImmutableSet.<Partition>of(),
-        ImmutableSet.<Partition>of(),
-        ImmutableSet.<Partition>of(),
-        ImmutableSet.<Partition>of(),
-        ImmutableTable.<CFAEdge, Integer, Partition>of(),
-        ImmutableMultiset.<String>of(),
-        ImmutableMultiset.<String>of(),
+        ImmutableSet.of(),
+        ImmutableSet.of(),
+        ImmutableSet.of(),
+        ImmutableSet.of(),
+        ImmutableSet.of(),
+        ImmutableSet.of(),
+        ImmutableSetMultimap.of(),
+        ImmutableSetMultimap.of(),
+        ImmutableSet.of(),
+        ImmutableSet.of(),
+        ImmutableSet.of(),
+        ImmutableSet.of(),
+        ImmutableTable.of(),
+        ImmutableMultiset.of(),
+        ImmutableMultiset.of(),
         pLogger);
   }
 
@@ -231,6 +236,15 @@ public class VariableClassification implements Serializable {
     return intAddVars;
   }
 
+  /**
+   * This function returns a collection of scoped names. This collection contains all vars that are
+   * used in calculations that can lead to an overflow (+, -, *, /, %, <<). This collection may
+   * contain any variable from "IntBool", "IntEq" or "IntAdd".
+   */
+  public Set<String> getIntOverflowVars() {
+    return intOverflowVars;
+  }
+
   /** This function returns a collection of partitions.
    * Each partition contains only vars, that are used in simple calculations.
    * This collection does not contains anypartition from "IntBool" or "IntEq". */
@@ -294,6 +308,7 @@ public class VariableClassification implements Serializable {
    * where it is the position of the param.
    * For the left-hand-side of the assignment of external functionCalls use -1. */
   private Partition getPartitionForEdge(CFAEdge edge, int index) {
+    checkNotNull(edge);
     return edgeToPartitions.get(edge, index);
   }
 
@@ -309,16 +324,16 @@ public class VariableClassification implements Serializable {
    */
   public int obtainDomainTypeScoreForVariables(Collection<String> variableNames,
       Optional<LoopStructure> loopStructure) {
-    final int BOOLEAN_VAR   = 2;
-    final int INTEQUAL_VAR  = 4;
-    final int UNKNOWN_VAR   = 16;
+    final int BOOLEAN_VAR = 1;
+    final int INTEQUAL_VAR = 2;
+    final int UNKNOWN_VAR = 4;
 
+    checkNotNull(loopStructure);
     if(variableNames.isEmpty()) {
       return UNKNOWN_VAR;
     }
 
     int newScore = 1;
-    int oldScore = newScore;
     for (String variableName : variableNames) {
       int factor = UNKNOWN_VAR;
 
@@ -329,7 +344,7 @@ public class VariableClassification implements Serializable {
         factor = INTEQUAL_VAR;
       }
 
-      newScore = newScore * factor;
+      newScore += factor;
 
       if (loopStructure.isPresent()
           && loopStructure.get().getLoopIncDecVariables().contains(variableName)) {
@@ -337,17 +352,18 @@ public class VariableClassification implements Serializable {
       }
 
       // check for overflow
-      if(newScore < oldScore) {
-        logger.logOnce(Level.WARNING,
+      if (newScore < 0) {
+        logger.logOnce(
+            Level.WARNING,
             "Highest possible value reached in score computation."
                 + " Error path prefix preference may not be applied reliably.");
-        logger.logf(Level.FINE,
+        logger.logf(
+            Level.FINE,
             "Overflow in score computation happened for variables %s.",
             variableNames.toString());
 
         return Integer.MAX_VALUE - 1;
       }
-      oldScore = newScore;
     }
 
     return newScore;
@@ -359,6 +375,7 @@ public class VariableClassification implements Serializable {
     str.append("\nIntBool  " + intBoolVars.size() + "\n    " + intBoolVars);
     str.append("\nIntEq  " + intEqualVars.size() + "\n    " + intEqualVars);
     str.append("\nIntAdd  " + intAddVars.size() + "\n    " + intAddVars);
+    str.append("\nIntOverflow  " + intOverflowVars.size() + "\n    " + intOverflowVars);
     return str.toString();
   }
 
@@ -368,6 +385,7 @@ public class VariableClassification implements Serializable {
         intBoolVars,
         intEqualVars,
         intAddVars,
+        intOverflowVars,
         relevantVariables,
         addressedVariables,
         relevantFields,

@@ -23,11 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-
-import java.util.List;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * Abstraction of a class that generates generic
@@ -41,7 +40,5 @@ public interface GenericAssumptionBuilder {
    * the pre-state of the edge.
    * @return A non-null, possibly empty list of predicates representing the assumptions
    */
-  List<CExpression> assumptionsForEdge(CFAEdge edge)
-      throws UnrecognizedCCodeException;
-
+  List<CExpression> assumptionsForEdge(CFAEdge edge) throws UnrecognizedCodeException;
 }

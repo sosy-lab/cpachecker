@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies;
 
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
-
 import java.util.SortedSet;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
 
 /**
  * A class for specifying the Bottom Policy for a given Domain according to Policy Algebra .

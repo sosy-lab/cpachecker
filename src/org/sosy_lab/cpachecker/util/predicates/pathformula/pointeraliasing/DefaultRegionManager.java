@@ -43,8 +43,8 @@ class DefaultRegionManager extends AbstractMemoryRegionManager implements Memory
     }
 
     @Override
-    public String getName() {
-      return CToFormulaConverterWithPointerAliasing.getPointerAccessNameForType(type);
+    public String getName(TypeHandlerWithPointerAliasing typeHandler) {
+      return typeHandler.getPointerAccessNameForType(type);
     }
 
     @Override
@@ -78,12 +78,6 @@ class DefaultRegionManager extends AbstractMemoryRegionManager implements Memory
 
   DefaultRegionManager(TypeHandlerWithPointerAliasing pTypeHandler) {
     super(pTypeHandler);
-  }
-
-  @Override
-  public String getPointerAccessName(MemoryRegion pRegion) {
-    checkNotNull(pRegion);
-    return pRegion.getName();
   }
 
   @Override

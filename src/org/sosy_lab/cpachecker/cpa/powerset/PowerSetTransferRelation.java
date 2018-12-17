@@ -28,7 +28,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -67,19 +67,19 @@ public class PowerSetTransferRelation extends SingleEdgeTransferRelation {
       throws CPATransferException, InterruptedException {
 
     PowerSetState setStates = (PowerSetState) state;
-    Collection<? extends AbstractState> strengtheningRes;
     Set<AbstractState> newStates =
         Sets.newHashSetWithExpectedSize(setStates.getWrappedStates().size());
 
     boolean changed = false;
 
     for (AbstractState stateInSet : setStates.getWrappedStates()) {
-      strengtheningRes = wrapperTransfer.strengthen(stateInSet,
-          Collections.singletonList(stateInSet), cfaEdge, precision);
+      Collection<? extends AbstractState> strengtheningRes =
+          wrapperTransfer.strengthen(
+              stateInSet, Collections.singletonList(stateInSet), cfaEdge, precision);
       if (strengtheningRes != null && strengtheningRes.size() > 0) {
         changed = true;
-      }
       newStates.addAll(strengtheningRes);
+    }
     }
 
 

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering;
 
 import java.util.List;
 import java.util.ListIterator;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPVisitor;

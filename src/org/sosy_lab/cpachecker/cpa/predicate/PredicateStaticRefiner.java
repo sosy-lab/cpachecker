@@ -72,10 +72,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -215,9 +215,9 @@ public class PredicateStaticRefiner extends StaticRefiner
     BlockFormulas formulas =
         blockFormulaStrategy.getFormulasForPath(
             allStatesTrace.getFirstState(), abstractionStatesTrace);
-    if(!formulas.hasBranchingFormula()) {
-      formulas = formulas.withBranchingFormula(
-          itpManager.buildBranchingFormula(elementsOnPath));
+    if (!formulas.hasBranchingFormula()) {
+      formulas =
+          formulas.withBranchingFormula(pathFormulaManager.buildBranchingFormula(elementsOnPath));
     }
 
     CounterexampleTraceInfo counterexample;
@@ -496,12 +496,14 @@ public class PredicateStaticRefiner extends StaticRefiner
         globalPredicates);
   }
 
-  private Collection<AbstractionPredicate> assumeEdgeToPredicates(boolean atomicPredicates, AssumeEdge assume) throws CPATransferException, InterruptedException {
+  private Collection<AbstractionPredicate> assumeEdgeToPredicates(
+      boolean pAtomicPredicates, AssumeEdge assume)
+      throws CPATransferException, InterruptedException {
     BooleanFormula relevantAssumesFormula = pathFormulaManager.makeAnd(
         pathFormulaManager.makeEmptyPathFormula(), assume).getFormula();
 
     Collection<AbstractionPredicate> preds;
-    if (atomicPredicates) {
+    if (pAtomicPredicates) {
       preds = predAbsManager.getPredicatesForAtomsOf(relevantAssumesFormula);
     } else {
       preds = ImmutableList.of(predAbsManager.getPredicateFor(relevantAssumesFormula));

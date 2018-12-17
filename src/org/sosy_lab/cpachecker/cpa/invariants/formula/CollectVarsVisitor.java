@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**

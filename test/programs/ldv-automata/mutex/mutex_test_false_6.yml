@@ -1,0 +1,6 @@
+format_version: "1.0"
+input_files: "mutex_test_false_6.c"
+properties:
+  - property_file: "../../../config/automata/ldv/mutex.spc"
+    expected_verdict: false
+

@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import java.util.Arrays;
-import java.util.List;
-
 import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
+import java.util.Arrays;
+import java.util.List;
 
 public interface AssignableTerm {
   TermType getType();

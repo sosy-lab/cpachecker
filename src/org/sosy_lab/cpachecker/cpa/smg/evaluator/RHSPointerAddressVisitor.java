@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -31,23 +32,30 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.smg.SMGBuiltins;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 class RHSPointerAddressVisitor extends PointerVisitor {
 
   private final SMGRightHandSideEvaluator smgRightHandSideEvaluator;
+  private final SMGTransferRelationKind kind;
 
-  public RHSPointerAddressVisitor(SMGRightHandSideEvaluator pSmgRightHandSideEvaluator, CFAEdge pEdge, SMGState pSmgState) {
+  public RHSPointerAddressVisitor(
+      SMGRightHandSideEvaluator pSmgRightHandSideEvaluator,
+      CFAEdge pEdge,
+      SMGState pSmgState,
+      SMGTransferRelationKind pKind) {
     super(pSmgRightHandSideEvaluator, pEdge, pSmgState);
     smgRightHandSideEvaluator = pSmgRightHandSideEvaluator;
+    kind = pKind;
   }
 
   @Override
-  protected SMGAddressValueAndStateList createAddressOfFunction(CIdExpression pIdFunctionExpression)
-      throws SMGInconsistentException {
+  protected List<SMGAddressValueAndState> createAddressOfFunction(
+      CIdExpression pIdFunctionExpression) throws SMGInconsistentException {
     SMGState state = getInitialSmgState();
     CFunctionDeclaration functionDcl = (CFunctionDeclaration) pIdFunctionExpression.getDeclaration();
     SMGObject functionObject = state.getObjectForFunction(functionDcl);
@@ -56,55 +64,27 @@ class RHSPointerAddressVisitor extends PointerVisitor {
       functionObject = state.createObjectForFunction(functionDcl);
     }
 
-    return smgRightHandSideEvaluator.createAddress(state, functionObject, SMGKnownExpValue.ZERO);
+    return smgRightHandSideEvaluator.createAddress(
+        state, functionObject, SMGZeroValue.INSTANCE);
   }
 
   @Override
-  public SMGAddressValueAndStateList visit(CFunctionCallExpression pIastFunctionCallExpression)
+  public List<SMGAddressValueAndState> visit(CFunctionCallExpression pIastFunctionCallExpression)
       throws CPATransferException {
     CExpression fileNameExpression = pIastFunctionCallExpression.getFunctionNameExpression();
     String functionName = fileNameExpression.toASTString();
 
-    SMGBuiltins builtins = smgRightHandSideEvaluator.smgTransferRelation.builtins;
+    SMGBuiltins builtins = smgRightHandSideEvaluator.builtins;
     if (builtins.isABuiltIn(functionName)) {
       if (builtins.isConfigurableAllocationFunction(functionName)) {
-        smgRightHandSideEvaluator.smgTransferRelation.possibleMallocFail = true;
-        SMGAddressValueAndStateList configAllocEdge = builtins.evaluateConfigurableAllocationFunction(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
-        return configAllocEdge;
+        return builtins.evaluateConfigurableAllocationFunction(
+            pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge(), kind);
       }
-      if (builtins.isExternalAllocationFunction(functionName)) {
-        SMGAddressValueAndStateList extAllocEdge = builtins.evaluateExternalAllocation(pIastFunctionCallExpression, getInitialSmgState());
-        return extAllocEdge;
-      }
-      switch (functionName) {
-      case "__builtin_alloca":
-        SMGAddressValueAndStateList allocEdge = builtins.evaluateAlloca(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
-        return allocEdge;
-      case "memset":
-        SMGAddressValueAndStateList memsetTargetEdge = builtins.evaluateMemset(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
-        return memsetTargetEdge;
-      case "memcpy":
-        SMGAddressValueAndStateList memcpyTargetEdge = builtins.evaluateMemcpy(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
-        return memcpyTargetEdge;
-      case "printf":
-        return SMGAddressValueAndStateList.of(getInitialSmgState());
-      default:
-        if (builtins.isNondetBuiltin(functionName)) {
-          return SMGAddressValueAndStateList.of(getInitialSmgState());
+      return builtins.handleBuiltinFunctionCall(
+          getCfaEdge(), pIastFunctionCallExpression, functionName, getInitialSmgState(), kind);
         } else {
-          throw new AssertionError("Unexpected function handled as a builtin: " + functionName);
+      return builtins.handleUnknownFunction(
+          getCfaEdge(), pIastFunctionCallExpression, functionName, getInitialSmgState());
         }
       }
-    } else {
-      switch (smgRightHandSideEvaluator.options.getHandleUnknownFunctions()) {
-      case STRICT:
-        throw new CPATransferException(
-            "Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
-      case ASSUME_SAFE:
-        return SMGAddressValueAndStateList.of(getInitialSmgState());
-      default:
-        throw new AssertionError("Unhandled enum value in switch: " + smgRightHandSideEvaluator.options.getHandleUnknownFunctions());
-      }
-    }
-  }
 }

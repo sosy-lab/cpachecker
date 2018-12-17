@@ -29,9 +29,9 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
@@ -40,7 +40,15 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   private final ARGPath path;
   private final StatTimer removeCachedSubtreeTimer;
 
-  public BAMReachedSet(AbstractBAMCPA cpa, ARGReachedSet pMainReachedSet, ARGPath pPath,
+  /**
+   * Constructor for a ReachedSet containing all states, from where the last state of the path is
+   * reachable. The ReachedSet might contain multiple paths to the same last state. We do not
+   * guarantee that branches that do not lead to the last state are part of the ReachedSet.
+   */
+  public BAMReachedSet(
+      AbstractBAMCPA cpa,
+      ARGReachedSet pMainReachedSet,
+      ARGPath pPath,
       StatTimer pRemoveCachedSubtreeTimer) {
     super(pMainReachedSet);
     this.bamCpa = cpa;
@@ -92,12 +100,12 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   }
 
   @Override
-  public void removeSubtree(ARGState pE) {
-    throw new UnsupportedOperationException();
+  public void removeSubtree(ARGState state) throws InterruptedException {
+    removeSubtree(state, ImmutableList.of(), ImmutableList.of());
   }
 
   @Override
   public String toString(){
-    return "BAMReachedSet {{" + asReachedSet().asCollection().toString() + "}}";
+    return "BAMReachedSet {{" + asReachedSet().asCollection() + "}}";
   }
 }

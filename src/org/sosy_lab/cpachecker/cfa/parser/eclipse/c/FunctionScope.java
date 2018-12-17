@@ -27,13 +27,18 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -45,14 +50,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableMap;
-
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 
 /**
  * Implementation of {@link Scope} for the local scope inside functions.
@@ -102,10 +104,10 @@ class FunctionScope extends AbstractScope {
 
   public FunctionScope() {
     this(
-        ImmutableMap.<String, CFunctionDeclaration>of(),
-        ImmutableMap.<String, CComplexTypeDeclaration>of(),
-        ImmutableMap.<String, CTypeDefDeclaration>of(),
-        ImmutableMap.<String, CSimpleDeclaration>of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
         "",
         CProgramScope.empty());
   }
@@ -118,7 +120,12 @@ class FunctionScope extends AbstractScope {
   public void enterFunction(CFunctionDeclaration pFuncDef) {
     checkState(currentFunction == null);
     currentFunction = checkNotNull(pFuncDef);
-    checkArgument(globalFunctions.containsKey(getCurrentFunctionName()) || localFunctions.containsKey(getCurrentFunctionName()));
+    String functionName = pFuncDef.getName();
+    checkArgument(
+        globalFunctions.containsKey(functionName) || localFunctions.containsKey(functionName),
+        String.format(
+            "function '%s' not available in global scope (%s) or local scope (%s)",
+            functionName, globalFunctions.keySet(), localFunctions.keySet()));
 
     if (currentFunction.getType().getReturnType().getCanonicalType() instanceof CVoidType) {
       returnVariable = Optional.absent();
@@ -149,6 +156,20 @@ class FunctionScope extends AbstractScope {
     typesStack.removeLast();
     labelsStack.removeLast();
     labelsNodeStack.removeLast();
+  }
+
+  /** returns only the most local scope, i.e., the scope between the nearest curly brackets. */
+  public Collection<CSimpleDeclaration> getVariablesOfMostLocalScope() {
+    return getVariablesOfMostLocalScopes().iterator().next();
+  }
+
+  /** returns the most local scopes in increasing order, i.e., from most local to global scope. */
+  public Iterable<Collection<CSimpleDeclaration>> getVariablesOfMostLocalScopes() {
+    Preconditions.checkState(
+        !varsStackWitNewNames.isEmpty(), "at least function scope should be open");
+    return Iterables.transform(
+        () -> varsStackWitNewNames.descendingIterator(),
+        vars -> Collections.unmodifiableCollection(vars.values()));
   }
 
   @Override

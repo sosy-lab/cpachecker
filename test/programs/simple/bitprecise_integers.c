@@ -148,6 +148,11 @@ int main() {
      one();
      shiftSize();
 
+    // 32bit only
+    if (sizeof(long) == 4) {
+        assert(0ULL == (1UL << 63));
+    }
+
     // 64bit only
     if (sizeof(long) == 8) {
         printf("64bit\n");

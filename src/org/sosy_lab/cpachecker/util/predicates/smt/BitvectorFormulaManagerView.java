@@ -23,14 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import java.math.BigInteger;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
-
-import java.math.BigInteger;
 
 
 public class BitvectorFormulaManagerView extends BaseManagerView implements BitvectorFormulaManager {

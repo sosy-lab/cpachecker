@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.PropertyInstance;
-import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 
 /**
  * Representation of safety properties.

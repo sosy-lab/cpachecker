@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.cache;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;

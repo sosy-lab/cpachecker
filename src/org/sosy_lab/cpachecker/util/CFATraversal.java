@@ -23,17 +23,23 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
@@ -102,8 +108,7 @@ public class CFATraversal {
    * the CFA, visiting all nodes and edges in a DFS-like strategy.
    */
   public static CFATraversal dfs() {
-    return new CFATraversal(
-        FORWARD_EDGE_SUPPLIER, CFAEdge::getSuccessor, Predicates.<CFAEdge>alwaysFalse());
+    return new CFATraversal(FORWARD_EDGE_SUPPLIER, CFAEdge::getSuccessor, Predicates.alwaysFalse());
   }
 
   /**
@@ -128,10 +133,10 @@ public class CFATraversal {
    * during traversing.
    */
   public CFATraversal ignoreSummaryEdges() {
-    return new CFATraversal(edgeSupplier,
+    return new CFATraversal(
+        edgeSupplier,
         successorSupplier,
-        Predicates.<CFAEdge>or(ignoreEdge,
-            Predicates.instanceOf(FunctionSummaryEdge.class)));
+        Predicates.or(ignoreEdge, Predicates.instanceOf(FunctionSummaryEdge.class)));
   }
 
   /**
@@ -142,19 +147,31 @@ public class CFATraversal {
    */
   @SuppressWarnings("unchecked")
   public CFATraversal ignoreFunctionCalls() {
-    return new CFATraversal(edgeSupplier,
+    return new CFATraversal(
+        edgeSupplier,
         successorSupplier,
-        Predicates.<CFAEdge>or(
+        Predicates.or(
             ignoreEdge,
             Predicates.instanceOf(FunctionCallEdge.class),
-            Predicates.instanceOf(FunctionReturnEdge.class)
-            ));
+            Predicates.instanceOf(FunctionReturnEdge.class)));
   }
 
   /**
-   * Traverse through the CFA according to the strategy represented by the
-   * current instance, starting at a given node and passing each
-   * encountered node and edge to a given visitor.
+   * Returns a new instance of this class which behaves exactly like the current instance, except
+   * that it ignores all CFA edges of the specified type. It will not call the visitor for them, and
+   * it will not follow this edge during traversing.
+   */
+  public CFATraversal ignoreEdgeType(final CFAEdgeType ignoreType) {
+    return new CFATraversal(
+        edgeSupplier,
+        successorSupplier,
+        Predicates.or(ignoreEdge, edge -> edge.getEdgeType() == ignoreType));
+  }
+
+  /**
+   * Traverse through the CFA according to the strategy represented by the current instance,
+   * starting at a given node and passing each encountered node and edge to a given visitor.
+   *
    * @param startingNode The starting node.
    * @param visitor The visitor to notify.
    */
@@ -349,13 +366,70 @@ public class CFATraversal {
   }
 
   /**
-   * An implementation of {@link CFAVisitor} which delegates to several other
-   * visitors.
-   * All visitors will be called in the same order for each edge and node.
-   * If one visitor returns ABORT, the other visitors will still be called,
-   * and ABORT is returned.
-   * If one visitor returns SKIP, the other visitors will still be called,
-   * and SKIP is returned if none of them returned ABORT.
+   * An implementation of {@link CFAVisitor} which keeps track of the names of all visited
+   * declarations.
+   */
+  public static final class DeclarationCollectingCFAVisitor extends ForwardingCFAVisitor {
+
+    private final Map<String, Set<String>> funToVars = new HashMap<>();
+
+    /**
+     * Creates a new instance which delegates calls to another visitor.
+     *
+     * @param pDelegate The visitor to delegate to.
+     */
+    public DeclarationCollectingCFAVisitor(CFAVisitor pDelegate) {
+      super(pDelegate);
+    }
+
+    /**
+     * Convenience constructor for cases when you only need the functionality of this visitor and a
+     * {@link NodeCollectingCFAVisitor}.
+     */
+    public DeclarationCollectingCFAVisitor() {
+      super(new NodeCollectingCFAVisitor());
+    }
+
+    @Override
+    public TraversalProcess visitEdge(CFAEdge pEdge) {
+      String funName = pEdge.getSuccessor().getFunctionName();
+      if (pEdge instanceof ADeclarationEdge) {
+        ADeclaration decl = ((ADeclarationEdge) pEdge).getDeclaration();
+        handleDeclaration(decl.isGlobal() ? "" : funName, decl.getOrigName());
+      } else if (pEdge instanceof FunctionCallEdge) {
+        for (AParameterDeclaration paramDecl :
+            ((FunctionCallEdge) pEdge).getSuccessor().getFunctionParameters()) {
+          handleDeclaration(funName, paramDecl.getOrigName());
+        }
+      }
+      return super.visitEdge(pEdge);
+    }
+
+    private void handleDeclaration(final String pFunName, final String pVarName) {
+      Set<String> vars = funToVars.get(pFunName);
+      if (vars == null) {
+        vars = new HashSet<>();
+        funToVars.put(pFunName, vars);
+      }
+      vars.add(pVarName);
+    }
+
+    /**
+     * Get the map of all declaration names seen so far. Names are grouped by corresponding function
+     * names (empty string is used to group global) declarations.
+     *
+     * @return A reference to the map of seen declaration names, maybe modified in future
+     */
+    public Map<String, Set<String>> getVisitedDeclarations() {
+      return funToVars;
+    }
+  }
+
+  /**
+   * An implementation of {@link CFAVisitor} which delegates to several other visitors. All visitors
+   * will be called in the same order for each edge and node. If one visitor returns ABORT, the
+   * other visitors will still be called, and ABORT is returned. If one visitor returns SKIP, the
+   * other visitors will still be called, and SKIP is returned if none of them returned ABORT.
    * Otherwise CONTINUE is returned.
    */
   public static class CompositeCFAVisitor implements CFAVisitor {
@@ -403,7 +477,6 @@ public class CFATraversal {
     }
   }
 
-
   // --- Types and classes for implementors of CFAVisitors
 
   /**
@@ -414,7 +487,7 @@ public class CFATraversal {
    *
    * @see CFATraversal
    */
-  public static interface CFAVisitor {
+  public interface CFAVisitor {
 
     /**
      * Called for each edge the traversal process encounters.
@@ -431,11 +504,8 @@ public class CFATraversal {
     TraversalProcess visitNode(CFANode node);
   }
 
-  /**
-   * An enum for possible actions a visitor can tell the traversal strategy to
-   * do next.
-   */
-  public static enum TraversalProcess {
+  /** An enum for possible actions a visitor can tell the traversal strategy to do next. */
+  public enum TraversalProcess {
    /**
      * Continue normally.
      */

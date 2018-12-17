@@ -49,8 +49,11 @@ public abstract class ACastExpression extends AbstractLeftHandSide {
   }
 
   @Override
-  public String toASTString() {
-    return "(" + getExpressionType().toASTString("") + ")" + operand.toParenthesizedASTString();
+  public String toASTString(boolean pQualified) {
+    return "("
+        + getExpressionType().toASTString("")
+        + ")"
+        + operand.toParenthesizedASTString(pQualified);
   }
 
   public Type getCastType() {

@@ -43,8 +43,8 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.logging.Level;
@@ -107,8 +107,9 @@ public class ARGReachedSet {
    * covered by removed elements.
    *
    * @param e The root of the removed subtree, may not be the initial element.
+   * @throws InterruptedException can be thrown in subclass
    */
-  public void removeSubtree(ARGState e) {
+  public void removeSubtree(ARGState e) throws InterruptedException {
     Set<ARGState> toWaitlist = removeSubtree0(e);
 
     for (ARGState ae : toWaitlist) {
@@ -384,18 +385,18 @@ public class ARGReachedSet {
   /**
    * Remove a set of elements from the ARG and reached set. There are no sanity checks.
    *
-   * The result will be a set of elements that need to be added to the waitlist
-   * to re-discover the removed elements. These are the parents of the removed
-   * elements which are not removed themselves. The set is sorted based on the
-   * relation defined by {@link ARGState#compareTo(ARGState)}), i.e., oldest-first.
+   * <p>The result will be a set of elements that need to be added to the waitlist to re-discover
+   * the removed elements. These are the parents of the removed elements which are not removed
+   * themselves. The set is sorted based on the relation defined by {@link
+   * ARGState#compareTo(ARGState)}), i.e., oldest-first.
    *
    * @param elements the elements to remove
    * @return the elements to re-add to the waitlist
    */
-  private SortedSet<ARGState> removeSet(Set<ARGState> elements) {
+  private NavigableSet<ARGState> removeSet(Set<ARGState> elements) {
     mReached.removeAll(elements);
 
-    SortedSet<ARGState> toWaitlist = new TreeSet<>();
+    NavigableSet<ARGState> toWaitlist = new TreeSet<>();
     for (ARGState ae : elements) {
       for (ARGState parent : ae.getParents()) {
         if (!elements.contains(parent)) {
@@ -456,7 +457,9 @@ public class ARGReachedSet {
   public boolean tryToCover(ARGState v) throws CPAException, InterruptedException {
     assert v.mayCover();
 
-    cpa.getStopOperator().stop(v, mReached.getReached(v), mReached.getPrecision(v));
+    // sideeffect: coverage and cleanup of ARG is done in ARGStopSep#stop
+    boolean stop = cpa.getStopOperator().stop(v, mReached.getReached(v), mReached.getPrecision(v));
+    Preconditions.checkState(!stop);
     // ignore return value of stop, because it will always be false
 
     if (v.isCovered()) {
@@ -510,6 +513,7 @@ public class ARGReachedSet {
     assert v.mayCover();
 
     if (beUnsound) {
+      // sideeffect: coverage and cleanup of ARG is done in ARGStopSep#stop
       cpa.getStopOperator().stop(v, mReached.getReached(v), mReached.getPrecision(v));
       return v.isCovered();
     }
@@ -524,23 +528,6 @@ public class ARGReachedSet {
     public ForwardingARGReachedSet(ARGReachedSet pReached) {
       super(pReached.mReached);
       delegate = pReached;
-    }
-
-    @Override
-    public UnmodifiableReachedSet asReachedSet() {
-      return delegate.asReachedSet();
-    }
-
-    @Override
-    public void removeSubtree(ARGState pE) {
-      delegate.removeSubtree(pE);
-    }
-
-    @Override
-    public void removeSubtree(
-        ARGState pE, Precision pP, Predicate<? super Precision> pPrecisionType)
-        throws InterruptedException {
-      delegate.removeSubtree(pE, pP, pPrecisionType);
     }
   }
 

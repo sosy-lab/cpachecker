@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,7 +49,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -95,16 +95,17 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableAndFieldRelevancyComputer.VarFieldDependencies;
 
 @Options(prefix = "cfa.variableClassification")
-public class VariableClassificationBuilder {
+public class VariableClassificationBuilder implements StatisticsProvider {
 
   @Option(secure=true, name = "logfile", description = "Dump variable classification to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -135,6 +136,7 @@ public class VariableClassificationBuilder {
   private final Set<String> nonIntBoolVars = new HashSet<>();
   private final Set<String> nonIntEqVars = new HashSet<>();
   private final Set<String> nonIntAddVars = new HashSet<>();
+  private final Set<String> intOverflowVars = new HashSet<>();
 
   private final Dependencies dependencies = new Dependencies();
 
@@ -146,8 +148,9 @@ public class VariableClassificationBuilder {
   private final LogManager logger;
   private final VariableClassificationStatistics stats = new VariableClassificationStatistics();
 
-  public static class VariableClassificationStatistics extends AbstractStatistics {
+  public static class VariableClassificationStatistics implements Statistics {
 
+    private final StatTimer variableClassificationTimer = new StatTimer("Time for var class.");
     private final StatTimer collectTimer = new StatTimer("Time for collecting variables");
     private final StatTimer dependencyTimer = new StatTimer("Time for solving dependencies");
     private final StatTimer hierarchyTimer = new StatTimer("Time for building hierarchy");
@@ -161,11 +164,14 @@ public class VariableClassificationBuilder {
 
     @Override
     public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
-      put(out, 4, collectTimer);
-      put(out, 4, dependencyTimer);
-      put(out, 4, hierarchyTimer);
-      put(out, 4, buildTimer);
-      put(out, 4, exportTimer);
+      if (variableClassificationTimer.getUpdateCount() > 0) {
+        put(out, 3, variableClassificationTimer);
+        put(out, 4, collectTimer);
+        put(out, 4, dependencyTimer);
+        put(out, 4, hierarchyTimer);
+        put(out, 4, buildTimer);
+        put(out, 4, exportTimer);
+      }
     }
   }
 
@@ -174,16 +180,18 @@ public class VariableClassificationBuilder {
     config.inject(this);
   }
 
-  public VariableClassificationStatistics getStatistics() {
-    return stats;
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
 
   /** This function does the whole work:
    * creating all maps, collecting vars, solving dependencies.
    * The function runs only once, after that it does nothing. */
-  public VariableClassification build(CFA cfa) throws UnrecognizedCCodeException {
+  public VariableClassification build(CFA cfa) throws UnrecognizedCodeException {
     checkArgument(cfa.getLanguage() == Language.C, "VariableClassification currently only supports C");
 
+    stats.variableClassificationTimer.start();
     // fill maps
     stats.collectTimer.start();
     collectVars(cfa);
@@ -194,6 +202,7 @@ public class VariableClassificationBuilder {
     dependencies.solve(nonIntBoolVars);
     dependencies.solve(nonIntEqVars);
     dependencies.solve(nonIntAddVars);
+    dependencies.solve(intOverflowVars);
     stats.dependencyTimer.stop();
 
     // Now build the opposites of each non-x-vars-collection.
@@ -240,23 +249,25 @@ public class VariableClassificationBuilder {
     boolean hasRelevantNonIntAddVars = !Sets.intersection(relevantVariables.get(), nonIntAddVars).isEmpty();
 
     stats.buildTimer.start();
-    VariableClassification result = new VariableClassification(
-        hasRelevantNonIntAddVars,
-        intBoolVars,
-        intEqualVars,
-        intAddVars,
-        relevantVariables.get(),
-        addressedVariables.get(),
-        relevantFields.get(),
-        addressedFields.get(),
-        dependencies.partitions,
-        intBoolPartitions,
-        intEqualPartitions,
-        intAddPartitions,
-        dependencies.edgeToPartition,
-        extractAssumedVariables(cfa.getAllNodes()),
-        extractAssignedVariables(cfa.getAllNodes()),
-        logger);
+    VariableClassification result =
+        new VariableClassification(
+            hasRelevantNonIntAddVars,
+            intBoolVars,
+            intEqualVars,
+            intAddVars,
+            intOverflowVars,
+            relevantVariables.get(),
+            addressedVariables.get(),
+            relevantFields.get(),
+            addressedFields.get(),
+            dependencies.partitions,
+            intBoolPartitions,
+            intEqualPartitions,
+            intAddPartitions,
+            dependencies.edgeToPartition,
+            extractAssumedVariables(cfa.getAllNodes()),
+            extractAssignedVariables(cfa.getAllNodes()),
+            logger);
     stats.buildTimer.stop();
 
     stats.exportTimer.start();
@@ -272,10 +283,17 @@ public class VariableClassificationBuilder {
         w.append(intEqualVars.toString());
         w.append("\n\nIntAdd\n\n");
         w.append(intAddVars.toString());
+        w.append("\n\nIntOverflow\n\n");
+        w.append(intOverflowVars.toString());
         w.append("\n\nALL\n\n");
         w.append(allVars.toString());
         w.append("\n\nDEPENDENCIES\n\n");
         w.append(dependencies.toString());
+        w.append("\n\nRELEVANT VARS\n\n");
+        w.append(relevantVariables.get().toString());
+        w.append("\n\nRELEVANT FIELDS\n\n");
+        w.append(relevantFields.get().toString());
+        w.append("\n");
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write variable classification to file");
       }
@@ -289,6 +307,7 @@ public class VariableClassificationBuilder {
       dumpDomainTypeStatistics(domainTypeStatisticsFile, result);
     }
     stats.exportTimer.stop();
+    stats.variableClassificationTimer.stop();
 
     return result;
   }
@@ -393,13 +412,15 @@ public class VariableClassificationBuilder {
 
   /** This function iterates over all edges of the cfa, collects all variables
    * and orders them into different sets, i.e. nonBoolean and nonIntEuqalNumber. */
-  private void collectVars(CFA cfa) throws UnrecognizedCCodeException {
+  private void collectVars(CFA cfa) throws UnrecognizedCodeException {
     Collection<CFANode> nodes = cfa.getAllNodes();
     VarFieldDependencies varFieldDependencies = VarFieldDependencies.emptyDependencies();
     for (CFANode node : nodes) {
       for (CFAEdge edge : leavingEdges(node)) {
         handleEdge(edge, cfa);
-        varFieldDependencies = varFieldDependencies.withDependencies(VariableAndFieldRelevancyComputer.handleEdge(edge));
+        varFieldDependencies =
+            varFieldDependencies.withDependencies(
+                VariableAndFieldRelevancyComputer.handleEdge(cfa, edge));
       }
     }
     addressedVariables = Optional.of(varFieldDependencies.computeAddressedVariables());
@@ -456,7 +477,7 @@ public class VariableClassificationBuilder {
   }
 
   /** switch to edgeType and handle all expressions, that could be part of the edge. */
-  private void handleEdge(CFAEdge edge, CFA cfa) throws UnrecognizedCCodeException {
+  private void handleEdge(CFAEdge edge, CFA cfa) throws UnrecognizedCodeException {
     switch (edge.getEdgeType()) {
       case AssumeEdge:
         {
@@ -473,6 +494,7 @@ public class VariableClassificationBuilder {
           exp.accept(new BoolCollectingVisitor(pre, nonIntBoolVars));
           exp.accept(new IntEqualCollectingVisitor(pre, nonIntEqVars));
           exp.accept(new IntAddCollectingVisitor(pre, nonIntAddVars));
+          exp.accept(new IntOverflowCollectingVisitor(pre, intOverflowVars));
 
           break;
         }
@@ -530,7 +552,7 @@ public class VariableClassificationBuilder {
       break;
 
     default:
-      throw new UnrecognizedCCodeException("Unknown edgeType: " + edge.getEdgeType(), edge);
+        throw new UnrecognizedCodeException("Unknown edgeType: " + edge.getEdgeType(), edge);
     }
   }
 
@@ -567,8 +589,8 @@ public class VariableClassificationBuilder {
   }
 
   /** This function handles normal assignments of vars. */
-  private void handleAssignment(final CFAEdge edge, final CAssignment assignment,
-      final CFA cfa) throws UnrecognizedCCodeException {
+  private void handleAssignment(final CFAEdge edge, final CAssignment assignment, final CFA cfa)
+      throws UnrecognizedCodeException {
     CRightHandSide rhs = assignment.getRightHandSide();
     CExpression lhs = assignment.getLeftHandSide();
     String function = isGlobal(lhs) ? null : edge.getPredecessor().getFunctionName();
@@ -603,7 +625,8 @@ public class VariableClassificationBuilder {
       if (cfa.getAllFunctionNames().contains(functionName)) {
         Optional<? extends AVariableDeclaration> returnVariable = cfa.getFunctionHead(functionName).getReturnVariable();
         if (!returnVariable.isPresent()) {
-          throw new UnrecognizedCCodeException("Void function " + functionName + " used in assignment", edge, assignment);
+          throw new UnrecognizedCodeException(
+              "Void function " + functionName + " used in assignment", edge, assignment);
         }
         String returnVar = returnVariable.get().getQualifiedName();
         allVars.add(returnVar);
@@ -619,7 +642,7 @@ public class VariableClassificationBuilder {
       handleExternalFunctionCall(edge, func.getParameterExpressions());
 
     } else {
-      throw new UnrecognizedCCodeException("unhandled assignment", edge, assignment);
+      throw new UnrecognizedCodeException("unhandled assignment", edge, assignment);
     }
   }
 
@@ -660,6 +683,7 @@ public class VariableClassificationBuilder {
         param.accept(new BoolCollectingVisitor(pre, nonIntBoolVars));
         param.accept(new IntEqualCollectingVisitor(pre, nonIntEqVars));
         param.accept(new IntAddCollectingVisitor(pre, nonIntAddVars));
+        param.accept(new IntOverflowCollectingVisitor(pre, intOverflowVars));
       }
     }
   }
@@ -752,6 +776,10 @@ public class VariableClassificationBuilder {
     IntAddCollectingVisitor icv = new IntAddCollectingVisitor(pre, nonIntAddVars);
     Set<String> possibleIntAddVars = exp.accept(icv);
     handleResult(varName, possibleIntAddVars, nonIntAddVars);
+
+    IntOverflowCollectingVisitor iov = new IntOverflowCollectingVisitor(pre, intOverflowVars);
+    Set<String> possibleIntOverflowVars = exp.accept(iov);
+    handleResult(varName, possibleIntOverflowVars, intOverflowVars);
   }
 
   /** adds the variable to notPossibleVars, if possibleVars is null.  */
@@ -762,11 +790,12 @@ public class VariableClassificationBuilder {
   }
 
   static String scopeVar(@Nullable final String function, final String var) {
-    return (function == null) ? (var) : (function + SCOPE_SEPARATOR + var);
+    checkNotNull(var);
+    return (function == null) ? var : (function + SCOPE_SEPARATOR + var);
   }
 
   static boolean isGlobal(CExpression exp) {
-    if (exp instanceof CIdExpression) {
+    if (checkNotNull(exp) instanceof CIdExpression) {
       CSimpleDeclaration decl = ((CIdExpression) exp).getDeclaration();
       if (decl instanceof CDeclaration) { return ((CDeclaration) decl).isGlobal(); }
     }
@@ -776,6 +805,7 @@ public class VariableClassificationBuilder {
   /** returns the value of a (nested) IntegerLiteralExpression
    * or null for everything else. */
   public static BigInteger getNumber(CExpression exp) {
+    checkNotNull(exp);
     if (exp instanceof CIntegerLiteralExpression) {
       return ((CIntegerLiteralExpression) exp).getValue();
 

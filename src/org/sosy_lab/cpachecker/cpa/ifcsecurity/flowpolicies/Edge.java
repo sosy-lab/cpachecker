@@ -24,13 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies;
 
 import com.google.common.collect.ComparisonChain;
-
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.InternalSetComparator;
-
 import java.io.Serializable;
 import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.InternalSetComparator;
 
 /**
  * Class for specifiying an Information Flow Relation

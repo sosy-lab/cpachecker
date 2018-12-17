@@ -23,11 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import com.google.common.base.Predicate;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
-
-import com.google.common.base.Predicate;
 
 /**
  * Instances of this class are visitors that are used to collect (sub)formulas

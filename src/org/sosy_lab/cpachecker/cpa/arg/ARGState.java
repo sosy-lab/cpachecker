@@ -30,18 +30,16 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.collect.Sets;
-import java.util.ArrayDeque;
+import com.google.common.graph.Traverser;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -166,8 +164,9 @@ public class ARGState extends AbstractSingleWrapperState
     // check for dummy location
     AbstractStateWithDummyLocation stateWithDummyLocation =
         AbstractStates.extractStateByType(pChild, AbstractStateWithDummyLocation.class);
-    if (stateWithDummyLocation != null && stateWithDummyLocation.isDummyLocation()) {
-
+    if (currentLocs != null
+        && stateWithDummyLocation != null
+        && stateWithDummyLocation.isDummyLocation()) {
       for (CFAEdge enteringEdge : stateWithDummyLocation.getEnteringEdges()) {
         for (CFANode currentLocation : currentLocs.getLocationNodes()) {
           if (enteringEdge.getPredecessor().equals(currentLocation)) {
@@ -216,24 +215,12 @@ public class ARGState extends AbstractSingleWrapperState
 
   public Set<ARGState> getSubgraph() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    Set<ARGState> result = new HashSet<>();
-    Deque<ARGState> workList = new ArrayDeque<>();
-
-    workList.add(this);
-
-    while (!workList.isEmpty()) {
-      ARGState currentElement = workList.removeFirst();
-      if (result.add(currentElement)) {
-        // currentElement was not in result
-        workList.addAll(currentElement.children);
-      }
-    }
-    return result;
+    return Sets.newHashSet(Traverser.forGraph(ARGState::getChildren).breadthFirst(this));
   }
 
   // coverage
 
-  public void setCovered(@Nonnull ARGState pCoveredBy) {
+  public void setCovered(@NonNull ARGState pCoveredBy) {
     checkState(!isCovered(), "Cannot cover already covered element %s", this);
     checkNotNull(pCoveredBy);
     checkArgument(pCoveredBy.mayCover, "Trying to cover with non-covering element %s", pCoveredBy);
@@ -328,6 +315,13 @@ public class ARGState extends AbstractSingleWrapperState
     checkArgument(!pCounterexample.isSpurious());
     // With BAM, the targetState and the last state of the path
     // may actually be not identical.
+    checkArgument(pCounterexample.getTargetState().isTarget());
+    counterexample = pCounterexample;
+  }
+
+  public void replaceCounterexampleInformation(CounterexampleInfo pCounterexample) {
+    checkArgument(isTarget());
+    checkArgument(!pCounterexample.isSpurious());
     checkArgument(pCounterexample.getTargetState().isTarget());
     counterexample = pCounterexample;
   }

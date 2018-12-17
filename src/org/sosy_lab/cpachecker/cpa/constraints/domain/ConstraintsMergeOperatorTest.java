@@ -25,29 +25,31 @@ package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Unit tests for {@link ConstraintsMergeOperator}
  */
 public class ConstraintsMergeOperatorTest {
 
-  private final ConstraintsMergeOperator op = new ConstraintsMergeOperator();
+  private final ConstraintsMergeOperator op =
+      new ConstraintsMergeOperator(new ConstraintsStatistics());
   private final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
   private final Type defType = CNumericTypes.INT;
 
-  private final SymbolicExpression idExp1 = factory.asConstant(factory.newIdentifier(), defType);
+  private final MemoryLocation memLoc1 = MemoryLocation.valueOf("id1");
+  private final SymbolicExpression idExp1 =
+      factory.asConstant(factory.newIdentifier(memLoc1), defType);
   private final SymbolicExpression numExp1 = factory.asConstant(new NumericValue(1), defType);
 
   private final Constraint posConst = factory.equal(idExp1, numExp1, defType, defType);
@@ -57,12 +59,12 @@ public class ConstraintsMergeOperatorTest {
   public void testMerge_mergePossible() throws Exception {
     Set<Constraint> constraints = getConstraints();
 
-    ConstraintsState state1 = new ConstraintsState(constraints, new IdentifierAssignment());
+    ConstraintsState state1 = new ConstraintsState(constraints);
     state1.add(posConst);
 
     constraints = getConstraints();
 
-    ConstraintsState state2 = new ConstraintsState(constraints, new IdentifierAssignment());
+    ConstraintsState state2 = new ConstraintsState(constraints);
     state2.add(negConst);
 
     ConstraintsState mergeResult = (ConstraintsState) op.merge(state1, state2, SingletonPrecision.getInstance());
@@ -78,7 +80,7 @@ public class ConstraintsMergeOperatorTest {
     Set<Constraint> constraints = new HashSet<>();
 
     // this results in a new symbolic identifier at every method call
-    SymbolicExpression idExp2 = factory.asConstant(factory.newIdentifier(), defType);
+    SymbolicExpression idExp2 = factory.asConstant(factory.newIdentifier(memLoc1), defType);
 
     Constraint currConstr = (Constraint) factory.greaterThan(idExp2, numExp1, defType, defType);
     constraints.add(currConstr);

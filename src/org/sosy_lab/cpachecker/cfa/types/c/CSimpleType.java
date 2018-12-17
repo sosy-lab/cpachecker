@@ -33,7 +33,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 @Immutable
 public final class CSimpleType implements CType, Serializable {
@@ -120,19 +120,18 @@ public final class CSimpleType implements CType, Serializable {
   @Override
   public int hashCode() {
       if (hashCache == 0) {
-          final int prime = 31;
-          int result = 7;
-          result = prime * result + Objects.hashCode(isComplex);
-          result = prime * result + Objects.hashCode(isConst);
-          result = prime * result + Objects.hashCode(isVolatile);
-          result = prime * result + Objects.hashCode(isImaginary);
-          result = prime * result + Objects.hashCode(isLong);
-          result = prime * result + Objects.hashCode(isLongLong);
-          result = prime * result + Objects.hashCode(isShort);
-          result = prime * result + Objects.hashCode(isSigned);
-          result = prime * result + Objects.hashCode(isUnsigned);
-          result = prime * result + Objects.hashCode(type);
-          hashCache = result;
+      hashCache =
+          Objects.hash(
+              isComplex,
+              isConst,
+              isVolatile,
+              isImaginary,
+              isLong,
+              isLongLong,
+              isShort,
+              isSigned,
+              isUnsigned,
+              type);
       }
       return hashCache;
   }

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.resources;
 
 import java.lang.management.ManagementFactory;
-
 import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
