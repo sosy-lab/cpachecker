@@ -37,6 +37,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -141,7 +142,7 @@ public class HybridAnalysisTransferRelation
 
     Set<CBinaryExpression> assumptions = Sets.newHashSet(state.getExplicitAssumptions());
     CBinaryExpression binaryExpression = (CBinaryExpression) expression;
-    CIdExpression variableId = (CIdExpression) binaryExpression.getOperand1();
+    CExpression variableId = binaryExpression.getOperand1();
 
     // existing variable (within state)
     if(state.tracksVariable(variableId)) {
@@ -149,7 +150,7 @@ public class HybridAnalysisTransferRelation
       final Collection<CBinaryExpression> matchingAssumptions =
           CollectionUtils.getApplyingElements(assumptions, assumption -> assumption.getOperand1().equals(variableId));
 
-      // at this point exactly one assumption for a variable should existredshift
+      // at this point exactly one assumption for a variable should exist
       if(matchingAssumptions.size() != 1) {
         throw new CPATransferException("Multiple assumptions for the same variable in this state.");
       }
@@ -211,14 +212,11 @@ public class HybridAnalysisTransferRelation
       // handle assignment
       Collection<CStatement> singletonList = Collections.singleton(pCStatement);
       try {
-        Collection<CExpression> expressions =
-            CollectionUtils.ofType(
-                CParserUtils
-                    .convertStatementsToAssumptions(singletonList, cfa.getMachineModel(), logger),
-                CExpression.class);
+        List<AExpression> expressions = CParserUtils
+          .convertStatementsToAssumptions(singletonList, cfa.getMachineModel(), logger);
 
         // build new state
-        CExpression assignment = CollectionUtils.first(expressions); // first and only
+        CExpression assignment = (CExpression) expressions.get(0); // first and only
 
         // save to call with null, because of null check on usage of the edge
         return handleAssumption(null, assignment, true);

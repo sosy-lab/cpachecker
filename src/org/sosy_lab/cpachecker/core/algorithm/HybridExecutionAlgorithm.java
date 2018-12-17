@@ -33,6 +33,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+
+import com.google.common.collect.Sets;
+
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -41,10 +44,12 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
@@ -82,8 +87,11 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
   @Options(prefix = "hybridExecution")
   public static class HybridExecutionAlgorithmFactory implements AlgorithmFactory {
 
-    @Option(secure=true, name="useValueSets", description="Wether to use multiple values on a state")
+    @Option(secure = true, name = "useValueSets", description = "Wether to use multiple values on a state.")
     private boolean useValueSets = false;
+
+    @Option(secure = true, name = "useBFS", description = "Whether to use BFS algorithm instead of DFS for searching the next assumption to flip.")
+    private boolean useBFS = false;
 
     private final Algorithm algorithm;
     private final ARGCPA argCPA;
@@ -134,7 +142,8 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
             logger,
             configuration,
             notifier,
-            useValueSets);
+            useValueSets,
+            useBFS);
       } catch (InvalidConfigurationException e) {
         // this is a bad place to catch an exception
         logger.log(Level.SEVERE, e.getMessage());
@@ -190,6 +199,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
    *
    */
   private boolean useValueSets;
+  private boolean useBFS;
   private final List<ReachedSetUpdateListener> reachedSetUpdateListeners;
 
   private final SearchStrategy searchStrategy;
@@ -201,7 +211,8 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
       LogManager pLogger,
       Configuration pConfiguration,
       ShutdownNotifier pNotifier,
-      boolean pUseValueSets)
+      boolean pUseValueSets,
+      boolean pUseBFS)
       throws InvalidConfigurationException {
 
     this.algorithm = pAlgorithm;
@@ -209,6 +220,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     this.cfa = pCFA;
     this.logger = pLogger;
     this.useValueSets = pUseValueSets;
+    this.useBFS = pUseBFS;
     this.reachedSetUpdateListeners = new ArrayList<>();
 
     this.solver = Solver.create(pConfiguration, pLogger, pNotifier);
@@ -230,14 +242,14 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
         AnalysisDirection.FORWARD);
 
     // configurable search strategy
-    this.searchStrategy = (pState, pARGPath, pAssumeEdges) -> searchLast(pState, pARGPath, pAssumeEdges);
+    this.searchStrategy = useBFS 
+      ? (pState, pAssumptions) -> searchBFS(pState, pAssumptions)
+      : (pState, pAssumptions) -> searchDFS(pState, pAssumptions);
   }
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
-
-    // ReachedSet#add
 
     logger.log(Level.INFO, "Hybrid Execution algorithm started.");
 
@@ -246,7 +258,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     EdgeCollectingCFAVisitor edgeCollectingVisitor = new EdgeCollectingCFAVisitor();
     CFANode startingNode = cfa.getMainFunction();
     traversal.traverseOnce(startingNode, edgeCollectingVisitor);
-    final Set<AssumeEdge> assumeEdges = extractAssumeEdges(edgeCollectingVisitor.getVisitedEdges());
+    final Set<CExpression> allAssumptions = extractAssumptions(edgeCollectingVisitor.getVisitedEdges());
 
     logger.log(Level.FINEST, "Assume edges from program cfa collected.");
 
@@ -266,7 +278,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
           .stream()
           .filter(state -> !waitList.contains(state))
           .map(state -> AbstractStates.extractStateByType(state, ARGState.class))
-          .filter(argState -> argState.getChildren().isEmpty())
+          .filter(argState -> argState.getChildren().isEmpty() && !argState.isDestroyed())
           .collect(Collectors.toList());
 
       // there is nothing left to do
@@ -274,24 +286,22 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
         return currentStatus;
       }
 
-      // retrieve the next state to work on -> it doesn't matter which one, thus we simply choose the first one
+      // gather all visited assumptions
+      Set<CExpression> visitedAssumptions = bottomStates
+        .stream()
+        .map(argState -> ARGUtils.getOnePathTo(argState))
+        .map(argPath -> extractAssumptions(argPath.getInnerEdges()))
+        .flatMap(Collection::stream)
+        .collect(Collectors.toSet());
+
+      // remove the visited assumptions
+      allAssumptions.removeAll(visitedAssumptions);
+
+      // retrieve the next state to work on, i. e. this is the basis for searching for a new assumption to flip
       ARGState workingState = bottomStates.get(0);
 
-      // retrieve path through the arg to the working state
-      ARGPath pathToWorkingState = ARGUtils.getOnePathTo(workingState);
-
-      Collection<AssumeEdge> assumeEdgesInPath = extractAssumeEdges(pathToWorkingState.getInnerEdges());
-
-      // remove already visited assumptions
-      assumeEdges.removeAll(assumeEdgesInPath);
-
-      /*
-       * TODO
-       * We will define here a assumption context to collect all depending variables
-       */
-
       // search for the next state to flip
-      ARGState flipState = searchStrategy.runStrategy(workingState, pathToWorkingState, assumeEdges);
+      ARGState flipState = searchStrategy.runStrategy(workingState, allAssumptions);
 
       // bottom up path search
       ARGPath pathToFoundState = ARGUtils.getOnePathTo(flipState);
@@ -344,10 +354,20 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     reachedSetUpdateListeners.remove(pReachedSetUpdateListener);
   }
 
-  // traverses from a given ARGState upwards to find the next branching state
-  private ARGState searchLast(ARGState pState, ARGPath pPath, Set<AssumeEdge> assumeEdges) {
+  /**
+   * A DFS algorithm implementation for the search strategy to find a new assumption to flip
+   */
+  private ARGState searchDFS(ARGState pState, Set<CExpression> pAssumptions) {
 
    throw new NotImplementedException();
+  }
+
+  /**
+   * A BFS algorithm implementation for the search strategy to find a new assumption to flip
+   */
+  private ARGState searchBFS(ARGState pState, Set<CExpression> pAssumptions) {
+    
+    throw new NotImplementedException();
   }
 
   // builds the complete path formula for a path through the application denoted by the set of edges
@@ -377,19 +397,19 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     return check;
   }
 
-  // helper method to extract assume edges from a given collection of general cfa edges
-  private Set<AssumeEdge> extractAssumeEdges(Collection<CFAEdge> edges) {
-    return edges
+  // helper method to extract assumptions from a given collection of cfa edges
+  private Set<CExpression> extractAssumptions(Collection<CFAEdge> pEdges) {
+    return pEdges
       .stream()
       .filter(edge -> edge.getEdgeType() == CFAEdgeType.AssumeEdge)
-      .map(edge -> (AssumeEdge)edge)
+      .map(edge -> ((CAssumeEdge) edge).getExpression())
       .collect(Collectors.toSet());
   }
 
   @FunctionalInterface
   private interface SearchStrategy {
 
-    ARGState runStrategy(ARGState pState, ARGPath pPath, Set<AssumeEdge> assumeEdges);
+    ARGState runStrategy(ARGState pState, Set<CExpression> pAssumptions);
   }
 
 }

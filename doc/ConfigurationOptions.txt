@@ -2956,7 +2956,11 @@ heuristicSelection.loopFreeConfig = no default value
 # Configuration for programs containing only relevant bool vars.
 heuristicSelection.onlyBoolConfig = no default value
 
-# Wether to use multiple values on a state
+# Whether to use BFS algorithm instead of DFS for searching the next
+# assumption to flip.
+hybridExecution.useBFS = false
+
+# Wether to use multiple values on a state.
 hybridExecution.useValueSets = false
 
 # enable the Forced Covering optimization
