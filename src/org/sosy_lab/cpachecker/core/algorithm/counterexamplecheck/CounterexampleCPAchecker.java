@@ -68,7 +68,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 @Options(prefix="counterexample.checker")
-public class CounterexampleCPAChecker implements CounterexampleChecker {
+public class CounterexampleCPAchecker implements CounterexampleChecker {
 
   // The following options will be forced in the counterexample check
   // to have the same value as in the actual analysis.
@@ -101,7 +101,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
 
   private final Function<ARGState, Optional<CounterexampleInfo>> getCounterexampleInfo;
 
-  public CounterexampleCPAChecker(
+  public CounterexampleCPAchecker(
       Configuration config,
       Specification pSpecification,
       LogManager logger,
