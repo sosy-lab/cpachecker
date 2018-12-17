@@ -287,12 +287,14 @@ Examples:
     parser.add_argument("--depend", metavar="DEPEND", default=None,
         help="configuration file for which a graph should be generated. " +
             "When specified, only files depending (directly or indirectely) on this file are shown")
-    parser.add_argument("--filter", metavar="FILTER", default=None,
+    parser.add_argument("--filter", metavar="FILTER", default=None, nargs='+',
         help="String to filter nodes. " +
-            "When specified, only matching nodes are shown")
-    parser.add_argument("--excludeFilter", metavar="EXCLUDE_FILTER", default=None,
+            "When specified, only matching nodes are shown. " +
+            "When specified multiple times, nodes matching any filter will be shown.")
+    parser.add_argument("--exclude", metavar="EXCLUDE", default=None, nargs='+',
         help="String to filter nodes. " +
-            "When specified, only non-matching nodes are shown")
+            "When specified, only non-matching nodes are shown. " +
+            "When specified multiple times, nodes matching any filter will be removed.")
     parser.add_argument("--ranksep", metavar="NUM", default=3,
         help="ranksep to use in the graphviz output file")
     parser.add_argument("--logLevel", metavar="LEVEL", default=1,
@@ -408,11 +410,11 @@ if __name__ == "__main__":
 
   if args.filter != None:
     nodes = dict((k,v) for k,v in nodes.items()
-        if args.filter in k)
+        if any(f in k for f in args.filter))
 
-  if args.excludeFilter != None:
+  if args.exclude != None:
     nodes = dict((k,v) for k,v in nodes.items()
-        if not args.excludeFilter in k)
+        if not any(f in k for f in args.exclude))
 
   # write dot-output
   out = sys.stdout #open("configViz.dot","w")
