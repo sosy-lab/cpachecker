@@ -36,7 +36,6 @@ import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -62,7 +61,7 @@ public class HybridAnalysisState implements LatticeAbstractState<HybridAnalysisS
         trackedVariables = ImmutableSet.copyOf(
             this.assumptions
                 .stream()
-                .map(expression -> (CIdExpression) expression.getOperand1())
+                .map(expression -> expression.getOperand1())
                 .collect(Collectors.toSet()));
     }
 
@@ -84,39 +83,51 @@ public class HybridAnalysisState implements LatticeAbstractState<HybridAnalysisS
         return new HybridAnalysisState(currentAssumptions);
     }
 
+    /**
+     * The join operator is implemented as an intersection of both states' tracked assumptions
+     * Idea for another implementation:
+     *   foreach assumption:
+     *      1) if variables are different, take the assumption
+     *      2) if variables are the same, take the assumption of the other state (reached state)
+     */
     @Override
     public HybridAnalysisState join(HybridAnalysisState pOther)
             throws CPAException, InterruptedException {
         
-        // for now we simply assume, that an assumption for the same variable is more accurate in pOther
-        Set<CBinaryExpression> otherAssumptions = pOther.assumptions;
-        Set<CExpression> combinedAssumptions = Sets.newHashSet(otherAssumptions);
+        Set<CBinaryExpression> combinedAssumptions = Sets.newHashSet();
+        Set<CExpression> variableIdentifiers = Sets.newHashSet();
         
-        for(CBinaryExpression assumption : assumptions)
+        for(CBinaryExpression otherAssumption : pOther.assumptions)
         {
-            // first operand for assumptions must always be CIdExpression!
-
-            assert assumption.getOperand1() instanceof CIdExpression;
-
-            CIdExpression variable = (CIdExpression) assumption.getOperand1();
-
-            // here we calculate the 'intersection'
-            if(!pOther.tracksVariable(variable))
-            {
-                combinedAssumptions.add(assumption);
+            if(assumptions.contains(otherAssumption)) {
+                combinedAssumptions.add(otherAssumption);
+                CExpression variableIdentifier = otherAssumption.getOperand1();
+                variableIdentifiers.add(variableIdentifier);
             }
         }
 
-        return new HybridAnalysisState(combinedAssumptions);
+        return new HybridAnalysisState(combinedAssumptions, variableIdentifiers);
     }
 
+    /**
+     * This state is less or equal than the other state if all assumptions of the other state are contained within this state
+     * In detail: 
+     *  1) every variable that is tracked by the other state, is also tracked by this state
+     *  2) the assigned value for every variable is the same
+     */
     @Override
     public boolean isLessOrEqual(HybridAnalysisState pOther)
             throws CPAException, InterruptedException {
 
-        // avoid copying the state inside the lamda
         List<CExpression> otherAssumptions = pOther.getAssumptions();
-        return CollectionUtils.appliesToAll(assumptions, a -> otherAssumptions.contains(a));
+
+        // if this state contains less elements (assumptions), it cannot be less or equal than the other state, by definition
+        if(otherAssumptions.size() > assumptions.size()) {
+            return false;
+        }
+
+        // check if all assumptions of the other state are contained is this state's assumptions
+        return CollectionUtils.appliesToAll(otherAssumptions, a -> assumptions.contains(a));
     }
 
     @Override
@@ -168,7 +179,7 @@ public class HybridAnalysisState implements LatticeAbstractState<HybridAnalysisS
      * @param pCIdExpression The repsective variable expression
      * @return Whether the state tracks an assumption for this variable
      */
-    public boolean tracksVariable(CIdExpression pCIdExpression) {
+    public boolean tracksVariable(CExpression pCIdExpression) { 
       return trackedVariables.contains(pCIdExpression);
     }
 }
