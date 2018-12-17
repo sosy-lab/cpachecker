@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.AutomatonGoal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.GoalCondition;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
@@ -162,8 +162,8 @@ public class TigerVariabilityTest {
   }
 
   public boolean hasTestCaseCoveringGoalWithConditions(
-      TestSuite testsuite,
-      Goal goal,
+      TestSuite<AutomatonGoal> testsuite,
+      AutomatonGoal goal,
       Iterable<String> includedFeatures,
       Iterable<String> excludedFeatures) {
 
@@ -176,12 +176,13 @@ public class TigerVariabilityTest {
   }
 
   public boolean hasGoalCoveringConditions(
-      TestSuite testsuite,
+      TestSuite<AutomatonGoal> testsuite,
       Iterable<String> includedFeatures,
       Iterable<String> excludedFeatures) {
 
     boolean covers = false;
-    for (Entry<TestCase, List<GoalCondition>> entry : testsuite.getMapping().entrySet()) {
+    for (Entry<TestCase, List<GoalCondition<AutomatonGoal>>> entry : testsuite.getMapping()
+        .entrySet()) {
       for (GoalCondition goalCondition : entry.getValue()) {
         covers =
             covers
@@ -209,17 +210,17 @@ public class TigerVariabilityTest {
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
     assertThat(result).isInstanceOf(TestSuite.class);
-    TestSuite testSuite = (TestSuite) result;
+    TestSuite<AutomatonGoal> testSuite = (TestSuite) result;
 
     assertTrue(testSuite.getTestCases().size() == 8);
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(4);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
-    Goal goal1 = testSuite.getGoalByName("G1");
-    Goal goal2 = testSuite.getGoalByName("G2");
-    Goal goal3 = testSuite.getGoalByName("G3");
-    Goal goal4 = testSuite.getGoalByName("G4");
+    AutomatonGoal goal1 = testSuite.getGoalByName("G1");
+    AutomatonGoal goal2 = testSuite.getGoalByName("G2");
+    AutomatonGoal goal3 = testSuite.getGoalByName("G3");
+    AutomatonGoal goal4 = testSuite.getGoalByName("G4");
 
     for (TestCase tc : testSuite.getTestCases()) {
       assertTrue(testSuite.getTestGoalsForTestcase(tc).size() == 1);
@@ -323,17 +324,17 @@ public class TigerVariabilityTest {
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
     assertThat(result).isInstanceOf(TestSuite.class);
-    TestSuite testSuite = (TestSuite) result;
+    TestSuite<AutomatonGoal> testSuite = (TestSuite) result;
 
     assertTrue(testSuite.getTestCases().size() == 6);
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(4);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
 
-    Goal goal1 = testSuite.getGoalByName("G1");
-    Goal goal2 = testSuite.getGoalByName("G2");
-    Goal goal3 = testSuite.getGoalByName("G3");
-    Goal goal4 = testSuite.getGoalByName("G4");
+    AutomatonGoal goal1 = testSuite.getGoalByName("G1");
+    AutomatonGoal goal2 = testSuite.getGoalByName("G2");
+    AutomatonGoal goal3 = testSuite.getGoalByName("G3");
+    AutomatonGoal goal4 = testSuite.getGoalByName("G4");
 
     for (TestCase tc : testSuite.getTestCases()) {
       assertTrue(testSuite.getTestGoalsForTestcase(tc).size() == 1);

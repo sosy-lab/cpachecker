@@ -24,13 +24,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
 import com.google.common.collect.Lists;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.math.BigInteger;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -49,10 +44,8 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -62,16 +55,13 @@ import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
-import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithmConfiguration.CoverageCheck;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.FQLSpecificationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.util.BDDUtils;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.AutomatonGoal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestGoalUtils;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
@@ -108,38 +98,12 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
-@Options(prefix = "tiger")
-public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListener {
+public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
 
-  enum TimeoutStrategy {
-    SKIP_AFTER_TIMEOUT,
-    RETRY_AFTER_TIMEOUT
-  }
-  enum ReachabilityAnalysisResult {
-    SOUND,
-    UNSOUND,
-    TIMEDOUT
-  }
 
-  public static String originalMainFunction = null;
-
-  private FQLSpecification fqlSpecification;
-  private final LogManager logger;
-  private final CFA cfa;
-  private ConfigurableProgramAnalysis cpa;
-  private Wrapper wrapper;
-  private final Configuration config;
-  private ReachedSet reachedSet = null;
-  private StartupConfig startupConfig;
-  private Specification stats;
-  private TestSuite testsuite;
-  private InputOutputValues values;
-  private int currentTestCaseID;
-  private TigerAlgorithmConfiguration tigerConfig;
   private TestGoalUtils testGoalUtils;
-  private LinkedList<Goal> goalsToCover;
-  private BDDUtils bddUtils;
-  private TimeoutCPA timeoutCPA;
+  private LinkedList<AutomatonGoal> goalsToCover;
+  private FQLSpecification fqlSpecification;
 
   public TigerAlgorithm(
       LogManager pLogger,
@@ -148,38 +112,22 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
       ConfigurableProgramAnalysis pCpa,
       ShutdownNotifier pShutdownNotifier,
       @Nullable final Specification stats) throws InvalidConfigurationException {
-    tigerConfig = new TigerAlgorithmConfiguration(pConfig);
-    cfa = pCfa;
-    cpa = pCpa;
-    startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
-    pShutdownNotifier.register(this);
-    // startupConfig.getConfig().inject(this);
-    logger = pLogger;
-    assert TigerAlgorithm.originalMainFunction != null;
-    config = pConfig;
-    config.inject(this);
+    init(pLogger, pCfa, pConfig, pCpa, pShutdownNotifier, stats);
 
-    wrapper =
-        new Wrapper(pCfa, TigerAlgorithm.originalMainFunction, tigerConfig.shouldUseOmegaLabel());
+    pShutdownNotifier.register(this);
     testGoalUtils =
         new TestGoalUtils(
             logger,
-            wrapper,
+            new Wrapper(
+                pCfa,
+                originalMainFunction,
+                tigerConfig.shouldUseOmegaLabel()),
             pCfa,
             tigerConfig.shouldOptimizeGoalAutomata(),
-            TigerAlgorithm.originalMainFunction);
-
-    logger.logf(Level.INFO, "FQL query string: %s", tigerConfig.getFqlQuery());
+            originalMainFunction);
     String preprocessFqlStmt = testGoalUtils.preprocessFQL(tigerConfig.getFqlQuery());
     fqlSpecification = FQLSpecificationUtil.getFQLSpecification(preprocessFqlStmt);
     logger.logf(Level.INFO, "FQL query: %s", fqlSpecification.toString());
-    this.stats = stats;
-    values =
-        new InputOutputValues(tigerConfig.getInputInterface(), tigerConfig.getOutputInterface());
-    currentTestCaseID = 0;
-
-    // Check if BDD is enabled for variability-aware test-suite generation
-    bddUtils = new BDDUtils(cpa, pLogger);
   }
 
   @Override
@@ -196,7 +144,7 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
     logger.logf(Level.INFO, "We empty pReachedSet to stop complaints of an incomplete analysis");
 
     goalsToCover = initializeTestGoalSet();
-    testsuite = new TestSuite(bddUtils, goalsToCover, tigerConfig);
+    testsuite = new TestSuite<>(bddUtils, goalsToCover, tigerConfig);
 
     boolean wasSound = true;
     if (!testGeneration(goalsToCover)) {
@@ -213,7 +161,7 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
     }
   }
 
-  private LinkedList<Goal> initializeTestGoalSet() {
+  private LinkedList<AutomatonGoal> initializeTestGoalSet() {
     LinkedList<ElementaryCoveragePattern> goalPatterns;
     LinkedList<Pair<ElementaryCoveragePattern, Region>> pTestGoalPatterns = new LinkedList<>();
 
@@ -224,10 +172,10 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
     }
 
     int goalIndex = 1;
-    LinkedList<Goal> goals = new LinkedList<>();
+    LinkedList<AutomatonGoal> goals = new LinkedList<>();
     for (Pair<ElementaryCoveragePattern, Region> pair : pTestGoalPatterns) {
-      Goal lGoal =
-          testGoalUtils.constructGoal(
+      AutomatonGoal lGoal =
+          testGoalUtils.constructAutomatonGoal(
               goalIndex,
               pair.getFirst(),
               pair.getSecond(),
@@ -240,38 +188,11 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
     return goals;
   }
 
-  private void writeTestsuite() {
-    String outputFolder = "output/";
-    String testSuiteName = "testsuite.txt";
-    File testSuiteFile = new File(outputFolder + testSuiteName);
-    if (!testSuiteFile.getParentFile().exists()) {
-      testSuiteFile.getParentFile().mkdirs();
-    }
-
-    try (Writer writer =
-        new BufferedWriter(
-            new OutputStreamWriter(new FileOutputStream("output/testsuite.txt"), "utf-8"))) {
-      writer.write(testsuite.toString());
-      writer.close();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-
-    try (Writer writer =
-        new BufferedWriter(
-            new OutputStreamWriter(new FileOutputStream("output/testsuite.json"), "utf-8"))) {
-      writer.write(testsuite.toJsonString());
-      writer.close();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   // TODO add pc to log output
   // TODO add parameter LinkedList<Edges>> pInfeasibilityPropagation
   // TODO add the parameter to runreachabilityanalysis
   @SuppressWarnings("unchecked")
-  private boolean testGeneration(LinkedList<Goal> pGoalsToCover)
+  private boolean testGeneration(LinkedList<AutomatonGoal> pGoalsToCover)
       throws CPAException, InterruptedException {
     boolean wasSound = true;
     boolean retry = false;
@@ -291,7 +212,7 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
               oldCPUTimeLimitPerGoal,
               tigerConfig.getCpuTimelimitPerGoal());
 
-          Collection<Entry<Integer, Pair<Goal, Region>>> set;
+          Collection<Entry<Integer, Pair<AutomatonGoal, Region>>> set;
           if (tigerConfig.useOrder()) {
             if (tigerConfig.useInverseOrder()) {
               order = !order;
@@ -311,7 +232,7 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
           }
 
           pGoalsToCover.clear();
-          for (Entry<Integer, Pair<Goal, Region>> entry : set) {
+          for (Entry<Integer, Pair<AutomatonGoal, Region>> entry : set) {
             pGoalsToCover.add(entry.getValue().getFirst());
           }
           testsuite.getTimedOutGoals().size();
@@ -319,7 +240,7 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
         }
       }
       while (!pGoalsToCover.isEmpty()) {
-        Goal goal = pGoalsToCover.poll();
+        AutomatonGoal goal = pGoalsToCover.poll();
         int goalIndex = goal.getIndex();
 
         logger.logf(Level.INFO, "Processing test goal %d of %d.", goalIndex, numberOfTestGoals);
@@ -354,7 +275,7 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
   }
 
   @SuppressWarnings("unused")
-  private boolean isCovered(int goalIndex, Goal lGoal) {
+  private boolean isCovered(int goalIndex, AutomatonGoal lGoal) {
     @SuppressWarnings("unused")
     Region remainingPCforGoalCoverage = lGoal.getPresenceCondition();
     boolean isFullyCovered = false;
@@ -369,43 +290,16 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
       } else if (isCovered.equals(ThreeValuedAnswer.REJECT)) {
         continue;
       }
-
-      // test goal is already covered by an existing test case
-      /*
-       * if (useTigerAlgorithm_with_pc) { boolean goalCoveredByTestCase = false; for (Goal goal :
-       * testsuite.getTestGoalsCoveredByTestCase(testcase)) { if (lGoal.getIndex() ==
-       * goal.getIndex()) { goalCoveredByTestCase = true; break; } } if (!goalCoveredByTestCase) {
-       * Region coveringRegion = testcase.getPresenceCondition();
-       *
-       * if (!bddCpaNamedRegionManager.makeAnd(lGoal.getPresenceCondition(),
-       * coveringRegion).isFalse()) { // configurations in testGoalPCtoCover and testcase.pc have a
-       * non-empty intersection Goal newGoal = constructGoal(lGoal.getIndex(), lGoal.getPattern(),
-       * mAlphaLabel, mInverseAlphaLabel, mOmegaLabel, optimizeGoalAutomata, coveringRegion);
-       * remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage,
-       * bddCpaNamedRegionManager.makeNot(coveringRegion));
-       *
-       * testsuite.addTestCase(testcase, newGoal);
-       *
-       * if (remainingPCforGoalCoverage.isFalse()) { logger.logf(Level.INFO,
-       * "Test goal %d is already fully covered by an existing test case.", goalIndex);
-       * isFullyCovered = true; break; } else { logger.logf(Level.INFO,
-       * "Test goal %d is already partly covered by an existing test case.", goalIndex,
-       * " Remaining PC: ", bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage)); }
-       *
-       * } else { // test goal is already covered by an existing test case logger.logf(Level.INFO,
-       * "Test goal %d is already covered by an existing test case.", goalIndex);
-       *
-       * testsuite.addTestCase(testcase, lGoal);
-       *
-       * return true; } } }
-       */
     }
 
     return isFullyCovered;
   }
 
   private ReachabilityAnalysisResult
-      runReachabilityAnalysis(Goal pGoal, int goalIndex, LinkedList<Goal> pGoalsToCover)
+      runReachabilityAnalysis(
+          AutomatonGoal pGoal,
+          int goalIndex,
+          LinkedList<AutomatonGoal> pGoalsToCover)
           throws CPAException, InterruptedException {
 
     // build CPAs for the goal
@@ -515,7 +409,7 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
             // otherwise we need to keep the goals, to cover them for each possible configuration
             boolean removeGoalsToCover =
                 !bddUtils.isVariabilityAware() || tigerConfig.shouldUseSingleFeatureGoalCoverage();
-            HashSet<Goal> goalsToCheckCoverage = new HashSet<>(pGoalsToCover);
+            HashSet<AutomatonGoal> goalsToCheckCoverage = new HashSet<>(pGoalsToCover);
             if (tigerConfig.getCoverageCheck() == CoverageCheck.ALL) {
               goalsToCheckCoverage.addAll(testsuite.getTestGoals());
             }
@@ -604,7 +498,7 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
     return pc;
   }
 
-  public Region getPresenceConditionFromCexForGoal(CounterexampleInfo cex, Goal pGoal) {
+  public Region getPresenceConditionFromCexForGoal(CounterexampleInfo cex, AutomatonGoal pGoal) {
     if (!bddUtils.isVariabilityAware()) {
       return null;
     }
@@ -690,11 +584,11 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
   }
 
   private void checkGoalCoverage(
-      Set<Goal> pGoalsToCheckCoverage,
+      Set<AutomatonGoal> pGoalsToCheckCoverage,
       TestCase testCase,
       boolean removeCoveredGoals,
       CounterexampleInfo cex) {
-    for (Goal goal : testCase.getCoveredGoals(pGoalsToCheckCoverage)) {
+    for (AutomatonGoal goal : testCase.getCoveredGoals(pGoalsToCheckCoverage)) {
       // TODO add infeasiblitpropagaion to testsuite
       Region simplifiedPresenceCondition = getPresenceConditionFromCexForGoal(cex, goal);
       testsuite.updateTestcaseToGoalMapping(testCase, goal, simplifiedPresenceCondition);
@@ -779,64 +673,8 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
     return lARTCPA;
   }
 
-  private ARGCPA buildCPAs(Goal pGoal)// LinkedList<Goal> pGoalsToCover)
+  private ARGCPA buildCPAs(AutomatonGoal pGoal)// LinkedList<Goal> pGoalsToCover)
       throws CPAException {
-
-    // List<Automaton> goalAutomata = Lists.newArrayList();
-    //
-    // for (Goal goal : pGoalsToCover) {
-    // final Automaton a = goal.createControlAutomaton();
-    // goalAutomata.add(a);
-    // }
-    //
-    // Collection<ConfigurableProgramAnalysis> automataCPAs = Lists.newArrayList();
-    //
-    // for (Automaton goalAutomaton : goalAutomata) {
-    // automataCPAs.add(buildAutomataFactory(goalAutomaton).createInstance());
-    // }
-    //
-    // // Add one automata CPA for each goal
-    // LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
-    // lComponentAnalyses.addAll(automataCPAs);
-    //
-    // // Add the old composite components
-    // Preconditions.checkArgument(
-    // cpa instanceof ARGCPA,
-    // "Tiger: Only support for ARGCPA implemented for CPA composition!");
-    // ARGCPA oldArgCPA = (ARGCPA) cpa;
-    // CompositeCPA argCompositeCpa = (CompositeCPA) oldArgCPA.getWrappedCPAs().iterator().next();
-    // lComponentAnalyses.addAll(argCompositeCpa.getWrappedCPAs());
-    //
-    // final ARGCPA result;
-    //
-    // try {
-    // // create composite CPA
-    // CPAFactory compositeCpaFactory = CompositeCPA.factory();
-    // compositeCpaFactory.setChildren(lComponentAnalyses);
-    // compositeCpaFactory.setConfiguration(config);
-    // compositeCpaFactory.setLogger(logger);
-    // compositeCpaFactory.set(cfa, CFA.class);
-    //
-    // ConfigurableProgramAnalysis lCPA = compositeCpaFactory.createInstance();
-    //
-    // Specification goalAutomatonSpecification = Specification.fromAutomata(goalAutomata);
-    //
-    // // create ARG CPA
-    // CPAFactory lARTCPAFactory = ARGCPA.factory();
-    // lARTCPAFactory.set(cfa, CFA.class);
-    // lARTCPAFactory.setChild(lCPA);
-    // lARTCPAFactory.setConfiguration(config);
-    // lARTCPAFactory.setLogger(logger);
-    // lARTCPAFactory.set(goalAutomatonSpecification, Specification.class);
-    //
-    // result = (ARGCPA) lARTCPAFactory.createInstance();
-    //
-    // } catch (InvalidConfigurationException | CPAException e) {
-    // throw new RuntimeException(e);
-    // }
-    //
-    // return result;
-    // }
     Automaton goalAutomaton = pGoal.createControlAutomaton();
     Specification goalAutomatonSpecification =
         Specification.fromAutomata(Lists.newArrayList(goalAutomaton));
@@ -904,38 +742,6 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
     if (hasTimedOut) {
       logger.logf(Level.INFO, "Test goal timed out!");
     }
-
-    // if (tigerConfig.getCpuTimelimitPerGoal() < 0) {
-//      // run algorithm without time limit
-//      analysisWasSound = algorithm.run(reachedSet).isSound();
-//    } else {
-//      // run algorithm with time limit
-//      WorkerRunnable workerRunnable =
-//          new WorkerRunnable(
-//              algorithm,
-//              reachedSet,
-//              tigerConfig.getCpuTimelimitPerGoal(),
-//              algNotifier,
-//              timeoutCPA);
-//
-//      Thread workerThread = new Thread(workerRunnable);
-//
-//      workerThread.start();
-//      workerThread.join();
-//
-//      if (workerRunnable.throwableWasCaught()) {
-//        // TODO: handle exception
-//        analysisWasSound = false;
-//        // throw new RuntimeException(workerRunnable.getCaughtThrowable());
-//      } else {
-//        analysisWasSound = workerRunnable.analysisWasSound();
-//
-//        if (workerRunnable.hasTimeout()) {
-//          logger.logf(Level.INFO, "Test goal timed out!");
-//          hasTimedOut = true;
-//        }
-//      }
-//    }
     return Pair.of(analysisWasSound, hasTimedOut);
   }
 
@@ -1001,7 +807,7 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
 
   @Override
   public void shutdownRequested(String pArg0) {
-    for (Goal goal : goalsToCover) {
+    for (AutomatonGoal goal : goalsToCover) {
       if (!(testsuite.isGoalCovered(goal)
           || testsuite.isInfeasible(goal)
           || testsuite.isGoalTimedOut(goal))) {
@@ -1009,6 +815,5 @@ public class TigerAlgorithm implements AlgorithmWithResult, ShutdownRequestListe
       }
     }
     writeTestsuite();
-
   }
 }

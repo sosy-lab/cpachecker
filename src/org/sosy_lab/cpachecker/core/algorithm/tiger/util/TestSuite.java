@@ -39,30 +39,28 @@ import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithmConfiguration;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
-public class TestSuite implements AlgorithmResult {
+public class TestSuite<T extends Goal> implements AlgorithmResult {
 
-  private Map<TestCase, List<GoalCondition>> mapping;
-  private Map<Goal, Region> infeasibleGoals;
-  private Map<Integer, Pair<Goal, Region>> timedOutGoals;
+  private Map<TestCase, List<GoalCondition<T>>> mapping;
+  private Map<T, Region> infeasibleGoals;
+  private Map<Integer, Pair<T, Region>> timedOutGoals;
   private BDDUtils bddUtils;
-  private Map<Goal, List<TestCase>> coveringTestCases;
-  private List<Goal> includedTestGoals;
+  private Map<T, List<TestCase>> coveringTestCases;
+  private List<T> includedTestGoals;
   private TestSuiteData testSuiteData;
   private int numberOfFeasibleGoals = 0;
   private TigerAlgorithmConfiguration tigerConfig;
-  private Map<Goal, Region> remainingPresenceConditions;
+  private Map<T, Region> remainingPresenceConditions;
 
   public TestSuite(
       BDDUtils pBddUtils,
-      List<Goal> includedTestGoals,
+      List<T> includedTestGoals,
       TigerAlgorithmConfiguration pTigerConfig) {
     mapping = new LinkedHashMap<>();
     infeasibleGoals = new HashMap<>();
@@ -75,28 +73,28 @@ public class TestSuite implements AlgorithmResult {
     tigerConfig = pTigerConfig;
 
     remainingPresenceConditions = new HashMap<>();
-    for (Goal goal : includedTestGoals) {
+    for (T goal : includedTestGoals) {
       setRemainingPresenceCondition(goal, bddUtils.makeTrue());
     }
   }
 
-  public String getGoalPresenceCondition(GoalCondition gc) {
+  public String getGoalPresenceCondition(GoalCondition<T> gc) {
     return bddUtils.dumpRegion(gc.getSimplifiedPresenceCondition());
   }
 
-  public Set<Goal> getTestGoals() {
-    Set<Goal> result = new HashSet<>();
-    for (List<GoalCondition> goalList : mapping.values()) {
-      for (GoalCondition goalcondition : goalList) {
+  public Set<T> getTestGoals() {
+    Set<T> result = new HashSet<>();
+    for (List<GoalCondition<T>> goalList : mapping.values()) {
+      for (GoalCondition<T> goalcondition : goalList) {
         result.add(goalcondition.getGoal());
       }
     }
     return result;
   }
 
-  public Set<Goal> getTestGoalsForTestcase(TestCase testcase){
-    Set<Goal> result = new HashSet<>();
-    for(GoalCondition goalCond: mapping.get(testcase)) {
+  public Set<T> getTestGoalsForTestcase(TestCase testcase) {
+    Set<T> result = new HashSet<>();
+    for (GoalCondition<T> goalCond : mapping.get(testcase)) {
       result.add(goalCond.getGoal());
     }
     return result;
@@ -106,7 +104,7 @@ public class TestSuite implements AlgorithmResult {
     return coveringTestCases.keySet().size();
   }
 
-  public Map<TestCase, List<GoalCondition>> getMapping() {
+  public Map<TestCase, List<GoalCondition<T>>> getMapping() {
     return mapping;
   }
 
@@ -126,15 +124,15 @@ public class TestSuite implements AlgorithmResult {
     return !timedOutGoals.isEmpty();
   }
 
-  public void addTimedOutGoal(int index, Goal goal, Region presenceCondition) {
+  public void addTimedOutGoal(int index, T goal, Region presenceCondition) {
     timedOutGoals.put(index, Pair.of(goal, presenceCondition));
   }
 
-  public Map<Integer, Pair<Goal, Region>> getTimedOutGoals() {
+  public Map<Integer, Pair<T, Region>> getTimedOutGoals() {
     return timedOutGoals;
   }
 
-  public void addInfeasibleGoal(Goal goal, Region presenceCondition) {
+  public void addInfeasibleGoal(T goal, Region presenceCondition) {
     if (presenceCondition != null && infeasibleGoals.containsKey(goal)) {
       presenceCondition = bddUtils.makeOr(infeasibleGoals.get(goal), presenceCondition);
     }
@@ -142,7 +140,7 @@ public class TestSuite implements AlgorithmResult {
     infeasibleGoals.put(goal, presenceCondition);
   }
 
-  private void addCoveredPresenceCondition(Goal pGoal, Region pPresenceCondition) {
+  private void addCoveredPresenceCondition(T pGoal, Region pPresenceCondition) {
     Region remainingPresenceCondition = bddUtils.makeAnd(
         getRemainingPresenceCondition(pGoal),
         bddUtils.makeNot(pPresenceCondition));
@@ -151,13 +149,13 @@ public class TestSuite implements AlgorithmResult {
 
   public boolean addTestCase(
       TestCase testcase,
-      Goal goal,
+      T goal,
       Region pSimplifiedPresenceCondition) {
     if (!isGoalPariallyCovered(goal)) {
       numberOfFeasibleGoals++;
     }
 
-    List<GoalCondition> goals = mapping.get(testcase);
+    List<GoalCondition<T>> goals = mapping.get(testcase);
     List<TestCase> testcases = coveringTestCases.get(goal);
 
     if (testcases == null) {
@@ -172,18 +170,18 @@ public class TestSuite implements AlgorithmResult {
       mapping.put(testcase, goals);
       testcaseExisted = false;
     }
-    goals.add(new GoalCondition(goal, pSimplifiedPresenceCondition, bddUtils));
+    goals.add(new GoalCondition<T>(goal, pSimplifiedPresenceCondition, bddUtils));
     testcases.add(testcase);
     addCoveredPresenceCondition(goal, pSimplifiedPresenceCondition);
 
     return testcaseExisted;
   }
 
-  public void setRemainingPresenceCondition(Goal pGoal, Region presenceCondtion) {
+  public void setRemainingPresenceCondition(T pGoal, Region presenceCondtion) {
     remainingPresenceConditions.put(pGoal, presenceCondtion);
   }
 
-  private boolean isGoalPariallyCovered(Goal pGoal) {
+  private boolean isGoalPariallyCovered(T pGoal) {
     if (bddUtils.isVariabilityAware()) {
       if (remainingPresenceConditions.get(pGoal) != null
           && remainingPresenceConditions.get(pGoal).isFalse()) {
@@ -196,10 +194,10 @@ public class TestSuite implements AlgorithmResult {
 
   }
 
-  public void updateTestcaseToGoalMapping(TestCase testcase, Goal goal, Region pSimplifiedPresenceCondition) {
-    List<GoalCondition> goals = mapping.get(testcase);
-    GoalCondition goalCond =
-        new GoalCondition(goal, pSimplifiedPresenceCondition, bddUtils);
+  public void
+      updateTestcaseToGoalMapping(TestCase testcase, T goal, Region pSimplifiedPresenceCondition) {
+    List<GoalCondition<T>> goals = mapping.get(testcase);
+    GoalCondition<T> goalCond = new GoalCondition<T>(goal, pSimplifiedPresenceCondition, bddUtils);
     if (!goals.contains(goalCond)) {
       goals.add(goalCond);
     }
@@ -222,12 +220,12 @@ public class TestSuite implements AlgorithmResult {
     testcases.add(testcase);
   }
 
-  public List<Goal> getIncludedTestGoals() {
+  public List<T> getIncludedTestGoals() {
     return includedTestGoals;
   }
 
-  public Goal getGoalByName(String name) {
-    for (Goal goal : includedTestGoals) {
+  public T getGoalByName(String name) {
+    for (T goal : includedTestGoals) {
       if (goal.getName().equals(name)) {
         return goal;
       }
@@ -235,7 +233,7 @@ public class TestSuite implements AlgorithmResult {
     return null;
   }
 
-  public void setIncludedTestGoals(List<Goal> pIncludedTestGoals) {
+  public void setIncludedTestGoals(List<T> pIncludedTestGoals) {
     includedTestGoals.clear();
     includedTestGoals.addAll(pIncludedTestGoals);
   }
@@ -249,7 +247,7 @@ public class TestSuite implements AlgorithmResult {
     return getTestCases().size();
   }
 
-  public Map<Goal, Region> getInfeasibleGoals() {
+  public Map<T, Region> getInfeasibleGoals() {
     return infeasibleGoals;
   }
 
@@ -273,7 +271,7 @@ public class TestSuite implements AlgorithmResult {
 
     List<TestCaseData> testCaseDatas = Lists.newLinkedList();
 
-    for (Map.Entry<TestCase, List<GoalCondition>> entry : mapping.entrySet()) {
+    for (Map.Entry<TestCase, List<GoalCondition<T>>> entry : mapping.entrySet()) {
       TestCase testCase = entry.getKey();
       TestCaseData testCaseData = new TestCaseData();
       testCaseData.setId(testCase.getId());
@@ -302,11 +300,11 @@ public class TestSuite implements AlgorithmResult {
       testCaseData.setOutputs(outputs);
 
       List<String> coveredGoals = Lists.newLinkedList();
-      for (GoalCondition goalCondition : entry.getValue()) {
+      for (GoalCondition<T> goalCondition : entry.getValue()) {
         String goalString =
             goalCondition.getGoal().getIndex()
                 + "@("
-                + getTestGoalLabel(goalCondition.getGoal())
+                + goalCondition.getGoal().getName()
                 + ") : "
                 + simplePresenceCondition(goalCondition.getSimplifiedPresenceCondition());
         coveredGoals.add(goalString);
@@ -322,8 +320,8 @@ public class TestSuite implements AlgorithmResult {
 
     List<String> infeasibleGoalStrings = Lists.newLinkedList();
     if (!infeasibleGoals.isEmpty()) {
-      for (Entry<Goal, Region> entry : infeasibleGoals.entrySet()) {
-        infeasibleGoalStrings.add(getTestGoalLabel(entry.getKey()));
+      for (Entry<T, Region> entry : infeasibleGoals.entrySet()) {
+        infeasibleGoalStrings.add(entry.getKey().getName());
       }
     }
 
@@ -331,8 +329,8 @@ public class TestSuite implements AlgorithmResult {
 
     List<String> timedoutGoalStrings = Lists.newLinkedList();
     if (!timedOutGoals.isEmpty()) {
-      for (Entry<Integer, Pair<Goal, Region>> entry : timedOutGoals.entrySet()) {
-        timedoutGoalStrings.add(getTestGoalLabel(entry.getValue().getFirst()));
+      for (Entry<Integer, Pair<T, Region>> entry : timedOutGoals.entrySet()) {
+        timedoutGoalStrings.add(entry.getValue().getFirst().getName());
 
       }
     }
@@ -342,54 +340,6 @@ public class TestSuite implements AlgorithmResult {
 
   @Override
   public String toString() {
-    /*
-     * StringBuffer str = new StringBuffer();
-     * str.append("Number of Testcases: ").append(mapping.entrySet().size()).append("\n\n"); for
-     * (Map.Entry<TestCase, List<Goal>> entry : mapping.entrySet()) { List<CFAEdge> errorPath =
-     * entry.getKey().getErrorPath();
-     *
-     * str.append(entry.getKey().toString() + "\n\n");
-     *
-     * str.append("\tCovered goals {\n"); for (Goal goal : entry.getValue()) {
-     * str.append("\t\t").append(goal.getIndex()).append("@");
-     * str.append("(").append(getTestGoalLabel(goal)).append(")");
-     *
-     * Region presenceCondition = goal.getPresenceCondition(); if (presenceCondition != null) {
-     * str.append(": " + bddCpaNamedRegionManager.dumpRegion(
-     * (org.sosy_lab.cpachecker.util.predicates.regions.Region) presenceCondition)); }
-     * str.append("\n"); } str.append("\t}\n\n");
-     *
-     * str.append("\tCovered labels {\n"); List<String> labels =
-     * entry.getKey().calculateCoveredLabels(); str.append("\t\t"); for (String label : labels) {
-     * str.append(label).append(", "); } str.delete(str.length() - 2, str.length());
-     * str.append("\n"); str.append("\t}\n"); str.append("\n");
-     *
-     * if (errorPath != null) { str.append("\tErrorpath Length: " +
-     * entry.getKey().getErrorPath().size() + "\n"); } str.append("\n\n"); }
-     *
-     * if (!infeasibleGoals.isEmpty()) { str.append("infeasible:\n");
-     *
-     * for (Entry<Goal, Region> entry : infeasibleGoals.entrySet()) { str.append("Goal ");
-     * str.append(getTestGoalLabel(entry.getKey()));
-     *
-     * Region presenceCondition = entry.getValue(); if (presenceCondition != null) {
-     * str.append(": cannot be covered with PC "); //
-     * str.append(bddCpaNamedRegionManager.dumpRegion(presenceCondition)); } str.append("\n"); }
-     *
-     * str.append("\n"); }
-     *
-     * if (!timedOutGoals.isEmpty()) { str.append("timed out:\n");
-     *
-     * for (Entry<Integer, Pair<Goal, Region>> entry : timedOutGoals.entrySet()) {
-     * str.append("Goal "); str.append(getTestGoalLabel(entry.getValue().getFirst()));
-     *
-     * Region presenceCondition = entry.getValue().getSecond(); if (presenceCondition != null) {
-     * str.append(": timed out for PC "); str.append( bddCpaNamedRegionManager.dumpRegion(
-     * (org.sosy_lab.cpachecker.util.predicates.regions.Region) presenceCondition)); }
-     * str.append("\n"); }
-     *
-     * str.append("\n"); }
-     */
     if (testSuiteData == null) {
       assembleTestSuiteData();
     }
@@ -406,48 +356,12 @@ public class TestSuite implements AlgorithmResult {
     return mapper.writeValueAsString(testSuiteData);
   }
 
-  /**
-   * Returns the label of a test goal if there is one; otherwise the goal index will be returned.
-   *
-   * @param goal
-   * @return
-   */
-  @SuppressWarnings("javadoc")
-  public String getTestGoalLabel(Goal goal) {
-    String label = "";
-
-    CFANode predecessor = goal.getCriticalEdge().getPredecessor();
-    if (predecessor instanceof CLabelNode && !((CLabelNode) predecessor).getLabel().isEmpty()) {
-      label = ((CLabelNode) predecessor).getLabel();
-    } else {
-      label = new Integer(goal.getIndex()).toString();
-    }
-
-    return label;
-  }
-
-  /**
-   * Summarizes the presence conditions of tests in this testsuite that cover the parameter test
-   * goal.
-   */
-  // public Region getGoalCoverage(Goal pGoal) {
-  // Region totalCoverage = bddCpaNamedRegionManager.makeFalse();
-  // for (Entry<TestCase, List<Goal>> entry : this.mapping.entrySet()) {
-  // if (entry.getValue().contains(pGoal)) {
-  // assert entry.getKey().getPresenceCondition() != null;
-  // // totalCoverage = bddCpaNamedRegionManager.makeOr(totalCoverage,
-  // // entry.getKey().getPresenceCondition());
-  // }
-  // }
-  // return totalCoverage;
-  // }
-
-  public boolean isInfeasible(Goal goal) {
+  public boolean isInfeasible(T goal) {
     return infeasibleGoals.containsKey(goal);
   }
 
-  public boolean isGoalTimedOut(Goal goal) {
-    for (Entry<Integer, Pair<Goal, Region>> entry : timedOutGoals.entrySet()) {
+  public boolean isGoalTimedOut(T goal) {
+    for (Entry<Integer, Pair<T, Region>> entry : timedOutGoals.entrySet()) {
       if (entry.getValue().getFirst().equals(goal)) {
         return true;
       }
@@ -455,7 +369,7 @@ public class TestSuite implements AlgorithmResult {
     return false;
   }
 
-  public boolean isGoalCovered(Goal pGoal) {
+  public boolean isGoalCovered(T pGoal) {
     if (bddUtils.isVariabilityAware()) {
       if (remainingPresenceConditions.get(pGoal) != null) {
         return remainingPresenceConditions.get(pGoal).isFalse();
@@ -469,11 +383,11 @@ public class TestSuite implements AlgorithmResult {
 
   }
 
-  public List<TestCase> getCoveringTestCases(Goal goal) {
+  public List<TestCase> getCoveringTestCases(T goal) {
     return coveringTestCases.get(goal);
   }
 
-  public Region getRemainingPresenceCondition(Goal pGoal) {
+  public Region getRemainingPresenceCondition(T pGoal) {
     if (!remainingPresenceConditions.containsKey(pGoal)) {
       return bddUtils.makeTrue();
     }
@@ -481,8 +395,8 @@ public class TestSuite implements AlgorithmResult {
     return remainingPresenceConditions.get(pGoal);
   }
 
-  public boolean areGoalsCoveredOrInfeasible(LinkedList<Goal> pGoalsToCover) {
-    for (Goal goal : pGoalsToCover) {
+  public boolean areGoalsCoveredOrInfeasible(LinkedList<T> pGoalsToCover) {
+    for (T goal : pGoalsToCover) {
       if (!isGoalCovered(goal) || isInfeasible(goal)) {
         return false;
       }
@@ -490,17 +404,17 @@ public class TestSuite implements AlgorithmResult {
     return true;
   }
 
-  public String getPresenceConditionOfGoalInTestcase(Goal goal, TestCase testCase) {
+  public String getPresenceConditionOfGoalInTestcase(T goal, TestCase testCase) {
     if (bddUtils == null || goal == null || testCase == null || mapping == null) {
       return "";
     }
 
-    List<GoalCondition> goals = mapping.get(testCase);
+    List<GoalCondition<T>> goals = mapping.get(testCase);
     if (goals == null) {
       return "";
     }
-    GoalCondition goalCondition = null;
-    for (GoalCondition gc : goals) {
+    GoalCondition<T> goalCondition = null;
+    for (GoalCondition<T> gc : goals) {
       if (gc.getGoal() == goal) {
         goalCondition = gc;
         break;
@@ -518,7 +432,7 @@ public class TestSuite implements AlgorithmResult {
   // gleiches goal, gleiche ein und ausgaben
 
   private boolean dominates(TestCase tc1, TestCase tc2) {
-    for (GoalCondition goal : mapping.get(tc2)) {
+    for (GoalCondition<T> goal : mapping.get(tc2)) {
       if (!mapping.get(tc1).contains(goal)) {
         return false;
       }

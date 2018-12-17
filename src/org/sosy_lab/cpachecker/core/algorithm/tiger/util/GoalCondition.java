@@ -26,19 +26,19 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
-public class GoalCondition {
+public class GoalCondition<T extends Goal> {
 
-  private Goal goal;
+  private T goal;
   private Region simplifiedPresenceCondition;
   private BDDUtils bddUtils;
 
-  public GoalCondition(Goal pGoal, Region pSimplifiedPresenceCondition, BDDUtils pBddUtils) {
+  public GoalCondition(T pGoal, Region pSimplifiedPresenceCondition, BDDUtils pBddUtils) {
     goal = pGoal;
     simplifiedPresenceCondition = pSimplifiedPresenceCondition;
     bddUtils = pBddUtils;
   }
 
-  public Goal getGoal() {
+  public T getGoal() {
     return goal;
   }
 
@@ -56,7 +56,7 @@ public class GoalCondition {
     if (!(other instanceof GoalCondition)) {
       return false;
     }
-    GoalCondition otherGC = (GoalCondition) other;
+    GoalCondition<?> otherGC = (GoalCondition<?>) other;
     if (this.goal != otherGC.goal) {
       return false;
     }

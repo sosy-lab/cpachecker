@@ -35,6 +35,7 @@ import java.util.Set;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.AutomatonGoal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.test.CombinedVariableProperty.Combinators;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.test.VariableProperty.Comparators;
@@ -180,14 +181,14 @@ public class TigerTest {
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
     assertThat(result).isInstanceOf(TestSuite.class);
-    TestSuite testSuite = (TestSuite) result;
+    TestSuite<AutomatonGoal> testSuite = (TestSuite) result;
 
     assertTrue(testSuite.getNumberOfTestCases() == 3);
     assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 3);
 
     // only one goal per testcase
     for (TestCase testCase : testSuite.getTestCases()) {
-      Set<Goal> coveredGoals = testSuite.getTestGoalsForTestcase(testCase);
+      Set<AutomatonGoal> coveredGoals = testSuite.getTestGoalsForTestcase(testCase);
       assertTrue(coveredGoals.size() == 1);
     }
 
@@ -246,7 +247,7 @@ public class TigerTest {
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
     assertThat(result).isInstanceOf(TestSuite.class);
-    TestSuite testSuite = (TestSuite) result;
+    TestSuite<AutomatonGoal> testSuite = (TestSuite) result;
 
     assertTrue(testSuite.getNumberOfTestCases() == 2);
     assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 3);
@@ -267,10 +268,10 @@ public class TigerTest {
     goalsToBeCovered.add("G1");
     goalsToBeCovered.add("G2");
     for(TestCase t : testSuite.getMapping().keySet()){
-      Set<Goal> coveredGoals = testSuite.getTestGoalsForTestcase(t);
+      Set<AutomatonGoal> coveredGoals = testSuite.getTestGoalsForTestcase(t);
       List<String> goalLabels = Lists.newLinkedList();
       for(Goal g : coveredGoals) {
-        goalLabels.add(testSuite.getTestGoalLabel(g));
+        goalLabels.add(g.getName());
       }
       assertThat(goalsToBeCovered.size()==goalLabels.size());
       for(String goal : goalsToBeCovered) {
@@ -400,14 +401,14 @@ public class TigerTest {
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
     assertThat(result).isInstanceOf(TestSuite.class);
-    TestSuite testSuite = (TestSuite) result;
+    TestSuite<AutomatonGoal> testSuite = (TestSuite) result;
 
     assertTrue(testSuite.getNumberOfTestCases() == 3);
     assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 3);
 
     // only one goal per testcase
     for (TestCase testCase : testSuite.getTestCases()) {
-      Set<Goal> coveredGoals = testSuite.getTestGoalsForTestcase(testCase);
+      Set<AutomatonGoal> coveredGoals = testSuite.getTestGoalsForTestcase(testCase);
       assertTrue(coveredGoals.size() == 1);
     }
 
@@ -556,7 +557,7 @@ public class TigerTest {
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
     assertThat(result).isInstanceOf(TestSuite.class);
-    TestSuite testSuite = (TestSuite) result;
+    TestSuite<AutomatonGoal> testSuite = (TestSuite<AutomatonGoal>) result;
 
     assertTrue(testSuite.getNumberOfTestCases() == 2);
     assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 3);
@@ -577,10 +578,10 @@ public class TigerTest {
     goalsToBeCovered.add("G1");
     goalsToBeCovered.add("G2");
     for(TestCase t : testSuite.getMapping().keySet()){
-      Set<Goal> coveredGoals = testSuite.getTestGoalsForTestcase(t);
+      Set<AutomatonGoal> coveredGoals = testSuite.getTestGoalsForTestcase(t);
       List<String> goalLabels = Lists.newLinkedList();
-      for(Goal g : coveredGoals) {
-        goalLabels.add(testSuite.getTestGoalLabel(g));
+      for (AutomatonGoal g : coveredGoals) {
+        goalLabels.add(g.getName());
       }
       assertThat(goalsToBeCovered.size()==goalLabels.size());
       for(String goal : goalsToBeCovered) {

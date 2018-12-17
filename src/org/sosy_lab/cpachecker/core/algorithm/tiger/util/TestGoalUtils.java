@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.InverseG
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.AutomatonGoal;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
@@ -67,7 +67,7 @@ public class TestGoalUtils {
   }
 
 
-  public Goal constructGoal(
+  public AutomatonGoal constructAutomatonGoal(
       int pIndex,
       ElementaryCoveragePattern pGoalPattern,
       Region pPresenceCondition,
@@ -78,7 +78,7 @@ public class TestGoalUtils {
             pUseOmegaLabel);
     automaton = FQLSpecificationUtil.optimizeAutomaton(automaton, optimizeGoalAutomata);
 
-    Goal lGoal = new Goal(pIndex, pGoalPattern, automaton, pPresenceCondition);
+    AutomatonGoal lGoal = new AutomatonGoal(pIndex, pGoalPattern, automaton, pPresenceCondition);
 
     return lGoal;
   }

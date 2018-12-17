@@ -27,20 +27,16 @@ import com.google.common.collect.Lists;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 
@@ -135,53 +131,13 @@ public class TestCase {
   }
 
   public ThreeValuedAnswer coversGoal(Goal pGoal) {
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = pGoal.getAutomaton();
-    Set<NondeterministicFiniteAutomaton.State> lCurrentStates = new HashSet<>();
-    Set<NondeterministicFiniteAutomaton.State> lNextStates = new HashSet<>();
-
-    lCurrentStates.add(lAutomaton.getInitialState());
-
-    boolean lHasPredicates = false;
-
-    for (CFAEdge lCFAEdge : this.getPath()) {
-      for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
-        // Automaton accepts as soon as it sees a final state (implicit self-loop)
-        if (lAutomaton.getFinalStates()
-            .contains(lCurrentState)) { return ThreeValuedAnswer.ACCEPT; }
-
-        for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : lAutomaton
-            .getOutgoingEdges(lCurrentState)) {
-          GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
-
-          if (lLabel.hasGuards()) {
-            lHasPredicates = true;
-          } else {
-            if (lLabel.contains(lCFAEdge)) {
-              lNextStates.add(lOutgoingEdge.getTarget());
-            }
-          }
-        }
-      }
-
-      lCurrentStates.addAll(lNextStates);
-    }
-
-    for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
-      // Automaton accepts as soon as it sees a final state (implicit self-loop)
-      if (lAutomaton.getFinalStates().contains(lCurrentState)) { return ThreeValuedAnswer.ACCEPT; }
-    }
-
-    if (lHasPredicates) {
-      return ThreeValuedAnswer.UNKNOWN;
-    } else {
-      return ThreeValuedAnswer.REJECT;
-    }
+    return pGoal.getsCoveredByPath(this.getPath());
   }
 
-
-  public List<Goal> getCoveredGoals(Collection<Goal> pAllGoals) {
-    List<Goal> coveredGoals = new ArrayList<>();
-    for (Goal goal : pAllGoals) {
+  public <T extends Goal> List<T> getCoveredGoals(Collection<T> pAllGoals)
+  {
+    List<T> coveredGoals = new ArrayList<>();
+    for (T goal : pAllGoals) {
       ThreeValuedAnswer answer = coversGoal(goal);
       if (answer.equals(ThreeValuedAnswer.ACCEPT)) {
         coveredGoals.add(goal);
