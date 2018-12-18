@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
+import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisPrecision.IntervalAnalysisFullPrecision;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 
 @Options(prefix = "cpa.interval")
@@ -170,7 +171,7 @@ public class IntervalAnalysisCPA extends AbstractCPA
   public LogManager getLogger(){return logger;}
 
   private IntervalAnalysisPrecision initializePrecision () {
-    return new IntervalAnalysisPrecision();
+    return new IntervalAnalysisFullPrecision();
   }
 
   @Override

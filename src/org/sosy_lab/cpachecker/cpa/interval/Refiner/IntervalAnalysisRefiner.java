@@ -24,19 +24,16 @@
 package org.sosy_lab.cpachecker.cpa.interval.Refiner;
 
 import com.google.common.base.Preconditions;
-import java.util.ArrayDeque;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -48,21 +45,19 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
-import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisPrecision.IntervalAnalysisFullPrecision;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "cpa.interval.refinement")
 public class IntervalAnalysisRefiner implements ARGBasedRefiner {
+
+  @Option(secure = true, description = "Nothing")
 
   StrongestPostOperator<IntervalAnalysisState> strongestPostOperator;
 
@@ -70,6 +65,7 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
 
   private CFA cfa;
   private Configuration config;
+  private static IntervalAnalysisFeasibilityChecker checker;
 
   public static Refiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -88,6 +84,14 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
 
     final StrongestPostOperator<IntervalAnalysisState> strongestPostOp =
         new IntervalAnalysisStrongestPostOperator(logger, false, 2000);
+    checker =
+        new IntervalAnalysisFeasibilityChecker(
+            strongestPostOp,
+            new IntervalAnalysisState(),
+            IntervalAnalysisCPA.class,
+            logger,
+            config,
+            pCfa);
 
     return new IntervalAnalysisRefiner(strongestPostOp, config, logger, pCfa);
   }
@@ -114,7 +118,7 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
 
     Set<String> collectionOfVariables = new HashSet<>();
 
-    if (!isFeasible(targetPathToUse, new IntervalAnalysisFullPrecision(), collectionOfVariables)) {
+    if (!checker.isFeasible(targetPathToUse, new IntervalAnalysisFullPrecision(), collectionOfVariables)) {
       logger.log(Level.INFO, "performing refinement ...");
       refine(targetPathToUse, pReached, Collections.unmodifiableSet(collectionOfVariables));
       logger.log(Level.INFO, "refinement finished");
@@ -131,14 +135,12 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
     IntervalAnalysisPrecision minimalPrecisionRequired =
         new IntervalAnalysisPrecision(collectionOfVariables);
 
-    logger.log(Level.SEVERE, collectionOfVariables.toString());
-    for (String x : collectionOfVariables) {
-      minimalPrecisionRequired.remove(x);
-      if (isFeasible(targetPathToUse, minimalPrecisionRequired, new HashSet<>())) {
-        minimalPrecisionRequired.add(x);
+    for (String currentVariable : collectionOfVariables) {
+      minimalPrecisionRequired.remove(currentVariable);
+      if (checker.isFeasible(targetPathToUse, minimalPrecisionRequired, new HashSet<>())) {
+        minimalPrecisionRequired.add(currentVariable);
       }
     }
-    logger.log(Level.INFO, minimalPrecisionRequired.toString());
 
     UnmodifiableReachedSet reachedSet = pReached.asReachedSet();
     Precision precision = reachedSet.getPrecision(reachedSet.getLastState());
@@ -152,70 +154,17 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
     ARGState cutpoint = null;
     while (iterator.hasNext()) {
       iterator.advance();
-      if (!isFeasible(iterator.getSuffixInclusive(), minimalPrecisionRequired, new HashSet<>())) {
+      if (!checker.isFeasible(iterator.getSuffixInclusive(), minimalPrecisionRequired, new HashSet<>())) {
         cutpoint = iterator.getAbstractState();
         break;
       }
     }
 
-    isFeasible(targetPathToUse, minimalPrecisionRequired, new HashSet<>());
+    checker.isFeasible(targetPathToUse, minimalPrecisionRequired, new HashSet<>());
+
     Preconditions.checkNotNull(cutpoint);
 
     pReached.removeSubtree(
         cutpoint, minimalPrecisionRequired, p -> p instanceof IntervalAnalysisPrecision);
-  }
-
-  private boolean isFeasible(
-      ARGPath pPath, IntervalAnalysisPrecision precisionToUse, Set<String> usedVariables)
-      throws InterruptedException, CPAException {
-    IntervalAnalysisState next =
-        AbstractStates.extractStateByType(pPath.getFirstState(), IntervalAnalysisState.class);
-    Deque<IntervalAnalysisState> pCallstack = new ArrayDeque<>();
-    PathIterator iterator = pPath.fullPathIterator();
-    while (iterator.hasNext()) {
-
-      final CFAEdge edge = iterator.getOutgoingEdge();
-      Optional<IntervalAnalysisState> maybeNext =
-          strongestPostOperator.step(next, edge, precisionToUse, pCallstack, pPath);
-      if (!maybeNext.isPresent()) {
-        for (String testState : next.getVariables()) {
-          Interval currentInterval = next.forgetThis(testState);
-          Optional<IntervalAnalysisState> tempMaybeNext =
-              strongestPostOperator.step(next, edge, precisionToUse, pCallstack, pPath);
-          if (tempMaybeNext.isPresent()) {
-            Interval interval = tempMaybeNext.get().getInterval(testState);
-            precisionToUse.setLow(testState, interval.getLow() + 1);
-            precisionToUse.setHigh(testState, interval.getHigh() - 1);
-          }
-          next.rememberThis(testState, currentInterval);
-        }
-        return false;
-      } else {
-
-        for (String variable : next.getVariables()) {
-          if (usedVariables.contains(variable) && precisionToUse.containsVariable(variable)) {
-            adjustInterval(precisionToUse, variable, next.getInterval(variable));
-          }
-        }
-
-        next = maybeNext.get();
-
-        usedVariables.addAll(next.getVariables());
-      }
-      iterator.advance();
-    }
-    return true;
-  }
-
-  private void adjustInterval(
-      IntervalAnalysisPrecision prec, String memoryLocation, Interval currenInterval) {
-    Pair<Long, Long> precIntervalValues = prec.getInterval(memoryLocation);
-
-    if (currenInterval.getLow() < precIntervalValues.getFirst()) {
-      prec.setLow(memoryLocation, currenInterval.getLow());
-    }
-    if (precIntervalValues.getSecond() < currenInterval.getHigh()) {
-      prec.setHigh(memoryLocation, currenInterval.getHigh());
-    }
   }
 }

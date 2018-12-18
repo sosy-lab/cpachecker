@@ -95,20 +95,35 @@ public class IntervalAnalysisPrecision implements Precision {
     }
   }
 
-  public void join(IntervalAnalysisPrecision x) {
-    for (Entry<String, Pair<Long, Long>> prec : x.getPrecision().entrySet()) {
+  public void join(IntervalAnalysisPrecision otherPrecision) {
+    for (Entry<String, Pair<Long, Long>> prec : otherPrecision.getPrecision().entrySet()) {
       if (!precision.containsKey(prec.getKey())) {
         precision.put(prec.getKey(), prec.getValue());
       } else {
-        // join the Integer
+        long otherBotValue = prec.getValue().getFirst();
+        long otherTopValue = prec.getValue().getSecond();
+        String key = prec.getKey();
+        long currentBotValue = precision.get(key).getFirst();
+        long currentTopValue = precision.get(key).getSecond();
+
+        precision.replace(
+            key, Pair.of(min(currentBotValue, otherBotValue), max(currentTopValue, otherTopValue)));
       }
     }
   }
 
+  private long max(long x, long y) {
+    return x > y ? x : y;
+  }
+
+  private long min(long x, long y) {
+    return x < y ? x : y;
+  }
+
   public void setLow(String memoryLocation, Long value) {
     if (precision.containsKey(memoryLocation)) {
-        Long high = precision.get(memoryLocation).getSecond();
-        precision.replace(memoryLocation, Pair.of(value, high));
+      Long high = precision.get(memoryLocation).getSecond();
+      precision.replace(memoryLocation, Pair.of(value, high));
     }
   }
 
