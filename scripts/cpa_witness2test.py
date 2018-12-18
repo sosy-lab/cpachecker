@@ -190,12 +190,21 @@ def create_parser():
                         dest='specification_file',
                         type=str,
                         action='store',
-                        help='specification file'
+                        help='specification file',
+                        required=True
+                        )
+
+    parser.add_argument('-witness',
+                        dest='witness_file',
+                        type=str,
+                        action='store',
+                        help='witness file',
+                        required=True
                         )
 
     parser.add_argument("file",
                         type=str,
-                        nargs='?',
+                        action='store',
                         help="file to validate witness for"
                         )
 
@@ -204,9 +213,7 @@ def create_parser():
 
 def _parse_args(argv=sys.argv[1:]):
     parser = create_parser()
-    args = parser.parse_known_args(argv[:-1])[0]
-    args_file = parser.parse_args([argv[-1]])  # Parse the file name
-    args.file = args_file.file
+    args = parser.parse_known_args(argv)[0]
 
     return args
 
@@ -406,9 +413,14 @@ def get_spec(specification_file):
 
     :param str specification_file: specification file to read.
     :return List[str]: list of specification properties
+    :raise ValidationError: if no specification file given or it doesn't exist
     """
+
+    if not specification_file:
+        raise ValidationError("No specification file given.")
     if not os.path.isfile(specification_file):
-        logging.error("Specification file does not exist: %s" % specification_file)
+        raise ValidationError("Specification file does not exist: %s" % specification_file)
+
     with open(specification_file, 'r') as inp:
         content = inp.read().strip()
 
@@ -419,7 +431,8 @@ def get_spec(specification_file):
             if regex.search(content):
                 specification.append(spec)
 
-    assert specification, "No specification found for specification string: %s" % content
+    if not specification:
+        raise ValidationError("No SV-COMP specification found in " + specification_file)
     return specification
 
 
@@ -525,4 +538,5 @@ if __name__ == "__main__":
         run()
     except ValidationError as e:
         logging.error(e.msg)
-    print("Verification result: ERROR.")
+        print("Verification result: ERROR.")
+
