@@ -44,7 +44,10 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -281,7 +284,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
           .filter(argState -> argState.getChildren().isEmpty() && !argState.isDestroyed())
           .collect(Collectors.toList());
 
-      // there is nothing left to do
+      // there is nothing left to do - TODO: this might be wrong
       if(bottomStates.isEmpty()){
         return currentStatus;
       }
@@ -410,6 +413,44 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
   private interface SearchStrategy {
 
     ARGState runStrategy(ARGState pState, Set<CExpression> pAssumptions);
+  }
+
+  /**
+   * This class defines the context for an assumption to flip
+   *  1) The assumption itself
+   *  2) The depending variables
+   *  3) The ARGState under which to insert the new state with changed variable values in compliance to the flipped assumption
+   */
+  private class AssumptionContext {
+
+    CBinaryExpression assumption;
+    Set<CExpression> variables;
+    ARGState parentState;
+    ARGState assumptionWrappingState;
+    ARGPath parentToAssumptionPath;
+
+    AssumptionContext() {
+      variables = Sets.newHashSet();
+    }
+
+    void setAssumption(CBinaryExpression pAssumption) {
+      assumption = pAssumption;
+      CExpression leftHandSide = assumption.getOperand1();
+      CExpression rightHandSide = assumption.getOperand2();
+
+      if(checkForVariableIdentifier(leftHandSide)) {
+        variables.add(leftHandSide);
+      }
+
+      if(checkForVariableIdentifier(rightHandSide)) {
+        variables.add(rightHandSide);
+      }
+    }
+
+    private boolean checkForVariableIdentifier(CExpression pCExpression) {
+      return pCExpression instanceof CIdExpression || pCExpression instanceof CArraySubscriptExpression;
+    }
+
   }
 
 }
