@@ -29,6 +29,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import apron.NotImplementedException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -36,6 +37,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.Sets;
 
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -48,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -281,18 +282,19 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
           .stream()
           .filter(state -> !waitList.contains(state))
           .map(state -> AbstractStates.extractStateByType(state, ARGState.class))
+          .filter(state -> state != null)
           .filter(argState -> argState.getChildren().isEmpty() && !argState.isDestroyed())
           .collect(Collectors.toList());
 
-      // there is nothing left to do - TODO: this might be wrong
+      // there is nothing left to do in this run
       if(bottomStates.isEmpty()){
-        return currentStatus;
+        continue;
       }
 
       // gather all visited assumptions
       Set<CExpression> visitedAssumptions = bottomStates
         .stream()
-        .map(argState -> ARGUtils.getOnePathTo(argState))
+        .map(argState -> ARGUtils.getOnePathTo(argState)) // TODO: check if we need to adjust this to all states (ARGUtils)
         .map(argPath -> extractAssumptions(argPath.getInnerEdges()))
         .flatMap(Collection::stream)
         .collect(Collectors.toSet());
@@ -300,14 +302,31 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
       // remove the visited assumptions
       allAssumptions.removeAll(visitedAssumptions);
 
-      // retrieve the next state to work on, i. e. this is the basis for searching for a new assumption to flip
-      ARGState workingState = bottomStates.get(0);
+      // if there are no more assumptions left, all paths have been covered
+      if(allAssumptions.isEmpty()) {
+        return currentStatus;
+      }
 
-      // search for the next state to flip
-      ARGState flipState = searchStrategy.runStrategy(workingState, allAssumptions);
+      @Nullable AssumptionContext flipAssumptionContext = null;
+      Iterator<ARGState> stateIterator = bottomStates.iterator();
+
+      while(flipAssumptionContext == null && stateIterator.hasNext()) {
+
+        // the next state to work on
+        ARGState nextBottomState = stateIterator.next();
+
+        // search for the next state to flip
+        flipAssumptionContext = searchStrategy.runStrategy(nextBottomState, allAssumptions);
+      }
+
+
+      if(flipAssumptionContext == null) {
+        // TODO: check, if we need to return here
+        continue;
+      }
 
       // bottom up path search
-      ARGPath pathToFoundState = ARGUtils.getOnePathTo(flipState);
+      ARGPath pathToFoundState = ARGUtils.getOnePathTo(flipAssumptionContext.parentState);
 
       // build path formula
       PathFormula pathFormula = buildPathFormula(pathToFoundState.getFullPath());
@@ -360,7 +379,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
   /**
    * A DFS algorithm implementation for the search strategy to find a new assumption to flip
    */
-  private ARGState searchDFS(ARGState pState, Set<CExpression> pAssumptions) {
+  private AssumptionContext searchDFS(ARGState pState, Set<CExpression> pAssumptions) {
 
    throw new NotImplementedException();
   }
@@ -368,7 +387,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
   /**
    * A BFS algorithm implementation for the search strategy to find a new assumption to flip
    */
-  private ARGState searchBFS(ARGState pState, Set<CExpression> pAssumptions) {
+  private AssumptionContext searchBFS(ARGState pState, Set<CExpression> pAssumptions) {
     
     throw new NotImplementedException();
   }
@@ -412,7 +431,15 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
   @FunctionalInterface
   private interface SearchStrategy {
 
-    ARGState runStrategy(ARGState pState, Set<CExpression> pAssumptions);
+    /**
+     * Creates an assumption context starting the search from the given state
+     * @param pState The bottom state to start with
+     * @param pAssumptions All remaining assumptions to choose from (
+     *                     if an assumption is not contained in the set, it has been visited already)
+     * @return The new assumption context
+     */
+    @Nullable
+    AssumptionContext runStrategy(ARGState pState, Set<CExpression> pAssumptions);
   }
 
   /**
@@ -420,8 +447,9 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
    *  1) The assumption itself
    *  2) The depending variables
    *  3) The ARGState under which to insert the new state with changed variable values in compliance to the flipped assumption
+   *  4) The ARGState containing the assumption
    */
-  private class AssumptionContext {
+  private static class AssumptionContext {
 
     CBinaryExpression assumption;
     Set<CExpression> variables;
