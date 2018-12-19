@@ -136,7 +136,7 @@ def listFiles(paths):
 
 def writeDot(nodes, out, showChildDependencies = True,
     showParentDependencies = True, markDependencies = True,
-    clusterNodes = False):
+    clusterNodes = False, clusterKeywords = False):
   '''print dot file for limited set of nodes'''
 
   out.write('digraph configs {\n')
@@ -145,17 +145,27 @@ def writeDot(nodes, out, showChildDependencies = True,
 
   allNodesDict,childDependencyNodes,parentDependencyNodes = determineDependencies(nodes, showChildDependencies, showParentDependencies)
 
-  if clusterNodes:
-    folderMapping = defaultdict(dict)
+  if clusterNodes or clusterKeywords:
+    categoryMapping = defaultdict(dict)
+    unclustered = list()
     for name,node in sorted(allNodesDict.items()):
-      folderMapping[normPath(os.path.dirname(node.name))][name] = node
-    for index,(folder,folderNodesDict) in enumerate(sorted(folderMapping.items())):
+      if clusterNodes:
+        categoryMapping[normPath(os.path.dirname(node.name))][name] = node
+      else:
+        matches = [keyword for keyword in clusterKeywords if keyword.lower() in name.lower()]
+        if len(matches) == 1:
+          categoryMapping[matches[0]][name] = node
+        else:
+          unclustered.append(node)
+    for index,(category,categoryNodesDict) in enumerate(sorted(categoryMapping.items())):
       out.write('subgraph cluster_%s {' % index)
-      out.write('label = "%s";' % folder)
-      for name,node in sorted(folderNodesDict.items()):
+      out.write('label = "%s";' % category)
+      for name,node in sorted(categoryNodesDict.items()):
         isDependency = name in childDependencyNodes or name in parentDependencyNodes
         out.write(determineNode(node,dependencyNode = isDependency and markDependencies))
-      out.write('}')
+      out.write('}\n')
+    for node in unclustered:
+      out.write(determineNode(node))
   else:
     for name,node in sorted(allNodesDict.items()):
       isDependency = name in childDependencyNodes or name in parentDependencyNodes
@@ -309,6 +319,9 @@ Examples:
         help="Make dependency nodes look like regular nodes")
     parser.add_argument("--clusterNodes", action="store_true",
         help="Cluster nodes by their directory")
+    parser.add_argument("--clusterKeywords", default=None, nargs="+",
+        help="Cluster nodes based on the given keyword. If a config would belong to two given keywords, "+
+             "it is in neither of the clusters, because the graphviz engine cannot make overlapping clusters.")
     return parser.parse_args()
 
 
@@ -416,7 +429,7 @@ if __name__ == "__main__":
 
   if args.filter != None:
     nodes = dict((k,v) for k,v in nodes.items()
-        if any(f in k for f in args.filter))
+        if any(f.lower() in k.lower() for f in args.filter))
 
   if args.exclude != None:
     nodes = dict((k,v) for k,v in nodes.items()
@@ -425,7 +438,7 @@ if __name__ == "__main__":
   # write dot-output
   out = sys.stdout #open("configViz.dot","w")
   if not args.rsf:
-    writeDot(nodes, out, args.showChildren, args.showParents, not args.samedep, args.clusterNodes)
+    writeDot(nodes, out, args.showChildren, args.showParents, not args.samedep, args.clusterNodes, args.clusterKeywords)
   else:
     writeRSF(nodes, out, args.showChildren, args.showParents)
 
