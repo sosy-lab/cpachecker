@@ -21,6 +21,8 @@ describe('External files section in Report.js', function () {
         }, function (reason) {
             // rejection
         });
+        browser.refresh()
+        browser.driver.sleep(100);
     });
 
     it('Toggle error path button tooltip test', function () {
