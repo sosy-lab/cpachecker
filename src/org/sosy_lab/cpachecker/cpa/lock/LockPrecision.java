@@ -45,7 +45,7 @@ public class LockPrecision implements AdjustablePrecision {
     for (Pair<CFANode, LockIdentifier> p : pSet) {
       CFANode node = p.getFirst();
       LockIdentifier id = p.getSecond();
-      if (precision.containsEntry(node, id)) {
+      if (!precision.containsEntry(node, id)) {
         precision.put(p.getFirst(), p.getSecond());
       }
     }
