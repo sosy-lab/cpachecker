@@ -229,15 +229,9 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
   private Algorithm chosenAlgorithm;
   private final SelectionAlgorithmStatistics stats;
 
-  @Option(
-    secure = true,
-    description = "Usage of an preliminary algorithm analysis."
-  )
-  private boolean usePreAnalysisAlgorithm = false;
-
   @Option(secure = true, description = "Configuration for preliminary algorithm.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private Path preAnalysisAlgorithmConfig;
+  private Path preAnalysisAlgorithmConfig = null;
 
   @Option(
     secure = true,
@@ -372,7 +366,7 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
 
     boolean requiresRecursionHandling = false;
     // Preliminary algorithm run
-    if (usePreAnalysisAlgorithm) {
+    if (preAnalysisAlgorithmConfig != null) {
       try {
         performPreAnalysisAlgorithm();
       } catch (UnsupportedCodeException e) {
