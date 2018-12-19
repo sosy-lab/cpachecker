@@ -1,3 +1,18 @@
+Changes from CPAchecker 1.7 to CPAchecker 1.8
+---------------------------------------------
+* Support for Algorithm Selection
+  CPAchecker can now analyze the given program
+  and select an appropriate configuration depending on program features
+  such as whether loops are contained and which data types are used.
+
+TODO (please expand and extend):
+- SLAB
+- Slicing
+- Correctness witnesses for termination
+- parallel BAM
+- test generation (witness2test)?
+
+
 Changes from CPAchecker 1.6.1 to CPAchecker 1.7
 -----------------------------------------------
 * CPAchecker requires Java 8.
