@@ -236,11 +236,14 @@ describe('Error path section in Report.js', function () {
     function findTooltipWithText(text) {
        return $$('div.tooltip-inner').filter(function (elem) {
            return elem.getText().then(function (elementText) {
-               return elementText.includes(text)
+               return elementText.includes(text), function(err) {
+                    browser.driver.sleep(100)
+                    findTooltipWithText(text)
+               }
            });
        }).first();
     }
-    
+
 
     describe('Button Group tooltip test', function () {
         it('Prev button tooltip test', async function () {
