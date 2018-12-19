@@ -71,6 +71,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
@@ -245,13 +246,15 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
         pCFA.getMachineModel(),
         pConfiguration);
 
-    this.pathFormulaManager = new PathFormulaManagerImpl(
-        formulaManagerView,
-        pConfiguration,
-        pLogger,
-        pNotifier,
-        pCFA,
-        AnalysisDirection.FORWARD);
+    this.pathFormulaManager = new CachingPathFormulaManager(
+        new PathFormulaManagerImpl(
+            formulaManagerView,
+            pConfiguration,
+            pLogger,
+            pNotifier,
+            pCFA,
+            AnalysisDirection.FORWARD)
+    );
 
     // configurable search strategy
     this.searchStrategy = useBFS 
@@ -332,19 +335,18 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
 
 
       if(flipAssumptionContext == null) {
-        
-        assumptionMissedCounter++;
-        if(assumptionMissedCounter > maxNumMissedAssumption) {
+
+        if(++assumptionMissedCounter > maxNumMissedAssumption) {
           logger.log(
             Level.INFO, 
-            String.format("The maximum (%d) of runs without finding a new assumption to flip was exceeded. Consider increasing.", maxNumMissedAssumption));
+            String.format("The maximum number (%d) of runs without finding a new assumption to flip was exceeded. Consider increasing.", maxNumMissedAssumption));
           return currentStatus;
         }
         continue;
       }
 
       // bottom up path search
-      ARGPath pathToFoundState = ARGUtils.getOnePathTo(flipAssumptionContext.parentState);
+      ARGPath pathToFoundState = flipAssumptionContext.parentToAssumptionPath;
 
       // build path formula
       PathFormula pathFormula = buildPathFormula(pathToFoundState.getFullPath());
@@ -353,14 +355,23 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
 
         boolean satisfiable = !solver.isUnsat(pathFormula.getFormula());
 
-        // -- infeasibility could be reported here --
-
         logger.log(Level.INFO, String.format("The boolean formula %s is not satisfiable for the solver", pathFormula.getFormula()));
 
         // get assignments for the new path containing the flipped assumption
         if(satisfiable) {
-          ProverEnvironment proverEnvironment = solver.newProverEnvironment();
-          Collection<ValueAssignment> assignments = proverEnvironment.getModelAssignments();
+
+          try(ProverEnvironment proverEnvironment = solver.newProverEnvironment()) {
+
+            Collection<ValueAssignment> assignments = proverEnvironment.getModelAssignments();
+            /*
+             * next steps are:
+             *   1) convert all value assignments (their respective formulas) to expressions via FormulaConverter
+             *   2) build new HybridAnalysisState from the resulting expressions
+             *   3) add the state to the respective ARGState and later to the ARG and the wait list
+             */
+
+          }
+
         }
 
       } catch(SolverException sException) {
@@ -414,7 +425,15 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
   private PathFormula buildPathFormula(Collection<CFAEdge> pEdges)
       throws CPATransferException, InterruptedException {
     PathFormula formula = pathFormulaManager.makeEmptyPathFormula();
-    for(CFAEdge edge : pEdges) {
+
+    // extract only the assume edges
+    Collection<CAssumeEdge> assumeEdges = pEdges
+        .stream()
+        .filter(edge -> edge.getEdgeType() == CFAEdgeType.AssumeEdge)
+        .map(edge -> (CAssumeEdge) edge)
+        .collect(Collectors.toList());
+
+    for(CAssumeEdge edge : assumeEdges) {
       formula = pathFormulaManager.makeAnd(formula, edge);
     }
 

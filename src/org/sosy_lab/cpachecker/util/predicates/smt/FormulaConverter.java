@@ -65,27 +65,27 @@ public class FormulaConverter {
     private final LogManager logger;
 
     public FormulaConverter(
-        FormulaManagerView formulaManagerView,
-        Scope scope,
-        LogManager logger,
-        MachineModel machineModel,
+        FormulaManagerView pFormulaManagerView,
+        Scope pScope,
+        LogManager pLogger,
+        MachineModel pMachineModel,
         Configuration configuration)
             throws InvalidConfigurationException {
 
-        this.formulaManagerView = formulaManagerView;
-        this.toCVisitor = new FormulaToCVisitor(formulaManagerView);
+        this.formulaManagerView = pFormulaManagerView;
+        this.toCVisitor = new FormulaToCVisitor(pFormulaManagerView);
 
         this.parser = CParser.Factory.getParser(
             LogManager.createNullLogManager(),
             CParser.Factory.getOptions(configuration),
-            machineModel);
+            pMachineModel);
 
-        this.scope = scope;
-        this.logger = logger;
+        this.scope = pScope;
+        this.logger = pLogger;
 
         this.parserTools = 
-            ParserTools.create(ExpressionTrees.newCachingFactory(), machineModel, logger);
-        this.machineModel = machineModel;
+            ParserTools.create(ExpressionTrees.newCachingFactory(), pMachineModel, pLogger);
+        this.machineModel = pMachineModel;
     }
 
     public Collection<CExpression> convertFormulaToCExpression(BooleanFormula formula)
