@@ -281,7 +281,7 @@ Examples:
     """)
     parser.add_argument("--dir", metavar="DIRECTORY", default=['config/', 'test/config'], nargs='+',
         help="directory where the configuration files reside")
-    parser.add_argument("--root", metavar="ROOT", default=None,
+    parser.add_argument("--root", metavar="ROOT", default=None, nargs="+",
         help="configuration file for which a graph should be generated. " +
             "When specified, only files included (directly or indirectely) from this file are shown")
     parser.add_argument("--depend", metavar="DEPEND", default=None,
@@ -389,13 +389,14 @@ if __name__ == "__main__":
   componentsSanityCheck(nodes)
   transitiveReductionCheck(nodes)
 
-  nodesFromRoot = {}
+  children = list()
   if args.root != None:
-    if args.root not in nodes:
-      log("Root file '%s' not found." % args.root)
-    else:
-      children = getTransitiveChildren(args.root, nodes)
-      nodesFromRoot = dict((k,v) for k,v in nodes.items() if k in children)
+    for root in args.root:
+        if root not in nodes:
+          log("Root file '%s' not found." % root)
+        else:
+          children.extend(getTransitiveChildren(root, nodes))
+  nodesFromRoot = dict((k,v) for k,v in nodes.items() if k in children)
 
   nodesFromDepend = {}
   if args.depend != None:
