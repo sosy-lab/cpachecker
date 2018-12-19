@@ -34,7 +34,6 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
@@ -42,7 +41,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -66,12 +64,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.defaults.MultiStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -84,12 +80,10 @@ import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 @Options(prefix = "heuristicSelection")
-public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
+public class SelectionAlgorithm extends NestingAlgorithm {
 
   private static class SelectionAlgorithmCFAVisitor implements CFAVisitor {
 
@@ -217,16 +211,9 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private final CFA cfa;
-  private final ShutdownNotifier shutdownNotifier;
-  private final Configuration globalConfig;
-  private final Specification specification;
-  private final LogManager logger;
-
   private Algorithm preAnalysisAlgorithm;
   private ReachedSet preAnalysisReachedSet;
 
-  private Algorithm chosenAlgorithm;
   private final SelectionAlgorithmStatistics stats;
 
   @Option(secure = true, description = "Configuration for preliminary algorithm.")
@@ -288,16 +275,9 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
       Specification pSpecification,
       LogManager pLogger)
       throws InvalidConfigurationException {
-
+    super(pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
     pConfig.inject(this);
-
-    cfa = Objects.requireNonNull(pCfa);
-    shutdownNotifier = Objects.requireNonNull(pShutdownNotifier);
-    globalConfig = Objects.requireNonNull(pConfig);
-    specification = Objects.requireNonNull(pSpecification);
-    logger = Objects.requireNonNull(pLogger);
-
-    stats = new SelectionAlgorithmStatistics(logger);
+    stats = new SelectionAlgorithmStatistics(pLogger);
   }
 
   private AlgorithmStatus performPreAnalysisAlgorithm() throws CPAException, InterruptedException {
@@ -437,6 +417,7 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     // Perform heuristic
     String info = "Performing heuristic ...";
     logger.log(Level.INFO, info);
+    Algorithm chosenAlgorithm;
 
     if (requiresRecursionHandling && recursionConfig != null) {
       // Run recursion config
@@ -503,49 +484,14 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
   private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(
       Path singleConfigFileName, CFANode mainFunction, ShutdownManager singleShutdownManager)
       throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
-
-    ReachedSet reached;
-    ConfigurableProgramAnalysis cpa;
-    Algorithm algorithm;
-
-    ConfigurationBuilder singleConfigBuilder = Configuration.builder();
-    singleConfigBuilder.copyFrom(globalConfig);
-    singleConfigBuilder.clearOption("analysis.selectAnalysisHeuristically");
-
-    // TODO next line overrides existing options with options loaded from file.
-    // Perhaps we want to keep some global options like 'specification'?
-    singleConfigBuilder.loadFromFile(singleConfigFileName);
-
-    Configuration singleConfig = singleConfigBuilder.build();
-    LogManager singleLogger = logger.withComponentName("Analysis " + singleConfigFileName);
-    RestartAlgorithm.checkConfigs(globalConfig, singleConfig, singleConfigFileName, logger);
-
-    ResourceLimitChecker singleLimits =
-        ResourceLimitChecker.fromConfiguration(singleConfig, singleLogger, singleShutdownManager);
-    singleLimits.start();
-
     AggregatedReachedSets aggregateReached = new AggregatedReachedSets();
-
-    CoreComponentsFactory coreComponents =
-        new CoreComponentsFactory(
-            singleConfig, singleLogger, singleShutdownManager.getNotifier(), aggregateReached);
-    cpa = coreComponents.createCPA(cfa, specification);
-
-    GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-
-    algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
-
-    reached =
-        RestartAlgorithm.createInitialReachedSet(cpa, mainFunction, coreComponents, singleLogger);
-
-    if (cpa instanceof StatisticsProvider) {
-      ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());
-    }
-    if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) algorithm).collectStatistics(stats.getSubStatistics());
-    }
-
-    return Triple.of(algorithm, cpa, reached);
+    return super.createAlgorithm(
+        singleConfigFileName,
+        mainFunction,
+        singleShutdownManager,
+        aggregateReached,
+        Collections.singleton("analysis.selectAnalysisHeuristically"),
+        stats.getSubStatistics());
   }
 
   @Override
