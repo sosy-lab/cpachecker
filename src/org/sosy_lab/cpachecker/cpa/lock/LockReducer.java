@@ -32,11 +32,12 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
 @Options(prefix = "cpa.lock")
-public class LockReducer extends GenericReducer<AbstractLockState, SingletonPrecision> {
+public class LockReducer implements Reducer {
 
   public enum ReduceStrategy {
     NONE,
@@ -62,10 +63,11 @@ public class LockReducer extends GenericReducer<AbstractLockState, SingletonPrec
   }
 
   @Override
-  public AbstractLockState getVariableReducedState0(
-      AbstractLockState pExpandedElement, Block pContext, CFANode pCallNode) {
-    AbstractLockStateBuilder builder = pExpandedElement.builder();
-    Set<LockIdentifier> locksToProcess = pExpandedElement.getLocks();
+  public AbstractLockState
+      getVariableReducedState(AbstractState pExpandedElement, Block pContext, CFANode pCallNode) {
+    AbstractLockState expandedElement = (AbstractLockState) pExpandedElement;
+    AbstractLockStateBuilder builder = expandedElement.builder();
+    Set<LockIdentifier> locksToProcess = expandedElement.getLocks();
 
     builder.reduce();
     if (reduceUselessLocks) {
@@ -84,20 +86,24 @@ public class LockReducer extends GenericReducer<AbstractLockState, SingletonPrec
         break;
     }
     AbstractLockState reducedState = builder.build();
-    assert getVariableExpandedState0(pExpandedElement, pContext, reducedState)
+    assert getVariableExpandedState(pExpandedElement, pContext, reducedState)
         .equals(pExpandedElement);
     return reducedState;
   }
 
   @Override
-  public AbstractLockState getVariableExpandedState0(
-      AbstractLockState pRootElement, Block pReducedContext, AbstractLockState pReducedElement) {
+  public AbstractState getVariableExpandedState(
+      AbstractState pRootElement,
+      Block pReducedContext,
+      AbstractState pReducedElement) {
 
-    AbstractLockStateBuilder builder = pReducedElement.builder();
+    AbstractLockState rootElement = (AbstractLockState) pRootElement;
+    AbstractLockState reducedElement = (AbstractLockState) pReducedElement;
+    AbstractLockStateBuilder builder = reducedElement.builder();
     // Restore only what we reduced
-    Set<LockIdentifier> locksToProcess = pRootElement.getLocks();
+    Set<LockIdentifier> locksToProcess = rootElement.getLocks();
 
-    builder.expand(pRootElement);
+    builder.expand(rootElement);
     if (reduceUselessLocks) {
       builder.returnLocksExcept((LockState) pRootElement, pReducedContext.getCapturedLocks());
       locksToProcess = Sets.intersection(locksToProcess, pReducedContext.getCapturedLocks());
@@ -107,7 +113,7 @@ public class LockReducer extends GenericReducer<AbstractLockState, SingletonPrec
         locksToProcess = Sets.difference(locksToProcess, pReducedContext.getCapturedLocks());
         //$FALL-THROUGH$
       case ALL:
-        builder.expandLockCounters(pRootElement, locksToProcess);
+        builder.expandLockCounters(rootElement, locksToProcess);
         break;
       case NONE:
         break;
@@ -116,28 +122,32 @@ public class LockReducer extends GenericReducer<AbstractLockState, SingletonPrec
   }
 
   @Override
-  public SingletonPrecision getVariableReducedPrecision0(
-      SingletonPrecision pPrecision, Block pContext) {
+  public Precision getVariableReducedPrecision(
+      Precision pPrecision,
+      Block pContext) {
     return pPrecision;
   }
 
   @Override
-  public SingletonPrecision getVariableExpandedPrecision0(
-      SingletonPrecision pRootPrecision, Block pRootContext, SingletonPrecision pReducedPrecision) {
+  public Precision getVariableExpandedPrecision(
+      Precision pRootPrecision,
+      Block pRootContext,
+      Precision pReducedPrecision) {
     return pReducedPrecision;
   }
 
   @Override
-  public Object getHashCodeForState0(
-      AbstractLockState pElementKey, SingletonPrecision pPrecisionKey) {
-    return pElementKey.getHashCodeForState();
+  public Object getHashCodeForState(
+      AbstractState pElementKey,
+      Precision pPrecisionKey) {
+    return ((AbstractLockState) pElementKey).getHashCodeForState();
   }
 
   @Override
-  public AbstractLockState rebuildStateAfterFunctionCall0(
-      AbstractLockState pRootState,
-      AbstractLockState pEntryState,
-      AbstractLockState pExpandedState,
+  public AbstractState rebuildStateAfterFunctionCall(
+      AbstractState pRootState,
+      AbstractState pEntryState,
+      AbstractState pExpandedState,
       FunctionExitNode pExitLocation) {
     return pExpandedState;
   }

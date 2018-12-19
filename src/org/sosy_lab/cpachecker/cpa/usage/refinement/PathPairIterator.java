@@ -130,6 +130,7 @@ public class PathPairIterator extends
         || computedPathsForUsage.get(pInput).size() == 0;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   protected void finishIteration(Pair<ExtendedARGPath, ExtendedARGPath> pathPair, RefinementResult wrapperResult) {
     ExtendedARGPath firstExtendedPath, secondExtendedPath;
@@ -137,26 +138,42 @@ public class PathPairIterator extends
     firstExtendedPath = pathPair.getFirst();
     secondExtendedPath = pathPair.getSecond();
 
+    List<ARGState> firstAffectedStates = null;
+    List<ARGState> secondAffectedStates = null;
+
     Object predicateInfo = wrapperResult.getInfo(PredicateRefinerAdapter.class);
     if (predicateInfo != null && predicateInfo instanceof List) {
-      @SuppressWarnings("unchecked")
-      List<ARGState> affectedStates = (List<ARGState>)predicateInfo;
       //affectedStates may be null, if the path was refined somewhen before
 
       //A feature of GenericSinglePathRefiner: if one path is false, the second one is not refined
       if (firstExtendedPath.isUnreachable()) {
         //This one is false
-        handleAffectedStates(affectedStates);
-        //Need to clean first path
-        firstPath = null;
+        firstAffectedStates = (List<ARGState>)predicateInfo;
       } else {
         //The second one must be
         Preconditions.checkArgument(secondExtendedPath.isUnreachable(), "Either the first path, or the second one must be unreachable here");
-        handleAffectedStates(affectedStates);
+        secondAffectedStates = (List<ARGState>)predicateInfo;
       }
-    } else {
-      if (firstPath.isUnreachable()){
-        firstPath = null;
+    }
+
+    predicateInfo = wrapperResult.getInfo(LockRefiner.class);
+    if (predicateInfo != null && predicateInfo instanceof Pair) {
+      Pair<List<ARGState>, List<ARGState>> lockInfo =
+          (Pair<List<ARGState>, List<ARGState>>) predicateInfo;
+
+      firstAffectedStates = lockInfo.getFirst();
+      secondAffectedStates = lockInfo.getSecond();
+    }
+
+    if (firstExtendedPath.isUnreachable()) {
+      firstPath = null;
+      if (firstAffectedStates != null && !firstAffectedStates.isEmpty()) {
+        handleAffectedStates(firstAffectedStates);
+      }
+    }
+    if (secondExtendedPath.isUnreachable()) {
+      if (secondAffectedStates != null && !secondAffectedStates.isEmpty()) {
+        handleAffectedStates(secondAffectedStates);
       }
     }
     updateTheComputedSet(firstExtendedPath);
@@ -280,6 +297,7 @@ public class PathPairIterator extends
 
   private void handleAffectedStates(List<ARGState> affectedStates) {
     List<Integer> changedStateNumbers = from(affectedStates).transform(idExtractor).toList();
+    assert !changedStateNumbers.isEmpty();
     refinedStates.add(changedStateNumbers);
   }
 }

@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -136,6 +137,13 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     stats.lockEffects.setNextValue(toProcess.size());
     final AbstractLockStateBuilder builder = lockStatisticsElement.builder();
 
+    if (pPrecision instanceof SingletonPrecision) {
+      // From refiner
+    } else {
+      LockPrecision lockPrecision = (LockPrecision) pPrecision;
+      toProcess = lockPrecision.filter(cfaEdge.getPredecessor(), toProcess);
+    }
+
     toProcess.forEach(e -> e.effect(builder));
     AbstractLockState successor = builder.build();
 
@@ -157,7 +165,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     return getLockEffects(cfaEdge).transform(LockEffect::getAffectedLock).toSet();
   }
 
-  private FluentIterable<LockEffect> getLockEffects(CFAEdge cfaEdge) {
+  public FluentIterable<LockEffect> getLockEffects(CFAEdge cfaEdge) {
     try {
       return from(determineOperations(cfaEdge)).filter(LockEffect.class);
     } catch (UnrecognizedCodeException e) {

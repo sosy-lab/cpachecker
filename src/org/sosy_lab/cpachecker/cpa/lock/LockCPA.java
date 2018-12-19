@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -68,6 +69,9 @@ public class LockCPA extends AbstractCPA
   @Option(description = "Consider or not special cases with empty lock sets", secure = true)
   private StopMode stopMode = StopMode.DEFAULT;
 
+  @Option(description = "Enable refinement procedure", secure = true)
+  private boolean refinement = false;
+
   private final Reducer reducer;
 
   private LockCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
@@ -90,6 +94,16 @@ public class LockCPA extends AbstractCPA
       default:
         // The analysis should fail at CPA creation
         throw new UnsupportedOperationException("Unsupported analysis mode");
+    }
+  }
+
+  @Override
+  public Precision getInitialPrecision(CFANode node, StateSpacePartition pPartition)
+      throws InterruptedException {
+    if (refinement) {
+      return new LockPrecision();
+    } else {
+      return super.getInitialPrecision(node, pPartition);
     }
   }
 

@@ -61,7 +61,8 @@ public class RefinementBlockFactory {
     CallstackFilter(currentInnerBlockType.ExtendedARGPath),
     ProbeFilter(currentInnerBlockType.ExtendedARGPath),
     SharedRefiner(currentInnerBlockType.ExtendedARGPath),
-    LockFilter(currentInnerBlockType.ExtendedARGPath);
+    LockFilter(currentInnerBlockType.ExtendedARGPath),
+    LockRefiner(currentInnerBlockType.ExtendedARGPath);
 
     public final currentInnerBlockType innerType;
 
@@ -203,6 +204,17 @@ public class RefinementBlockFactory {
 
             currentBlock =
                 new ReducedPathFilter(
+                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
+                    lockTransfer);
+
+            break;
+
+          case LockRefiner:
+            lockTransfer =
+                (LockTransferRelation) CPAs.retrieveCPA(cpa, LockCPA.class).getTransferRelation();
+
+            currentBlock =
+                new LockRefiner(
                     (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
                     lockTransfer);
 
