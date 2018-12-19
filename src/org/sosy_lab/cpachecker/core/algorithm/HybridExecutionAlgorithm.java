@@ -97,6 +97,10 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     @Option(secure = true, name = "useBFS", description = "Whether to use BFS algorithm instead of DFS for searching the next assumption to flip.")
     private boolean useBFS = false;
 
+    @Option(secure = true, name = "maxNumberMissedAssumption", 
+      description = "The maximum number to tolerate a run of the algorithm in which no new assumption to flip could ne found")
+    private int maxNumberMissedAssumption = 5;
+
     private final Algorithm algorithm;
     private final ARGCPA argCPA;
     private final CFA cfa;
@@ -147,7 +151,8 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
             configuration,
             notifier,
             useValueSets,
-            useBFS);
+            useBFS,
+            maxNumberMissedAssumption);
       } catch (InvalidConfigurationException e) {
         // this is a bad place to catch an exception
         logger.log(Level.SEVERE, e.getMessage());
@@ -204,6 +209,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
    */
   private boolean useValueSets;
   private boolean useBFS;
+  private final int maxNumMissedAssumption;
   private final List<ReachedSetUpdateListener> reachedSetUpdateListeners;
 
   private final SearchStrategy searchStrategy;
@@ -216,7 +222,8 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
       Configuration pConfiguration,
       ShutdownNotifier pNotifier,
       boolean pUseValueSets,
-      boolean pUseBFS)
+      boolean pUseBFS,
+      int pMaxNumMissedAssumption)
       throws InvalidConfigurationException {
 
     this.algorithm = pAlgorithm;
@@ -225,6 +232,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     this.logger = pLogger;
     this.useValueSets = pUseValueSets;
     this.useBFS = pUseBFS;
+    this.maxNumMissedAssumption = pMaxNumMissedAssumption;
     this.reachedSetUpdateListeners = new ArrayList<>();
 
     this.solver = Solver.create(pConfiguration, pLogger, pNotifier);
@@ -270,6 +278,8 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     AlgorithmStatus currentStatus = AlgorithmStatus.SOUND_AND_PRECISE;
 
     boolean running = true;
+    int assumptionMissedCounter = 0;
+
     while(running) {
 
       currentStatus = algorithm.run(pReachedSet);
@@ -310,6 +320,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
       @Nullable AssumptionContext flipAssumptionContext = null;
       Iterator<ARGState> stateIterator = bottomStates.iterator();
 
+      // we simply continue until either a new assumption to flip was found or there are no more bottom states to work with
       while(flipAssumptionContext == null && stateIterator.hasNext()) {
 
         // the next state to work on
@@ -321,7 +332,14 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
 
 
       if(flipAssumptionContext == null) {
-        // TODO: check, if we need to return here
+        
+        assumptionMissedCounter++;
+        if(assumptionMissedCounter > maxNumMissedAssumption) {
+          logger.log(
+            Level.INFO, 
+            String.format("The maximum (%d) of runs without finding a new assumption to flip was exceeded. Consider increasing.", maxNumMissedAssumption));
+          return currentStatus;
+        }
         continue;
       }
 
