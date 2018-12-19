@@ -331,8 +331,15 @@ public class SelectionAlgorithm extends NestingAlgorithm {
         cfa.getVarClassification().isPresent(),
         "SelectionAlgorithm requires variable classification");
 
-    // Preliminary analysis
-    // CFA Analysis
+    extractStatisticsFromCfa();
+
+    final Path chosenConfig = chooseConfig();
+
+    return run0(pReachedSet, chosenConfig);
+  }
+
+  /** analyze the CFA and extract useful statistics. */
+  private void extractStatisticsFromCfa() throws CPAException {
     SelectionAlgorithmCFAVisitor visitor = new SelectionAlgorithmCFAVisitor();
     CFANode startingNode = cfa.getMainFunction();
     CFATraversal.dfs().traverseOnce(startingNode, visitor);
@@ -379,60 +386,58 @@ public class SelectionAlgorithm extends NestingAlgorithm {
               / (double) variableClassification.getRelevantVariables().size();
     }
 
-    boolean requiresOnlyRelevantBoolsHandling =
+    stats.requiresOnlyRelevantBoolsHandling =
         variableClassification
             .getIntBoolVars()
             .containsAll(variableClassification.getRelevantVariables());
-    stats.requiresOnlyRelevantBoolsHandling = requiresOnlyRelevantBoolsHandling;
 
-    boolean requiresAliasHandling =
+    stats.requiresAliasHandling =
         !variableClassification.getAddressedVariables().isEmpty()
             || !variableClassification.getAddressedFields().isEmpty();
-    stats.requiresAliasHandling = requiresAliasHandling;
 
-    boolean requiresLoopHandling =
+    stats.requiresLoopHandling =
         !loopStructure.isPresent() || !loopStructure.get().getAllLoops().isEmpty();
-    stats.requiresLoopHandling = requiresLoopHandling;
 
-    boolean requiresCompositeTypeHandling = !variableClassification.getRelevantFields().isEmpty();
-    stats.requiresCompositeTypeHandling = requiresCompositeTypeHandling;
+    stats.requiresCompositeTypeHandling = !variableClassification.getRelevantFields().isEmpty();
 
-    boolean requiresArrayHandling =
+    stats.requiresArrayHandling =
         !Collections.disjoint(variableClassification.getRelevantVariables(), visitor.arrayVariables)
             || !Collections.disjoint(
                 variableClassification.getAddressedFields().values(), visitor.arrayVariables);
-    stats.requiresArrayHandling = requiresArrayHandling;
 
-    boolean requiresFloatHandling =
+    stats.requiresFloatHandling =
         !Collections.disjoint(variableClassification.getRelevantVariables(), visitor.floatVariables)
             || !Collections.disjoint(
                 variableClassification.getAddressedFields().values(), visitor.floatVariables);
-    stats.requiresFloatHandling = requiresFloatHandling;
+  }
 
+  /** use statistical data and choose a configuration for further analysis. */
+  private Path chooseConfig() {
     final Path chosenConfig;
 
     // Perform heuristic
     String info = "Performing heuristic ...";
     logger.log(Level.INFO, info);
-    Algorithm chosenAlgorithm;
 
     if (stats.requiresRecursionHandling && recursionConfig != null) {
       // Run recursion config
       chosenConfig = recursionConfig;
-    } else if (!requiresLoopHandling && loopFreeConfig != null) {
+    } else if (!stats.requiresLoopHandling && loopFreeConfig != null) {
       // Run standard loop-free config
       chosenConfig = loopFreeConfig;
-    } else if (requiresOnlyRelevantBoolsHandling && onlyBoolConfig != null) {
+    } else if (stats.requiresOnlyRelevantBoolsHandling && onlyBoolConfig != null) {
       // Run bool only config
       chosenConfig = onlyBoolConfig;
     } else if (stats.relevantAddressedRatio > addressedRatio && addressedConfig != null) {
       chosenConfig = addressedConfig;
       // EXCHANGED
-    } else if (requiresCompositeTypeHandling && compositeTypeConfig != null) {
+    } else if (stats.requiresCompositeTypeHandling && compositeTypeConfig != null) {
       chosenConfig = compositeTypeConfig;
-    } else if (requiresArrayHandling && arrayConfig != null) {
+    } else if (stats.requiresArrayHandling && arrayConfig != null) {
       chosenConfig = arrayConfig;
-    } else if ((requiresFloatHandling || requiresArrayHandling || requiresCompositeTypeHandling)
+    } else if ((stats.requiresFloatHandling
+            || stats.requiresArrayHandling
+            || stats.requiresCompositeTypeHandling)
         && complexLoopConfig != null) {
       // Run complex loop config
       chosenConfig = complexLoopConfig;
@@ -440,9 +445,14 @@ public class SelectionAlgorithm extends NestingAlgorithm {
       // Run standard loop config
       chosenConfig = loopConfig;
     }
-
     stats.chosenConfig = chosenConfig.toString();
+    return chosenConfig;
+  }
 
+  /** build all components for the analysis and run the further analysis. */
+  private AlgorithmStatus run0(ReachedSet pReachedSet, final Path chosenConfig)
+      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+    Algorithm chosenAlgorithm;
     Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg;
     ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     try {
