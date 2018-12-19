@@ -154,7 +154,6 @@ public class SelectionAlgorithm extends NestingAlgorithm {
 
     @Override
     public TraversalProcess visitNode(CFANode pNode) {
-      // TODO Auto-generated method stub
       return TraversalProcess.CONTINUE;
     }
   }
@@ -165,15 +164,15 @@ public class SelectionAlgorithm extends NestingAlgorithm {
     private String chosenConfig = "";
     private double relevantBoolRatio = 0.0;
     private double relevantAddressedRatio = 0.0;
-    private int containsExternalFunctionCalls = 0;
+    private boolean containsExternalFunctionCalls = false;
     private int numberOfAllRightFunctions = 0;
-    private int requiresOnlyRelevantBoolsHandling = 0;
-    private int requiresAliasHandling = 0;
-    private int requiresLoopHandling = 0;
-    private int requiresCompositeTypeHandling = 0;
-    private int requiresArrayHandling = 0;
-    private int requiresFloatHandling = 0;
-    private int requiresRecursionHandling = 0;
+    private boolean requiresOnlyRelevantBoolsHandling = false;
+    private boolean requiresAliasHandling = false;
+    private boolean requiresLoopHandling = false;
+    private boolean requiresCompositeTypeHandling = false;
+    private boolean requiresArrayHandling = false;
+    private boolean requiresFloatHandling = false;
+    private boolean requiresRecursionHandling = false;
 
     SelectionAlgorithmStatistics(LogManager pLogger) {
       super(pLogger);
@@ -189,16 +188,16 @@ public class SelectionAlgorithm extends NestingAlgorithm {
       out.println("Size of preliminary analysis reached set:      " + sizeOfPreAnaReachedSet);
       out.println("Used algorithm property:                       " + chosenConfig);
       out.println(
-          "Program containing only relevant bools:        " + requiresOnlyRelevantBoolsHandling);
+          "Program containing only relevant bools:        " + (requiresOnlyRelevantBoolsHandling ? 1 : 0));
       out.println(
           String.format("Relevant boolean vars / relevant vars ratio:   %.4f", relevantBoolRatio));
-      out.println("Requires alias handling:                       " + requiresAliasHandling);
-      out.println("Requires loop handling:                        " + requiresLoopHandling);
+      out.println("Requires alias handling:                       " + (requiresAliasHandling ? 1 : 0));
+      out.println("Requires loop handling:                        " + (requiresLoopHandling ? 1 : 0));
       out.println(
-          "Requires composite-type handling:              " + requiresCompositeTypeHandling);
-      out.println("Requires array handling:                       " + requiresArrayHandling);
-      out.println("Requires float handling:                       " + requiresFloatHandling);
-      out.println("Requires recursion handling:                   " + requiresRecursionHandling);
+          "Requires composite-type handling:              " + (requiresCompositeTypeHandling ? 1 : 0));
+      out.println("Requires array handling:                       " + (requiresArrayHandling ? 1 : 0));
+      out.println("Requires float handling:                       " + (requiresFloatHandling ? 1 : 0));
+      out.println("Requires recursion handling:                   " + (requiresRecursionHandling ? 1 : 0));
       out.println(
           String.format(
               "Relevant addressed vars / relevant vars ratio: %.4f", relevantAddressedRatio));
@@ -339,20 +338,18 @@ public class SelectionAlgorithm extends NestingAlgorithm {
     CFATraversal.dfs().traverseOnce(startingNode, visitor);
     for (String name : visitor.functionNames) {
       if (!cfa.getAllFunctionNames().contains(name)) {
-        stats.containsExternalFunctionCalls = 1;
+        stats.containsExternalFunctionCalls = true;
       }
     }
     stats.numberOfAllRightFunctions = visitor.functionNames.size();
 
-    boolean requiresRecursionHandling = false;
     // Preliminary algorithm run
     if (preAnalysisAlgorithmConfig != null) {
       try {
         performPreAnalysisAlgorithm();
       } catch (UnsupportedCodeException e) {
         if (e.getMessage().contains("recursion")) {
-          requiresRecursionHandling = true;
-          stats.requiresRecursionHandling = 1;
+          stats.requiresRecursionHandling = true;
         }
       } catch (InterruptedException e) {
         // Caught, so that SelectionAlgorithm continues and does not get interrupted completely
@@ -386,31 +383,31 @@ public class SelectionAlgorithm extends NestingAlgorithm {
         variableClassification
             .getIntBoolVars()
             .containsAll(variableClassification.getRelevantVariables());
-    stats.requiresOnlyRelevantBoolsHandling = requiresOnlyRelevantBoolsHandling ? 1 : 0;
+    stats.requiresOnlyRelevantBoolsHandling = requiresOnlyRelevantBoolsHandling;
 
     boolean requiresAliasHandling =
         !variableClassification.getAddressedVariables().isEmpty()
             || !variableClassification.getAddressedFields().isEmpty();
-    stats.requiresAliasHandling = requiresAliasHandling ? 1 : 0;
+    stats.requiresAliasHandling = requiresAliasHandling;
 
     boolean requiresLoopHandling =
         !loopStructure.isPresent() || !loopStructure.get().getAllLoops().isEmpty();
-    stats.requiresLoopHandling = requiresLoopHandling ? 1 : 0;
+    stats.requiresLoopHandling = requiresLoopHandling;
 
     boolean requiresCompositeTypeHandling = !variableClassification.getRelevantFields().isEmpty();
-    stats.requiresCompositeTypeHandling = requiresCompositeTypeHandling ? 1 : 0;
+    stats.requiresCompositeTypeHandling = requiresCompositeTypeHandling;
 
     boolean requiresArrayHandling =
         !Collections.disjoint(variableClassification.getRelevantVariables(), visitor.arrayVariables)
             || !Collections.disjoint(
                 variableClassification.getAddressedFields().values(), visitor.arrayVariables);
-    stats.requiresArrayHandling = requiresArrayHandling ? 1 : 0;
+    stats.requiresArrayHandling = requiresArrayHandling;
 
     boolean requiresFloatHandling =
         !Collections.disjoint(variableClassification.getRelevantVariables(), visitor.floatVariables)
             || !Collections.disjoint(
                 variableClassification.getAddressedFields().values(), visitor.floatVariables);
-    stats.requiresFloatHandling = requiresFloatHandling ? 1 : 0;
+    stats.requiresFloatHandling = requiresFloatHandling;
 
     final Path chosenConfig;
 
@@ -419,7 +416,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
     logger.log(Level.INFO, info);
     Algorithm chosenAlgorithm;
 
-    if (requiresRecursionHandling && recursionConfig != null) {
+    if (stats.requiresRecursionHandling && recursionConfig != null) {
       // Run recursion config
       chosenConfig = recursionConfig;
     } else if (!requiresLoopHandling && loopFreeConfig != null) {
