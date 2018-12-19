@@ -33,12 +33,8 @@ from lxml import etree
 
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
-def _get_cpachecker_directory():
-  scripts_dir = os.path.dirname(os.path.realpath(__file__))
-  return os.path.dirname(scripts_dir)
-
 def _get_test_directory():
-  return _get_cpachecker_directory() + '/test/'
+  return os.path.dirname(os.path.dirname(__file__))
 
 def _strip_xml_extension(path):
   expected_extension = '.xml'
@@ -74,9 +70,7 @@ def _generate_validation_file(testdef_path):
   rundef.append(analysis_option)
   witness_option = etree.Element('option')
   witness_option.set('name', '-witness')
-  witness_option.text = (os.path.relpath(test_dir, _get_cpachecker_directory())
-    + '/'
-    + witness_file)
+  witness_option.text = 'test/' + witness_file
   rundef.append(witness_option)
   requiredfiles = etree.Element('requiredfiles')
   requiredfiles.text = (os.path.relpath(test_dir, os.path.dirname(testdef_path))
