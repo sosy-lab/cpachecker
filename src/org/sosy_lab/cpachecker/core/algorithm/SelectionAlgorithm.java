@@ -541,7 +541,8 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
 
     algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
 
-    reached = RestartAlgorithm.createInitialReachedSetForRestart(cpa, mainFunction, coreComponents, singleLogger);
+    reached =
+        RestartAlgorithm.createInitialReachedSet(cpa, mainFunction, coreComponents, singleLogger);
 
     if (cpa instanceof StatisticsProvider) {
       ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());

@@ -556,12 +556,12 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
       throw new InvalidConfigurationException(
           "Sequential analysis parts may not be sequential analyses theirselves.");
     }
-    reached = createInitialReachedSetForRestart(cpa, mainFunction, coreComponents, singleLogger);
+    reached = createInitialReachedSet(cpa, mainFunction, coreComponents, singleLogger);
 
     return Triple.of(algorithm, cpa, reached);
   }
 
-  static ReachedSet createInitialReachedSetForRestart(
+  static ReachedSet createInitialReachedSet(
       ConfigurableProgramAnalysis cpa,
       CFANode mainFunction,
       CoreComponentsFactory pFactory,
