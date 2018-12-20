@@ -149,7 +149,8 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
       Configuration pGlobalConfig,
       Configuration pSingleConfig,
       Path pSingleConfigFileName,
-      LogManager pLogger) {
+      LogManager pLogger)
+      throws InvalidConfigurationException {
     Map<String, String> global = configToMap(pGlobalConfig);
     Map<String, String> single = configToMap(pSingleConfig);
     for (Entry<String, String> entry : global.entrySet()) {
@@ -164,6 +165,21 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
             value,
             single.get(key),
             single.get(key));
+      }
+    }
+
+    // "cfa.*"-options of a subconfig are effectively ignored because the CFA gets only generated
+    // once for the NestingAlgorithm, so we check whether all "cfa.*"-options that are set in the
+    // subconfig are also present and with the same value in the global config:
+    for (Entry<String, String> entry : single.entrySet()) {
+      String key = entry.getKey();
+      String value = entry.getValue();
+      if (key.contains("cfa.") && !(global.containsKey(key) && value.equals(global.get(key)))) {
+        throw new InvalidConfigurationException(
+            "CFA option of a nested sub-configuration must also be present in the outer configuration!\n"
+                + String.format(
+                    "inner config: \"%s = %s\" ; outer config: \"%s = %s\" ",
+                    key, value, key, global.get(key)));
       }
     }
   }
