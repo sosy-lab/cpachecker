@@ -64,6 +64,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
+import org.sosy_lab.cpachecker.cpa.hybrid.HybridAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -365,11 +367,34 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
             Collection<ValueAssignment> assignments = proverEnvironment.getModelAssignments();
             /*
              * next steps are:
-             *   1) convert all value assignments (their respective formulas) to expressions via FormulaConverter
-             *   2) build new HybridAnalysisState from the resulting expressions
+             *   1) done
+             *   2) done
              *   3) add the state to the respective ARGState and later to the ARG and the wait list
              */
 
+            // convert all value assignments (their respective formulas) to expressions via FormulaConverter
+            Set<CBinaryExpression> assumptios = Sets.newHashSet();
+            for(ValueAssignment assignment : assignments) {
+              Collection<CBinaryExpression> assumptionCollection = formulaConverter.convertFormulaToCBinaryExpressions(assignment.getAssignmentAsFormula());
+              assumptios.addAll(assumptionCollection);
+            }
+
+            /*
+             * build a new Hybrid Analysis State:
+             * 1) extract the state prior to the changes of the variables (those affecting the flipped assumption)
+             * 2) merge this previous state with the new assumptions
+             */
+            HybridAnalysisState previousState =
+                AbstractStates.extractStateByType(
+                    flipAssumptionContext.parentState.getWrappedState(),
+                    HybridAnalysisState.class);
+
+            HybridAnalysisState newState = previousState.mergeWithArtificialAssignments(assumptios);
+
+            // build an ARGState with this new hybrid analysis state
+
+          } catch(InvalidAutomatonException iae) {
+            throw new CPAException("Error occurred while parsing the value assignments into assumption expressions.", iae);
           }
 
         }

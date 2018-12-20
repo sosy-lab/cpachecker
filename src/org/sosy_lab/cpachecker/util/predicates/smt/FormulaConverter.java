@@ -43,6 +43,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -88,7 +89,7 @@ public class FormulaConverter {
         this.machineModel = pMachineModel;
     }
 
-    public Collection<CExpression> convertFormulaToCExpression(BooleanFormula formula)
+    public Collection<CBinaryExpression> convertFormulaToCBinaryExpressions(BooleanFormula formula)
                     throws InvalidAutomatonException {
 
         // convert Formula to C-String
@@ -111,6 +112,6 @@ public class FormulaConverter {
 
         return CollectionUtils.ofType( 
             CParserUtils.convertStatementsToAssumptions(statements, machineModel, logger),
-            CExpression.class);
+            CBinaryExpression.class);
     }
 }
