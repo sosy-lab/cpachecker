@@ -220,7 +220,7 @@ public class LockRefiner
       }
     }
     assert !filteredEdges.isEmpty();
-    assert !from(filteredEdges).anyMatch(controlPrecision::contains) : "edge was already added";
+    // assert !from(filteredEdges).anyMatch(controlPrecision::contains) : "edge was already added";
 
     // Do not add it directly, as it may be obtained in other iterations
     currentIterationPrecision.addAll(filteredEdges);
