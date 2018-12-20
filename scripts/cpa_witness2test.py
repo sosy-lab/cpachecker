@@ -230,7 +230,7 @@ def _create_compile_basic_args(args):
     return compile_args
 
 def _create_compiler_cmd_tail(harness, file, target):
-    return ['-o', target, harness, file]
+    return ['-o', target,'-include', file, harness]
 
 
 def create_compile_cmd(harness, target, args, specification, c_version='gnu11'):
