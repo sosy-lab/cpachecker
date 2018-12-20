@@ -174,7 +174,7 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
     for (Entry<String, String> entry : single.entrySet()) {
       String key = entry.getKey();
       String value = entry.getValue();
-      if (key.contains("cfa.") && !(global.containsKey(key) && value.equals(global.get(key)))) {
+      if (key.startsWith("cfa.") && !(global.containsKey(key) && value.equals(global.get(key)))) {
         throw new InvalidConfigurationException(
             "CFA option of a nested sub-configuration must also be present in the outer configuration!\n"
                 + String.format(
