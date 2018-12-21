@@ -10,7 +10,16 @@ Changes from CPAchecker 1.7 to CPAchecker 1.8
   when it detects that a program does not always terminate. Moreover, the 
   witness validator has been updated to support the validation of  violation 
   witnesses for termination.
-  
+
+* Execution-based Witness Validation and Harness Generation
+  A new, execution-based witness validation has been added to CPAchecker,
+  called CPA-witness2test (CPA-w2t). It can be used to create executable
+  tests from a given violation witness.
+  See the help dialog of `scripts/cpa_witness2test.py` for more information.
+  As an addition, CPAchecker can also be directly used to create
+  compilable test harnesses for found property violations
+  using configuration option `counterexample.export.exportHarness = true`.
+
 * Reducers
   The cooperation of CPAchecker with other verifiers has been extended.
   To sequentially combine CPAchecker with another verifier via conditional 
