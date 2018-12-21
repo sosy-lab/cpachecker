@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.harness;
 import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.getCanonicalType;
 import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.isPredefinedFunction;
 import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.isPredefinedFunctionWithoutVerifierError;
-import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.isPredefinedType;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -43,7 +42,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -77,7 +75,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -90,7 +87,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -109,12 +105,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -213,9 +207,6 @@ public class HarnessExporter {
                   ? FluentIterable.from(externalFunctions)
                       .filter(Predicates.not(Predicates.equalTo(errorFunction.get())))
                   : externalFunctions);
-      // Don't add types, since we want to include the harness to have all used
-      // definitions available
-      //copyTypeDeclarations(codeAppender);
       codeAppender.append(vector);
     } else {
       logger.log(
@@ -268,59 +259,6 @@ public class HarnessExporter {
         };
     CFATraversal.dfs().traverseOnce(cfa.getMainFunction(), externalFunctionCollector);
     return externalFunctions;
-  }
-
-  private void copyTypeDeclarations(CodeAppender pTarget) throws IOException {
-    Set<ADeclaration> declarations = new LinkedHashSet<>();
-    CFATraversal.dfs()
-        .traverseOnce(
-            cfa.getMainFunction(),
-            new CFAVisitor() {
-
-              @Override
-              public TraversalProcess visitNode(CFANode pNode) {
-                return TraversalProcess.CONTINUE;
-              }
-
-              @Override
-              public TraversalProcess visitEdge(CFAEdge pEdge) {
-                if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-                  ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
-                  ADeclaration declaration = declarationEdge.getDeclaration();
-                  if (declaration instanceof CTypeDeclaration) {
-                    CTypeDeclaration typeDeclaration = (CTypeDeclaration) declaration;
-                    if (!isPredefinedType((CTypeDeclaration) declaration)) {
-                      CType declaredType = typeDeclaration.getType().getCanonicalType();
-                      if (declaredType instanceof CElaboratedType && declaredType.isIncomplete()) {
-                        CElaboratedType elaboratedType = (CElaboratedType) declaredType;
-                        final CComplexType dummyType;
-                        switch (elaboratedType.getKind()) {
-                          case ENUM:
-                            dummyType = new CEnumType(elaboratedType.isConst(), elaboratedType.isVolatile(), Collections.emptyList(), elaboratedType.getName(), elaboratedType.getOrigName());
-                            break;
-                          case STRUCT:
-                          case UNION:
-                            dummyType = new CCompositeType(elaboratedType.isConst(), elaboratedType.isVolatile(), elaboratedType.getKind(), Collections.emptyList(), elaboratedType.getName(), elaboratedType.getOrigName());
-                            break;
-                          default:
-                            throw new AssertionError("Unsupported kind of elaborated type: " + elaboratedType.getKind());
-                        }
-                        declarations.add(new CComplexTypeDeclaration(FileLocation.DUMMY, typeDeclaration.isGlobal(), dummyType));
-                      } else {
-                        declarations.add(declaration);
-                      }
-                    }
-                  }
-                } else if (pEdge.getEdgeType() == CFAEdgeType.BlankEdge
-                    && !pEdge.getPredecessor().equals(cfa.getMainFunction())) {
-                  return TraversalProcess.ABORT;
-                }
-                return TraversalProcess.CONTINUE;
-              }
-            });
-    for (ADeclaration declaration : declarations) {
-      pTarget.appendln(declaration.toASTString());
-    }
   }
 
   /**
