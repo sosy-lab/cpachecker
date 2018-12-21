@@ -89,7 +89,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * CFA via DFS and introduces new edges for the ARG on branching states in order to cover more
  * branches
  */
-public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
+public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
 
   @Options(prefix = "hybridExecution")
   public static class HybridExecutionAlgorithmFactory implements AlgorithmFactory {
@@ -279,135 +279,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
 
     logger.log(Level.FINEST, "Assume edges from program cfa collected.");
 
-    // start with good status
-    AlgorithmStatus currentStatus = AlgorithmStatus.SOUND_AND_PRECISE;
-
-    boolean running = true;
-    int assumptionMissedCounter = 0;
-
-    while(running) {
-
-      currentStatus = algorithm.run(pReachedSet);
-      notifyListeners(pReachedSet);
-
-      // get all bottom states (has no children and is not part of the wait list)
-      final Collection<AbstractState> waitList = pReachedSet.getWaitlist(); // simplification for the lambda expression
-      final List<ARGState> bottomStates = pReachedSet
-          .asCollection()
-          .stream()
-          .filter(state -> !waitList.contains(state))
-          .map(state -> AbstractStates.extractStateByType(state, ARGState.class))
-          .filter(state -> state != null)
-          .filter(argState -> argState.getChildren().isEmpty() && !argState.isDestroyed())
-          .collect(Collectors.toList());
-
-      // there is nothing left to do in this run
-      if(bottomStates.isEmpty()){
-        continue;
-      }
-
-      // gather all visited assumptions
-      Set<CExpression> visitedAssumptions = bottomStates
-        .stream()
-        .map(argState -> ARGUtils.getOnePathTo(argState)) // TODO: check if we need to adjust this to all states (ARGUtils)
-        .map(argPath -> extractAssumptions(argPath.getInnerEdges()))
-        .flatMap(Collection::stream)
-        .collect(Collectors.toSet());
-
-      // remove the visited assumptions
-      allAssumptions.removeAll(visitedAssumptions);
-
-      // if there are no more assumptions left, all paths have been covered
-      if(allAssumptions.isEmpty()) {
-        return currentStatus;
-      }
-
-      @Nullable AssumptionContext flipAssumptionContext = null;
-      Iterator<ARGState> stateIterator = bottomStates.iterator();
-
-      // we simply continue until either a new assumption to flip was found or there are no more bottom states to work with
-      while(flipAssumptionContext == null && stateIterator.hasNext()) {
-
-        // the next state to work on
-        ARGState nextBottomState = stateIterator.next();
-
-        // search for the next state to flip
-        flipAssumptionContext = searchStrategy.runStrategy(nextBottomState, allAssumptions);
-      }
-
-
-      if(flipAssumptionContext == null) {
-
-        if(++assumptionMissedCounter > maxNumMissedAssumption) {
-          logger.log(
-            Level.INFO, 
-            String.format("The maximum number (%d) of runs without finding a new assumption to flip was exceeded. Consider increasing.", maxNumMissedAssumption));
-          return currentStatus;
-        }
-        continue;
-      }
-
-      // bottom up path search
-      ARGPath pathToFoundState = flipAssumptionContext.parentToAssumptionPath;
-
-      // build path formula
-      PathFormula pathFormula = buildPathFormula(pathToFoundState.getFullPath());
-
-      try {
-
-        boolean satisfiable = !solver.isUnsat(pathFormula.getFormula());
-
-        logger.log(Level.INFO, String.format("The boolean formula %s is not satisfiable for the solver", pathFormula.getFormula()));
-
-        // get assignments for the new path containing the flipped assumption
-        if(satisfiable) {
-
-          try(ProverEnvironment proverEnvironment = solver.newProverEnvironment()) {
-
-            Collection<ValueAssignment> assignments = proverEnvironment.getModelAssignments();
-            /*
-             * next steps are:
-             *   1) done
-             *   2) done
-             *   3) add the state to the respective ARGState and later to the ARG and the wait list
-             */
-
-            // convert all value assignments (their respective formulas) to expressions via FormulaConverter
-            Set<CBinaryExpression> assumptios = Sets.newHashSet();
-            for(ValueAssignment assignment : assignments) {
-              Collection<CBinaryExpression> assumptionCollection = formulaConverter.convertFormulaToCBinaryExpressions(assignment.getAssignmentAsFormula());
-              assumptios.addAll(assumptionCollection);
-            }
-
-            /*
-             * build a new Hybrid Analysis State:
-             * 1) extract the state prior to the changes of the variables (those affecting the flipped assumption)
-             * 2) merge this previous state with the new assumptions
-             */
-            HybridAnalysisState previousState =
-                AbstractStates.extractStateByType(
-                    flipAssumptionContext.parentState.getWrappedState(),
-                    HybridAnalysisState.class);
-
-            HybridAnalysisState newState = previousState.mergeWithArtificialAssignments(assumptios);
-
-            // build an ARGState with this new hybrid analysis state
-
-          } catch(InvalidAutomatonException iae) {
-            throw new CPAException("Error occurred while parsing the value assignments into assumption expressions.", iae);
-          }
-
-        }
-
-      } catch(SolverException sException) {
-        throw new CPAException("Exception occurred in SMT-Solver.", sException);
-      }
-
-      // check for continuation
-      running = checkContinue(pReachedSet);
-    }
-
-    return currentStatus;
+    return runInternal(pReachedSet, allAssumptions);
   }
 
   @Override
@@ -428,6 +300,129 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     }
 
     reachedSetUpdateListeners.remove(pReachedSetUpdateListener);
+  }
+
+  /**
+   * Internal implementation of the algorithm
+   * @param pReachedSet The current reachedSet
+   * @param pAllAssumptions All assumptions occurring in the cfa
+   * @return An algorithm status
+   */
+  private AlgorithmStatus runInternal(ReachedSet pReachedSet, Set<CExpression> pAllAssumptions) 
+      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException{
+    
+    // start with good status
+    AlgorithmStatus currentStatus = AlgorithmStatus.SOUND_AND_PRECISE;
+
+    boolean running = true;
+    int assumptionMissedCounter = 0;
+
+    while(running) {
+
+      currentStatus = algorithm.run(pReachedSet);
+      notifyListeners(pReachedSet);
+
+      // get all bottom states (has no children and is not part of the wait list)
+      final Set<ARGState> bottomStates = collectBottomStates(pReachedSet);
+
+      // there is nothing left to do in this run
+      if(bottomStates.isEmpty()){
+        continue;
+      }
+
+      // gather all visited assumptions
+      Set<CExpression> visitedAssumptions = bottomStates
+        .stream()
+        .map(argState -> ARGUtils.getOnePathTo(argState)) // TODO: check if we need to adjust this to all states (ARGUtils)
+        .map(argPath -> extractAssumptions(argPath.getInnerEdges()))
+        .flatMap(Collection::stream)
+        .collect(Collectors.toSet());
+
+      // remove the visited assumptions
+      pAllAssumptions.removeAll(visitedAssumptions);
+
+      // if there are no more assumptions left, all paths have been covered
+      if(pAllAssumptions.isEmpty()) {
+        solver.close();
+        return currentStatus;
+      }
+
+      @Nullable AssumptionContext flipAssumptionContext = null;
+      Iterator<ARGState> stateIterator = bottomStates.iterator();
+
+      // we simply continue until either a new assumption to flip was found or there are no more bottom states to work with
+      while(flipAssumptionContext == null && stateIterator.hasNext()) {
+
+        // the next state to work on
+        ARGState nextBottomState = stateIterator.next();
+
+        // search for the next state to flip
+        flipAssumptionContext = searchStrategy.runStrategy(nextBottomState, pAllAssumptions);
+      }
+
+
+      if(flipAssumptionContext == null) {
+
+        if(++assumptionMissedCounter > maxNumMissedAssumption) {
+          logger.log(
+            Level.INFO, 
+            String.format("The maximum number (%d) of runs without finding a new assumption to flip was exceeded. Consider increasing.", maxNumMissedAssumption));
+          solver.close();
+          return currentStatus;
+        }
+        continue;
+      }
+
+      // 
+      ARGPath pathToFoundState = flipAssumptionContext.parentToAssumptionPath;
+
+      // build path formula
+      PathFormula pathFormula = buildPathFormula(pathToFoundState.getInnerEdges());
+
+      try {
+
+        boolean satisfiable = !solver.isUnsat(pathFormula.getFormula());
+
+        logger.log(Level.INFO, String.format("The boolean formula %s is not satisfiable for the solver", pathFormula.getFormula()));
+
+        // get assignments for the new path containing the flipped assumption
+        if(satisfiable) {
+
+          try(ProverEnvironment proverEnvironment = solver.newProverEnvironment()) {
+
+            // convert all value assignments (their respective formulas) to expressions via FormulaConverter
+            Set<CBinaryExpression> assumptions = parseAssignments(proverEnvironment.getModelAssignments());
+
+            /*
+             * build a new Hybrid Analysis State:
+             * 1) extract the state prior to the changes of the variables (those affecting the flipped assumption)
+             * 2) merge this previous state with the new assumptions
+             */
+            HybridAnalysisState previousState =
+                AbstractStates.extractStateByType(
+                    flipAssumptionContext.parentState.getWrappedState(),
+                    HybridAnalysisState.class);
+
+            HybridAnalysisState newState = previousState.mergeWithArtificialAssignments(assumptions);
+
+            // build an ARGState with this new hybrid analysis state
+
+          } catch(InvalidAutomatonException iae) {
+            throw new CPAException("Error occurred while parsing the value assignments into assumption expressions.", iae);
+          }
+
+        }
+
+      } catch(SolverException sException) {
+        throw new CPAException("Exception occurred in SMT-Solver.", sException);
+      }
+
+      // check for continuation
+      running = checkContinue(pReachedSet);
+    }
+
+    solver.close();
+    return currentStatus;
   }
 
   /**
@@ -454,6 +449,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
     // extract only the assume edges
     Collection<CAssumeEdge> assumeEdges = pEdges
         .stream()
+        .filter(edge -> edge != null)
         .filter(edge -> edge.getEdgeType() == CFAEdgeType.AssumeEdge)
         .map(edge -> (CAssumeEdge) edge)
         .collect(Collectors.toList());
@@ -490,6 +486,38 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
       .collect(Collectors.toSet());
   }
 
+  /**
+   * A bottom state (ARGState) is defined as follows:
+   *  1) the state doesn't have children
+   *  2) the state is not part of the waitlist
+   * 
+   * @param pReachedSet The current reached set
+   * @return a set of ARGStates that fullfill the conditions mentioned above
+   */
+  private Set<ARGState> collectBottomStates(ReachedSet pReachedSet) {
+    final Collection<AbstractState> waitList = pReachedSet.getWaitlist(); // simplification for the lambda expression
+    return pReachedSet
+      .asCollection()
+      .stream()
+      .filter(state -> !waitList.contains(state))
+      .map(state -> AbstractStates.extractStateByType(state, ARGState.class))
+      .filter(state -> state != null)
+      .filter(argState -> argState.getChildren().isEmpty() && !argState.isDestroyed())
+      .collect(Collectors.toSet());
+  }
+
+  private Set<CBinaryExpression> parseAssignments(Collection<ValueAssignment> pAssignments)
+      throws InvalidAutomatonException {
+
+    Set<CBinaryExpression> assumptios = Sets.newHashSet();
+    for(ValueAssignment assignment : pAssignments) {
+      Collection<CBinaryExpression> assumptionCollection = formulaConverter.convertFormulaToCBinaryExpressions(assignment.getAssignmentAsFormula());
+      assumptios.addAll(assumptionCollection);
+    }
+
+    return assumptios;
+  }
+
   @FunctionalInterface
   private interface SearchStrategy {
 
@@ -502,6 +530,7 @@ public class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpdater {
      */
     @Nullable
     AssumptionContext runStrategy(ARGState pState, Set<CExpression> pAssumptions);
+
   }
 
   /**
