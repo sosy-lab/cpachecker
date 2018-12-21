@@ -19,56 +19,42 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.cpa.lock.effects.AbstractLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.AcquireLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.SetLockEffect;
-import org.sosy_lab.cpachecker.util.Pair;
 
 public class LockPrecision implements AdjustablePrecision {
 
-  private final Multimap<CFANode, LockIdentifier> precision;
+  private final ImmutableSetMultimap<CFANode, LockIdentifier> precision;
 
   public LockPrecision() {
-    precision = ArrayListMultimap.create();
+    precision = ImmutableSetMultimap.of();
   }
 
-  public LockPrecision(Collection<Pair<CFANode, LockIdentifier>> pSet) {
-    precision = ArrayListMultimap.create();
-    for (Pair<CFANode, LockIdentifier> p : pSet) {
-      CFANode node = p.getFirst();
-      LockIdentifier id = p.getSecond();
-      if (!precision.containsEntry(node, id)) {
-        precision.put(p.getFirst(), p.getSecond());
-      }
-    }
-  }
-
-  private LockPrecision(Multimap<CFANode, LockIdentifier> newPrecision) {
-    precision = ArrayListMultimap.create(newPrecision);
+  public LockPrecision(Iterable<Entry<CFANode, LockIdentifier>> pSet) {
+    precision = ImmutableSetMultimap.copyOf(pSet);
   }
 
   @Override
   public AdjustablePrecision add(AdjustablePrecision pOtherPrecision) {
     LockPrecision other = (LockPrecision) pOtherPrecision;
-    LockPrecision result = new LockPrecision(precision);
-    result.precision.putAll(other.precision);
-    return result;
+    return new LockPrecision(Iterables.concat(other.precision.entries(), this.precision.entries()));
   }
 
   @Override
   public AdjustablePrecision subtract(AdjustablePrecision pOtherPrecision) {
     LockPrecision other = (LockPrecision) pOtherPrecision;
-    LockPrecision result = new LockPrecision(precision);
-    other.precision.forEach((k, v) -> result.precision.remove(k, v));
-    return result;
+    return new LockPrecision(Sets.difference(other.precision.entries(), this.precision.entries()));
   }
 
   @Override

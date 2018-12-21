@@ -27,6 +27,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -116,27 +118,27 @@ public class LockRefiner
     AbstractLockState secondRealState = findLastState(secondEdges);
     fullStateTimer.stop();
 
-    List<Pair<CFANode, LockIdentifier>> toPrecision = new ArrayList<>();
+    Iterable<Entry<CFANode, LockIdentifier>> toPrecision = Collections.emptySet();
     List<ARGState> firstPairs;
     List<ARGState> secondPairs;
 
     if (firstRealState == null) {
       // The path is infeasible due to missed lock assumption
-      List<Pair<CFANode, LockIdentifier>> prec = getNewPrecision(null, firstEdges);
-      toPrecision.addAll(prec);
+      Iterable<Entry<CFANode, LockIdentifier>> prec = getNewPrecision(null, firstEdges);
+      toPrecision = Iterables.concat(toPrecision, prec);
       firstPairs =
           getAffectedStates(
-              from(prec).transform(p -> p.getFirst()).toList(),
+              from(prec).transform(p -> p.getKey()).toList(),
               firstPath.asStatesList());
       firstPath.setAsFalse();
       secondPairs = Collections.emptyList();
 
     } else if (secondRealState == null) {
-      List<Pair<CFANode, LockIdentifier>> prec = getNewPrecision(null, secondEdges);
-      toPrecision.addAll(prec);
+      Iterable<Entry<CFANode, LockIdentifier>> prec = getNewPrecision(null, secondEdges);
+      toPrecision = Iterables.concat(toPrecision, prec);
       secondPairs =
           getAffectedStates(
-              from(prec).transform(p -> p.getFirst()).toList(),
+              from(prec).transform(p -> p.getKey()).toList(),
               secondPath.asStatesList());
       secondPath.setAsFalse();
       firstPairs = Collections.emptyList();
@@ -154,22 +156,22 @@ public class LockRefiner
       LockIdentifier id = Iterables.getLast(ids);
 
       if (firstLastLockState.getCounter(id) == 0) {
-        List<Pair<CFANode, LockIdentifier>> prec = getNewPrecision(id, firstEdges);
-        toPrecision.addAll(prec);
+        Iterable<Entry<CFANode, LockIdentifier>> prec = getNewPrecision(id, firstEdges);
+        toPrecision = Iterables.concat(toPrecision, prec);
         firstPairs =
             getAffectedStates(
-                from(prec).transform(p -> p.getFirst()).toList(),
+                from(prec).transform(p -> p.getKey()).toList(),
                 firstPath.asStatesList());
         firstPath.setAsFalse();
       } else {
         firstPairs = Collections.emptyList();
       }
       if (secondLastLockState.getCounter(id) == 0) {
-        List<Pair<CFANode, LockIdentifier>> prec = getNewPrecision(id, secondEdges);
-        toPrecision.addAll(prec);
+        Iterable<Entry<CFANode, LockIdentifier>> prec = getNewPrecision(id, secondEdges);
+        toPrecision = Iterables.concat(toPrecision, prec);
         secondPairs =
             getAffectedStates(
-                from(prec).transform(p -> p.getFirst()).toList(),
+                from(prec).transform(p -> p.getKey()).toList(),
                 secondPath.asStatesList());
         secondPath.setAsFalse();
         if (secondPairs.equals(firstPairs)) {
@@ -187,7 +189,7 @@ public class LockRefiner
     return result;
   }
 
-  private List<Pair<CFANode, LockIdentifier>>
+  private Iterable<Entry<CFANode, LockIdentifier>>
       getNewPrecision(
           LockIdentifier pId,
           List<CFAEdge> pEdges)
@@ -226,10 +228,10 @@ public class LockRefiner
     currentIterationPrecision.addAll(filteredEdges);
 
     final LockIdentifier fId = pId;
-    List<Pair<CFANode, LockIdentifier>> set =
-        from(filteredEdges).transform(e -> Pair.of(e.getPredecessor(), fId)).toList();
+    Map<CFANode, LockIdentifier> set =
+        from(filteredEdges).transform(e -> e.getPredecessor()).toMap(e -> fId);
     newPrecisionTimer.stop();
-    return set;
+    return set.entrySet();
   }
 
   private List<CFAEdge> filterEdges(ExtendedARGPath pPath) {
