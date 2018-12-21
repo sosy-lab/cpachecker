@@ -44,57 +44,26 @@ public final class ExpressionUtils {
      * @return the (possibly inverted Expression), if the Expression provided by the edge is of type CBinaryExpression,
      *         else an empty Optional
      */
-    public static CBinaryExpression getASTWithTruthAssumption(AssumeEdge cfaEdge, CBinaryExpression expression) {
+    public static CBinaryExpression getASTWithTruthAssumption(AssumeEdge pCfaEdge, CBinaryExpression pExpression) {
 
-        if(cfaEdge == null || cfaEdge.getTruthAssumption()) {
+        if(pCfaEdge == null || pCfaEdge.getTruthAssumption()) {
 
-            return expression;
+            return pExpression;
         }
 
         // operator inversion is needed
-        BinaryOperator newOperator = expression.getOperator().getOppositLogicalOperator();
+        return invertExpression(pExpression);
+    }
+
+    public static CBinaryExpression invertExpression(CBinaryExpression pExpression) {
+        BinaryOperator newOperator = pExpression.getOperator().getOppositLogicalOperator();
 
         return new CBinaryExpression(
-            expression.getFileLocation(), 
-            expression.getExpressionType(), 
-            expression.getCalculationType(),
-            expression.getOperand1(),
-            expression.getOperand2(),
+            pExpression.getFileLocation(), 
+            pExpression.getExpressionType(), 
+            pExpression.getCalculationType(),
+            pExpression.getOperand1(),
+            pExpression.getOperand2(),
             newOperator);
-    }
-
-    /**
-     * Inverts the given operator (logical)
-     * @param operator The respective operator
-     * @return The inverted operator, if a logical operator is given, else null
-     */
-    @Deprecated
-    public static @Nullable BinaryOperator invertOperator(BinaryOperator operator) {
-
-        switch(operator) {
-            case LESS_THAN     : return BinaryOperator.GREATER_EQUAL;
-            case GREATER_THAN  : return BinaryOperator.LESS_EQUAL;
-            case LESS_EQUAL    : return BinaryOperator.GREATER_THAN;
-            case GREATER_EQUAL : return BinaryOperator.LESS_THAN;
-            case EQUALS        : return BinaryOperator.NOT_EQUALS;
-            case NOT_EQUALS    : return BinaryOperator.EQUALS;
-            // arithmetic operators cannot be inverted
-            default            : return null;
-        }
-    }
-
-    /**
-     * Determines wether a BinaryOperator is a logical operator
-     * @param operator The respective operator
-     * @return true if the operator is a logical operator, else false
-     */
-    @Deprecated
-    public static boolean isLogicalOperator(BinaryOperator operator) {
-        return operator == BinaryOperator.GREATER_EQUAL
-            || operator == BinaryOperator.LESS_EQUAL
-            || operator == BinaryOperator.GREATER_THAN
-            || operator == BinaryOperator.LESS_THAN
-            || operator == BinaryOperator.NOT_EQUALS
-            || operator == BinaryOperator.EQUALS;
     }
 } 

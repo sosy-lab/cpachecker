@@ -66,6 +66,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.hybrid.HybridAnalysisState;
+import org.sosy_lab.cpachecker.cpa.hybrid.exception.InvalidAssumptionException;
+import org.sosy_lab.cpachecker.cpa.hybrid.util.ExpressionUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -406,6 +408,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
             HybridAnalysisState newState = previousState.mergeWithArtificialAssignments(assumptions);
 
             // build an ARGState with this new hybrid analysis state
+            ARGState stateToAdd = new ARGState(newState, flipAssumptionContext.parentState);
 
           } catch(InvalidAutomatonException iae) {
             throw new CPAException("Error occurred while parsing the value assignments into assumption expressions.", iae);
@@ -542,18 +545,59 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
    */
   private static class AssumptionContext {
 
-    CBinaryExpression assumption;
-    Set<CExpression> variables;
-    ARGState parentState;
-    ARGState assumptionWrappingState;
-    ARGPath parentToAssumptionPath;
+    private CBinaryExpression assumption;
+    private final Set<CExpression> variables;
+    private ARGState parentState;
+    private ARGPath parentToAssumptionPath;
 
-    AssumptionContext() {
+    /**
+     * Constructs a new instance of the class
+     * Takes the assumption containing state, extracts the assumption and negates it
+     * @param pParentState The arg state previous to the last change of a variable contained within the assumption
+     * @param postAssumptionState The ingoing state for the assume edge
+     * @param pAssumeEdge The assume edge containing the assumption to flip
+     * @throws InvalidAssumptionException The Hybrid Analysis can only work on CBinaryExpressions
+     */
+    AssumptionContext(CAssumeEdge pAssumeEdge) 
+        throws InvalidAssumptionException {
+
       variables = Sets.newHashSet();
+
+      CExpression assumeExpression = pAssumeEdge.getExpression();
+
+      if(!(assumeExpression instanceof CBinaryExpression)) {
+        throw new InvalidAssumptionException(String.format("Assumption contained in assume edge %s is not applicable for hybrid execution.", assumeExpression));
+      }
+
+      setAssumption((CBinaryExpression) assumeExpression);
     }
 
-    void setAssumption(CBinaryExpression pAssumption) {
-      assumption = pAssumption;
+    /**
+     * Calculates the 
+     * @param pParentState
+     * @param pPostAssumptionState
+     */
+    void calculatePath(ARGState pParentState, ARGState pPostAssumptionState) {
+
+      /*{                           // parent state
+       * int x = input();           // function call nondet
+       * if(x > 5) {                // assume edge (x > 5)
+       *   ...
+       * } else {
+       *   ...                      // reachable with the flipped assumption !(x > 5)
+       * }
+      }*/
+      
+
+    }
+
+    @Nullable
+    ARGState getParentState() {
+      return parentState;
+    }
+
+    private void setAssumption(CBinaryExpression pAssumption) {
+      assumption = ExpressionUtils.invertExpression(pAssumption);
       CExpression leftHandSide = assumption.getOperand1();
       CExpression rightHandSide = assumption.getOperand2();
 
