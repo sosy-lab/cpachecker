@@ -213,7 +213,9 @@ public class HarnessExporter {
                   ? FluentIterable.from(externalFunctions)
                       .filter(Predicates.not(Predicates.equalTo(errorFunction.get())))
                   : externalFunctions);
-      copyTypeDeclarations(codeAppender);
+      // Don't add types, since we want to include the harness to have all used
+      // definitions available
+      //copyTypeDeclarations(codeAppender);
       codeAppender.append(vector);
     } else {
       logger.log(
