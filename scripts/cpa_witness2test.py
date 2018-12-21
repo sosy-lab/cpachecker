@@ -191,7 +191,6 @@ def create_parser():
                         type=str,
                         action='store',
                         help='specification file',
-                        required=True
                         )
 
     parser.add_argument('-witness',
@@ -199,12 +198,11 @@ def create_parser():
                         type=str,
                         action='store',
                         help='witness file',
-                        required=True
                         )
 
     parser.add_argument("file",
                         type=str,
-                        action='store',
+                        nargs="?",
                         help="file to validate witness for"
                         )
 
@@ -213,7 +211,9 @@ def create_parser():
 
 def _parse_args(argv=sys.argv[1:]):
     parser = create_parser()
-    args = parser.parse_known_args(argv)[0]
+    args = parser.parse_known_args(argv[:-1])[0]
+    args_file = parser.parse_args([argv[-1]])  # Parse the file name
+    args.file = args_file.file
 
     return args
 
