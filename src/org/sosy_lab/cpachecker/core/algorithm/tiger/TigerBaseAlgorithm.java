@@ -19,29 +19,61 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
+import com.google.common.base.Function;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.math.BigInteger;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
+import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.BDDUtils;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
+import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.cpa.timeout.TimeoutCPA;
+import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 public abstract class TigerBaseAlgorithm<T extends Goal>
     implements AlgorithmWithResult, ShutdownRequestListener {
@@ -63,13 +95,14 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
   protected CFA cfa;
   protected ConfigurableProgramAnalysis cpa;
   protected Configuration config;
-  protected ReachedSet reachedSet = null;
+  // protected ReachedSet reachedSet = null;
   protected StartupConfig startupConfig;
   protected Specification stats;
   protected TestSuite<T> testsuite;
   protected BDDUtils bddUtils;
   protected TimeoutCPA timeoutCPA;
 
+  protected LinkedList<T> goalsToCover;
 
   protected void init(
       LogManager pLogger,
@@ -96,6 +129,31 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
 
     // Check if BDD is enabled for variability-aware test-suite generation
     bddUtils = new BDDUtils(cpa, pLogger);
+    timeoutCPA = getTimeoutCPA(cpa);
+  }
+
+  public TimeoutCPA getTimeoutCPA(ConfigurableProgramAnalysis pCpa) {
+    if (pCpa instanceof WrapperCPA) {
+      TimeoutCPA bddCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(TimeoutCPA.class);
+      return bddCpa;
+    } else if (pCpa instanceof TimeoutCPA) {
+      return ((TimeoutCPA) pCpa);
+    }
+
+    return null;
+  }
+
+  protected Pair<Boolean, Boolean>
+      runAlgorithm(Algorithm algorithm, ReachedSet pReachedSet)
+          throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException {
+    boolean analysisWasSound = false;
+    boolean hasTimedOut = false;
+    analysisWasSound = algorithm.run(pReachedSet).isSound();
+    hasTimedOut = timeoutCPA.hasTimedout();
+    if (hasTimedOut) {
+      logger.logf(Level.INFO, "Test goal timed out!");
+    }
+    return Pair.of(analysisWasSound, hasTimedOut);
   }
 
   protected void writeTestsuite() {
@@ -123,5 +181,152 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  protected TestCase createTestcase(final CounterexampleInfo cex, final Region pPresenceCondition) {
+    Map<String, BigInteger> inputValues = values.extractInputValues(cex);
+    Map<String, BigInteger> outputValus = values.extractOutputValues(cex);
+    // calcualte shrinked error path
+    List<Pair<CFAEdgeWithAssumptions, Boolean>> shrinkedErrorPath =
+        new ErrorPathShrinker()
+            .shrinkErrorPath(cex.getTargetPath(), cex.getCFAPathWithAssignments());
+    TestCase testcase =
+        new TestCase(
+            currentTestCaseID,
+            inputValues,
+            outputValus,
+            cex.getTargetPath().asEdgesList(),
+            shrinkedErrorPath,
+            pPresenceCondition,
+            bddUtils);
+    currentTestCaseID++;
+    return testcase;
+  }
+  public Region
+      getPresenceConditionFromCexUpToEdge(
+          CounterexampleInfo cex,
+          Function<CFAEdge, Boolean> isFinalEdgeForGoal) {
+    if (!bddUtils.isVariabilityAware()) {
+      return null;
+    }
+
+    Region pc = bddUtils.makeTrue();
+    List<CFAEdge> cfaPath = cex.getTargetPath().getFullPath();
+    String validFunc = tigerConfig.getValidProductMethodName();
+
+    for (CFAEdge cfaEdge : cfaPath) {
+      String predFun = cfaEdge.getPredecessor().getFunctionName();
+      String succFun = cfaEdge.getSuccessor().getFunctionName();
+      if (predFun.contains(validFunc)
+          && succFun.contains(tigerConfig.getValidProductMethodName())) {
+        continue;
+      }
+
+      if (cfaEdge instanceof CAssumeEdge) {
+        CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
+        if (assumeEdge.getExpression() instanceof CBinaryExpression) {
+
+          CBinaryExpression expression = (CBinaryExpression) assumeEdge.getExpression();
+          String name = expression.getOperand1().toString() + "@0";
+
+          if (name.contains(tigerConfig.getFeatureVariablePrefix())) {
+            Region predNew = bddUtils.createPredicate(name);
+            if (assumeEdge.getTruthAssumption()) {
+              predNew = bddUtils.makeNot(predNew);
+            }
+
+            pc = bddUtils.makeAnd(pc, predNew);
+          }
+        }
+      }
+      if (isFinalEdgeForGoal.apply(cfaEdge)) {
+        break;
+      }
+    }
+
+    return pc;
+  }
+
+  protected void checkGoalCoverage(
+      Set<T> pGoalsToCheckCoverage,
+      TestCase testCase,
+      boolean removeCoveredGoals,
+      CounterexampleInfo cex) {
+    for (T goal : testCase.getCoveredGoals(pGoalsToCheckCoverage)) {
+      // TODO add infeasiblitpropagaion to testsuite
+      Region simplifiedPresenceCondition = getPresenceConditionFromCexForGoal(cex, goal);
+      testsuite.updateTestcaseToGoalMapping(testCase, goal, simplifiedPresenceCondition);
+      String log = "Goal " + goal.getName() + " is covered by testcase " + testCase.getId();
+      if (removeCoveredGoals && !bddUtils.isVariabilityAware()) {
+        pGoalsToCheckCoverage.remove(goal);
+        log += "and is removed from goal list";
+      }
+      logger.log(Level.INFO, log);
+    }
+  }
+
+  protected abstract Region getPresenceConditionFromCexForGoal(CounterexampleInfo pCex, T pGoal);
+
+  protected Algorithm rebuildAlgorithm(
+      ShutdownManager algNotifier,
+      ConfigurableProgramAnalysis lARTCPA,
+      ReachedSet pReached)
+      throws CPAException {
+    Algorithm algorithm;
+    try {
+      Configuration internalConfiguration =
+          Configuration.builder().loadFromFile(tigerConfig.getAlgorithmConfigurationFile()).build();
+
+      Set<UnmodifiableReachedSet> unmodifiableReachedSets = new HashSet<>();
+
+      unmodifiableReachedSets.add(pReached);
+
+      AggregatedReachedSets aggregatedReachedSets =
+          new AggregatedReachedSets(unmodifiableReachedSets);
+
+      CoreComponentsFactory coreFactory =
+          new CoreComponentsFactory(
+              internalConfiguration,
+              logger,
+              algNotifier.getNotifier(),
+              aggregatedReachedSets);
+
+      algorithm = coreFactory.createAlgorithm(lARTCPA, cfa, stats);
+
+      if (algorithm instanceof CEGARAlgorithm) {
+        CEGARAlgorithm cegarAlg = (CEGARAlgorithm) algorithm;
+
+        ARGStatistics lARTStatistics;
+        try {
+          lARTStatistics = new ARGStatistics(internalConfiguration, logger, lARTCPA, stats, cfa);
+        } catch (InvalidConfigurationException e) {
+          throw new RuntimeException(e);
+        }
+        Set<Statistics> lStatistics = new HashSet<>();
+        lStatistics.add(lARTStatistics);
+        cegarAlg.collectStatistics(lStatistics);
+      }
+
+    } catch (IOException | InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
+    return algorithm;
+  }
+
+  protected void initializeReachedSet(ReachedSet pReachedSet, ARGCPA lRTCPA)
+      throws InterruptedException {
+    // initialize reachedSet
+    pReachedSet.clear();
+    AbstractState lInitialElement =
+        lRTCPA.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+    Precision lInitialPrecision =
+        lRTCPA
+            .getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+    pReachedSet.add(lInitialElement, lInitialPrecision);
+  }
+
+  @Override
+  public AlgorithmResult getResult() {
+    return testsuite;
   }
 }

@@ -42,8 +42,6 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPUnion;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedLabel;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction;
@@ -65,21 +63,6 @@ public class AutomatonGoal extends Goal {
   public AutomatonGoal(
       int pIndex,
       ElementaryCoveragePattern pPattern,
-      GuardedEdgeLabel pAlphaLabel,
-      GuardedEdgeLabel pInverseAlphaLabel,
-      GuardedLabel pOmegaLabel,
-      Region pPresenceCondition,
-      boolean pUseOmegaLabel) {
-    init(pIndex, pPresenceCondition);
-    mAutomaton =
-        ToGuardedAutomatonTranslator
-            .toAutomaton(mPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel, pUseOmegaLabel);
-    mPresenceCondition = pPresenceCondition;
-  }
-
-  public AutomatonGoal(
-      int pIndex,
-      ElementaryCoveragePattern pPattern,
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton,
       Region pPresenceCondition) {
     init(pIndex, pPresenceCondition);
@@ -87,14 +70,6 @@ public class AutomatonGoal extends Goal {
     mAutomaton = pAutomaton;
   }
 
-  public AutomatonGoal(
-      int pIndex,
-      ElementaryCoveragePattern pElementaryCoveragePattern,
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
-    init(pIndex, null);
-    mPattern = pElementaryCoveragePattern;
-    mAutomaton = pAutomaton;
-  }
 
   public ElementaryCoveragePattern getPattern() {
     return mPattern;

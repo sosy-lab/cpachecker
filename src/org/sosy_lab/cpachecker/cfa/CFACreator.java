@@ -450,7 +450,7 @@ public class CFACreator {
 
 
       TigerConfiguration tigerConfig = new TigerConfiguration(config);
-      boolean useTiger = tigerConfig.useTigerAlgorithm;
+      boolean useTiger = tigerConfig.useTigerAlgorithm || tigerConfig.useTigerMultiGoalAlgorithm;
 
       if (useTiger && (language != Language.C)) { throw new InvalidConfigurationException(
           "Tiger algorithm is only supported for C!"); }

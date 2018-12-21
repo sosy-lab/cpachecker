@@ -47,7 +47,7 @@ public class TigerVariabilityTest {
   private static final String FASE_C = "test/programs/tiger/simulator/FASE2015.c";
   private static final String MINI_FASE_C = "test/programs/tiger/simulator/mini_FASE2015.c";
   private static final String PRESENCE_CONDITION_TEST_C =
-      "test/programs/tiger/simulator/presenceConditionTest.c";
+      "test/programs/tiger/simulator/PresenceConditionTest.c";
 
   public static List<Pair<String, Pair<String, List<Interval>>>> miniFaseTS = null;
   public static List<Pair<String, Pair<String, List<Interval>>>> faseTS = null;
@@ -55,9 +55,9 @@ public class TigerVariabilityTest {
   private static final String configFolder = "config";
   private static final String configExtension = ".properties";
   private static final String configFile =
-      configFolder + "\\tiger-simulators" + configExtension;
+      configFolder + "//tiger-simulators" + configExtension;
   private static final String configFile_noOmega =
-      configFolder + "\\tiger-simulators-noOmega" + configExtension;
+      configFolder + "//tiger-simulators-noOmega" + configExtension;
 
   public static String miniFaseFm = "__SELECTED_FEATURE_PLUS";
   public static String faseFm =

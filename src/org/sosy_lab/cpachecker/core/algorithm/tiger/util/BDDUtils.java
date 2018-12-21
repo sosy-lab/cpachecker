@@ -189,7 +189,7 @@ public class BDDUtils {
   }
 
   public void restrictBdd(Region pRemainingPresenceCondition) {
-    if (pRemainingPresenceCondition == null) {
+    if (pRemainingPresenceCondition == null || bddCpa == null) {
       return;
     }
 

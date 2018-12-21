@@ -340,10 +340,7 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
 
   @Override
   public String toString() {
-    if (testSuiteData == null) {
-      assembleTestSuiteData();
-    }
-
+    assembleTestSuiteData();
     return testSuiteData.toString();
   }
 

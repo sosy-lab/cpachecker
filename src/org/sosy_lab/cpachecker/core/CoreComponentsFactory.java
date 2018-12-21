@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerConfiguration;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerMultiGoalAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
@@ -538,6 +539,10 @@ public class CoreComponentsFactory {
                 cpa,
                 shutdownNotifier,
                 specification);
+      }
+      if (tigerConfig.useTigerMultiGoalAlgorithm) {
+        algorithm =
+            new TigerMultiGoalAlgorithm(logger, cfa, config, cpa, shutdownNotifier, specification);
       }
 
       if (splitProgram) {
