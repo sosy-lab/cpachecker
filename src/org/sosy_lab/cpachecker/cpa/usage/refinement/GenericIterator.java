@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 import com.google.errorprone.annotations.ForOverride;
 import java.util.ArrayList;
 import java.util.List;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -38,12 +39,14 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
   private StatCounter numOfIterations = new StatCounter("Number of iterations");
 
   List<AdjustablePrecision> completePrecisions;
+  private final ShutdownNotifier shutdownNotifier;
 
   // Some iterations may be postponed to the end (complicated ones)
   List<O> postponedIterations = new ArrayList<>();
 
-  public GenericIterator(ConfigurableRefinementBlock<O> pWrapper) {
+  public GenericIterator(ConfigurableRefinementBlock<O> pWrapper, ShutdownNotifier pNotifier) {
     super(pWrapper);
+    shutdownNotifier = pNotifier;
   }
 
   @Override
@@ -58,6 +61,7 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
 
     try {
       while ((iteration = getNext(pInput)) != null) {
+        shutdownNotifier.shutdownIfNecessary();
         result = iterate(iteration);
         if (result.isTrue()) {
           return result;
@@ -65,6 +69,7 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
       }
       //Check postponed iterations
       for (O i : postponedIterations) {
+        shutdownNotifier.shutdownIfNecessary();
         result = iterate(i);
         if (result.isTrue()) {
           return result;

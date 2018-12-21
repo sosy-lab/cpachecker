@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageInfoSet;
@@ -41,8 +42,11 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
   private UsageInfo firstUsage = null;
   private UsageInfoSet secondUsageInfoSet;
 
-  public UsagePairIterator(ConfigurableRefinementBlock<Pair<UsageInfo, UsageInfo>> pWrapper, LogManager l) {
-    super(pWrapper);
+  public UsagePairIterator(
+      ConfigurableRefinementBlock<Pair<UsageInfo, UsageInfo>> pWrapper,
+      LogManager l,
+      ShutdownNotifier pNotifier) {
+    super(pWrapper, pNotifier);
     logger = l;
   }
 

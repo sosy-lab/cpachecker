@@ -27,6 +27,7 @@ import com.google.common.base.Function;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -106,6 +107,7 @@ public class RefinementBlockFactory {
     BAMCPA bamCpa = CPAs.retrieveCPA(cpa, BAMCPA.class);
     UsageCPA usCPA = CPAs.retrieveCPA(cpa, UsageCPA.class);
     LogManager logger = usCPA.getLogger();
+    ShutdownNotifier notifier = usCPA.getNotifier();
 
     //Tricky way to create the chain, but it is difficult to dynamically know the parameter types
     RefinementInterface currentBlock = new RefinementPairStub();
@@ -145,13 +147,17 @@ public class RefinementBlockFactory {
             break;
 
           case PointIterator:
-            currentBlock = new PointIterator((ConfigurableRefinementBlock<Pair<UsageInfoSet, UsageInfoSet>>) currentBlock);
+            currentBlock =
+                new PointIterator(
+                    (ConfigurableRefinementBlock<Pair<UsageInfoSet, UsageInfoSet>>) currentBlock,
+                    notifier);
             currentBlockType = currentInnerBlockType.SingleIdentifier;
             break;
 
           case UsageIterator:
             currentBlock = new UsagePairIterator((ConfigurableRefinementBlock<Pair<UsageInfo, UsageInfo>>) currentBlock,
-                logger);
+                    logger,
+                    notifier);
             currentBlockType = currentInnerBlockType.UsageInfoSet;
             break;
 
@@ -161,7 +167,8 @@ public class RefinementBlockFactory {
                     (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>)
                     currentBlock,
                     computer,
-                    idExtractor);
+                    idExtractor,
+                    notifier);
             currentBlockType = currentInnerBlockType.UsageInfo;
             break;
 

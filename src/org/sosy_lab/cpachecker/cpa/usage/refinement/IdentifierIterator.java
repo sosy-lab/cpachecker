@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 
@@ -74,9 +75,14 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
 
   private class Stats implements Statistics {
 
+    private final StatTimer innerRefinementTimer = new StatTimer("Time for inner refinement");
+    private final StatTimer precisionTimer = new StatTimer("Time for precision operations");
+    private final StatTimer finishingTimer = new StatTimer("Time for final operations");
+
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
+      writer.put(innerRefinementTimer).put(precisionTimer).put(finishingTimer);
       IdentifierIterator.this.printStatistics(writer);
     }
 
@@ -108,6 +114,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       secure = true)
   private boolean hideFilteredUnsafes = false;
 
+  private final Stats stats;
   private final BAMTransferRelation transfer;
 
   int i = 0;
@@ -125,6 +132,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
     uCpa.getStats().setBAMCPA((BAMCPA) cpa);
     logger = uCpa.getLogger();
     transfer = pTransfer;
+    stats = new Stats();
   }
 
   public static Refiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
@@ -166,12 +174,15 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
     while (iterator.hasNext()) {
       SingleIdentifier currentId = iterator.next();
 
+      stats.innerRefinementTimer.start();
       RefinementResult result = wrappedRefiner.performBlockRefinement(currentId);
+      stats.innerRefinementTimer.stop();
       newPrecisionFound |= result.isFalse();
 
       List<AdjustablePrecision> info = result.getPrecisions();
 
       if (!info.isEmpty()) {
+        stats.precisionTimer.start();
         for (AdjustablePrecision p : info) {
           if (!p.isEmpty()) {
             AdjustablePrecision updatedPrecision;
@@ -185,6 +196,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
             isPrecisionChanged = true;
           }
         }
+        stats.precisionTimer.stop();
       }
 
       if (result.isTrue()) {
@@ -211,6 +223,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       lastTrueUnsafes = newTrueUnsafeSize;
     }
     if (newPrecisionFound) {
+      stats.finishingTimer.start();
       BAMPredicateCPA bamcpa = CPAs.retrieveCPA(cpa, BAMPredicateCPA.class);
       assert bamcpa != null;
       bamcpa.clearAllCaches();
@@ -239,6 +252,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       //TODO should we signal about removed ids?
 
       sendFinishSignal();
+      stats.finishingTimer.stop();
     }
     //pStat.UnsafeCheck.stopIfRunning();
     if (newPrecisionFound) {
@@ -255,7 +269,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.add(new Stats());
+    statsCollection.add(stats);
     super.collectStatistics(statsCollection);
   }
 

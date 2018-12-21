@@ -249,7 +249,8 @@ public class LockRefiner
         .put(fullStateTimer)
         .put(newPrecisionTimer)
         .put(numberOfTrueResults)
-        .put(numberOfFalseResults);
+        .put(numberOfFalseResults)
+        .put("Considered edges:", controlPrecision.size());
 
   }
 

@@ -27,6 +27,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Map;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -69,6 +70,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
   private final MergeOperator mergeOperator;
   private final UsageTransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
+  private final ShutdownNotifier shutdownNotifier;
   private final Reducer reducer;
   private final UsageCPAStatistics statistics;
   private final CFA cfa;
@@ -85,7 +87,11 @@ public class UsageCPA extends AbstractSingleWrapperCPA
   private Path outputFileName = Paths.get("localsave");
 
   private UsageCPA(
-      ConfigurableProgramAnalysis pCpa, CFA pCfa, LogManager pLogger, Configuration pConfig)
+      ConfigurableProgramAnalysis pCpa,
+      CFA pCfa,
+      ShutdownNotifier pShutdownNotifier,
+      LogManager pLogger,
+      Configuration pConfig)
       throws InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
@@ -118,7 +124,13 @@ public class UsageCPA extends AbstractSingleWrapperCPA
 
     PresisionParser parser = new PresisionParser(cfa, logger);
     localMap = parser.parse(outputFileName);
-    usageProcessor = new UsageProcessor(pConfig, logger, localMap, transferRelation.getBinderFunctionInfo());
+    usageProcessor =
+        new UsageProcessor(
+            pConfig,
+            logger,
+            localMap,
+            transferRelation.getBinderFunctionInfo());
+    shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
@@ -186,5 +198,9 @@ public class UsageCPA extends AbstractSingleWrapperCPA
 
   public UsageProcessor getUsageProcessor() {
     return usageProcessor;
+  }
+
+  public ShutdownNotifier getNotifier() {
+    return shutdownNotifier;
   }
 }

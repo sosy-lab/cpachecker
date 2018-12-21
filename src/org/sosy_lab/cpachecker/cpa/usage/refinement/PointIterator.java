@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.usage.storage.AbstractUsagePointSet;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UnrefinedUsagePointSet;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UnsafeDetector;
@@ -53,8 +54,10 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
 
   private Set<UsagePoint> toRemove = new HashSet<>();
 
-  public PointIterator(ConfigurableRefinementBlock<Pair<UsageInfoSet, UsageInfoSet>> pWrapper) {
-    super(pWrapper);
+  public PointIterator(
+      ConfigurableRefinementBlock<Pair<UsageInfoSet, UsageInfoSet>> pWrapper,
+      ShutdownNotifier pNotifier) {
+    super(pWrapper, pNotifier);
   }
 
   @Override

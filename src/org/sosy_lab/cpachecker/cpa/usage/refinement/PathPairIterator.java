@@ -35,6 +35,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
@@ -75,8 +76,9 @@ public class PathPairIterator extends
   public PathPairIterator(
       ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,
       BAMMultipleCEXSubgraphComputer pComputer,
-      Function<ARGState, Integer> pExtractor) {
-    super(pWrapper);
+      Function<ARGState, Integer> pExtractor,
+      ShutdownNotifier pNotifier) {
+    super(pWrapper, pNotifier);
     subgraphComputer = pComputer;
     targetToPathIterator = new IdentityHashMap<>();
     skippedUsages = new HashSet<>();
