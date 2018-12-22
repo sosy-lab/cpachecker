@@ -407,8 +407,8 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
 
       // Optimization to reduce number of solver calls:
       if (currentState instanceof SLARGState) {
-        SlicingAbstractionsUtils.removeIncomingEdgesWithLocationMismatch(currentState);
-        SlicingAbstractionsUtils.removeOutgoingEdgesWithLocationMismatch(currentState);
+        SlicingAbstractionsUtils.removeIncomingEdgesWithLocationMismatch((SLARGState) currentState);
+        SlicingAbstractionsUtils.removeOutgoingEdgesWithLocationMismatch((SLARGState) currentState);
       }
 
       Map<ARGState, List<ARGState>> segmentMap =

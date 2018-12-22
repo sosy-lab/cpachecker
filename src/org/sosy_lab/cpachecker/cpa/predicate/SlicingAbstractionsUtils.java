@@ -698,10 +698,10 @@ public class SlicingAbstractionsUtils {
           // check for incoming edges that do not have a suitable outgoing edge for their successor
           // location. E.g.: A-{1~>2}->B-{3~>4}->C
           // transfer from 1~>2 will be removed
-          removeIncomingEdgesWithLocationMismatch(newState);
+          removeIncomingEdgesWithLocationMismatch((SLARGState) newState);
 
           // now do the same the other way around (check for outgoing edges that do not have a
-          removeOutgoingEdgesWithLocationMismatch(newState);
+          removeOutgoingEdgesWithLocationMismatch((SLARGState) newState);
         }
       } else if (predState.isAbstractionState() && !((ARGState) state).getParents().isEmpty()) {
         // here it is only sound to check for outgoing edges that do not have a suitable incoming
