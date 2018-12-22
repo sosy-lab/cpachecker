@@ -119,7 +119,7 @@ class AutomatonTransferRelation implements TransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessors(
       AbstractState pState, Precision pPrecision)
       throws CPATransferException, InterruptedException {
-    return Collections.singleton(new AutomatonUnknownState((AutomatonState) pState));
+    return Collections.singleton(((AutomatonState) pState).getAutomatonCPA().getTopState());
   }
 
   private Collection<AutomatonState> getAbstractSuccessors0(
