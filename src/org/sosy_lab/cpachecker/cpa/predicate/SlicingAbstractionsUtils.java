@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 
 import com.google.common.collect.FluentIterable;
@@ -512,7 +511,7 @@ public class SlicingAbstractionsUtils {
     Set<ARGState> rootStates = ARGUtils.getRootStates(pReached);
     assert rootStates.size()==1;
     ARGState root = rootStates.iterator().next();
-    final List<ARGState> abstractionStatesTrace = filterAbstractionStates(pErrorPath);
+    final List<ARGState> abstractionStatesTrace = PredicateCPARefiner.filterAbstractionStates(pErrorPath);
     assert abstractionStatesTrace.get(0).getStateId()!=0;
     for (int i = -1 ; i < abstractionStatesTrace.size()-1; i++) {
        ARGState first = (i==-1) ? root : abstractionStatesTrace.get(i);
@@ -522,20 +521,6 @@ public class SlicingAbstractionsUtils {
        }
     }
     return false;
-  }
-
-  /* (non-Javadoc)
-   * this method is similar to a method in PredicateCPARefiner except it performs less checks,
-   * i.e. it allows abstraction states to have more than one abstraction-state parent.
-   */
-  private static List<ARGState> filterAbstractionStates(ARGPath pPath) {
-    List<ARGState> result =
-        from(pPath.asStatesList())
-            .skip(1)
-            .filter(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)
-            .toList();
-    assert pPath.getLastState() == result.get(result.size() - 1);
-    return result;
   }
 
   /**
