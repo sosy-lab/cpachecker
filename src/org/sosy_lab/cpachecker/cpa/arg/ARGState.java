@@ -547,18 +547,10 @@ public class ARGState extends AbstractSingleWrapperState
   public ARGState forkWithReplacements(Collection<AbstractState> pReplacementStates){
     AbstractState wrappedState = this.getWrappedState();
     AbstractState newWrappedState = null;
-    for (AbstractState state : pReplacementStates) {
-      if (Splitable.isReplaceable(wrappedState, state)) {
-        newWrappedState = state;
-        break;
-      }
-    }
-    if (newWrappedState == null) {
-      if (wrappedState instanceof Splitable) {
+    if (wrappedState instanceof Splitable) {
         newWrappedState = ((Splitable)wrappedState).forkWithReplacements(pReplacementStates);
-      } else {
+    } else {
         newWrappedState = wrappedState;
-      }
     }
 
     ARGState newState = new ARGState(newWrappedState,null);
