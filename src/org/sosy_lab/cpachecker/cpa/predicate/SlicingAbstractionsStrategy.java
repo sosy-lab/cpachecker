@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -470,15 +471,16 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     EdgeSet edgeSet = startState.getEdgeSetToChild(endState);
     boolean infeasible = true;
     CFAEdge savedEdge = edgeSet.choose();
-    for (CFAEdge cfaEdge : edgeSet.getEdges()) {
+    for (Iterator<CFAEdge> it = edgeSet.iterator(); it.hasNext(); ) {
+      CFAEdge cfaEdge = it.next();
       edgeSet.select(cfaEdge);
       if (isInfeasibleEdge(startState, endState, ImmutableList.of())) {
-        edgeSet.removeEdge(cfaEdge);
+        it.remove();
       } else {
         infeasible = false;
       }
     }
-    if (!infeasible && edgeSet.getEdges().contains(savedEdge)) {
+    if (!infeasible && edgeSet.contains(savedEdge)) {
       edgeSet.select(savedEdge);
     }
     return infeasible;
@@ -509,7 +511,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
 
     assert !(startState instanceof SLARGState)
         || ((SLARGState) startState).getEdgeSetToChild(endState) == null
-        || ((SLARGState) startState).getEdgeSetToChild(endState).getEdges().size() > 0
+        || ((SLARGState) startState).getEdgeSetToChild(endState).size() > 0
         || infeasible;
     return infeasible;
   }

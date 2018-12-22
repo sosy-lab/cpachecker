@@ -36,6 +36,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -579,8 +580,9 @@ public class SlicingAbstractionsUtils {
   private static Set<CFANode> getIncomingLocations(SLARGState pState) {
     ImmutableSet.Builder<CFANode> locations = ImmutableSet.builder();
     for (ARGState parent : pState.getParents()) {
-      for (CFAEdge edgeFromParent : ((SLARGState) parent).getEdgeSetToChild(pState).getEdges()) {
-        locations.add(edgeFromParent.getSuccessor());
+      for (Iterator<CFAEdge> it = ((SLARGState) parent).getEdgeSetToChild(pState).iterator();
+          it.hasNext(); ) {
+        locations.add(it.next().getSuccessor());
       }
     }
     return locations.build();
@@ -589,8 +591,8 @@ public class SlicingAbstractionsUtils {
   private static Set<CFANode> getOutgoingLocations(SLARGState pState) {
     ImmutableSet.Builder<CFANode> locations = ImmutableSet.builder();
     for (ARGState child : pState.getChildren()) {
-      for (CFAEdge edgeToChild : pState.getEdgeSetToChild(child).getEdges()) {
-        locations.add(edgeToChild.getPredecessor());
+      for (Iterator<CFAEdge> it = pState.getEdgeSetToChild(child).iterator();it.hasNext();) {
+        locations.add(it.next().getPredecessor());
       }
     }
     return locations.build();
@@ -605,14 +607,15 @@ public class SlicingAbstractionsUtils {
     for (ARGState parent : state.getParents()) {
       EdgeSet edgeSet = ((SLARGState) parent).getEdgeSetToChild(state);
       if (edgeSet != null) {
-        for (CFAEdge edge : edgeSet.getEdges()) {
+        for (Iterator<CFAEdge> it = edgeSet.iterator();it.hasNext(); ) {
+          CFAEdge edge = it.next();
           if (!locations.contains(edge.getSuccessor())) {
-            edgeSet.removeEdge(edge);
+            it.remove();
           }
         }
-      }
-      if (edgeSet.isEmpty()) {
-        toRemove.add(parent);
+        if (edgeSet.isEmpty()) {
+          toRemove.add(parent);
+        }
       }
     }
     for (ARGState parent : toRemove) {
@@ -630,9 +633,10 @@ public class SlicingAbstractionsUtils {
       EdgeSet edgeSet = ((SLARGState) state).getEdgeSetToChild(child);
 
       if (edgeSet != null) {
-        for (CFAEdge edge : edgeSet.getEdges()) {
+        for (Iterator<CFAEdge> it = edgeSet.iterator(); it.hasNext(); ) {
+          CFAEdge edge = it.next();
           if (!locations.contains(edge.getPredecessor())) {
-            edgeSet.removeEdge(edge);
+            it.remove();
           }
         }
         if (edgeSet.isEmpty()) {
@@ -665,7 +669,11 @@ public class SlicingAbstractionsUtils {
     }
     if (pState instanceof SLARGState) {
       // if not all EdgeSets from parents to pState are singletons, return true:
-      if (!pState.getParents().stream().map(parent -> ((SLARGState)parent).getEdgeSetToChild(pState)).allMatch(EdgeSet::isSingleton)) {
+      if (!pState
+          .getParents()
+          .stream()
+          .map(parent -> ((SLARGState) parent).getEdgeSetToChild(pState))
+          .allMatch(x -> x.size() == 1)) {
         return true;
       }
       // if not all EdgeSets from pState to children are singletons, return true:
@@ -673,7 +681,7 @@ public class SlicingAbstractionsUtils {
           .getChildren()
           .stream()
           .map(child -> ((SLARGState) pState).getEdgeSetToChild(child))
-          .allMatch(EdgeSet::isSingleton)) {
+          .allMatch(x -> x.size() == 1)) {
         return true;
       }
     }

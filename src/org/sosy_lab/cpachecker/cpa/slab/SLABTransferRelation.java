@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.slab;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.SymbolicLocationsUtility;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class SLABTransferRelation implements TransferRelation {
@@ -87,10 +88,10 @@ public class SLABTransferRelation implements TransferRelation {
   }
 
   private static EdgeSet makeTotalTransitionEdgeSet(CFA pCfa) {
-    ImmutableList.Builder<CFAEdge> edges = new ImmutableList.Builder<>();
+    ImmutableSet.Builder<CFAEdge> edges = new ImmutableSet.Builder<>();
     for (CFANode node : pCfa.getAllNodes()) {
-      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        edges.add(node.getLeavingEdge(i));
+      for (CFAEdge leaving : CFAUtils.leavingEdges(node)) {
+        edges.add(leaving);
       }
     }
     return new EdgeSet(edges.build());

@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.bui
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -165,16 +166,16 @@ public class SLABRefiner implements Refiner, StatisticsProvider {
 
     // Optimization (from SLAB paper): remove all edges going out of target states:
     if (startState.isTarget()) {
-      for (CFAEdge cfaEdge : edgeSet.getEdges()) {
-        edgeSet.removeEdge(cfaEdge);
-      }
+      edgeSet.clear();
       return true;
     }
     boolean infeasible = true;
-    for (CFAEdge cfaEdge : edgeSet.getEdges()) {
+    Iterator<CFAEdge> it = edgeSet.iterator();
+    while (it.hasNext()) {
+      CFAEdge cfaEdge = it.next();
       edgeSet.select(cfaEdge);
       if (isInfeasibleEdge(startState, endState)) {
-        edgeSet.removeEdge(cfaEdge);
+        it.remove();
       } else {
         infeasible = false;
       }

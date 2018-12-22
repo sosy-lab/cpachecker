@@ -25,20 +25,24 @@ package org.sosy_lab.cpachecker.cpa.slab;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.ImmutableList;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
+/**
+ * Represents a set of @link {@link CFAEdge}s where one of the elements can be marked for later
+ * retrieval.
+ */
 public class EdgeSet implements Serializable {
 
   private static final long serialVersionUID = 1L;
 
-  private List<CFAEdge> edges;
+  private Set<CFAEdge> edges;
   private CFAEdge selected;
 
-  public EdgeSet(List<CFAEdge> edges) {
+  public EdgeSet(Set<CFAEdge> edges) {
     checkArgument(edges.size() > 0);
     this.edges = edges;
     this.selected = null;
@@ -46,49 +50,65 @@ public class EdgeSet implements Serializable {
 
   public EdgeSet(EdgeSet other) {
     checkArgument(other.edges.size() > 0);
-    this.edges = new ArrayList<>(other.edges);
+    this.edges = new LinkedHashSet<>(other.edges);
   }
 
-  public List<CFAEdge> getEdges() {
-    return new ImmutableList.Builder<CFAEdge>().addAll(edges).build();
+  /**
+   *  Returns an iterator over the edges in the set.
+   */
+  public Iterator<CFAEdge> iterator() {
+    return edges.iterator();
   }
 
+  /**
+   * Removes a edge from the set of edges
+   *
+   * @param pEdge CFAedge that will be removed
+   */
   public void removeEdge(CFAEdge pEdge) {
     edges.remove(pEdge);
-    selected = null;
+    if (selected == pEdge) {
+      selected = null;
+    }
   }
 
+  /**
+   * Selects a edge for later retrieval by {@link EdgeSet#choose()}.
+   *
+   * @param pEdge the edge to be selected
+   */
   public void select(CFAEdge pEdge) {
     selected = pEdge;
   }
 
+  /**
+   * Returns the (previously selected) {@link CFAEdge}. If no edge (or one that is not in the set)
+   * was selected, it returns an arbitrary edge from the set. If the set is empty, it returns null.
+   */
   public CFAEdge choose() {
     if (!edges.isEmpty()) {
-      if (selected == null) {
-        return edges.get(0);
+      if (selected == null || !edges.contains(selected)) {
+        return edges.iterator().next();
       } else {
-        if (edges.contains(selected)) {
           return selected;
-        }
       }
     }
-    // assert false;
     return null;
-  }
-
-  public CFAEdge onlyornull() {
-    if (edges.size() == 1) {
-      return edges.get(0);
-    } else {
-      return null;
-    }
   }
 
   public boolean isEmpty() {
     return edges.isEmpty();
   }
 
-  public boolean isSingleton() {
-    return edges.size() == 1;
+  public int size() {
+    return edges.size();
+  }
+
+  public void clear() {
+    edges.clear();
+  }
+
+  public boolean contains(CFAEdge edge) {
+    return edges.contains(edge);
   }
 }

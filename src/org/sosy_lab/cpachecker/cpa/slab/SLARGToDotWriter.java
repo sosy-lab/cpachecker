@@ -70,10 +70,10 @@ public class SLARGToDotWriter {
     assert state instanceof SLARGState;
     EdgeSet edgeSet = ((SLARGState) state).getEdgeSetToChild(successorState);
     Integer count;
-    count = edgeSet == null ? -1 : edgeSet.getEdges().size();
+    count = edgeSet == null ? -1 : edgeSet.size();
     String label;
     if (count == 1) {
-      label = edgeSet.onlyornull().toString();
+      label = edgeSet.choose().toString();
     } else {
       label = count.toString();
     }
