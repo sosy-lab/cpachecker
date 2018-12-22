@@ -33,4 +33,7 @@
  * and cannot simply use the Predicate CPA with a special refinement strategy (as is the case for
  * Kojak)
  */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.cpa.slab;

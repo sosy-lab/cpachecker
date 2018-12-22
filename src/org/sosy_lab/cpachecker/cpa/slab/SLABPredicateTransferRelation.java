@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class SLABPredicateTransferRelation implements TransferRelation {
 
-  private SymbolicLocationsUtility symbolicLocationsUtility;
+  private final SymbolicLocationsUtility symbolicLocationsUtility;
 
   public SLABPredicateTransferRelation(PredicateCPA pPredicateCpa, Specification pSpecification) {
     symbolicLocationsUtility = new SymbolicLocationsUtility(pPredicateCpa, pSpecification);

@@ -51,9 +51,8 @@ public class SLABDomain implements AbstractDomain {
       throws CPAException, InterruptedException {
     SLARGState state1 = (SLARGState) pState1;
     SLARGState state2 = (SLARGState) pState2;
-    boolean answer = predicateSubsumption(state1, state2);
-    answer &= state2.getParents().containsAll(state1.getParents());
-    return answer;
+    return predicateSubsumption(state1, state2)
+        && state2.getParents().containsAll(state1.getParents());
   }
 
   boolean predicateSubsumption(SLARGState pState1, SLARGState pState2)

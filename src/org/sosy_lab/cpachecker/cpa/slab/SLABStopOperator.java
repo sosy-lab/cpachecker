@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class SLABStopOperator implements StopOperator {
 
-  AbstractDomain domain;
+  private final AbstractDomain domain;
 
   public SLABStopOperator(AbstractDomain pDomain) {
     this.domain = pDomain;

@@ -133,7 +133,7 @@ public class SlicingAbstractionsUtils {
             waitlist.clear();
             break;
           } else {
-            if (!(reached.contains(s))) {
+            if (!reached.contains(s)) {
               waitlist.add(s);
               reached.add(s);
             }

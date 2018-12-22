@@ -260,4 +260,9 @@ public class CachingPathFormulaManager implements PathFormulaManager {
       throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
     return delegate.buildWeakestPrecondition(pEdge, pPostcondition);
   }
+
+  @Override
+  public PathFormulaBuilder createNewPathFormulaBuilder() {
+    return delegate.createNewPathFormulaBuilder();
+  }
 }
