@@ -35,6 +35,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class PathFormulaBuilder {
 
   protected PathFormula cachedResult = null;
+  protected PathFormulaManager cachedPfmgr = null;
+  protected PathFormula cachedPathFormula = null;
 
   private static class PathFormulaAndBuilder extends PathFormulaBuilder {
 
@@ -49,8 +51,12 @@ public class PathFormulaBuilder {
 
     @Override
     public PathFormula build(PathFormulaManager pPfmgr, PathFormula pathFormula) throws CPATransferException, InterruptedException {
-      if (cachedResult == null) {
+      if (cachedResult == null
+          || !pPfmgr.equals(cachedPfmgr)
+          || !pathFormula.equals(cachedPathFormula)) {
         cachedResult = pPfmgr.makeAnd(previousPathFormula.build(pPfmgr, pathFormula), edge);
+        cachedPfmgr = pPfmgr;
+        cachedPathFormula = pathFormula;
       }
       return cachedResult;
     }
@@ -69,9 +75,13 @@ public class PathFormulaBuilder {
 
     @Override
     public PathFormula build(PathFormulaManager pPfmgr, PathFormula pathFormula) throws CPATransferException, InterruptedException {
-      if (cachedResult == null) {
+      if (cachedResult == null
+          || !pPfmgr.equals(cachedPfmgr)
+          || !pathFormula.equals(cachedPathFormula)) {
         cachedResult =
             pPfmgr.makeOr(first.build(pPfmgr, pathFormula), second.build(pPfmgr, pathFormula));
+        cachedPfmgr = pPfmgr;
+        cachedPathFormula = pathFormula;
       }
       return cachedResult;
     }
