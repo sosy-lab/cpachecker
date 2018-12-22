@@ -177,8 +177,8 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     impact =
         new ImpactUtility(pPredicateCpa.getConfiguration(), solver.getFormulaManager(), predAbsMgr);
     pfmgr = pPredicateCpa.getPathFormulaManager();
-    argLogger = new ARGLogger(pPredicateCpa.getConfiguration());
     logger = pPredicateCpa.getLogger();
+    argLogger = new ARGLogger(pPredicateCpa.getConfiguration(), logger);
 
     config.inject(this);
   }

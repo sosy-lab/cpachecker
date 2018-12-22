@@ -106,7 +106,7 @@ public class SLABCPA extends AbstractSingleWrapperCPA {
     return predicateCpa;
   }
 
-  public LogManager getLogger() {
+  LogManager getLogger() {
     return logger;
   }
 

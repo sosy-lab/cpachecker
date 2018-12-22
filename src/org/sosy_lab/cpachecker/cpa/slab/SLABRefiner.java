@@ -76,7 +76,7 @@ public class SLABRefiner implements Refiner, StatisticsProvider {
       throws InvalidConfigurationException {
     refiner = pRefiner;
     slabCpa = pSlabCpa;
-    argLogger = new ARGLogger(config);
+    argLogger = new ARGLogger(config, slabCpa.getLogger());
     solver = slabCpa.getPredicateCpa().getSolver();
 
   }
