@@ -583,11 +583,11 @@ public class SlicingAbstractionsUtils {
     return locations.build();
   }
 
-  public static void removeIncomingEdgesWithLocationMismatch(ARGState state) {
+  public static void removeIncomingEdgesWithLocationMismatch(SLARGState state) {
     if (state.isTarget() || state.getParents().size() == 0) {
       return;
     }
-    Set<CFANode> locations = getOutgoingLocations(((SLARGState) state));
+    Set<CFANode> locations = getOutgoingLocations((state));
     List<ARGState> toRemove = new ArrayList<>();
     for (ARGState parent : state.getParents()) {
       EdgeSet edgeSet = ((SLARGState) parent).getEdgeSetToChild(state);
@@ -608,14 +608,14 @@ public class SlicingAbstractionsUtils {
     }
   }
 
-  public static void removeOutgoingEdgesWithLocationMismatch(ARGState state) {
+  public static void removeOutgoingEdgesWithLocationMismatch(SLARGState state) {
     if (state.isTarget() || state.getParents().size() == 0) {
       return;
     }
-    Set<CFANode> locations = getIncomingLocations(((SLARGState) state));
+    Set<CFANode> locations = getIncomingLocations((state));
     List<ARGState> toRemove = new ArrayList<>();
     for (ARGState child : state.getChildren()) {
-      EdgeSet edgeSet = ((SLARGState) state).getEdgeSetToChild(child);
+      EdgeSet edgeSet = state.getEdgeSetToChild(child);
 
       if (edgeSet != null) {
         for (Iterator<CFAEdge> it = edgeSet.iterator(); it.hasNext(); ) {

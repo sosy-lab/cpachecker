@@ -111,7 +111,7 @@ public class SLARGToDotWriter {
                 .collect(Collectors.toList()));
     builder.append(generateLocationString(locationNumbers));
     builder.append("\" ");
-    builder.append("id=\"").append(pState.getStateId()).append(String.format("\"]\n"));
+    builder.append("id=\"").append(pState.getStateId()).append(String.format("\"]%n"));
     return builder.toString();
   }
 
