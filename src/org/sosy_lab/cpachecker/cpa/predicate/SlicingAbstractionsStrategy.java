@@ -42,11 +42,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -150,6 +152,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
   private final PathFormulaManager pfmgr;
   private final Solver solver;
   private final ARGLogger argLogger;
+  private final LogManager logger;
 
   // During the refinement of a single path,
   // a reference to the abstraction of the last state we have seen
@@ -164,17 +167,18 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
 
   private HashMap<ARGState,ARGState> forkedStateMap;
 
-  public SlicingAbstractionsStrategy(final Configuration config, final Solver pSolver,
-      final PredicateAbstractionManager pPredAbsMgr,
-      final PathFormulaManager pPathFormulaManager) throws InvalidConfigurationException {
-    super(pSolver);
+  public SlicingAbstractionsStrategy(final PredicateCPA pPredicateCpa, final Configuration config)
+      throws InvalidConfigurationException {
+    super(pPredicateCpa.getSolver());
+    solver = pPredicateCpa.getSolver();
 
-    bfmgr = pSolver.getFormulaManager().getBooleanFormulaManager();
-    predAbsMgr = pPredAbsMgr;
-    impact = new ImpactUtility(config, pSolver.getFormulaManager(), pPredAbsMgr);
-    pfmgr = pPathFormulaManager;
-    solver = pSolver;
-    argLogger = new ARGLogger(config);
+    bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
+    predAbsMgr = pPredicateCpa.getPredicateManager();
+    impact =
+        new ImpactUtility(pPredicateCpa.getConfiguration(), solver.getFormulaManager(), predAbsMgr);
+    pfmgr = pPredicateCpa.getPathFormulaManager();
+    argLogger = new ARGLogger(pPredicateCpa.getConfiguration());
+    logger = pPredicateCpa.getLogger();
 
     config.inject(this);
   }
@@ -264,9 +268,12 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     if (rootStates.size() == 1) {
       rootState = Iterables.get(rootStates, 0);
     } else {
-      // TODO: refactor so that the caller provides the full abstractionStatesTrace including the root state.
-      // Then handling more than one root state would be no problem.
-      throw new CPAException(
+      // TODO: refactor so that the caller provides the full abstractionStatesTrace including the
+      // root state. Then handling more than one root state would be no problem.
+      rootState =
+          rootStates.stream().reduce((x, y) -> x.getStateId() < y.getStateId() ? x : y).get();
+      logger.log(
+          Level.INFO,
           String.format(
               "More than one root state present!(%s)",
               rootStates.stream().map(x -> x.getStateId()).collect(Collectors.toList())));

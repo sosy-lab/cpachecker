@@ -71,11 +71,8 @@ public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
       throw new InvalidConfigurationException(SlicingAbstractionsRefiner.class.getSimpleName() + " needs a PredicateCPA");
     }
 
-    RefinementStrategy strategy = new SlicingAbstractionsStrategy(
-        predicateCpa.getConfiguration(),
-        predicateCpa.getSolver(),
-        predicateCpa.getPredicateManager(),
-        predicateCpa.getPathFormulaManager());
+    RefinementStrategy strategy =
+        new SlicingAbstractionsStrategy(predicateCpa, predicateCpa.getConfiguration());
 
     PredicateCPARefinerFactory factory = new PredicateCPARefinerFactory(pCpa);
     ARGBasedRefiner refiner =  factory.create(strategy);
