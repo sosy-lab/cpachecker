@@ -23,21 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.slab;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractDomain;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class SLABDomain implements AbstractDomain {
 
-  private PredicateAbstractDomain predicateDomain;
+  private AbstractDomain wrappedDomain;
 
-  public SLABDomain(PredicateAbstractDomain pWrappedDomain) {
-    predicateDomain = pWrappedDomain;
+  public SLABDomain(AbstractDomain pWrappedDomain) {
+    wrappedDomain = pWrappedDomain;
   }
 
   @Override
@@ -51,18 +47,13 @@ public class SLABDomain implements AbstractDomain {
       throws CPAException, InterruptedException {
     SLARGState state1 = (SLARGState) pState1;
     SLARGState state2 = (SLARGState) pState2;
-    return predicateSubsumption(state1, state2)
+    return wrappedSubsumption(state1, state2)
         && state2.getParents().containsAll(state1.getParents());
   }
 
-  boolean predicateSubsumption(SLARGState pState1, SLARGState pState2)
+  protected boolean wrappedSubsumption(
+      AbstractSingleWrapperState pState1, AbstractSingleWrapperState pState2)
       throws CPAException, InterruptedException {
-    PredicateAbstractState pred1 =
-        checkNotNull(AbstractStates.extractStateByType(pState1, PredicateAbstractState.class));
-    PredicateAbstractState pred2 =
-        checkNotNull(AbstractStates.extractStateByType(pState2, PredicateAbstractState.class));
-    return predicateDomain.isLessOrEqual(pred1, pred2)
-        && predicateDomain.isLessOrEqual(pred2, pred1);
+    return wrappedDomain.isLessOrEqual(pState1.getWrappedState(), pState2.getWrappedState());
   }
-
 }

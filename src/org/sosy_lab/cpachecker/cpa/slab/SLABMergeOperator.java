@@ -44,7 +44,7 @@ public class SLABMergeOperator implements MergeOperator {
     if (domain.isLessOrEqual(state1, state2)) {
       return state2;
     }
-    if (domain.predicateSubsumption(state1, state2)) {
+    if (domain.wrappedSubsumption(state1, state2)) {
       SLARGState result = new SLARGState(state2);
       result.useAsReplacement(state1, state2);
       return result;

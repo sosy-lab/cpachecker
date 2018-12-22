@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractDomain;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.SymbolicLocationsUtility;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -70,11 +69,7 @@ public class SLABCPA extends AbstractSingleWrapperCPA {
       Specification pSpecification)
       throws InvalidConfigurationException {
     super(pWrappedCpa);
-    domain =
-        new SLABDomain(
-            (PredicateAbstractDomain)
-                CPAs.retrieveCPAOrFail(pWrappedCpa, PredicateCPA.class, SLABCPA.class)
-                    .getAbstractDomain());
+    domain = new SLABDomain(pWrappedCpa.getAbstractDomain());
     predicateCpa = CPAs.retrieveCPAOrFail(getWrappedCpa(), PredicateCPA.class, SLABCPA.class);
     config = pConfig;
     logger = pLogger;
