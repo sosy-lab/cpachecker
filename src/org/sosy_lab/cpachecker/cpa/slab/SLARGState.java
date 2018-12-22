@@ -122,7 +122,8 @@ public class SLARGState extends ARGState
 
   @Override
   public CFAEdge getEdgeToChild(ARGState argChild) {
-    return getEdgeSetToChild(argChild).choose();
+    EdgeSet edgeSet = getEdgeSetToChild(argChild);
+    return edgeSet != null ? getEdgeSetToChild(argChild).choose() : null;
   }
 
   @Override
