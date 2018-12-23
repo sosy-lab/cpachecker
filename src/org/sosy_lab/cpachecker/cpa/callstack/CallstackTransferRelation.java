@@ -148,7 +148,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
               || isWildcardState(e, AnalysisDirection.FORWARD);
 
           if (isWildcardState(e, AnalysisDirection.FORWARD)) {
-          returnElement = e;
+            returnElement = new CallstackState(null, callerFunction, e.getCallNode());
 
         } else {
           if (!callNode.equals(e.getCallNode())) {
@@ -185,6 +185,8 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
    * {@code false} otherwise.
    */
   protected boolean isWildcardState(final CallstackState pState, AnalysisDirection direction) {
+    // TODO: Maybe it would be better to have designated wildcard states (without a call node)
+    // instead of this heuristic.
     String function = pState.getCurrentFunction();
     CFANode callNode = pState.getCallNode();
 

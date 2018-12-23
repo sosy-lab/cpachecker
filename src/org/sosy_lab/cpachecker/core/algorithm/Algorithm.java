@@ -41,30 +41,41 @@ public interface Algorithm {
   AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException;
 
   /**
-   * This class serves as an indication how a result produced by an {@link Algorithm}
-   * should be interpreted. It is defined as:
-   * - if SOUND is false, any proof should be interpreted as potentially flawed and ignored
-   * - if PRECISE is false, any counterexample found should be interpreted as potentially flawed and ignored
-   * - if NEVER TERMINATING is true, no execution of the program will terminate.
+   * This class serves as an indication how a result produced by an {@link Algorithm} should be
+   * interpreted. It is defined as:
    *
-   * If SOUND and PRECISE are true, this means that the algorithm instance
-   * to its best knowledge produces correct proofs and counterexamples.
-   * However, this should not be interpreted as a 100% guarantee,
-   * as there may be further reasons for unsoundness or imprecision
-   * that are out-of-control of the algorithm.
-   * For example, PRECISE does not necessarily mean that a counterexample
-   * has been cross-checked by concrete interpretation.
+   * <ul>
+   *   <li>if PROPERTY_CHECKED is false, answering TRUE/FALSE does not make sense
+   *   <li>if SOUND is false, any proof should be interpreted as potentially flawed and ignored
+   *   <li>if PRECISE is false, any counterexample found should be interpreted as potentially flawed
+   *       and ignored
+   * </ul>
+   *
+   * If SOUND and PRECISE are true, this means that the algorithm instance to its best knowledge
+   * produces correct proofs and counterexamples. However, this should not be interpreted as a 100%
+   * guarantee, as there may be further reasons for unsoundness or imprecision that are
+   * out-of-control of the algorithm. For example, PRECISE does not necessarily mean that a
+   * counterexample has been cross-checked by concrete interpretation.
    */
   final class AlgorithmStatus {
-    private final boolean isPrecise;
+    private final boolean propertyChecked;
     private final boolean isSound;
+    private final boolean isPrecise;
 
-    public static final AlgorithmStatus SOUND_AND_PRECISE = new AlgorithmStatus(true, true);
-    public static final AlgorithmStatus UNSOUND_AND_PRECISE = new AlgorithmStatus(true, false);
+    public static final AlgorithmStatus NO_PROPERTY_CHECKED =
+        new AlgorithmStatus(false, false, false);
+    public static final AlgorithmStatus SOUND_AND_PRECISE = new AlgorithmStatus(true, true, true);
+    public static final AlgorithmStatus UNSOUND_AND_PRECISE =
+        new AlgorithmStatus(true, false, true);
+    public static final AlgorithmStatus SOUND_AND_IMPRECISE =
+        new AlgorithmStatus(true, true, false);
+    public static final AlgorithmStatus UNSOUND_AND_IMPRECISE =
+        new AlgorithmStatus(true, false, false);
 
-    private AlgorithmStatus(boolean pIsPrecise, boolean pIsSound) {
-      isPrecise = pIsPrecise;
-      isSound = pIsSound;
+    private AlgorithmStatus(boolean pPropertyChecked, boolean pIsSound, boolean pIsPrecise) {
+      propertyChecked = pPropertyChecked;
+      isSound = pIsSound && pPropertyChecked;
+      isPrecise = pIsPrecise && pPropertyChecked;
     }
 
     /**
@@ -74,9 +85,9 @@ public interface Algorithm {
     @CheckReturnValue
     public AlgorithmStatus update(AlgorithmStatus other) {
       return new AlgorithmStatus(
-          isPrecise && other.isPrecise,
-          isSound && other.isSound
-      );
+          propertyChecked && other.propertyChecked,
+          isSound && other.isSound,
+          isPrecise && other.isPrecise);
     }
 
     /**
@@ -85,7 +96,7 @@ public interface Algorithm {
      */
     @CheckReturnValue
     public AlgorithmStatus withSound(boolean pIsSound) {
-      return new AlgorithmStatus(isPrecise, pIsSound);
+      return new AlgorithmStatus(propertyChecked, pIsSound, isPrecise);
     }
 
     /**
@@ -94,7 +105,11 @@ public interface Algorithm {
      */
     @CheckReturnValue
     public AlgorithmStatus withPrecise(boolean pIsPrecise) {
-      return new AlgorithmStatus(pIsPrecise, isSound);
+      return new AlgorithmStatus(propertyChecked, isSound, pIsPrecise);
+    }
+
+    public boolean wasPropertyChecked() {
+      return propertyChecked;
     }
 
     public boolean isSound() {
@@ -109,8 +124,9 @@ public interface Algorithm {
     public int hashCode() {
       final int prime = 31;
       int result = 1;
-      result = prime * result + (isPrecise ? 1231 : 1237);
+      result = prime * result + (propertyChecked ? 1231 : 1237);
       result = prime * result + (isSound ? 1231 : 1237);
+      result = prime * result + (isPrecise ? 1231 : 1237);
       return result;
     }
 
@@ -123,13 +139,17 @@ public interface Algorithm {
         return false;
       }
       AlgorithmStatus other = (AlgorithmStatus) obj;
-      return isPrecise == other.isPrecise
-          && isSound == other.isSound;
+      return propertyChecked == other.propertyChecked
+          && isSound == other.isSound
+          && isPrecise == other.isPrecise;
     }
 
     @Override
     public String toString() {
-      return "AlgorithmStatus [isPrecise=" + isPrecise + ", isSound=" + isSound + "]";
+      if (!propertyChecked) {
+        return "AlgorithmStatus [no property checked]";
+      }
+      return "AlgorithmStatus [isSound=" + isSound + ", isPrecise=\" + isPrecise]";
     }
   }
 

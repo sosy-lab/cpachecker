@@ -264,7 +264,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
 
       } catch (IOException e) {
         logger.log(Level.SEVERE,"Cannot read proof checking configuration.");
-        return AlgorithmStatus.SOUND_AND_PRECISE.withSound(false);
+        return AlgorithmStatus.UNSOUND_AND_PRECISE;
       }
     }
 

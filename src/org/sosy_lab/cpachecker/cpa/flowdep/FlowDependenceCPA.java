@@ -89,13 +89,6 @@ public class FlowDependenceCPA extends AbstractSingleWrapperCPA {
     merge = new MergeJoinOperator(domain);
     stop = new StopJoinOperator(domain);
 
-    if (!(pCpaToWrap instanceof CompositeCPA)) {
-      throw new InvalidConfigurationException(
-          FlowDependenceCPA.class.getSimpleName()
-              + " requires to wrap "
-              + CompositeCPA.class.getSimpleName());
-    }
-
     for (ConfigurableProgramAnalysis cpa : ((CompositeCPA) pCpaToWrap).getWrappedCPAs()) {
       if (!(cpa instanceof ReachingDefCPA) && !(cpa instanceof PointerCPA)) {
         throw new InvalidConfigurationException(

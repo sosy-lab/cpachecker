@@ -14,9 +14,9 @@ describe('ARG testing', function () {
     browser.get(dirname);
     browser.driver.sleep(100);
 
-    describe('Diaplay ARG dropdown test', function () {
+    describe('Display ARG dropdown test', function () {
 
-        it('Diaplay ARG dropdown test-1', function () {
+        it('Display ARG dropdown test-1', function () {
             browser.wait(EC.presenceOf(element(by.id('set-tab-2'))))
             element(by.id('set-tab-2')).click();
             browser.wait(element(by.xpath('//*[@id="arg-toolbar"]/nav/div[1]/select')));
@@ -27,7 +27,7 @@ describe('ARG testing', function () {
 
         })
 
-        it('Diaplay ARG dropdown test-2', function () {
+        it('Display ARG dropdown test-2', function () {
             element(by.id('set-tab-2')).click();
             browser.wait(element(by.xpath('//*[@id="arg-toolbar"]/nav/div[1]/select')));
             element(by.xpath('//*[@id="arg-toolbar"]/nav/div[1]/select')).click();
@@ -40,7 +40,7 @@ describe('ARG testing', function () {
 
     describe('Hover over node', function () {
 
-        it('Diaplay popover dialoag box', function () {
+        it('Display popover dialoag box', function () {
             browser.wait(EC.presenceOf(element(by.xpath('//*[@id="arg-node0"]'))));
             browser.actions().mouseMove(element(by.xpath('//*[@id="arg-node0"]'))).perform();
             browser.wait(EC.presenceOf(element(by.xpath('//*[@id="infoBox"]'))));

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Ordering;
@@ -330,13 +331,15 @@ public class PathChecker {
   private PathFormula handlePreconditionAssumptions(PathFormula pathFormula, ARGState nextState)
       throws CPATransferException, InterruptedException {
     if (nextState != null) {
-      AbstractStateWithAssumptions assumptionState =
-          AbstractStates.extractStateByType(nextState, AbstractStateWithAssumptions.class);
-      if (assumptionState != null) {
-        for (AExpression expr : assumptionState.getPreconditionAssumptions()) {
-          assert expr instanceof CExpression : "Expected a CExpression as precondition assumption!";
-          pathFormula = pmgr.makeAnd(pathFormula, (CExpression) expr);
-        }
+      // there could be more than one state that has assumptions:
+      FluentIterable<AbstractStateWithAssumptions> assumptionStates =
+          AbstractStates.projectToType(
+              AbstractStates.asIterable(nextState), AbstractStateWithAssumptions.class);
+      for (AbstractStateWithAssumptions assumptionState : assumptionStates) {
+          for (AExpression expr : assumptionState.getPreconditionAssumptions()) {
+            assert expr instanceof CExpression : "Expected a CExpression as precondition assumption!";
+            pathFormula = pmgr.makeAnd(pathFormula, (CExpression) expr);
+          }
       }
     }
     return pathFormula;

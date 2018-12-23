@@ -710,7 +710,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @Override
   public MergeResult<PointerTargetSet> mergePointerTargetSets(
       PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMap pSsa) throws InterruptedException {
-    return ptsMgr.mergePointerTargetSets(pPts1, pPts2, pSsa, this);
+    return ptsMgr.mergePointerTargetSets(pPts1, pPts2, pSsa);
   }
 
   /**

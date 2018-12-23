@@ -19,14 +19,14 @@ STATE USEALL Init :
   MATCH {$1=spin_trylock($2)} -> ASSUME {$1} DO acquired_spinlocks_alloc[$2]=true GOTO Init;
   // Do not lock this spinlock if return value is 0.
   MATCH {$1=spin_trylock($2)} -> ASSUME {!$1} GOTO Init;
-  
+
   // Cut paths, on which this function returns 0 with locked spinlock.
   MATCH {$1=spin_is_locked($2)} -> ASSUME {!$1; $$acquired_spinlocks_alloc[$2]} STOP;
   // Allow paths, on which this function returns not 0.
   MATCH {$1=spin_is_locked($2)} -> ASSUME {$1} GOTO Init;
   // Allow paths, on which this spinlock was not locked.
   MATCH {$1=spin_is_locked($2)} -> ASSUME {!$$acquired_spinlocks_alloc[$2]} GOTO Init;
-  
+
   // Cut paths, on which spinlock is locked twice.
   MATCH {$1=_atomic_dec_and_lock($2, $3)} -> ASSUME {$$acquired_spinlocks_alloc[$3]} STOP;
   // Lock this spinlock (add element '$1' to the 'acquired_spinlocks_alloc' set).
@@ -41,7 +41,7 @@ STATE USEALL Init :
   MATCH {$1 = kmalloc($2, $3)} -> ASSUME {((int)$3)==32} GOTO Init;
  // Allow paths, on which any spinlock was unlocked.
   MATCH {$1 = kmalloc($2, $3)} -> ASSUME {$$acquired_spinlocks_alloc.empty} GOTO Init;
-  
+
   // Check for calls, which are forbidden with locked spinlocks.
   MATCH {$1 = vmalloc($2)} -> ASSUME {!$$acquired_spinlocks_alloc.empty} ERROR("linux:alloc:spin lock::nonatomic");
   // Allow paths, on which any spinlock was unlocked.

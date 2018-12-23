@@ -506,7 +506,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       singleConfigBuilder.loadFromFile(singleConfigFileName);
 
       Configuration singleConfig = singleConfigBuilder.build();
-      RestartAlgorithm.checkConfigs(globalConfig, singleConfig, singleConfigFileName, logger);
+      NestingAlgorithm.checkConfigs(globalConfig, singleConfig, singleConfigFileName, logger);
       return singleConfig;
 
     } catch (IOException | InvalidConfigurationException e) {
@@ -556,7 +556,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       return (status.isPrecise() && from(reached).anyMatch(AbstractStates::isTargetState))
-          || (status.isSound()
+          || ((status.isSound() || !status.wasPropertyChecked())
               && !reached.hasWaitingState()
               && !from(reached)
                   .anyMatch(or(AbstractStates::hasAssumptions, AbstractStates::isTargetState)));

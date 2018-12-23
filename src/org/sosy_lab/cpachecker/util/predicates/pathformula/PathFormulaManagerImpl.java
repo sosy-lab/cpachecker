@@ -364,6 +364,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  public PointerTargetSet mergePts(PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMap pSSA)
+      throws InterruptedException {
+    return converter.mergePointerTargetSets(pPts1, pPts2, pSSA).getResult();
+  }
+
+  @Override
   public PathFormula makeAnd(PathFormula pPathFormula, BooleanFormula pOtherFormula) {
     SSAMap ssa = pPathFormula.getSsa();
     BooleanFormula otherFormula =  fmgr.instantiate(pOtherFormula, ssa);

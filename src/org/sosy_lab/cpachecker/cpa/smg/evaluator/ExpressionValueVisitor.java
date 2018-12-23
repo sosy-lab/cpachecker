@@ -75,7 +75,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * result of this evaluation is a {@link SMGSymbolicValue}. The value represents a symbolic value of
  * the SMG.
  */
-public class ExpressionValueVisitor
+class ExpressionValueVisitor
     extends DefaultCExpressionVisitor<List<? extends SMGValueAndState>, CPATransferException>
     implements CRightHandSideVisitor<List<? extends SMGValueAndState>, CPATransferException> {
 

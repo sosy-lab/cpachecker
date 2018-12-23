@@ -90,7 +90,6 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 public class CPAMain {
 
-  static final PrintStream ERROR_OUTPUT = System.err;
   static final int ERROR_EXIT_CODE = 1;
 
   @SuppressWarnings("resource") // We don't close LogManager
@@ -111,19 +110,15 @@ public class CPAMain {
         outputDirectory = p.outputPath;
         properties = p.properties;
       } catch (InvalidCmdlineArgumentException e) {
-        ERROR_OUTPUT.println("Could not process command line arguments: " + e.getMessage());
-        System.exit(ERROR_EXIT_CODE);
+        throw Output.fatalError("Could not process command line arguments: %s", e.getMessage());
       } catch (IOException e) {
-        ERROR_OUTPUT.println("Could not read config file " + e.getMessage());
-        System.exit(ERROR_EXIT_CODE);
+        throw Output.fatalError("Could not read config file %s", e.getMessage());
       }
 
       logOptions = new LoggingOptions(cpaConfig);
 
     } catch (InvalidConfigurationException e) {
-      ERROR_OUTPUT.println("Invalid configuration: " + e.getMessage());
-      System.exit(ERROR_EXIT_CODE);
-      return;
+      throw Output.fatalError("Invalid configuration: %s", e.getMessage());
     }
     final LogManager logManager = BasicLogManager.create(logOptions);
     cpaConfig.enableLogging(logManager);
