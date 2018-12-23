@@ -587,7 +587,7 @@ public class SlicingAbstractionsUtils {
     if (state.isTarget() || state.getParents().size() == 0) {
       return;
     }
-    Set<CFANode> locations = getOutgoingLocations((state));
+    Set<CFANode> locations = getOutgoingLocations(state);
     List<ARGState> toRemove = new ArrayList<>();
     for (ARGState parent : state.getParents()) {
       EdgeSet edgeSet = ((SLARGState) parent).getEdgeSetToChild(state);
@@ -612,7 +612,7 @@ public class SlicingAbstractionsUtils {
     if (state.isTarget() || state.getParents().size() == 0) {
       return;
     }
-    Set<CFANode> locations = getIncomingLocations((state));
+    Set<CFANode> locations = getIncomingLocations(state);
     List<ARGState> toRemove = new ArrayList<>();
     for (ARGState child : state.getChildren()) {
       EdgeSet edgeSet = state.getEdgeSetToChild(child);

@@ -100,7 +100,7 @@ public class SymbolicLocationPathFormulaBuilder extends DefaultPathFormulaBuilde
     }
 
     @Override
-    public PathFormula buildImplementation(PathFormulaManager pPfmgr, PathFormula pathFormula)
+    protected PathFormula buildImplementation(PathFormulaManager pPfmgr, PathFormula pathFormula)
         throws CPATransferException, InterruptedException {
       PathFormula result =
           pPfmgr.makeOr(first.build(pPfmgr, pathFormula), second.build(pPfmgr, pathFormula));
