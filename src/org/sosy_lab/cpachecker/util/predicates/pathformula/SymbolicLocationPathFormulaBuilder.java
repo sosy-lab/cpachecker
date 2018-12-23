@@ -44,27 +44,28 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SymbolicLocationPathFormulaBuilder extends PathFormulaBuilder {
+public class SymbolicLocationPathFormulaBuilder extends DefaultPathFormulaBuilder {
 
-  private CBinaryExpressionBuilder cBinaryExpressionBuilder;
+  private final CBinaryExpressionBuilder cBinaryExpressionBuilder;
 
   private static class SymbolicLocationPathFormulaAndBuilder extends SymbolicLocationPathFormulaBuilder {
 
-    private PathFormulaBuilder previousPathFormula;
+    private final DefaultPathFormulaBuilder previousPathFormula;
 
-    private CFAEdge edge;
+    private final CFAEdge edge;
 
     protected SymbolicLocationPathFormulaAndBuilder(
-        PathFormulaBuilder pPathFormulaAndBuilder,
-        CFAEdge pEdge,
-        CBinaryExpressionBuilder pCBinaryExpressionBuilder) {
+        final DefaultPathFormulaBuilder pPathFormulaAndBuilder,
+        final CFAEdge pEdge,
+        final CBinaryExpressionBuilder pCBinaryExpressionBuilder) {
       super(pCBinaryExpressionBuilder);
       this.previousPathFormula = pPathFormulaAndBuilder;
       this.edge = pEdge;
     }
 
     @Override
-    public PathFormula build(PathFormulaManager pPfmgr, PathFormula pPathFormula)
+    protected PathFormula buildImplementation(
+        final PathFormulaManager pPfmgr, final PathFormula pPathFormula)
         throws CPATransferException, InterruptedException {
       // Get the pathFormula up until this edge:
       PathFormula pathFormula = previousPathFormula.build(pPfmgr, pPathFormula);
@@ -72,32 +73,34 @@ public class SymbolicLocationPathFormulaBuilder extends PathFormulaBuilder {
       return addNewPartsToPathFormula(pPfmgr, pathFormula);
     }
 
-    private PathFormula addNewPartsToPathFormula(PathFormulaManager pPfmgr, PathFormula pathFormula)
+    private PathFormula addNewPartsToPathFormula(
+        final PathFormulaManager pPfmgr, final PathFormula pathFormula)
         throws CPATransferException, InterruptedException {
       // add edge with symbolic location semantics: %pc==OLD -> edge -> %pc = NEW
-      pathFormula = pPfmgr.makeAnd(pathFormula, makeProgramCounterAssumption(edge));
-      pathFormula = pPfmgr.makeAnd(pathFormula, edge);
-      pathFormula = pPfmgr.makeAnd(pathFormula, makeProgramCounterAssignment(edge));
-      return pathFormula;
+      PathFormula newPathFormula;
+      newPathFormula = pPfmgr.makeAnd(pathFormula, makeProgramCounterAssumption(edge));
+      newPathFormula = pPfmgr.makeAnd(newPathFormula, edge);
+      newPathFormula = pPfmgr.makeAnd(newPathFormula, makeProgramCounterAssignment(edge));
+      return newPathFormula;
     }
   }
 
   private static class SymbolicLocationPathFormulaOrBuilder
       extends SymbolicLocationPathFormulaBuilder {
-    private PathFormulaBuilder first;
-    private PathFormulaBuilder second;
+    private final PathFormulaBuilder first;
+    private final PathFormulaBuilder second;
 
     protected SymbolicLocationPathFormulaOrBuilder(
-        PathFormulaBuilder first,
-        PathFormulaBuilder second,
-        CBinaryExpressionBuilder cBinaryExpressionBuilder) {
+        final PathFormulaBuilder first,
+        final PathFormulaBuilder second,
+        final CBinaryExpressionBuilder cBinaryExpressionBuilder) {
       super(cBinaryExpressionBuilder);
       this.first = first;
       this.second = second;
     }
 
     @Override
-    public PathFormula build(PathFormulaManager pPfmgr, PathFormula pathFormula)
+    public PathFormula buildImplementation(PathFormulaManager pPfmgr, PathFormula pathFormula)
         throws CPATransferException, InterruptedException {
       PathFormula result =
           pPfmgr.makeOr(first.build(pPfmgr, pathFormula), second.build(pPfmgr, pathFormula));
@@ -119,16 +122,16 @@ public class SymbolicLocationPathFormulaBuilder extends PathFormulaBuilder {
     cBinaryExpressionBuilder = pCBinaryExpressionBuilder;
   }
 
-  public static class Factory extends PathFormulaBuilder.Factory {
+  public static class Factory implements PathFormulaBuilderFactory {
 
-    private CBinaryExpressionBuilder cBinaryExpressionBuilder;
+    private final CBinaryExpressionBuilder cBinaryExpressionBuilder;
 
     public Factory(CBinaryExpressionBuilder pCBinaryExpressionBuilder) {
       cBinaryExpressionBuilder = pCBinaryExpressionBuilder;
     }
 
     @Override
-    public PathFormulaBuilder create() {
+    public DefaultPathFormulaBuilder create() {
       return new SymbolicLocationPathFormulaBuilder(cBinaryExpressionBuilder);
     }
   }

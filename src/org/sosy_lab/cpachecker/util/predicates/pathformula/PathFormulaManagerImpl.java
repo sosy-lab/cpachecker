@@ -125,7 +125,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final BooleanFormulaManagerView bfmgr;
   private final CtoFormulaConverter converter;
   private final @Nullable CtoWpConverter wpConverter;
-  private final PathFormulaBuilder.Factory pfbFactory;
+  private final PathFormulaBuilderFactory pfbFactory;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
@@ -213,7 +213,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     switch (pathFormulaBuilderVariant) {
       case DEFAULT:
-        pfbFactory = new PathFormulaBuilder.Factory();
+        pfbFactory = new DefaultPathFormulaBuilder.Factory();
         break;
       case SYMBOLICLOCATIONS:
         pfbFactory =

@@ -19,16 +19,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-
-public interface PathFormulaBuilder {
-
-  PathFormulaBuilder makeOr(PathFormulaBuilder other);
-
-  PathFormulaBuilder makeAnd(CFAEdge pEdge);
-
-  PathFormula build(PathFormulaManager pPfmgr, PathFormula pathFormula)
-      throws CPATransferException, InterruptedException;
-
+public interface PathFormulaBuilderFactory {
+  PathFormulaBuilder create();
 }
