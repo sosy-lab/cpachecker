@@ -621,11 +621,15 @@ private boolean classifyNodes = false;
       // when there is more than one file which should be evaluated, the
       // programdenotations are separated from each other and a prefix for
       // static variables is generated
-      if (language != Language.C) {
-        throw new InvalidConfigurationException("Multiple program files not supported for languages other than C.");
+      if (language == Language.C) {
+        parseResult = ((CParser) parser).parseFile(sourceFiles);
+      } else if (language == Language.JAVASCRIPT) {
+        parseResult = ((JavaScriptParser) parser).parseFiles(sourceFiles);
+      } else {
+        throw new InvalidConfigurationException(
+            "Multiple program files not supported for languages other than C and JavaScript.");
       }
 
-      parseResult = ((CParser) parser).parseFile(sourceFiles);
     }
 
     if (parseResult.isEmpty()) {

@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import static com.google.common.io.MoreFiles.asCharSource;
+
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import org.eclipse.wst.jsdt.core.IJavaScriptProject;
 import org.eclipse.wst.jsdt.core.dom.AST;
 import org.eclipse.wst.jsdt.core.dom.ASTNode;
@@ -38,13 +41,13 @@ import org.eclipse.wst.jsdt.internal.core.JavaProject;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.JavaScriptParser;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
-import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.exceptions.JSParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /** Wrapper for Eclipse JSDT Parser. */
-class EclipseJavaScriptParser implements Parser {
+class EclipseJavaScriptParser implements JavaScriptParser {
   //  @Option(secure=true, name ="java.encoding",
   //      description="use the following encoding for java files")
   private Charset encoding = StandardCharsets.UTF_8;
@@ -69,8 +72,8 @@ class EclipseJavaScriptParser implements Parser {
       throws ParserException, IOException, InterruptedException {
     final Path file = Paths.get(filename);
     try {
-      return parseString(file.normalize().toString(), com.google.common.io.MoreFiles.asCharSource
-          (file, encoding, new OpenOption[0]).read());
+      return parseString(
+          file.normalize().toString(), asCharSource(file, encoding, new OpenOption[0]).read());
     } catch (final IOException e) {
       throw new JSParserException(e);
     }
@@ -114,6 +117,26 @@ class EclipseJavaScriptParser implements Parser {
           .getParseResult();
     } finally {
       cfaTimer.stop();
+    }
+  }
+
+  @Override
+  public ParseResult parseFiles(final List<String> filenames) throws IOException {
+    parseTimer.start();
+    try {
+      // TODO maintain file scope/location (instead of concatenating to new file)
+      final JavaScriptCFABuilder builder =
+          JavaScriptCFABuilderFactory.withAllFeatures(new FileScopeImpl("dummy-file.js"), logger);
+      final StringBuilder concatenatedSourceFiles = new StringBuilder();
+      for (final String filename : filenames) {
+        final Path file = Paths.get(filename);
+        concatenatedSourceFiles.append(asCharSource(file, encoding, new OpenOption[0]).read());
+      }
+      final ASTNode ast = createAST("dummy-file.js", concatenatedSourceFiles.toString());
+      builder.append((JavaScriptUnit) ast);
+      return builder.getParseResult();
+    } finally {
+      parseTimer.stop();
     }
   }
 }
