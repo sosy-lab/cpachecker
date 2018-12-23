@@ -262,6 +262,13 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
+  public PointerTargetSet
+      mergePts(PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMap pSSA)
+          throws InterruptedException {
+    return delegate.mergePts(pPts1, pPts2, pSSA);
+  }
+
+  @Override
   public PathFormulaBuilder createNewPathFormulaBuilder() {
     return delegate.createNewPathFormulaBuilder();
   }

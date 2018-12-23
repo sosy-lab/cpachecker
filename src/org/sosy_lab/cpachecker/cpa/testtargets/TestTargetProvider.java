@@ -51,12 +51,16 @@ public class TestTargetProvider implements Statistics {
   private boolean runParallel;
 
   private TestTargetProvider(
-      final CFA pCfa, final boolean pRunParallel, final TestTargetType pType) {
+      final CFA pCfa,
+      final boolean pRunParallel,
+      final TestTargetType pType,
+      final boolean pRemoveUnnecessaryGoals) {
     cfa = pCfa;
     runParallel = pRunParallel;
     type = pType;
 
-    Set<CFAEdge> targets = extractEdgesByCriterion(type.getEdgeCriterion());
+    Set<CFAEdge> targets =
+        extractEdgesByCriterion(type.getEdgeCriterion(), pRemoveUnnecessaryGoals);
 
     if (runParallel) {
       uncoveredTargets = Collections.synchronizedSet(targets);
@@ -66,12 +70,15 @@ public class TestTargetProvider implements Statistics {
     initialTestTargets = ImmutableSet.copyOf(uncoveredTargets);
   }
 
-  private Set<CFAEdge> extractEdgesByCriterion(final Predicate<CFAEdge> criterion) {
+  private Set<CFAEdge> extractEdgesByCriterion(
+      final Predicate<CFAEdge> criterion, final boolean pRemoveUnnecessaryGoals) {
     Set<CFAEdge> edges = new HashSet<>();
     for (CFANode node : cfa.getAllNodes()) {
       edges.addAll(CFAUtils.allLeavingEdges(node).filter(criterion).toSet());
     }
-    deleteIfCoveredByDifferentGoal(edges);
+    if (pRemoveUnnecessaryGoals) {
+      deleteIfCoveredByDifferentGoal(edges);
+    }
     return edges;
   }
 
@@ -83,7 +90,7 @@ public class TestTargetProvider implements Statistics {
       if (target.getSuccessor().getNumEnteringEdges() == 1) {
         allSuccessorsGoals = true;
         for (CFAEdge leaving : CFAUtils.leavingEdges(target.getSuccessor())) {
-          if (!keptGoals.contains(leaving)) {
+          if (!goals.contains(leaving)) {
             allSuccessorsGoals = false;
             break;
           }
@@ -107,7 +114,7 @@ public class TestTargetProvider implements Statistics {
   public static Set<CFAEdge> getTestTargets(
       final CFA pCfa, final boolean pRunParallel, final TestTargetType pType) {
     if (instance == null || pCfa != instance.cfa || instance.type != pType) {
-      instance = new TestTargetProvider(pCfa, pRunParallel, pType);
+      instance = new TestTargetProvider(pCfa, pRunParallel, pType, true); // TODO
     }
     Preconditions.checkState(instance.runParallel || !pRunParallel);
     return instance.uncoveredTargets;

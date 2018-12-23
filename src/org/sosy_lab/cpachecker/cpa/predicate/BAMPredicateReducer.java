@@ -148,6 +148,7 @@ public class BAMPredicateReducer implements Reducer {
     SSAMapBuilder builder = oldSSA.builder();
     SSAMap rootSSA = rootState.getPathFormula().getSsa();
     PointerTargetSet rootPts = rootState.getPathFormula().getPointerTargetSet();
+    PointerTargetSet reducedPts = reducedState.getPathFormula().getPointerTargetSet();
 
     if (useAbstractionReduction) {
 
@@ -168,7 +169,8 @@ public class BAMPredicateReducer implements Reducer {
         }
       }
       SSAMap newSSA = builder.build();
-      PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, newSSA, rootPts);
+      PointerTargetSet newPts = pmgr.mergePts(rootPts, reducedPts, newSSA);
+      PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, newSSA, newPts);
 
       AbstractionFormula newAbstractionFormula =
           pamgr.expand(reducedAbstraction.asRegion(), rootAbstraction.asRegion(),
@@ -179,7 +181,8 @@ public class BAMPredicateReducer implements Reducer {
       return PredicateAbstractState.mkAbstractionState(newPathFormula,
           newAbstractionFormula, abstractionLocations);
     } else {
-      PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, oldSSA, rootPts);
+      PointerTargetSet newPts = pmgr.mergePts(rootPts, reducedPts, oldSSA);
+      PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, oldSSA, newPts);
       return PredicateAbstractState.mkAbstractionState(newPathFormula,
           reducedState.getAbstractionFormula(), reducedState.getAbstractionLocationsOnPath());
     }

@@ -31,8 +31,10 @@ import static com.google.common.truth.TruthJUnit.assume;
 import static java.lang.Boolean.parseBoolean;
 import static org.junit.Assume.assumeNoException;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
@@ -346,17 +348,6 @@ public class ConfigurationFileChecks {
       CharStreams.copy(r, w);
     }
     try (Reader r =
-            Files.newBufferedReader(
-                Paths.get("config/specification/SplitterGuidingAutomaton.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get(
-                    tempFolder.getRoot().getAbsolutePath()
-                        + "/config/specification/SplitterGuidingAutomaton.spc"),
-                StandardCharsets.UTF_8)) {
-      CharStreams.copy(r, w);
-    }
-    try (Reader r =
             Files.newBufferedReader(Paths.get("config/specification/modifications-present.spc"));
         Writer w =
             IO.openOutputFile(
@@ -402,7 +393,10 @@ public class ConfigurationFileChecks {
   @Test
   public void checkDefaultSpecification() throws InvalidConfigurationException {
     assume().that(configFile).isInstanceOf(Path.class);
-    final Iterable<Path> basePath = CONFIG_DIR.relativize((Path) configFile);
+    Iterable<Path> basePath = CONFIG_DIR.relativize((Path) configFile);
+    if (basePath.iterator().next().equals(Paths.get("unmaintained"))) {
+      basePath = Iterables.skip(basePath, 1);
+    }
     assume().that(basePath).hasSize(1);
     final Configuration config = createConfigurationForTestInstantiation();
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
@@ -437,10 +431,7 @@ public class ConfigurationFileChecks {
       assertThat(spec).endsWith("specification/UninitializedVariables.spc");
     } else if (cpas.contains("cpa.smg.SMGCPA")) {
       if (isSvcompConfig) {
-        assertThat(spec)
-            .isAnyOf(
-                "specification/sv-comp-memorysafety.spc",
-                "specification/sv-comp-memorycleanup.spc");
+        assertThat(spec).matches(".*specification/sv-comp-memory(cleanup|safety).spc$");
       } else {
         if (!spec.contains("specification/sv-comp-memorycleanup.spc")) {
           assertThat(spec).contains("specification/memorysafety.spc");
@@ -457,7 +448,9 @@ public class ConfigurationFileChecks {
     } else if (isTestGenerationConfig) {
       assertThat(spec).isAnyOf(null, "");
     } else if (isDifferentialConfig) {
-      assertThat(spec).isAnyOf(null, "", "specification/modifications-present.spc");
+      if (!Strings.isNullOrEmpty(spec)) {
+        assertThat(spec).endsWith("specification/modifications-present.spc");
+      }
     } else if (spec != null) {
       // TODO should we somehow restrict which configs may specify "no specification"?
       assertThat(spec).endsWith("specification/default.spc");
@@ -536,7 +529,6 @@ public class ConfigurationFileChecks {
               "Failure in CPAchecker run with following log\n%s\n",
               formatLogRecords(logHandler.getStoredLogRecords()))
           .that(result.getResult())
-          .named("analysis result '%s'", result.getResultString())
           .isNotEqualTo(CPAcheckerResult.Result.NOT_YET_STARTED);
     }
 

@@ -51,8 +51,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import javax.management.JMException;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -333,7 +333,7 @@ class MainCPAStatistics implements Statistics {
   }
 
   private void exportCoverage(PrintStream out, UnmodifiableReachedSet reached) {
-    if (exportCoverage && cfa != null) {
+    if (exportCoverage && cfa != null && reached.size() > 1) {
       FluentIterable<AbstractState> reachedStates = FluentIterable.from(reached);
 
       // hack to get all reached states for BAM

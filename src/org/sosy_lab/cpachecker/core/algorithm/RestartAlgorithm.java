@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,17 +24,16 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.PeekingIterator;
+import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
@@ -44,10 +43,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
@@ -57,7 +53,6 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.AnnotatedValue;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -67,16 +62,12 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.PartialARGsCombiner;
 import org.sosy_lab.cpachecker.core.defaults.MultiStatistics;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -90,11 +81,9 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
-@Options(prefix="restartAlgorithm")
-public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedSetUpdater {
+@Options(prefix = "restartAlgorithm")
+public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpdater {
 
   private static class RestartAlgorithmStatistics extends MultiStatistics {
 
@@ -200,14 +189,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
   )
   private boolean alwaysRestart = false;
 
-  private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
   private final ShutdownRequestListener logShutdownListener;
   private final RestartAlgorithmStatistics stats;
-  private final CFA cfa;
-  private final Configuration globalConfig;
-  private final Specification specification;
-
   private Algorithm currentAlgorithm;
 
   private final List<ReachedSetUpdateListener> reachedSetUpdateListeners =
@@ -222,6 +205,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
       Specification pSpecification,
       CFA pCfa)
       throws InvalidConfigurationException {
+    super(config, pLogger, pShutdownNotifier, pSpecification, pCfa);
     config.inject(this);
 
     if (configFiles.isEmpty()) {
@@ -229,11 +213,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
     }
 
     this.stats = new RestartAlgorithmStatistics(configFiles.size(), pLogger);
-    this.logger = pLogger;
-    this.shutdownNotifier = pShutdownNotifier;
-    this.cfa = pCfa;
-    this.globalConfig = config;
-    specification = checkNotNull(pSpecification);
 
     logShutdownListener =
         reason ->
@@ -511,27 +490,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
       ReachedSet pCurrentReached)
       throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
 
-    ReachedSet reached;
-    ConfigurableProgramAnalysis cpa;
-    Algorithm algorithm;
-
-    ConfigurationBuilder singleConfigBuilder = Configuration.builder();
-    singleConfigBuilder.copyFrom(globalConfig);
-    singleConfigBuilder.clearOption("restartAlgorithm.configFiles");
-    singleConfigBuilder.clearOption("analysis.restartAfterUnknown");
-
-    // TODO next line overrides existing options with options loaded from file.
-    // Perhaps we want to keep some global options like 'specification'?
-    singleConfigBuilder.loadFromFile(singleConfigFileName);
-
-    Configuration singleConfig = singleConfigBuilder.build();
-    LogManager singleLogger = logger.withComponentName("Analysis" + (stats.noOfAlgorithmsUsed + 1));
-    RestartAlgorithm.checkConfigs(globalConfig, singleConfig, singleConfigFileName, logger);
-
-    ResourceLimitChecker singleLimits = ResourceLimitChecker.fromConfiguration(singleConfig, singleLogger, singleShutdownManager);
-    singleLimits.start();
-    singleShutdownManager.getNotifier().register(logShutdownListener);
-
     AggregatedReachedSets aggregateReached;
     if (pProvideReachedForNextAlgorithm && pCurrentReached != null) {
       aggregateReached = new AggregatedReachedSets(Collections.singleton(pCurrentReached));
@@ -539,76 +497,13 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
       aggregateReached = new AggregatedReachedSets();
     }
 
-    CoreComponentsFactory coreComponents =
-        new CoreComponentsFactory(
-            singleConfig, singleLogger, singleShutdownManager.getNotifier(), aggregateReached);
-    cpa = coreComponents.createCPA(cfa, specification);
-
-    if (cpa instanceof StatisticsProvider) {
-      ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());
-    }
-
-    GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-
-    algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
-    if (algorithm instanceof RestartAlgorithm) {
-      // To avoid accidental infinitely-recursive nesting.
-      throw new InvalidConfigurationException(
-          "Sequential analysis parts may not be sequential analyses theirselves.");
-    }
-    reached = createInitialReachedSetForRestart(cpa, mainFunction, coreComponents, singleLogger);
-
-    return Triple.of(algorithm, cpa, reached);
-  }
-
-  static ReachedSet createInitialReachedSetForRestart(
-      ConfigurableProgramAnalysis cpa,
-      CFANode mainFunction,
-      CoreComponentsFactory pFactory,
-      LogManager singleLogger)
-      throws InterruptedException {
-    singleLogger.log(Level.FINE, "Creating initial reached set");
-
-    AbstractState initialState = cpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition());
-    Precision initialPrecision = cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition());
-
-    ReachedSet reached = pFactory.createReachedSet();
-    reached.add(initialState, initialPrecision);
-    return reached;
-  }
-
-  static void checkConfigs(
-      Configuration pGlobalConfig,
-      Configuration pSingleConfig,
-      Path pSingleConfigFileName,
-      LogManager pLogger) {
-    Map<String, String> global = configToMap(pGlobalConfig);
-    Map<String, String> single = configToMap(pSingleConfig);
-    for (Entry<String, String> entry : global.entrySet()) {
-      String key = entry.getKey();
-      String value = entry.getValue();
-      if (single.containsKey(key) && !value.equals(single.get(key))) {
-        pLogger.logf(
-            Level.INFO,
-            "Mismatch of configuration options when loading from '%s': '%s' has two values '%s' and '%s'. Using '%s'.",
-            pSingleConfigFileName,
-            key,
-            value,
-            single.get(key),
-            single.get(key));
-      }
-    }
-  }
-
-  /** get an iterable data structure from configuration options. Sadly there is no nicer way. */
-  private static Map<String, String> configToMap(Configuration config) {
-    Map<String, String> mp = new LinkedHashMap<>();
-    for (String option : Splitter.on("\n").omitEmptyStrings().split(config.asPropertiesString())) {
-      List<String> split = Splitter.on(" = ").splitToList(option);
-      Preconditions.checkArgument(split.size() == 2, option);
-      mp.put(split.get(0), split.get(1));
-    }
-    return mp;
+    return super.createAlgorithm(
+        singleConfigFileName,
+        mainFunction,
+        singleShutdownManager,
+        aggregateReached,
+        Sets.newHashSet("restartAlgorithm.configFiles", "analysis.restartAfterUnknown"),
+        stats.getSubStatistics());
   }
 
   @Override

@@ -19,8 +19,9 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -30,11 +31,11 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 public abstract class MultiStatistics implements Statistics {
 
-  private final Collection<Statistics> subStats = new ArrayList<>();
+  private final Collection<Statistics> subStats = Lists.newCopyOnWriteArrayList();
   protected final LogManager logger;
 
   public MultiStatistics(LogManager pLogger) {
-    logger = pLogger;
+    logger = Preconditions.checkNotNull(pLogger);
   }
 
   /** returns a modifiable collection of statistics. */

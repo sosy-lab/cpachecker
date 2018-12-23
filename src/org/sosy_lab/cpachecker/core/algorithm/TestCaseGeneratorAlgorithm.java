@@ -229,15 +229,15 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
         openZipFS();
       }
 
-      boolean shouldReturn;
+      boolean shouldReturnFalse;
       while (pReached.hasWaitingState() && !testTargets.isEmpty()) {
         shutdownNotifier.shutdownIfNecessary();
-        shouldReturn = false;
+        shouldReturnFalse = false;
 
         assert ARGUtils.checkARG(pReached);
         assert (from(pReached).filter(IS_TARGET_STATE).isEmpty());
 
-        AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
+        AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
         try {
           status = algorithm.run(pReached);
 
@@ -289,7 +289,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
 
                   if (shouldReportCoveredErrorCallAsError()) {
                     addErrorStateWithViolatedProperty(pReached);
-                    shouldReturn = true;
+                    shouldReturnFalse = true;
                   }
                 } else {
                   logger.log(
@@ -317,7 +317,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
           }
           shutdownNotifier.shutdownIfNecessary();
         }
-        if (shouldReturn) {
+        if (shouldReturnFalse) {
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
@@ -334,7 +334,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
 
     }
 
-    return AlgorithmStatus.SOUND_AND_PRECISE;
+    return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
   private void cleanUpIfNoTestTargetsRemain(final ReachedSet pReached) {

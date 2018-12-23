@@ -5,15 +5,15 @@ OBSERVER AUTOMATON simple_setuid
 LOCAL int uid = 0;
 INITIAL STATE Init;
 
-STATE USEFIRST Init: 
-  MATCH { $? = system($?); } -> 
+STATE USEFIRST Init:
+  MATCH { $? = system($?); } ->
     ASSERT !(uid == 0) PRINT "Systemcall in line $line with userid " PRINT uid GOTO Init;
-  MATCH { system($?); } -> 
+  MATCH { system($?); } ->
     ASSERT !(uid == 0) PRINT "Systemcall in line $line with userid " PRINT uid GOTO Init;
-  
+
   MATCH { $? = setuid($1); } -> DO uid=$1 PRINT "userid set to $1" GOTO Init;
   MATCH { setuid($1); } -> DO uid=$1 PRINT "userid set to $1"  GOTO Init;
-  
+
   //TRUE -> GOTO Init;
 
 END AUTOMATON

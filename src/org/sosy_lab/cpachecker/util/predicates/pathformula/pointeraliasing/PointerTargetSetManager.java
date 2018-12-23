@@ -67,7 +67,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -255,15 +254,11 @@ class PointerTargetSetManager {
    * @param pts1 The first {@code PointerTargetSet}.
    * @param pts2 The second {@code PointerTargetSet}.
    * @param ssa The map of SSA indices.
-   * @param pConv The converter for C code to SMT formulae.
    * @return The merged {@code PointerTargetSet}s.
    * @throws InterruptedException If the algorithms gets interrupted by an external shutdown.
    */
   MergeResult<PointerTargetSet> mergePointerTargetSets(
-      final PointerTargetSet pts1,
-      final PointerTargetSet pts2,
-      final SSAMap ssa,
-      final CtoFormulaConverter pConv)
+      final PointerTargetSet pts1, final PointerTargetSet pts2, final SSAMap ssa)
       throws InterruptedException {
 
     if (pts1.isEmpty() && pts2.isEmpty()) {
