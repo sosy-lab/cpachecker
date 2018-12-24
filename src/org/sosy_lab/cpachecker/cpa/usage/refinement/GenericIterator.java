@@ -23,8 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
+import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.ForOverride;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
@@ -38,7 +40,7 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
   private StatTimer totalTimer = new StatTimer("Time for generic iterator");
   private StatCounter numOfIterations = new StatCounter("Number of iterations");
 
-  List<AdjustablePrecision> completePrecisions;
+  Iterable<AdjustablePrecision> completePrecisions;
   private final ShutdownNotifier shutdownNotifier;
 
   // Some iterations may be postponed to the end (complicated ones)
@@ -55,7 +57,7 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
     O iteration;
 
     totalTimer.start();
-    completePrecisions = new ArrayList<>();
+    completePrecisions = Collections.emptySet();
     RefinementResult result = RefinementResult.createFalse();
     init(pInput);
 
@@ -79,9 +81,11 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
       return result;
     } finally {
       finish(pInput, result);
+      completePrecisions = Collections.emptySet();
       sendFinishSignal();
       postponedIterations.clear();
       totalTimer.stop();
+      shutdownNotifier.shutdownIfNecessary();
     }
   }
 
@@ -95,10 +99,7 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
       return result;
     }
 
-    List<AdjustablePrecision> precisions = result.getPrecisions();
-    if (!precisions.isEmpty()) {
-      completePrecisions.addAll(precisions);
-    }
+    completePrecisions = Iterables.concat(completePrecisions, result.getPrecisions());
 
     finishIteration(iteration, result);
     return result;

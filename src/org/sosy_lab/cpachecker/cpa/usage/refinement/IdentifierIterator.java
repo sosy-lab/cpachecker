@@ -32,7 +32,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -114,6 +113,8 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       secure = true)
   private boolean hideFilteredUnsafes = false;
 
+  private final boolean disableAllCaching;
+
   private final Stats stats;
   private final BAMTransferRelation transfer;
 
@@ -124,7 +125,10 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
   private final Map<SingleIdentifier, AdjustablePrecision> precisionMap = new HashMap<>();
 
   public IdentifierIterator(ConfigurableRefinementBlock<SingleIdentifier> pWrapper, Configuration config,
-      ConfigurableProgramAnalysis pCpa, BAMTransferRelation pTransfer) throws InvalidConfigurationException {
+      ConfigurableProgramAnalysis pCpa,
+      BAMTransferRelation pTransfer,
+      boolean pDisableCaching)
+      throws InvalidConfigurationException {
     super(pWrapper);
     config.inject(this);
     cpa = pCpa;
@@ -133,6 +137,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
     logger = uCpa.getLogger();
     transfer = pTransfer;
     stats = new Stats();
+    disableAllCaching = pDisableCaching;
   }
 
   public static Refiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
@@ -145,7 +150,8 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " needs an BAMPredicateCPA");
     }
 
-    return new RefinementBlockFactory(pCpa, predicateCpa.getConfiguration()).create();
+    return new RefinementBlockFactory(pCpa, predicateCpa.getConfiguration())
+        .create();
   }
 
   @Override
@@ -170,6 +176,10 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
     boolean isPrecisionChanged = false;
     AbstractState firstState = pReached.getFirstState();
     AdjustablePrecision finalPrecision = (AdjustablePrecision) pReached.getPrecision(firstState);
+    AdjustablePrecision initialPrecision =
+        (AdjustablePrecision) cpa.getInitialPrecision(
+            AbstractStates.extractLocation(firstState),
+            StateSpacePartition.getDefaultPartition());
 
     while (iterator.hasNext()) {
       SingleIdentifier currentId = iterator.next();
@@ -179,23 +189,21 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       stats.innerRefinementTimer.stop();
       newPrecisionFound |= result.isFalse();
 
-      List<AdjustablePrecision> info = result.getPrecisions();
+      Collection<AdjustablePrecision> info = result.getPrecisions();
 
       if (!info.isEmpty()) {
         stats.precisionTimer.start();
+        AdjustablePrecision updatedPrecision =
+            precisionMap.getOrDefault(currentId, initialPrecision);
+
         for (AdjustablePrecision p : info) {
-          if (!p.isEmpty()) {
-            AdjustablePrecision updatedPrecision;
-            if (precisionMap.containsKey(currentId)) {
-              updatedPrecision = precisionMap.get(currentId).add(p);
-            } else {
-              updatedPrecision = p;
-            }
-            precisionMap.put(currentId, updatedPrecision);
-            finalPrecision = finalPrecision.add(updatedPrecision);
-            isPrecisionChanged = true;
-          }
+          updatedPrecision = updatedPrecision.add(p);
         }
+
+        assert !updatedPrecision.isEmpty() : "Updated precision is expected to be not empty";
+        precisionMap.put(currentId, updatedPrecision);
+        finalPrecision = finalPrecision.add(updatedPrecision);
+        isPrecisionChanged = true;
         stats.precisionTimer.stop();
       }
 
@@ -224,10 +232,13 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
     }
     if (newPrecisionFound) {
       stats.finishingTimer.start();
-      BAMPredicateCPA bamcpa = CPAs.retrieveCPA(cpa, BAMPredicateCPA.class);
-      assert bamcpa != null;
-      bamcpa.clearAllCaches();
-      //ARGState.clearIdGenerator();
+      if (disableAllCaching) {
+        BAMPredicateCPA bamcpa = CPAs.retrieveCPA(cpa, BAMPredicateCPA.class);
+        assert bamcpa != null;
+        bamcpa.clearAllCaches();
+        // ARGState.clearIdGenerator();
+      }
+      // Note the following clean should be done always independently from option disableAllCaching
       if (totalARGCleaning) {
         transfer.cleanCaches();
       } else {

@@ -24,9 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.ForOverride;
-import java.util.ArrayList;
-import java.util.List;
 import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -59,15 +58,14 @@ public abstract class GenericSinglePathRefiner extends
       if (result.isFalse()) {
         return result;
       }
-      List<AdjustablePrecision> completePrecisions = new ArrayList<>(result.getPrecisions());
+      Iterable<AdjustablePrecision> completePrecisions = result.getPrecisions();
       result = refinePath(secondPath);
-      List<AdjustablePrecision> precisions = result.getPrecisions();
-      if (!precisions.isEmpty()) {
-        completePrecisions.addAll(precisions);
-      }
       if (!result.isFalse()) {
+        completePrecisions = Iterables.concat(completePrecisions, result.getPrecisions());
         result = wrappedRefiner.performBlockRefinement(pInput);
       }
+
+      // Do not need add any precision if the result is confirmed
       result.addPrecisions(completePrecisions);
       return result;
     } finally {

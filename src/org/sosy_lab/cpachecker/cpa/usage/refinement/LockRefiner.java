@@ -57,6 +57,7 @@ public class LockRefiner
   private final Set<CFAEdge> controlPrecision;
   private final Set<CFAEdge> currentIterationPrecision;
   private AbstractLockState initialLockState;
+  private final boolean disableCaching;
 
   // Statistics
   private StatTimer simplifyPath = new StatTimer("Time for path simplification");
@@ -69,11 +70,13 @@ public class LockRefiner
 
   public LockRefiner(
       ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,
-      LockTransferRelation pTransfer) {
+      LockTransferRelation pTransfer,
+      boolean pDisableCaching) {
     super(pWrapper);
     transfer = pTransfer;
     controlPrecision = new HashSet<>();
     currentIterationPrecision = new HashSet<>();
+    disableCaching = pDisableCaching;
   }
 
   protected AbstractLockState findLastState(List<CFAEdge> edges)
@@ -147,7 +150,7 @@ public class LockRefiner
 
       if (firstRealState.isCompatibleWith(secondRealState)) {
         numberOfTrueResults.inc();
-        return RefinementResult.createTrue(firstPath, secondPath);
+        return wrappedRefiner.performBlockRefinement(pInput);
       }
 
       Collection<LockIdentifier> ids = firstRealState.getIntersection(secondRealState);
@@ -224,8 +227,10 @@ public class LockRefiner
     assert !filteredEdges.isEmpty();
     // assert !from(filteredEdges).anyMatch(controlPrecision::contains) : "edge was already added";
 
-    // Do not add it directly, as it may be obtained in other iterations
-    currentIterationPrecision.addAll(filteredEdges);
+    if (!disableCaching) {
+      // Do not add it directly, as it may be obtained in other iterations
+      currentIterationPrecision.addAll(filteredEdges);
+    }
 
     final LockIdentifier fId = pId;
     Map<CFANode, LockIdentifier> set =
@@ -258,7 +263,7 @@ public class LockRefiner
 
   @Override
   protected void handleFinishSignal(Class<? extends RefinementInterface> pCallerClass) {
-    if (pCallerClass.equals(IdentifierIterator.class)) {
+    if (!disableCaching && pCallerClass.equals(IdentifierIterator.class)) {
       controlPrecision.addAll(currentIterationPrecision);
       currentIterationPrecision.clear();
     }

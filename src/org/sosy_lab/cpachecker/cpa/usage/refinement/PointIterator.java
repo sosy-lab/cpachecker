@@ -164,6 +164,7 @@ public class PointIterator extends GenericIterator<SingleIdentifier, Pair<UsageI
       secondPointIterator = null;
       firstPoint = null;
       secondPoint = null;
+      currentUsagePointSet = null;
     }
   }
 

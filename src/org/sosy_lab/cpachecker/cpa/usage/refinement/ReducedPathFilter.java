@@ -74,7 +74,7 @@ public class ReducedPathFilter extends GenericSinglePathRefiner {
 
       currentState = (AbstractLockState) Iterables.getOnlyElement(successors);
     }
-    // Not equals as it checks also previous state
+    // Not 'equals' as it checks also previous state
     if (currentState.compareTo(lastLockState) == 0) {
       return RefinementResult.createTrue();
     } else {

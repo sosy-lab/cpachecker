@@ -70,6 +70,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
 
   private final UsageStatisticsRefinementStrategy strategy;
   private ARGReachedSet ARGReached;
+  private final boolean disableCaching;
 
   private final Set<List<CFAEdge>> falseCacheForCurrentIteration = new HashSet<>();
   private final Set<List<CFAEdge>> trueCache = new HashSet<>();
@@ -81,7 +82,10 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   private StatCounter numberOfBAMupdates = new StatCounter("Number of BAM updates");
 
   public PredicateRefinerAdapter(ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> wrapper,
-      ConfigurableProgramAnalysis pCpa, LogManager pLogger) throws InvalidConfigurationException {
+      ConfigurableProgramAnalysis pCpa,
+      LogManager pLogger,
+      boolean pDisableCaching)
+      throws InvalidConfigurationException {
     super(wrapper);
 
     if (!(pCpa instanceof WrapperCPA)) {
@@ -108,6 +112,8 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
     refiner = new PredicateCPARefinerFactory(pCpa)
         .setBlockFormulaStrategy(blockFormulaStrategy)
         .create(strategy);
+
+    disableCaching = pDisableCaching;
   }
 
   @Override
@@ -143,7 +149,9 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
       List<CFAEdge> edges = path.getInnerEdges();
 
       if (!cex.isSpurious()) {
-        trueCache.add(edges);
+        if (!disableCaching) {
+          trueCache.add(edges);
+        }
         result = RefinementResult.createTrue();
       } else {
         result = RefinementResult.createFalse();

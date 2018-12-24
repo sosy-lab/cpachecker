@@ -96,7 +96,13 @@ public class RefinementBlockFactory {
   @Option(name = "pathEquality", description = "The way how to identify two paths as equal")
   PathEquation pathEquation = PathEquation.CFANodeId;
 
-  public RefinementBlockFactory(ConfigurableProgramAnalysis pCpa, Configuration pConfig) throws InvalidConfigurationException {
+  @Option(description = "Disable all caching into all internal refinement blocks", secure = true)
+  private boolean disableAllCaching = false;
+
+  public RefinementBlockFactory(
+      ConfigurableProgramAnalysis pCpa,
+      Configuration pConfig)
+      throws InvalidConfigurationException {
     cpa = pCpa;
     config = pConfig;
     pConfig.inject(this);
@@ -142,7 +148,8 @@ public class RefinementBlockFactory {
                     (ConfigurableRefinementBlock<SingleIdentifier>) currentBlock,
                     config,
                     cpa,
-                    bamCpa.getTransferRelation());
+                    bamCpa.getTransferRelation(),
+                    disableAllCaching);
             currentBlockType = currentInnerBlockType.ReachedSet;
             break;
 
@@ -183,7 +190,9 @@ public class RefinementBlockFactory {
 
           case PredicateRefiner:
             currentBlock = new PredicateRefinerAdapter((ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
-                cpa, logger);
+                    cpa,
+                    logger,
+                    disableAllCaching);
             break;
 
           case CallstackFilter:
@@ -223,7 +232,8 @@ public class RefinementBlockFactory {
             currentBlock =
                 new LockRefiner(
                     (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
-                    lockTransfer);
+                    lockTransfer,
+                    disableAllCaching);
 
             break;
 

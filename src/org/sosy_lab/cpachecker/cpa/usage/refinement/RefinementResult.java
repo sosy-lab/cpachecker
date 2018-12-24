@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
@@ -43,7 +43,7 @@ public class RefinementResult {
   private final Map<Class<? extends RefinementInterface>, Object> auxiliaryInfo = new HashMap<>();
   private final Pair<UsageInfo, UsageInfo> trueRace;
   // Currently only predicate one, but in general case we may add other ones
-  private List<AdjustablePrecision> precisions;
+  private Collection<AdjustablePrecision> precisions;
   RefinementStatus status;
 
   private RefinementResult(RefinementStatus rStatus, UsageInfo firstUsage, UsageInfo secondUsage) {
@@ -112,18 +112,18 @@ public class RefinementResult {
   }
 
   public void addPrecision(AdjustablePrecision p) {
-    precisions.add(p);
-  }
-
-  public void addPrecisions(List<AdjustablePrecision> pList) {
-    for (AdjustablePrecision p : pList) {
-      if (!p.isEmpty()) {
-        precisions.add(p);
-      }
+    if (!p.isEmpty()) {
+      precisions.add(p);
     }
   }
 
-  public List<AdjustablePrecision> getPrecisions() {
+  public void addPrecisions(Iterable<AdjustablePrecision> pList) {
+    for (AdjustablePrecision p : pList) {
+      addPrecision(p);
+    }
+  }
+
+  public Collection<AdjustablePrecision> getPrecisions() {
     return ImmutableList.copyOf(precisions);
   }
 
