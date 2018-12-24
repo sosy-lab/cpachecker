@@ -234,8 +234,9 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       stats.finishingTimer.start();
       if (disableAllCaching) {
         BAMPredicateCPA bamcpa = CPAs.retrieveCPA(cpa, BAMPredicateCPA.class);
-        assert bamcpa != null;
-        bamcpa.clearAllCaches();
+        if (bamcpa != null) {
+          bamcpa.clearAllCaches();
+        }
         // ARGState.clearIdGenerator();
       }
       // Note the following clean should be done always independently from option disableAllCaching
