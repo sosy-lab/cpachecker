@@ -74,6 +74,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
   private final Reducer reducer;
   private final UsageCPAStatistics statistics;
   private final CFA cfa;
+  private final Configuration config;
   private final LogManager logger;
   private final Map<CFANode, Map<GeneralIdentifier, DataType>> localMap;
   private final UsageProcessor usageProcessor;
@@ -95,6 +96,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
       throws InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
+    config = pConfig;
     this.cfa = pCfa;
     this.stopOperator = new UsageStopOperator(pCpa.getStopOperator());
     this.mergeOperator = new UsageMergeOperator(pCpa.getMergeOperator());
@@ -202,5 +204,9 @@ public class UsageCPA extends AbstractSingleWrapperCPA
 
   public ShutdownNotifier getNotifier() {
     return shutdownNotifier;
+  }
+
+  public Configuration getConfig() {
+    return config;
   }
 }

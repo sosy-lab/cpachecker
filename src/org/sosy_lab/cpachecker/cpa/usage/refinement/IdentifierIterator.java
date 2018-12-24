@@ -145,12 +145,12 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
     }
 
-    BAMPredicateCPA predicateCpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(BAMPredicateCPA.class);
-    if (predicateCpa == null) {
-      throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " needs an BAMPredicateCPA");
+    UsageCPA usageCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(UsageCPA.class);
+    if (usageCpa == null) {
+      throw new InvalidConfigurationException(UsageCPA.class.getSimpleName() + " needs a UsageCPA");
     }
 
-    return new RefinementBlockFactory(pCpa, predicateCpa.getConfiguration())
+    return new RefinementBlockFactory(pCpa, usageCpa.getConfig())
         .create();
   }
 
