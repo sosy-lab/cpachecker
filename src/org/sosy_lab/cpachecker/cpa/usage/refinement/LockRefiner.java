@@ -21,15 +21,14 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -41,6 +40,8 @@ import org.sosy_lab.cpachecker.cpa.lock.AbstractLockState;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 import org.sosy_lab.cpachecker.cpa.lock.LockPrecision;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
+import org.sosy_lab.cpachecker.cpa.lock.effects.AbstractLockEffect;
+import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -54,10 +55,7 @@ public class LockRefiner
     WrappedConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>, Pair<ExtendedARGPath, ExtendedARGPath>> {
 
   private final LockTransferRelation transfer;
-  private final Set<CFAEdge> controlPrecision;
-  private final Set<CFAEdge> currentIterationPrecision;
   private AbstractLockState initialLockState;
-  private final boolean disableCaching;
 
   // Statistics
   private StatTimer simplifyPath = new StatTimer("Time for path simplification");
@@ -70,13 +68,9 @@ public class LockRefiner
 
   public LockRefiner(
       ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,
-      LockTransferRelation pTransfer,
-      boolean pDisableCaching) {
+      LockTransferRelation pTransfer) {
     super(pWrapper);
     transfer = pTransfer;
-    controlPrecision = new HashSet<>();
-    currentIterationPrecision = new HashSet<>();
-    disableCaching = pDisableCaching;
   }
 
   protected AbstractLockState findLastState(List<CFAEdge> edges)
@@ -130,20 +124,14 @@ public class LockRefiner
       Iterable<Entry<CFANode, LockIdentifier>> prec = getNewPrecision(null, firstEdges);
       toPrecision = Iterables.concat(toPrecision, prec);
       firstPairs =
-          getAffectedStates(
-              from(prec).transform(p -> p.getKey()).toList(),
-              firstPath.asStatesList());
-      firstPath.setAsFalse();
+          getAffectedStates(prec, firstPath);
       secondPairs = Collections.emptyList();
 
     } else if (secondRealState == null) {
       Iterable<Entry<CFANode, LockIdentifier>> prec = getNewPrecision(null, secondEdges);
       toPrecision = Iterables.concat(toPrecision, prec);
       secondPairs =
-          getAffectedStates(
-              from(prec).transform(p -> p.getKey()).toList(),
-              secondPath.asStatesList());
-      secondPath.setAsFalse();
+          getAffectedStates(prec, secondPath);
       firstPairs = Collections.emptyList();
 
     } else {
@@ -162,10 +150,7 @@ public class LockRefiner
         Iterable<Entry<CFANode, LockIdentifier>> prec = getNewPrecision(id, firstEdges);
         toPrecision = Iterables.concat(toPrecision, prec);
         firstPairs =
-            getAffectedStates(
-                from(prec).transform(p -> p.getKey()).toList(),
-                firstPath.asStatesList());
-        firstPath.setAsFalse();
+            getAffectedStates(prec, firstPath);
       } else {
         firstPairs = Collections.emptyList();
       }
@@ -173,10 +158,7 @@ public class LockRefiner
         Iterable<Entry<CFANode, LockIdentifier>> prec = getNewPrecision(id, secondEdges);
         toPrecision = Iterables.concat(toPrecision, prec);
         secondPairs =
-            getAffectedStates(
-                from(prec).transform(p -> p.getKey()).toList(),
-                secondPath.asStatesList());
-        secondPath.setAsFalse();
+            getAffectedStates(prec, secondPath);
         if (secondPairs.equals(firstPairs)) {
           secondPairs = Collections.emptyList();
         }
@@ -200,24 +182,39 @@ public class LockRefiner
     AbstractLockState currentState = initialLockState;
 
     newPrecisionTimer.start();
-    // TODO may be filtered by lock, if we filter only lock effects
-    // Save effects are not related to a particular lock
-    List<CFAEdge> relatedEdges = pEdges;
-    // from(pEdges).filter(e -> transfer.getAffectedLocks(e).contains(pId)).toList();
 
     List<CFAEdge> filteredEdges = new ArrayList<>();
 
-    for (CFAEdge edge : relatedEdges) {
-      Collection<? extends AbstractState> successors =
-          transfer
-              .getAbstractSuccessorsForEdge(currentState, SingletonPrecision.getInstance(), edge);
+    for (CFAEdge edge : pEdges) {
+      List<AbstractLockEffect> effects = transfer.determineOperations(edge);
 
-      if (successors.isEmpty() && pId == null) {
+      if (pId != null) {
+        boolean valuable = false;
+        for (AbstractLockEffect e : effects) {
+          if (e instanceof LockEffect) {
+            if (((LockEffect) e).getAffectedLock().equals(pId)) {
+              valuable = true;
+              break;
+            }
+          } else {
+            // Save effects are not related to a particular lock
+            valuable = true;
+            break;
+          }
+        }
+        if (!valuable) {
+          continue;
+        }
+      }
+
+      currentState = transfer.applyEffects(currentState, effects);
+
+      if (currentState == null) {
+        assert pId == null;
         pId = Iterables.getOnlyElement(transfer.getAffectedLocks(edge));
         break;
       }
 
-      currentState = (AbstractLockState) Iterables.getOnlyElement(successors);
       if (currentState.compareTo(initialLockState) == 0) {
         filteredEdges.clear();
       } else {
@@ -226,11 +223,6 @@ public class LockRefiner
     }
     assert !filteredEdges.isEmpty();
     // assert !from(filteredEdges).anyMatch(controlPrecision::contains) : "edge was already added";
-
-    if (!disableCaching) {
-      // Do not add it directly, as it may be obtained in other iterations
-      currentIterationPrecision.addAll(filteredEdges);
-    }
 
     final LockIdentifier fId = pId;
     Map<CFANode, LockIdentifier> set =
@@ -245,8 +237,13 @@ public class LockRefiner
         .toList();
   }
 
-  private List<ARGState> getAffectedStates(List<CFANode> pNodes, List<ARGState> states) {
-    return from(states).filter(s -> pNodes.contains(AbstractStates.extractLocation(s))).toList();
+  private List<ARGState>
+      getAffectedStates(Iterable<Entry<CFANode, LockIdentifier>> prec, ExtendedARGPath pPath) {
+    FluentIterable<CFANode> nodes = from(prec).transform(p -> p.getKey());
+    pPath.setAsFalse();
+    return from(pPath.asStatesList())
+        .filter(s -> nodes.contains(AbstractStates.extractLocation(s)))
+        .toList();
   }
 
   @Override
@@ -256,16 +253,7 @@ public class LockRefiner
         .put(fullStateTimer)
         .put(newPrecisionTimer)
         .put(numberOfTrueResults)
-        .put(numberOfFalseResults)
-        .put("Considered edges:", controlPrecision.size());
+        .put(numberOfFalseResults);
 
-  }
-
-  @Override
-  protected void handleFinishSignal(Class<? extends RefinementInterface> pCallerClass) {
-    if (!disableCaching && pCallerClass.equals(IdentifierIterator.class)) {
-      controlPrecision.addAll(currentIterationPrecision);
-      currentIterationPrecision.clear();
-    }
   }
 }

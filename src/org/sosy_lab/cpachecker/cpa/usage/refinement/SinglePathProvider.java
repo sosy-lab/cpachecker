@@ -65,6 +65,7 @@ public class SinglePathProvider extends
     idExtractor = pExtractor;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public RefinementResult performBlockRefinement(Pair<UsageInfo, UsageInfo> pInput)
       throws CPAException, InterruptedException {
@@ -88,12 +89,17 @@ public class SinglePathProvider extends
     result = wrappedRefiner.performBlockRefinement(Pair.of(firstPath, secondPath));
     Object predicateInfo = result.getInfo(PredicateRefinerAdapter.class);
     if (predicateInfo != null && predicateInfo instanceof List) {
-      @SuppressWarnings("unchecked")
-      List<ARGState> affectedStates = (List<ARGState>) predicateInfo;
-      // affectedStates may be null, if the path was refined somewhen before
-      List<Integer> changedStateNumbers = from(affectedStates).transform(idExtractor).toList();
-      refinedStates.add(changedStateNumbers);
+      handleAffectedStates((List<ARGState>) predicateInfo);
     }
+    predicateInfo = result.getInfo(LockRefiner.class);
+    if (predicateInfo != null && predicateInfo instanceof Pair) {
+      Pair<List<ARGState>, List<ARGState>> lockInfo =
+          (Pair<List<ARGState>, List<ARGState>>) predicateInfo;
+
+      handleAffectedStates(lockInfo.getFirst());
+      handleAffectedStates(lockInfo.getSecond());
+    }
+
     addIfReachable(firstPath, unreacheableUsages);
     addIfReachable(secondPath, unreacheableUsages);
     if (!unreacheableUsages.isEmpty()) {
@@ -140,12 +146,13 @@ public class SinglePathProvider extends
 
   @Override
   public void printStatistics(StatisticsWriter pOut) {
-    pOut.spacer()
+    StatisticsWriter writer =
+        pOut.spacer()
         .put(computingPath)
         .put(numberOfSkippedPath)
         .put(numberOfCachedPath)
         .put(numberOfPathCalculated);
-    wrappedRefiner.printStatistics(pOut);
+    wrappedRefiner.printStatistics(writer);
   }
 
   @Override
@@ -157,6 +164,15 @@ public class SinglePathProvider extends
       skippedUsages.clear();
       cachedPaths.clear();
     }
+  }
+
+  private void handleAffectedStates(List<ARGState> affectedStates) {
+    if (affectedStates == null || affectedStates.isEmpty()) {
+      return;
+    }
+    List<Integer> changedStateNumbers = from(affectedStates).transform(idExtractor).toList();
+    assert !changedStateNumbers.isEmpty();
+    refinedStates.add(changedStateNumbers);
   }
 
 }

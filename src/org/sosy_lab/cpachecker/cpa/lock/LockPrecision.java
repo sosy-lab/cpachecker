@@ -80,6 +80,6 @@ public class LockPrecision implements AdjustablePrecision {
   }
 
   String getValues() {
-    return precision.values().toString();
+    return Sets.newHashSet(precision.values()).toString();
   }
 }

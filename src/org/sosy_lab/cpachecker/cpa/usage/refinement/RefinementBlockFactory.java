@@ -57,6 +57,7 @@ public class RefinementBlockFactory {
     PointIterator(currentInnerBlockType.UsageInfoSet),
     UsageIterator(currentInnerBlockType.UsageInfo),
     PathIterator(currentInnerBlockType.ExtendedARGPath),
+    SinglePathIterator(currentInnerBlockType.ExtendedARGPath),
     PathProvider(currentInnerBlockType.ExtendedARGPath),
     PredicateRefiner(currentInnerBlockType.ExtendedARGPath),
     CallstackFilter(currentInnerBlockType.ExtendedARGPath),
@@ -176,7 +177,19 @@ public class RefinementBlockFactory {
                     currentBlock,
                     computer,
                     idExtractor,
-                    notifier);
+                    notifier,
+                    false);
+            currentBlockType = currentInnerBlockType.UsageInfo;
+            break;
+
+          case SinglePathIterator:
+            currentBlock =
+                new PathPairIterator(
+                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
+                    computer,
+                    idExtractor,
+                    notifier,
+                    true);
             currentBlockType = currentInnerBlockType.UsageInfo;
             break;
 
@@ -233,8 +246,7 @@ public class RefinementBlockFactory {
             currentBlock =
                 new LockRefiner(
                     (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
-                    lockTransfer,
-                    disableAllCaching);
+                    lockTransfer);
 
             break;
 

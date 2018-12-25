@@ -102,7 +102,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
       LockPrecision lockPrecision = Precisions.extractPrecisionByType(p, LockPrecision.class);
       if (lockPrecision != null) {
         w.put("Number of considered lock operations", lockPrecision.getKeySize())
-            .put("Considered lock identifiers", lockPrecision.getValues());
+         .put("Considered lock identifiers", lockPrecision.getValues());
       }
     }
 
@@ -143,7 +143,6 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     // First, determine operations with locks
     List<AbstractLockEffect> toProcess = determineOperations(cfaEdge);
     stats.lockEffects.setNextValue(toProcess.size());
-    final AbstractLockStateBuilder builder = lockStatisticsElement.builder();
 
     if (pPrecision instanceof SingletonPrecision) {
       // From refiner
@@ -152,8 +151,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
       toProcess = lockPrecision.filter(cfaEdge.getPredecessor(), toProcess);
     }
 
-    toProcess.forEach(e -> e.effect(builder));
-    AbstractLockState successor = builder.build();
+    AbstractLockState successor = applyEffects(lockStatisticsElement, toProcess);
 
     stats.transferTimer.stop();
 
@@ -169,6 +167,13 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
+  public AbstractLockState
+      applyEffects(AbstractLockState oldState, List<AbstractLockEffect> toProcess) {
+    final AbstractLockStateBuilder builder = oldState.builder();
+    toProcess.forEach(e -> e.effect(builder));
+    return builder.build();
+  }
+
   public Set<LockIdentifier> getAffectedLocks(CFAEdge cfaEdge) {
     return getLockEffects(cfaEdge).transform(LockEffect::getAffectedLock).toSet();
   }
@@ -182,7 +187,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  private List<AbstractLockEffect> determineOperations(CFAEdge cfaEdge)
+  public List<AbstractLockEffect> determineOperations(CFAEdge cfaEdge)
       throws UnrecognizedCodeException {
 
     switch (cfaEdge.getEdgeType()) {

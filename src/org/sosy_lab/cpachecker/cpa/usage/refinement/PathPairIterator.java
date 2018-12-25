@@ -72,27 +72,39 @@ public class PathPairIterator extends
 
   //internal state
   private ExtendedARGPath firstPath = null;
+  private final boolean singlePathMode;
+  private boolean pathMayBeCalculated = true;
 
   public PathPairIterator(
       ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,
       BAMMultipleCEXSubgraphComputer pComputer,
       Function<ARGState, Integer> pExtractor,
-      ShutdownNotifier pNotifier) {
+      ShutdownNotifier pNotifier,
+      boolean pSinglePathMode) {
     super(pWrapper, pNotifier);
     subgraphComputer = pComputer;
     targetToPathIterator = new IdentityHashMap<>();
     skippedUsages = new HashSet<>();
     idExtractor = pExtractor;
+    singlePathMode = pSinglePathMode;
   }
 
   @Override
   protected void init(Pair<UsageInfo, UsageInfo> pInput) {
     firstPath = null;
+    if (singlePathMode) {
+      pathMayBeCalculated = true;
+    }
   }
 
   @Override
   protected Pair<ExtendedARGPath, ExtendedARGPath> getNext(Pair<UsageInfo, UsageInfo> pInput) {
     UsageInfo firstUsage, secondUsage;
+
+    if (!pathMayBeCalculated) {
+      return null;
+    }
+
     firstUsage = pInput.getFirst();
     secondUsage = pInput.getSecond();
 
@@ -124,6 +136,11 @@ public class PathPairIterator extends
         return null;
       }
     }
+
+    if (singlePathMode) {
+      pathMayBeCalculated = false;
+    }
+
     return Pair.of(firstPath, secondPath);
   }
 
@@ -169,14 +186,10 @@ public class PathPairIterator extends
 
     if (firstExtendedPath.isUnreachable()) {
       firstPath = null;
-      if (firstAffectedStates != null && !firstAffectedStates.isEmpty()) {
-        handleAffectedStates(firstAffectedStates);
-      }
+      handleAffectedStates(firstAffectedStates);
     }
     if (secondExtendedPath.isUnreachable()) {
-      if (secondAffectedStates != null && !secondAffectedStates.isEmpty()) {
-        handleAffectedStates(secondAffectedStates);
-      }
+      handleAffectedStates(secondAffectedStates);
     }
     updateTheComputedSet(firstExtendedPath);
     updateTheComputedSet(secondExtendedPath);
@@ -272,15 +285,21 @@ public class PathPairIterator extends
 
     computingPath.start();
     //try to compute more paths
-    BAMSubgraphIterator pathIterator;
-    if (targetToPathIterator.containsKey(info)) {
-      pathIterator = targetToPathIterator.get(info);
+    if (singlePathMode) {
+      // Iterator computes a path until it does not go through refinedStates
+      // And subgraph computer computes only the first path
+      currentPath = subgraphComputer.computePath((ARGState) info.getKeyState(), refinedStates);
     } else {
-      ARGState target = (ARGState)info.getKeyState();
-      pathIterator = subgraphComputer.iterator(target);
-      targetToPathIterator.put(info, pathIterator);
+      BAMSubgraphIterator pathIterator;
+      if (targetToPathIterator.containsKey(info)) {
+        pathIterator = targetToPathIterator.get(info);
+      } else {
+        ARGState target = (ARGState) info.getKeyState();
+        pathIterator = subgraphComputer.iterator(target);
+        targetToPathIterator.put(info, pathIterator);
+      }
+      currentPath = pathIterator.nextPath(refinedStates);
     }
-    currentPath = pathIterator.nextPath(refinedStates);
     computingPath.stop();
 
     if (currentPath == null) {
@@ -298,6 +317,9 @@ public class PathPairIterator extends
   }
 
   private void handleAffectedStates(List<ARGState> affectedStates) {
+    if (affectedStates == null || affectedStates.isEmpty()) {
+      return;
+    }
     List<Integer> changedStateNumbers = from(affectedStates).transform(idExtractor).toList();
     assert !changedStateNumbers.isEmpty();
     refinedStates.add(changedStateNumbers);
