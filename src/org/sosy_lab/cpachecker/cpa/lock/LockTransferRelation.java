@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.cpa.lock.effects.SaveStateLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.SetLockEffect;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -91,11 +92,18 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-      StatisticsWriter.writingStatisticsTo(pOut)
+      StatisticsWriter w = StatisticsWriter.writingStatisticsTo(pOut)
           .put(transferTimer)
           .put(lockEffects)
           .put(locksInState)
           .put(locksInStateWithLocks);
+
+      Precision p = pReached.getPrecision(pReached.getFirstState());
+      LockPrecision lockPrecision = Precisions.extractPrecisionByType(p, LockPrecision.class);
+      if (lockPrecision != null) {
+        w.put("Number of considered lock operations", lockPrecision.getKeySize())
+            .put("Considered lock identifiers", lockPrecision.getValues());
+      }
     }
 
     @Override

@@ -96,6 +96,7 @@ public class RefinementBlockFactory {
   @Option(name = "pathEquality", description = "The way how to identify two paths as equal")
   PathEquation pathEquation = PathEquation.CFANodeId;
 
+  // Strange, but this option is much more better in true (even by time consumption)
   @Option(description = "Disable all caching into all internal refinement blocks", secure = true)
   private boolean disableAllCaching = false;
 

@@ -122,6 +122,9 @@ public abstract class ErrorTracePrinter {
   @Option(description = "output only true unsafes", secure = true)
   private boolean printOnlyTrueUnsafes = false;
 
+  @Option(description = "print unsafes with empty lock states", secure = true)
+  private boolean printEmptyLockStates = true;
+
   // private final BAMTransferRelation transfer;
   protected final LockTransferRelation lockTransfer;
 
@@ -210,15 +213,19 @@ public abstract class ErrorTracePrinter {
         continue;
       }
       Pair<UsageInfo, UsageInfo> tmpPair = detector.getUnsafePair(uinfo);
-
       unsafeDetectionTimer.stop();
-      if (filterSimilarUnsafes && shouldBeSkipped(tmpPair, id)) {
-        continue;
-      }
 
       if (tmpPair.getFirst().getLockState().getSize() == 0
           && tmpPair.getSecond().getLockState().getSize() == 0) {
-        emptyLockSetUnsafes.inc();
+        if (printEmptyLockStates) {
+          emptyLockSetUnsafes.inc();
+        } else {
+          continue;
+        }
+      }
+
+      if (filterSimilarUnsafes && shouldBeSkipped(tmpPair, id)) {
+        continue;
       }
 
       writingUnsafeTimer.start();

@@ -75,4 +75,11 @@ public class LockPrecision implements AdjustablePrecision {
     return filteredEffects;
   }
 
+  int getKeySize() {
+    return precision.size();
+  }
+
+  String getValues() {
+    return precision.values().toString();
+  }
 }

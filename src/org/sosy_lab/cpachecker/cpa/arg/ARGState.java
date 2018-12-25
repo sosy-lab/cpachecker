@@ -79,7 +79,7 @@ public class ARGState extends AbstractSingleWrapperState
   // If this is a target state, we may store additional information here.
   private transient CounterexampleInfo counterexample;
 
-  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+  private static UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
   public ARGState(@Nullable AbstractState pWrappedState, @Nullable ARGState pParentElement) {
     super(pWrappedState);
@@ -591,5 +591,9 @@ public class ARGState extends AbstractSingleWrapperState
     } else {
       assert !pOtherParent.children.contains(this) : "Problem detected!";
     }
+  }
+
+  public static void clearIdGenerator() {
+    idGenerator = new UniqueIdGenerator();
   }
 }

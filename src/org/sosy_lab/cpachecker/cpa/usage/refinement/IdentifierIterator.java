@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateCPA;
@@ -237,8 +238,8 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
         if (bamcpa != null) {
           bamcpa.clearAllCaches();
         }
-        // ARGState.clearIdGenerator();
       }
+      ARGState.clearIdGenerator();
       // Note the following clean should be done always independently from option disableAllCaching
       if (totalARGCleaning) {
         transfer.cleanCaches();
