@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.CollectionUtils;
+import org.sosy_lab.cpachecker.cpa.hybrid.util.ExpressionUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class HybridAnalysisState implements LatticeAbstractState<HybridAnalysisState>,
@@ -210,29 +211,29 @@ public class HybridAnalysisState implements LatticeAbstractState<HybridAnalysisS
    * @return Whether the state tracks an assumption for this variable
    */
   public boolean tracksVariable(CExpression pCIdExpression) {
-    return trackedVariables.contains(pCIdExpression);
+
+    if(trackedVariables.contains(pCIdExpression)) {
+      return true;
+    }
+
+    @Nullable final String identifier = ExpressionUtils.extractVariableIdentifier(pCIdExpression);
+
+    for(CBinaryExpression )
   }
 
-  private boolean haveTheSameVariable(CBinaryExpression first, CBinaryExpression second) {
-    CExpression firstLeftHandSide = first.getOperand1();
+  private boolean haveTheSameVariable(CExpression first, CExpression second) {
+
     CExpression secondLeftHandSide = second.getOperand1();
 
-    @Nullable String nameFirst = extractName(firstLeftHandSide);
-    @Nullable String nameSecond = extractName(secondLeftHandSide);
+    @Nullable String nameFirst = ExpressionUtils.extractVariableIdentifier(firstLeftHandSide);
+    @Nullable String nameSecond = ExpressionUtils.extractVariableIdentifier(secondLeftHandSide);
+
+    if(first instanceof CBinaryExpression) {
+      CExpression firstLeftHandSide = (())
+      nameFirst
+    }
 
     return Objects.equals(nameFirst, nameSecond);
   }
 
-  @Nullable
-  private String extractName(CExpression pExpression) {
-    if(pExpression instanceof CIdExpression) {
-      return ((CIdExpression) pExpression).getName();
-    }
-    if(pExpression instanceof CArraySubscriptExpression) {
-      CExpression arrayExpression = ((CArraySubscriptExpression)pExpression).getArrayExpression();
-      return extractName(arrayExpression);
-    }
-
-    return null;
-  }
 }

@@ -26,65 +26,49 @@ package org.sosy_lab.cpachecker.cpa.hybrid;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils;
-import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueProvider;
 import org.sosy_lab.cpachecker.cpa.hybrid.exception.InvalidAssumptionException;
-import org.sosy_lab.cpachecker.cpa.hybrid.util.CollectionUtils;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.ExpressionUtils;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.StrengthenOperatorFactory;
 import org.sosy_lab.cpachecker.cpa.hybrid.visitor.HybridValueDeclarationTransformer;
 import org.sosy_lab.cpachecker.cpa.hybrid.visitor.HybridValueIdExpressionTransformer;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-@Options(prefix="cpa.hybrid")
 public class HybridAnalysisTransferRelation
     extends ForwardingTransferRelation<HybridAnalysisState, HybridAnalysisState, VariableTrackingPrecision> {
-
-  @Option(secure = true, name = "trackAssumptions", description = "Determines whether to track assumptions occurring within the code in the hybrid analysis states.")
-  private boolean trackAssumptions = false;
-
-  @Option(secure = true, name = "trackAssignments", description = "Determines whether to track assignments occurring within the code in the hybrid analysis states.")
-  private boolean trackAssignments = false;
 
   private final CFA cfa;
   private final LogManager logger;
 
   private final AssumptionGenerator assumptionGenerator;
-
 
   public HybridAnalysisTransferRelation(
       CFA pCfa,
@@ -126,48 +110,38 @@ public class HybridAnalysisTransferRelation
   }
 
 
+  // ----- AssumeEdge -----
+
   @Override
   protected @Nullable HybridAnalysisState handleAssumption(
       CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
       throws CPATransferException {
 
-    // HybridAnalysis can only handle binary expressions as assumptions
-    assert expression instanceof CBinaryExpression;
-
-    // if the edge does not introduce a new assumption or assumptions should not be tracked at all
-    if(!trackAssumptions || state.getAssumptions().contains(expression))
-    {
-      return HybridAnalysisState.copyOf(state);
-    }
-
-    Set<CBinaryExpression> assumptions = Sets.newHashSet(state.getExplicitAssumptions());
-    CBinaryExpression binaryExpression = (CBinaryExpression) expression;
-    CExpression variableId = binaryExpression.getOperand1();
-
-    // existing variable (within state)
-    if(state.tracksVariable(variableId)) {
-      // check for existence of the first operand -> assumptionEdge updates the assumption of an already existing variable
-      final Collection<CBinaryExpression> matchingAssumptions =
-          CollectionUtils.getApplyingElements(assumptions, assumption -> assumption.getOperand1().equals(variableId));
-
-      // at this point exactly one assumption for a variable should exist
-      if(matchingAssumptions.size() != 1) {
-        throw new CPATransferException("Multiple assumptions for the same variable in this state.");
-      }
-
-      @Nullable CBinaryExpression existingAssumption = CollectionUtils.first(matchingAssumptions);
-
-      if(existingAssumption != null) {
-        // replace the assumption
-        assumptions.remove(existingAssumption);
-      }
-    }
-
-    // possible inversion of logical operation
-    assumptions.add(ExpressionUtils.getASTWithTruthAssumption(cfaEdge, binaryExpression));
-
-    return new HybridAnalysisState(ImmutableSet.copyOf(assumptions));
+    return simpleCopy();
   }
+
+  // ----- FunctionCallEdge -----
+
+  @Override
+  protected HybridAnalysisState handleFunctionCallEdge(
+      CFunctionCallEdge cfaEdge,
+      List<CExpression> arguments, List<CParameterDeclaration> parameters,
+      String calledFunctionName) throws CPATransferException {
+
+    return simpleCopy();
+  }
+
+  // ----- FunctionReturnEdge -----
+
+  @Override
+  protected HybridAnalysisState handleFunctionReturnEdge(CFunctionReturnEdge cfaEdge,
+      CFunctionSummaryEdge fnkCall, CFunctionCall summaryExpr, String callerFunctionName)
+        throws CPATransferException {
+
+    return simpleCopy();
+  }
+
+  // ----- DeclarationEdge -----
 
   @Override
   protected HybridAnalysisState handleDeclarationEdge(
@@ -179,7 +153,7 @@ public class HybridAnalysisTransferRelation
 
       @Nullable CExpression newAssumption = assumptionGenerator.generateAssumption(pCDeclaration);
       if(newAssumption == null) {
-        return HybridAnalysisState.copyOf(state);
+        return simpleCopy();
       }
 
       return HybridAnalysisState.copyWithNewAssumptions(state, newAssumption);
@@ -191,6 +165,8 @@ public class HybridAnalysisTransferRelation
     }
   }
 
+  // ----- StatementEdge -----
+
   @Override
   protected HybridAnalysisState handleStatementEdge(
       CStatementEdge pCStatementEdge,
@@ -198,79 +174,69 @@ public class HybridAnalysisTransferRelation
     throws  CPATransferException {
 
     if(pCStatement instanceof CExpressionStatement || pCStatement instanceof CFunctionCallStatement) {
-      return HybridAnalysisState.copyOf(state);
+      return simpleCopy();
     }
 
     // simple assignment
     if(pCStatement instanceof CExpressionAssignmentStatement) {
 
-      // we don't want to track assignments
-      if(!trackAssignments) {
-        return HybridAnalysisState.copyOf(state);
+      // if an assumption for the target-variable exists, remove it
+      CExpressionAssignmentStatement assignmentStatement = (CExpressionAssignmentStatement) pCStatement;
+      CLeftHandSide leftHandSide = assignmentStatement.getLeftHandSide();
+
+      // nothing to do
+      if(!ExpressionUtils.checkForVariableIdentifier(leftHandSide)) {
+        simpleCopy();
       }
 
-      // handle assignment
-      Collection<CStatement> singletonList = Collections.singleton(pCStatement);
-      try {
-        List<AExpression> expressions = CParserUtils
-          .convertStatementsToAssumptions(singletonList, cfa.getMachineModel(), logger);
+      // we need to remove the current assumption
 
-        // build new state
-        CExpression assignment = (CExpression) expressions.get(0); // first and only
 
-        // save to call with null, because of null check on usage of the edge
-        return handleAssumption(null, assignment, true);
-
-      } catch (InvalidAutomatonException e) {
-        throw new CPATransferException("Unable to parse CStatement into assumption", e);
-      }
     }
 
     // function call assignment
     if(pCStatement instanceof CFunctionCallAssignmentStatement) {
 
       CFunctionCallAssignmentStatement statement = (CFunctionCallAssignmentStatement) pCStatement;
-      CExpression functionNameExpression = statement.getFunctionCallExpression().getFunctionNameExpression();
+      return handleFunctionCallAssignment(statement);
+    }
 
-      boolean isNondetCall = false;
-      if(functionNameExpression instanceof CIdExpression) {
+    return simpleCopy();
+  }
 
-        isNondetCall = isVerifierNondet(((CIdExpression) functionNameExpression).getName());
-      } else if(functionNameExpression instanceof CArraySubscriptExpression) {
+  private HybridAnalysisState handleFunctionCallAssignment(
+      CFunctionCallAssignmentStatement pFunctionCallAssignmentStatement)
+      throws CPATransferException {
 
-        CArraySubscriptExpression arraySubscriptExpression = (CArraySubscriptExpression) functionNameExpression;
-        CExpression arrayIdentifierExpression = arraySubscriptExpression.getArrayExpression();
-        if(arrayIdentifierExpression instanceof CIdExpression) {
+    CFunctionCallExpression functionCallExpression = pFunctionCallAssignmentStatement
+        .getFunctionCallExpression();
 
-          isNondetCall = isVerifierNondet(((CIdExpression) arrayIdentifierExpression).getName());
+    if(ExpressionUtils.isVerifierNondet(functionCallExpression)) {
+
+      // function call is actually nondet
+      try {
+
+        @Nullable CExpression newAssumption =
+            assumptionGenerator.generateAssumption(pFunctionCallAssignmentStatement.getLeftHandSide());
+        if(newAssumption == null) {
+          return simpleCopy();
         }
-      }
 
-      if(isNondetCall) {
-
-        // function call is actually nondet
-        try {
-
-          @Nullable CExpression newAssumption = assumptionGenerator.generateAssumption(functionNameExpression);
-          if(newAssumption == null) {
-            return HybridAnalysisState.copyOf(state);
-          }
-
-          return HybridAnalysisState.copyWithNewAssumptions(state, newAssumption);
-        } catch (InvalidAssumptionException iae) {
-          throw new CPATransferException(
-              String.format("Unable to generate assumption for function call assignment %s", statement),
-              iae);
-        }
+        return HybridAnalysisState.copyWithNewAssumptions(state, newAssumption);
+      } catch (InvalidAssumptionException iae) {
+        throw new CPATransferException(
+            String.format(
+                "Unable to generate assumption for function call assignment %s",
+                pFunctionCallAssignmentStatement),
+            iae);
       }
     }
 
-    return HybridAnalysisState.copyOf(state);
+    return simpleCopy();
   }
 
-  // to determine whether the identifier name contains nondet-prefix
-  private boolean isVerifierNondet(final String pVerifierName) {
-    return pVerifierName.startsWith("__VERIFIER_nondet");
+  private HybridAnalysisState simpleCopy() {
+    return HybridAnalysisState.copyOf(state);
   }
 
 }

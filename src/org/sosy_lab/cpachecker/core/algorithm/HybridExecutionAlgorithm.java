@@ -601,17 +601,13 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
       CExpression leftHandSide = assumption.getOperand1();
       CExpression rightHandSide = assumption.getOperand2();
 
-      if(checkForVariableIdentifier(leftHandSide)) {
+      if(ExpressionUtils.checkForVariableIdentifier(leftHandSide)) {
         variables.add(leftHandSide);
       }
 
-      if(checkForVariableIdentifier(rightHandSide)) {
+      if(ExpressionUtils.checkForVariableIdentifier(rightHandSide)) {
         variables.add(rightHandSide);
       }
-    }
-
-    private boolean checkForVariableIdentifier(CExpression pCExpression) {
-      return pCExpression instanceof CIdExpression || pCExpression instanceof CArraySubscriptExpression;
     }
 
   }

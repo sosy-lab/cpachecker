@@ -25,8 +25,12 @@ package org.sosy_lab.cpachecker.cpa.hybrid.util;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 
 /**
@@ -34,36 +38,69 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
  */
 public final class ExpressionUtils {
 
-    // utility class only contains static members
-    private ExpressionUtils() {}
+  // utility class only contains static members
+  private ExpressionUtils() {}
 
-    /**
-     * Calculate the Expression including the truthAssumption
-     * @param cfaEdge The respective AssumptionEdge of the cfa
-     * @param expression The already casted expression contained withing the edge
-     * @return the (possibly inverted Expression), if the Expression provided by the edge is of type CBinaryExpression,
-     *         else an empty Optional
-     */
-    public static CBinaryExpression getASTWithTruthAssumption(AssumeEdge pCfaEdge, CBinaryExpression pExpression) {
+  /**
+   * Calculate the Expression including the truthAssumption
+   * @param cfaEdge The respective AssumptionEdge of the cfa
+   * @param expression The already casted expression contained withing the edge
+   * @return the (possibly inverted Expression), if the Expression provided by the edge is of type CBinaryExpression,
+   *         else an empty Optional
+   */
+  public static CBinaryExpression getASTWithTruthAssumption(AssumeEdge pCfaEdge, CBinaryExpression pExpression) {
 
-        if(pCfaEdge == null || pCfaEdge.getTruthAssumption()) {
+    if(pCfaEdge == null || pCfaEdge.getTruthAssumption()) {
 
-            return pExpression;
-        }
-
-        // operator inversion is needed
-        return invertExpression(pExpression);
+        return pExpression;
     }
 
-    public static CBinaryExpression invertExpression(CBinaryExpression pExpression) {
-        BinaryOperator newOperator = pExpression.getOperator().getOppositLogicalOperator();
+    // operator inversion is needed
+    return invertExpression(pExpression);
+  }
 
-        return new CBinaryExpression(
-            pExpression.getFileLocation(), 
-            pExpression.getExpressionType(), 
-            pExpression.getCalculationType(),
-            pExpression.getOperand1(),
-            pExpression.getOperand2(),
-            newOperator);
+  public static CBinaryExpression invertExpression(CBinaryExpression pExpression) {
+    BinaryOperator newOperator = pExpression.getOperator().getOppositLogicalOperator();
+
+    return new CBinaryExpression(
+        pExpression.getFileLocation(),
+        pExpression.getExpressionType(),
+        pExpression.getCalculationType(),
+        pExpression.getOperand1(),
+        pExpression.getOperand2(),
+        newOperator);
+  }
+
+  public static boolean checkForVariableIdentifier(CExpression pCExpression) {
+    return pCExpression instanceof CIdExpression
+        || pCExpression instanceof CArraySubscriptExpression;
+  }
+
+  @Nullable
+  public static String extractVariableIdentifier(CExpression pExpression) {
+
+    @Nullable
+    String identifier = null;
+    if (pExpression instanceof CIdExpression) {
+
+      identifier = ((CIdExpression) pExpression).getName();
+    } else if (pExpression instanceof CArraySubscriptExpression) {
+
+      CArraySubscriptExpression arraySubscriptExpression = (CArraySubscriptExpression) pExpression;
+      CExpression arrayIdentifierExpression = arraySubscriptExpression.getArrayExpression();
+      if (arrayIdentifierExpression instanceof CIdExpression) {
+
+        identifier = ((CIdExpression) arrayIdentifierExpression).getName();
+      }
     }
+
+    return identifier;
+  }
+
+  public static boolean isVerifierNondet(CFunctionCallExpression pFunctionCallExpression) {
+
+    final String verifierName = pFunctionCallExpression.getFunctionNameExpression().toASTString();
+
+    return verifierName.startsWith("__VERIFIER_nondet");
+  }
 } 

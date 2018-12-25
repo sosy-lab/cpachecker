@@ -62,6 +62,10 @@ public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOp
     // used to collect all binary expressions, that are already tracked by the value analysis and thus can be removed
     Set<CBinaryExpression> removeableAssumptions = Sets.newHashSet();
 
+    /*
+     * TODO: if value in ValueAnalysis in Unknown, try to generate a value
+     */
+
     for(CBinaryExpression binaryExpression : assumptions) {
 
       CExpression leftHandSide = binaryExpression.getOperand1();
