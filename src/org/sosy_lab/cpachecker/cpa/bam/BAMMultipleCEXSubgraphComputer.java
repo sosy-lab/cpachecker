@@ -29,6 +29,7 @@ import com.google.common.base.Function;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -140,7 +141,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
         // The current subtree (successors of child) is appended beyond the innerTree, to get a complete subgraph.
         computeCounterexampleSubgraphForBlock(newCurrentElement, childrenInSubgraph);
         assert childrenInSubgraph.size() == 1;
-        /*BackwardARGState tmpState = childrenInSubgraph.iterator().next();
+        BackwardARGState tmpState = childrenInSubgraph.iterator().next();
         // Check repetition of constructed states
         Deque<ARGState> waitlist = new ArrayDeque<>();
         waitlist.add(tmpState);
@@ -153,7 +154,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
             return DUMMY_STATE_FOR_REPEATED_STATE;
           }
           waitlist.addAll(tmpState.getParents());
-        }*/
+        }
 
       } else {
         // children are normal successors -> create an connection from parent to children
