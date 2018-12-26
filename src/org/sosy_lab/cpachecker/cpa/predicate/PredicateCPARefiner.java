@@ -134,6 +134,9 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   )
   private boolean useUCBRefinement = false;
 
+  @Option(secure=true,description="Path checking takes a lot of time, sometimes we need a quick result")
+  private boolean checkPath = true;
+
   // statistics
   private final StatInt totalPathLength = new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
   private final StatTimer totalRefinement = new StatTimer("Time for refinement");
@@ -332,7 +335,12 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
         logger.log(Level.FINEST, "Error trace is not spurious");
         errorPathProcessing.start();
         try {
-          return pathChecker.handleFeasibleCounterexample(allStatesTrace, counterexample, branchingOccurred);
+          if (checkPath) {
+            return pathChecker
+                .handleFeasibleCounterexample(allStatesTrace, counterexample, branchingOccurred);
+          } else {
+            return CounterexampleInfo.feasibleImprecise(allStatesTrace);
+          }
         } finally {
           errorPathProcessing.stop();
         }

@@ -27,14 +27,11 @@ import static com.google.common.collect.FluentIterable.from;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -61,6 +58,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 
@@ -70,21 +68,16 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
 
   private final UsageStatisticsRefinementStrategy strategy;
   private ARGReachedSet ARGReached;
-  private final boolean disableCaching;
-
-  private final Set<List<CFAEdge>> falseCacheForCurrentIteration = new HashSet<>();
-  private final Set<List<CFAEdge>> trueCache = new HashSet<>();
 
   // Statistics
+  private StatTimer externalRefinement = new StatTimer("Time for predicate refinement");
   private StatCounter solverFailures = new StatCounter("Solver failures");
-  private StatCounter numberOfrepeatedPaths = new StatCounter("Number of repeated paths");
-  private StatCounter numberOfrefinedPaths = new StatCounter("Number of refined paths");
+  // Number of refined and repeated paths are calculated in generic refiner
   private StatCounter numberOfBAMupdates = new StatCounter("Number of BAM updates");
 
   public PredicateRefinerAdapter(ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> wrapper,
       ConfigurableProgramAnalysis pCpa,
-      LogManager pLogger,
-      boolean pDisableCaching)
+      LogManager pLogger)
       throws InvalidConfigurationException {
     super(wrapper);
 
@@ -112,46 +105,23 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
     refiner = new PredicateCPARefinerFactory(pCpa)
         .setBlockFormulaStrategy(blockFormulaStrategy)
         .create(strategy);
-
-    disableCaching = pDisableCaching;
   }
 
   @Override
   public RefinementResult call(ExtendedARGPath pInput) throws CPAException, InterruptedException {
     RefinementResult result;
 
-    List<CFAEdge> currentPath = pInput.getInnerEdges();
-
-    if (trueCache.contains(currentPath)) {
-      //Somewhen we have already refined this path as true
-      result = RefinementResult.createTrue();
-    } else if (falseCacheForCurrentIteration.contains(currentPath)) {
-      // We refined it for other usage
-      // just return the result;
-      result = RefinementResult.createFalse();
-    } else {
-      /*if (!totalARGCleaning) {
-        subtreesRemover.addStateForRemoving((ARGState)target.getKeyState());
-        for (ARGState state : strategy.lastAffectedStates) {
-          subtreesRemover.addStateForRemoving(state);
-        }
-      }*/
-      result = performPredicateRefinement(pInput);
-    }
-    return result;
-  }
-
-  private RefinementResult performPredicateRefinement(ExtendedARGPath path) throws CPAException, InterruptedException {
-    RefinementResult result;
+    /*
+     * if (!totalARGCleaning) {
+     * subtreesRemover.addStateForRemoving((ARGState)target.getKeyState()); for (ARGState state :
+     * strategy.lastAffectedStates) { subtreesRemover.addStateForRemoving(state); } }
+     */
     try {
-      numberOfrefinedPaths.inc();
-      CounterexampleInfo cex = refiner.performRefinementForPath(ARGReached, path);
-      List<CFAEdge> edges = path.getInnerEdges();
+      externalRefinement.start();
+      CounterexampleInfo cex = refiner.performRefinementForPath(ARGReached, pInput);
+      externalRefinement.stop();
 
       if (!cex.isSpurious()) {
-        if (!disableCaching) {
-          trueCache.add(edges);
-        }
         result = RefinementResult.createTrue();
       } else {
         result = RefinementResult.createFalse();
@@ -163,7 +133,6 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
           assert (lastPrecision != null);
           result.addPrecision(lastPrecision);
         }
-        falseCacheForCurrentIteration.add(edges);
       }
 
     } catch (IllegalStateException e) {
@@ -171,11 +140,12 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
       // consider its as true;
       logger.log(Level.WARNING, "Solver exception: " + e.getMessage());
       solverFailures.inc();
+      externalRefinement.stop();
       result = RefinementResult.createUnknown();
     } catch (RefinementFailedException e) {
-      numberOfrepeatedPaths.inc();
       logger.log(Level.WARNING, "Path is repeated, BAM is looped");
-      path.getUsageInfo().setAsLooped();
+      pInput.getUsageInfo().setAsLooped();
+      externalRefinement.stop();
       result = RefinementResult.createTrue();
     }
     return result;
@@ -194,10 +164,6 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   @Override
   protected void handleFinishSignal(Class<? extends RefinementInterface> pCallerClass) {
     if (pCallerClass.equals(IdentifierIterator.class)) {
-      //false cache may contain other precision
-      //It happens if we clean it for other Id and rerefine it now
-      //Just replace old precision
-      falseCacheForCurrentIteration.clear();
       ARGReached = null;
       strategy.lastAffectedStates.clear();
       strategy.lastAddedPrecision = null;
@@ -206,12 +172,9 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
 
   @Override
   protected void printAdditionalStatistics(StatisticsWriter pOut) {
-    pOut.beginLevel()
-        .put(numberOfrefinedPaths)
-        .put(numberOfrepeatedPaths)
+    pOut.put(externalRefinement)
         .put(solverFailures)
-        .put(numberOfBAMupdates)
-        .put("Size of true cache", trueCache.size());
+        .put(numberOfBAMupdates);
   }
 
   @Override

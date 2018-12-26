@@ -255,5 +255,6 @@ public class LockRefiner
         .put(numberOfTrueResults)
         .put(numberOfFalseResults);
 
+    wrappedRefiner.printStatistics(pOut);
   }
 }

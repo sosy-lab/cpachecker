@@ -903,8 +903,11 @@ public final class InterpolationManager {
       CounterexampleTraceInfo info;
       if (spurious) {
 
+        interpolationTimer.start();
         final List<BooleanFormula> interpolants =
             getInterpolants(this, formulasWithStatesAndGroupdIds);
+        interpolationTimer.stop();
+
         if (logger.wouldBeLogged(Level.ALL)) {
           int i = 1;
           for (BooleanFormula itp : interpolants) {
