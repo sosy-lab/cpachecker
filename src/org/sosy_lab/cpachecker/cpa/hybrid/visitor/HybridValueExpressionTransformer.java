@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.hybrid.visitor;
 
 import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -40,7 +41,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
  * A hybrid value transformer for non deterministic function assignments to variable identifier
  */
 public abstract class HybridValueExpressionTransformer<T extends CExpression>
-    extends HybridValueTransformer<CExpression, T> {
+    extends HybridValueTransformer<CBinaryExpression, T> {
 
   protected HybridValueExpressionTransformer(
       MachineModel pMachineModel,
@@ -49,7 +50,7 @@ public abstract class HybridValueExpressionTransformer<T extends CExpression>
   }
 
   @Override
-  public CExpression transform(
+  public CBinaryExpression transform(
       Value pValue, T pT, BinaryOperator pOperator) throws InvalidAssumptionException {
 
     CExpression rightHandSide = getRightHandSide(pValue);

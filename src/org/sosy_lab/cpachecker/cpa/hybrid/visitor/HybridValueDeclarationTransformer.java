@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.hybrid.visitor;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -38,9 +39,9 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
  * A hybrid value transformer for declaration cases
  */
 public class HybridValueDeclarationTransformer
-    extends HybridValueTransformer<CExpression, CDeclaration> {
+    extends HybridValueTransformer<CBinaryExpression, CDeclaration> {
 
-  private final HybridValueTransformer<CExpression, CIdExpression> idExpressionTransformer;
+  private final HybridValueTransformer<CBinaryExpression, CIdExpression> idExpressionTransformer;
 
   public HybridValueDeclarationTransformer(
       MachineModel pMachineModel,
@@ -51,7 +52,7 @@ public class HybridValueDeclarationTransformer
   }
 
   @Override
-  public CExpression transform(Value pValue, CDeclaration pCDeclaration, BinaryOperator pOperator) 
+  public CBinaryExpression transform(Value pValue, CDeclaration pCDeclaration, BinaryOperator pOperator)
     throws InvalidAssumptionException{
     
     // we just build a CIdExpression and pass it to the internal transformer object

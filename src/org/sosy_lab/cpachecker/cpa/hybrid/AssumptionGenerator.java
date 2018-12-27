@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -43,7 +44,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 public class AssumptionGenerator {
 
-  private final HybridValueTransformer<CExpression, CDeclaration> declarationTransformer;
+  private final HybridValueTransformer<CBinaryExpression, CDeclaration> declarationTransformer;
   private final HybridValueExpressionTransformer<CIdExpression> idExpressionTransformer;
   private final HybridValueExpressionTransformer<CArraySubscriptExpression> arraySubscriptExpressionTransformer;
   private final HybridValueProvider valueProvider;
@@ -67,7 +68,7 @@ public class AssumptionGenerator {
    * @return
    */
   @Nullable
-  public CExpression generateAssumption(CAstNode pCAstNode)
+  public CBinaryExpression generateAssumption(CAstNode pCAstNode)
       throws InvalidAssumptionException {
 
     if(pCAstNode instanceof CDeclaration) {
@@ -84,21 +85,21 @@ public class AssumptionGenerator {
     return null;
   }
 
-  private CExpression handleDeclaration(CDeclaration pCDeclaration)
+  private CBinaryExpression handleDeclaration(CDeclaration pCDeclaration)
       throws InvalidAssumptionException {
 
     Value value = valueProvider.delegateVisit(pCDeclaration.getType());
     return declarationTransformer.transform(value, pCDeclaration, BinaryOperator.EQUALS);
   }
 
-  private CExpression handleIdExpression(CIdExpression pCIdExpression)
+  private CBinaryExpression handleIdExpression(CIdExpression pCIdExpression)
       throws InvalidAssumptionException {
 
     Value value = valueProvider.delegateVisit(pCIdExpression.getExpressionType());
     return idExpressionTransformer.transform(value, pCIdExpression, BinaryOperator.EQUALS);
   }
 
-  private CExpression handleArraySubscript(CArraySubscriptExpression pCArraySubscriptExpression)
+  private CBinaryExpression handleArraySubscript(CArraySubscriptExpression pCArraySubscriptExpression)
       throws InvalidAssumptionException {
 
     Value value = valueProvider.delegateVisit(pCArraySubscriptExpression.getExpressionType());

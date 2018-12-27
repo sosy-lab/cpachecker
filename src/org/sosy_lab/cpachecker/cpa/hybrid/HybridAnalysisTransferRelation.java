@@ -31,6 +31,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -100,7 +101,7 @@ public class HybridAnalysisTransferRelation
     HybridAnalysisState stateToStrengthen = (HybridAnalysisState) pState;
 
     for(AbstractState otherState : otherStates) {
-      operator = StrengthenOperatorFactory.provideStrenghtenOperator(otherState);
+      operator = StrengthenOperatorFactory.provideStrengthenOperator(otherState);
       stateToStrengthen = operator.strengthen(stateToStrengthen, otherState, cfaEdge);
       super.setInfo(stateToStrengthen, pPrecision, cfaEdge);
     }
@@ -151,7 +152,7 @@ public class HybridAnalysisTransferRelation
 
     try {
 
-      @Nullable CExpression newAssumption = assumptionGenerator.generateAssumption(pCDeclaration);
+      @Nullable CBinaryExpression newAssumption = assumptionGenerator.generateAssumption(pCDeclaration);
       if(newAssumption == null) {
         return simpleCopy();
       }
@@ -184,9 +185,10 @@ public class HybridAnalysisTransferRelation
       CExpressionAssignmentStatement assignmentStatement = (CExpressionAssignmentStatement) pCStatement;
       CLeftHandSide leftHandSide = assignmentStatement.getLeftHandSide();
 
-      // nothing to do
-      if(!ExpressionUtils.checkForVariableIdentifier(leftHandSide)) {
-        simpleCopy();
+      @Nullable final String variableName = ExpressionUtils.extractVariableIdentifier(leftHandSide);
+
+      if(variableName == null) {
+        return simpleCopy();
       }
 
       // we need to remove the current assumption
@@ -216,7 +218,8 @@ public class HybridAnalysisTransferRelation
       // function call is actually nondet
       try {
 
-        @Nullable CExpression newAssumption =
+        @Nullable
+        CBinaryExpression newAssumption =
             assumptionGenerator.generateAssumption(pFunctionCallAssignmentStatement.getLeftHandSide());
         if(newAssumption == null) {
           return simpleCopy();

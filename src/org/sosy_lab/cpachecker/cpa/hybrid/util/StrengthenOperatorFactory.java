@@ -49,7 +49,7 @@ public final class StrengthenOperatorFactory {
    * @return A instance of an object implementing HybridStrengthenOperator
    */
   @SuppressWarnings("unchecked")
-  public static HybridStrengthenOperator provideStrenghtenOperator(AbstractState state) {
+  public static HybridStrengthenOperator provideStrengthenOperator(AbstractState state) {
         // first check if the 
         String stateClassName = state.getClass().getName();
         if(operatorMap.containsKey(stateClassName)) {

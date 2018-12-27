@@ -1391,14 +1391,6 @@ cpa.hybrid.stopOperator = SEP
 # The maximum length of provided strings.
 cpa.hybrid.stringMaxLength = 30
 
-# Determines whether to track assignments occurring within the code in the
-# hybrid analysis states.
-cpa.hybrid.trackAssignments = false
-
-# Determines whether to track assumptions occurring within the code in the
-# hybrid analysis states.
-cpa.hybrid.trackAssumptions = false
-
 # which default SecurityClass to use for PolicyEnforcementCPA
 cpa.ifcsecurity.defaultsc = "LOW"
 

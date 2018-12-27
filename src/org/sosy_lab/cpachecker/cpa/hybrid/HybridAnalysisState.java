@@ -23,12 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -39,6 +44,8 @@ import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -54,37 +61,82 @@ public class HybridAnalysisState
   // variable cache
   private ImmutableSet<CExpression> trackedVariables;
 
+  // the declarations are later used to generate values for variables that are tracked by the
+  // value analysis, but with unknown value
+  private ImmutableMap<String, CSimpleDeclaration> declarations;
+
   public HybridAnalysisState() {
-    this(Collections.emptySet());
+    this(Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
   }
 
-  public HybridAnalysisState(Collection<CExpression> pAssumptions) {
-    this.assumptions = ImmutableSet.copyOf(
-      CollectionUtils.ofType(pAssumptions, CBinaryExpression.class));
-
-    trackedVariables = ImmutableSet.copyOf(
-      this.assumptions
-        .stream()
-        .map(expression -> expression.getOperand1())
-        .collect(Collectors.toSet()));
+  public HybridAnalysisState(Set<CExpression> pAssumptions) {
+    this(
+        Sets.newHashSet(CollectionUtils.ofType(pAssumptions, CBinaryExpression.class)),
+        Collections.emptySet(),
+        Collections.emptySet());
   }
 
-  protected HybridAnalysisState(Set<CBinaryExpression> pAssumptions, Set<CExpression> pVariables) {
+  protected HybridAnalysisState(
+      Set<CBinaryExpression> pAssumptions,
+      Set<CExpression> pVariables,
+      Set<CSimpleDeclaration> pDeclarations) {
     this.assumptions = ImmutableSet.copyOf(pAssumptions);
 
     this.trackedVariables = ImmutableSet.copyOf(pVariables);
+
+    this.declarations = ImmutableMap.copyOf(pDeclarations
+        .stream()
+        .collect(Collectors.toMap(CSimpleDeclaration::getQualifiedName, Function.identity())));
   }
 
-  // creates an exact copy of the given state in terms of assumptions
-  public static HybridAnalysisState copyOf(HybridAnalysisState state)
-  {
-    return new HybridAnalysisState(state.getAssumptions());
+  protected HybridAnalysisState(
+      Set<CBinaryExpression> pAssumptions,
+      Set<CExpression> pVariables,
+      Map<String, CSimpleDeclaration> pDeclarations) {
+
+    this.assumptions = ImmutableSet.copyOf(pAssumptions);
+    this.trackedVariables = ImmutableSet.copyOf(pVariables);
+    this.declarations = ImmutableMap.copyOf(pDeclarations);
+
   }
 
-  public static HybridAnalysisState copyWithNewAssumptions(HybridAnalysisState pState, CExpression... pExpressions) {
-    Set<CExpression> currentAssumptions = Sets.newHashSet(pState.getAssumptions());
+  // creates an exact copy of the given state
+  public static HybridAnalysisState copyOf(HybridAnalysisState state) {
+    return new HybridAnalysisState(
+        state.assumptions,
+        state.trackedVariables,
+        state.declarations);
+  }
+
+  public static HybridAnalysisState copyWithNewAssumptions(HybridAnalysisState pState, CBinaryExpression... pExpressions) {
+    Set<CBinaryExpression> currentAssumptions = Sets.newHashSet(pState.assumptions);
     currentAssumptions.addAll(Arrays.asList(pExpressions));
-    return new HybridAnalysisState(currentAssumptions);
+    return new HybridAnalysisState(
+        currentAssumptions,
+        pState.trackedVariables,
+        pState.declarations);
+  }
+
+  public static HybridAnalysisState removeOnAssignment(HybridAnalysisState pState, CLeftHandSide pCLeftHandSide) {
+
+    Set<CBinaryExpression> newAssumptions = pState.getExplicitAssumptions();
+    Set<CExpression> variables = pState.getVariables();
+    Map<String, CSimpleDeclaration> declarationMap = pState.getDeclarations();
+
+    Set<CBinaryExpression> removableAssumptions = Sets.newHashSet();
+
+    for(CBinaryExpression binaryExpression : newAssumptions) {
+      if(haveTheSameVariable(binaryExpression.getOperand1(), pCLeftHandSide)) {
+        removableAssumptions.add(binaryExpression);
+      }
+    }
+
+    newAssumptions.removeAll(removableAssumptions);
+
+    return new HybridAnalysisState(
+        newAssumptions,
+        variables,
+        declarationMap);
   }
 
   public HybridAnalysisState mergeWithArtificialAssignments(Collection<CBinaryExpression> pArtificialAssumptions) {
@@ -110,7 +162,10 @@ public class HybridAnalysisState
         .map(assumption -> assumption.getOperand1())
         .collect(Collectors.toSet());
 
-    return new HybridAnalysisState(mergedAssumptions, variables);
+    return new HybridAnalysisState(
+        mergedAssumptions,
+        variables,
+        this.declarations);
   }
 
   /**
@@ -119,6 +174,8 @@ public class HybridAnalysisState
    *   foreach assumption:
    *      1) if variables are different, take the assumption
    *      2) if variables are the same, take the assumption of the other state (reached state)
+   *
+   *  The declarations get merged
    */
   @Override
   public HybridAnalysisState join(HybridAnalysisState pOther)
@@ -136,7 +193,15 @@ public class HybridAnalysisState
         }
     }
 
-    return new HybridAnalysisState(combinedAssumptions, variableIdentifiers);
+    Map<String, CSimpleDeclaration> mergedDeclarations = Maps.newHashMap(this.declarations);
+
+    // simply add new declarations
+    pOther.declarations.forEach((key, value) -> mergedDeclarations.putIfAbsent(key, value));
+
+    return new HybridAnalysisState(
+        combinedAssumptions,
+        variableIdentifiers,
+        mergedDeclarations);
   }
 
   /**
@@ -169,8 +234,20 @@ public class HybridAnalysisState
    * Creates a mutable copy of the assumptions held by this state
    * @return the assumptions with explicit expression type (CBinaryExpression)
    */
-  public Set<CBinaryExpression> getExplicitAssumptions() {
+  protected Set<CBinaryExpression> getExplicitAssumptions() {
     return Sets.newHashSet(assumptions);
+  }
+
+  /**
+   * Creates a mutable copy of the declarations
+   * @return A map containing the declarations
+   */
+  protected Map<String, CSimpleDeclaration> getDeclarations() {
+    return Maps.newHashMap(declarations);
+  }
+
+  protected Set<CExpression> getVariables() {
+    return Sets.newHashSet(trackedVariables);
   }
 
   @Override
@@ -224,7 +301,20 @@ public class HybridAnalysisState
     return match;
   }
 
-  private boolean haveTheSameVariable(CExpression first, CExpression second) {
+  /**
+   * Tries to retrieve a declaration for the variable name
+   * @param pVariableName The respective variable name
+   * @return An Optional containing the declaration, if one is present for the given name
+   */
+  public Optional<CSimpleDeclaration> getDeclarationForName(final String pVariableName) {
+    if(declarations.containsKey(pVariableName)) {
+      return Optional.of(declarations.get(pVariableName));
+    }
+
+    return Optional.empty();
+  }
+
+  private static boolean haveTheSameVariable(CExpression first, CExpression second) {
 
     @Nullable String nameFirst = ExpressionUtils.extractVariableIdentifier(first);
     @Nullable String nameSecond = ExpressionUtils.extractVariableIdentifier(second);

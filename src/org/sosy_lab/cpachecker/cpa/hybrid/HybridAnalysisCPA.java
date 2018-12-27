@@ -61,119 +61,120 @@ import org.sosy_lab.cpachecker.cpa.hybrid.visitor.SimpleValueProvider;
 
 @Options(prefix = "cpa.hybrid")
 public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
-    @Option(secure = true, 
-            name = "initialAssumptions",
-            description = "The initial assumptions for a given program.")
-    private String initialAssumptionsStringEncoded = "";
 
-    @Option(secure = true,
-            name = "delimiter",
-            description = "The delimiter for different assumptions in 'initialAssumptions' (e.g. x = 10.0; y = -5).")
-    private String delimiter = ";";
+  @Option(secure = true,
+          name = "initialAssumptions",
+          description = "The initial assumptions for a given program.")
+  private String initialAssumptionsStringEncoded = "";
 
-    @Option(secure = true,
-            name = "mergeOperator",
-            description = "The type of merge operator to use.")
-    private OperatorType mergeOperatorType = OperatorType.SEP;
+  @Option(secure = true,
+          name = "delimiter",
+          description = "The delimiter for different assumptions in 'initialAssumptions' (e.g. x = 10.0; y = -5).")
+  private String delimiter = ";";
 
-    @Option(secure = true,
-            name = "stopOperator",
-            description = "The type of stop operator to use.")
-    private OperatorType stopOperatorType = OperatorType.SEP;
+  @Option(secure = true,
+          name = "mergeOperator",
+          description = "The type of merge operator to use.")
+  private OperatorType mergeOperatorType = OperatorType.SEP;
 
-    @Option(secure = true,
-            name = "stringMaxLength",
-            description = "The maximum length of provided strings.")
-    private int stringMaxLength = 30;
+  @Option(secure = true,
+          name = "stopOperator",
+          description = "The type of stop operator to use.")
+  private OperatorType stopOperatorType = OperatorType.SEP;
 
-    public static CPAFactory factory() {
-        return AutomaticCPAFactory.forType(HybridAnalysisCPA.class);
+  @Option(secure = true,
+          name = "stringMaxLength",
+          description = "The maximum length of provided strings.")
+  private int stringMaxLength = 30;
+
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(HybridAnalysisCPA.class);
+  }
+
+  // HybridAnalysisState implements LatticeAbstractState
+  private final AbstractDomain abstractDomain =
+      DelegateAbstractDomain.<HybridAnalysisState>getInstance();
+  private final CFA cfa;
+  private final LogManager logger;
+  private final @Nullable AssumptionParser assumptionParser;
+  private final CProgramScope scope;
+
+  protected HybridAnalysisCPA(
+    CFA pCfa,
+    LogManager pLogger,
+    Configuration pConfiguration) throws InvalidConfigurationException {
+
+    this.cfa = Preconditions.checkNotNull(pCfa, "CFA must be present for HybridAnalysis");
+    this.logger = pLogger;
+    this.scope = new CProgramScope(pCfa, pLogger);
+    this.assumptionParser =
+        new AssumptionParser(delimiter, scope, pConfiguration, pCfa.getMachineModel(), pLogger);
+    pConfiguration.inject(this);
+  }
+
+  @Override
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
+        throws InterruptedException {
+
+    // there have not been any anitial live variables
+    if(assumptionParser == null)
+    {
+      return new HybridAnalysisState();
     }
 
-    // HybridAnalysisState implements LatticeAbstractState
-    private final AbstractDomain abstractDomain =
-        DelegateAbstractDomain.<HybridAnalysisState>getInstance();
-    private final CFA cfa;
-    private final LogManager logger;
-    private final @Nullable AssumptionParser assumptionParser;
-    private final CProgramScope scope;
-
-    protected HybridAnalysisCPA( 
-        CFA pCfa,
-        LogManager pLogger,
-        Configuration pConfiguration) throws InvalidConfigurationException {
-
-        this.cfa = Preconditions.checkNotNull(pCfa, "CFA must be present for HybridAnalysis");
-        this.logger = pLogger;
-        this.scope = new CProgramScope(pCfa, pLogger);
-        this.assumptionParser = 
-            new AssumptionParser(delimiter, scope, pConfiguration, pCfa.getMachineModel(), pLogger);
-        pConfiguration.inject(this);
+    try {
+      return new HybridAnalysisState(
+              assumptionParser.parseAssumptions(initialAssumptionsStringEncoded));
+    } catch (InvalidAutomatonException e) {
+      logger.logException(Level.WARNING, e, "Assumption parsing failed.");
     }
 
-    @Override
-    public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
-            throws InterruptedException {
+    return new HybridAnalysisState();
+  }
 
-        // there have not been any anitial live variables
-        if(assumptionParser == null)
-        {
-            return new HybridAnalysisState();
-        }
+  @Override
+  public TransferRelation getTransferRelation() {
+    return new HybridAnalysisTransferRelation(
+      cfa,
+      logger,
+      new SimpleValueProvider(stringMaxLength),
+      new HybridValueDeclarationTransformer(cfa.getMachineModel(), logger),
+      new HybridValueIdExpressionTransformer(cfa.getMachineModel(), logger));
+  }
 
-        try {
-            return new HybridAnalysisState(
-                    assumptionParser.parseAssumptions(initialAssumptionsStringEncoded));
-        } catch (InvalidAutomatonException e) {
-            logger.logException(Level.WARNING, e, "Assumption parsing failed.");
-        }
+  @Override
+  public AbstractDomain getAbstractDomain() {
+      return abstractDomain;
+  }
 
-        return new HybridAnalysisState();
+  @Override
+  public MergeOperator getMergeOperator() {
+    switch (mergeOperatorType) {
+      case SEP:
+        return MergeSepOperator.getInstance();
+
+      case JOIN:
+        return new MergeJoinOperator(getAbstractDomain());
+
+      default:
+        throw new AssertionError("Unknown merge operator");
     }
+  }
 
-    @Override
-    public TransferRelation getTransferRelation() {
-        return new HybridAnalysisTransferRelation(
-            cfa,
-            logger,
-            new SimpleValueProvider(stringMaxLength),
-            new HybridValueDeclarationTransformer(cfa.getMachineModel(), logger),
-            new HybridValueIdExpressionTransformer(cfa.getMachineModel(), logger));
-    }
+  @Override
+  public StopOperator getStopOperator() {
+    switch (stopOperatorType) {
+      case SEP:
+        return new StopSepOperator(getAbstractDomain());
 
-    @Override
-    public AbstractDomain getAbstractDomain() {
-        return abstractDomain;
-    }
+      case JOIN:
+        return new StopJoinOperator(getAbstractDomain());
 
-    @Override
-    public MergeOperator getMergeOperator() {
-        switch (mergeOperatorType) {
-            case SEP:
-              return MergeSepOperator.getInstance();
-      
-            case JOIN:
-              return new MergeJoinOperator(getAbstractDomain());
-      
-            default:
-              throw new AssertionError("Unknown merge operator");
-        }
-    }
+      case NEVER:
+        return new StopNeverOperator();
 
-    @Override
-    public StopOperator getStopOperator() {
-        switch (stopOperatorType) {
-            case SEP:
-              return new StopSepOperator(getAbstractDomain());
-      
-            case JOIN:
-              return new StopJoinOperator(getAbstractDomain());
-      
-            case NEVER:
-              return new StopNeverOperator();
-      
-            default:
-              throw new AssertionError("Unknown stop operator");
-        }
+      default:
+        throw new AssertionError("Unknown stop operator");
     }
+  }
 }

@@ -63,7 +63,7 @@ public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOp
     Set<CBinaryExpression> assumptions = pStateToStrengthen.getExplicitAssumptions();
 
     // used to collect all binary expressions, that are already tracked by the value analysis and thus can be removed
-    Set<CBinaryExpression> removeableAssumptions = Sets.newHashSet();
+    Set<CBinaryExpression> removableAssumptions = Sets.newHashSet();
 
     Map<MemoryLocation, ValueAndType> unknownValues = retrieveUnknownValues(
       strengtheningState.getTrackedMemoryLocations(), 
@@ -86,7 +86,7 @@ public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOp
         }
 
         if(compareNames(variableName, memoryLocation, keepOffset)) {
-          removeableAssumptions.add(binaryExpression);
+          removableAssumptions.add(binaryExpression);
           break;
         }
 
@@ -94,7 +94,7 @@ public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOp
     }
 
     // remove unnecessary assumptions
-    assumptions.removeAll(removeableAssumptions);
+    assumptions.removeAll(removableAssumptions);
 
     // build new assumptions for unknown values
     assumptions.addAll(createAssumptionsForUnknownValues(unknownValues));
@@ -105,7 +105,10 @@ public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOp
       .map(assumption -> assumption.getOperand1())
       .collect(Collectors.toSet());
     
-    return new HybridAnalysisState(assumptions, variableIdentifiers);
+    return new HybridAnalysisState(
+        assumptions,
+        variableIdentifiers,
+        pStateToStrengthen.getDeclarations());
   }
 
   private boolean compareNames(
