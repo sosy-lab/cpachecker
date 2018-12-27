@@ -216,22 +216,19 @@ public class HybridAnalysisState implements LatticeAbstractState<HybridAnalysisS
       return true;
     }
 
-    @Nullable final String identifier = ExpressionUtils.extractVariableIdentifier(pCIdExpression);
+    boolean match = false;
 
-    for(CBinaryExpression )
+    for(CBinaryExpression binaryExpression : assumptions) {
+        match |= haveTheSameVariable(pCIdExpression, binaryExpression);
+    }
+
+    return match;
   }
 
   private boolean haveTheSameVariable(CExpression first, CExpression second) {
 
-    CExpression secondLeftHandSide = second.getOperand1();
-
-    @Nullable String nameFirst = ExpressionUtils.extractVariableIdentifier(firstLeftHandSide);
-    @Nullable String nameSecond = ExpressionUtils.extractVariableIdentifier(secondLeftHandSide);
-
-    if(first instanceof CBinaryExpression) {
-      CExpression firstLeftHandSide = (())
-      nameFirst
-    }
+    @Nullable String nameFirst = ExpressionUtils.extractVariableIdentifier(first);
+    @Nullable String nameSecond = ExpressionUtils.extractVariableIdentifier(second);
 
     return Objects.equals(nameFirst, nameSecond);
   }

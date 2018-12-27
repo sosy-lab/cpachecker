@@ -92,6 +92,9 @@ public final class ExpressionUtils {
 
         identifier = ((CIdExpression) arrayIdentifierExpression).getName();
       }
+    } else if(pExpression instanceof CBinaryExpression) {
+      // try to extract for the first operand
+      return extractVariableIdentifier(((CBinaryExpression)pExpression).getOperand1());
     }
 
     return identifier;
