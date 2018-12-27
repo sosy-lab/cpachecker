@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.Un
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class IntervalAnalysisPrecisionAdjustment implements PrecisionAdjustment {
@@ -92,19 +91,17 @@ public class IntervalAnalysisPrecisionAdjustment implements PrecisionAdjustment 
         state.forget(mem);
       } else { // precision is tracking that variable
 
-        Pair<Long, Long> intervalByPrecision = precision.getInterval(memString);
-        if (!intervalByPrecision.equals(Pair.of(Long.valueOf(0), Long.valueOf(0)))) {
+        Interval intervalByPrecision = precision.getInterval(memString);
+        if (!intervalByPrecision.isEmpty()) {
           Interval interval = state.getInterval(memString);
+          Interval intervalPrecision = precision.getInterval(memString);
           long high = interval.getHigh();
           long low = interval.getLow();
-          if (high < intervalByPrecision.getSecond()) {
-            state.removeInterval(memString);
-            state.addInterval(memString, new Interval(low, intervalByPrecision.getSecond()), 2000);
+          if (high < intervalByPrecision.getHigh()) {
+            //state.removeInterval(memString);
+            //state.addInterval(memString, new Interval(low, new Interval(low, Long.MAX_VALUE)), 2000);
           }
-          if (low > intervalByPrecision.getFirst()) {
-            state.removeInterval(memString);
-            state.addInterval(memString, new Interval(intervalByPrecision.getFirst(), high), 2000);
-          }
+
         }
       }
     }

@@ -67,9 +67,6 @@ public class IntervalAnalysisFeasibilityChecker
     strongestPostOperator = pStrongestPostOp;
   }
 
-  public Precision getPrecision() {
-    return precision;
-  }
 
   public void setPrecision(IntervalAnalysisPrecision pPrecision){
     precision = pPrecision;
@@ -78,54 +75,24 @@ public class IntervalAnalysisFeasibilityChecker
   public boolean isFeasible(
       ARGPath pPath, IntervalAnalysisPrecision precisionToUse, Set<String> usedVariables)
       throws InterruptedException, CPAException {
+
     IntervalAnalysisState next =
         AbstractStates.extractStateByType(pPath.getFirstState(), IntervalAnalysisState.class);
     Deque<IntervalAnalysisState> pCallstack = new ArrayDeque<>();
     PathIterator iterator = pPath.fullPathIterator();
-    while (iterator.hasNext()) {
 
+    while (iterator.hasNext()) {
       final CFAEdge edge = iterator.getOutgoingEdge();
       Optional<IntervalAnalysisState> maybeNext =
           strongestPostOperator.step(next, edge, precisionToUse, pCallstack, pPath);
       if (!maybeNext.isPresent()) {
-        for (String testState : next.getVariables()) {
-          Interval currentInterval = next.forgetThis(testState);
-          Optional<IntervalAnalysisState> tempMaybeNext =
-              strongestPostOperator.step(next, edge, precisionToUse, pCallstack, pPath);
-          if (tempMaybeNext.isPresent()) {
-            Interval interval = tempMaybeNext.get().getInterval(testState);
-            precisionToUse.setLow(testState, interval.getLow() + 1);
-            precisionToUse.setHigh(testState, interval.getHigh() - 1);
-          }
-          next.rememberThis(testState, currentInterval);
-        }
         return false;
-      } else {
-
-        for (String variable : next.getVariables()) {
-          if (usedVariables.contains(variable) && precisionToUse.containsVariable(variable)) {
-            adjustInterval(precisionToUse, variable, next.getInterval(variable));
-          }
-        }
-
-        next = maybeNext.get();
-
-        usedVariables.addAll(next.getVariables());
       }
+      next = maybeNext.get();
+      usedVariables.addAll(next.getVariables());
       iterator.advance();
     }
+
     return true;
-  }
-
-  private void adjustInterval(
-      IntervalAnalysisPrecision prec, String memoryLocation, Interval currenInterval) {
-    Pair<Long, Long> precIntervalValues = prec.getInterval(memoryLocation);
-
-    if (currenInterval.getLow() < precIntervalValues.getFirst()) {
-      prec.setLow(memoryLocation, currenInterval.getLow());
-    }
-    if (precIntervalValues.getSecond() < currenInterval.getHigh()) {
-      prec.setHigh(memoryLocation, currenInterval.getHigh());
-    }
   }
 }

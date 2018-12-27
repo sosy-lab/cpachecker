@@ -24,8 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.interval.Refiner;
 
 import com.google.common.base.Preconditions;
+import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -34,6 +37,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -45,22 +49,24 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisPrecision;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisPrecision.IntervalAnalysisFullPrecision;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
 @Options(prefix = "cpa.interval.refinement")
 public class IntervalAnalysisRefiner implements ARGBasedRefiner {
 
-  @Option(secure = true, description = "Nothing")
-
   StrongestPostOperator<IntervalAnalysisState> strongestPostOperator;
 
+  @Option(description = "", values = "")
   private LogManager logger;
 
   private CFA cfa;
@@ -118,7 +124,8 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
 
     Set<String> collectionOfVariables = new HashSet<>();
 
-    if (!checker.isFeasible(targetPathToUse, new IntervalAnalysisFullPrecision(), collectionOfVariables)) {
+    if (!checker.isFeasible(
+        targetPathToUse, new IntervalAnalysisFullPrecision(), collectionOfVariables)) {
       logger.log(Level.INFO, "performing refinement ...");
       refine(targetPathToUse, pReached, Collections.unmodifiableSet(collectionOfVariables));
       logger.log(Level.INFO, "refinement finished");
@@ -146,25 +153,68 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
     Precision precision = reachedSet.getPrecision(reachedSet.getLastState());
     IntervalAnalysisPrecision oldPrecision =
         Precisions.extractPrecisionByType(precision, IntervalAnalysisPrecision.class);
-
     minimalPrecisionRequired.join(oldPrecision);
 
-    PathIterator iterator = targetPathToUse.reverseFullPathIterator();
+    ARGState cutpoint =
+        determineCutpoint(targetPathToUse.reverseFullPathIterator(), minimalPrecisionRequired);
 
-    ARGState cutpoint = null;
-    while (iterator.hasNext()) {
-      iterator.advance();
-      if (!checker.isFeasible(iterator.getSuffixInclusive(), minimalPrecisionRequired, new HashSet<>())) {
-        cutpoint = iterator.getAbstractState();
-        break;
-      }
-    }
-
-    checker.isFeasible(targetPathToUse, minimalPrecisionRequired, new HashSet<>());
+    widenPrecision(targetPathToUse, minimalPrecisionRequired);
 
     Preconditions.checkNotNull(cutpoint);
 
     pReached.removeSubtree(
         cutpoint, minimalPrecisionRequired, p -> p instanceof IntervalAnalysisPrecision);
+  }
+
+  private void widenPrecision(ARGPath pPath, IntervalAnalysisPrecision precisionToUse)
+      throws CPAException, InterruptedException {
+    IntervalAnalysisState next =
+        AbstractStates.extractStateByType(pPath.getFirstState(), IntervalAnalysisState.class);
+    Deque<IntervalAnalysisState> pCallstack = new ArrayDeque<>();
+    PathIterator iterator = pPath.fullPathIterator();
+    while (iterator.hasNext()) {
+      final CFAEdge edge = iterator.getOutgoingEdge();
+      Optional<IntervalAnalysisState> maybeNext =
+          strongestPostOperator.step(next, edge, precisionToUse, pCallstack, pPath);
+      if (!maybeNext.isPresent()) {
+        for (String testState : next.getVariables()) {
+          Interval currentInterval = next.forgetThis(testState);
+          Optional<IntervalAnalysisState> tempMaybeNext =
+              strongestPostOperator.step(next, edge, precisionToUse, pCallstack, pPath);
+          if (tempMaybeNext.isPresent()) {
+            Interval interval = tempMaybeNext.get().getInterval(testState);
+            precisionToUse.setInterval(testState, new Interval(interval.getLow() + 1, interval.getHigh() -1));
+          }
+          next.rememberThis(testState, currentInterval);
+        }
+      }
+      for (String variable : next.getVariables()) {
+        if (precisionToUse.containsVariable(variable)) {
+          widenInterval(precisionToUse, variable, next.getInterval(variable));
+        }
+        next = maybeNext.get();
+      }
+      iterator.advance();
+    }
+  }
+
+  private ARGState determineCutpoint(
+      PathIterator iterator, IntervalAnalysisPrecision minimalPrecisionRequired)
+      throws CPAException, InterruptedException {
+    ARGState cutpoint = null;
+    while (iterator.hasNext()) {
+      iterator.advance();
+      if (!checker.isFeasible(
+          iterator.getSuffixInclusive(), minimalPrecisionRequired, new HashSet<>())) {
+        cutpoint = iterator.getAbstractState();
+        break;
+      }
+    }
+    return cutpoint;
+  }
+
+  private void widenInterval(
+      IntervalAnalysisPrecision prec, String memoryLocation, Interval currentInterval) {
+    prec.joinInterval(memoryLocation, currentInterval);
   }
 }
