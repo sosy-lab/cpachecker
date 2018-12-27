@@ -41,13 +41,17 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
   private Iterator<UsageInfo> secondUsageIterator;
   private UsageInfo firstUsage = null;
   private UsageInfoSet secondUsageInfoSet;
+  private final int iterationLimit;
+  private int[] consideredUsages = new int[2];
 
   public UsagePairIterator(
       ConfigurableRefinementBlock<Pair<UsageInfo, UsageInfo>> pWrapper,
       LogManager l,
-      ShutdownNotifier pNotifier) {
+      ShutdownNotifier pNotifier,
+      int pIterationLimit) {
     super(pWrapper, pNotifier);
     logger = l;
+    iterationLimit = pIterationLimit;
   }
 
   @Override
@@ -60,28 +64,36 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
     secondUsageIterator = secondUsageInfoSet.iterator();
 
     firstUsage = null;
+    consideredUsages[0] = 0;
+    consideredUsages[1] = 0;
   }
 
   @Override
   protected Pair<UsageInfo, UsageInfo> getNext(Pair<UsageInfoSet, UsageInfoSet> pInput) {
+    if (consideredUsages[0] >= iterationLimit) {
+      return null;
+    }
+
     if (firstUsage == null) {
       //first call - initialize it
-      if (firstUsageIterator.hasNext()) {
-        firstUsage = firstUsageIterator.next();
-      } else {
+      firstUsage = checkFirstIterator();
+      if (firstUsage == null) {
         return null;
       }
     }
 
     Pair<UsageInfo, UsageInfo> result = checkSecondIterator();
 
-    if (result == null && firstUsageIterator.hasNext()) {
-      firstUsage = firstUsageIterator.next();
+    if (result == null) {
+      firstUsage = checkFirstIterator();
+      if (firstUsage == null) {
+        return null;
+      }
       secondUsageIterator = pInput.getSecond().iterator();
       result = checkSecondIterator();
-    }
-    if (result == null) {
-      return null;
+      if (result == null) {
+        return null;
+      }
     }
     UsageInfo firstUsage = result.getFirst();
     UsageInfo secondUsage = result.getSecond();
@@ -91,8 +103,17 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
     return Pair.of(firstUsage, secondUsage);
   }
 
+  private UsageInfo checkFirstIterator() {
+    if (consideredUsages[0] < iterationLimit && firstUsageIterator.hasNext()) {
+      consideredUsages[0]++;
+      return firstUsageIterator.next();
+    }
+    return null;
+  }
+
   private Pair<UsageInfo, UsageInfo> checkSecondIterator() {
-    if (secondUsageIterator.hasNext()) {
+    if (consideredUsages[1] < iterationLimit && secondUsageIterator.hasNext()) {
+      consideredUsages[1]++;
       return Pair.of(firstUsage, secondUsageIterator.next());
     }
     return null;

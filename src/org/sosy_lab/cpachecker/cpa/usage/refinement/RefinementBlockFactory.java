@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
 import org.sosy_lab.cpachecker.cpa.local.LocalTransferRelation;
 import org.sosy_lab.cpachecker.cpa.lock.LockCPA;
+import org.sosy_lab.cpachecker.cpa.lock.LockReducer;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.cpa.usage.UsageCPA;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
@@ -166,7 +167,8 @@ public class RefinementBlockFactory {
           case UsageIterator:
             currentBlock = new UsagePairIterator((ConfigurableRefinementBlock<Pair<UsageInfo, UsageInfo>>) currentBlock,
                     logger,
-                    notifier);
+                    notifier,
+                    10);
             currentBlockType = currentInnerBlockType.UsageInfoSet;
             break;
 
@@ -178,7 +180,7 @@ public class RefinementBlockFactory {
                     computer,
                     idExtractor,
                     notifier,
-                    false);
+                    10);
             currentBlockType = currentInnerBlockType.UsageInfo;
             break;
 
@@ -189,7 +191,7 @@ public class RefinementBlockFactory {
                     computer,
                     idExtractor,
                     notifier,
-                    true);
+                    1);
             currentBlockType = currentInnerBlockType.UsageInfo;
             break;
 
@@ -239,13 +241,16 @@ public class RefinementBlockFactory {
             break;
 
           case LockRefiner:
+            LockCPA lCPA = CPAs.retrieveCPA(cpa, LockCPA.class);
             lockTransfer =
-                (LockTransferRelation) CPAs.retrieveCPA(cpa, LockCPA.class).getTransferRelation();
+                (LockTransferRelation) lCPA.getTransferRelation();
+            LockReducer lReducer = (LockReducer) lCPA.getReducer();
 
             currentBlock =
                 new LockRefiner(
                     (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
-                    lockTransfer);
+                    lockTransfer,
+                    lReducer);
 
             break;
 

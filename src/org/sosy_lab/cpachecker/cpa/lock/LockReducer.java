@@ -23,21 +23,56 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix = "cpa.lock")
-public class LockReducer implements Reducer {
+public class LockReducer implements Reducer, StatisticsProvider {
+
+  public class LockReducerStatistics implements Statistics {
+
+    private StatTimer lockReducing = new StatTimer("Time for reducing locks");
+    private StatTimer lockExpanding = new StatTimer("Time for expanding locks");
+
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+      StatisticsWriter.writingStatisticsTo(pOut)
+          .put(lockReducing)
+          .put(lockExpanding)
+          .put("Size of unreducable map", LockReducer.this.notReducedLocks.size());
+    }
+
+    @Override
+    public @Nullable String getName() {
+      return "Lock Reducer";
+    }
+
+  }
 
   public enum ReduceStrategy {
     NONE,
@@ -54,24 +89,32 @@ public class LockReducer implements Reducer {
   @Option(description = "reduce unused locks", secure = true)
   private boolean reduceUselessLocks = false;
 
+  private final Multimap<CFANode, LockIdentifier> notReducedLocks;
+
+  private final LockReducerStatistics stats;
+
   public LockReducer(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
     if (reduceUselessLocks && reduceLockCounters == ReduceStrategy.BLOCK) {
       // reducing counters in this case is useless
       reduceLockCounters = ReduceStrategy.NONE;
     }
+    notReducedLocks = ArrayListMultimap.create();
+    stats = new LockReducerStatistics();
   }
 
   @Override
   public AbstractLockState
       getVariableReducedState(AbstractState pExpandedElement, Block pContext, CFANode pCallNode) {
     AbstractLockState expandedElement = (AbstractLockState) pExpandedElement;
+    stats.lockReducing.start();
     AbstractLockStateBuilder builder = expandedElement.builder();
     Set<LockIdentifier> locksToProcess = expandedElement.getLocks();
 
     builder.reduce();
     if (reduceUselessLocks) {
-      builder.removeLocksExcept(pContext.getCapturedLocks());
+      Set<LockIdentifier> notReduce = new HashSet<>(notReducedLocks.get(pCallNode));
+      builder.removeLocksExcept(Sets.union(pContext.getCapturedLocks(), notReduce));
       // All other locks are successfully removed
       locksToProcess = Sets.intersection(locksToProcess, pContext.getCapturedLocks());
     }
@@ -88,6 +131,7 @@ public class LockReducer implements Reducer {
     AbstractLockState reducedState = builder.build();
     assert getVariableExpandedState(pExpandedElement, pContext, reducedState)
         .equals(pExpandedElement);
+    stats.lockReducing.stop();
     return reducedState;
   }
 
@@ -97,6 +141,7 @@ public class LockReducer implements Reducer {
       Block pReducedContext,
       AbstractState pReducedElement) {
 
+    stats.lockExpanding.start();
     AbstractLockState rootElement = (AbstractLockState) pRootElement;
     AbstractLockState reducedElement = (AbstractLockState) pReducedElement;
     AbstractLockStateBuilder builder = reducedElement.builder();
@@ -118,6 +163,7 @@ public class LockReducer implements Reducer {
       case NONE:
         break;
     }
+    stats.lockExpanding.stop();
     return builder.build();
   }
 
@@ -150,5 +196,14 @@ public class LockReducer implements Reducer {
       AbstractState pExpandedState,
       FunctionExitNode pExitLocation) {
     return pExpandedState;
+  }
+
+  public void consider(List<FunctionEntryNode> pStack, LockIdentifier pFId) {
+    pStack.forEach(n -> notReducedLocks.put(n, pFId));
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
 }

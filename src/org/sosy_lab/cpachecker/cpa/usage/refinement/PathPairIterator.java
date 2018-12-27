@@ -72,36 +72,36 @@ public class PathPairIterator extends
 
   //internal state
   private ExtendedARGPath firstPath = null;
-  private final boolean singlePathMode;
-  private boolean pathMayBeCalculated = true;
+  private final int iterationLimit;
+
+  private int[] pathCalculated = new int[2];
 
   public PathPairIterator(
       ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,
       BAMMultipleCEXSubgraphComputer pComputer,
       Function<ARGState, Integer> pExtractor,
       ShutdownNotifier pNotifier,
-      boolean pSinglePathMode) {
+      int pInterationLimit) {
     super(pWrapper, pNotifier);
     subgraphComputer = pComputer;
     targetToPathIterator = new IdentityHashMap<>();
     skippedUsages = new HashSet<>();
     idExtractor = pExtractor;
-    singlePathMode = pSinglePathMode;
+    iterationLimit = pInterationLimit;
   }
 
   @Override
   protected void init(Pair<UsageInfo, UsageInfo> pInput) {
     firstPath = null;
-    if (singlePathMode) {
-      pathMayBeCalculated = true;
-    }
+    pathCalculated[0] = 0;
+    pathCalculated[1] = 0;
   }
 
   @Override
   protected Pair<ExtendedARGPath, ExtendedARGPath> getNext(Pair<UsageInfo, UsageInfo> pInput) {
     UsageInfo firstUsage, secondUsage;
 
-    if (!pathMayBeCalculated) {
+    if (pathCalculated[0] >= iterationLimit) {
       return null;
     }
 
@@ -116,29 +116,25 @@ public class PathPairIterator extends
 
     if (firstPath == null) {
       //First time or it was unreachable last time
-      firstPath = getNextPath(firstUsage);
+      firstPath = getNextPath(firstUsage, 0);
       if (firstPath == null) {
         return null;
       }
     }
 
-    ExtendedARGPath secondPath = getNextPath(secondUsage);
+    ExtendedARGPath secondPath = getNextPath(secondUsage, 1);
     if (secondPath == null) {
       //Reset the iterator
       currentIterators.remove(secondUsage);
       //And move shift the first one
-      firstPath = getNextPath(firstUsage);
+      firstPath = getNextPath(firstUsage, 0);
       if (firstPath == null) {
         return null;
       }
-      secondPath = getNextPath(secondUsage);
+      secondPath = getNextPath(secondUsage, 1);
       if (secondPath == null) {
         return null;
       }
-    }
-
-    if (singlePathMode) {
-      pathMayBeCalculated = false;
     }
 
     return Pair.of(firstPath, secondPath);
@@ -267,7 +263,7 @@ public class PathPairIterator extends
     }
   }
 
-  private ExtendedARGPath getNextPath(UsageInfo info) {
+  private ExtendedARGPath getNextPath(UsageInfo info, int usageNumber) {
     ARGPath currentPath;
     // Start from already computed set (it is partially refined)
     numberOfPathCalculated.inc();
@@ -285,20 +281,19 @@ public class PathPairIterator extends
 
     computingPath.start();
     //try to compute more paths
-    if (singlePathMode) {
-      // Iterator computes a path until it does not go through refinedStates
-      // And subgraph computer computes only the first path
-      currentPath = subgraphComputer.computePath((ARGState) info.getKeyState(), refinedStates);
+    BAMSubgraphIterator pathIterator;
+    if (targetToPathIterator.containsKey(info)) {
+      pathIterator = targetToPathIterator.get(info);
     } else {
-      BAMSubgraphIterator pathIterator;
-      if (targetToPathIterator.containsKey(info)) {
-        pathIterator = targetToPathIterator.get(info);
-      } else {
-        ARGState target = (ARGState) info.getKeyState();
-        pathIterator = subgraphComputer.iterator(target);
-        targetToPathIterator.put(info, pathIterator);
-      }
+      ARGState target = (ARGState) info.getKeyState();
+      pathIterator = subgraphComputer.iterator(target);
+      targetToPathIterator.put(info, pathIterator);
+    }
+    if (pathCalculated[usageNumber] < iterationLimit) {
       currentPath = pathIterator.nextPath(refinedStates);
+      pathCalculated[usageNumber]++;
+    } else {
+      currentPath = null;
     }
     computingPath.stop();
 

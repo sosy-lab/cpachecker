@@ -32,13 +32,17 @@ import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.lock.AbstractLockState;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 import org.sosy_lab.cpachecker.cpa.lock.LockPrecision;
+import org.sosy_lab.cpachecker.cpa.lock.LockReducer;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.cpa.lock.effects.AbstractLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
@@ -55,6 +59,7 @@ public class LockRefiner
     WrappedConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>, Pair<ExtendedARGPath, ExtendedARGPath>> {
 
   private final LockTransferRelation transfer;
+  private final LockReducer reducer;
   private AbstractLockState initialLockState;
 
   // Statistics
@@ -68,9 +73,11 @@ public class LockRefiner
 
   public LockRefiner(
       ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,
-      LockTransferRelation pTransfer) {
+      LockTransferRelation pTransfer,
+      LockReducer pReducer) {
     super(pWrapper);
     transfer = pTransfer;
+    reducer = pReducer;
   }
 
   protected AbstractLockState findLastState(List<CFAEdge> edges)
@@ -227,6 +234,9 @@ public class LockRefiner
     // assert !from(filteredEdges).anyMatch(controlPrecision::contains) : "edge was already added";
 
     final LockIdentifier fId = pId;
+    List<FunctionEntryNode> stack = getStack(pEdges);
+    reducer.consider(stack, fId);
+
     Map<CFANode, LockIdentifier> set =
         from(filteredEdges).transform(e -> e.getPredecessor()).toMap(e -> fId);
     newPrecisionTimer.stop();
@@ -246,6 +256,22 @@ public class LockRefiner
     return from(pPath.asStatesList())
         .filter(s -> nodes.contains(AbstractStates.extractLocation(s)))
         .toList();
+  }
+
+  private List<FunctionEntryNode> getStack(List<CFAEdge> edges) {
+
+    List<FunctionEntryNode> entryNodes = new ArrayList<>();
+
+    for (CFAEdge edge : edges) {
+      if (edge instanceof CFunctionCallEdge) {
+        entryNodes.add(((CFunctionCallEdge) edge).getSuccessor());
+      } else if (edge instanceof FunctionReturnEdge) {
+        entryNodes.remove(entryNodes.size() - 1);
+      } else {
+        // skip any other edge
+      }
+    }
+    return entryNodes;
   }
 
   @Override

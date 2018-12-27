@@ -72,7 +72,7 @@ public class LockCPA extends AbstractCPA
   @Option(description = "Enable refinement procedure", secure = true)
   private boolean refinement = false;
 
-  private final Reducer reducer;
+  private final LockReducer reducer;
 
   private LockCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
     super(
@@ -136,5 +136,6 @@ public class LockCPA extends AbstractCPA
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     LockTransferRelation transfer = (LockTransferRelation) getTransferRelation();
     pStatsCollection.add(transfer.getStatistics());
+    reducer.collectStatistics(pStatsCollection);
   }
 }
