@@ -244,4 +244,13 @@ public class UsageContainer {
         .put(resetTimer)
         .put(unsafeDetectionTimer);
   }
+
+  public String getUnsafeStatus() {
+    return unrefinedIds.size()
+        + " unrefined, "
+        + refinedIds.size()
+        + " refined; "
+        + falseUnsafes.size()
+        + " false unsafes";
+  }
 }

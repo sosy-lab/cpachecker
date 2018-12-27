@@ -267,6 +267,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       sendFinishSignal();
       stats.finishingTimer.stop();
     }
+    logger.log(Level.INFO, container.getUnsafeStatus());
     //pStat.UnsafeCheck.stopIfRunning();
     if (newPrecisionFound) {
       return RefinementResult.createTrue();

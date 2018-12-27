@@ -184,6 +184,7 @@ public class LockRefiner
     newPrecisionTimer.start();
 
     List<CFAEdge> filteredEdges = new ArrayList<>();
+    boolean inAnnotatedContext = false;
 
     for (CFAEdge edge : pEdges) {
       List<AbstractLockEffect> effects = transfer.determineOperations(edge);
@@ -199,6 +200,7 @@ public class LockRefiner
           } else {
             // Save effects are not related to a particular lock
             valuable = true;
+            inAnnotatedContext = true;
             break;
           }
         }
@@ -215,7 +217,7 @@ public class LockRefiner
         break;
       }
 
-      if (currentState.compareTo(initialLockState) == 0) {
+      if (currentState.compareTo(initialLockState) == 0 && !inAnnotatedContext) {
         filteredEdges.clear();
       } else {
         filteredEdges.add(edge);
