@@ -31,15 +31,14 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
-import javax.annotation.Nullable;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -47,8 +46,8 @@ import org.sosy_lab.cpachecker.cpa.hybrid.util.CollectionUtils;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.ExpressionUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class HybridAnalysisState implements LatticeAbstractState<HybridAnalysisState>,
-    AbstractStateWithAssumptions, Graphable {
+public class HybridAnalysisState
+    implements LatticeAbstractState<HybridAnalysisState>, AbstractStateWithAssumptions, Graphable {
 
   private ImmutableSet<CBinaryExpression> assumptions;
 
@@ -56,7 +55,7 @@ public class HybridAnalysisState implements LatticeAbstractState<HybridAnalysisS
   private ImmutableSet<CExpression> trackedVariables;
 
   public HybridAnalysisState() {
-      this(Collections.emptySet());
+    this(Collections.emptySet());
   }
 
   public HybridAnalysisState(Collection<CExpression> pAssumptions) {
@@ -167,11 +166,11 @@ public class HybridAnalysisState implements LatticeAbstractState<HybridAnalysisS
   }
 
   /**
-   * Creates a copy of the assumptions held by this state
+   * Creates a mutable copy of the assumptions held by this state
    * @return the assumptions with explicit expression type (CBinaryExpression)
    */
-  public ImmutableSet<CBinaryExpression> getExplicitAssumptions() {
-    return ImmutableSet.copyOf(assumptions);
+  public Set<CBinaryExpression> getExplicitAssumptions() {
+    return Sets.newHashSet(assumptions);
   }
 
   @Override

@@ -23,19 +23,24 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridStrengthenOperator;
+import org.sosy_lab.cpachecker.cpa.hybrid.util.ExpressionUtils;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -55,49 +60,44 @@ public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOp
     ValueAnalysisState strengtheningState = (ValueAnalysisState) pStrengtheningState;
 
     // check for assumptions containing a variable that is also tracked by the ValueAnalysis and remove them
-    Set<CBinaryExpression> assumptions = Sets.newHashSet(
-        pStateToStrengthen.getExplicitAssumptions());
-    Set<MemoryLocation> trackedVariables = Sets.newHashSet(strengtheningState.getTrackedMemoryLocations());
+    Set<CBinaryExpression> assumptions = pStateToStrengthen.getExplicitAssumptions();
 
     // used to collect all binary expressions, that are already tracked by the value analysis and thus can be removed
     Set<CBinaryExpression> removeableAssumptions = Sets.newHashSet();
 
-    /*
-     * TODO: if value in ValueAnalysis in Unknown, try to generate a value
-     */
+    Map<MemoryLocation, ValueAndType> unknownValues = retrieveUnknownValues(
+      strengtheningState.getTrackedMemoryLocations(), 
+      strengtheningState);
+
+    Set<MemoryLocation> trackedVariables = Sets.newHashSet(strengtheningState.getTrackedMemoryLocations());
+    trackedVariables.removeAll(unknownValues.keySet()); // we can savely remove those memory locations, because later on we create hybrid values for them
 
     for(CBinaryExpression binaryExpression : assumptions) {
 
-      CExpression leftHandSide = binaryExpression.getOperand1();
-      if(leftHandSide instanceof CIdExpression) {
+      boolean keepOffset = binaryExpression.getOperand1() instanceof CArraySubscriptExpression;
 
-        // simple variable definition
-        final String name = ((CIdExpression) leftHandSide).getName();
-        final boolean checkResult = checkMemoryLocations(trackedVariables, name, false);
-        if(checkResult) {
+      @Nullable final String variableName = ExpressionUtils.extractVariableIdentifier(binaryExpression);
+
+      for(MemoryLocation memoryLocation : trackedVariables) {
+
+        // the variable is tracked but the value analysis could not define a concrete value for it
+        if(unknownValues.containsKey(memoryLocation)) {
+          continue;
+        }
+
+        if(compareNames(variableName, memoryLocation, keepOffset)) {
           removeableAssumptions.add(binaryExpression);
+          break;
         }
 
-      } else if(leftHandSide instanceof CArraySubscriptExpression) {
-
-        CArraySubscriptExpression subscriptExpression = (CArraySubscriptExpression) leftHandSide;
-        CExpression arrayExpression = subscriptExpression.getArrayExpression();
-
-        // now we need to check, if we can retrieve the name
-        if(arrayExpression instanceof CIdExpression) {
-
-          final String name = ((CIdExpression) arrayExpression).getName();
-          // TODO: handle the offset !!!
-          final boolean checkResult = checkMemoryLocations(trackedVariables, name, true);
-          if(checkResult) {
-            removeableAssumptions.add(binaryExpression);
-          }
-        }
       }
     }
 
     // remove unnecessary assumptions
     assumptions.removeAll(removeableAssumptions);
+
+    // build new assumptions for unknown values
+    assumptions.addAll(createAssumptionsForUnknownValues(unknownValues));
 
     // build collection with variable identifiers for the internal var cache
     Set<CExpression> variableIdentifiers = assumptions
@@ -109,9 +109,13 @@ public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOp
   }
 
   private boolean compareNames(
-      String pVariableName,
+      @Nullable String pVariableName,
       MemoryLocation pMemoryLocation,
       boolean keepOffset) {
+
+    if(pVariableName == null) {
+      return false;
+    }
 
     StringBuilder nameBuilder = new StringBuilder();
 
@@ -128,27 +132,28 @@ public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOp
     return pVariableName.equals(nameBuilder.toString());
   }
 
-  // checks whether the variable is tracked by the value analysis, or not
-  private boolean checkMemoryLocations(
-    Set<MemoryLocation> pLocations, 
-    final String pVariableName, 
-    final boolean keepOffset) {
+  /*
+   * checks for every MemoryLocation 
+   */
+  private Map<MemoryLocation, ValueAndType> retrieveUnknownValues(
+    final Set<MemoryLocation> pMemoryLocations,
+    final ValueAnalysisState pValueAnalysisState) {
+    
+    Map<MemoryLocation, ValueAndType> unknownValues = Maps.newHashMap();
 
-    boolean match = false;
-    Set<MemoryLocation> seenLocations = Sets.newHashSet();
-
-    for(MemoryLocation location : pLocations) {
-      
-      if(compareNames(pVariableName, location, keepOffset)) {
-        match = true;
-        seenLocations.add(location);
+    for(MemoryLocation memLoc : pMemoryLocations) {
+      ValueAndType valueAndType = pValueAnalysisState.getValueAndTypeFor(memLoc);
+      if(valueAndType.getValue().isUnknown()) {
+        unknownValues.put(memLoc, valueAndType);
       }
     }
 
-    // remove seen locations from the set, hybrid value analysis tracks exactly one value per variable
-    pLocations.removeAll(seenLocations);
-
-    return match;
+    return unknownValues;
   }
 
+  private Set<CBinaryExpression> createAssumptionsForUnknownValues(
+    Map<MemoryLocation, ValueAndType> pValueMap) {
+      //TODO
+      return Sets.newHashSet();
+  }
 }
