@@ -587,7 +587,6 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
        *   ...                      // reachable with the flipped assumption !(x > 5)
        * }
       }*/
-      
 
     }
 
