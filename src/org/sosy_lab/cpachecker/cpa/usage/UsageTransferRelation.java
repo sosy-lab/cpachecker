@@ -176,7 +176,7 @@ public class UsageTransferRelation implements TransferRelation {
       UsageState newState = oldState.copy(newWrappedState);
       if (newLinks.isPresent()) {
         Pair<AbstractIdentifier, AbstractIdentifier> pair = newLinks.get();
-        newState.put(pair.getFirst(), pair.getSecond());
+        newState = newState.put(pair.getFirst(), pair.getSecond());
       }
       result.add(newState);
     }

@@ -48,33 +48,30 @@ public class UsageState extends AbstractSingleWrapperState
   private static final long serialVersionUID = -898577877284268426L;
   private final transient StateStatistics stats;
 
-  private boolean isExitState;
-
   private transient PersistentSortedMap<AbstractIdentifier, AbstractIdentifier>
       variableBindingRelation;
 
   private UsageState(
       final AbstractState pWrappedElement,
       final PersistentSortedMap<AbstractIdentifier, AbstractIdentifier> pVarBind,
-      final StateStatistics pStats,
-      boolean exit) {
+      final StateStatistics pStats) {
     super(pWrappedElement);
     variableBindingRelation = pVarBind;
     stats = pStats;
-    isExitState = exit;
   }
 
   public static UsageState createInitialState(final AbstractState pWrappedElement) {
     return new UsageState(
-        pWrappedElement, PathCopyingPersistentTreeMap.of(), new StateStatistics(), false);
+        pWrappedElement,
+        PathCopyingPersistentTreeMap.of(),
+        new StateStatistics());
   }
 
   private UsageState(final AbstractState pWrappedElement, final UsageState state) {
     this(
         pWrappedElement,
         state.variableBindingRelation,
-        state.stats,
-        state.isExitState);
+        state.stats);
   }
 
   public boolean containsLinks(final AbstractIdentifier id) {
@@ -86,10 +83,13 @@ public class UsageState extends AbstractSingleWrapperState
         .anyMatch(variableBindingRelation::containsKey);
   }
 
-  public void put(final AbstractIdentifier id1, final AbstractIdentifier id2) {
+  public UsageState put(final AbstractIdentifier id1, final AbstractIdentifier id2) {
     if (!id1.equals(id2)) {
-      variableBindingRelation = variableBindingRelation.putAndCopy(id1, id2);
+      UsageState result = new UsageState(this.getWrappedState(), this);
+      result.variableBindingRelation = variableBindingRelation.putAndCopy(id1, id2);
+      return result;
     }
+    return this;
   }
 
   public AbstractIdentifier getLinksIfNecessary(final AbstractIdentifier id) {
@@ -117,10 +117,6 @@ public class UsageState extends AbstractSingleWrapperState
     }
 
     return null;
-  }
-
-  public UsageState copy() {
-    return copy(this.getWrappedState());
   }
 
   public UsageState copy(final AbstractState pWrappedState) {
@@ -183,10 +179,6 @@ public class UsageState extends AbstractSingleWrapperState
     return true;
   }
 
-  public void asExitable() {
-    isExitState = true;
-  }
-
   public StateStatistics getStatistics() {
     return stats;
   }
@@ -216,14 +208,13 @@ public class UsageState extends AbstractSingleWrapperState
       newRelation = newRelation.putAndCopy(entry.getKey(), entry.getValue());
     }
     stats.joinTimer.stop();
-    return new UsageState(this.getWrappedState(), newRelation, stats, isExitState);
+    return new UsageState(this.getWrappedState(), newRelation, stats);
   }
 
   protected Object readResolve() {
     return new UsageState(
         getWrappedState(),
         PathCopyingPersistentTreeMap.of(),
-        new StateStatistics(),
-        this.isExitState);
+        new StateStatistics());
   }
 }
