@@ -146,7 +146,8 @@
     <option name="-64"/>
     <option name="-setprop">analysis.checkCounterexamples=true</option>
     <option name="-setprop">counterexample.checker=CBMC</option>
-    <includesfile>integration-DeviceDriversLinux64.set</includesfile>
+    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+    <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-scsi-dc395x.ko_true-unreach-call.cil.out.i.pp.i</exclude>
     <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-net-wan-farsync.ko_false-unreach-call.cil.out.i.pp.i</exclude>
     <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-input-misc-keyspan_remote.ko_false-unreach-call.cil.out.i.pp.i</exclude>
