@@ -191,8 +191,8 @@ public class HybridAnalysisTransferRelation
         return simpleCopy();
       }
 
-      // we need to remove the current assumption
-
+      // we need to remove the current assignment
+      return HybridAnalysisState.removeOnAssignment(state, leftHandSide);
 
     }
 
@@ -213,6 +213,9 @@ public class HybridAnalysisTransferRelation
     CFunctionCallExpression functionCallExpression = pFunctionCallAssignmentStatement
         .getFunctionCallExpression();
 
+    // variable carrying expression
+    CLeftHandSide leftHandSide = pFunctionCallAssignmentStatement.getLeftHandSide();
+
     if(ExpressionUtils.isVerifierNondet(functionCallExpression)) {
 
       // function call is actually nondet
@@ -220,7 +223,7 @@ public class HybridAnalysisTransferRelation
 
         @Nullable
         CBinaryExpression newAssumption =
-            assumptionGenerator.generateAssumption(pFunctionCallAssignmentStatement.getLeftHandSide());
+            assumptionGenerator.generateAssumption(leftHandSide);
         if(newAssumption == null) {
           return simpleCopy();
         }
@@ -233,9 +236,10 @@ public class HybridAnalysisTransferRelation
                 pFunctionCallAssignmentStatement),
             iae);
       }
-    }
 
-    return simpleCopy();
+    } else {
+      return HybridAnalysisState.removeOnAssignment(state, leftHandSide);
+    }
   }
 
   private HybridAnalysisState simpleCopy() {
