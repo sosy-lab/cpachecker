@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueProvider;
@@ -64,8 +63,8 @@ public class AssumptionGenerator {
   /**
    * Tries to generate a assumption for the ast node
    * Provides a hybrid value for the given type
-   * @param pCAstNode
-   * @return
+   * @param pCAstNode The variable identifier carrying expression to generate the assumption for
+   * @return A CBinaryExpression representing the assumption
    */
   @Nullable
   public CBinaryExpression generateAssumption(CAstNode pCAstNode)

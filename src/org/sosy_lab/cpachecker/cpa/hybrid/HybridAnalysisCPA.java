@@ -23,12 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-
 import com.google.common.base.Preconditions;
-
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -55,8 +52,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.AssumptionParser;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.OperatorType;
-import org.sosy_lab.cpachecker.cpa.hybrid.visitor.HybridValueDeclarationTransformer;
-import org.sosy_lab.cpachecker.cpa.hybrid.visitor.HybridValueIdExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.hybrid.visitor.SimpleValueProvider;
 
 @Options(prefix = "cpa.hybrid")
@@ -137,9 +132,7 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
     return new HybridAnalysisTransferRelation(
       cfa,
       logger,
-      new SimpleValueProvider(stringMaxLength),
-      new HybridValueDeclarationTransformer(cfa.getMachineModel(), logger),
-      new HybridValueIdExpressionTransformer(cfa.getMachineModel(), logger));
+      new SimpleValueProvider(stringMaxLength));
   }
 
   @Override

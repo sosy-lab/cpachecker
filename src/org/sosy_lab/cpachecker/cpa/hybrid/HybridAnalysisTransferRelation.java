@@ -26,9 +26,7 @@ package org.sosy_lab.cpachecker.cpa.hybrid;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-
 import javax.annotation.Nullable;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -59,8 +57,6 @@ import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueProvider;
 import org.sosy_lab.cpachecker.cpa.hybrid.exception.InvalidAssumptionException;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.ExpressionUtils;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.StrengthenOperatorFactory;
-import org.sosy_lab.cpachecker.cpa.hybrid.visitor.HybridValueDeclarationTransformer;
-import org.sosy_lab.cpachecker.cpa.hybrid.visitor.HybridValueIdExpressionTransformer;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class HybridAnalysisTransferRelation
@@ -71,12 +67,12 @@ public class HybridAnalysisTransferRelation
 
   private final AssumptionGenerator assumptionGenerator;
 
+  private final StrengthenOperatorFactory strengthenOperatorFactory;
+
   public HybridAnalysisTransferRelation(
       CFA pCfa,
       LogManager pLogger,
-      HybridValueProvider pValueProvider,
-      HybridValueDeclarationTransformer pHybridValueDeclarationTransformer,
-      HybridValueIdExpressionTransformer pHybridValueIdExpressionTransformer)
+      HybridValueProvider pValueProvider)
   {
     this.cfa = pCfa;
     this.logger = pLogger;
@@ -84,6 +80,9 @@ public class HybridAnalysisTransferRelation
         cfa.getMachineModel(),
         pLogger,
         pValueProvider);
+    this.strengthenOperatorFactory = new StrengthenOperatorFactory(
+        assumptionGenerator,
+        logger);
   }
 
   @Override
@@ -101,7 +100,7 @@ public class HybridAnalysisTransferRelation
     HybridAnalysisState stateToStrengthen = (HybridAnalysisState) pState;
 
     for(AbstractState otherState : otherStates) {
-      operator = StrengthenOperatorFactory.provideStrengthenOperator(otherState);
+      operator = strengthenOperatorFactory.provideStrengthenOperator(otherState);
       stateToStrengthen = operator.strengthen(stateToStrengthen, otherState, cfaEdge);
       super.setInfo(stateToStrengthen, pPrecision, cfaEdge);
     }

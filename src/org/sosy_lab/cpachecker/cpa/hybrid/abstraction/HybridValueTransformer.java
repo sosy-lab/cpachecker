@@ -56,6 +56,7 @@ public abstract class HybridValueTransformer<T, TDependentObj> {
   public abstract T transform(Value pValue, TDependentObj pObj, BinaryOperator pOperator)
     throws InvalidAssumptionException;
 
+  @SuppressWarnings("unused")
   protected CExpression transform(CompositeValue pValue) {
     return null; //TODO
   }

@@ -27,6 +27,7 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import apron.NotImplementedException;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -34,9 +35,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-
-import com.google.common.collect.Sets;
-
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -46,10 +44,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -311,7 +307,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
    * @return An algorithm status
    */
   private AlgorithmStatus runInternal(ReachedSet pReachedSet, Set<CExpression> pAllAssumptions) 
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException{
+      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
     
     // start with good status
     AlgorithmStatus currentStatus = AlgorithmStatus.SOUND_AND_PRECISE;
@@ -492,10 +488,10 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
   /**
    * A bottom state (ARGState) is defined as follows:
    *  1) the state doesn't have children
-   *  2) the state is not part of the waitlist
+   *  2) the state is not part of the wait list
    * 
    * @param pReachedSet The current reached set
-   * @return a set of ARGStates that fullfill the conditions mentioned above
+   * @return a set of ARGStates that fulfill the conditions mentioned above
    */
   private Set<ARGState> collectBottomStates(ReachedSet pReachedSet) {
     final Collection<AbstractState> waitList = pReachedSet.getWaitlist(); // simplification for the lambda expression
@@ -553,8 +549,6 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
     /**
      * Constructs a new instance of the class
      * Takes the assumption containing state, extracts the assumption and negates it
-     * @param pParentState The arg state previous to the last change of a variable contained within the assumption
-     * @param postAssumptionState The ingoing state for the assume edge
      * @param pAssumeEdge The assume edge containing the assumption to flip
      * @throws InvalidAssumptionException The Hybrid Analysis can only work on CBinaryExpressions
      */
@@ -573,9 +567,9 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
     }
 
     /**
-     * Calculates the 
-     * @param pParentState
-     * @param pPostAssumptionState
+     * Calculates the path from the post assumption state to the parent
+     * @param pParentState The parent state (occurring within the ARG before changes of variables happen)
+     * @param pPostAssumptionState The first state after the assumption to flip
      */
     void calculatePath(ARGState pParentState, ARGState pPostAssumptionState) {
 

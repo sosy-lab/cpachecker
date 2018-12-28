@@ -25,22 +25,28 @@ package org.sosy_lab.cpachecker.cpa.hybrid.util;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.hybrid.AssumptionGenerator;
 import org.sosy_lab.cpachecker.cpa.hybrid.ValueAnalysisHybridStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 
 public final class StrengthenOperatorFactory {
 
-    // cache
-    private static Map<String, HybridStrengthenOperator> operatorMap;
+  // cache
+  private Map<String, HybridStrengthenOperator> operatorMap;
 
-    static {
-        operatorMap = new HashMap<>();
-    }
+  private final AssumptionGenerator assumptionGenerator;
+  private final LogManager logger;
 
-    // static factory class will not be instantiated
-    private StrengthenOperatorFactory() {}
+  public StrengthenOperatorFactory(
+      AssumptionGenerator pAssumptionGenerator,
+      LogManager pLogger) {
+    operatorMap = new HashMap<>();
+    assumptionGenerator = pAssumptionGenerator;
+    logger = pLogger;
+  }
 
   /**
    * Factory method for strengthening operators
@@ -49,30 +55,32 @@ public final class StrengthenOperatorFactory {
    * @return A instance of an object implementing HybridStrengthenOperator
    */
   @SuppressWarnings("unchecked")
-  public static HybridStrengthenOperator provideStrengthenOperator(AbstractState state) {
-        // first check if the 
-        String stateClassName = state.getClass().getName();
-        if(operatorMap.containsKey(stateClassName)) {
-            return operatorMap.get(stateClassName);
-        }
+  public HybridStrengthenOperator provideStrengthenOperator(AbstractState state) {
+    // first check if the
+    String stateClassName = state.getClass().getName();
+    if(operatorMap.containsKey(stateClassName)) {
+      return operatorMap.get(stateClassName);
+    }
 
-        // check for new domain states
+    // check for new domain states
 
-        if(state instanceof ValueAnalysisState) {
-            return pushAndReturn(
-                new ValueAnalysisHybridStrengthenOperator(),
-                stateClassName);
-        }
+    if(state instanceof ValueAnalysisState) {
+      return pushAndReturn(
+          new ValueAnalysisHybridStrengthenOperator(
+              assumptionGenerator,
+              logger),
+          stateClassName);
+    }
 
-        // fallback
-        return new DefaultStrengthenOperator();
+    // fallback
+    return new DefaultStrengthenOperator();
     }
 
     // assume existence in map is already checked
-    private static HybridStrengthenOperator pushAndReturn(
-            HybridStrengthenOperator operator,
-            String key) {
-        operatorMap.put(key, operator);
-        return operator;
+    private HybridStrengthenOperator pushAndReturn(
+          HybridStrengthenOperator operator,
+          String key) {
+      operatorMap.put(key, operator);
+      return operator;
     }
 }

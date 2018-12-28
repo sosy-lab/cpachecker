@@ -43,8 +43,8 @@ public final class ExpressionUtils {
 
   /**
    * Calculate the Expression including the truthAssumption
-   * @param cfaEdge The respective AssumptionEdge of the cfa
-   * @param expression The already casted expression contained withing the edge
+   * @param pCfaEdge The respective AssumptionEdge of the cfa
+   * @param pExpression The already casted expression contained withing the edge
    * @return the (possibly inverted Expression), if the Expression provided by the edge is of type CBinaryExpression,
    *         else an empty Optional
    */

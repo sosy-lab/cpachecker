@@ -23,21 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
-
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridStrengthenOperator;
+import org.sosy_lab.cpachecker.cpa.hybrid.exception.InvalidAssumptionException;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.ExpressionUtils;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
@@ -47,6 +47,16 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * This class provides the strengthening for a HybridAnalysisState via a ValueAnalysisState
  */
 public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOperator {
+
+  private final AssumptionGenerator assumptionGenerator;
+  private final LogManager logger;
+
+  public ValueAnalysisHybridStrengthenOperator(
+      AssumptionGenerator pAssumptionGenerator,
+      LogManager pLogger) {
+    this.assumptionGenerator = pAssumptionGenerator;
+    this.logger = pLogger;
+  }
 
   @Override
   public HybridAnalysisState strengthen(
@@ -65,12 +75,12 @@ public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOp
     // used to collect all binary expressions, that are already tracked by the value analysis and thus can be removed
     Set<CBinaryExpression> removableAssumptions = Sets.newHashSet();
 
-    Map<MemoryLocation, ValueAndType> unknownValues = retrieveUnknownValues(
+    Set<MemoryLocation> unknownValues = retrieveUnknownValues(
       strengtheningState.getTrackedMemoryLocations(), 
       strengtheningState);
 
     Set<MemoryLocation> trackedVariables = Sets.newHashSet(strengtheningState.getTrackedMemoryLocations());
-    trackedVariables.removeAll(unknownValues.keySet()); // we can savely remove those memory locations, because later on we create hybrid values for them
+    trackedVariables.removeAll(unknownValues); // we can safely remove those memory locations, because later on we create hybrid values for them
 
     for(CBinaryExpression binaryExpression : assumptions) {
 
@@ -80,13 +90,9 @@ public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOp
 
       for(MemoryLocation memoryLocation : trackedVariables) {
 
-        // the variable is tracked but the value analysis could not define a concrete value for it
-        if(unknownValues.containsKey(memoryLocation)) {
-          continue;
-        }
-
         if(compareNames(variableName, memoryLocation, keepOffset)) {
           removableAssumptions.add(binaryExpression);
+          // the assumption was added anyway
           break;
         }
 
@@ -97,7 +103,16 @@ public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOp
     assumptions.removeAll(removableAssumptions);
 
     // build new assumptions for unknown values
-    assumptions.addAll(createAssumptionsForUnknownValues(unknownValues));
+    try {
+      assumptions.addAll(createAssumptionsForUnknownValues(
+          unknownValues,
+          pStateToStrengthen));
+    } catch (InvalidAssumptionException iae) {
+      logger.log(
+          Level.WARNING,
+          "An error occurred while trying to generate assumptions for the unknown values.",
+          unknownValues);
+    }
 
     // build collection with variable identifiers for the internal var cache
     Set<CExpression> variableIdentifiers = assumptions
@@ -138,16 +153,16 @@ public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOp
   /*
    * checks for every MemoryLocation 
    */
-  private Map<MemoryLocation, ValueAndType> retrieveUnknownValues(
+  private Set<MemoryLocation> retrieveUnknownValues(
     final Set<MemoryLocation> pMemoryLocations,
     final ValueAnalysisState pValueAnalysisState) {
     
-    Map<MemoryLocation, ValueAndType> unknownValues = Maps.newHashMap();
+    Set<MemoryLocation> unknownValues = Sets.newHashSet();
 
     for(MemoryLocation memLoc : pMemoryLocations) {
       ValueAndType valueAndType = pValueAnalysisState.getValueAndTypeFor(memLoc);
       if(valueAndType.getValue().isUnknown()) {
-        unknownValues.put(memLoc, valueAndType);
+        unknownValues.add(memLoc);
       }
     }
 
@@ -155,8 +170,25 @@ public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOp
   }
 
   private Set<CBinaryExpression> createAssumptionsForUnknownValues(
-    Map<MemoryLocation, ValueAndType> pValueMap) {
-      //TODO
-      return Sets.newHashSet();
+    Set<MemoryLocation> pMemoryLocations,
+    HybridAnalysisState pState) throws InvalidAssumptionException {
+
+      Set<CBinaryExpression> createdAssumptions =  Sets.newHashSet();
+
+      for(MemoryLocation memoryLocation : pMemoryLocations) {
+        // TODO check building of names
+        final String variableName = memoryLocation.isOnFunctionStack()
+            ? String.format("%s::%s", memoryLocation.getFunctionName(), memoryLocation.getIdentifier())
+            : memoryLocation.getIdentifier();
+
+        Optional<CSimpleDeclaration> declarationOpt = pState.getDeclarationForName(variableName);
+
+        // we found a declaration for the name and can now build a hybrid value (assumption)
+        if(declarationOpt.isPresent()) {
+          createdAssumptions.add(assumptionGenerator.generateAssumption(declarationOpt.get()));
+        }
+      }
+
+      return createdAssumptions;
   }
 }
