@@ -46,7 +46,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -96,8 +95,6 @@ public class CPAMain {
   public static void main(String[] args) {
     // CPAchecker uses American English for output,
     // so make sure numbers are formatted appropriately.
-    Locale.setDefault(Locale.US);
-
     // initialize various components
     Configuration cpaConfig = null;
     LoggingOptions logOptions;

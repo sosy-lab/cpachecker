@@ -243,4 +243,8 @@ public class TigerAlgorithmConfiguration {
     return useOmegaLabel;
   }
 
+  public void setFQLQuery(String pString) {
+    this.fqlQuery = pString;
+  }
+
 }

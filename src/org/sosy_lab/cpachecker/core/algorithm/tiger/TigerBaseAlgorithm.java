@@ -89,6 +89,9 @@ import org.sosy_lab.cpachecker.cpa.timeout.TimeoutCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Property;
+import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
+import org.sosy_lab.cpachecker.util.SpecificationProperty;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Document;
@@ -138,6 +141,16 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
     startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
     // startupConfig.getConfig().inject(this);
     logger = pLogger;
+    if (pStats != null && pStats.getProperties() != null) {
+      for (SpecificationProperty specProperty : pStats.getProperties()) {
+        originalMainFunction = specProperty.getEntryFunction();
+        Property property = specProperty.getProperty();
+        if (property instanceof CommonCoverageType) {
+          tigerConfig.setFQLQuery(((CommonCoverageType) property).toString());
+        }
+      }
+    }
+
     assert originalMainFunction != null;
     config = pConfig;
 
