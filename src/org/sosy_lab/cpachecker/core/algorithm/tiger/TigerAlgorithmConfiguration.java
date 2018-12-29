@@ -162,6 +162,16 @@ public class TigerAlgorithmConfiguration {
     description = "determines, whether the ARG will be explored until the return statement of the function")
   private boolean useOmegaLabel = true;
 
+  @Option(
+    secure = true,
+    name = "useTestCompOutput",
+    description = "uses output specification of testcomp")
+  private boolean useTestCompOutput = false;
+
+  public boolean shouldUseTestCompOutput() {
+    return useTestCompOutput;
+  }
+
   public String getFeatureVariablePrefix() {
     return featureVariablePrefix;
   }
