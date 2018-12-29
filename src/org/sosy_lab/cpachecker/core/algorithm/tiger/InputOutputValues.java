@@ -219,7 +219,7 @@ public class InputOutputValues {
 
         Variable var = getVariable(exp.getOperand1().toString(), edge, path);
 
-        if (tempInputs.contains(var.getName())) {
+        if (tempInputs.isEmpty() || tempInputs.contains(var.getName())) {
           BigInteger value = new BigInteger(exp.getOperand2().toString());
           variableToValueAssignments.put(var.getFullName(), value);
         }
@@ -253,7 +253,7 @@ public class InputOutputValues {
             arrayOperand = split[1];
           }
 
-          if (tempInputs.contains(operand1)) {
+        if (tempInputs.isEmpty() || tempInputs.contains(operand1)) {
             tempInputs.remove(cld.getName());
 
             BigInteger value;
@@ -292,7 +292,7 @@ public class InputOutputValues {
           arrayOperand = split[1];
         }
 
-        if (tempInputs.contains(operand1)) {
+        if (tempInputs.isEmpty() || tempInputs.contains(operand1)) {
 
           tempInputs.remove(cld.getName());
 
@@ -401,7 +401,23 @@ public class InputOutputValues {
 //    }
 
     Map<String, BigInteger> variableToValueAssignments = new LinkedHashMap<>();
-    Set<String> tempInputs = new LinkedHashSet<>(inputVariables);
+    Set<String> tempInputs;
+    if (inputVariables.isEmpty()) {
+      tempInputs = new LinkedHashSet<>();
+    } else {
+      boolean isEmpty = true;
+      for (String var : inputVariables) {
+        if (var.trim().isEmpty()) {
+          isEmpty = true;
+          break;
+        }
+      }
+      if (isEmpty) {
+        tempInputs = new LinkedHashSet<>();
+      } else {
+        tempInputs = new LinkedHashSet<>(inputVariables);
+      }
+    }
     CFAPathWithAssumptions path = cex.getCFAPathWithAssignments();
 
     for (CFAEdgeWithAssumptions edge : path) {
@@ -422,11 +438,12 @@ public class InputOutputValues {
         }
         index++;
         continue;
-      }
-      if (edge.getCFAEdge() instanceof CStatementEdge) {
-        CStatementEdge statementEdge = (CStatementEdge) edge.getCFAEdge();
-        tryGetInputValueFromStatementEdge(statementEdge, tempInputs, variableToValueAssignments);
-      }
+      } /*
+         * Omitted for testcomp, needs rework anyway if (edge.getCFAEdge() instanceof
+         * CStatementEdge) { CStatementEdge statementEdge = (CStatementEdge) edge.getCFAEdge();
+         * tryGetInputValueFromStatementEdge(statementEdge, tempInputs, variableToValueAssignments);
+         * }
+         */
       index++;
     }
     return variableToValueAssignments;

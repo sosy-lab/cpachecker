@@ -189,6 +189,9 @@ analysis.algorithm.termination = false
 # Reachability Analyses, ESOP'13)
 analysis.algorithm.tiger = false
 
+# Use Test Input Generator algorithm with multi goal
+analysis.algorithm.tigerMultiGoal = false
+
 # collect undefined functions
 analysis.algorithm.undefinedFunctionCollector = false
 
@@ -3814,6 +3817,9 @@ tiger.limitsPerGoal.time.cpu = -1
 # Value for which timeout gets incremented if timed-out goals are
 # re-processed.
 tiger.limitsPerGoal.time.cpu.increment = 0
+tiger.multigoal.partitionSize = 25
+tiger.multigoal.partitionSizeDistribution = RELATIVE
+  enum:     [TOTAL, RELATIVE]
 
 # Optimize the test goal automata
 tiger.optimizeGoalAutomata = true
@@ -3842,6 +3848,9 @@ tiger.useOrder = true
 
 # Only need one Testcase with a valid feature configuration for each goal
 tiger.useSingleFeatureGoalCoverage = false
+
+# uses output specification of testcomp
+tiger.useTestCompOutput = false
 
 # Name of the method to validate the feature model
 tiger.validProductMethodName = "validProduct"
