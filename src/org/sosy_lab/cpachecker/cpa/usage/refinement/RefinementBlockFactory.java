@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
-@Options(prefix="cpa.usage")
+@Options(prefix = "cpa.usage.refinement")
 public class RefinementBlockFactory {
 
   public static enum RefinementBlockTypes {
@@ -101,6 +101,9 @@ public class RefinementBlockFactory {
   // Strange, but this option is much more better in true (even by time consumption)
   @Option(description = "Disable all caching into all internal refinement blocks", secure = true)
   private boolean disableAllCaching = false;
+
+  @Option(description = "Limit for unique iterations of iterators", secure = true)
+  private int iterationLimit = Integer.MAX_VALUE;
 
   public RefinementBlockFactory(
       ConfigurableProgramAnalysis pCpa,
@@ -168,7 +171,7 @@ public class RefinementBlockFactory {
             currentBlock = new UsagePairIterator((ConfigurableRefinementBlock<Pair<UsageInfo, UsageInfo>>) currentBlock,
                     logger,
                     notifier,
-                    10);
+                    iterationLimit);
             currentBlockType = currentInnerBlockType.UsageInfoSet;
             break;
 
@@ -180,7 +183,7 @@ public class RefinementBlockFactory {
                     computer,
                     idExtractor,
                     notifier,
-                    10);
+                    iterationLimit);
             currentBlockType = currentInnerBlockType.UsageInfo;
             break;
 

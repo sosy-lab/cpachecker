@@ -26,9 +26,12 @@ package org.sosy_lab.cpachecker.cpa.usage;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
+import de.uni_freiburg.informatik.ultimate.smtinterpol.util.IdentityHashSet;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -75,6 +78,9 @@ public class UsageProcessor {
   // Not a set, as usage.equals do not consider id
   private List<UsageInfo> result;
 
+  private Collection<CFANode> uselessNodes;
+  private Collection<SingleIdentifier> redundantIds;
+
   public UsageProcessor(
       Configuration config,
       LogManager pLogger,
@@ -86,6 +92,11 @@ public class UsageProcessor {
 
     varSkipper = new VariableSkipper(config);
     precision = pPrecision;
+    uselessNodes = new IdentityHashSet<>();
+  }
+
+  public void updateRedundantUnsafes(Set<SingleIdentifier> set) {
+    redundantIds = set;
   }
 
   public List<UsageInfo> getUsagesForState(AbstractState pState) {
@@ -93,12 +104,21 @@ public class UsageProcessor {
     result = new ArrayList<>();
 
     ARGState argState = (ARGState) pState;
+    CFANode node = AbstractStates.extractLocation(argState);
+
+    if (uselessNodes.contains(node)) {
+      return result;
+    }
 
     for (ARGState child : argState.getChildren()) {
       CFAEdge edge = argState.getEdgeToChild(child);
       if (edge != null) {
         getUsagesForEdge(pState, child, edge);
       }
+    }
+
+    if (result.isEmpty()) {
+      uselessNodes.add(node);
     }
     return result;
   }
@@ -282,6 +302,10 @@ public class UsageProcessor {
     }
 
     SingleIdentifier singleId = usage.getId();
+
+    if (redundantIds.contains(singleId)) {
+      return;
+    }
 
     CFANode node = AbstractStates.extractLocation(pParent);
     Map<GeneralIdentifier, DataType> localInfo = precision.get(node);

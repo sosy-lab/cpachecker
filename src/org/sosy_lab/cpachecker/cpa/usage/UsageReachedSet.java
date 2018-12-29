@@ -74,7 +74,9 @@ public class UsageReachedSet extends PartitionedReachedSet {
   private BAMDataManager manager;
   private UsageProcessor usageProcessor;
 
+  private final StatTimer totalTimer = new StatTimer("Time for extracting usages");
   private final StatTimer usageProcessingTimer = new StatTimer("Time for usage processing");
+  private final StatTimer addingToContainerTimer = new StatTimer("Time for adding to container");
   private final StatTimer usageExpandingTimer = new StatTimer("Time for usage expanding");
   private final StatCounter processingSteps =
       new StatCounter("Number of different reached sets with lock effects");
@@ -172,6 +174,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
 
   private void extractUsagesIfNeccessary() {
     if (!usagesExtracted && container != null) {
+      totalTimer.start();
       logger.log(Level.INFO, "Analysis is finished, start usage extraction");
       usagesExtracted = true;
       Deque<Pair<AbstractState, Set<LockEffect>>> waitlist = new ArrayDeque<>();
@@ -180,6 +183,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
       Pair<AbstractState, Set<LockEffect>> currentPair = Pair.of(getFirstState(), new HashSet<>());
       waitlist.add(currentPair);
       processedSets.put(getFirstState(), new HashSet<>());
+      usageProcessor.updateRedundantUnsafes(container.getNotInterestingUnsafes());
 
       while (!waitlist.isEmpty()) {
         currentPair = waitlist.pop();
@@ -243,10 +247,14 @@ public class UsageReachedSet extends PartitionedReachedSet {
           if (predicateState == null
               || (predicateState.isAbstractionState()
                   && !predicateState.getAbstractionFormula().isFalse())) {
+
+            addingToContainerTimer.start();
             for (UsageInfo usage : expandedUsages) {
               SingleIdentifier id = usage.getId();
               container.add(id, usage);
             }
+            addingToContainerTimer.stop();
+
             expandedUsages.clear();
             for (ARGState child : argState.getChildren()) {
               if (!processedStates.contains(child)) {
@@ -280,6 +288,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
         }
       }
       logger.log(Level.INFO, "Usage extraction is finished");
+      totalTimer.stop();
     }
   }
 
@@ -334,6 +343,13 @@ public class UsageReachedSet extends PartitionedReachedSet {
   }
 
   public void printStatistics(StatisticsWriter pWriter) {
-    pWriter.spacer().put(usageProcessingTimer).put(usageExpandingTimer).put(processingSteps);
+    pWriter.spacer()
+        .put(totalTimer)
+        .beginLevel()
+        .put(usageProcessingTimer)
+        .put(addingToContainerTimer)
+        .put(usageExpandingTimer)
+        .endLevel()
+        .put(processingSteps);
   }
 }

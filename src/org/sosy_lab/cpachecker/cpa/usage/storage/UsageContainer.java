@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -252,5 +253,9 @@ public class UsageContainer {
         + " refined; "
         + falseUnsafes.size()
         + " false unsafes";
+  }
+
+  public Set<SingleIdentifier> getNotInterestingUnsafes() {
+    return Sets.union(falseUnsafes, refinedIds.keySet());
   }
 }
