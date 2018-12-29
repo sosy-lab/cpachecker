@@ -27,9 +27,13 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import apron.NotImplementedException;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -92,10 +96,11 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
   @Options(prefix = "hybridExecution")
   public static class HybridExecutionAlgorithmFactory implements AlgorithmFactory {
 
-    @Option(secure = true, name = "useValueSets", description = "Wether to use multiple values on a state.")
+    @Option(secure = true, name = "useValueSets", description = "Whether to use multiple values on a state.")
     private boolean useValueSets = false;
 
-    @Option(secure = true, name = "useBFS", description = "Whether to use BFS algorithm instead of DFS for searching the next assumption to flip.")
+    @Option(secure = true, name = "useBFS",
+        description = "Whether to use Breadth-First-Search instead of Depth-First-Search to find the next assumption to flip.")
     private boolean useBFS = false;
 
     @Option(secure = true, name = "maxNumberMissedAssumption", 
@@ -198,7 +203,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
    * (1) x = 3, y = 1 -> this leads to 3* predefinedConstant
    * (2) x = 3, y = 2 -> this leads to 6
    * we could probably use some sort of negation heuristic for existing assignments like this
-   * negateOrMinimize(assigments(1)):
+   * negateOrMinimize(assignments(1)):
    * (3) x = -3, y = 1 -> leads to 0
    * here y is not negated, because of precondition being y >= 1
    *
@@ -341,8 +346,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
 
       // if there are no more assumptions left, all paths have been covered
       if(pAllAssumptions.isEmpty()) {
-        solver.close();
-        return currentStatus;
+        break;
       }
 
       @Nullable AssumptionContext flipAssumptionContext = null;
@@ -365,8 +369,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
           logger.log(
             Level.INFO, 
             String.format("The maximum number (%d) of runs without finding a new assumption to flip was exceeded. Consider increasing.", maxNumMissedAssumption));
-          solver.close();
-          return currentStatus;
+          break;
         }
         continue;
       }
@@ -420,24 +423,129 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
       running = checkContinue(pReachedSet);
     }
 
-    solver.close();
     return currentStatus;
   }
 
   /**
    * A DFS algorithm implementation for the search strategy to find a new assumption to flip
    */
-  private AssumptionContext searchDFS(ARGState pState, Set<CExpression> pAssumptions) {
+  @Nullable
+  private AssumptionContext searchDFS(ARGState pState, Set<CExpression> pAssumptions)
+      throws InvalidAssumptionException {
 
-   throw new NotImplementedException();
+    // retrieve new assumption
+    @Nullable AssumptionContext newContext = findAssumptionDFS(pState, pAssumptions);
+
+    // nothing to do (no assumption was found for this state)
+    if(newContext == null) {
+      return null;
+    }
+
+    // we have found the assumption
+    // TODO
+
+    return newContext;
+  }
+
+  // dfs search for the next assumption to flip and the state prior to it
+  @Nullable
+  private AssumptionContext findAssumptionDFS(ARGState pState, Set<CExpression> pAssumptions)
+      throws InvalidAssumptionException {
+
+    Collection<ARGState> parentStates = pState.getParents();
+    if(parentStates.isEmpty()) {
+      return null;
+    }
+
+    for(ARGState parentState : parentStates) {
+
+      for(CFAEdge edgeToParent : parentState.getEdgesToChild(pState)) {
+        CExpression assumeExpression; // to avoid second casting
+
+        if(edgeToParent.getEdgeType() == CFAEdgeType.AssumeEdge
+            && pAssumptions.contains(
+            (assumeExpression = ((CAssumeEdge)edgeToParent).getExpression()))) {
+
+          return new AssumptionContext(parentState, assumeExpression);
+
+        } else {
+
+          @Nullable AssumptionContext result = findAssumptionDFS(parentState, pAssumptions);
+          if(result != null) {
+            break;
+          }
+        }
+      }
+
+    }
+
+    return null;
   }
 
   /**
    * A BFS algorithm implementation for the search strategy to find a new assumption to flip
    */
-  private AssumptionContext searchBFS(ARGState pState, Set<CExpression> pAssumptions) {
+  @Nullable
+  private AssumptionContext searchBFS(ARGState pState, Set<CExpression> pAssumptions)
+      throws InvalidAssumptionException {
     
-    throw new NotImplementedException();
+    // retrieve enw assumption
+    @Nullable AssumptionContext newContext = findAssumptionBFS(pState, pAssumptions);
+    if(newContext == null) {
+      return null;
+    }
+
+    // found a new assumption tp flip
+    // TODO
+
+    return newContext;
+  }
+
+  // bfs search for the next assumption to flip and the state prior to it
+  @Nullable
+  private AssumptionContext findAssumptionBFS(ARGState pState, Set<CExpression> pAssumptions)
+      throws InvalidAssumptionException {
+
+    Deque<ParentChildTuple> stateQueue = new ArrayDeque<>(mapToParents(pState));
+    if(stateQueue.isEmpty()) {
+      return null;
+    }
+
+    while(!stateQueue.isEmpty()) {
+
+      ParentChildTuple tuple = stateQueue.pollFirst();
+      ARGState parentState = tuple.parent;
+      ARGState childState = tuple.child;
+
+      for(CFAEdge edge : parentState.getEdgesToChild(childState)) {
+
+        CExpression assumeExpression; // to avoid second cast
+
+        if(edge.getEdgeType() == CFAEdgeType.AssumeEdge
+            && pAssumptions.contains(
+            (assumeExpression = ((CAssumeEdge)edge).getExpression()))) {
+
+          return new AssumptionContext(parentState, assumeExpression);
+        }
+
+      }
+
+      // add parents of parent to the queue
+      mapToParents(parentState).forEach(state -> stateQueue.addLast(state));
+    }
+
+    return null;
+  }
+
+  private Collection<ParentChildTuple> mapToParents(ARGState pState) {
+
+    Collection<ARGState> parentStates = pState.getParents();
+    if(parentStates.isEmpty()) return Collections.emptySet();
+
+    return parentStates
+        .stream()
+        .map(state -> new ParentChildTuple(state, pState))
+        .collect(Collectors.toSet());
   }
 
   // builds the complete path formula for a path through the application denoted by the set of edges
@@ -528,7 +636,8 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
      * @return The new assumption context
      */
     @Nullable
-    AssumptionContext runStrategy(ARGState pState, Set<CExpression> pAssumptions);
+    AssumptionContext runStrategy(ARGState pState, Set<CExpression> pAssumptions)
+        throws InvalidAssumptionException;
 
   }
 
@@ -541,7 +650,8 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
    */
   private static class AssumptionContext {
 
-    private CBinaryExpression assumption;
+    private final CBinaryExpression assumption;
+    private final ARGState priorAssumptionState;
     private final Set<CExpression> variables;
     private ARGState parentState;
     private ARGPath parentToAssumptionPath;
@@ -552,18 +662,23 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
      * @param pAssumeEdge The assume edge containing the assumption to flip
      * @throws InvalidAssumptionException The Hybrid Analysis can only work on CBinaryExpressions
      */
-    AssumptionContext(CAssumeEdge pAssumeEdge) 
+    AssumptionContext(
+        ARGState pPriorAssumptionState,
+        CExpression pAssumeExpression)
         throws InvalidAssumptionException {
+
+      priorAssumptionState = Preconditions.checkNotNull(pPriorAssumptionState);
+      Preconditions.checkNotNull(pAssumeExpression);
 
       variables = Sets.newHashSet();
 
-      CExpression assumeExpression = pAssumeEdge.getExpression();
-
-      if(!(assumeExpression instanceof CBinaryExpression)) {
-        throw new InvalidAssumptionException(String.format("Assumption contained in assume edge %s is not applicable for hybrid execution.", assumeExpression));
+      if(!(pAssumeExpression instanceof CBinaryExpression)) {
+        throw new InvalidAssumptionException(
+            String.format("Assumption contained in assume edge %s is not applicable for hybrid execution.", pAssumeExpression));
       }
 
-      setAssumption((CBinaryExpression) assumeExpression);
+      assumption = ExpressionUtils.invertExpression((CBinaryExpression) pAssumeExpression);
+      setVariables();
     }
 
     /**
@@ -589,8 +704,25 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
       return parentState;
     }
 
-    private void setAssumption(CBinaryExpression pAssumption) {
-      assumption = ExpressionUtils.invertExpression(pAssumption);
+    public CBinaryExpression getAssumption() {
+      return assumption;
+    }
+
+    public ARGState getPriorAssumptionState() {
+      return priorAssumptionState;
+    }
+
+    public Set<CExpression> getVariables() {
+      return variables;
+    }
+
+    @Nullable
+    public ARGPath getParentToAssumptionPath() {
+      return parentToAssumptionPath;
+    }
+
+    private void setVariables() {
+
       CExpression leftHandSide = assumption.getOperand1();
       CExpression rightHandSide = assumption.getOperand2();
 
@@ -603,6 +735,20 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
       }
     }
 
+  }
+
+  /*
+   * container used for BFS search
+   */
+  private static class ParentChildTuple {
+
+    ARGState parent;
+    ARGState child;
+
+    ParentChildTuple(ARGState pParent, ARGState pChild) {
+      parent = pParent;
+      child = pChild;
+    }
   }
 
 }

@@ -107,8 +107,7 @@ public class SimpleValueProvider extends HybridValueProvider{
     OptionalInt lengthOpt = type.getLengthAsInt();
 
     if(!lengthOpt.isPresent()) {
-      // handle nondet array length via configuration
-      // like : provideValueForArraysOfNondetLength
+      // we only handle arrays of known length
       return null;
     }
 
