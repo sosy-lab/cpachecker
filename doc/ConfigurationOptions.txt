@@ -948,10 +948,6 @@ cpa.apron.splitDisequalities = true
 # translate final ARG into this C file
 cpa.arg.CTranslation.file = "ARG.c"
 
-# write the ARG at various stages during execution into dot files whose name
-# is specified by this option. Only works if 'cpa.arg.logARGS=true'
-cpa.arg.argLoggerFilenameTemplate = "ARG_log/ARG_%04d.dot"
-
 # minimum ratio of branch compared to whole program to be exported
 cpa.arg.automaton.branchRatio = 0.5
 
@@ -1017,6 +1013,10 @@ cpa.arg.inCPAEnabledAnalysis = false
 # whether to keep covered states in the reached set as addition to keeping
 # them in the ARG
 cpa.arg.keepCoveredStatesInReached = false
+
+# write the ARG at various stages during execution into dot files whose name
+# is specified by this option. Only works if 'cpa.arg.logARGs=true'
+cpa.arg.log.fileTemplate = "ARG_log/ARG_%04d.dot"
 
 # Enable logging of ARGs at various positions
 cpa.arg.logARGs = false

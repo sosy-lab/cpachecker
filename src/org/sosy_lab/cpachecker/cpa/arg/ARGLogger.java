@@ -47,15 +47,15 @@ import org.sosy_lab.cpachecker.cpa.slab.SLARGToDotWriter;
 
 @Options(prefix = "cpa.arg")
 public class ARGLogger {
-  private UniqueIdGenerator iterationCount = new UniqueIdGenerator();
+  private final UniqueIdGenerator iterationCount = new UniqueIdGenerator();
 
   @Option(
       secure = true,
-      name = "argLoggerFilenameTemplate",
+      name = "log.fileTemplate",
       description =
           "write the ARG at various stages during execution "
               + "into dot files whose name is specified by this option. "
-              + "Only works if 'cpa.arg.logARGS=true'")
+              + "Only works if 'cpa.arg.logARGs=true'")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate argLoggerFilenameTemplate =
       PathTemplate.ofFormatString("ARG_log/ARG_%04d.dot");
@@ -70,40 +70,47 @@ public class ARGLogger {
     logger = pLogger;
   }
 
-  public void log(String pMessage, UnmodifiableReachedSet pReachedSet) {
-    if (!logARGs
-        || pReachedSet.asCollection().isEmpty()
-        || !(pReachedSet.asCollection().iterator().next() instanceof ARGState)) {
+  /**
+   * Logs a graph of passed reached set with a custom title.
+   *
+   * @param pTitle string that is shown in the title of the graph
+   * @param pReachedSet states that shall be present in the graph
+   */
+  public void log(String pTitle, UnmodifiableReachedSet pReachedSet) {
+    if (!loggingAllowed()
+        || pReachedSet == null
+        || pReachedSet.isEmpty()
+        || !(pReachedSet.iterator().next() instanceof ARGState)) {
       return;
     }
     String label =
         String.format(
             "%s; waitlist=%s; reached=%s",
-            pMessage,
+            pTitle,
             buildStatesList(pReachedSet.getWaitlist()),
             buildStatesList(pReachedSet.asCollection()));
     log(label, pReachedSet.asCollection());
   }
 
   @SuppressWarnings("unchecked")
-  public void log(String pMessage, Collection<AbstractState> pStates) {
-    if (!logARGs || pStates.isEmpty()) {
+  public void log(String pTitle, Collection<AbstractState> pStates) {
+    if (!loggingAllowed() || pStates == null || pStates.isEmpty()) {
       return;
     }
     Path file = argLoggerFilenameTemplate.getPath(iterationCount.getFreshId());
     try (Writer w = IO.openOutputFile(file, Charset.defaultCharset())) {
       if (pStates.iterator().next() instanceof SLARGState) {
-        SLARGToDotWriter.write(w, (Collection<SLARGState>) (Object) pStates, pMessage);
+        SLARGToDotWriter.write(w, (Collection<SLARGState>) (Object) pStates, pTitle);
       } else if (pStates.iterator().next() instanceof ARGState) {
-        ARGToDotWriter.write(w, (Collection<ARGState>) (Object) pStates, pMessage);
+        ARGToDotWriter.write(w, (Collection<ARGState>) (Object) pStates, pTitle);
       }
     } catch (IOException e) {
       logger.logfUserException(Level.WARNING, e, "A problem occurred while writing to %s ", file);
     }
   }
 
-  public void log(@SuppressWarnings("unused") String pMessage, AbstractState pRootState) {
-    if (!logARGs) {
+  public void log(AbstractState pRootState) {
+    if (!loggingAllowed()) {
       return;
     }
     Path file = argLoggerFilenameTemplate.getPath(iterationCount.getFreshId());
@@ -124,5 +131,9 @@ public class ARGLogger {
         .stream()
         .map(x -> Integer.toString(((ARGState) x).getStateId()))
         .collect(Collectors.joining(", "));
+  }
+
+  private boolean loggingAllowed() {
+    return logARGs && argLoggerFilenameTemplate != null;
   }
 }

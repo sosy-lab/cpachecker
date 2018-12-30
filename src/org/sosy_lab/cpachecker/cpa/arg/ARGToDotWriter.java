@@ -84,8 +84,8 @@ public class ARGToDotWriter {
    * @param label A text to be show in the top left of the graph
    * @throws IOException Writing to sb failed
    */
-  public static void write(Appendable sb,
-      final Collection<ARGState> states, String label) throws IOException {
+  public static void write(Appendable sb, final Collection<ARGState> states, String label)
+      throws IOException {
     ARGToDotWriter toDotWriter = new ARGToDotWriter(sb);
     for (ARGState state : states) {
       if (state.isDestroyed()) {
