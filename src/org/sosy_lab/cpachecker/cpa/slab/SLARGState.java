@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
@@ -136,7 +137,7 @@ public class SLARGState extends ARGState
     }
   }
 
-  public EdgeSet getEdgeSetToChild(ARGState child) {
+  public @Nullable EdgeSet getEdgeSetToChild(ARGState child) {
     return childrenToEdgeSets.get(child);
   }
 
