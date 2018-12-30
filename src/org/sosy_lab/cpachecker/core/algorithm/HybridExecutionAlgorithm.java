@@ -540,12 +540,12 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
   private Collection<ParentChildTuple> mapToParents(ARGState pState) {
 
     Collection<ARGState> parentStates = pState.getParents();
-    if(parentStates.isEmpty()) return Collections.emptySet();
+    if(parentStates.isEmpty()) return Collections.emptyList();
 
     return parentStates
         .stream()
         .map(state -> new ParentChildTuple(state, pState))
-        .collect(Collectors.toSet());
+        .collect(Collectors.toList());
   }
 
   // builds the complete path formula for a path through the application denoted by the set of edges
@@ -749,6 +749,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
       parent = pParent;
       child = pChild;
     }
+
   }
 
 }
