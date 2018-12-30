@@ -37,11 +37,12 @@ Changes from CPAchecker 1.7 to CPAchecker 1.8
   (cf. "Domain-Independent Multi-threaded Software Model Checking".
   Dirk Beyer, Karlheinz Friedberger. In Proc. ASE, ACM, 2018).
 
-
-TODO (please expand and extend):
-- SLAB
-- Slicing
-- test generation (witness2test)?
+* Analyses based on Slicing Abstractions
+  CPAchecker now supports two variants of abstraction slicing.
+  The first represents the program counter symbolically (cf. "Slicing Abstractions",
+  Brueckner, Draeger, Finkbeiner, Wehrheim, Fundamenta Informaticae, 2008). The
+  second (cf. "Splitting via Interpolants", Ermis, Hoenicke, Podelski, VMCAI, 2012)
+  treats the program counter explicitly.
 
 
 Changes from CPAchecker 1.6.1 to CPAchecker 1.7
