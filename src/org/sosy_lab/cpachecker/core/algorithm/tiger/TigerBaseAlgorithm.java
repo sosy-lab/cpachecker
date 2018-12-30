@@ -230,7 +230,7 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
     return sb.toString();
   }
 
-  private void writeMetaData() {
+  private void writeMetaData(String folder) {
     Document dom;
     DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
     try {
@@ -286,7 +286,7 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
         // send DOM to file
         tr.transform(
             new DOMSource(dom),
-            new StreamResult(new FileOutputStream("output/metadata.xml")));
+            new StreamResult(new FileOutputStream(folder + "/metadata.xml")));
 
       } catch (TransformerException te) {
         logger.log(Level.WARNING, te.getMessage());
@@ -302,7 +302,7 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
     }
   }
 
-  private void writeTestCases() {
+  private void writeTestCases(String folder) {
     for (TestCase testcase : testsuite.getTestCases()) {
       Document dom;
       DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
@@ -337,7 +337,7 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
           tr.transform(
               new DOMSource(dom),
               new StreamResult(
-                  new FileOutputStream("output/testcase-" + testcase.getId() + ".xml")));
+                  new FileOutputStream(folder + "/testcase-" + testcase.getId() + ".xml")));
 
         } catch (TransformerException te) {
           logger.log(Level.WARNING, te.getMessage());
@@ -359,8 +359,16 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
     }
 
     if (tigerConfig.shouldUseTestCompOutput()) {
-      writeMetaData();
-      writeTestCases();
+      String folder = "output/test-suite";
+      File folderFile = new File(folder);
+      if (!folderFile.exists()) {
+        folderFile.mkdirs();
+      }
+      if (!testSuiteFile.getParentFile().exists()) {
+        testSuiteFile.getParentFile().mkdirs();
+      }
+      writeMetaData(folder);
+      writeTestCases(folder);
     } else {
       try (Writer writer =
           new BufferedWriter(
