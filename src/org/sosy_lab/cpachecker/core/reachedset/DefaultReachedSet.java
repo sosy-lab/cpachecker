@@ -208,7 +208,7 @@ class DefaultReachedSet implements ReachedSet, Serializable {
   }
 
   @Override
-  public AbstractState getFirstState() {
+  public @Nullable AbstractState getFirstState() {
     return firstState;
   }
 
