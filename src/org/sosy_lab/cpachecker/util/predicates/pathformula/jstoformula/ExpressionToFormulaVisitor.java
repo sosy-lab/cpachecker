@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBracketPropertyAccess;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSDeclaredByExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFieldAccess;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
@@ -324,8 +325,21 @@ public class ExpressionToFormulaVisitor
   @Override
   public TypedValue visit(final JSBracketPropertyAccess pPropertyAccess)
       throws UnrecognizedCodeException {
-    throw new UnrecognizedCodeException(
-        "JSBracketPropertyAccess not implemented yet", pPropertyAccess);
+    final JSSimpleDeclaration objectDeclaration =
+        conv.getObjectDeclarationOfObjectExpression(
+            pPropertyAccess.getObjectExpression(),
+            edge,
+            function,
+            ssa,
+            constraints,
+            errorConditions);
+    final IntegerFormula objectId =
+        conv.typedValues.objectValue(conv.scopedVariable(function, objectDeclaration, ssa));
+    final JSExpression propertyNameExpression = pPropertyAccess.getPropertyNameExpression();
+    assert propertyNameExpression instanceof JSStringLiteralExpression;
+    final String propertyName = ((JSStringLiteralExpression) propertyNameExpression).getValue();
+    final IntegerFormula fieldName = conv.getStringFormula(propertyName);
+    return new FieldAccessToTypedValue(conv, ssa).accessField(objectId, fieldName);
   }
 
   private TypedValue handlePredefined(final JSIdExpression pIdExpression)
