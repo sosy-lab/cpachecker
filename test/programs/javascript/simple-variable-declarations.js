@@ -8,9 +8,8 @@ var notDefined = undefined;
 
 if (int !== 42) { __VERIFIER_error(); }
 if (float !== 3.14) { __VERIFIER_error(); }
-// TODO uncomment when string value tracking is implemented
-// if (singleQuoted !== "bar") { __VERIFIER_error(); }
-// if (doubleQuoted !== 'foobar') { __VERIFIER_error(); }
+if (singleQuoted !== "bar") { __VERIFIER_error(); }
+if (doubleQuoted !== 'foobar') { __VERIFIER_error(); }
 if (!truthy) { __VERIFIER_error(); }
 if (falsy) { __VERIFIER_error(); }
 if (nullable !== null) { __VERIFIER_error(); }
