@@ -336,9 +336,10 @@ public class ExpressionToFormulaVisitor
     final IntegerFormula objectId =
         conv.typedValues.objectValue(conv.scopedVariable(function, objectDeclaration, ssa));
     final JSExpression propertyNameExpression = pPropertyAccess.getPropertyNameExpression();
-    assert propertyNameExpression instanceof JSStringLiteralExpression;
-    final String propertyName = ((JSStringLiteralExpression) propertyNameExpression).getValue();
-    final IntegerFormula fieldName = conv.getStringFormula(propertyName);
+    final IntegerFormula fieldName =
+        (propertyNameExpression instanceof JSStringLiteralExpression)
+            ? conv.getStringFormula(((JSStringLiteralExpression) propertyNameExpression).getValue())
+            : conv.toStringFormula(visit(propertyNameExpression));
     return new FieldAccessToTypedValue(conv, ssa).accessField(objectId, fieldName);
   }
 
