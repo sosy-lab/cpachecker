@@ -1014,6 +1014,13 @@ cpa.arg.inCPAEnabledAnalysis = false
 # them in the ARG
 cpa.arg.keepCoveredStatesInReached = false
 
+# write the ARG at various stages during execution into dot files whose name
+# is specified by this option. Only works if 'cpa.arg.logARGs=true'
+cpa.arg.log.fileTemplate = "ARG_log/ARG_%04d.dot"
+
+# Enable logging of ARGs at various positions
+cpa.arg.logARGs = false
+
 # If this option is enabled, ARG states will also be merged if the first
 # wrapped state is subsumed by the second wrapped state (and the parents are
 # not yet subsumed).
@@ -1994,6 +2001,12 @@ cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-zA-Z0-9_]*"
 # ignoreIrrelevantVariables is set to true)
 cpa.predicate.overflowVariablesAreRelevant = false
 
+# Which path-formula builder to use.Depending on this setting additional
+# terms are added to the path formulas,e.g. SYMBOLICLOCATIONS will add track
+# the program counter symbolically with a special variable %pc
+cpa.predicate.pathFormulaBuilderVariant = DEFAULT
+  enum:     [DEFAULT, SYMBOLICLOCATIONS]
+
 # Where to apply the found predicates to?
 cpa.predicate.precision.sharing = LOCATION
   enum:     [GLOBAL, SCOPE, FUNCTION, LOCATION, LOCATION_INSTANCE]
@@ -2230,12 +2243,19 @@ cpa.predicate.satCheckAtAbstraction = false
 # Call 'simplify' on generated formulas.
 cpa.predicate.simplifyGeneratedPathFormulas = false
 
+# Whether to perform dynamic block encoding as part of each refinement
+# iteration
+cpa.predicate.slicingabstractions.dynamicBlockEncoding = false
+
 # Only slices the minimal amount of edges to guarantuee progress
 cpa.predicate.slicingabstractions.minimalslicing = false
 
 # Reduces the amount of solver calls by directely slicing some edgesthat are
 # mathematically proven to be infeasible in any case
 cpa.predicate.slicingabstractions.optimizeslicing = true
+
+# Whether to remove parts fo the ARG from which no target state is reachable
+cpa.predicate.slicingabstractions.removeSafeRegions = true
 
 # C99 only defines the overflow of unsigned integer type.
 cpa.predicate.solver.ufCheckingProver.isSignedOverflowSafe = true

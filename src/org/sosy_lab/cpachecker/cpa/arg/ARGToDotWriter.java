@@ -24,9 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
@@ -45,7 +47,7 @@ public class ARGToDotWriter {
 
   private final Appendable sb;
 
-  ARGToDotWriter(Appendable pSb) throws IOException {
+  public ARGToDotWriter(Appendable pSb) throws IOException {
     sb = pSb;
 
     sb.append("digraph ARG {\n");
@@ -73,6 +75,30 @@ public class ARGToDotWriter {
         successorFunction,
         displayedElements,
         highlightEdge);
+    toDotWriter.finish();
+  }
+
+  /**
+   * @param sb Where to write the ARG into
+   * @param states States that should be written
+   * @param label A text to be show in the top left of the graph
+   * @throws IOException Writing to sb failed
+   */
+  public static void write(Appendable sb, final Collection<ARGState> states, String label)
+      throws IOException {
+    ARGToDotWriter toDotWriter = new ARGToDotWriter(sb);
+    for (ARGState state : states) {
+      if (state.isDestroyed()) {
+        continue;
+      }
+      sb.append(determineNode(state));
+      sb.append(determineStateHint(state));
+      for (ARGState child: state.getChildren()) {
+        sb.append(determineEdge(Predicates.alwaysFalse(), state, child));
+      }
+    }
+    label = String.format("label=\"%s\";%nlabelloc=top;%nlabeljust=left;%n", label);
+    sb.append(label);
     toDotWriter.finish();
   }
 
@@ -232,7 +258,7 @@ public class ARGToDotWriter {
     sb.append("}\n");
   }
 
-  void finish() throws IOException {
+  public void finish() throws IOException {
     sb.append("}\n");
   }
 
