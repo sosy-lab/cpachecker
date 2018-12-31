@@ -1,0 +1,5 @@
+format_version: "1.0"
+input_files: "./bracket-and-dot-notation-combined.js"
+properties:
+  - property_file: ../../../../../config/specification/JavaScriptAssertion.spc
+    expected_verdict: true
