@@ -1,0 +1,5 @@
+format_version: "1.0"
+input_files: "./continue-while-statement.js"
+properties:
+  - property_file: ../../../config/specification/JavaScriptAssertion.spc
+    expected_verdict: true

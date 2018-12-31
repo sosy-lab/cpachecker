@@ -1,0 +1,5 @@
+format_version: "1.0"
+input_files: "./switch-case-without-statements-falls-through.js"
+properties:
+  - property_file: ../../../config/specification/JavaScriptAssertion.spc
+    expected_verdict: true

@@ -13,16 +13,18 @@
 
     <tasks>
         <option name="-setprop">solver.solver=z3</option>
-        <include>../programs/javascript/**.js</include>
-        <include>../programs/javascript/expressions/**.js</include>
-        <include>../programs/javascript/objects/**.js</include>
-        <exclude>../programs/javascript/binary-expressions_true_assert.js</exclude>
+        <include>../programs/javascript/**.yml</include>
+        <include>../programs/javascript/expressions/**.yml</include>
+        <include>../programs/javascript/objects/**.yml</include>
+        <exclude>../programs/javascript/binary-expressions.yml</exclude>
         <excludesfile>unimplemented-features-JavaScript.set</excludesfile>
         <excludesfile>predicateAnalysis-JavaScript-encodeFloatAsRational.set</excludesfile>
+        <propertyfile>../../config/specification/JavaScriptAssertion.spc</propertyfile>
     </tasks>
 
     <tasks>
-        <include>../programs/javascript/binary-expressions_true_assert.js</include>
+        <include>../programs/javascript/binary-expressions.yml</include>
+        <propertyfile>../../config/specification/JavaScriptAssertion.spc</propertyfile>
     </tasks>
 
     <tasks>
@@ -30,7 +32,8 @@
         <option name="-setprop">cpa.predicate.encodeFloatAs=rational</option>
         <!-- TODO this option should be removed as soon as NaN and float interpolation can be used together -->
         <option name="-setprop">cpa.predicate.js.useNaN=false</option>
-        <exclude>../programs/javascript/binary-expressions_true_assert.js</exclude>
+        <exclude>../programs/javascript/binary-expressions.yml</exclude>
         <includesfile>predicateAnalysis-JavaScript-encodeFloatAsRational.set</includesfile>
+        <propertyfile>../../config/specification/JavaScriptAssertion.spc</propertyfile>
     </tasks>
 </benchmark>
