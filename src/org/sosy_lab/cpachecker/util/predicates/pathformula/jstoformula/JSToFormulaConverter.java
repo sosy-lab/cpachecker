@@ -559,7 +559,6 @@ public class JSToFormulaConverter {
     }
   }
 
-  @SuppressWarnings("StatementWithEmptyBody")
   private BooleanFormula makeStatement(
       final JSStatementEdge statement,
       final String function,
