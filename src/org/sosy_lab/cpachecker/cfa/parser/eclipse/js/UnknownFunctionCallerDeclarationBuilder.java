@@ -58,6 +58,7 @@ public class UnknownFunctionCallerDeclarationBuilder implements FunctionDeclarat
   private static final String returnVariableName = "__retval__";
   public static final int maxParameterCount = 10;
   private final FunctionDeclarationAppendable functionDeclarationAppendable;
+  private final boolean isConstructorCall;
   private final JSFunctionDeclaration unknownFunctionCallerDeclaration;
   private final JSFunctionEntryNode entryNode;
   private final FunctionExitNode exitNode;
@@ -69,10 +70,15 @@ public class UnknownFunctionCallerDeclarationBuilder implements FunctionDeclarat
 
   @SuppressWarnings("UnnecessaryLocalVariable")
   UnknownFunctionCallerDeclarationBuilder(
-      final FunctionDeclarationAppendable pFunctionDeclarationAppendable) {
+      final FunctionDeclarationAppendable pFunctionDeclarationAppendable,
+      final boolean pIsConstructorCall) {
     functionDeclarationAppendable = pFunctionDeclarationAppendable;
+    isConstructorCall = pIsConstructorCall;
 
-    final String originalFunctionName = "__CPAchecker_callUnknownFunction";
+    final String originalFunctionName =
+        pIsConstructorCall
+            ? "__CPAchecker_callUnknownConstructor"
+            : "__CPAchecker_callUnknownFunction";
     final String functionName = originalFunctionName;
     final String functionQualifiedName = originalFunctionName;
     functionObjectParameter = new JSParameterDeclaration(FileLocation.DUMMY, "functionObject");
@@ -154,7 +160,8 @@ public class UnknownFunctionCallerDeclarationBuilder implements FunctionDeclarat
                                 new JSIdExpression(
                                     FileLocation.DUMMY,
                                     getUnknownFunctionCallerDeclaration()
-                                        .getThisVariableDeclaration()))))))
+                                        .getThisVariableDeclaration())),
+                            isConstructorCall))))
             .appendEdge(exitNode, returnEdgeWithValue(resultVariableId))
             .getParseResult());
     unknownFunctionCallerCFABuilder.appendEdge(assume(condition, false));

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 import java.util.Optional;
 import org.eclipse.wst.jsdt.core.dom.Assignment;
 import org.eclipse.wst.jsdt.core.dom.BooleanLiteral;
+import org.eclipse.wst.jsdt.core.dom.ClassInstanceCreation;
 import org.eclipse.wst.jsdt.core.dom.ConditionalExpression;
 import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.eclipse.wst.jsdt.core.dom.FieldAccess;
@@ -53,6 +54,7 @@ class ExpressionCFABuilder implements ExpressionAppendable {
 
   private AssignmentAppendable assignmentAppendable;
   private BooleanLiteralConverter booleanLiteralConverter;
+  private ClassInstanceCreationAppendable classInstanceCreationAppendable;
   private ConditionalExpressionAppendable conditionalExpressionAppendable;
   private FieldAccessAppendable fieldAccessAppendable;
   private FunctionExpressionAppendable functionExpressionAppendable;
@@ -75,6 +77,11 @@ class ExpressionCFABuilder implements ExpressionAppendable {
 
   void setBooleanLiteralConverter(final BooleanLiteralConverter pBooleanLiteralConverter) {
     booleanLiteralConverter = pBooleanLiteralConverter;
+  }
+
+  void setClassInstanceCreationAppendable(
+      final ClassInstanceCreationAppendable pClassInstanceCreationAppendable) {
+    classInstanceCreationAppendable = pClassInstanceCreationAppendable;
   }
 
   void setConditionalExpressionAppendable(
@@ -148,6 +155,8 @@ class ExpressionCFABuilder implements ExpressionAppendable {
   public JSExpression append(final JavaScriptCFABuilder pBuilder, final Expression pExpression) {
     if (pExpression instanceof Assignment) {
       return assignmentAppendable.append(pBuilder, (Assignment) pExpression);
+    } else if (pExpression instanceof ClassInstanceCreation) {
+      return classInstanceCreationAppendable.append(pBuilder, (ClassInstanceCreation) pExpression);
     } else if (pExpression instanceof ConditionalExpression) {
       return conditionalExpressionAppendable.append(pBuilder, (ConditionalExpression) pExpression);
     } else if (pExpression instanceof FieldAccess) {

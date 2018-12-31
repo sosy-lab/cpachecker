@@ -28,10 +28,13 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 final class ExpressionAppendableFactory {
 
   static ExpressionAppendable withAllFeatures(
-      final JSFunctionDeclaration pUnknownFunctionCallerDeclaration) {
+      final JSFunctionDeclaration pUnknownFunctionCallerDeclaration,
+      final JSFunctionDeclaration unknownConstructorCallerDeclaration) {
     final ExpressionCFABuilder builder = new ExpressionCFABuilder();
     builder.setAssignmentAppendable(new AssignmentCFABuilder());
     builder.setBooleanLiteralConverter(new BooleanLiteralConverterImpl());
+    builder.setClassInstanceCreationAppendable(
+        new ClassInstanceCreationCFABuilder(unknownConstructorCallerDeclaration));
     builder.setConditionalExpressionAppendable(new ConditionalExpressionCFABuilder());
     builder.setFieldAccessAppendable(new FieldAccessCFABuilder());
     builder.setFunctionExpressionAppendable(new FunctionExpressionCFABuilder());

@@ -1,8 +1,8 @@
 /*
- * CPAchecker is a tool for configurable software verification.
+ *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2017  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,8 +29,8 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.truth.Truth;
+import org.eclipse.wst.jsdt.core.dom.ClassInstanceCreation;
 import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
-import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.junit.Test;
@@ -42,21 +42,21 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
-public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
+public class ClassInstanceCreationCFABuilderTest extends CFABuilderTestBase {
 
   @Test
-  public final void testFunctionInvocation() {
-    final JavaScriptUnit ast = createAST("function foo(a, b) { /* stub */ }\nfoo(e1, e2)");
-    final FunctionInvocation functionInvocation =
-        (FunctionInvocation) ((ExpressionStatement) ast.statements().get(1)).getExpression();
-    // expected CFA: entryNode -{foo()}-> ()
+  public final void testClassInstanceCreation() {
+    final JavaScriptUnit ast = createAST("function Foo(a, b) { /* stub */ }\nnew Foo(e1, e2)");
+    final ClassInstanceCreation functionInvocation =
+        (ClassInstanceCreation) ((ExpressionStatement) ast.statements().get(1)).getExpression();
+    // expected CFA: entryNode -{Foo()}-> ()
 
     final JSFunctionDeclaration functionDeclaration = mock(JSFunctionDeclaration.class);
     final JSFunctionDeclaration unknownFunctionCallerDeclaration =
         mock(JSFunctionDeclaration.class);
     when(unknownFunctionCallerDeclaration.getName()).thenReturn("__CPAchecker_callUnknownFunction");
     final JSIdExpression functionId =
-        new JSIdExpression(FileLocation.DUMMY, "foo", functionDeclaration);
+        new JSIdExpression(FileLocation.DUMMY, "Foo", functionDeclaration);
     final JSIdExpression e1 = new JSIdExpression(FileLocation.DUMMY, "e1", null);
     final JSIdExpression e2 = new JSIdExpression(FileLocation.DUMMY, "e2", null);
     final ExpressionAppendable expressionAppendable = mock(ExpressionAppendable.class);
@@ -67,7 +67,7 @@ public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
     builder.setExpressionListAppendable(expressionListAppendable);
 
     // TODO check return value
-    new FunctionInvocationCFABuilder(unknownFunctionCallerDeclaration)
+    new ClassInstanceCreationCFABuilder(unknownFunctionCallerDeclaration)
         .append(builder, functionInvocation);
 
     Truth.assertThat(entryNode.getNumLeavingEdges()).isEqualTo(1);
@@ -76,50 +76,11 @@ public class FunctionInvocationCFABuilderTest extends CFABuilderTestBase {
         (JSFunctionCallAssignmentStatement) functionInvocationEdge.getStatement();
     final JSFunctionCallExpression functionCallExpression =
         functionCallStatement.getFunctionCallExpression();
-    Truth.assertWithMessage("Function call should not be marked as constructor call")
+    Truth.assertWithMessage("Function call should be marked as constructor call")
         .that(functionCallExpression.isConstructorCall())
-        .isFalse();
+        .isTrue();
     Truth.assertThat(functionCallExpression.getFunctionNameExpression())
         .isInstanceOf(JSIdExpression.class);
-    Truth.assertThat(functionCallExpression.getFunctionNameExpression()).isEqualTo(functionId);
-    Truth.assertThat(functionCallExpression.getDeclaration()).isEqualTo(functionDeclaration);
-    Truth.assertThat(functionCallExpression.getParameterExpressions()).containsExactly(e1, e2);
-    Truth.assertThat(functionInvocationEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(0);
-  }
-
-  @Test
-  public final void testImmediatelyInvokedFunctionExpression() {
-    final FunctionInvocation functionInvocation =
-        parseExpression(FunctionInvocation.class, "(function (a, b) {})(e1, e2)");
-
-    final JSFunctionDeclaration functionDeclaration = mock(JSFunctionDeclaration.class);
-    final JSFunctionDeclaration unknownFunctionCallerDeclaration =
-        mock(JSFunctionDeclaration.class);
-    when(unknownFunctionCallerDeclaration.getName()).thenReturn("__CPAchecker_callUnknownFunction");
-    final JSIdExpression functionId =
-        new JSIdExpression(
-            FileLocation.DUMMY,
-            "__CPACHECKER_ANONYMOUS_FUNCTION_0",
-            functionDeclaration);
-    final JSIdExpression e1 = new JSIdExpression(FileLocation.DUMMY, "e1", null);
-    final JSIdExpression e2 = new JSIdExpression(FileLocation.DUMMY, "e2", null);
-    final ExpressionAppendable expressionAppendable = mock(ExpressionAppendable.class);
-    when(expressionAppendable.append(any(), any())).thenReturn(functionId);
-    builder.setExpressionAppendable(expressionAppendable);
-    final ExpressionListAppendable expressionListAppendable = mock(ExpressionListAppendable.class);
-    when(expressionListAppendable.append(any(), any())).thenReturn(ImmutableList.of(e1, e2));
-    builder.setExpressionListAppendable(expressionListAppendable);
-
-    // TODO check return value
-    new FunctionInvocationCFABuilder(unknownFunctionCallerDeclaration)
-        .append(builder, functionInvocation);
-
-    Truth.assertThat(entryNode.getNumLeavingEdges()).isEqualTo(1);
-    final JSStatementEdge functionInvocationEdge = (JSStatementEdge) entryNode.getLeavingEdge(0);
-    final JSFunctionCallAssignmentStatement functionCallStatement =
-        (JSFunctionCallAssignmentStatement) functionInvocationEdge.getStatement();
-    final JSFunctionCallExpression functionCallExpression =
-        functionCallStatement.getFunctionCallExpression();
     Truth.assertThat(functionCallExpression.getFunctionNameExpression()).isEqualTo(functionId);
     Truth.assertThat(functionCallExpression.getDeclaration()).isEqualTo(functionDeclaration);
     Truth.assertThat(functionCallExpression.getParameterExpressions()).containsExactly(e1, e2);

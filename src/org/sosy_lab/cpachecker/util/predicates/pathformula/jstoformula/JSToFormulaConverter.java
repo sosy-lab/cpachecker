@@ -718,9 +718,13 @@ public class JSToFormulaConverter {
       if (!returnVariableDeclaration.isPresent()) {
         throw new UnrecognizedCodeException("Void function used in assignment", ce, retExp);
       }
+      // TODO constructor return value might not be the created object (see 9. of
+      // https://www.ecma-international.org/ecma-262/5.1/#sec-13.2.2)
       final JSIdExpression rhs =
-          new JSIdExpression(funcCallExp.getFileLocation(), returnVariableDeclaration.get());
-
+          funcCallExp.isConstructorCall()
+              ? new JSIdExpression(
+                  FileLocation.DUMMY, funcCallExp.getDeclaration().getThisVariableDeclaration())
+              : new JSIdExpression(funcCallExp.getFileLocation(), returnVariableDeclaration.get());
       return makeAssignment(
           exp.getLeftHandSide(),
           rhs,
@@ -829,6 +833,23 @@ public class JSToFormulaConverter {
                 "globalObject",
                 "globalObject",
                 null));
+    final JSExpression thisValue;
+    if (functionCallExpression.isConstructorCall()) {
+      // TODO implement without creating CFA expressions
+      thisValue =
+          new JSObjectLiteralExpression(
+              FileLocation.DUMMY,
+              ImmutableList.of(
+                  new JSObjectLiteralField(
+                      "__proto__",
+                      new JSFieldAccess(
+                          FileLocation.DUMMY,
+                          new JSIdExpression(
+                              FileLocation.DUMMY, functionCallExpression.getDeclaration()),
+                          "prototype"))));
+    } else {
+      thisValue = functionCallExpression.getThisArg().orElse(globalObjectId);
+    }
     // this binding, see https://www.ecma-international.org/ecma-262/5.1/#sec-10.4.3
     result.add(
         makeAssignment(
@@ -837,7 +858,7 @@ public class JSToFormulaConverter {
                 functionCallExpression.getDeclaration().getThisVariableDeclaration()),
             // TODO handle null and undefined in non strict code as described in
             // https://www.ecma-international.org/ecma-262/5.1/#sec-10.4.3
-            functionCallExpression.getThisArg().orElse(globalObjectId),
+            thisValue,
             edge,
             calledFunctionName,
             callerFunction,

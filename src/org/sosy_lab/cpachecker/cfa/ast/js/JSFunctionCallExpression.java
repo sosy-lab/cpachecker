@@ -35,6 +35,7 @@ public class JSFunctionCallExpression extends AFunctionCallExpression implements
   private static final long serialVersionUID = 9202497344519251662L;
   private final Optional<JSIdExpression> functionObject;
   private final Optional<JSExpression> thisArg;
+  private final boolean isConstructorCall;
 
   public JSFunctionCallExpression(
       final FileLocation pFileLocation,
@@ -42,11 +43,13 @@ public class JSFunctionCallExpression extends AFunctionCallExpression implements
       final List<JSExpression> pParameters,
       final JSFunctionDeclaration pDeclaration,
       final Optional<JSIdExpression> pFunctionObject,
-      final Optional<JSExpression> pThisArg) {
+      final Optional<JSExpression> pThisArg,
+      final boolean pIsConstructorCall) {
 
     super(pFileLocation, JSAnyType.ANY, pFunctionName, pParameters, pDeclaration);
     functionObject = pFunctionObject;
     thisArg = pThisArg;
+    isConstructorCall = pIsConstructorCall;
   }
 
   public Optional<JSIdExpression> getFunctionObject() {
@@ -55,6 +58,10 @@ public class JSFunctionCallExpression extends AFunctionCallExpression implements
 
   public Optional<JSExpression> getThisArg() {
     return thisArg;
+  }
+
+  public boolean isConstructorCall() {
+    return isConstructorCall;
   }
 
   @Override
@@ -115,5 +122,12 @@ public class JSFunctionCallExpression extends AFunctionCallExpression implements
     }
 
     return super.equals(obj);
+  }
+
+  @Override
+  public String toASTString(final boolean pQualified) {
+    return isConstructorCall()
+        ? "new " + super.toASTString(pQualified)
+        : super.toASTString(pQualified);
   }
 }

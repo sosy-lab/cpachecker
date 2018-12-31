@@ -35,11 +35,15 @@ final class JavaScriptCFABuilderFactory {
     final FileCFABuilder fileBuilder =
         new FileCFABuilder(pScope, pLogger, new JavaScriptUnitCFABuilder());
     final JavaScriptCFABuilderImpl builder = new JavaScriptCFABuilderImpl(fileBuilder.getBuilder());
+    final UnknownFunctionCallerDeclarationBuilder unknownConstructorCallerDeclarationBuilder =
+        new UnknownFunctionCallerDeclarationBuilder(new FunctionDeclarationCFABuilder(), true);
     final UnknownFunctionCallerDeclarationBuilder unknownFunctionCallerDeclarationBuilder =
-        new UnknownFunctionCallerDeclarationBuilder(new FunctionDeclarationCFABuilder());
+        new UnknownFunctionCallerDeclarationBuilder(
+            unknownConstructorCallerDeclarationBuilder, false);
     builder.setExpressionAppendable(
         ExpressionAppendableFactory.withAllFeatures(
-            unknownFunctionCallerDeclarationBuilder.getUnknownFunctionCallerDeclaration()));
+            unknownFunctionCallerDeclarationBuilder.getUnknownFunctionCallerDeclaration(),
+            unknownConstructorCallerDeclarationBuilder.getUnknownFunctionCallerDeclaration()));
     builder.setExpressionListAppendable(new ExpressionListCFABuilder());
     builder.setFunctionDeclarationAppendable(unknownFunctionCallerDeclarationBuilder);
     builder.setJavaScriptUnitAppendable(fileBuilder);
