@@ -109,8 +109,16 @@ public class ExpressionToFormulaVisitor
     final TypedValue leftOperand = visit(pBinaryExpression.getOperand1());
     final TypedValue rightOperand = visit(pBinaryExpression.getOperand2());
     switch (pBinaryExpression.getOperator()) {
+      case EQUALS:
+        // Treat == like === until differences between these operators are implemented.
+        // It might lead to false positives in some cases, but it allows to analyze many real world
+        // programs that could not be analyzed otherwise right now.
       case EQUAL_EQUAL_EQUAL:
         return conv.tvmgr.createBooleanValue(makeEqual(leftOperand, rightOperand));
+      case NOT_EQUALS:
+        // Treat != like !== until differences between these operators are implemented.
+        // It might lead to false positives in some cases, but it allows to analyze many real world
+        // programs that could not be analyzed otherwise right now.
       case NOT_EQUAL_EQUAL:
         return conv.tvmgr.createBooleanValue(mgr.makeNot(makeEqual(leftOperand, rightOperand)));
       case PLUS:
