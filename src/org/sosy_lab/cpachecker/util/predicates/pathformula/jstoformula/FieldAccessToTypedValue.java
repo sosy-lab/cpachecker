@@ -60,17 +60,18 @@ class FieldAccessToTypedValue {
       final int prototypeChainDepth,
       final IntegerFormula pPrototypeField,
       final IntegerFormula pFieldName) {
+    final TypedValue undefined = conv.tvmgr.getUndefinedValue();
     if (prototypeChainDepth > conv.maxPrototypeChainLength) {
-      return conv.tvmgr.getUndefinedValue();
+      return undefined;
     }
     final IntegerFormula prototypeObjectId = conv.typedValues.objectValue(pPrototypeField);
     final ArrayFormula<IntegerFormula, IntegerFormula> prototypeFields =
         conv.getObjectFields(prototypeObjectId, ssa);
     final IntegerFormula fieldOnPrototype = conv.afmgr.select(prototypeFields, pFieldName);
+    final BooleanFormula hasNoParentPrototype =
+        conv.fmgr.makeEqual(pPrototypeField, conv.objectFieldNotSet);
     final BooleanFormula isFieldOnPrototypeNotSet =
-        conv.bfmgr.or(
-            conv.fmgr.makeEqual(pPrototypeField, conv.objectFieldNotSet),
-            conv.fmgr.makeEqual(fieldOnPrototype, conv.objectFieldNotSet));
+        conv.fmgr.makeEqual(fieldOnPrototype, conv.objectFieldNotSet);
     final TypedValue parentPrototype =
         lookUpOnPrototypeChain(
             prototypeChainDepth + 1,
@@ -78,11 +79,17 @@ class FieldAccessToTypedValue {
             pFieldName);
     return new TypedValue(
         conv.bfmgr.ifThenElse(
-            isFieldOnPrototypeNotSet,
-            parentPrototype.getType(),
-            conv.typedValues.typeof(fieldOnPrototype)),
+            hasNoParentPrototype,
+            undefined.getType(),
+            conv.bfmgr.ifThenElse(
+                isFieldOnPrototypeNotSet,
+                parentPrototype.getType(),
+                conv.typedValues.typeof(fieldOnPrototype))),
         conv.bfmgr.ifThenElse(
-            isFieldOnPrototypeNotSet, parentPrototype.getValue(), fieldOnPrototype));
+            hasNoParentPrototype,
+            undefined.getValue(),
+            conv.bfmgr.ifThenElse(
+                isFieldOnPrototypeNotSet, parentPrototype.getValue(), fieldOnPrototype)));
   }
 
   /**
