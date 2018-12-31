@@ -1029,9 +1029,21 @@ public class JSToFormulaConverter {
       final Constraints pConstraints,
       final ErrorConditions pErrorConditions)
       throws UnrecognizedCodeException {
+    return getObjectDeclarationOfObjectExpression(
+        pLhs.getObject(), pEdge, pLhsFunction, pSsa, pConstraints, pErrorConditions);
+  }
+
+  JSSimpleDeclaration getObjectDeclarationOfObjectExpression(
+      final JSExpression pObjectExpression,
+      final CFAEdge pEdge,
+      final String pLhsFunction,
+      final SSAMapBuilder pSsa,
+      final Constraints pConstraints,
+      final ErrorConditions pErrorConditions)
+      throws UnrecognizedCodeException {
     final JSSimpleDeclaration objectDeclaration;
-    if (pLhs.getObject() instanceof JSIdExpression) {
-      objectDeclaration = ((JSIdExpression) pLhs.getObject()).getDeclaration();
+    if (pObjectExpression instanceof JSIdExpression) {
+      objectDeclaration = ((JSIdExpression) pObjectExpression).getDeclaration();
       assert objectDeclaration != null;
     } else {
       final String temporaryVariableName = generateTemporaryVariableName();
@@ -1042,12 +1054,12 @@ public class JSToFormulaConverter {
               temporaryVariableName,
               temporaryVariableName,
               temporaryVariableName,
-              new JSInitializerExpression(FileLocation.DUMMY, pLhs.getObject()));
+              new JSInitializerExpression(FileLocation.DUMMY, pObjectExpression));
       pConstraints.addConstraint(
           makeAssignment(
               buildLvalueTerm(pLhsFunction, objectDeclaration, pSsa),
               buildTerm(
-                  pLhs.getObject(), pEdge, pLhsFunction, pSsa, pConstraints, pErrorConditions)));
+                  pObjectExpression, pEdge, pLhsFunction, pSsa, pConstraints, pErrorConditions)));
     }
     return objectDeclaration;
   }
