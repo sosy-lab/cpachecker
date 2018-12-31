@@ -74,8 +74,10 @@ public interface JSExpressionVisitor<R, X extends Exception> extends JSLeftHandS
       return visit((JSDeclaredByExpression) pExpression);
     } else if (pExpression instanceof JSFieldAccess) {
       return visit((JSFieldAccess) pExpression);
+    } else if (pExpression == null) {
+      throw new RuntimeException("Expression to visit is null");
     } else {
-      throw new RuntimeException("Not implemented yet");
+      throw new RuntimeException(pExpression.getClass() + " not implemented yet");
     }
   }
 }
