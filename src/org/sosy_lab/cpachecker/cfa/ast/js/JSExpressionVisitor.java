@@ -74,6 +74,8 @@ public interface JSExpressionVisitor<R, X extends Exception> extends JSLeftHandS
       return visit((JSDeclaredByExpression) pExpression);
     } else if (pExpression instanceof JSFieldAccess) {
       return visit((JSFieldAccess) pExpression);
+    } else if (pExpression instanceof JSBracketPropertyAccess) {
+      return visit((JSBracketPropertyAccess) pExpression);
     } else if (pExpression == null) {
       throw new RuntimeException("Expression to visit is null");
     } else {

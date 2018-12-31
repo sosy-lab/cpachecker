@@ -89,6 +89,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSBracketPropertyAccess;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSDeclaredByExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFieldAccess;
@@ -2308,6 +2309,12 @@ public abstract class AbstractExpressionValueVisitor
   public Value visit(final JSFieldAccess pFieldAccess) throws RuntimeException {
     // TODO implement evaluation of field access
     throw new RuntimeException("Evaluation of JSFieldAccess not implemented yet");
+  }
+
+  @Override
+  public Value visit(final JSBracketPropertyAccess pBracketPropertyAccess) throws RuntimeException {
+    // TODO implement evaluation of bracket property access
+    throw new RuntimeException("Evaluation of JSBracketPropertyAccess not implemented yet");
   }
 
   @Override

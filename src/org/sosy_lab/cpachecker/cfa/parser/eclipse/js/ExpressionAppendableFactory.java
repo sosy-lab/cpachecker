@@ -31,6 +31,7 @@ final class ExpressionAppendableFactory {
       final JSFunctionDeclaration pUnknownFunctionCallerDeclaration,
       final JSFunctionDeclaration unknownConstructorCallerDeclaration) {
     final ExpressionCFABuilder builder = new ExpressionCFABuilder();
+    builder.setArrayAccessAppendable(new ArrayAccessCFABuilder());
     builder.setAssignmentAppendable(new AssignmentCFABuilder());
     builder.setBooleanLiteralConverter(new BooleanLiteralConverterImpl());
     builder.setClassInstanceCreationAppendable(

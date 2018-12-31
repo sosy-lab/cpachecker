@@ -33,6 +33,7 @@ import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSBracketPropertyAccess;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSDeclaredByExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFieldAccess;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFloatLiteralExpression;
@@ -318,6 +319,13 @@ public class ExpressionToFormulaVisitor
         conv.typedValues.objectValue(conv.scopedVariable(function, objectDeclaration, ssa));
     final IntegerFormula fieldName = conv.getStringFormula(pFieldAccess.getFieldName());
     return new FieldAccessToTypedValue(conv, ssa).accessField(objectId, fieldName);
+  }
+
+  @Override
+  public TypedValue visit(final JSBracketPropertyAccess pPropertyAccess)
+      throws UnrecognizedCodeException {
+    throw new UnrecognizedCodeException(
+        "JSBracketPropertyAccess not implemented yet", pPropertyAccess);
   }
 
   private TypedValue handlePredefined(final JSIdExpression pIdExpression)

@@ -1,8 +1,8 @@
 /*
- * CPAchecker is a tool for configurable software verification.
+ *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2017  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,21 +21,18 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.ast.js;
+package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-public interface JSLeftHandSideVisitor<R, X extends Exception> {
+import org.eclipse.wst.jsdt.core.dom.ArrayAccess;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSBracketPropertyAccess;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 
-  //  R visit(JSArraySubscriptExpression pIastArraySubscriptExpression) throws X;
-  //
-  //  R visit(JSFieldReference pIastFieldReference) throws X;
-
-  R visit(JSIdExpression pIdExpression) throws X;
-
-  R visit(JSFieldAccess pJSFieldAccess) throws X;
-
-  R visit(JSBracketPropertyAccess pBracketPropertyAccess) throws X;
-
-  //  R visit(JSPointerExpression pointerExpression) throws X;
-  //
-  //  R visit(JSComplexCastExpression complexCastExpression) throws X;
+public class ArrayAccessCFABuilder implements ArrayAccessAppendable {
+  @Override
+  public JSExpression append(final JavaScriptCFABuilder pBuilder, final ArrayAccess pArrayAccess) {
+    return new JSBracketPropertyAccess(
+        pBuilder.getFileLocation(pArrayAccess),
+        pBuilder.append(pArrayAccess.getArray()),
+        pBuilder.append(pArrayAccess.getIndex()));
+  }
 }
