@@ -1011,13 +1011,28 @@ public class JSToFormulaConverter {
     final IntegerFormula objectId =
         typedValues.objectValue(scopedVariable(pLhsFunction, objectDeclaration, pSsa));
     final JSExpression propertyNameExpression = pPropertyAccess.getPropertyNameExpression();
-    assert propertyNameExpression instanceof JSStringLiteralExpression;
-    final String propertyName = ((JSStringLiteralExpression) propertyNameExpression).getValue();
-    final IntegerFormula field = makeFieldVariable(propertyName, pSsa);
+    final IntegerFormula field;
+    final IntegerFormula propertyNameFormula;
+    if (propertyNameExpression instanceof JSStringLiteralExpression) {
+      final String propertyName = ((JSStringLiteralExpression) propertyNameExpression).getValue();
+      field = makeFieldVariable(propertyName, pSsa);
+      propertyNameFormula = getStringFormula(propertyName);
+    } else {
+      field = makeFieldVariable(pSsa);
+      propertyNameFormula =
+          toStringFormula(
+              buildTerm(
+                  propertyNameExpression,
+                  pEdge,
+                  pLhsFunction,
+                  pSsa,
+                  pConstraints,
+                  pErrorConditions));
+    }
     pConstraints.addConstraint(markFieldAsSet(field));
     setObjectFields(
         objectId,
-        afmgr.store(getObjectFields(objectId, pSsa), getStringFormula(propertyName), field),
+        afmgr.store(getObjectFields(objectId, pSsa), propertyNameFormula, field),
         pSsa,
         pConstraints);
     return makeAssignment(field, pRhsValue);
@@ -1056,6 +1071,18 @@ public class JSToFormulaConverter {
   @Nonnull
   IntegerFormula makeFieldVariable(final String pFieldName, final SSAMapBuilder pSsa) {
     return makeFreshVariable("field_" + pFieldName, pSsa);
+  }
+
+  /**
+   * Make variable for field with unknown name, e.g. the name of the field is stored in a variable
+   * like in <code>obj[fieldName]</code>.
+   *
+   * @param pSsa Used to create unique variable name.
+   * @return Formula of the field.
+   */
+  @Nonnull
+  private IntegerFormula makeFieldVariable(final SSAMapBuilder pSsa) {
+    return makeFreshVariable("field", pSsa);
   }
 
   JSSimpleDeclaration getObjectDeclarationOfFieldAccess(
