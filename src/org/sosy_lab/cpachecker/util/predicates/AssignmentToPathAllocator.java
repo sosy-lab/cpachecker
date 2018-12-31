@@ -30,9 +30,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -531,8 +531,23 @@ public class AssignmentToPathAllocator {
 
     heap = memory.get(heapName);
 
-    Address address =
-        Address.valueOf(Iterables.getOnlyElement(pFunctionAssignment.getArgumentsInterpretation()));
+    final Address address;
+    if (pFunctionAssignment.getArity() == 1) {
+      address = Address.valueOf(pFunctionAssignment.getArgInterpretation(0));
+    } else {
+      assert pFunctionAssignment.getArity() == 2
+          : "only nested arrays of nesting level 2 are supported yet";
+      // It is assumed that inner arrays are not longer than this value
+      final BigInteger innerArrayMaxLength = BigInteger.valueOf(1_000_000L);
+      // Only static indices are supported yet.
+      final BigInteger indexOfInnerArray = (BigInteger) pFunctionAssignment.getArgInterpretation(0);
+      final BigInteger indexOfInnerArrayElement =
+          (BigInteger) pFunctionAssignment.getArgInterpretation(1);
+      // In case of function `a(x, y)` you get `x * maxLength + y`
+      address =
+          Address.valueOf(
+              indexOfInnerArray.multiply(innerArrayMaxLength).add(indexOfInnerArrayElement));
+    }
 
     Object value = pFunctionAssignment.getValue();
     heap.put(address, value);
