@@ -54,6 +54,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSBracketPropertyAccess;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFieldAccess;
@@ -73,6 +74,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSStatement;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.Scope;
@@ -972,6 +974,9 @@ public class JSToFormulaConverter {
     final TypedValue r = buildTerm(rhs, edge, rhsFunction, ssa, constraints, errorConditions);
     if (lhs instanceof JSIdExpression) {
       return makeAssignment((JSIdExpression) lhs, lhsFunction, ssa, constraints, r);
+    } else if (lhs instanceof JSBracketPropertyAccess) {
+      return makeAssignment(
+          (JSBracketPropertyAccess) lhs, edge, lhsFunction, ssa, constraints, r, errorConditions);
     } else if (lhs instanceof JSFieldAccess) {
       return makeAssignment(
           (JSFieldAccess) lhs, edge, lhsFunction, ssa, constraints, r, errorConditions);
@@ -984,6 +989,38 @@ public class JSToFormulaConverter {
   private String generateTemporaryVariableName() {
     ++tmpVariableCount;
     return "tmp" + tmpVariableCount;
+  }
+
+  private BooleanFormula makeAssignment(
+      final JSBracketPropertyAccess pPropertyAccess,
+      final CFAEdge pEdge,
+      final String pLhsFunction,
+      final SSAMapBuilder pSsa,
+      final Constraints pConstraints,
+      final TypedValue pRhsValue,
+      final ErrorConditions pErrorConditions)
+      throws UnrecognizedCodeException {
+    final JSSimpleDeclaration objectDeclaration =
+        getObjectDeclarationOfObjectExpression(
+            pPropertyAccess.getObjectExpression(),
+            pEdge,
+            pLhsFunction,
+            pSsa,
+            pConstraints,
+            pErrorConditions);
+    final IntegerFormula objectId =
+        typedValues.objectValue(scopedVariable(pLhsFunction, objectDeclaration, pSsa));
+    final JSExpression propertyNameExpression = pPropertyAccess.getPropertyNameExpression();
+    assert propertyNameExpression instanceof JSStringLiteralExpression;
+    final String propertyName = ((JSStringLiteralExpression) propertyNameExpression).getValue();
+    final IntegerFormula field = makeFieldVariable(propertyName, pSsa);
+    pConstraints.addConstraint(markFieldAsSet(field));
+    setObjectFields(
+        objectId,
+        afmgr.store(getObjectFields(objectId, pSsa), getStringFormula(propertyName), field),
+        pSsa,
+        pConstraints);
+    return makeAssignment(field, pRhsValue);
   }
 
   private BooleanFormula makeAssignment(
