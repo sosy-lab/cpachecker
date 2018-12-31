@@ -27,12 +27,17 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import javax.annotation.Nonnull;
 import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -80,11 +85,19 @@ public class ExpressionListCFABuilder implements ExpressionListAppendable {
       // Thereby, the exit node of the builder gets invalid (removed).
       // A copy of the builder is used to be able to continue from the old exit node after the
       // side effect has been undone.
-      final JavaScriptCFABuilder forwardLookingBuilder = pBuilder.copy();
+      final JavaScriptCFABuilder forwardLookingBuilder =
+          pBuilder.copyWith(new ForwardLookingBuilderScope(pBuilder.getScope()));
       final CFANode oldExitNode = pBuilder.getExitNode();
       assert oldExitNode.getNumLeavingEdges() == 0 : "unexpected leaving edges on an exit node";
+      // TODO check expression for side effect without appending (not every side effect is undoable)
       final JSExpression jsExpression = forwardLookingBuilder.append(e);
-      if (oldExitNode.getNumLeavingEdges() > 0) {
+      // For a function declaration, a declaration edge is added, which is not considered to be
+      // a side effect. Appending the function declaration twice would cause a duplicate function
+      // declaration, since the function declaration has been added by the first append.
+      // This check is quite hacky and error prone. The side effect check should be done without
+      // applying side effects in the future.
+      if (oldExitNode.getNumLeavingEdges() > 0
+          && !isFunctionDeclarationEdge(oldExitNode.getLeavingEdge(0))) {
         // undo side effect
         while (oldExitNode.getNumLeavingEdges() > 0) {
           final CFAEdge sideEffectEdge = oldExitNode.getLeavingEdge(0);
@@ -139,4 +152,43 @@ public class ExpressionListCFABuilder implements ExpressionListAppendable {
     return resultBuilder.build();
   }
 
+  private boolean isFunctionDeclarationEdge(final CFAEdge pEdge) {
+    if (pEdge instanceof JSDeclarationEdge) {
+      final JSDeclaration declaration = ((JSDeclarationEdge) pEdge).getDeclaration();
+      return (declaration instanceof JSFunctionDeclaration);
+    }
+    return false;
+  }
+
+  private static class ForwardLookingBuilderScope implements Scope {
+    private Scope parentScope;
+
+    ForwardLookingBuilderScope(final Scope pParentScope) {
+      parentScope = pParentScope;
+    }
+
+    @Override
+    public Scope getParentScope() {
+      return parentScope;
+    }
+
+    @Nonnull
+    @Override
+    public String getNameOfScope() {
+      return getParentScope().getNameOfScope();
+    }
+
+    @Override
+    public void addDeclaration(final JSSimpleDeclaration pDeclaration) {
+      if (!(pDeclaration instanceof JSFunctionDeclaration)) {
+        throw new RuntimeException(
+            "Unexpected declaration " + pDeclaration + " in forward looking builder scope");
+      }
+    }
+
+    @Override
+    public Optional<? extends JSSimpleDeclaration> findDeclaration(final String pIdentifier) {
+      return getParentScope().findDeclaration(pIdentifier);
+    }
+  }
 }
