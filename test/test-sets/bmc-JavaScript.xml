@@ -13,9 +13,9 @@
 
     <tasks>
         <option name="-setprop">solver.solver=z3</option>
-        <include>../programs/javascript/**.yml</include>
-        <include>../programs/javascript/expressions/**.yml</include>
-        <include>../programs/javascript/objects/**.yml</include>
+        <include>../programs/javascript/*.yml</include>
+        <include>../programs/javascript/*/*.yml</include>
+        <include>../programs/javascript/*/*/*.yml</include>
         <exclude>../programs/javascript/binary-expressions.yml</exclude>
         <excludesfile>unimplemented-features-JavaScript.set</excludesfile>
         <excludesfile>predicateAnalysis-JavaScript-encodeFloatAsRational.set</excludesfile>
