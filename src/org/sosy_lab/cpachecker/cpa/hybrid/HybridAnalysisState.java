@@ -126,7 +126,9 @@ public class HybridAnalysisState
     Set<CBinaryExpression> removableAssumptions = Sets.newHashSet();
 
     for(CBinaryExpression binaryExpression : newAssumptions) {
-      if(haveTheSameVariable(binaryExpression.getOperand1(), pCLeftHandSide)) {
+      if(ExpressionUtils.haveTheSameVariable(
+          binaryExpression.getOperand1(),
+          pCLeftHandSide)) {
         removableAssumptions.add(binaryExpression);
       }
     }
@@ -144,7 +146,10 @@ public class HybridAnalysisState
     Set<CBinaryExpression> mergedAssumptions = Sets.newHashSet(pArtificialAssumptions);
     Set<CBinaryExpression> seenAssumptions = Sets.newHashSet();
     for(CBinaryExpression currentAssumption : assumptions) {
-      if(CollectionUtils.appliesToAtLeastOne(pArtificialAssumptions, artAsssump -> haveTheSameVariable(artAsssump, currentAssumption))) {
+      if(CollectionUtils.
+          appliesToAtLeastOne(
+              pArtificialAssumptions,
+              artAsssump -> ExpressionUtils.haveTheSameVariable(artAsssump, currentAssumption))) {
         seenAssumptions.add(currentAssumption);
       }
     }
@@ -295,7 +300,7 @@ public class HybridAnalysisState
     boolean match = false;
 
     for(CBinaryExpression binaryExpression : assumptions) {
-        match |= haveTheSameVariable(pCIdExpression, binaryExpression);
+        match |= ExpressionUtils.haveTheSameVariable(pCIdExpression, binaryExpression);
     }
 
     return match;
@@ -314,12 +319,6 @@ public class HybridAnalysisState
     return Optional.empty();
   }
 
-  private static boolean haveTheSameVariable(CExpression first, CExpression second) {
 
-    @Nullable String nameFirst = ExpressionUtils.extractVariableIdentifier(first);
-    @Nullable String nameSecond = ExpressionUtils.extractVariableIdentifier(second);
-
-    return Objects.equals(nameFirst, nameSecond);
-  }
 
 }

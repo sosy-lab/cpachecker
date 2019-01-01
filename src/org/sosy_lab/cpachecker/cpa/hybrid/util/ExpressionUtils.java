@@ -23,15 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid.util;
 
+import java.util.Objects;
+import java.util.Set;
 import javax.annotation.Nullable;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
 /**
  * This class provides CExpression related functionality
@@ -79,6 +85,8 @@ public final class ExpressionUtils {
   @Nullable
   public static String extractVariableIdentifier(CExpression pExpression) {
 
+    if(pExpression == null ) return null;
+
     @Nullable
     String identifier = null;
     if (pExpression instanceof CIdExpression) {
@@ -100,10 +108,45 @@ public final class ExpressionUtils {
     return identifier;
   }
 
+  public static boolean haveTheSameVariable(CExpression first, CExpression second) {
+
+    @Nullable String nameFirst = ExpressionUtils.extractVariableIdentifier(first);
+    @Nullable String nameSecond = ExpressionUtils.extractVariableIdentifier(second);
+
+    return Objects.equals(nameFirst, nameSecond);
+  }
+
   public static boolean isVerifierNondet(CFunctionCallExpression pFunctionCallExpression) {
 
     final String verifierName = pFunctionCallExpression.getFunctionNameExpression().toASTString();
 
     return verifierName.startsWith("__VERIFIER_nondet");
+  }
+
+  public static boolean assignmentContainsVariable(
+      CStatementEdge pStatementEdge,
+      Set<CExpression> pVariables) {
+
+    CStatement statement = pStatementEdge.getStatement();
+    CLeftHandSide leftHandSide = null;
+
+    if(statement instanceof CExpressionAssignmentStatement) {
+      leftHandSide = ((CExpressionAssignmentStatement)statement).getLeftHandSide();
+    } else if(statement instanceof CFunctionCallAssignmentStatement) {
+      leftHandSide = ((CFunctionCallAssignmentStatement)statement).getLeftHandSide();
+    }
+
+    if(leftHandSide == null) {
+      return false;
+    }
+
+    boolean result = false;
+
+    for(CExpression variableExpression : pVariables) {
+
+      result |= haveTheSameVariable(leftHandSide, variableExpression);
+    }
+
+    return result;
   }
 } 

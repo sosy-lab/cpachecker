@@ -26,8 +26,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import apron.NotImplementedException;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -37,6 +37,7 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -54,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
@@ -408,6 +410,9 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
 
             // build an ARGState with this new hybrid analysis state
             ARGState stateToAdd = new ARGState(newState, flipAssumptionContext.parentState);
+            ARGState priorToAssumptionState = flipAssumptionContext.getPriorAssumptionState();
+            priorToAssumptionState.addParent(stateToAdd);
+            //stateToAdd.forkWithReplacements()
 
           } catch(InvalidAutomatonException iae) {
             throw new CPAException("Error occurred while parsing the value assignments into assumption expressions.", iae);
@@ -442,7 +447,15 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
     }
 
     // we have found the assumption
-    // TODO
+    // collect the first arg path containing changes of all variables included in the assumption
+    final Set<CExpression> variables = newContext.getVariables();
+
+    List<ARGState> pathList = findARGPathWithVariables(
+        newContext.getPriorAssumptionState(),
+        variables);
+
+    newContext.setParentToAssumptionPath(pathList);
+    newContext.setParentState(pathList.get(pathList.size()-1));
 
     return newContext;
   }
@@ -472,7 +485,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
 
           @Nullable AssumptionContext result = findAssumptionDFS(parentState, pAssumptions);
           if(result != null) {
-            break;
+            return result;
           }
         }
       }
@@ -548,6 +561,86 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
         .collect(Collectors.toList());
   }
 
+  /**
+   * Finds the shortest path in the ARG that contains the variables (changes)
+   * @param pState The state to begin with
+   * @param pVariables The variables contained in the assumption
+   * @return A list of ARGState denoting the path from the assumption to the parent state of the last change
+   * (empty list possible)
+   */
+  private List<ARGState> findARGPathWithVariables(
+      ARGState pState,
+      Set<CExpression> pVariables) {
+
+    List<List<ARGState>> allPaths = new ArrayList<>();
+
+    BiPredicate<ARGState, ARGState> checkState = (child, parent) -> {
+
+      for(CFAEdge edge : parent.getEdgesToChild(child)) {
+
+        if(!(edge instanceof CStatementEdge)) {
+          continue;
+        }
+
+        // now check for assignment and function call assignment
+        CStatementEdge statementEdge = (CStatementEdge) edge;
+        if(ExpressionUtils.assignmentContainsVariable(statementEdge, pVariables)) {
+          return true;
+        }
+      }
+
+      return false;
+
+    };
+
+    findAllARGPathsWithVariables(
+        pState,
+        checkState,
+        pVariables.size(),
+        allPaths,
+        new ArrayList<>());
+
+    if(allPaths.isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    allPaths.sort((l1, l2) -> Integer.compare(l1.size(), l2.size()));
+
+    return allPaths.get(0);
+  }
+
+  private void findAllARGPathsWithVariables(
+      ARGState pState,
+      BiPredicate<ARGState, ARGState> pCheckStateForVariable,
+      int pVariableCounter,
+      List<List<ARGState>> pAllAccumulator,
+      List<ARGState> pAccumulator) {
+
+    pAccumulator.add(pState);
+
+    for(ARGState parentState : pState.getParents()) {
+
+      if(pCheckStateForVariable.test(pState, parentState)) {
+
+        if(--pVariableCounter == 0) {
+          // no more variables to search for
+          pAccumulator.add(parentState);
+          pAllAccumulator.add(pAccumulator);
+          return;
+        }
+      }
+
+      // call for parent with list copy
+      findAllARGPathsWithVariables(
+          parentState,
+          pCheckStateForVariable,
+          pVariableCounter,
+          pAllAccumulator,
+          new ArrayList<>(pAccumulator)
+      );
+    }
+  }
+
   // builds the complete path formula for a path through the application denoted by the set of edges
   private PathFormula buildPathFormula(Collection<CFAEdge> pEdges)
       throws CPATransferException, InterruptedException {
@@ -616,13 +709,13 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
   private Set<CBinaryExpression> parseAssignments(Collection<ValueAssignment> pAssignments)
       throws InvalidAutomatonException {
 
-    Set<CBinaryExpression> assumptios = Sets.newHashSet();
+    Set<CBinaryExpression> assumptions = Sets.newHashSet();
     for(ValueAssignment assignment : pAssignments) {
       Collection<CBinaryExpression> assumptionCollection = formulaConverter.convertFormulaToCBinaryExpressions(assignment.getAssignmentAsFormula());
-      assumptios.addAll(assumptionCollection);
+      assumptions.addAll(assumptionCollection);
     }
 
-    return assumptios;
+    return assumptions;
   }
 
   @FunctionalInterface
@@ -681,44 +774,31 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
       setVariables();
     }
 
-    /**
-     * Calculates the path from the post assumption state to the parent
-     * @param pParentState The parent state (occurring within the ARG before changes of variables happen)
-     * @param pPostAssumptionState The first state after the assumption to flip
-     */
-    void calculatePath(ARGState pParentState, ARGState pPostAssumptionState) {
-
-      /*{                           // parent state
-       * int x = input();           // function call nondet
-       * if(x > 5) {                // assume edge (x > 5)
-       *   ...
-       * } else {
-       *   ...                      // reachable with the flipped assumption !(x > 5)
-       * }
-      }*/
-
-    }
-
     @Nullable
     ARGState getParentState() {
       return parentState;
     }
 
-    public CBinaryExpression getAssumption() {
+    CBinaryExpression getAssumption() {
       return assumption;
     }
 
-    public ARGState getPriorAssumptionState() {
+    ARGState getPriorAssumptionState() {
       return priorAssumptionState;
     }
 
-    public Set<CExpression> getVariables() {
+    Set<CExpression> getVariables() {
       return variables;
     }
 
     @Nullable
-    public ARGPath getParentToAssumptionPath() {
+    ARGPath getParentToAssumptionPath() {
       return parentToAssumptionPath;
+    }
+
+    void setParentToAssumptionPath(List<ARGState> pPathList) {
+      // we need to reverse the list, because right now the child-states come before the parent-states
+      parentToAssumptionPath = new ARGPath(Lists.reverse(pPathList));
     }
 
     private void setVariables() {
@@ -735,6 +815,9 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
       }
     }
 
+    void setParentState(ARGState pState) {
+      parentState = pState;
+    }
   }
 
   /*
