@@ -3794,6 +3794,10 @@ testcase.inStats = false
 # property specification
 testcase.reportCoveredErrorCallAsError = false
 
+# Which strategy to use to optimize set of test target edges
+testcase.targets.optimization.strategy = NONE
+  enum:     [NONE, COVERED_NEXT_EDGE, TESTCOMP]
+
 # Which CFA edges to use as test targets
 testcase.targets.type = ASSUME
   enum:     [ASSUME, ERROR_CALL, STATEMENT]
