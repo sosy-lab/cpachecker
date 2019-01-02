@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -277,10 +278,6 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
     EdgeCollectingCFAVisitor edgeCollectingVisitor = new EdgeCollectingCFAVisitor();
     CFANode startingNode = cfa.getMainFunction();
     traversal.traverseOnce(startingNode, edgeCollectingVisitor);
-    List<CFAEdge> edges = edgeCollectingVisitor.getVisitedEdges();
-    List<Integer> hashes = edges.stream().filter(edge -> edge instanceof CAssumeEdge)
-    .map(edge -> ((CAssumeEdge)edge).getExpression())
-    .map(edge -> edge.hashCode()).collect(Collectors.toList());
     final Set<CExpression> allAssumptions = extractAssumptions(edgeCollectingVisitor.getVisitedEdges());
 
     logger.log(Level.FINEST, "Assume edges from program cfa collected.");
@@ -414,6 +411,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
             ARGState priorToAssumptionState = flipAssumptionContext.getPriorAssumptionState();
             priorToAssumptionState.addParent(stateToAdd);
             //stateToAdd.forkWithReplacements()
+            pReachedSet.add(stateToAdd, SingletonPrecision.getInstance());
 
           } catch(InvalidAutomatonException iae) {
             throw new CPAException("Error occurred while parsing the value assignments into assumption expressions.", iae);
@@ -660,15 +658,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
       throws CPATransferException, InterruptedException {
     PathFormula formula = pathFormulaManager.makeEmptyPathFormula();
 
-    // extract only the assume edges
-    Collection<CAssumeEdge> assumeEdges = pEdges
-        .stream()
-        .filter(edge -> edge != null)
-        .filter(edge -> edge.getEdgeType() == CFAEdgeType.AssumeEdge)
-        .map(edge -> (CAssumeEdge) edge)
-        .collect(Collectors.toList());
-
-    for(CAssumeEdge edge : assumeEdges) {
+    for(CFAEdge edge : pEdges) {
       formula = pathFormulaManager.makeAnd(formula, edge);
     }
 
@@ -697,7 +687,8 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
       .stream()
       .filter(edge -> edge != null)
       .filter(edge -> edge.getEdgeType() == CFAEdgeType.AssumeEdge)
-      .map(edge -> ((CAssumeEdge) edge).getExpression())
+        // we need to invert on false truth assumption, because the information of the inversion gets lost otherwise
+      .map(edge -> ExpressionUtils.invertOnTruthAssumption((CAssumeEdge) edge))
       .collect(Collectors.toSet());
   }
 
@@ -730,6 +721,8 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
       assumptions.addAll(assumptionCollection);
     }
 
+    assert assumptions.size() == pAssignments.size();
+
     return assumptions;
   }
 
@@ -754,7 +747,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
    *  1) The assumption itself
    *  2) The depending variables
    *  3) The ARGState under which to insert the new state with changed variable values in compliance to the flipped assumption
-   *  4) The ARGState containing the assumption
+   *  4) The ARGState prior to the assumption
    */
   private static class AssumptionContext {
 
@@ -786,7 +779,8 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
             String.format("Assumption contained in assume edge %s is not applicable for hybrid execution.", pAssumeExpression));
       }
 
-      assumption = ExpressionUtils.invertExpression((CBinaryExpression) pAssumeExpression);
+      assumption = (CBinaryExpression) pAssumeExpression;
+      //assumption = ExpressionUtils.invertExpression((CBinaryExpression) pAssumeExpression);
       setVariables();
     }
 

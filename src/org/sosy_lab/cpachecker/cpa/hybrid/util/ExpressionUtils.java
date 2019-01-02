@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
 /**
@@ -50,19 +50,26 @@ public final class ExpressionUtils {
   /**
    * Calculate the Expression including the truthAssumption
    * @param pCfaEdge The respective AssumptionEdge of the cfa
-   * @param pExpression The already casted expression contained withing the edge
    * @return the (possibly inverted Expression), if the Expression provided by the edge is of type CBinaryExpression,
    *         else an empty Optional
    */
-  public static CBinaryExpression getASTWithTruthAssumption(AssumeEdge pCfaEdge, CBinaryExpression pExpression) {
+  public static CBinaryExpression invertOnTruthAssumption(CAssumeEdge pCfaEdge) {
 
-    if(pCfaEdge == null || pCfaEdge.getTruthAssumption()) {
+    CExpression assumption = pCfaEdge.getExpression();
 
-        return pExpression;
+    if(!(assumption instanceof CBinaryExpression)) {
+      throw new AssertionError("Assumption must be of type CBinaryExpression.");
+    }
+
+    CBinaryExpression binaryAssumption = (CBinaryExpression) assumption;
+
+    if(pCfaEdge.getTruthAssumption()) {
+
+        return binaryAssumption;
     }
 
     // operator inversion is needed
-    return invertExpression(pExpression);
+    return invertExpression(binaryAssumption);
   }
 
   public static CBinaryExpression invertExpression(CBinaryExpression pExpression) {

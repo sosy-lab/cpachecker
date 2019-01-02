@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -148,6 +149,10 @@ public class HybridAnalysisTransferRelation
       CDeclarationEdge cfaEdge,
       CDeclaration pCDeclaration)
       throws CPATransferException {
+
+    if(pCDeclaration instanceof CFunctionDeclaration) {
+      return simpleCopy();
+    }
 
     try {
 

@@ -87,21 +87,30 @@ public class AssumptionGenerator {
   private CBinaryExpression handleDeclaration(CDeclaration pCDeclaration)
       throws InvalidAssumptionException {
 
-    Value value = valueProvider.delegateVisit(pCDeclaration.getType());
+    @Nullable Value value = valueProvider.delegateVisit(pCDeclaration.getType());
+    if(value == null) {
+      return null;
+    }
     return declarationTransformer.transform(value, pCDeclaration, BinaryOperator.EQUALS);
   }
 
   private CBinaryExpression handleIdExpression(CIdExpression pCIdExpression)
       throws InvalidAssumptionException {
 
-    Value value = valueProvider.delegateVisit(pCIdExpression.getExpressionType());
+    @Nullable Value value = valueProvider.delegateVisit(pCIdExpression.getExpressionType());
+    if(value == null) {
+      return null;
+    }
     return idExpressionTransformer.transform(value, pCIdExpression, BinaryOperator.EQUALS);
   }
 
   private CBinaryExpression handleArraySubscript(CArraySubscriptExpression pCArraySubscriptExpression)
       throws InvalidAssumptionException {
 
-    Value value = valueProvider.delegateVisit(pCArraySubscriptExpression.getExpressionType());
+    @Nullable Value value = valueProvider.delegateVisit(pCArraySubscriptExpression.getExpressionType());
+    if(value == null) {
+      return null;
+    }
     return arraySubscriptExpressionTransformer.transform(value, pCArraySubscriptExpression, BinaryOperator.EQUALS);
   }
 }

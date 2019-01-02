@@ -105,6 +105,7 @@ public class HybridAnalysisState
         state.declarations);
   }
 
+  //TODO handle variables and declarations
   public static HybridAnalysisState copyWithNewAssumptions(HybridAnalysisState pState, CBinaryExpression... pExpressions) {
     Set<CBinaryExpression> currentAssumptions = Sets.newHashSet(pState.assumptions);
     currentAssumptions.addAll(Arrays.asList(pExpressions));
