@@ -277,6 +277,10 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
     EdgeCollectingCFAVisitor edgeCollectingVisitor = new EdgeCollectingCFAVisitor();
     CFANode startingNode = cfa.getMainFunction();
     traversal.traverseOnce(startingNode, edgeCollectingVisitor);
+    List<CFAEdge> edges = edgeCollectingVisitor.getVisitedEdges();
+    List<Integer> hashes = edges.stream().filter(edge -> edge instanceof CAssumeEdge)
+    .map(edge -> ((CAssumeEdge)edge).getExpression())
+    .map(edge -> edge.hashCode()).collect(Collectors.toList());
     final Set<CExpression> allAssumptions = extractAssumptions(edgeCollectingVisitor.getVisitedEdges());
 
     logger.log(Level.FINEST, "Assume edges from program cfa collected.");
@@ -691,6 +695,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
   private Set<CExpression> extractAssumptions(Collection<CFAEdge> pEdges) {
     return pEdges
       .stream()
+      .filter(edge -> edge != null)
       .filter(edge -> edge.getEdgeType() == CFAEdgeType.AssumeEdge)
       .map(edge -> ((CAssumeEdge) edge).getExpression())
       .collect(Collectors.toSet());
