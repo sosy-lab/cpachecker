@@ -26,9 +26,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -40,7 +37,13 @@ import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+
 import javax.annotation.Nullable;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -60,9 +63,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -76,7 +77,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
-import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -98,19 +98,25 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
   @Options(prefix = "hybridExecution")
   public static class HybridExecutionAlgorithmFactory implements AlgorithmFactory {
 
-    @Option(secure = true, name = "useValueSets", description = "Whether to use multiple values on a state.")
+    @Option(
+      secure = true,
+      name = "useValueSets",
+      description = "Whether to use multiple values on a state.")
     private boolean useValueSets = false;
 
-    @Option(secure = true, name = "useBFS",
-        description = "Whether to use Breadth-First-Search instead of Depth-First-Search to find the next assumption to flip.")
+    @Option(
+      secure = true,
+      name = "useBFS",
+      description = "Whether to use Breadth-First-Search instead of Depth-First-Search to find the next assumption to flip.")
     private boolean useBFS = false;
 
-    @Option(secure = true, name = "maxNumberMissedAssumption", 
+    @Option(
+      secure = true,
+      name = "maxNumberMissedAssumption",
       description = "The maximum number to tolerate a run of the algorithm in which no new assumption to flip could ne found")
     private int maxNumberMissedAssumption = 5;
 
     private final Algorithm algorithm;
-    private final ARGCPA argCPA;
     private final CFA cfa;
     private final LogManager logger;
     private final Configuration configuration;
@@ -118,29 +124,23 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
 
     /**
      *
-     * @param pAlgorithm The composed algorithm created up to this point
-     * @param pArgCPA The respective wrappig CPA (the hybrid execution algorithm depends on the ARGCPA)
-     * @param pCFA The cfa for the code to be checked
-     * @param pLogger The logger instance
-     * @param pConfiguration The applications configuration
+     * @param pAlgorithm        The composed algorithm created up to this point
+     * @param pCFA              The cfa for the code to be checked
+     * @param pLogger           The logger instance
+     * @param pConfiguration    The applications configuration
      * @param pShutdownNotifier A shutdown notifier
-     * @throws InvalidConfigurationException Throws InvalidConfigurationException if injection of the factories options fails
+     * @throws InvalidConfigurationException Throws InvalidConfigurationException if injection of
+     *                                       the factories options fails
      */
     public HybridExecutionAlgorithmFactory(
         Algorithm pAlgorithm,
-        ConfigurableProgramAnalysis pArgCPA,
         CFA pCFA,
         LogManager pLogger,
         Configuration pConfiguration,
-        ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException, CPAException {
+        ShutdownNotifier pShutdownNotifier)
+        throws InvalidConfigurationException {
       pConfiguration.inject(this);
       this.algorithm = pAlgorithm;
-      // hybrid execution relies on arg cpa
-      this.argCPA = CPAs.retrieveCPA(pArgCPA, ARGCPA.class);
-
-      if(argCPA == null) {
-        throw new CPAException("Hybrid Execution relies on the >Abstract Reachability Graph CPA<");
-      }
 
       this.cfa = pCFA;
       this.logger = pLogger;
@@ -153,7 +153,6 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
       try {
         return new HybridExecutionAlgorithm(
             algorithm,
-            argCPA,
             cfa,
             logger,
             configuration,
@@ -172,7 +171,6 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
   }
 
   private final Algorithm algorithm;
-  private final ARGCPA argCPA;
   private final CFA cfa;
   private final LogManager logger;
 
@@ -215,6 +213,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
    * by simply executing the search strategy for all those assignments (maybe even in parallel ...)
    *
    */
+  @SuppressWarnings("unused")
   private boolean useValueSets;
   private boolean useBFS;
   private final int maxNumMissedAssumption;
@@ -224,7 +223,6 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
 
   private HybridExecutionAlgorithm(
       Algorithm pAlgorithm,
-      ARGCPA pArgCPA,
       CFA pCFA,
       LogManager pLogger,
       Configuration pConfiguration,
@@ -235,7 +233,6 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
       throws InvalidConfigurationException {
 
     this.algorithm = pAlgorithm;
-    this.argCPA = pArgCPA;
     this.cfa = pCFA;
     this.logger = pLogger;
     this.useValueSets = pUseValueSets;
@@ -508,8 +505,21 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
       return null;
     }
 
-    // found a new assumption tp flip
-    // TODO
+    // we have found the assumption
+    // collect the first arg path containing changes of all variables included in the assumption
+    final Set<CExpression> variables = newContext.getVariables();
+
+    // in order to implement this in a bfs manner, it would be necessary 
+    // to memorize all 'walked' paths on every level, but would yield the same output, 
+    // because we search for all paths containing changes of the respective variables and chose the shortest
+    // thus the implementation is skipped here, because of unnecessary complexity   
+    List<ARGState> pathList = findARGPathWithVariables(
+        newContext.getPriorAssumptionState(),
+        variables);
+
+    newContext.setParentToAssumptionPath(pathList);
+    // the last element of the list is the great grand parent ;)
+    newContext.setParentState(pathList.get(pathList.size()-1));
 
     return newContext;
   }
@@ -750,9 +760,10 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
     private ARGPath parentToAssumptionPath;
 
     /**
-     * Constructs a new instance of the class
-     * Takes the assumption containing state, extracts the assumption and negates it
-     * @param pAssumeEdge The assume edge containing the assumption to flip
+     * Constructs a new instance of this class.
+     * Extracts the variables contained in the assumption and inverts the assumption.
+     * @param pPriorAssumptionState The state appearing in the ARG prior to the chosen assumption
+     * @param pAssumeExpression The assumption
      * @throws InvalidAssumptionException The Hybrid Analysis can only work on CBinaryExpressions
      */
     AssumptionContext(
@@ -777,10 +788,6 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
     @Nullable
     ARGState getParentState() {
       return parentState;
-    }
-
-    CBinaryExpression getAssumption() {
-      return assumption;
     }
 
     ARGState getPriorAssumptionState() {

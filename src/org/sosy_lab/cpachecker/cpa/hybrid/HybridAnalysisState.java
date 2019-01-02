@@ -23,23 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
-
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -251,6 +248,10 @@ public class HybridAnalysisState
     return Maps.newHashMap(declarations);
   }
 
+  /**
+   * Creates a mutable copy of the tracked variable expressions
+   * @return A set containing the variables
+   */
   protected Set<CExpression> getVariables() {
     return Sets.newHashSet(trackedVariables);
   }
