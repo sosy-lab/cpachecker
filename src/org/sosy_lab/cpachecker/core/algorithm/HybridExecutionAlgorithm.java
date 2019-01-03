@@ -336,7 +336,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
       // gather all visited assumptions
       Set<CExpression> visitedAssumptions = bottomStates
         .stream()
-        .map(argState -> ARGUtils.getOnePathTo(argState)) // TODO: check if we need to adjust this to all states (ARGUtils)
+        .map(argState -> ARGUtils.getOnePathTo(argState))
         .map(argPath -> extractAssumptions(argPath.getInnerEdges()))
         .flatMap(Collection::stream)
         .collect(Collectors.toSet());
