@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.AssumptionParser;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.OperatorType;
-import org.sosy_lab.cpachecker.cpa.hybrid.visitor.SimpleValueProvider;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.SimpleValueProvider;
 
 @Options(prefix = "cpa.hybrid")
 public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {

@@ -23,17 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid.util;
 
+import java.math.BigInteger;
 import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -155,5 +158,12 @@ public final class ExpressionUtils {
     }
 
     return result;
+  }
+
+  public static CIntegerLiteralExpression charToIntLiteral(CCharLiteralExpression pCharLiteral) {
+    return new CIntegerLiteralExpression(
+                pCharLiteral.getFileLocation(), 
+                pCharLiteral.getExpressionType(), 
+                BigInteger.valueOf(pCharLiteral.getCharacter()));
   }
 } 

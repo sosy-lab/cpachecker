@@ -71,6 +71,25 @@ public class StringValue implements Value {
     return null;
   }
 
+  @Override
+  public String toString() {
+    return value;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if(obj == null || !(obj instanceof StringValue)) {
+      return false;
+    }
+
+    return this.value.equals(((StringValue)obj).value);
+  }
+
+  @Override
+  public int hashCode() {
+    return value.hashCode();
+  }
+
   /**
    *
    * @return The string value the instance represents

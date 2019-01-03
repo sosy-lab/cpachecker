@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.hybrid.visitor;
+package org.sosy_lab.cpachecker.cpa.hybrid.value;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -123,7 +123,7 @@ public class SimpleValueProvider extends HybridValueProvider{
     final int length = lengthOpt.getAsInt();
 
     for(int i = 0; i < length; i++) {
-      elements.add(delegateVisit(elementType));
+      elements.add(delegateVisit(elementType).getValue());
     }
 
     return new CompositeValue(elements);
@@ -137,7 +137,7 @@ public class SimpleValueProvider extends HybridValueProvider{
       return null;
     }
 
-    return delegateVisit(innerType);
+    return delegateVisit(innerType).getValue();
   }
 
   @Override

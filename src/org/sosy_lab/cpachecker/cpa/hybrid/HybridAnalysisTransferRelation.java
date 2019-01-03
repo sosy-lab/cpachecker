@@ -26,10 +26,11 @@ package org.sosy_lab.cpachecker.cpa.hybrid;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+
 import javax.annotation.Nullable;
+
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -58,6 +60,7 @@ import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueProvider;
 import org.sosy_lab.cpachecker.cpa.hybrid.exception.InvalidAssumptionException;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.ExpressionUtils;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.StrengthenOperatorFactory;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class HybridAnalysisTransferRelation
@@ -150,13 +153,14 @@ public class HybridAnalysisTransferRelation
       CDeclaration pCDeclaration)
       throws CPATransferException {
 
-    if(pCDeclaration instanceof CFunctionDeclaration) {
+    if(pCDeclaration instanceof CFunctionDeclaration
+      || pCDeclaration instanceof CTypeDeclaration) {
       return simpleCopy();
     }
 
     try {
 
-      @Nullable CBinaryExpression newAssumption = assumptionGenerator.generateAssumption(pCDeclaration);
+      @Nullable HybridValue newAssumption = assumptionGenerator.generateAssumption(pCDeclaration);
       if(newAssumption == null) {
         return simpleCopy();
       }
@@ -226,7 +230,7 @@ public class HybridAnalysisTransferRelation
       try {
 
         @Nullable
-        CBinaryExpression newAssumption =
+        HybridValue newAssumption =
             assumptionGenerator.generateAssumption(leftHandSide);
         if(newAssumption == null) {
           return simpleCopy();

@@ -48,38 +48,38 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.CollectionUtils;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.ExpressionUtils;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class HybridAnalysisState
     implements LatticeAbstractState<HybridAnalysisState>, AbstractStateWithAssumptions, Graphable {
 
-  private ImmutableSet<CBinaryExpression> assumptions;
-
-  // variable cache
-  private ImmutableSet<CExpression> trackedVariables;
+  // map of variable expressions with their respective assumption
+  private ImmutableMap<CExpression, HybridValue> variableMap;
 
   // the declarations are later used to generate values for variables that are tracked by the
   // value analysis, but with unknown value
   private ImmutableMap<String, CSimpleDeclaration> declarations;
 
   public HybridAnalysisState() {
-    this(Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
+    this(Collections.emptySet(), Collections.emptySet());
   }
 
   public HybridAnalysisState(Set<CExpression> pAssumptions) {
-    this(
-        Sets.newHashSet(CollectionUtils.ofType(pAssumptions, CBinaryExpression.class)),
-        Collections.emptySet(),
+    this(CollectionUtils.ofType(pAssumptions, CBinaryExpression.class)
+          .stream()
+          .map(expression -> HybridValue.createHybridValueForAssumption(expression))
+          .collect(Collectors.toSet()),
         Collections.emptySet());
   }
 
   protected HybridAnalysisState(
-      Set<CBinaryExpression> pAssumptions,
-      Set<CExpression> pVariables,
+      Set<HybridValue> pAssumptions,
       Set<CSimpleDeclaration> pDeclarations) {
-    this.assumptions = ImmutableSet.copyOf(pAssumptions);
 
-    this.trackedVariables = ImmutableSet.copyOf(pVariables);
+    this.variableMap = ImmutableMap.copyOf(pAssumptions
+        .stream()
+        .collect(Collectors.toMap(HybridValue::trackedVariable, Function.identity())));
 
     this.declarations = ImmutableMap.copyOf(pDeclarations
         .stream()
@@ -87,12 +87,10 @@ public class HybridAnalysisState
   }
 
   protected HybridAnalysisState(
-      Set<CBinaryExpression> pAssumptions,
-      Set<CExpression> pVariables,
+      Map<CExpression, HybridValue> pVariableMap,
       Map<String, CSimpleDeclaration> pDeclarations) {
 
-    this.assumptions = ImmutableSet.copyOf(pAssumptions);
-    this.trackedVariables = ImmutableSet.copyOf(pVariables);
+    this.variableMap = ImmutableMap.copyOf(pVariableMap);
     this.declarations = ImmutableMap.copyOf(pDeclarations);
 
   }
@@ -100,18 +98,18 @@ public class HybridAnalysisState
   // creates an exact copy of the given state
   public static HybridAnalysisState copyOf(HybridAnalysisState state) {
     return new HybridAnalysisState(
-        state.assumptions,
-        state.trackedVariables,
+        state.variableMap,
         state.declarations);
   }
 
-  //TODO handle variables and declarations
-  public static HybridAnalysisState copyWithNewAssumptions(HybridAnalysisState pState, CBinaryExpression... pExpressions) {
-    Set<CBinaryExpression> currentAssumptions = Sets.newHashSet(pState.assumptions);
-    currentAssumptions.addAll(Arrays.asList(pExpressions));
+  public static HybridAnalysisState copyWithNewAssumptions(HybridAnalysisState pState, HybridValue pNewAssumptions) {
+    Map<CExpression, HybridValue> currentAssumptions = Maps.newHashMap(pState.variableMap);
+    currentAssumptions.putAll(Arrays.asList(pNewAssumptions)
+      .stream()
+      .collect(Collectors.toMap(HybridValue::trackedVariable, Function.identity())));
+
     return new HybridAnalysisState(
         currentAssumptions,
-        pState.trackedVariables,
         pState.declarations);
   }
 
@@ -229,16 +227,16 @@ public class HybridAnalysisState
   }
 
   @Override
-  public List<CExpression> getAssumptions() {
-    return ImmutableList.copyOf(assumptions);
+  public List<CExpression> getAssumptions() { 
+    return ImmutableList.copyOf(extractAssumptions());
   }
 
   /**
    * Creates a mutable copy of the assumptions held by this state
    * @return the assumptions with explicit expression type (CBinaryExpression)
    */
-  protected Set<CBinaryExpression> getExplicitAssumptions() {
-    return Sets.newHashSet(assumptions);
+  protected Set<HybridValue> getExplicitAssumptions() {
+    return Sets.newHashSet(variableMap.values());
   }
 
   /**
@@ -254,7 +252,7 @@ public class HybridAnalysisState
    * @return A set containing the variables
    */
   protected Set<CExpression> getVariables() {
-    return Sets.newHashSet(trackedVariables);
+    return Sets.newHashSet(variableMap.keySet());
   }
 
   @Override
@@ -279,7 +277,8 @@ public class HybridAnalysisState
   @Override
   public String toDOTLabel() {
     StringBuilder builder = new StringBuilder();
-    assumptions.forEach(assumption -> builder.append(assumption).append(System.lineSeparator()));
+    variableMap.values()
+      .forEach(assumption -> builder.append(assumption).append(System.lineSeparator()));
     return builder.toString();
   }
 
@@ -295,14 +294,14 @@ public class HybridAnalysisState
    */
   public boolean tracksVariable(CExpression pCIdExpression) {
 
-    if(trackedVariables.contains(pCIdExpression)) {
+    if(variableMap.containsKey(pCIdExpression)) {
       return true;
     }
 
     boolean match = false;
 
-    for(CBinaryExpression binaryExpression : assumptions) {
-        match |= ExpressionUtils.haveTheSameVariable(pCIdExpression, binaryExpression);
+    for(HybridValue hybridValue : variableMap.values()) {
+        match |= hybridValue.tracksVariable(pCIdExpression);
     }
 
     return match;
@@ -321,6 +320,12 @@ public class HybridAnalysisState
     return Optional.empty();
   }
 
-
+  // simple method to retrieve the assumption from the tracked hybrid values
+  private Set<CBinaryExpression> extractAssumptions() {
+    return variableMap.values()
+      .stream()
+      .map(hybridValue -> hybridValue.getAssumption())
+      .collect(Collectors.toSet());
+  }
 
 }

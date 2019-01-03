@@ -23,29 +23,74 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid.value;
 
+import javax.annotation.Nullable;
+
+import com.google.common.base.Objects;
+
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.hybrid.util.ExpressionUtils;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
- * Wrapper class for {@code Value}
+ * This class defines a wrapper for assumption tracking.
+ * The implementation of methods generated() and setAssumptions() 
+ * make it 'one-time mutable'. 
  */
 public class HybridValue {
 
   private final Value value;
-  private final boolean generated;
+  private boolean generated;
   private final CType type;
+  private CBinaryExpression assumption;
 
   /**
    * Constructs a new instance of this class
-   * @param pValue The internal vaue to represent
+   * @param pValue The internal value to represent
+   * @param pType The type for which to create the hybrid value
    */
   public HybridValue(
       Value pValue,
-      boolean pGenerated,
       CType pType) {
+
     value = pValue;
-    generated = pGenerated;
     type = pType;
+  }
+
+  /**
+   * Constructs a new instance of this class
+   * @param pValue The internal value
+   * @param pType The type for which to create the hybrid value
+   * @param pBinaryExpression The assumption defined for this hybrid value
+   */
+  public HybridValue(
+      Value pValue,
+      CType pType,
+      CBinaryExpression pBinaryExpression) {
+
+    this(pValue, pType);
+    assumption = pBinaryExpression;
+  }
+
+  /**
+   * Constructs a new instance of this class.
+   * Uses the given binaty expression to generate the missing information.
+   * @param pBinaryExpression The binary expression to create the Hybrid Value for
+   */
+  @Nullable
+  public static HybridValue createHybridValueForAssumption(CBinaryExpression pBinaryExpression) {
+
+    Value value = CExpressionToValueTransformer.transform(pBinaryExpression.getOperand2());
+
+    if(value == null) {
+      return null;
+    }
+
+    return new HybridValue(
+      value, 
+      pBinaryExpression.getExpressionType(), 
+      pBinaryExpression);
   }
 
   /**
@@ -64,10 +109,80 @@ public class HybridValue {
     return generated;
   }
 
+  public void generated() {
+    generated = true;
+  }
+
   /**
    * @return The respective type correlated to the value
    */
   public CType getType() {
     return type;
+  }
+
+  /**
+   * @return The assumption represented by this hybrid value
+   */
+  public CBinaryExpression getAssumption() {
+    return assumption;
+  }
+
+  /**
+   * Sets the assumption for this hybrid value.
+   * Does nothing, if the assumption was already set.
+   * @param pAssumption The respective assumption for this hybrid value.
+   */
+  public HybridValue setAssumption(CBinaryExpression pAssumption) {
+    if(assumption == null) {
+      assumption = pAssumption;
+    }
+    return this;
+  }
+
+  /**
+   * Rather check expression than retrieving the nullable variable expression
+   * from this hybrid value. 
+   */
+  @Nullable
+  public CExpression trackedVariable(){
+    return assumption == null
+      ? null
+      : assumption.getOperand1();
+  }
+
+  public boolean tracksVariable(CExpression pExpression) {
+
+    @Nullable CExpression trackedVariable = trackedVariable();
+    
+    if(trackedVariable == null) return false;
+
+    return trackedVariable().equals(pExpression)
+        || ExpressionUtils.haveTheSameVariable(pExpression, trackedVariable);
+    
+  }
+
+  @Override 
+  public String toString() {
+    return assumption != null 
+      ? assumption.toString()
+      : "";
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if(obj == null || !(obj instanceof HybridValue)) {
+      return false;
+    }
+
+    HybridValue other = (HybridValue) obj;
+
+    return this.value.equals(other.value)
+      && this.type.equals(other.type)
+      && Objects.equal(this.assumption, other.assumption); // avoid possible null pointer
+  } 
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(type, assumption);
   }
 }

@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -38,25 +39,32 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 public abstract class HybridValueProvider {
 
   @Nullable
-  public Value delegateVisit(CType type) {
+  public HybridValue delegateVisit(CType type) {
+
+    @Nullable Value innerValue = null;
 
     if(type instanceof CArrayType){
-        return visit((CArrayType)type);
+
+        innerValue = visit((CArrayType)type);
     }
     if(type instanceof CCompositeType) {
-        return visit((CCompositeType)type);
+        innerValue = visit((CCompositeType)type);
     }
     if(type instanceof CPointerType) {
-        return visit((CPointerType)type);
+        innerValue = visit((CPointerType)type);
     }
     if(type instanceof CSimpleType) {
-        return visit((CSimpleType)type);
+        innerValue = visit((CSimpleType)type);
     }
     if(type instanceof CTypedefType) {
-        return visit((CTypedefType)type);
+        innerValue = visit((CTypedefType)type);
     }
     if(type instanceof CBitFieldType) {
-        return visit((CBitFieldType)type);
+        innerValue = visit((CBitFieldType)type);
+    }
+
+    if(innerValue != null) {
+        return new HybridValue(innerValue, type);
     }
 
     return null;

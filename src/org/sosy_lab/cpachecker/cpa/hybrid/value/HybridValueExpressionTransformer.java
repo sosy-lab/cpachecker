@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.hybrid.visitor;
+package org.sosy_lab.cpachecker.cpa.hybrid.value;
 
 import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueTransformer;
 import org.sosy_lab.cpachecker.cpa.hybrid.exception.InvalidAssumptionException;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.CompositeValue;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.StringValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -51,14 +52,14 @@ public abstract class HybridValueExpressionTransformer<T extends CExpression>
 
   @Override
   public CBinaryExpression transform(
-      Value pValue, T pT, BinaryOperator pOperator) throws InvalidAssumptionException {
+      HybridValue pHybridValue, T pT, BinaryOperator pOperator) throws InvalidAssumptionException {
 
-    CExpression rightHandSide = getRightHandSide(pValue);
+    CExpression rightHandSide = getRightHandSide(pHybridValue.getValue());
     if(rightHandSide == null) {
       throw new InvalidAssumptionException("Unable to create assumption for Hybrid Value with given variable and operator.");
     }
 
-    return binaryExpressionBuilder.buildBinaryExpressionUnchecked(pT, rightHandSide, BinaryOperator.EQUALS);
+    return binaryExpressionBuilder.buildBinaryExpressionUnchecked(pT, rightHandSide, pOperator);
   }
 
   @Nullable

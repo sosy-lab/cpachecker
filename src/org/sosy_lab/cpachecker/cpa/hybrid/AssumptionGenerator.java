@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
 import javax.annotation.Nullable;
+
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -35,11 +36,11 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueProvider;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridValueTransformer;
 import org.sosy_lab.cpachecker.cpa.hybrid.exception.InvalidAssumptionException;
-import org.sosy_lab.cpachecker.cpa.hybrid.visitor.HybridValueArraySubscriptExpressionTransformer;
-import org.sosy_lab.cpachecker.cpa.hybrid.visitor.HybridValueDeclarationTransformer;
-import org.sosy_lab.cpachecker.cpa.hybrid.visitor.HybridValueExpressionTransformer;
-import org.sosy_lab.cpachecker.cpa.hybrid.visitor.HybridValueIdExpressionTransformer;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValueArraySubscriptExpressionTransformer;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValueDeclarationTransformer;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValueExpressionTransformer;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValueIdExpressionTransformer;
 
 public class AssumptionGenerator {
 
@@ -67,7 +68,7 @@ public class AssumptionGenerator {
    * @return A CBinaryExpression representing the assumption
    */
   @Nullable
-  public CBinaryExpression generateAssumption(CAstNode pCAstNode)
+  public HybridValue generateAssumption(CAstNode pCAstNode)
       throws InvalidAssumptionException {
 
     if(pCAstNode instanceof CDeclaration) {
@@ -77,40 +78,43 @@ public class AssumptionGenerator {
       return handleIdExpression((CIdExpression) pCAstNode);
     }
     if(pCAstNode instanceof CArraySubscriptExpression) {
-      handleArraySubscript((CArraySubscriptExpression) pCAstNode);
+      return handleArraySubscript((CArraySubscriptExpression) pCAstNode);
     }
 
     // ast node cannot be handled
     return null;
   }
 
-  private CBinaryExpression handleDeclaration(CDeclaration pCDeclaration)
+  private HybridValue handleDeclaration(CDeclaration pCDeclaration)
       throws InvalidAssumptionException {
 
-    @Nullable Value value = valueProvider.delegateVisit(pCDeclaration.getType());
+    @Nullable HybridValue value = valueProvider.delegateVisit(pCDeclaration.getType());
     if(value == null) {
       return null;
     }
-    return declarationTransformer.transform(value, pCDeclaration, BinaryOperator.EQUALS);
+    CBinaryExpression assumption = declarationTransformer.transform(value, pCDeclaration, BinaryOperator.EQUALS);
+    return value.setAssumption(assumption);
   }
 
-  private CBinaryExpression handleIdExpression(CIdExpression pCIdExpression)
+  private HybridValue handleIdExpression(CIdExpression pCIdExpression)
       throws InvalidAssumptionException {
 
-    @Nullable Value value = valueProvider.delegateVisit(pCIdExpression.getExpressionType());
+    @Nullable HybridValue value = valueProvider.delegateVisit(pCIdExpression.getExpressionType());
     if(value == null) {
       return null;
     }
-    return idExpressionTransformer.transform(value, pCIdExpression, BinaryOperator.EQUALS);
+    CBinaryExpression assumption = idExpressionTransformer.transform(value, pCIdExpression, BinaryOperator.EQUALS);
+    return value.setAssumption(assumption);
   }
 
-  private CBinaryExpression handleArraySubscript(CArraySubscriptExpression pCArraySubscriptExpression)
+  private HybridValue handleArraySubscript(CArraySubscriptExpression pCArraySubscriptExpression)
       throws InvalidAssumptionException {
 
-    @Nullable Value value = valueProvider.delegateVisit(pCArraySubscriptExpression.getExpressionType());
+    @Nullable HybridValue value = valueProvider.delegateVisit(pCArraySubscriptExpression.getExpressionType());
     if(value == null) {
       return null;
     }
-    return arraySubscriptExpressionTransformer.transform(value, pCArraySubscriptExpression, BinaryOperator.EQUALS);
+    CBinaryExpression assumption = arraySubscriptExpressionTransformer.transform(value, pCArraySubscriptExpression, BinaryOperator.EQUALS);
+    return value.setAssumption(assumption);
   }
 }

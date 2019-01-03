@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.hybrid.exception.InvalidAssumptionException;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.ExpressionUtils;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -169,11 +170,11 @@ public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOp
     return unknownValues;
   }
 
-  private Set<CBinaryExpression> createAssumptionsForUnknownValues(
+  private Set<HybridValue> createAssumptionsForUnknownValues(
     Set<MemoryLocation> pMemoryLocations,
     HybridAnalysisState pState) throws InvalidAssumptionException {
 
-      Set<CBinaryExpression> createdAssumptions =  Sets.newHashSet();
+      Set<HybridValue> createdAssumptions =  Sets.newHashSet();
 
       for(MemoryLocation memoryLocation : pMemoryLocations) {
         // TODO check building of names

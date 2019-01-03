@@ -36,10 +36,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.hybrid.exception.InvalidAssumptionException;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.CompositeValue;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.StringValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
  * Base class for transformation of hybrid values into assumptions
@@ -53,7 +53,7 @@ public abstract class HybridValueTransformer<T, TDependentObj> {
     this.binaryExpressionBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
   }
 
-  public abstract T transform(Value pValue, TDependentObj pObj, BinaryOperator pOperator)
+  public abstract T transform(HybridValue pHybridValue, TDependentObj pObj, BinaryOperator pOperator)
     throws InvalidAssumptionException;
 
   @SuppressWarnings("unused")

@@ -21,19 +21,19 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.hybrid.visitor;
+package org.sosy_lab.cpachecker.cpa.hybrid.value;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 /**
- * Implementation marker for CIdExpressions
+ * Implementation marker for CArraySubscriptExpressions
  */
-public class HybridValueIdExpressionTransformer
-    extends HybridValueExpressionTransformer<CIdExpression> {
+public class HybridValueArraySubscriptExpressionTransformer
+    extends HybridValueExpressionTransformer<CArraySubscriptExpression> {
 
-  public HybridValueIdExpressionTransformer(
+  public HybridValueArraySubscriptExpressionTransformer(
       MachineModel pMachineModel,
       LogManager pLogger) {
     super(pMachineModel, pLogger);
