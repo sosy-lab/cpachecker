@@ -38,9 +38,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
 
 /**
  * This class provides CExpression related functionality
@@ -53,8 +55,7 @@ public final class ExpressionUtils {
   /**
    * Calculate the Expression including the truthAssumption
    * @param pCfaEdge The respective AssumptionEdge of the cfa
-   * @return the (possibly inverted Expression), if the Expression provided by the edge is of type CBinaryExpression,
-   *         else an empty Optional
+   * @return the possibly inverted Expression
    */
   public static CBinaryExpression invertOnTruthAssumption(CAssumeEdge pCfaEdge) {
 
@@ -106,10 +107,8 @@ public final class ExpressionUtils {
 
       CArraySubscriptExpression arraySubscriptExpression = (CArraySubscriptExpression) pExpression;
       CExpression arrayIdentifierExpression = arraySubscriptExpression.getArrayExpression();
-      if (arrayIdentifierExpression instanceof CIdExpression) {
+      return extractVariableIdentifier(arrayIdentifierExpression); // should be CIdExpression
 
-        identifier = ((CIdExpression) arrayIdentifierExpression).getName();
-      }
     } else if(pExpression instanceof CBinaryExpression) {
       // try to extract for the first operand
       return extractVariableIdentifier(((CBinaryExpression)pExpression).getOperand1());
@@ -123,7 +122,7 @@ public final class ExpressionUtils {
     @Nullable String nameFirst = ExpressionUtils.extractVariableIdentifier(first);
     @Nullable String nameSecond = ExpressionUtils.extractVariableIdentifier(second);
 
-    return Objects.equals(nameFirst, nameSecond);
+    return Objects.equals(nameFirst, nameSecond); // avoid possible null pointer
   }
 
   public static boolean isVerifierNondet(CFunctionCallExpression pFunctionCallExpression) {
@@ -165,5 +164,30 @@ public final class ExpressionUtils {
                 pCharLiteral.getFileLocation(), 
                 pCharLiteral.getExpressionType(), 
                 BigInteger.valueOf(pCharLiteral.getCharacter()));
+  }
+
+  @Nullable
+  public static CSimpleDeclaration extractDeclaration(HybridValue pHybridValue) {
+
+    CBinaryExpression assumption = pHybridValue.getAssumption();
+    @Nullable
+    CIdExpression idExpression = extractIdExpression(assumption.getOperand1());
+    if(idExpression == null) {
+      return null;
+    }
+
+    return idExpression.getDeclaration();
+  }
+
+  @Nullable
+  public static CIdExpression extractIdExpression(CExpression pExpression) {
+    if(pExpression instanceof CIdExpression) {
+      return (CIdExpression) pExpression;
+    }
+    if(pExpression instanceof CArraySubscriptExpression) {
+      return extractIdExpression(((CArraySubscriptExpression)pExpression).getArrayExpression());
+    }
+
+    return null;
   }
 } 

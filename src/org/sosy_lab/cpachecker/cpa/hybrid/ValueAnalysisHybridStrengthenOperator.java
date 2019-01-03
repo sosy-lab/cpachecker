@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -38,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.hybrid.exception.InvalidAssumptionException;
+import org.sosy_lab.cpachecker.cpa.hybrid.util.CollectionUtils;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.ExpressionUtils;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -70,11 +73,11 @@ public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOp
 
     ValueAnalysisState strengtheningState = (ValueAnalysisState) pStrengtheningState;
 
-    // check for assumptions containing a variable that is also tracked by the ValueAnalysis and remove them
-    Set<CBinaryExpression> assumptions = pStateToStrengthen.getExplicitAssumptions();
+    // check for variables that are also tracked by the ValueAnalysis and remove them
+    Set<CExpression> variableExpressions = pStateToStrengthen.getVariables();
 
-    // used to collect all binary expressions, that are already tracked by the value analysis and thus can be removed
-    Set<CBinaryExpression> removableAssumptions = Sets.newHashSet();
+    // used to collect all expressions, that are already tracked by the value analysis and thus can be removed
+    Set<CExpression> removableAssumptions = Sets.newHashSet();
 
     Set<MemoryLocation> unknownValues = retrieveUnknownValues(
       strengtheningState.getTrackedMemoryLocations(), 
@@ -83,16 +86,16 @@ public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOp
     Set<MemoryLocation> trackedVariables = Sets.newHashSet(strengtheningState.getTrackedMemoryLocations());
     trackedVariables.removeAll(unknownValues); // we can safely remove those memory locations, because later on we create hybrid values for them
 
-    for(CBinaryExpression binaryExpression : assumptions) {
+    for(CExpression variable : variableExpressions) {
 
-      boolean keepOffset = binaryExpression.getOperand1() instanceof CArraySubscriptExpression;
+      boolean keepOffset = variable instanceof CArraySubscriptExpression;
 
-      @Nullable final String variableName = ExpressionUtils.extractVariableIdentifier(binaryExpression);
+      @Nullable final String variableName = ExpressionUtils.extractVariableIdentifier(variable);
 
       for(MemoryLocation memoryLocation : trackedVariables) {
 
         if(compareNames(variableName, memoryLocation, keepOffset)) {
-          removableAssumptions.add(binaryExpression);
+          removableAssumptions.add(variable);
           // the assumption was added anyway
           break;
         }
@@ -101,29 +104,29 @@ public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOp
     }
 
     // remove unnecessary assumptions
-    assumptions.removeAll(removableAssumptions);
+    variableExpressions.removeAll(removableAssumptions);
+    Map<CExpression, HybridValue> newAssumptionMap = Maps.newHashMap();
+    variableExpressions.forEach(expression -> newAssumptionMap.put(
+        expression,
+        pStateToStrengthen.getAssumptionForVariableExpression(expression)));
 
     // build new assumptions for unknown values
     try {
-      assumptions.addAll(createAssumptionsForUnknownValues(
-          unknownValues,
-          pStateToStrengthen));
+
+      Set<HybridValue> newValues =  createAssumptionsForUnknownValues(unknownValues, pStateToStrengthen);
+      newValues.forEach(value -> newAssumptionMap.put(
+          value.trackedVariable(),
+          value));
+
     } catch (InvalidAssumptionException iae) {
       logger.log(
           Level.WARNING,
           "An error occurred while trying to generate assumptions for the unknown values.",
           unknownValues);
     }
-
-    // build collection with variable identifiers for the internal var cache
-    Set<CExpression> variableIdentifiers = assumptions
-      .stream()
-      .map(assumption -> assumption.getOperand1())
-      .collect(Collectors.toSet());
     
     return new HybridAnalysisState(
-        assumptions,
-        variableIdentifiers,
+        newAssumptionMap,
         pStateToStrengthen.getDeclarations());
   }
 

@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -39,6 +40,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -102,96 +104,86 @@ public class HybridAnalysisState
         state.declarations);
   }
 
-  public static HybridAnalysisState copyWithNewAssumptions(HybridAnalysisState pState, HybridValue pNewAssumptions) {
-    Map<CExpression, HybridValue> currentAssumptions = Maps.newHashMap(pState.variableMap);
-    currentAssumptions.putAll(Arrays.asList(pNewAssumptions)
+  public static HybridAnalysisState copyWithNewAssumptions(HybridAnalysisState pState, HybridValue... pNewAssumptions) {
+
+    Collection<HybridValue> hybridValues = Arrays.asList(pNewAssumptions);
+
+    Map<CExpression, HybridValue> newAssumptions = Maps.newHashMap(pState.variableMap);
+    newAssumptions.putAll(hybridValues
       .stream()
       .collect(Collectors.toMap(HybridValue::trackedVariable, Function.identity())));
 
+    Map<String, CSimpleDeclaration> newDeclarations = Maps.newHashMap(pState.declarations);
+    newDeclarations.putAll(hybridValues
+      .stream()
+      .map(value -> ExpressionUtils.extractDeclaration(value))
+      .collect(Collectors.toMap(CSimpleDeclaration::getQualifiedName, Function.identity())));
+
     return new HybridAnalysisState(
-        currentAssumptions,
+        newAssumptions,
         pState.declarations);
   }
 
   public static HybridAnalysisState removeOnAssignment(HybridAnalysisState pState, CLeftHandSide pCLeftHandSide) {
 
-    Set<CBinaryExpression> newAssumptions = pState.getExplicitAssumptions();
-    Set<CExpression> variables = pState.getVariables();
-    Map<String, CSimpleDeclaration> declarationMap = pState.getDeclarations();
+    Set<CExpression> removableAssumptions = Sets.newHashSet();
 
-    Set<CBinaryExpression> removableAssumptions = Sets.newHashSet();
-
-    for(CBinaryExpression binaryExpression : newAssumptions) {
+    for(CExpression expression : pState.variableMap.keySet()) {
       if(ExpressionUtils.haveTheSameVariable(
-          binaryExpression.getOperand1(),
+          expression,
           pCLeftHandSide)) {
-        removableAssumptions.add(binaryExpression);
+        removableAssumptions.add(expression);
       }
     }
 
-    newAssumptions.removeAll(removableAssumptions);
+    Map<CExpression, HybridValue> newVariableMap = Maps.newHashMap(pState.variableMap);
+    removableAssumptions.forEach(assumption -> newVariableMap.remove(assumption));
+    Map<String, CSimpleDeclaration> declarationMap = pState.getDeclarations();
 
     return new HybridAnalysisState(
-        newAssumptions,
-        variables,
+        newVariableMap,
         declarationMap);
   }
 
   public HybridAnalysisState mergeWithArtificialAssignments(Collection<CBinaryExpression> pArtificialAssumptions) {
 
-    Set<CBinaryExpression> mergedAssumptions = Sets.newHashSet(pArtificialAssumptions);
-    Set<CBinaryExpression> seenAssumptions = Sets.newHashSet();
-    for(CBinaryExpression currentAssumption : assumptions) {
+    Set<CExpression> seenAssumptions = Sets.newHashSet();
+    for(CExpression idExpression : variableMap.keySet()) {
       if(CollectionUtils.
           appliesToAtLeastOne(
               pArtificialAssumptions,
-              artAsssump -> ExpressionUtils.haveTheSameVariable(artAsssump, currentAssumption))) {
-        seenAssumptions.add(currentAssumption);
+              artAsssump -> ExpressionUtils.haveTheSameVariable(artAsssump, idExpression))) {
+        seenAssumptions.add(idExpression);
       }
     }
 
-    // filter out the seen assumptions
-    Set<CBinaryExpression> filteredAssumptions = assumptions
-        .stream()
-        .filter(assumption -> !seenAssumptions.contains(assumption))
-        .collect(Collectors.toSet());
-
-    mergedAssumptions.addAll(filteredAssumptions);
-
-    Set<CExpression> variables = mergedAssumptions
-        .stream()
-        .map(assumption -> assumption.getOperand1())
-        .collect(Collectors.toSet());
+    Map<CExpression, HybridValue> mergedAssumptions = Maps.newHashMap(variableMap);
+    seenAssumptions.forEach(assumption -> mergedAssumptions.remove(assumption));
 
     return new HybridAnalysisState(
         mergedAssumptions,
-        variables,
         this.declarations);
   }
 
   /**
    * The join operator is implemented as an intersection of both states' tracked assumptions
-   * Idea for another implementation:
-   *   foreach assumption:
-   *      1) if variables are different, take the assumption
-   *      2) if variables are the same, take the assumption of the other state (reached state)
    *
-   *  The declarations get merged
+   * The declarations are merged
    */
   @Override
   public HybridAnalysisState join(HybridAnalysisState pOther)
       throws CPAException, InterruptedException {
 
-    Set<CBinaryExpression> combinedAssumptions = Sets.newHashSet();
-    Set<CExpression> variableIdentifiers = Sets.newHashSet();
+    Map<CExpression, HybridValue> combinedAssumptions = Maps.newHashMap();
 
-    for(CBinaryExpression otherAssumption : pOther.assumptions)
+    for(Entry<CExpression, HybridValue> otherEntry : pOther.variableMap.entrySet())
     {
-        if(assumptions.contains(otherAssumption)) {
-            combinedAssumptions.add(otherAssumption);
-            CExpression variableIdentifier = otherAssumption.getOperand1();
-            variableIdentifiers.add(variableIdentifier);
-        }
+      CExpression idExpression = otherEntry.getKey();
+      HybridValue value = otherEntry.getValue();
+
+      if(variableMap.containsKey(idExpression)) {
+          combinedAssumptions.put(idExpression, value);
+      }
     }
 
     Map<String, CSimpleDeclaration> mergedDeclarations = Maps.newHashMap(this.declarations);
@@ -201,7 +193,6 @@ public class HybridAnalysisState
 
     return new HybridAnalysisState(
         combinedAssumptions,
-        variableIdentifiers,
         mergedDeclarations);
   }
 
@@ -215,10 +206,11 @@ public class HybridAnalysisState
   public boolean isLessOrEqual(HybridAnalysisState pOther)
       throws CPAException, InterruptedException {
 
-    List<CExpression> otherAssumptions = pOther.getAssumptions();
+    Collection<HybridValue> otherAssumptions = pOther.variableMap.values();
+    Collection<HybridValue> assumptions = this.variableMap.values();
 
     // if this state contains less elements (assumptions), it cannot be less or equal than the other state, by definition
-    if(otherAssumptions.size() > assumptions.size()) {
+    if(assumptions.size() < otherAssumptions.size()) {
         return false;
     }
 
@@ -255,6 +247,16 @@ public class HybridAnalysisState
     return Sets.newHashSet(variableMap.keySet());
   }
 
+  /**
+   * Tries to retrieve an assumption for the given variable expression
+   * @param pVariableExpression The respective expression representing the variable
+   * @return The HybridValue instance held by this state, if it tracks an assumption for the variable
+   */
+  @Nullable
+  protected HybridValue getAssumptionForVariableExpression(CExpression pVariableExpression) {
+    return variableMap.get(pVariableExpression);
+  }
+
   @Override
   public boolean equals(Object obj) {
     if(obj == null || !(obj instanceof HybridAnalysisState)) {
@@ -266,12 +268,13 @@ public class HybridAnalysisState
     }
 
     HybridAnalysisState other = (HybridAnalysisState) obj;
-    return this.assumptions.equals(other.assumptions);
+    return this.variableMap.equals(other.variableMap)
+        && this.declarations.equals(other.declarations);
   }
 
   @Override
   public int hashCode() {
-      return assumptions.hashCode();
+      return variableMap.hashCode();
   }
 
   @Override
@@ -289,7 +292,7 @@ public class HybridAnalysisState
 
   /**
    *
-   * @param pCIdExpression The repsective variable expression
+   * @param pCIdExpression The respective variable expression
    * @return Whether the state tracks an assumption for this variable
    */
   public boolean tracksVariable(CExpression pCIdExpression) {

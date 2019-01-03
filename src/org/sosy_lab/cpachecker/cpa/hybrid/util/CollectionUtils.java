@@ -32,122 +32,119 @@ import javax.annotation.Nullable;
 
 public final class CollectionUtils
 {
-    // utility class
-    private CollectionUtils() {}
+  // utility class
+  private CollectionUtils() {}
 
-    /**
-     * This method reduces a collection of some base type of the given type T
-     * till it only contains objects of the sub-type T
-     * 
-     * This method may return an empty collection.
-     * 
-     * @param collection The collection to filter
-     * @param clazz The class object of type T to 
-     */
-    @SuppressWarnings("unchecked")
-    public static <T> Collection<T>  ofType(Collection<? super T> collection, Class<T> clazz)
-    {
-        return collection
-            .stream()
-            // the former implementation may not havy been sound in all variations (comparing elements class with the given one)
-            .filter(elem -> clazz.isInstance(elem)) 
-            // the cast is safe due to filter operation
-            .map(elem -> (T) elem)
-            .collect(Collectors.toList());
+  /**
+   * This method reduces a collection of some base type of the given type T
+   * till it only contains objects of the sub-type T
+   *
+   * This method may return an empty collection.
+   *
+   * @param collection The collection to filter
+   * @param clazz The class object of type T to
+   */
+  @SuppressWarnings("unchecked")
+  public static <T> Collection<T>  ofType(Collection<? super T> collection, Class<T> clazz)
+  {
+    return collection
+        .stream()
+        // the former implementation may not havy been sound in all variations (comparing elements class with the given one)
+        .filter(elem -> clazz.isInstance(elem))
+        // the cast is safe due to filter operation
+        .map(elem -> (T) elem)
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * Checks wether a given predicate applies to one or more elements of the collection
+   *
+   * @param collection The respective collection
+   * @param pred The predicate to check for
+   * @return True, if there is at least one element fulfilling the predicate, else false
+   */
+  public static <T> boolean appliesToAtLeastOne(Iterable<T> collection, Predicate<T> pred) {
+    boolean result = false;
+
+    for(T element : collection) {
+      result |= pred.test(element);
     }
 
-    /**
-     * Creates a new collection of a specified generic param type
-     */
-    public static <T> Collection<T> of()
-    {
-        return new ArrayList<>();
-    }
+    return result;
+  }
 
+  public static <T> boolean appliesToAll(Collection<T> collection, Predicate<T> pred) {
+    return getApplyingElements(collection, pred).size() == collection.size();
+  }
 
-    /**
-     * Checks wether a given predicate applies to one or more elements of the collection
-     *
-     * @param collection The respective collection
-     * @param pred The predicate to check for
-     * @return True, if there is at least one element fulfilling the predicate, else false
-     */
-    public static <T> boolean appliesToAtLeastOne(Iterable<T> collection, Predicate<T> pred) {
-        return getApplyingElements(collection, pred).size() >= 1;
-    }
+  /**
+   * Gets all elements of the specified collection, that fulfill the predicate
+   * @param collection The respective collection of elements
+   * @param pred The respective predicate to check ech element for
+   * @return A collection containing all elements that the predicate applies for
+   */
+  public static  <T> Collection<T> getApplyingElements(Iterable<T> collection, Predicate<T> pred) {
+    Collection<T> resultCollection = new ArrayList<>();
 
-    public static <T> boolean appliesToAll(Iterable<T> collection, Predicate<T> pred) {
-        return getApplyingElements(collection, pred).size() == count(collection);
-    }
-
-    /**
-     * Gets all elements of the specified collection, that fulfill the predicate
-     * @param collection The respective collection of elements
-     * @param pred The respective predicate to check ech element for
-     * @return A collection containing all elements that the predicate applies for
-     */
-    public static  <T> Collection<T> getApplyingElements(Iterable<T> collection, Predicate<T> pred) {
-        Collection<T> resultCollection = new ArrayList<>();
-
-        for(T element : collection) {
-            if(pred.test(element)) {
-                resultCollection.add(element);
-            }
+    for(T element : collection) {
+        if(pred.test(element)) {
+            resultCollection.add(element);
         }
-
-        return resultCollection;
     }
 
-    /**
-     * @param collection The collection to calculate the element count for
-     * @return The size of the collection
-     */
-    @SuppressWarnings("unused")
-    public static <T> int count(Iterable<T> collection) {
-        int count = 0;
-        for(T elem : collection) {
-            count++;
-        }
+    return resultCollection;
+  }
 
-        return count;
+  /**
+   * @param collection The collection to calculate the element count for
+   * @return The size of the collection
+   */
+  @SuppressWarnings("unused")
+  public static <T> int count(Iterable<T> collection) {
+    int count = 0;
+    for(T elem : collection) {
+        count++;
     }
 
-    /**
-     * Gets the first element of a collection
-     * @param collection The respective collection
-     * @return The first element of the collection, or null, if the collection is empty
-     */
-    @Nullable
-    public static <T> T first(Iterable<T> collection) {
-        T first = null;
-        for(T elem : collection) {
-            first = elem;
-            break;
-        }
-        return first;
+    return count;
+  }
+
+  /**
+   * Gets the first element of a collection
+   * @param collection The respective collection
+   * @return The first element of the collection, or null, if the collection is empty
+   */
+  @Nullable
+  public static <T> T first(Iterable<T> collection) {
+    T first = null;
+    for(T elem : collection) {
+        first = elem;
+        break;
+    }
+    return first;
+  }
+
+  /**
+   * Gets the last element of a collection
+   * @param collection The respective collection
+   * @return The last element of a collection, or null, if the collection is empty
+   */
+  @Nullable
+  public static <T> T last(Iterable<T> collection) {
+    T last = null;
+    for(T elem : collection) {
+        last = elem;
     }
 
-    /**
-     * Gets the last element of a collection
-     * @param collection The respective collection
-     * @return The last element of a collection, or null, if the collection is empty
-     */
-    @Nullable
-    public static <T> T last(Iterable<T> collection) {
-        T last = null;
-        for(T elem : collection) {
-            last = elem;
-        }
+    return last;
+  }
 
-        return last;
-    }
-
-    /**
-     * 
-     * @param collection The respective collection 
-     * @return True, if the collection has any elements, else false
-     */
-    public static <T> boolean any(Iterable<T> collection) {
+  /**
+   *
+   * @param collection The respective collection
+   * @return True, if the collection has any elements, else false
+   */
+  public static <T> boolean any(Iterable<T> collection) {
         return count(collection) > 0;
     } 
 }
