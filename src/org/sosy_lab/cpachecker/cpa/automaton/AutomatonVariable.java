@@ -39,7 +39,7 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
 
   public static AutomatonVariable createAutomatonVariable(
       String pType, String pName, String... args) {
-    if (pType.toLowerCase().equals("int") || (pType.toLowerCase().equals("integer"))) {
+    if (pType.toLowerCase().equals("int") || pType.toLowerCase().equals("integer")) {
       return new AutomatonIntVariable(pName);
     } else if (pType.toLowerCase().equals("set")) {
       if (args.length > 0) {
@@ -212,7 +212,7 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
         return false;
       }
       AutomatonSetVariable<?> otherVar = (AutomatonSetVariable<?>) pObj;
-      return (this.set.equals(otherVar.set)) && this.name.equals(otherVar.name);
+      return this.set.equals(otherVar.set) && this.name.equals(otherVar.name);
     }
 
     @Override

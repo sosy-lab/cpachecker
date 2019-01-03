@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.monitor;
 import java.io.IOException;
 import java.io.NotSerializableException;
 
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;

@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import java.math.BigInteger;
 import java.util.OptionalLong;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -36,16 +38,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -125,15 +130,89 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
     if (readableState.contains(varLoc)) {
       ValueAndType valueAndType = readableState.getValueAndTypeFor(varLoc);
-      Type actualType = valueAndType.getType();
+      CType actualType = (CType) valueAndType.getType();
       CType readType = pLValue.getExpressionType();
       MachineModel machineModel = getMachineModel();
-      if (!(actualType instanceof CType)
-          || machineModel.getSizeof(readType) == machineModel.getSizeof((CType) actualType)) {
+      if (machineModel.getSizeof(readType) == machineModel.getSizeof(actualType)) {
+
+        if (doesRequireUnionFloatConversion(actualType, readType)) {
+          if (valueAndType.getValue().isNumericValue()) {
+            if (isFloatingPointType(actualType.getCanonicalType())) {
+              return extractFloatingPointValueAsIntegralValue(
+                  actualType.getCanonicalType(), valueAndType);
+            } else if (isFloatingPointType(readType.getCanonicalType())) {
+              return extractIntegralValueAsFloatingPointValue(
+                  readType.getCanonicalType(), valueAndType);
+            }
+          }
+
+          return UnknownValue.getInstance();
+        }
+
         return valueAndType.getValue();
       }
     }
-    return Value.UnknownValue.getInstance();
+    return UnknownValue.getInstance();
+  }
+
+  private Value extractFloatingPointValueAsIntegralValue(
+      CType pActualType, ValueAndType pValueAndType) {
+    if (pActualType instanceof CSimpleType) {
+      CBasicType basicType = ((CSimpleType) pActualType.getCanonicalType()).getType();
+      NumericValue numericValue = pValueAndType.getValue().asNumericValue();
+
+      if (basicType.equals(CBasicType.FLOAT)) {
+        float floatValue = numericValue.floatValue();
+        int intBits = Float.floatToIntBits(floatValue);
+
+        return new NumericValue(intBits);
+      } else if (basicType.equals(CBasicType.DOUBLE)) {
+        double doubleValue = numericValue.doubleValue();
+        long longBits = Double.doubleToLongBits(doubleValue);
+
+        return new NumericValue(longBits);
+      }
+    }
+    return UnknownValue.getInstance();
+  }
+
+  private Value extractIntegralValueAsFloatingPointValue(
+      CType pReadType, ValueAndType pValueAndType) {
+    if (pReadType instanceof CSimpleType) {
+      CBasicType basicReadType = ((CSimpleType) pReadType.getCanonicalType()).getType();
+      NumericValue numericValue = pValueAndType.getValue().asNumericValue();
+
+      if (basicReadType.equals(CBasicType.FLOAT)) {
+        int bits = numericValue.bigInteger().intValue();
+        float floatValue = Float.intBitsToFloat(bits);
+
+        return new NumericValue(floatValue);
+      } else if (basicReadType.equals(CBasicType.DOUBLE)) {
+        long bits = numericValue.bigInteger().longValue();
+        double doubleValue = Double.longBitsToDouble(bits);
+
+        return new NumericValue(doubleValue);
+      }
+    }
+    return UnknownValue.getInstance();
+  }
+
+  private boolean doesRequireUnionFloatConversion(CType pSourceType, CType pTargetType) {
+    CType sourceType = pSourceType.getCanonicalType();
+    CType targetType = pTargetType.getCanonicalType();
+    if (sourceType instanceof CSimpleType && targetType instanceof CSimpleType) {
+      // if only one of them is no integer type, a conversion is necessary
+      return isFloatingPointType(sourceType) != isFloatingPointType(targetType);
+    } else {
+      return false;
+    }
+  }
+
+  private boolean isFloatingPointType(CType pType) {
+    if (pType instanceof CSimpleType) {
+      return ((CSimpleType) pType).getType().isFloatingPointType();
+    }
+    return false;
   }
 
   @Override
@@ -164,15 +243,15 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   }
 
   /**
-   * Returns the {@link MemoryLocation} of a struct member.
-   * It is assumed that the struct of the given type begins at the given memory location.
+   * Returns the {@link MemoryLocation} of a struct member. It is assumed that the struct of the
+   * given type begins at the given memory location.
    *
    * @param pStartLocation the start location of the struct
    * @param pMemberName the name of the member to return the memory location for
    * @param pStructType the type of the struct
    * @return the memory location of the struct member
    */
-  public MemoryLocation evaluateRelativeMemLocForStructMember(
+  public @Nullable MemoryLocation evaluateRelativeMemLocForStructMember(
       MemoryLocation pStartLocation, String pMemberName, CCompositeType pStructType)
       throws UnrecognizedCodeException {
 
@@ -236,7 +315,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return null;
       }
 
-      long typeSize = evv.getMachineModel().getSizeofInBits(elementType);
+      long typeSize = evv.getMachineModel().getSizeof(elementType).longValueExact();
 
       long subscriptOffset = subscriptValue.asNumericValue().longValue() * typeSize;
 
@@ -273,7 +352,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
           fieldOwner.getExpressionType());
     }
 
-    protected MemoryLocation getStructureFieldLocationFromRelativePoint(
+    protected @Nullable MemoryLocation getStructureFieldLocationFromRelativePoint(
         MemoryLocation pStartLocation, String pFieldName, CType pOwnerType)
         throws UnrecognizedCodeException {
 
@@ -303,7 +382,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       if (ownerType instanceof CElaboratedType) {
         return getFieldOffsetInBits(((CElaboratedType) ownerType).getRealType(), fieldName);
       } else if (ownerType instanceof CCompositeType) {
-        return OptionalLong.of(
+        return bitsToByte(
             evv.getMachineModel().getFieldOffsetInBits((CCompositeType) ownerType, fieldName));
       } else if (ownerType instanceof CPointerType) {
         evv.missingPointer = true;
@@ -324,12 +403,21 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       throw new AssertionError();
     }
 
+    private OptionalLong bitsToByte(BigInteger bits) {
+      BigInteger charSizeInBits = BigInteger.valueOf(evv.getMachineModel().getSizeofCharInBits());
+      BigInteger[] divAndRemainder = bits.divideAndRemainder(charSizeInBits);
+      if (divAndRemainder[1].equals(BigInteger.ZERO)) {
+        return OptionalLong.of(divAndRemainder[0].longValueExact());
+      }
+      return OptionalLong.empty();
+    }
+
     protected MemoryLocation getArraySlotLocationFromArrayStart(
         final MemoryLocation pArrayStartLocation,
         final int pSlotNumber,
         final CArrayType pArrayType) {
 
-      long typeSize = evv.getMachineModel().getSizeofInBits(pArrayType.getType());
+      long typeSize = evv.getMachineModel().getSizeof(pArrayType.getType()).longValueExact();
       long offset = typeSize * pSlotNumber;
       long baseOffset = pArrayStartLocation.isReference() ? pArrayStartLocation.getOffset() : 0;
 

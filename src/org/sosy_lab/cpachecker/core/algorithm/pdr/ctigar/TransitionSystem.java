@@ -354,7 +354,7 @@ public class TransitionSystem {
     // TODO The restriction "no function param" of makeFormulaForVariable may be a problem.
     BitvectorFormula var =
         (BitvectorFormula)
-            pPfmgr.makeFormulaForVariable(pContext, pName, pContext.getSsa().getType(pName), false);
+            pPfmgr.makeFormulaForVariable(pContext, pName, pContext.getSsa().getType(pName));
     return pFmgr.instantiate(var, SSAMap.emptySSAMap().withDefault(pIndex));
   }
 
@@ -369,9 +369,7 @@ public class TransitionSystem {
   /** Returns the formula (pc=pLocationNumber). */
   private static BooleanFormula makeProgramcounterFormula(
       int pLocationNumber, BitvectorFormulaManagerView pBvfmgr, CFA pCFA) {
-    int bitLength =
-        pCFA.getMachineModel().getSizeof(PROGRAM_COUNTER_TYPE)
-            * pCFA.getMachineModel().getSizeofCharInBits();
+    int bitLength = pCFA.getMachineModel().getSizeofInBits(PROGRAM_COUNTER_TYPE).intValueExact();
     BitvectorFormula pc = pBvfmgr.makeVariable(bitLength, PROGRAM_COUNTER_VARIABLE_NAME);
     BitvectorFormula value = pBvfmgr.makeBitvector(bitLength, pLocationNumber);
     return pBvfmgr.equal(pc, value);

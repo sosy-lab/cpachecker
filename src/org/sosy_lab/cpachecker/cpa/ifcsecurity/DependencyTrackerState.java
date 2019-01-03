@@ -23,18 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
-import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Variable;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Variable;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * CPA-Abstract-State for tracking which variables/functions are depends on which other variables/functions
@@ -83,8 +82,9 @@ public class DependencyTrackerState
     for (Entry<Variable, SortedSet<Variable>> entry : this.dependencies.entrySet()) {
       Variable var=entry.getKey();
       if (pOther.dependencies.containsKey(var)) {
-        if (!(this.dependencies.get(var).containsAll(
-            pOther.dependencies.get(var)))) { return false; }
+        if (!this.dependencies.get(var).containsAll(pOther.dependencies.get(var))) {
+          return false;
+        }
       } else {
         return false;
       }
@@ -92,8 +92,9 @@ public class DependencyTrackerState
     for (Entry<Variable, SortedSet<Variable>> entry : pOther.dependencies.entrySet()) {
       Variable var=entry.getKey();
       if (this.dependencies.containsKey(var)) {
-        if (!(pOther.dependencies.get(var).containsAll(
-            this.dependencies.get(var)))) { return false; }
+        if (!pOther.dependencies.get(var).containsAll(this.dependencies.get(var))) {
+          return false;
+        }
       } else {
         return false;
       }
@@ -135,8 +136,9 @@ public class DependencyTrackerState
     for (Entry<Variable, SortedSet<Variable>> entry : this.dependencies.entrySet()) {
       Variable var=entry.getKey();
       if (pOther.dependencies.containsKey(var)) {
-        if (!(this.dependencies.get(var).containsAll(
-            pOther.dependencies.get(var)))) { return false; }
+        if (!this.dependencies.get(var).containsAll(pOther.dependencies.get(var))) {
+          return false;
+        }
       } else {
         return false;
       }

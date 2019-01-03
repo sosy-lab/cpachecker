@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment;
-import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment.Builder;
 import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.Typed;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -262,7 +261,8 @@ public class CompoundIntervalFormulaManager {
     FormulaEvaluationVisitor<CompoundInterval> evalVisitor =
         getEvaluationVisitor(pDisableOverflowCheck);
     PartialEvaluator variableResolver = new PartialEvaluator(compoundIntervalManagerFactory, pCompleteEnvironment);
-    Builder impliedEnvironment = NonRecursiveEnvironment.Builder.of(compoundIntervalManagerFactory, EMPTY_ENVIRONMENT);
+    NonRecursiveEnvironment.Builder impliedEnvironment =
+        NonRecursiveEnvironment.Builder.of(compoundIntervalManagerFactory, EMPTY_ENVIRONMENT);
 
     outer:
     for (BooleanFormula<CompoundInterval> f : pFormula.accept(SPLIT_CONJUNCTIONS_VISITOR)) {
@@ -402,9 +402,9 @@ public class CompoundIntervalFormulaManager {
       if (var != null && value != null) {
         CompoundInterval newValue = null;
         if (var.equals(p2.getOperand1()) && p2.getOperand2() instanceof Constant<?>) {
-          newValue = (((Constant<CompoundInterval>) p2.getOperand2()).getValue());
+          newValue = ((Constant<CompoundInterval>) p2.getOperand2()).getValue();
         } else if (var.equals(p2.getOperand2()) && p2.getOperand1() instanceof Constant<?>) {
-          newValue = (((Constant<CompoundInterval>) p2.getOperand1()).getValue());
+          newValue = ((Constant<CompoundInterval>) p2.getOperand1()).getValue();
         }
         if (newValue != null) {
           TypeInfo typeInfo = p2.getOperand1().getTypeInfo();

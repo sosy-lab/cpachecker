@@ -180,7 +180,7 @@ public class SMGIsLessOrEqual {
       for (String localVar : frameInSMG1.getVariables().keySet()) {
 
         //technically, one should look if any SMGHVE exist in additional region in SMG1
-        if ((!frameInSMG2.containsVariable(localVar))) {
+        if (!frameInSMG2.containsVariable(localVar)) {
           return false;
         }
 

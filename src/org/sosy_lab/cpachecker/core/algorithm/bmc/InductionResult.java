@@ -29,7 +29,9 @@ import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SymbolicCandiateInvariant;
 
 public class InductionResult<T extends CandidateInvariant> extends ProofResult {
 

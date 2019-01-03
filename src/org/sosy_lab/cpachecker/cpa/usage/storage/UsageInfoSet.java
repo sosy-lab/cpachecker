@@ -12,12 +12,8 @@ public class UsageInfoSet extends TreeSet<UsageInfo> {
 
   private static final long serialVersionUID = -5057827815596702715L;
 
-  public UsageInfoSet() {}
-
-  public UsageInfoSet(UsageInfo uinfo) {
-    // Means, that the race is found and this particular usage is a part of the result;
+  public UsageInfoSet() {
     super();
-    add(uinfo);
   }
 
   private UsageInfoSet(SortedSet<UsageInfo> pSet) {

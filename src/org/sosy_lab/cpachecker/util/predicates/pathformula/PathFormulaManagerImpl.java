@@ -38,7 +38,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -47,6 +47,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -98,6 +99,19 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(secure=true, description="Call 'simplify' on generated formulas.")
   private boolean simplifyGeneratedPathFormulas = false;
 
+  @Option(
+      secure = true,
+      description =
+          "Which path-formula builder to use."
+              + "Depending on this setting additional terms are added to the path formulas,"
+              + "e.g. SYMBOLICLOCATIONS will add track the program counter symbolically with a special variable %pc")
+  private PathFormulaBuilderVariants pathFormulaBuilderVariant = PathFormulaBuilderVariants.DEFAULT;
+
+  private enum PathFormulaBuilderVariants {
+    DEFAULT,
+    SYMBOLICLOCATIONS
+  }
+
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
       "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
@@ -111,6 +125,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final BooleanFormulaManagerView bfmgr;
   private final CtoFormulaConverter converter;
   private final @Nullable CtoWpConverter wpConverter;
+  private final PathFormulaBuilderFactory pfbFactory;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
@@ -194,6 +209,19 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
               pDirection);
 
       logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
+    }
+
+    switch (pathFormulaBuilderVariant) {
+      case DEFAULT:
+        pfbFactory = new DefaultPathFormulaBuilder.Factory();
+        break;
+      case SYMBOLICLOCATIONS:
+        pfbFactory =
+            new SymbolicLocationPathFormulaBuilder.Factory(
+                new CBinaryExpressionBuilder(pMachineModel, pLogger));
+        break;
+      default:
+        throw new InvalidConfigurationException("Invalid type of path formula builder specified!");
     }
 
     NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
@@ -341,6 +369,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  public PointerTargetSet mergePts(PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMap pSSA)
+      throws InterruptedException {
+    return converter.mergePointerTargetSets(pPts1, pPts2, pSSA).getResult();
+  }
+
+  @Override
   public PathFormula makeAnd(PathFormula pPathFormula, BooleanFormula pOtherFormula) {
     SSAMap ssa = pPathFormula.getSsa();
     BooleanFormula otherFormula =  fmgr.instantiate(pOtherFormula, ssa);
@@ -358,22 +392,20 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return pathFormula;
   }
 
-
-  /**
-   * {@inheritDoc}
-   */
+  /** {@inheritDoc} */
   @Override
-  public Formula makeFormulaForVariable(
-      PathFormula pContext, String pVarName, CType pType, boolean forcePointerDereference) {
+  public Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType) {
     return converter.makeFormulaForVariable(
-        pContext.getSsa(),
-        pContext.getPointerTargetSet(),
-        pVarName,
-        pType,
-        forcePointerDereference);
+        pContext.getSsa(), pContext.getPointerTargetSet(), pVarName, pType);
   }
 
-
+  /** {@inheritDoc} */
+  @Override
+  public Formula makeFormulaForUninstantiatedVariable(
+      String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
+    return converter.makeFormulaForUninstantiatedVariable(
+        pVarName, pType, pContextPTS, forcePointerDereference);
+  }
 
   /**
    * Build a formula containing a predicate for all branching situations in the
@@ -557,6 +589,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     }
 
     return pMainFormula;
+  }
+
+  @Override
+  public PathFormulaBuilder createNewPathFormulaBuilder() {
+    return pfbFactory.create();
   }
 
   @Override

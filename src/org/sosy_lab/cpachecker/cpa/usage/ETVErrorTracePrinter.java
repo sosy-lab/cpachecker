@@ -187,7 +187,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
       if (!caption.isEmpty() && !(edge instanceof CFunctionReturnEdge)) {
         writer.write("Line 0:     N0 -{/*" + caption + "*/}-> N0\n");
         writer.write("Line 0:     N0 -{highlight}-> N0\n");
-      } else if (edge.getLineNumber() == usage.getLine().getLine()
+      } else if (edge.getSuccessor() == usage.getCFANode()
           && edge.toString().contains(id.getName())) {
         writer.write("Line 0:     N0 -{highlight}-> N0\n");
       }

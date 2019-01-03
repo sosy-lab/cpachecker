@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.blocks;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.ImmutableSortedSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -71,7 +70,7 @@ public class Block {
    * For soundness this must be a superset of the actually used variables. */
   public Set<String> getVariables() {
     if (variables == null) {
-      Builder<String> builder = ImmutableSet.builder();
+      ImmutableSet.Builder<String> builder = ImmutableSet.builder();
       for (ReferencedVariable referencedVar : getReferencedVariables()) {
         builder.add(referencedVar.getName());
       }

@@ -59,8 +59,8 @@ public class UsagePrecision implements WrapperPrecision, AdjustablePrecision {
     return wrappedPrecision;
   }
 
-  public UsagePrecision copy(Precision wrappedPrecision) {
-    return new UsagePrecision(wrappedPrecision, localStatistics);
+  public UsagePrecision copy(Precision pWrappedPrecision) {
+    return new UsagePrecision(pWrappedPrecision, localStatistics);
   }
 
   @Override
@@ -163,5 +163,12 @@ public class UsagePrecision implements WrapperPrecision, AdjustablePrecision {
         adjustFunction.apply(thisWrappedPrecision, wrappedOtherPrecision);
 
     return copy(newWrappedPrecision);
+  }
+
+  @Override
+  public boolean isEmpty() {
+    // local statistics map is not relevant to comparison as it is not modified and is the same in
+    // other instances
+    return ((AdjustablePrecision) wrappedPrecision).isEmpty();
   }
 }

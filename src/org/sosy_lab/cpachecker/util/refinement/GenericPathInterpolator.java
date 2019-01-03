@@ -317,8 +317,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
           boolean isAbstractEdgeFunctionCall =
               abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.FunctionCallEdge;
 
-          functionCalls.push(
-              (Pair.of((FunctionCallEdge) originalEdge, isAbstractEdgeFunctionCall)));
+          functionCalls.push(Pair.of((FunctionCallEdge) originalEdge, isAbstractEdgeFunctionCall));
         }
 
         // when returning from a function, ...
@@ -349,10 +348,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
 
     ARGPath slicedErrorPathPrefix = new ARGPath(pErrorPathPrefix.asStatesList(), abstractEdges);
 
-    return (isFeasible(slicedErrorPathPrefix))
-        ? pErrorPathPrefix
-        : slicedErrorPathPrefix;
-
+    return isFeasible(slicedErrorPathPrefix) ? pErrorPathPrefix : slicedErrorPathPrefix;
   }
 
   @Override

@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-
 abstract class TypeConverter {
 
   public final JType convert(Type t) {
@@ -167,7 +166,7 @@ abstract class TypeConverter {
   }
 
   private JArrayType convert(final ArrayType t) {
-    return new JArrayType(convert((t.getElementType())), t.getDimensions());
+    return new JArrayType(convert(t.getElementType()), t.getDimensions());
   }
 
 }

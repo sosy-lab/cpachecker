@@ -44,9 +44,14 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
+/**
+ * Unit tests for {@link ExpressionValueVisitor}
+ * and {@link AbstractExpressionValueVisitor}.
+ */
 @RunWith(Parameterized.class)
 public class ExpressionValueVisitorTest {
 
@@ -83,6 +88,10 @@ public class ExpressionValueVisitorTest {
   private final static CSimpleType U_LONG_INT = CNumericTypes.UNSIGNED_LONG_INT;
   private final static CSimpleType S_LONG_LONG_INT = CNumericTypes.LONG_LONG_INT;
   private final static CSimpleType U_LONG_LONG_INT = CNumericTypes.UNSIGNED_LONG_LONG_INT;
+
+  private final static CSimpleType FLOAT = CNumericTypes.FLOAT;
+  private final static CSimpleType DOUBLE = CNumericTypes.DOUBLE;
+  private final static CSimpleType LONG_DOUBLE = CNumericTypes.LONG_DOUBLE;
 
   private LogManagerWithoutDuplicates logger;
   private ExpressionValueVisitor evv;
@@ -173,7 +182,7 @@ public class ExpressionValueVisitorTest {
 
   /** this test checks casting, we assume long_int == int == int32 */
   @Test
-  public void checkCasts32() throws Exception {
+  public void checkIntegerCasts32() throws Exception {
     assume().that(machineModel).named("MachineModel").isSameAs(MachineModel.LINUX32);
 
     for (long i = -(MAX_INT / 2L); i < MAX_INT; i += 10L * 1000L * 1000L) {
@@ -216,7 +225,7 @@ public class ExpressionValueVisitorTest {
 
   /** this test checks casting, we assume long_int == long_long_int == int64 */
   @Test
-  public void checkCasts64() throws Exception {
+  public void checkIntegerCasts64() throws Exception {
     assume().that(machineModel).named("MachineModel").isSameAs(MachineModel.LINUX64);
 
     for (long i = -(MAX_INT / 2L); i < MAX_INT; i += 10L * 1000L * 1000L) {
@@ -271,6 +280,78 @@ public class ExpressionValueVisitorTest {
 
   }
 
+
+  @Test
+  public void checkFloatCasts32() {
+    assume().that(machineModel).named("MachineModel").isSameAs(MachineModel.LINUX32);
+
+    performMachineModelAgnosticChecksForFloats();
+  }
+
+  @Test
+  public void checkFloatCasts64() {
+    assume().that(machineModel).named("MachineModel").isSameAs(MachineModel.LINUX64);
+
+    performMachineModelAgnosticChecksForFloats();
+  }
+
+  @Test
+  public void checkFloatToIntCasts32() {
+    assume().that(machineModel).named("MachineModel").isSameAs(MachineModel.LINUX32);
+
+    for (long i = -MAX_INT; i < MAX_INT; i += 10L * 1000L * 1000L) {
+      double d;
+      if (i < 0) {
+        d = i - 0.5;
+      } else {
+        d = i + 0.5;
+      }
+      checkCast(d, i, S_LONG_LONG_INT);
+    }
+  }
+
+  @Test
+  public void checkFloatToIntCasts64() {
+    assume().that(machineModel).named("MachineModel").isSameAs(MachineModel.LINUX64);
+
+    for (long i = -MAX_INT; i < MAX_INT; i += 10L * 1000L * 1000L) {
+      double d;
+      if (i < 0) {
+        d = i - 0.5;
+      } else {
+        d = i + 0.5;
+      }
+      checkCast(d, i, S_LONG_INT);
+      checkCast(d, i, S_LONG_LONG_INT);
+    }
+  }
+
+  private void performMachineModelAgnosticChecksForFloats() {
+    for (CType type : ImmutableList.of(FLOAT, DOUBLE)) {
+      for (Float n : ImmutableList
+          .of(0.0f, Float.NaN, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY)) {
+        checkCast(n, n, type);
+      }
+
+      for (Double n : ImmutableList
+          .of(0.0d, Double.NaN, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY)) {
+        checkCast(n, n, type);
+      }
+    }
+
+    checkCast(-Double.NaN, -Float.NaN, FLOAT);
+    checkCast(-Float.NaN, -Double.NaN, DOUBLE);
+    checkCast(0.0d, 0.0d, FLOAT);
+
+    // check that max and min float values are represented as same values in double and long double
+    checkCast(Float.MAX_VALUE, Float.MAX_VALUE, DOUBLE);
+    checkCast(Float.MIN_VALUE, Float.MIN_VALUE, DOUBLE);
+    checkCast(Float.MAX_VALUE, Float.MAX_VALUE, LONG_DOUBLE);
+    checkCast(Float.MIN_VALUE, Float.MIN_VALUE, LONG_DOUBLE);
+    checkCast(Double.MAX_VALUE, Double.MAX_VALUE, LONG_DOUBLE);
+    checkCast(Double.MIN_VALUE, Double.MIN_VALUE, LONG_DOUBLE);
+  }
+
   private void checkCast(long in, long expectedOut, CType outType)
       throws UnrecognizedCodeException {
 
@@ -278,8 +359,48 @@ public class ExpressionValueVisitorTest {
         new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(in)),
         outType);
 
-    // TODO explicitfloat: add floats to the test
     // We know it's of type int since we manually created a CIntegerLiteralExpression
     assertThat(value.asLong(CNumericTypes.INT)).isEqualTo(expectedOut);
+  }
+
+  private void checkCast(double in, double expectedOut, CType outType) {
+    NumericValue inValue = new NumericValue(in);
+
+    final Value value = AbstractExpressionValueVisitor
+        .castCValue(inValue, outType, machineModel, logger, FileLocation.DUMMY);
+
+    assertThat(value).isInstanceOf(NumericValue.class);
+    assertThat(((NumericValue) value).doubleValue()).isEqualTo(expectedOut);
+  }
+
+  private void checkCast(float in, double expectedOut, CType outType) {
+    NumericValue inValue = new NumericValue(in);
+
+    final Value value = AbstractExpressionValueVisitor
+        .castCValue(inValue, outType, machineModel, logger, FileLocation.DUMMY);
+
+    assertThat(value).isInstanceOf(NumericValue.class);
+    assertThat(((NumericValue) value).doubleValue()).isEqualTo(expectedOut);
+  }
+
+  private void checkCast(float in, float expectedOut, CType outType) {
+    NumericValue inValue = new NumericValue(in);
+
+    final Value value = AbstractExpressionValueVisitor
+        .castCValue(inValue, outType, machineModel, logger, FileLocation.DUMMY);
+
+    assertThat(value).isInstanceOf(NumericValue.class);
+    assertThat(((NumericValue) value).floatValue()).isEqualTo(expectedOut);
+  }
+
+  private void checkCast(double in, long expectedOut, CType outType) {
+    NumericValue inValue = new NumericValue(in);
+
+    final Value value =
+        AbstractExpressionValueVisitor.castCValue(
+            inValue, outType, machineModel, logger, FileLocation.DUMMY);
+
+    assertThat(value).isInstanceOf(NumericValue.class);
+    assertThat(((NumericValue) value).longValue()).isEqualTo(expectedOut);
   }
 }

@@ -39,7 +39,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -76,11 +76,13 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
 
   // The following options will be forced in the counterexample check
   // to have the same value as in the actual analysis.
-  private static final ImmutableSet<String> OVERWRITE_OPTIONS = ImmutableSet.of(
-      "analysis.machineModel",
-      "cpa.predicate.handlePointerAliasing",
-      "cpa.predicate.memoryAllocationsAlwaysSucceed"
-      );
+  private static final ImmutableSet<String> OVERWRITE_OPTIONS =
+      ImmutableSet.of(
+          "analysis.machineModel",
+          "cpa.predicate.handlePointerAliasing",
+          "cpa.predicate.memoryAllocationsAlwaysSucceed",
+          "testcase.targets.type",
+          "testcase.targets.optimization.strategy");
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;

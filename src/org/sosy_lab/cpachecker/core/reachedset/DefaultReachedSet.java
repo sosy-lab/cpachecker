@@ -41,7 +41,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -208,8 +208,7 @@ class DefaultReachedSet implements ReachedSet, Serializable {
   }
 
   @Override
-  public AbstractState getFirstState() {
-    Preconditions.checkState(firstState != null);
+  public @Nullable AbstractState getFirstState() {
     return firstState;
   }
 

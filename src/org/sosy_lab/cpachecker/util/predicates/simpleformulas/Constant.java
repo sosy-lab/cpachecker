@@ -45,7 +45,7 @@ public class Constant implements Term {
       return false;
     }
 
-    if (!(pOther.getClass().equals(getClass()))) {
+    if (!pOther.getClass().equals(getClass())) {
       return false;
     }
 

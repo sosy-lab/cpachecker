@@ -246,9 +246,10 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private BlockFormulas createFormulasOnPath(final ARGPath allStatesTrace,
                                                       final List<ARGState> abstractionStatesTrace)
                                                       throws CPAException, InterruptedException {
-    BlockFormulas formulas = (isRefinementSelectionEnabled())
-        ? performRefinementSelection(allStatesTrace, abstractionStatesTrace)
-        : getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirstState());
+    BlockFormulas formulas =
+        isRefinementSelectionEnabled()
+            ? performRefinementSelection(allStatesTrace, abstractionStatesTrace)
+            : getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirstState());
 
     // a user would expect "abstractionStatesTrace.size() == formulas.size()+1",
     // however we do not have the very first state in the trace,
@@ -266,8 +267,12 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
     try {
       final ImmutableList<CFANode> errorPath =
-          ImmutableList.copyOf(
-              Lists.transform(allStatesTrace.asStatesList(), AbstractStates.EXTRACT_LOCATION));
+              allStatesTrace
+                  .asStatesList()
+                  .stream()
+                  .map(AbstractStates.EXTRACT_LOCATION)
+                  .filter(x -> x != null)
+                  .collect(ImmutableList.toImmutableList());
       final boolean repeatedCounterexample = lastErrorPaths.contains(errorPath);
       lastErrorPaths.add(errorPath);
 
@@ -275,7 +280,8 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       // No branches/merges in path, it is precise.
       // We don't need to care about creating extra predicates for branching etc.
       boolean branchingOccurred = true;
-      if (elementsOnPath.size() == allStatesTrace.size()) {
+      if (elementsOnPath.size() == allStatesTrace.size()
+          && !containsBranchingInPath(elementsOnPath)) {
         elementsOnPath = Collections.emptySet();
         branchingOccurred = false;
       }
@@ -339,6 +345,27 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     } finally {
       totalRefinement.stop();
     }
+  }
+
+  /**
+   * Check whether the path contains states A, B, C with successor relations A->B, B->C, A->C.
+   * Branching like this would not be detected otherwise.
+   */
+  private boolean containsBranchingInPath(Set<ARGState> pElementsOnPath) {
+    for (ARGState state : pElementsOnPath) {
+      boolean alreadyFoundOneChild = false;
+      for (ARGState child : state.getChildren()) {
+        if (pElementsOnPath.contains(child)) {
+          if (alreadyFoundOneChild) {
+            // already found another child in the path, second child must be a branching.
+            return true;
+          } else {
+            alreadyFoundOneChild = true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   /**

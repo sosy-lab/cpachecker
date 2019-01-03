@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.ci.translators;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -70,8 +70,7 @@ public class PredicateRequirementsTranslator extends AbstractRequirementsTransla
     String element = pair.getFirst();
     // element =(assert ...)
     element = element.substring(element.indexOf('t') + 1, element.length() - 1);
-    secReturn = "(define-fun .defci" + (counter++) + " () Bool " + element + ")";
-
+    secReturn = "(define-fun .defci" + counter++ + " () Bool " + element + ")";
 
     return Pair.of(list, secReturn);
   }

@@ -143,6 +143,9 @@ analysis.algorithm.CBMC = false
 # Currently all refiner require the use of the ARGCPA.
 analysis.algorithm.CEGAR = false
 
+# use MPV algorithm for checking multiple properties
+analysis.algorithm.MPV = false
+
 # use a analysis which proves if the program satisfies a specified property
 # with the help of an enabler CPA to separate differnt program paths
 analysis.algorithm.analysisWithEnabler = false
@@ -774,6 +777,10 @@ counterexample.concrete.timelimit = 0ms
 # second check
 counterexample.continueAfterInfeasibleError = true
 
+# An imprecise counterexample of the Predicate CPA is usually a bug, but
+# expected in some configurations. Should it be treated as a bug or accepted?
+counterexample.export.allowImpreciseCounterexamples = true
+
 # If the option assumeLinearArithmetics is set, this option can be used to
 # allow division and modulo by constants.
 counterexample.export.assumptions.allowDivisionAndModuloByConstants = false
@@ -1006,6 +1013,13 @@ cpa.arg.inCPAEnabledAnalysis = false
 # whether to keep covered states in the reached set as addition to keeping
 # them in the ARG
 cpa.arg.keepCoveredStatesInReached = false
+
+# write the ARG at various stages during execution into dot files whose name
+# is specified by this option. Only works if 'cpa.arg.logARGs=true'
+cpa.arg.log.fileTemplate = "ARG_log/ARG_%04d.dot"
+
+# Enable logging of ARGs at various positions
+cpa.arg.logARGs = false
 
 # If this option is enabled, ARG states will also be merged if the first
 # wrapped state is subsumed by the second wrapped state (and the parents are
@@ -1987,6 +2001,12 @@ cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-zA-Z0-9_]*"
 # ignoreIrrelevantVariables is set to true)
 cpa.predicate.overflowVariablesAreRelevant = false
 
+# Which path-formula builder to use.Depending on this setting additional
+# terms are added to the path formulas,e.g. SYMBOLICLOCATIONS will add track
+# the program counter symbolically with a special variable %pc
+cpa.predicate.pathFormulaBuilderVariant = DEFAULT
+  enum:     [DEFAULT, SYMBOLICLOCATIONS]
+
 # Where to apply the found predicates to?
 cpa.predicate.precision.sharing = LOCATION
   enum:     [GLOBAL, SCOPE, FUNCTION, LOCATION, LOCATION_INSTANCE]
@@ -2048,6 +2068,10 @@ cpa.predicate.refinement.cexTraceCheckDirection = FORWARDS
 # BDDs as they are.
 cpa.predicate.refinement.doAbstractionComputation = false
 
+# use variant described in the Guiding Craig Interpolation Paper leading to a
+# different routine
+cpa.predicate.refinement.domainSpecificAbstractions = false
+
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
 
@@ -2079,6 +2103,10 @@ cpa.predicate.refinement.includePartialInvariants = true
 # infeasible prefix
 cpa.predicate.refinement.incrementalCexTraceCheck = false
 
+# additional variation to domainSpecificAbstractions using inequalities
+# instead of equalities
+cpa.predicate.refinement.inequalityInterpolationAbstractions = false
+
 # Max. number of prefixes to extract
 cpa.predicate.refinement.maxPrefixCount = 64
 
@@ -2093,7 +2121,7 @@ cpa.predicate.refinement.maxRefinementSize = 0
 # sets the level of the pathformulas to use for abstraction. 
 #   EDGE : Based on Pathformulas of every edge in ARGPath
 #   BLOCK: Based on Pathformulas at Abstractionstates
-cpa.predicate.refinement.newtonrefinement.abstractionLevel = BLOCK
+cpa.predicate.refinement.newtonrefinement.abstractionLevel = EDGE
   enum:     [BLOCK, EDGE]
 
 # Activate fallback to interpolation. Typically in case of a repeated
@@ -2215,12 +2243,19 @@ cpa.predicate.satCheckAtAbstraction = false
 # Call 'simplify' on generated formulas.
 cpa.predicate.simplifyGeneratedPathFormulas = false
 
+# Whether to perform dynamic block encoding as part of each refinement
+# iteration
+cpa.predicate.slicingabstractions.dynamicBlockEncoding = false
+
 # Only slices the minimal amount of edges to guarantuee progress
 cpa.predicate.slicingabstractions.minimalslicing = false
 
 # Reduces the amount of solver calls by directely slicing some edgesthat are
 # mathematically proven to be infeasible in any case
 cpa.predicate.slicingabstractions.optimizeslicing = true
+
+# Whether to remove parts fo the ARG from which no target state is reachable
+cpa.predicate.slicingabstractions.removeSafeRegions = true
 
 # C99 only defines the overflow of unsigned integer type.
 cpa.predicate.solver.ufCheckingProver.isSignedOverflowSafe = true
@@ -2627,6 +2662,9 @@ cpa.usage.falseUnsafesOutput = "FalseUnsafes"
 # if a file do not exist, do not include the corresponding edge
 cpa.usage.filterMissedFiles = true
 
+# filtered unsafes, which can not be removed using precision, may be hidden
+cpa.usage.hideFilteredUnsafes = false
+
 # The functions, which cannot be executed in parallel with themselves
 cpa.usage.notSelfParallelFunctions = new HashSet<>()
 
@@ -2649,6 +2687,9 @@ cpa.usage.printFalseUnsafes = false
 
 # output only true unsafes
 cpa.usage.printOnlyTrueUnsafes = false
+
+# print found unsafes in case of unknown verdict
+cpa.usage.printUnsafesIfUnknown = true
 
 # The order of refinement blocks
 cpa.usage.refinementChain = no default value
@@ -2985,9 +3026,6 @@ heuristicSelection.preAnalysisAlgorithmConfig = no default value
 # Configuration for programs containing recursion.
 heuristicSelection.recursionConfig = no default value
 
-# Usage of an preliminary algorithm analysis.
-heuristicSelection.usePreAnalysisAlgorithm = false
-
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
 
@@ -3013,6 +3051,9 @@ interleavedAlgorithm.initCondition = false
 # directly after the component's computation is finished
 interleavedAlgorithm.intermediateStatistics = NONE
   enum:     [EXECUTE, NONE, PRINT]
+
+# Enable when interleaved algorithm is used to check a specification
+interleavedAlgorithm.propertyChecked = true
 
 # let each analysis part of the interleaved algorithm write output files and
 # not only the last one that is executed
@@ -3114,6 +3155,59 @@ memorysafety.config = no default value
 # which merge operator to use for LiveVariablesCPA
 merge = "JOIN"
   allowed values: [SEP, JOIN]
+
+# Find all violations of each checked property.
+mpv.findAllViolations = false
+
+# Ignore exceptions, which may be caused by checking of some properties, to
+# successfully check the others.
+mpv.ignoreInnerExceptions = false
+
+# Adjust resource limitations during the analysis.
+# - NONE: do not adjust resource limitations (default).
+# - DISTRIBUTE_REMAINING: distribute resources, which were allocated for some
+# already checked property, but were not fully spent, between other
+# properties, which are still checking.
+# - DISTRIBUTE_BY_PROPERTY: scale resources for each property in accordance
+# with the given ratio in the property distribution file.
+mpv.limits.adjustmentStrategy = NONE
+  enum:     [NONE, DISTRIBUTE_REMAINING, DISTRIBUTE_BY_PROPERTY]
+
+# Set CPU time limit per each property in multi-property verification (use
+# seconds or specify a unit; -1 to disable)
+mpv.limits.cpuTimePerProperty = -1ns
+
+# Change resource limitations for the first partition by the given ratio.
+# This option will be ignored if NONE limits adjustment strategy is used.
+mpv.limits.firstPartitionRatio = 1.0
+
+# The ratio of CPU time limit in the first phase of Joint partitioning
+# operator to CPU time limit per each property.
+mpv.limits.joint.firstPhaseRatio = 1.3
+
+# Get a resource limitation distribution per property from file. This option
+# should be used only together with DISTRIBUTE_BY_PROPERTY limits adjustment
+# strategy. The following format should be used in the file:
+# '<property name>':<ratio>
+mpv.limits.propertyDistributionFile = no default value
+
+# The ratio of CPU time limit in the first phase of Relevance partitioning
+# operator to CPU time limit per each property.
+mpv.limits.relevance.firstPhaseRatio = 0.2
+
+# The ratio of CPU time limit in the second phase of Relevance partitioning
+# operator to CPU time limit per each property.
+mpv.limits.relevance.secondPhaseRatio = 1.3
+
+# Partitioning operator for multi-property verification.
+mpv.partitionOperator = no default value
+
+# Specifies how to separate a single property.
+# - FILE: each .spc file represent a single property (i.e., property is
+# represented by several automata).
+# - AUTOMATON: each automaton represent a single property.
+mpv.propertySeparator = FILE
+  enum:     [FILE, AUTOMATON]
 
 # When checking for the overflow property, use this configuration file
 # instead of the current one.
@@ -3683,6 +3777,9 @@ termination.violation.witness = "nontermination_witness.graphml"
 # Use the counterexample model to provide test-vector values
 testHarnessExport.useModel = true
 
+# zip all exported test cases into a single file
+testcase.compress = false
+
 # export test harness to file as code
 testcase.file = no default value
 
@@ -3692,17 +3789,36 @@ testcase.generate.parallel = false
 # display all test targets and non-covered test targets in statistics
 testcase.inStats = false
 
+# when generating tests covering error call stop as soon as generated one
+# test case and report false (only possible in combination with error call
+# property specification
+testcase.reportCoveredErrorCallAsError = false
+
+# Which strategy to use to optimize set of test target edges
+testcase.targets.optimization.strategy = NONE
+  enum:     [NONE, COVERED_NEXT_EDGE, TESTCOMP]
+
+# Which CFA edges to use as test targets
+testcase.targets.type = ASSUME
+  enum:     [ASSUME, ERROR_CALL, STATEMENT]
+
 # export test values to file (line separated)
 testcase.values = no default value
 
-# zip all exported test values into a single file
-testcase.values.compress = false
+# export test cases to xm file (Test-Comp format)
+testcase.xml = no default value
 
-# Zip file into which all test values files are bundled
-testcase.values.zip = no default value
+# Zip file into which all test case files are bundled
+testcase.zip.file = no default value
 
 # Ignore functions that are defined by C11
 undefinedFunctionsCollector.allowC11Functions = true
+
+# Ignore functions that are defined by GNU C and not by C11/POSIX
+undefinedFunctionsCollector.allowGnuCFunctions = true
+
+# Ignore functions that are defined by POSIX
+undefinedFunctionsCollector.allowPosixFunctions = true
 
 # Set of functions that should be ignored
 undefinedFunctionsCollector.allowedFunctions = ImmutableSet.of(

@@ -212,7 +212,7 @@ public class Dominators {
       CFANode w = vertex.get(i);
       NodeInfo infow = map.get(w);
       CFANode d = dom.get(w);
-      if (!(d.equals(vertex.get(infow.semi)))) {
+      if (!d.equals(vertex.get(infow.semi))) {
         CFANode dd = dom.get(d);
         dom.put(d, dd);
       }

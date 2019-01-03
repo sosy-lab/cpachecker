@@ -30,8 +30,8 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -62,8 +62,8 @@ public class CallstackState
 
   public CallstackState(
       @Nullable CallstackState pPreviousElement,
-      @Nonnull String pFunction,
-      @Nonnull CFANode pCallerNode) {
+      @NonNull String pFunction,
+      @NonNull CFANode pCallerNode) {
 
     previousState = pPreviousElement;
     currentFunction = checkNotNull(pFunction);

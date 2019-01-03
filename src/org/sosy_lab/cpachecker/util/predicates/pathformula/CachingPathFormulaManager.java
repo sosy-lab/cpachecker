@@ -149,9 +149,18 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public Formula makeFormulaForVariable(
-      PathFormula pContext, String pVarName, CType pType, boolean forcePointerDereference) {
-    return delegate.makeFormulaForVariable(pContext, pVarName, pType, forcePointerDereference);
+  public Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType) {
+    return delegate.makeFormulaForVariable(pContext, pVarName, pType);
+  }
+
+  @Override
+  public Formula makeFormulaForUninstantiatedVariable(
+      String pVarName,
+      CType pType,
+      PointerTargetSet pContextPTS,
+      boolean pForcePointerDereference) {
+    return delegate.makeFormulaForUninstantiatedVariable(
+        pVarName, pType, pContextPTS, pForcePointerDereference);
   }
 
   @Override
@@ -250,5 +259,17 @@ public class CachingPathFormulaManager implements PathFormulaManager {
       final CFAEdge pEdge, final BooleanFormula pPostcondition)
       throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
     return delegate.buildWeakestPrecondition(pEdge, pPostcondition);
+  }
+
+  @Override
+  public PointerTargetSet
+      mergePts(PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMap pSSA)
+          throws InterruptedException {
+    return delegate.mergePts(pPts1, pPts2, pSSA);
+  }
+
+  @Override
+  public PathFormulaBuilder createNewPathFormulaBuilder() {
+    return delegate.createNewPathFormulaBuilder();
   }
 }

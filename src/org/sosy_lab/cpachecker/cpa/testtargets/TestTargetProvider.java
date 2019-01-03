@@ -24,14 +24,14 @@
 package org.sosy_lab.cpachecker.cpa.testtargets;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -44,33 +44,60 @@ public class TestTargetProvider implements Statistics {
   private static TestTargetProvider instance = null;
 
   private final CFA cfa;
+  private final TestTargetType type;
   private final ImmutableSet<CFAEdge> initialTestTargets;
   private final Set<CFAEdge> uncoveredTargets;
   private boolean printTargets = false;
   private boolean runParallel;
+  private TestTargetAdaption optimization;
 
-  private TestTargetProvider(final CFA pCfa, final boolean pRunParallel) {
+  private TestTargetProvider(
+      final CFA pCfa,
+      final boolean pRunParallel,
+      final TestTargetType pType,
+      final TestTargetAdaption pGoalAdaption) {
     cfa = pCfa;
     runParallel = pRunParallel;
+    type = pType;
+    optimization = pGoalAdaption;
+
+    Set<CFAEdge> targets = extractEdgesByCriterion(type.getEdgeCriterion(), pGoalAdaption);
+
     if (runParallel) {
-      uncoveredTargets = Collections.synchronizedSet(extractAssumeEdges());
+      uncoveredTargets = Collections.synchronizedSet(targets);
     } else {
-      uncoveredTargets = extractAssumeEdges();
+      uncoveredTargets = targets;
     }
     initialTestTargets = ImmutableSet.copyOf(uncoveredTargets);
   }
 
-  private Set<CFAEdge> extractAssumeEdges() {
+  private Set<CFAEdge> extractEdgesByCriterion(
+      final Predicate<CFAEdge> criterion, final TestTargetAdaption pAdaption) {
     Set<CFAEdge> edges = new HashSet<>();
     for (CFANode node : cfa.getAllNodes()) {
-      edges.addAll(CFAUtils.allLeavingEdges(node).filter(AssumeEdge.class).toSet());
+      edges.addAll(CFAUtils.allLeavingEdges(node).filter(criterion).toSet());
     }
+    edges = pAdaption.adaptTestTargets(edges);
     return edges;
   }
 
-  public static Set<CFAEdge> getTestTargets(final CFA pCfa, final boolean pRunParallel) {
-    if (instance == null || pCfa != instance.cfa) {
-      instance = new TestTargetProvider(pCfa, pRunParallel);
+  public static int getCurrentNumOfTestTargets() {
+    if (instance == null) {
+      return 0;
+    }
+    return instance.initialTestTargets.size();
+  }
+
+  public static Set<CFAEdge> getTestTargets(
+      final CFA pCfa,
+      final boolean pRunParallel,
+      final TestTargetType pType,
+      TestTargetAdaption pTargetOptimization) {
+    if (instance == null
+        || pCfa != instance.cfa
+        || instance.type != pType
+        || instance.optimization != pTargetOptimization) {
+      instance = new TestTargetProvider(pCfa, pRunParallel, pType, pTargetOptimization);
     }
     Preconditions.checkState(instance.runParallel || !pRunParallel);
     return instance.uncoveredTargets;
@@ -104,7 +131,7 @@ public class TestTargetProvider implements Statistics {
     pOut.printf("Test target coverage: %.2f%%%n", testTargetCoverage * 100);
     pOut.println("Number of total test targets: " + initialTestTargets.size());
     pOut.println("Number of covered test targets: " + numCovered);
-    pOut.println("Number of uncovered test targets: " + (uncoveredTargets.size()));
+    pOut.println("Number of uncovered test targets: " + uncoveredTargets.size());
 
     if (printTargets) {
     pOut.println("Initial test targets: ");

@@ -20,7 +20,7 @@
 
 
 <rundefinition name="ReachDefSingleState">
-	<option name="-reachingdefinitionNoLocation"/>
+	 <option name="-config">config/unmaintained/reachingdefinitionNoLocation.properties</option>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 	<option name="-setprop">cpa.propertychecker.className=SingleDefinitionChecker</option>
 <tasks>
@@ -646,7 +646,7 @@
 </rundefinition>
 
 <rundefinition name="ReachDefDF">
-	<option name="-reachingdefinition"/>
+	 <option name="-config">config/unmaintained/reachingdefinition.properties</option>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 	<option name="-setprop">cpa.propertychecker.className=SingleDefinitionChecker</option>
 <tasks>
@@ -1162,7 +1162,7 @@
 </rundefinition>
 
 <rundefinition name="valueDF">
-	<option name="-valueAnalysis-pcc-trac-all"/>
+	 <option name="-config">config/unmaintained/valueAnalysis-pcc-trac-all.properties</option>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 	<option name="-setprop">cpa.value.merge=JOIN</option>
 	<option name="-setprop">cpa.propertychecker.className=SingleValueChecker</option>
@@ -1789,7 +1789,7 @@
 </rundefinition>
 
 <rundefinition name="ReachDef_valueDF">
-	<option name="-reachingdef-value"/>
+	<option name="-config">config/unmaintained/reachingdef-value.properties</option>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 	<option name="-setprop">cpa.value.merge=JOIN</option>
 	<option name="-setprop">cpa.propertychecker.className=SingleDefinitionSingleValueChecker</option>
@@ -2306,7 +2306,7 @@
 </rundefinition>
 
 <rundefinition name="ReachDef_valueJOINSEP">
-	<option name="-reachingdef-value"/>
+	<option name="-config">config/unmaintained/reachingdef-value.properties</option>
 	<option name="-setprop">analysis.traversal.order=BFS</option>
 	<option name="-setprop">cpa.propertychecker.className=SingleDefinitionSingleValueChecker</option>
 <tasks>

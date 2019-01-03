@@ -36,9 +36,19 @@ configuration-checks:jdk-10:
     - build-dependencies
     - build:jdk-10
   image: ${CI_REGISTRY_IMAGE}/test:jdk-10
-  # Temporarily disabled until the segmentation fault is fixe
+  # Temporarily allow failures until the segmentation fault is fixed
   # (probably related to https://github.com/sosy-lab/java-smt/issues/132)
-  only: []
+  allow_failure: true
+
+configuration-checks:jdk-11:
+  <<: *configuration-checks
+  dependencies:
+    - build-dependencies
+    - build:jdk-11
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+  # Temporarily allow failures until the segmentation fault is fixed
+  # (probably related to https://github.com/sosy-lab/java-smt/issues/132)
+  allow_failure: true
 
 
 configuration-documentation:
@@ -89,43 +99,41 @@ python-unit-tests:jdk-10:
     - build:jdk-10
   image: ${CI_REGISTRY_IMAGE}/test:jdk-10
 
-generate-sample-report:
-  stage: generate
+python-unit-tests:jdk-11:
+  <<: *python-unit-tests
   dependencies:
     - build-dependencies
-    - build:jdk-10
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-10
-  script:
-    - scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug_false-unreach-label.c
-  artifacts:
-    paths:
-     - "output/Counterexample.1.html"
+    - build:jdk-11
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+
 
 javascript-unit-tests:
   stage: checks
-  dependencies: 
-    - generate-sample-report
-  image: node:8.9.4
+  dependencies: []
+  image: node:8.10.0 # This version is also provided by Ubuntu 18.04
   before_script:
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - npm install
   script:
-    - cd node_modules/.bin/
-    - npm test --watch=false --single-run=true
+    - npm test
   cache:
     paths:
     - "src/org/sosy_lab/cpachecker/core/counterexample/node_modules/"
   artifacts:
     paths:
       - src/org/sosy_lab/cpachecker/core/counterexample/unit_testing_report
+    when: always
 
 
 javascript-e2e-tests:
   stage: checks
-  dependencies: 
-    - generate-sample-report
+  dependencies:
+    - build-dependencies
+    - build:jdk-8
   image: ${CI_REGISTRY_IMAGE}/test:java-node
   before_script:
+      # generate example report
+    - scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug_false-unreach-label.c
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - npm install
     - ./node_modules/protractor/node_modules/webdriver-manager/bin/webdriver-manager update
@@ -136,7 +144,10 @@ javascript-e2e-tests:
     - src/org/sosy_lab/cpachecker/core/counterexample/node_modules/
   artifacts:
     paths:
+      - output/Counterexample.1.html
       - src/org/sosy_lab/cpachecker/core/counterexample/e2e-tests-report
+    when: always
+  allow_failure: true # tests are currently racy (cf. #520)
 
 
 # No coverage is computed for CPAchecker
@@ -149,11 +160,11 @@ unit-tests:jdk-9:
 unit-tests:jdk-10:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
 
+unit-tests:jdk-11:
+  script: "ant $ANT_PROPS_CHECKS unit-tests"
+
 # Disable some checks because they are not used for CPAchecker
 check-format:
-  only: []
-
-checkstyle:
   only: []
 
 javadoc:

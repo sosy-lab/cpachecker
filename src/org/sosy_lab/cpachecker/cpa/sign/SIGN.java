@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.sign;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
 
@@ -38,7 +37,7 @@ public enum SIGN implements Serializable{
   private static final ImmutableMap<Integer, SIGN> VALUE_MAP;
 
   static {
-    Builder<Integer, SIGN> builder = ImmutableMap.builder();
+    ImmutableMap.Builder<Integer, SIGN> builder = ImmutableMap.builder();
     for (SIGN s : SIGN.values()) {
       builder.put(s.numVal, s);
     }
