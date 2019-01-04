@@ -29,18 +29,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.HybridStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.hybrid.exception.InvalidAssumptionException;
-import org.sosy_lab.cpachecker.cpa.hybrid.util.CollectionUtils;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.ExpressionUtils;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -91,13 +88,16 @@ public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOp
       boolean keepOffset = variable instanceof CArraySubscriptExpression;
 
       @Nullable final String variableName = ExpressionUtils.extractVariableIdentifier(variable);
+      HybridValue currentValue = pStateToStrengthen.getAssumptionForVariableExpression(variable);
 
       for(MemoryLocation memoryLocation : trackedVariables) {
 
-        if(compareNames(variableName, memoryLocation, keepOffset)) {
-          removableAssumptions.add(variable);
-          // the assumption was added anyway
-          break;
+        if(compareNames(variableName, memoryLocation, keepOffset)
+          && !currentValue.isSolverGenerated()) {
+
+            removableAssumptions.add(variable);
+            // the assumption was added anyway
+            break;
         }
 
       }

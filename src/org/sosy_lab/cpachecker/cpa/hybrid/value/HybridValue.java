@@ -35,13 +35,13 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
  * This class defines a wrapper for assumption tracking.
- * The implementation of methods generated() and setAssumptions() 
+ * The implementation of methods solverGenerated() and setAssumptions()
  * make it 'one-time mutable'. 
  */
 public class HybridValue {
 
   private final Value value;
-  private boolean generated;
+  private boolean solverGenerated;
   private final CType type;
   private CBinaryExpression assumption;
 
@@ -105,12 +105,12 @@ public class HybridValue {
    * or is parsed from an SMT-Solver Formula
    * @return true, if generated, else false
    */
-  public boolean isGenerated() {
-    return generated;
+  public boolean isSolverGenerated() {
+    return solverGenerated;
   }
 
-  public void generated() {
-    generated = true;
+  public void solverGenerated() {
+    solverGenerated = true;
   }
 
   /**
