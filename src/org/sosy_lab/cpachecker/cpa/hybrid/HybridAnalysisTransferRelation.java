@@ -26,30 +26,27 @@ package org.sosy_lab.cpachecker.cpa.hybrid;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-
+import java.util.logging.Level;
 import javax.annotation.Nullable;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
@@ -153,25 +150,41 @@ public class HybridAnalysisTransferRelation
       CDeclaration pCDeclaration)
       throws CPATransferException {
 
-    if(pCDeclaration instanceof CFunctionDeclaration
-      || pCDeclaration instanceof CTypeDeclaration) {
-      return simpleCopy();
-    }
+//    if(pCDeclaration instanceof CFunctionDeclaration
+//      || pCDeclaration instanceof CTypeDeclaration) {
+//      return simpleCopy();
+//    }
+//
+//    try {
+//
+//      @Nullable HybridValue newAssumption = assumptionGenerator.generateAssumption(pCDeclaration);
+//      if(newAssumption == null) {
+//        return simpleCopy();
+//      }
+//
+//      return HybridAnalysisState.copyWithNewAssumptions(state, newAssumption);
+//
+//    } catch(InvalidAssumptionException iae) {
+//      throw new CPATransferException(
+//          "Unable to transform the created value and the given declaration expression into an assumption.",
+//          iae);
+//    }
+    // it might be senseless and furthermore lead to false positives (impossible error states) when we create values for declarations
+    return simpleCopy();
 
-    try {
+  }
 
-      @Nullable HybridValue newAssumption = assumptionGenerator.generateAssumption(pCDeclaration);
-      if(newAssumption == null) {
-        return simpleCopy();
-      }
+  // ----- ReturnStatementEdge -----
 
-      return HybridAnalysisState.copyWithNewAssumptions(state, newAssumption);
+  protected HybridAnalysisState handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
+      throws CPATransferException {
+    return simpleCopy();
+  }
 
-    } catch(InvalidAssumptionException iae) {
-      throw new CPATransferException(
-          "Unable to transform the created value and the given declaration expression into an assumption.",
-          iae);
-    }
+  // ----- CallToReturnEdge -----
+
+  protected HybridAnalysisState handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {
+    return simpleCopy();
   }
 
   // ----- StatementEdge -----
@@ -181,10 +194,6 @@ public class HybridAnalysisTransferRelation
       CStatementEdge pCStatementEdge,
       CStatement pCStatement)
     throws  CPATransferException {
-
-    if(pCStatement instanceof CExpressionStatement || pCStatement instanceof CFunctionCallStatement) {
-      return simpleCopy();
-    }
 
     // simple assignment
     if(pCStatement instanceof CExpressionAssignmentStatement) {
@@ -225,6 +234,8 @@ public class HybridAnalysisTransferRelation
     CLeftHandSide leftHandSide = pFunctionCallAssignmentStatement.getLeftHandSide();
 
     if(ExpressionUtils.isVerifierNondet(functionCallExpression)) {
+
+      logger.log(Level.INFO, "Found nondet function call assignment: " , functionCallExpression);
 
       // function call is actually nondet
       try {

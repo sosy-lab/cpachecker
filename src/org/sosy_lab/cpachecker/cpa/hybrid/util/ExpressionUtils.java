@@ -98,11 +98,9 @@ public final class ExpressionUtils {
 
     if(pExpression == null ) return null;
 
-    @Nullable
-    String identifier = null;
     if (pExpression instanceof CIdExpression) {
 
-      identifier = ((CIdExpression) pExpression).getName();
+      return ((CIdExpression) pExpression).getDeclaration().getQualifiedName();
     } else if (pExpression instanceof CArraySubscriptExpression) {
 
       CArraySubscriptExpression arraySubscriptExpression = (CArraySubscriptExpression) pExpression;
@@ -114,7 +112,7 @@ public final class ExpressionUtils {
       return extractVariableIdentifier(((CBinaryExpression)pExpression).getOperand1());
     }
 
-    return identifier;
+    return null;
   }
 
   public static boolean haveTheSameVariable(CExpression first, CExpression second) {
@@ -186,6 +184,9 @@ public final class ExpressionUtils {
     }
     if(pExpression instanceof CArraySubscriptExpression) {
       return extractIdExpression(((CArraySubscriptExpression)pExpression).getArrayExpression());
+    }
+    if(pExpression instanceof CBinaryExpression) {
+      return extractIdExpression(((CBinaryExpression)pExpression).getOperand1());
     }
 
     return null;

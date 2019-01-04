@@ -330,6 +330,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
 
       // there is nothing left to do in this run
       if(bottomStates.isEmpty()){
+        running = checkContinue(pReachedSet);
         continue;
       }
 
@@ -371,6 +372,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
             String.format("The maximum number (%d) of runs without finding a new assumption to flip was exceeded. Consider increasing.", maxNumMissedAssumption));
           break;
         }
+        running = checkContinue(pReachedSet);
         continue;
       }
 

@@ -33,6 +33,7 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -71,7 +72,7 @@ public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOp
     ValueAnalysisState strengtheningState = (ValueAnalysisState) pStrengtheningState;
 
     // check for variables that are also tracked by the ValueAnalysis and remove them
-    Set<CExpression> variableExpressions = pStateToStrengthen.getVariables();
+    Set<CIdExpression> variableExpressions = pStateToStrengthen.getVariables();
 
     // used to collect all expressions, that are already tracked by the value analysis and thus can be removed
     Set<CExpression> removableAssumptions = Sets.newHashSet();
@@ -83,46 +84,54 @@ public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOp
     Set<MemoryLocation> trackedVariables = Sets.newHashSet(strengtheningState.getTrackedMemoryLocations());
     trackedVariables.removeAll(unknownValues); // we can safely remove those memory locations, because later on we create hybrid values for them
 
-    for(CExpression variable : variableExpressions) {
+    if(!trackedVariables.isEmpty()) {
 
-      boolean keepOffset = variable instanceof CArraySubscriptExpression;
+      for(CExpression variable : variableExpressions) {
 
-      @Nullable final String variableName = ExpressionUtils.extractVariableIdentifier(variable);
-      HybridValue currentValue = pStateToStrengthen.getAssumptionForVariableExpression(variable);
+        boolean keepOffset = variable instanceof CArraySubscriptExpression;
 
-      for(MemoryLocation memoryLocation : trackedVariables) {
+        @Nullable final String variableName = ExpressionUtils.extractVariableIdentifier(variable);
+        HybridValue currentValue = pStateToStrengthen.getAssumptionForVariableExpression(variable);
 
-        if(compareNames(variableName, memoryLocation, keepOffset)
-          && !currentValue.isSolverGenerated()) {
+        for(MemoryLocation memoryLocation : trackedVariables) {
+
+          if(compareNames(variableName, memoryLocation, keepOffset)
+              && !currentValue.isSolverGenerated()) {
 
             removableAssumptions.add(variable);
             // the assumption was added anyway
             break;
-        }
+          }
 
+        }
       }
+
+      // remove unnecessary assumptions
+      variableExpressions.removeAll(removableAssumptions);
     }
 
-    // remove unnecessary assumptions
-    variableExpressions.removeAll(removableAssumptions);
-    Map<CExpression, HybridValue> newAssumptionMap = Maps.newHashMap();
+    Map<CIdExpression, HybridValue> newAssumptionMap = Maps.newHashMap();
     variableExpressions.forEach(expression -> newAssumptionMap.put(
         expression,
         pStateToStrengthen.getAssumptionForVariableExpression(expression)));
 
-    // build new assumptions for unknown values
-    try {
+    if(!unknownValues.isEmpty()) {
 
-      Set<HybridValue> newValues =  createAssumptionsForUnknownValues(unknownValues, pStateToStrengthen);
-      newValues.forEach(value -> newAssumptionMap.put(
-          value.trackedVariable(),
-          value));
+      // build new assumptions for unknown values
+      try {
 
-    } catch (InvalidAssumptionException iae) {
-      logger.log(
-          Level.WARNING,
-          "An error occurred while trying to generate assumptions for the unknown values.",
-          unknownValues);
+        Set<HybridValue> newValues =  createAssumptionsForUnknownValues(unknownValues, pStateToStrengthen);
+        newValues.forEach(value -> newAssumptionMap.put(
+            value.trackedVariable(),
+            value));
+
+      } catch (InvalidAssumptionException iae) {
+        logger.log(
+            Level.WARNING,
+            "An error occurred while trying to generate assumptions for the unknown values.",
+            unknownValues);
+      }
+
     }
     
     return new HybridAnalysisState(

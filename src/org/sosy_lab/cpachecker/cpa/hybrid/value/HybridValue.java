@@ -29,6 +29,7 @@ import com.google.common.base.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.ExpressionUtils;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -144,15 +145,13 @@ public class HybridValue {
    * from this hybrid value. 
    */
   @Nullable
-  public CExpression trackedVariable(){
-    return assumption == null
-      ? null
-      : assumption.getOperand1();
+  public CIdExpression trackedVariable(){
+    return ExpressionUtils.extractIdExpression(assumption);
   }
 
   public boolean tracksVariable(CExpression pExpression) {
 
-    @Nullable CExpression trackedVariable = trackedVariable();
+    @Nullable CIdExpression trackedVariable = trackedVariable();
     
     if(trackedVariable == null) return false;
 

@@ -23,26 +23,25 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -57,7 +56,7 @@ public class HybridAnalysisState
     implements LatticeAbstractState<HybridAnalysisState>, AbstractStateWithAssumptions, Graphable {
 
   // map of variable expressions with their respective assumption
-  private ImmutableMap<CExpression, HybridValue> variableMap;
+  private ImmutableMap<CIdExpression, HybridValue> variableMap;
 
   // the declarations are later used to generate values for variables that are tracked by the
   // value analysis, but with unknown value
@@ -89,7 +88,7 @@ public class HybridAnalysisState
   }
 
   protected HybridAnalysisState(
-      Map<CExpression, HybridValue> pVariableMap,
+      Map<CIdExpression, HybridValue> pVariableMap,
       Map<String, CSimpleDeclaration> pDeclarations) {
 
     this.variableMap = ImmutableMap.copyOf(pVariableMap);
@@ -108,12 +107,14 @@ public class HybridAnalysisState
 
     Collection<HybridValue> hybridValues = Arrays.asList(pNewAssumptions);
 
-    Map<CExpression, HybridValue> newAssumptions = Maps.newHashMap(pState.variableMap);
+    Map<CIdExpression, HybridValue> newAssumptions = Maps.newHashMap(pState.variableMap);
     newAssumptions.putAll(hybridValues
       .stream()
       .collect(Collectors.toMap(HybridValue::trackedVariable, Function.identity())));
 
     Map<String, CSimpleDeclaration> newDeclarations = Maps.newHashMap(pState.declarations);
+
+    // old values for variable Expression or overwritten
     newDeclarations.putAll(hybridValues
       .stream()
       .map(value -> ExpressionUtils.extractDeclaration(value))
@@ -136,7 +137,7 @@ public class HybridAnalysisState
       }
     }
 
-    Map<CExpression, HybridValue> newVariableMap = Maps.newHashMap(pState.variableMap);
+    Map<CIdExpression, HybridValue> newVariableMap = Maps.newHashMap(pState.variableMap);
     removableAssumptions.forEach(assumption -> newVariableMap.remove(assumption));
     Map<String, CSimpleDeclaration> declarationMap = pState.getDeclarations();
 
@@ -157,7 +158,7 @@ public class HybridAnalysisState
       }
     }
 
-    Map<CExpression, HybridValue> mergedAssumptions = Maps.newHashMap(variableMap);
+    Map<CIdExpression, HybridValue> mergedAssumptions = Maps.newHashMap(variableMap);
     seenAssumptions.forEach(assumption -> mergedAssumptions.remove(assumption));
 
     // build new hybrid value assumptions
@@ -185,14 +186,14 @@ public class HybridAnalysisState
   public HybridAnalysisState join(HybridAnalysisState pOther)
       throws CPAException, InterruptedException {
 
-    Map<CExpression, HybridValue> combinedAssumptions = Maps.newHashMap();
+    Map<CIdExpression, HybridValue> combinedAssumptions = Maps.newHashMap();
 
-    for(Entry<CExpression, HybridValue> otherEntry : pOther.variableMap.entrySet())
+    for(Entry<CIdExpression, HybridValue> otherEntry : pOther.variableMap.entrySet())
     {
-      CExpression idExpression = otherEntry.getKey();
+      CIdExpression idExpression = otherEntry.getKey();
       HybridValue value = otherEntry.getValue();
 
-      if(variableMap.containsKey(idExpression)) {
+      if(Objects.equals(value, variableMap.get(idExpression))) {
           combinedAssumptions.put(idExpression, value);
       }
     }
@@ -254,7 +255,7 @@ public class HybridAnalysisState
    * Creates a mutable copy of the tracked variable expressions
    * @return A set containing the variables
    */
-  protected Set<CExpression> getVariables() {
+  protected Set<CIdExpression> getVariables() {
     return Sets.newHashSet(variableMap.keySet());
   }
 
