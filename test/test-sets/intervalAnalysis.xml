@@ -10,6 +10,6 @@
   </rundefinition>
 
   <tasks name="intervalCBenchmark">
-    <include>../programs/benchmarks/c/loops/*.c</include>
+    <include> sv-benchmarks/c/loops/*.c</include>
   </tasks>
 </benchmark>
