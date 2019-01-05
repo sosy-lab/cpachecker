@@ -122,7 +122,7 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
         throws InterruptedException {
 
-    // there have not been any anitial live variables
+    // no
     if(assumptionParser == null)
     {
       return new HybridAnalysisState();

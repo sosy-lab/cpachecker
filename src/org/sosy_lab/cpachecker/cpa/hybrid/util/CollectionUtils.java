@@ -49,7 +49,6 @@ public final class CollectionUtils
   {
     return collection
         .stream()
-        // the former implementation may not havy been sound in all variations (comparing elements class with the given one)
         .filter(elem -> clazz.isInstance(elem))
         // the cast is safe due to filter operation
         .map(elem -> (T) elem)

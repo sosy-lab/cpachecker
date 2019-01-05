@@ -2954,14 +2954,6 @@ heuristicSelection.loopFreeConfig = no default value
 # Configuration for programs containing only relevant bool vars.
 heuristicSelection.onlyBoolConfig = no default value
 
-# The maximum amount of consecutive runs in which no new assumption to flip
-# could be found.
-hybridExecution.maxNumberMissedAssumption = 5
-
-# Whether to use Breadth-First-Search instead of Depth-First-Search to find
-# the next assumption to flip.
-hybridExecution.useBFS = false
-
 # Whether to use multiple values on a state.
 hybridExecution.useValueSets = false
 
