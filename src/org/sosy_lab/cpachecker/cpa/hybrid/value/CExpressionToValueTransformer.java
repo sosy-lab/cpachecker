@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid.value;
 
-import java.math.BigInteger;
-
+import edu.umd.cs.findbugs.annotations.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
@@ -33,8 +32,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cpa.hybrid.util.ExpressionUtils;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-
-import edu.umd.cs.findbugs.annotations.Nullable;
 
 public class CExpressionToValueTransformer {
 

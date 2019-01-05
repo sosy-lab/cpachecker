@@ -57,24 +57,24 @@ public class AssumptionParser {
     private final MachineModel machineModel;
     
     public AssumptionParser(
-            final String delimiter,
-                            final Scope scope,
-                            final Configuration configuration,
-                            final MachineModel machineModel,
-                            final LogManager logger) throws InvalidConfigurationException{
-        this.delimiter = delimiter;
-        this.scope = scope;
-        this.logger = logger;
+            final String pDelimiter,
+                            final Scope pScope,
+                            final Configuration pConfiguration,
+                            final MachineModel pMachineModel,
+                            final LogManager pLogger) throws InvalidConfigurationException{
+        this.delimiter = pDelimiter;
+        this.scope = pScope;
+        this.logger = pLogger;
         this.parserTools = 
-            ParserTools.create(ExpressionTrees.newCachingFactory(), machineModel, logger);
+            ParserTools.create(ExpressionTrees.newCachingFactory(), pMachineModel, pLogger);
 
         cParser =
         CParser.Factory.getParser(
             LogManager.createNullLogManager(),
-            CParser.Factory.getOptions(configuration),
-            machineModel);
+            CParser.Factory.getOptions(pConfiguration),
+            pMachineModel);
 
-        this.machineModel = machineModel;
+        this.machineModel = pMachineModel;
     }
 
     /**

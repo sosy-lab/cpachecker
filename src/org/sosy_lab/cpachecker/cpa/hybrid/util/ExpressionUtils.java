@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid.util;
 
+import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.Objects;
 import java.util.Set;
@@ -115,6 +116,39 @@ public final class ExpressionUtils {
     return null;
   }
 
+  /**
+   * Inspects the Expression and collects all variable identifiers.
+   * Recursively inspects both operands of BinaryExpressions such that all identifiers can be found.
+   * No duplicates due to set semantics.
+   * @param pExpression The respective expression from which to retrieve the variale identifiers
+   * @return A Set of CIdExpressions containing all variable identifiers that could be found - may be empty
+   */
+  public static Set<CIdExpression> extractAllVariableIdentifiers(CExpression pExpression) {
+
+    Set<CIdExpression> variables = Sets.newHashSet();
+    collectVariableIdentifiers(pExpression, variables);
+    return variables;
+  }
+
+  private static void collectVariableIdentifiers(CExpression pExpression, Set<CIdExpression> pCollector) {
+
+    // base case
+    if(pExpression instanceof  CIdExpression) {
+
+      pCollector.add((CIdExpression) pExpression);
+
+    } else if(pExpression instanceof CArraySubscriptExpression) {
+
+      collectVariableIdentifiers(((CArraySubscriptExpression)pExpression).getArrayExpression(), pCollector);
+
+    } else if(pExpression instanceof CBinaryExpression) {
+
+      CBinaryExpression binaryExpression = (CBinaryExpression)pExpression;
+      collectVariableIdentifiers(binaryExpression.getOperand1(), pCollector);
+      collectVariableIdentifiers(binaryExpression.getOperand2(), pCollector);
+    }
+  }
+
   public static boolean haveTheSameVariable(CExpression first, CExpression second) {
 
     @Nullable String nameFirst = ExpressionUtils.extractVariableIdentifier(first);
@@ -132,7 +166,7 @@ public final class ExpressionUtils {
 
   public static boolean assignmentContainsVariable(
       CStatementEdge pStatementEdge,
-      Set<CExpression> pVariables) {
+      Set<CIdExpression> pVariables) {
 
     CStatement statement = pStatementEdge.getStatement();
     CLeftHandSide leftHandSide = null;

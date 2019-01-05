@@ -55,23 +55,21 @@ public class SimpleValueProvider extends HybridValueProvider{
 
   private final Random random;
   private final int stringMaxLength;
+  private final double numberMin;
+  private final double numberMax;
   private final int charNumberUpperBound = 255;
 
   /**
    * constructs a new instance of this class
    */
-  public SimpleValueProvider(int pStringMaxLength) {
+  public SimpleValueProvider(
+      int pStringMaxLength,
+      double pMin,
+      double pMax) {
     random = new Random();
     stringMaxLength = pStringMaxLength;
-  }
-
-  /**
-   * Constructs a new instance of this class
-   * @param seed The seed to instantiate the random number generator with
-   */
-  public SimpleValueProvider(int pStringMaxLength, long seed) {
-    random = new Random(seed);
-    stringMaxLength = pStringMaxLength;
+    numberMin = pMin;
+    numberMax = pMax;
   }
 
 
@@ -79,11 +77,10 @@ public class SimpleValueProvider extends HybridValueProvider{
   public Value visit(CSimpleType type) {
 
     switch(type.getType()) {
-      // char can be represented by a number - better use upper bound
-      case CHAR: return new NumericValue(random.nextInt(charNumberUpperBound));
-      case INT: return new NumericValue(random.nextInt());
-      case FLOAT: return new NumericValue(random.nextFloat());
-      case DOUBLE: return new NumericValue(random.nextDouble());
+      case CHAR: return new NumericValue(nextChar());
+      case INT: return new NumericValue(nextInt());
+      case FLOAT: return new NumericValue(nextFloat());
+      case DOUBLE: return new NumericValue(nextDouble());
       case BOOL: return BooleanValue.valueOf(random.nextBoolean());
       default: return null;
     }
@@ -165,5 +162,32 @@ public class SimpleValueProvider extends HybridValueProvider{
             .collect(Collectors.joining());
 
     return builder;
+  }
+
+  private int nextInt() {
+
+    int min = (int)Math.ceil(numberMin);
+    int max = (int)Math.floor(numberMax);
+
+    return nextIntInRange(min, max);
+
+  }
+
+  private double nextDouble() {
+    return nextInt() * 1.0;
+  }
+
+  private float nextFloat(){
+    return nextInt() * 1.0f;
+  }
+
+  private int nextChar(){
+    return nextIntInRange(0, charNumberUpperBound);
+  }
+
+  private int nextIntInRange(int min, int max) {
+
+    return random.ints(min,(max+1)).findFirst().getAsInt();
+
   }
 }
