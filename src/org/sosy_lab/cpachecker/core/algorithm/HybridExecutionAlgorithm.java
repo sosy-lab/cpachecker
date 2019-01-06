@@ -56,12 +56,15 @@ import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdate
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.hybrid.HybridAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.hybrid.HybridAnalysisState;
@@ -71,6 +74,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -157,6 +161,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
   private final Algorithm algorithm;
   private final CFA cfa;
   private final HybridAnalysisCPA cpa;
+  private final int hybridAnalysisIndex;
   private final LogManager logger;
 
   private final Solver solver;
@@ -215,11 +220,11 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
 
     this.algorithm = pAlgorithm;
     this.cfa = pCFA;
-    this.cpa = CPAs.retrieveCPA(pCpa, HybridAnalysisCPA.class);
 
-    Preconditions.checkNotNull(
-        cpa,
-        "HybridExecutionAlgorithm cannot run without HybridAnalysisCPA");
+    Pair<HybridAnalysisCPA, Integer> pair = hybridAnalysisCPAIndexPair(pCpa);
+
+    this.cpa = pair.getFirst();
+    this.hybridAnalysisIndex = pair.getSecond();
 
     this.logger = pLogger;
     this.useValueSets = pUseValueSets;
@@ -381,7 +386,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
             CompositeState compositeState = AbstractStates
                 .extractStateByType(priorAssumptionState, CompositeState.class);
 
-            List<AbstractState> statesToWrapp = compositeState.getWrappedStates()
+            List<AbstractState> wrappedStates = compositeState.getWrappedStates()
                 .stream()
                 .filter(state -> !HybridAnalysisState.class.isInstance(state))
                 .collect(Collectors.toList());
@@ -392,11 +397,16 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
                     HybridAnalysisState.class);
 
             HybridAnalysisState newState = previousState.mergeWithArtificialAssignments(assumptions);
-            statesToWrapp.add(newState);
+
+            // CompositeTransferRelation relies on the order .... this is bad
+            wrappedStates.add(hybridAnalysisIndex, newState);
 
             // fork ARGState with this new hybrid analysis state
             ARGState stateToAdd = priorAssumptionState.forkWithReplacements(
-                Collections.singletonList(new CompositeState(statesToWrapp)));
+                Collections.singletonList(new CompositeState(wrappedStates)));
+
+            // add parent state
+            stateToAdd.addParent(parentState);
 
             // retrieve Precision for the prior assumption state, as it is the 'sister' state of the new state
             WrapperPrecision precision = (WrapperPrecision) pReachedSet.getPrecision(priorAssumptionState);
@@ -507,6 +517,26 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
     }
 
     return name;
+  }
+
+  private Pair<HybridAnalysisCPA, Integer> hybridAnalysisCPAIndexPair(ConfigurableProgramAnalysis pCpa) {
+
+    // we first extract the ARGCPA to check all CPA preconditions
+    ARGCPA argCpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
+    Preconditions
+        .checkNotNull(argCpa, "ARGCPA is required for HybridExecutionAlgorithm.");
+
+    WrapperCPA wrapperCPA = argCpa.retrieveWrappedCpa(CompositeCPA.class);
+
+    int index = 0;
+    for(ConfigurableProgramAnalysis configurableProgramAnalysis : wrapperCPA.getWrappedCPAs()) {
+      if(configurableProgramAnalysis instanceof HybridAnalysisCPA) {
+        return Pair.of(((HybridAnalysisCPA)configurableProgramAnalysis), index);
+      }
+      index++;
+    }
+
+    throw new AssertionError("HybridExecutionAgorithm cannot be run without HybridAnalysisCPA.");
   }
 
 }
