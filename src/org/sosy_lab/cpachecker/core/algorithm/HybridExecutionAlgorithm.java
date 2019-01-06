@@ -26,6 +26,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -79,8 +80,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
@@ -345,29 +348,37 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
       assert priorAssumptionState.equals(pathFromAssumption.getLastState());
 
       List<CFAEdge> pathEdges = Lists.newArrayList(pathFromAssumption.getInnerEdges());
+
+      // we need to add the assumption to the edge path
       pathEdges.add(nextAssumptionEdge);
       List<ARGState> pathStates = pathFromAssumption.asStatesList();
       ARGState parentState = pathStates.get(pathStates.size() - 2);
 
       assert priorAssumptionState.getParents().contains(parentState);
 
-      // build path formula
-      PathFormula pathFormula = buildPathFormula(pathFromAssumption.getInnerEdges());
+      // build path formula with edge path containing the new assumption
+      BooleanFormula formulaToCheck = buildPathFormula(pathEdges);
 
       try {
 
-        boolean satisfiable = !solver.isUnsat(pathFormula.getFormula());
+        boolean satisfiable = !solver.isUnsat(formulaToCheck);
 
         // get assignments for the new path containing the flipped assumption
         if(satisfiable) {
 
-          try(ProverEnvironment proverEnvironment = solver.newProverEnvironment()) {
+          try(ProverEnvironment proverEnvironment = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+
+            proverEnvironment.push(formulaToCheck);
+            Preconditions.checkState(!proverEnvironment.isUnsat());
+            // retrieve the new assignments
+            Collection<ValueAssignment> valueAssignments = proverEnvironment.getModelAssignments();
 
             // convert all value assignments (their respective formulas) to expressions via FormulaConverter
-            Set<CBinaryExpression> assumptions = parseAssignments(proverEnvironment.getModelAssignments());
+            Set<CBinaryExpression> assumptions = parseAssignments(valueAssignments);
 
             // extract states from composite state
-            CompositeState compositeState = AbstractStates.extractStateByType(priorAssumptionState, CompositeState.class);
+            CompositeState compositeState = AbstractStates
+                .extractStateByType(priorAssumptionState, CompositeState.class);
             List<AbstractState> statesToWrapp = compositeState.getWrappedStates()
                 .stream()
                 .filter(state -> !HybridAnalysisState.class.isInstance(state))
@@ -391,7 +402,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
           }
 
         } else {
-          logger.log(Level.WARNING, String.format("The boolean formula %s is not satisfiable for the solver", pathFormula.getFormula()));
+          logger.log(Level.WARNING, String.format("The boolean formula %s is not satisfiable for the solver", formulaToCheck));
         }
 
       } catch(SolverException sException) {
@@ -404,15 +415,20 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
   }
 
   // builds the complete path formula for a path through the application denoted by the set of edges
-  private PathFormula buildPathFormula(Collection<CFAEdge> pEdges)
+  private BooleanFormula buildPathFormula(Collection<CFAEdge> pEdges)
       throws CPATransferException, InterruptedException {
     PathFormula formula = pathFormulaManager.makeEmptyPathFormula();
+
+    pEdges = pEdges
+        .stream()
+        .filter(edge -> edge != null)
+        .collect(Collectors.toSet());
 
     for(CFAEdge edge : pEdges) {
       formula = pathFormulaManager.makeAnd(formula, edge);
     }
 
-    return formula;
+    return formula.getFormula();
   }
 
   // notify listeners on update of the reached set
