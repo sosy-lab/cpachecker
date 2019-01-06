@@ -199,11 +199,10 @@ public final class ExpressionUtils {
   }
 
   @Nullable
-  public static CSimpleDeclaration extractDeclaration(HybridValue pHybridValue) {
+  public static CSimpleDeclaration extractDeclaration(CBinaryExpression pExpression) {
 
-    CBinaryExpression assumption = pHybridValue.getAssumption();
     @Nullable
-    CIdExpression idExpression = extractIdExpression(assumption.getOperand1());
+    CIdExpression idExpression = extractIdExpression(pExpression.getOperand1());
     if(idExpression == null) {
       return null;
     }

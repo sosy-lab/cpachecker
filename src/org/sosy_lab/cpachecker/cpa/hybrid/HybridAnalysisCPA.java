@@ -112,9 +112,8 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
     this.cfa = Preconditions.checkNotNull(pCfa, "CFA must be present for HybridAnalysis");
     this.logger = pLogger;
     this.scope = new CProgramScope(pCfa, pLogger);
-    this.assumptionParser = initialAssumptionsStringEncoded.isEmpty()
-      ? null
-      : new AssumptionParser(delimiter, scope, pConfiguration, pCfa.getMachineModel(), pLogger);
+    this.assumptionParser
+        = new AssumptionParser(delimiter, scope, pConfiguration, pCfa.getMachineModel(), pLogger);
     pConfiguration.inject(this);
   }
 
@@ -123,7 +122,7 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
         throws InterruptedException {
 
     // no
-    if(assumptionParser == null)
+    if(initialAssumptionsStringEncoded.isEmpty())
     {
       return new HybridAnalysisState();
     }
@@ -180,5 +179,9 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
       default:
         throw new AssertionError("Unknown stop operator");
     }
+  }
+
+  public AssumptionParser getAssumptionParser() {
+    return assumptionParser;
   }
 }

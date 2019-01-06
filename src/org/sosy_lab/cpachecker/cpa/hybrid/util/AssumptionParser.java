@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -83,7 +84,7 @@ public class AssumptionParser {
      * @param assumptions The string containing all defined string encoded assumptions
      * @return A set of parsed CExpressions
      */
-    public Set<CExpression> parseAssumptions(final String assumptions) throws InvalidAutomatonException {
+    public Set<CBinaryExpression> parseAssumptions(final String assumptions) throws InvalidAutomatonException {
         if(assumptions.isEmpty()) {
             return Collections.emptySet();
         }
@@ -94,9 +95,9 @@ public class AssumptionParser {
         Collection<CStatement> statements = CParserUtils.parseStatements(splitAssumptions, Optional.empty(), cParser, scope, parserTools);  
 
         // convert statements to CExpressions
-        Collection<CExpression> expressions = CollectionUtils.ofType(
+        Collection<CBinaryExpression> expressions = CollectionUtils.ofType(
             CParserUtils.convertStatementsToAssumptions(statements, machineModel, logger),
-            CExpression.class);
+            CBinaryExpression.class);
 
         return ImmutableSet.copyOf(expressions);
     }

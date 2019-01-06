@@ -40,6 +40,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -66,8 +67,8 @@ public class HybridAnalysisState
     this(Collections.emptySet(), Collections.emptySet());
   }
 
-  public HybridAnalysisState(Set<CExpression> pAssumptions) {
-    this(CollectionUtils.ofType(pAssumptions, CBinaryExpression.class)
+  public HybridAnalysisState(Set<CBinaryExpression> pAssumptions) {
+    this(pAssumptions
           .stream()
           .map(expression -> HybridValue.createHybridValueForAssumption(expression))
           .collect(Collectors.toSet()),
@@ -117,12 +118,20 @@ public class HybridAnalysisState
     // old values for variable Expression or overwritten
     newDeclarations.putAll(hybridValues
       .stream()
-      .map(value -> ExpressionUtils.extractDeclaration(value))
+      .map(value -> ExpressionUtils.extractDeclaration(value.getAssumption()))
       .collect(Collectors.toMap(CSimpleDeclaration::getQualifiedName, Function.identity())));
 
     return new HybridAnalysisState(
         newAssumptions,
         pState.declarations);
+  }
+
+  public static HybridAnalysisState copyWithNewDeclaration(HybridAnalysisState pState, CDeclaration pDeclaration) {
+
+    Map<String, CSimpleDeclaration> newDeclarations = Maps.newHashMap(pState.declarations);
+    newDeclarations.putIfAbsent(pDeclaration.getQualifiedName(), pDeclaration);
+
+    return new HybridAnalysisState(pState.variableMap, newDeclarations);
   }
 
   public static HybridAnalysisState removeOnAssignment(HybridAnalysisState pState, CLeftHandSide pCLeftHandSide) {
@@ -161,8 +170,11 @@ public class HybridAnalysisState
     Map<CIdExpression, HybridValue> mergedAssumptions = Maps.newHashMap(variableMap);
     seenAssumptions.forEach(assumption -> mergedAssumptions.remove(assumption));
 
+    Map<String, CSimpleDeclaration> newDeclarations = Maps.newHashMap(declarations);
+
     // build new hybrid value assumptions
     for(CBinaryExpression artificialAssumption : pArtificialAssumptions) {
+
       @Nullable
       HybridValue newValue = HybridValue.createHybridValueForAssumption(artificialAssumption);
       if(newValue != null) {
@@ -170,11 +182,15 @@ public class HybridAnalysisState
         newValue.solverGenerated();
         mergedAssumptions.put(newValue.trackedVariable(), newValue);
       }
+
+      // add new declaration
+      CSimpleDeclaration declaration = ExpressionUtils.extractDeclaration(artificialAssumption);
+      newDeclarations.putIfAbsent(declaration.getQualifiedName(), declaration);
     }
 
     return new HybridAnalysisState(
         mergedAssumptions,
-        this.declarations);
+        newDeclarations);
   }
 
   /**

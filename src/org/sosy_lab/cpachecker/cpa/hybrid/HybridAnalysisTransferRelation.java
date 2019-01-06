@@ -36,9 +36,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -114,8 +116,7 @@ public class HybridAnalysisTransferRelation
 
   @Override
   protected @Nullable HybridAnalysisState handleAssumption(
-      CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
-      throws CPATransferException {
+      CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption) {
 
     return simpleCopy();
   }
@@ -126,7 +127,7 @@ public class HybridAnalysisTransferRelation
   protected HybridAnalysisState handleFunctionCallEdge(
       CFunctionCallEdge cfaEdge,
       List<CExpression> arguments, List<CParameterDeclaration> parameters,
-      String calledFunctionName) throws CPATransferException {
+      String calledFunctionName) {
 
     return simpleCopy();
   }
@@ -135,8 +136,7 @@ public class HybridAnalysisTransferRelation
 
   @Override
   protected HybridAnalysisState handleFunctionReturnEdge(CFunctionReturnEdge cfaEdge,
-      CFunctionSummaryEdge fnkCall, CFunctionCall summaryExpr, String callerFunctionName)
-        throws CPATransferException {
+      CFunctionSummaryEdge fnkCall, CFunctionCall summaryExpr, String callerFunctionName) {
 
     return simpleCopy();
   }
@@ -149,28 +149,13 @@ public class HybridAnalysisTransferRelation
       CDeclaration pCDeclaration)
       throws CPATransferException {
 
-//    if(pCDeclaration instanceof CFunctionDeclaration
-//      || pCDeclaration instanceof CTypeDeclaration) {
-//      return simpleCopy();
-//    }
-//
-//    try {
-//
-//      @Nullable HybridValue newAssumption = assumptionGenerator.generateAssumption(pCDeclaration);
-//      if(newAssumption == null) {
-//        return simpleCopy();
-//      }
-//
-//      return HybridAnalysisState.copyWithNewAssumptions(state, newAssumption);
-//
-//    } catch(InvalidAssumptionException iae) {
-//      throw new CPATransferException(
-//          "Unable to transform the created value and the given declaration expression into an assumption.",
-//          iae);
-//    }
-    // it might be senseless and furthermore lead to false positives (impossible error states) when we create values for declarations
-    return simpleCopy();
+    if(pCDeclaration instanceof CFunctionDeclaration
+      || pCDeclaration instanceof CTypeDeclaration) {
+      return simpleCopy();
+    }
 
+    // add new declaration to the hybrid analysis state
+    return HybridAnalysisState.copyWithNewDeclaration(state, pCDeclaration);
   }
 
   // ----- ReturnStatementEdge -----

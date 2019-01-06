@@ -27,16 +27,18 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -44,9 +46,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -54,30 +54,27 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.hybrid.HybridAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.hybrid.HybridAnalysisState;
-import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.AssumptionSearchStrategy;
-import org.sosy_lab.cpachecker.cpa.hybrid.abstraction.AssumptionSearchStrategy.AssumptionContext;
-import org.sosy_lab.cpachecker.cpa.hybrid.search.SearchStrategy;
-import org.sosy_lab.cpachecker.cpa.hybrid.util.ExpressionUtils;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -104,6 +101,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
 
     private final Algorithm algorithm;
     private final CFA cfa;
+    private final ConfigurableProgramAnalysis cpa;
     private final LogManager logger;
     private final Configuration configuration;
     private final ShutdownNotifier notifier;
@@ -121,14 +119,15 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
     public HybridExecutionAlgorithmFactory(
         Algorithm pAlgorithm,
         CFA pCFA,
+        ConfigurableProgramAnalysis pCpa,
         LogManager pLogger,
         Configuration pConfiguration,
         ShutdownNotifier pShutdownNotifier)
         throws InvalidConfigurationException {
       pConfiguration.inject(this);
       this.algorithm = pAlgorithm;
-
       this.cfa = pCFA;
+      this.cpa = pCpa;
       this.logger = pLogger;
       this.configuration = pConfiguration;
       this.notifier = pShutdownNotifier;
@@ -140,6 +139,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
         return new HybridExecutionAlgorithm(
             algorithm,
             cfa,
+            cpa,
             logger,
             configuration,
             notifier,
@@ -156,12 +156,14 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
 
   private final Algorithm algorithm;
   private final CFA cfa;
+  private final HybridAnalysisCPA cpa;
   private final LogManager logger;
 
   private final Solver solver;
   private final FormulaManagerView formulaManagerView;
-  private final FormulaConverter formulaConverter;
   private final PathFormulaManager pathFormulaManager;
+
+  private final Splitter FUNCTION_SCOPE_SPLITTER = Splitter.on("::");
 
   // we could run the search with several values satisfying certain conditions to achieve a broader coverage
   // this must be experimental validated (in theory it is very easy to find several variable values for a specific state that will later on lead to different executions)
@@ -204,6 +206,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
   private HybridExecutionAlgorithm(
       Algorithm pAlgorithm,
       CFA pCFA,
+      ConfigurableProgramAnalysis pCpa,
       LogManager pLogger,
       Configuration pConfiguration,
       ShutdownNotifier pNotifier,
@@ -212,19 +215,18 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
 
     this.algorithm = pAlgorithm;
     this.cfa = pCFA;
+    this.cpa = CPAs.retrieveCPA(pCpa, HybridAnalysisCPA.class);
+
+    Preconditions.checkNotNull(
+        cpa,
+        "HybridExecutionAlgorithm cannot run without HybridAnalysisCPA");
+
     this.logger = pLogger;
     this.useValueSets = pUseValueSets;
     this.reachedSetUpdateListeners = new ArrayList<>();
 
     this.solver = Solver.create(pConfiguration, pLogger, pNotifier);
     this.formulaManagerView = solver.getFormulaManager();
-
-    this.formulaConverter = new FormulaConverter(
-        formulaManagerView,
-        new CProgramScope(pCFA, pLogger),
-        pLogger,
-        pCFA.getMachineModel(),
-        pConfiguration);
 
     this.pathFormulaManager = new CachingPathFormulaManager(
         new PathFormulaManagerImpl(
@@ -315,7 +317,6 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
 
       // remove the visited assumptions
       pAllAssumptions.removeAll(visitedAssumptions);
-      allARGStates.removeAll(bottomStates); // TODO check for problems
 
       // if there are no more assumptions left, all paths have been covered
       if(pAllAssumptions.isEmpty()) {
@@ -373,12 +374,13 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
             // retrieve the new assignments
             Collection<ValueAssignment> valueAssignments = proverEnvironment.getModelAssignments();
 
-            // convert all value assignments (their respective formulas) to expressions via FormulaConverter
+            // convert all value assignments (their respective formulas) to expressions
             Set<CBinaryExpression> assumptions = parseAssignments(valueAssignments);
 
             // extract states from composite state
             CompositeState compositeState = AbstractStates
                 .extractStateByType(priorAssumptionState, CompositeState.class);
+
             List<AbstractState> statesToWrapp = compositeState.getWrappedStates()
                 .stream()
                 .filter(state -> !HybridAnalysisState.class.isInstance(state))
@@ -392,10 +394,15 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
             HybridAnalysisState newState = previousState.mergeWithArtificialAssignments(assumptions);
             statesToWrapp.add(newState);
 
-            // build an ARGState with this new hybrid analysis state
-            ARGState stateToAdd = new ARGState(new CompositeState(statesToWrapp), parentState);
+            // fork ARGState with this new hybrid analysis state
+            ARGState stateToAdd = priorAssumptionState.forkWithReplacements(
+                Collections.singletonList(new CompositeState(statesToWrapp)));
+
+            // retrieve Precision for the prior assumption state, as it is the 'sister' state of the new state
+            WrapperPrecision precision = (WrapperPrecision) pReachedSet.getPrecision(priorAssumptionState);
+
             //stateToAdd.forkWithReplacements()
-            pReachedSet.add(stateToAdd, SingletonPrecision.getInstance());
+            pReachedSet.add(stateToAdd, precision);
 
           } catch(InvalidAutomatonException iae) {
             throw new CPAException("Error occurred while parsing the value assignments into assumption expressions.", iae);
@@ -472,13 +479,34 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
 
     Set<CBinaryExpression> assumptions = Sets.newHashSet();
     for(ValueAssignment assignment : pAssignments) {
-      Collection<CBinaryExpression> assumptionCollection = formulaConverter.convertFormulaToCBinaryExpressions(assignment.getAssignmentAsFormula());
+      String fixedName = removeSSAMapIndex(assignment);
+      Collection<CBinaryExpression> assumptionCollection
+          = cpa.getAssumptionParser()
+            .parseAssumptions(String.format("%s=%s", fixedName, assignment.getValue()));
       assumptions.addAll(assumptionCollection);
     }
 
     assert assumptions.size() == pAssignments.size();
 
     return assumptions;
+  }
+
+  private String removeSSAMapIndex(ValueAssignment pAssignment) {
+
+    String name = pAssignment.getName();
+
+    // function scoped
+    if(name.contains("::")) {
+      name = Iterables.get(FUNCTION_SCOPE_SPLITTER.split(name), 1);
+    }
+
+    int index = name.indexOf('@');
+
+    if(index > 0) {
+      name = name.substring(0, index);
+    }
+
+    return name;
   }
 
 }

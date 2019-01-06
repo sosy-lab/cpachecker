@@ -55,61 +55,61 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class FormulaConverter {
 
-    private final FormulaManagerView formulaManagerView;
-    private final FormulaToCVisitor toCVisitor;
-    private final CParser parser;
-    private final Scope scope;
-    private final ParserTools parserTools;
-    private final MachineModel machineModel;
-    private final LogManager logger;
+  private final FormulaManagerView formulaManagerView;
+  private final FormulaToCVisitor toCVisitor;
+  private final CParser parser;
+  private final Scope scope;
+  private final ParserTools parserTools;
+  private final MachineModel machineModel;
+  private final LogManager logger;
 
-    public FormulaConverter(
-        FormulaManagerView pFormulaManagerView,
-        Scope pScope,
-        LogManager pLogger,
-        MachineModel pMachineModel,
-        Configuration configuration)
-            throws InvalidConfigurationException {
+  public FormulaConverter(
+    FormulaManagerView pFormulaManagerView,
+    Scope pScope,
+    LogManager pLogger,
+    MachineModel pMachineModel,
+    Configuration configuration)
+        throws InvalidConfigurationException {
 
-        this.formulaManagerView = pFormulaManagerView;
-        this.toCVisitor = new FormulaToCVisitor(pFormulaManagerView);
+    this.formulaManagerView = pFormulaManagerView;
+    this.toCVisitor = new FormulaToCVisitor(pFormulaManagerView);
 
-        this.parser = CParser.Factory.getParser(
-            LogManager.createNullLogManager(),
-            CParser.Factory.getOptions(configuration),
-            pMachineModel);
+    this.parser = CParser.Factory.getParser(
+        LogManager.createNullLogManager(),
+        CParser.Factory.getOptions(configuration),
+        pMachineModel);
 
-        this.scope = pScope;
-        this.logger = pLogger;
+    this.scope = pScope;
+    this.logger = pLogger;
 
-        this.parserTools = 
-            ParserTools.create(ExpressionTrees.newCachingFactory(), pMachineModel, pLogger);
-        this.machineModel = pMachineModel;
+    this.parserTools =
+        ParserTools.create(ExpressionTrees.newCachingFactory(), pMachineModel, pLogger);
+    this.machineModel = pMachineModel;
+  }
+
+  public Collection<CBinaryExpression> convertFormulaToCBinaryExpressions(
+    BooleanFormula formula) throws InvalidAutomatonException {
+
+    // convert Formula to C-String
+    Boolean isValid = formulaManagerView.visit(formula, toCVisitor);
+
+    // if the formula is invalid, the resulting string is useless
+    if(!isValid) {
+        throw new InvalidAutomatonException(String.format("The boolean formula %s could not be parsed", formula));
     }
 
-    public Collection<CBinaryExpression> convertFormulaToCBinaryExpressions(BooleanFormula formula)
-                    throws InvalidAutomatonException {
+    final String cCodeString = toCVisitor.getString();
 
-        // convert Formula to C-String
-        Boolean isValid = formulaManagerView.visit(formula, toCVisitor);
+    // parse c code to expression
+    Collection<CStatement> statements = CParserUtils.parseAsCStatements(
+        cCodeString,
+        Optional.empty(),
+        parser,
+        scope,
+        parserTools);
 
-        // if the formula is invalid, the resulting string is useless
-        if(!isValid) {
-            throw new InvalidAutomatonException(String.format("The boolean formula %s could not be parsed", formula));
-        }
-
-        final String cCodeString = toCVisitor.getString();
-
-        // parse c code to expression
-        Collection<CStatement> statements = CParserUtils.parseAsCStatements(
-            cCodeString, 
-            Optional.empty(), 
-            parser, 
-            scope, 
-            parserTools);
-
-        return CollectionUtils.ofType( 
-            CParserUtils.convertStatementsToAssumptions(statements, machineModel, logger),
-            CBinaryExpression.class);
-    }
+    return CollectionUtils.ofType(
+        CParserUtils.convertStatementsToAssumptions(statements, machineModel, logger),
+        CBinaryExpression.class);
+  }
 }
