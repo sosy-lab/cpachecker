@@ -163,7 +163,7 @@ public class HybridValue {
   @Override 
   public String toString() {
     return assumption != null 
-      ? assumption.toString()
+      ? String.format("[%s %s %s]", assumption.getOperand1(), assumption.getOperator(), assumption.getOperand2())
       : "";
   }
 
