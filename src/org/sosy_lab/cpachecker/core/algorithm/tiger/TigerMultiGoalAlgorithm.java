@@ -189,22 +189,22 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       List<List<CFAEdge>> basicBlocks,
       Set<CFAEdge> processedEdges) {
     if (!processedEdges.contains(currentEdge)) {
+      if (currentEdge.getPredecessor().getNumLeavingEdges() > 1) {
+        List<CFAEdge> newBB = new ArrayList<>();
+        basicBlocks.add(newBB);
+        currentBasicBlock = newBB;
+      }
       processedEdges.add(currentEdge);
       currentBasicBlock.add(currentEdge);
       CFANode successor = currentEdge.getSuccessor();
-      if (successor.getNumLeavingEdges() == 1) {
+
+        for (int i = 0; i < successor.getNumLeavingEdges(); i++) {
         buildBasicBlocks(
-            successor.getLeavingEdge(0),
+            successor.getLeavingEdge(i),
             currentBasicBlock,
             basicBlocks,
             processedEdges);
-      } else {
-        for (int i = 0; i < successor.getNumLeavingEdges(); i++) {
-          List<CFAEdge> newBB = new ArrayList<>();
-          basicBlocks.add(newBB);
-          buildBasicBlocks(successor.getLeavingEdge(i), newBB, basicBlocks, processedEdges);
         }
-      }
     }
   }
 
@@ -247,72 +247,63 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     }
   }
 
-  private LinkedList<CFAGoal> complexGoalReduction(List<CFAGoal> goals) {
-    LinkedList<CFAGoal> goalsCopy = new LinkedList<>(goals);
-    Iterator<CFAGoal> iter1 = goalsCopy.iterator();
-    // check for goal redundancy
-    while (iter1.hasNext()) {
-      Iterator<CFAGoal> iter2 = goalsCopy.iterator();
-      CFAGoal goal = iter1.next();
-      while (iter2.hasNext()) {
-        CFAGoal goal2 = iter2.next();
-        if (goal == goal2) {
-          continue;
-        }
-        CFAGoal goalCopy = new CFAGoal(goal.getCFAEdgesGoal().getEdges());
-        for (CFAEdge edge : goal2.getCFAEdgesGoal().getEdges()) {
-          goalCopy.getCFAEdgesGoal().processEdge(edge);
-        }
-        if (goalCopy.isCovered()) {
-          iter2.remove();
-        }
-      }
-
+  private boolean complexGoalDominationCheck(CFAGoal goal1, CFAGoal goal2) {
+    CFAGoal goalCopy = new CFAGoal(goal1.getCFAEdgesGoal().getEdges());
+    for (CFAEdge edge : goal2.getCFAEdgesGoal().getEdges()) {
+      goalCopy.getCFAEdgesGoal().processEdge(edge);
     }
-    return goalsCopy;
+    if (goalCopy.isCovered()) {
+      return true;
+    }
+    return false;
   }
 
-  private LinkedList<CFAGoal> simpleGoalReduction(List<CFAGoal> goals){
-    LinkedList<CFAGoal> goalsCopy = new LinkedList<>(goals);
-    Iterator<CFAGoal> iter1 = goalsCopy.iterator();
-    while (iter1.hasNext()) {
-      Iterator<CFAGoal> iter2 = goalsCopy.iterator();
-      CFAGoal goal = iter1.next();
-      while (iter2.hasNext()) {
-        CFAGoal goal2 = iter2.next();
-        if (goal == goal2) {
-          continue;
-        }
-        boolean sameGoal = false;
-        if (goal.getCFAEdgesGoal().getEdges().size() == goal2.getCFAEdgesGoal()
-            .getEdges()
-            .size()) {
-          for (int i = 0; i < goal.getCFAEdgesGoal().getEdges().size(); i++) {
-            if (goal.getCFAEdgesGoal().getEdges().get(i) != goal2.getCFAEdgesGoal()
-                .getEdges()
-                .get(i)) {
-              break;
-            }
-            sameGoal = true;
-          }
-        }
-        if (sameGoal) {
-          iter2.remove();
-        }
+  private boolean complexGoalDominationCheck(List<CFAGoal> goals, CFAGoal goal) {
+    for (CFAGoal goal1 : goals) {
+      if (!(goal1 == goal)) {
+      if (complexGoalDominationCheck(goal1, goal)) {
+        return true;
+      }
       }
     }
-    return goalsCopy;
+    return false;
   }
 
-  private LinkedList<CFAGoal> reduceGoals(LinkedList<CFAGoal> goals) {
+  private boolean simpleGoalDominationCheck(CFAGoal goal1, CFAGoal goal2) {
+    // check for same amount of goals
+    if (goal1.getCFAEdgesGoal().getEdges().size() != goal2.getCFAEdgesGoal().getEdges().size()) {
+      return false;
+    }
+    // check if both goals contain the same edges
+    for (int i = 0; i < goal1.getCFAEdgesGoal().getEdges().size(); i++) {
+      if (goal1.getCFAEdgesGoal().getEdges().get(i) != goal2.getCFAEdgesGoal().getEdges().get(i)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private boolean simpleGoalDominationCheck(List<CFAGoal> goals, CFAGoal goal) {
+    for (CFAGoal goal1 : goals) {
+      if (!(goal1 == goal)) {
+      if (simpleGoalDominationCheck(goal1, goal)) {
+        return true;
+      }
+      }
+    }
+    return false;
+  }
+
+  private void reduceGoals(LinkedList<CFAGoal> goals) {
     // calculate Basic Blocks
     List<List<CFAEdge>> basicBlocks = new ArrayList<>();
     Set<CFAEdge> processedEdges = new HashSet<>();
-    FunctionEntryNode initialNode = cfa.getMainFunction();
-    for (int i = 0; i < initialNode.getNumLeavingEdges(); i++) {
-      List<CFAEdge> basicBlock = new ArrayList<>();
-      basicBlocks.add(basicBlock);
-      buildBasicBlocks(initialNode.getLeavingEdge(i), basicBlock, basicBlocks, processedEdges);
+    for (FunctionEntryNode fNode : cfa.getAllFunctionHeads()) {
+      for (int i = 0; i < fNode.getNumLeavingEdges(); i++) {
+        List<CFAEdge> basicBlock = new ArrayList<>();
+        basicBlocks.add(basicBlock);
+        buildBasicBlocks(fNode.getLeavingEdge(i), basicBlock, basicBlocks, processedEdges);
+      }
     }
 
     // Lift goal edges to basic block entrance edge
@@ -321,9 +312,9 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
 
 
     if (tigerConfig.shouldUseComplexGoalReduction()) {
-      return complexGoalReduction(goals);
+      goals.removeIf(goal -> complexGoalDominationCheck(goals, goal));
     } else {
-     return simpleGoalReduction(goals);
+      goals.removeIf(goal -> simpleGoalDominationCheck(goals, goal));
     }
   }
 
@@ -359,7 +350,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     if (goals == null) {
       goals = extractGoalSyntax();
     }
-    goals = reduceGoals(goals);
+    reduceGoals(goals);
     return goals;
   }
 
