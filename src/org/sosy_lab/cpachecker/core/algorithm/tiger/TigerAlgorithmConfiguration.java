@@ -168,6 +168,12 @@ public class TigerAlgorithmConfiguration {
     description = "uses output specification of testcomp")
   private boolean useTestCompOutput = false;
 
+  @Option(
+    secure = true,
+    name = "useComplexGoalReduction",
+    description = "remove simple goals if covered by complexer ones")
+  private boolean useComplexGoalReduction = false;
+
   public boolean shouldUseTestCompOutput() {
     return useTestCompOutput;
   }
@@ -245,6 +251,10 @@ public class TigerAlgorithmConfiguration {
 
   public void setFQLQuery(String pString) {
     this.fqlQuery = pString;
+  }
+
+  public boolean shouldUseComplexGoalReduction() {
+    return useComplexGoalReduction;
   }
 
 }

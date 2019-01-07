@@ -59,7 +59,9 @@ public class CFAGoal extends Goal {
   public ThreeValuedAnswer getsCoveredByPath(List<CFAEdge> pPath) {
     CFAEdgesGoal copy = new CFAEdgesGoal(cfaEdgesGoal.getEdges());
     for (CFAEdge edge : pPath) {
-      copy.processEdge(edge);
+      if (edge != null) {
+        copy.processEdge(edge);
+      }
     }
     if (copy.isCovered()) {
       return ThreeValuedAnswer.ACCEPT;
@@ -69,6 +71,10 @@ public class CFAGoal extends Goal {
 
   public CFAEdgesGoal getCFAEdgesGoal() {
     return cfaEdgesGoal;
+  }
+
+  public void setCovered() {
+    cfaEdgesGoal.setCovered();
   }
 
 }

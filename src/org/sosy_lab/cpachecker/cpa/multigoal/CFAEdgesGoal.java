@@ -51,5 +51,13 @@ public class CFAEdgesGoal {
     return edges;
   }
 
+  public void replaceEdges(List<CFAEdge> pNewEdges) {
+    edges = pNewEdges;
+    index = 0;
+  }
+
+  public void setCovered() {
+    index = edges.size();
+  }
 
 }

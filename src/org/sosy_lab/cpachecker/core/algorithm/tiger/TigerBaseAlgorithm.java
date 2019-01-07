@@ -20,36 +20,15 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
 import com.google.common.base.Function;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.math.BigInteger;
-import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
@@ -71,6 +50,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.BDDUtils;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuiteWriter;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -93,10 +73,6 @@ import org.sosy_lab.cpachecker.util.Property;
 import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
-import org.w3c.dom.DOMImplementation;
-import org.w3c.dom.Document;
-import org.w3c.dom.DocumentType;
-import org.w3c.dom.Element;
 
 public abstract class TigerBaseAlgorithm<T extends Goal>
     implements AlgorithmWithResult, ShutdownRequestListener {
@@ -124,6 +100,7 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
   protected TestSuite<T> testsuite;
   protected BDDUtils bddUtils;
   protected TimeoutCPA timeoutCPA;
+  protected TestSuiteWriter tsWriter;
 
   protected LinkedList<T> goalsToCover;
 
@@ -163,6 +140,19 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
     // Check if BDD is enabled for variability-aware test-suite generation
     bddUtils = new BDDUtils(cpa, pLogger);
     timeoutCPA = getTimeoutCPA(cpa);
+
+    String outputFolder = "output/";
+    if(tigerConfig.shouldUseTestCompOutput()) {
+      outputFolder += "test-suite";
+    }
+    tsWriter =
+        new TestSuiteWriter(
+            pCfa,
+            pLogger,
+            originalMainFunction,
+            tigerConfig.shouldUseTestCompOutput(),
+            outputFolder,
+            tigerConfig.getFqlQuery());
   }
 
   public TimeoutCPA getTimeoutCPA(ConfigurableProgramAnalysis pCpa) {
@@ -187,207 +177,6 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
       logger.logf(Level.INFO, "Test goal timed out!");
     }
     return Pair.of(analysisWasSound, hasTimedOut);
-  }
-
-  private Element createAndAppendElement(
-      String elementName,
-      String elementTest,
-      Element parentElement,
-      Document dom) {
-    Element newElement = dom.createElement(elementName);
-    newElement.appendChild(dom.createTextNode(elementTest));
-    parentElement.appendChild(newElement);
-    return newElement;
-  }
-
-  private static String getFileChecksum(MessageDigest digest, File file) throws IOException {
-    // Get file input stream for reading the file content
-    FileInputStream fis = new FileInputStream(file);
-
-    // Create byte array to read data in chunks
-    byte[] byteArray = new byte[1024];
-    int bytesCount = 0;
-
-    // Read file data and update in message digest
-    while ((bytesCount = fis.read(byteArray)) != -1) {
-      digest.update(byteArray, 0, bytesCount);
-    } ;
-
-    // close the stream; We don't need it now.
-    fis.close();
-
-    // Get the hash's bytes
-    byte[] bytes = digest.digest();
-
-    // This bytes[] has bytes in decimal format;
-    // Convert it to hexadecimal format
-    StringBuilder sb = new StringBuilder();
-    for (int i = 0; i < bytes.length; i++) {
-      sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
-    }
-
-    // return complete hash
-    return sb.toString();
-  }
-
-  private void writeMetaData(String folder) {
-    Document dom;
-    DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-    try {
-      DocumentBuilder db = dbf.newDocumentBuilder();
-      dom = db.newDocument();
-      Element root = dom.createElement("test-metadata");
-
-      createAndAppendElement("sourcecodelang", "C", root, dom);
-      createAndAppendElement("producer", "CPA-Tiger", root, dom);
-      createAndAppendElement("specification", tigerConfig.getFqlQuery(), root, dom);
-      Path file = cfa.getFileNames().get(0);
-      createAndAppendElement("programfile", file.toString(), root, dom);
-      createAndAppendElement(
-          "programhash",
-          getFileChecksum(MessageDigest.getInstance("MD5"), file.toFile()),
-          root,
-          dom);
-      createAndAppendElement("entryfunction", originalMainFunction, root, dom);
-
-      String architecture = "32bit";
-      @org.checkerframework.checker.nullness.qual.Nullable
-      String prop = null;
-      try {
-        config.getProperty("Architecture");
-      } catch (Exception ex) {
-        // ignore for now
-      }
-      if (prop != null && !prop.isEmpty()) {
-        architecture = prop;
-      }
-      createAndAppendElement("architecture", architecture, root, dom);
-      Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-      Instant instant = timestamp.toInstant();
-      createAndAppendElement("creationtime", instant.toString(), root, dom);
-
-      dom.appendChild(root);
-      try {
-        Transformer tr = TransformerFactory.newInstance().newTransformer();
-        tr.setOutputProperty(OutputKeys.INDENT, "yes");
-        tr.setOutputProperty(OutputKeys.METHOD, "xml");
-        tr.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
-        DOMImplementation domImpl = dom.getImplementation();
-        DocumentType doctype =
-            domImpl.createDocumentType(
-                "doctype",
-                "+//IDN sosy-lab.org//DTD test-format test-metadata 1.0//EN",
-                "https://gitlab.com/sosy-lab/software/test-format/raw/v1.0/test-metadata.dtd");
-        tr.setOutputProperty(OutputKeys.DOCTYPE_SYSTEM, doctype.getSystemId());
-        tr.setOutputProperty(OutputKeys.DOCTYPE_PUBLIC, doctype.getPublicId());
-
-        tr.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
-
-        // send DOM to file
-        tr.transform(
-            new DOMSource(dom),
-            new StreamResult(new FileOutputStream(folder + "/metadata.xml")));
-
-      } catch (TransformerException te) {
-        logger.log(Level.WARNING, te.getMessage());
-      } catch (IOException ioe) {
-        logger.log(Level.WARNING, ioe.getMessage());
-      }
-    } catch (ParserConfigurationException pce) {
-      logger.log(Level.WARNING, "UsersXML: Error trying to instantiate DocumentBuilder " + pce);
-    } catch (NoSuchAlgorithmException e) {
-      logger.log(Level.WARNING, e.getMessage());
-    } catch (IOException e) {
-      logger.log(Level.WARNING, e.getMessage());
-    }
-  }
-
-  private void writeTestCases(String folder) {
-    for (TestCase testcase : testsuite.getTestCases()) {
-      Document dom;
-      DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-      try {
-        DocumentBuilder db = dbf.newDocumentBuilder();
-        dom = db.newDocument();
-        Element root = dom.createElement("testcase");
-        // TODO order of variables if important for testcomp!
-        for (Entry<String, BigInteger> var : testcase.getInputs().entrySet()) {
-          Element input = createAndAppendElement("input", var.getValue().toString(), root, dom);
-          input.setAttribute("variable", var.getKey());
-        }
-
-        dom.appendChild(root);
-        try {
-          Transformer tr = TransformerFactory.newInstance().newTransformer();
-          tr.setOutputProperty(OutputKeys.INDENT, "yes");
-          tr.setOutputProperty(OutputKeys.METHOD, "xml");
-          tr.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
-          DOMImplementation domImpl = dom.getImplementation();
-          DocumentType doctype =
-              domImpl.createDocumentType(
-                  "doctype",
-                  "+//IDN sosy-lab.org//DTD test-format testcase 1.0//EN",
-                  "https://gitlab.com/sosy-lab/software/test-format/raw/v1.0/testcase.dtd");
-          tr.setOutputProperty(OutputKeys.DOCTYPE_SYSTEM, doctype.getSystemId());
-          tr.setOutputProperty(OutputKeys.DOCTYPE_PUBLIC, doctype.getPublicId());
-
-          tr.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
-
-          // send DOM to file
-          tr.transform(
-              new DOMSource(dom),
-              new StreamResult(
-                  new FileOutputStream(folder + "/testcase-" + testcase.getId() + ".xml")));
-
-        } catch (TransformerException te) {
-          logger.log(Level.WARNING, te.getMessage());
-        } catch (IOException ioe) {
-          logger.log(Level.WARNING, ioe.getMessage());
-        }
-      } catch (ParserConfigurationException pce) {
-        logger.log(Level.WARNING, "UsersXML: Error trying to instantiate DocumentBuilder " + pce);
-      }
-    }
-  }
-
-  protected void writeTestsuite() {
-    String outputFolder = "output/";
-    String testSuiteName = "testsuite.txt";
-    File testSuiteFile = new File(outputFolder + testSuiteName);
-    if (!testSuiteFile.getParentFile().exists()) {
-      testSuiteFile.getParentFile().mkdirs();
-    }
-
-    if (tigerConfig.shouldUseTestCompOutput()) {
-      String folder = "output/test-suite";
-      File folderFile = new File(folder);
-      if (!folderFile.exists()) {
-        folderFile.mkdirs();
-      }
-      if (!testSuiteFile.getParentFile().exists()) {
-        testSuiteFile.getParentFile().mkdirs();
-      }
-      writeMetaData(folder);
-      writeTestCases(folder);
-    } else {
-      try (Writer writer =
-          new BufferedWriter(
-              new OutputStreamWriter(new FileOutputStream("output/testsuite.txt"), "utf-8"))) {
-        writer.write(testsuite.toString());
-        writer.close();
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-
-      try (Writer writer =
-          new BufferedWriter(
-              new OutputStreamWriter(new FileOutputStream("output/testsuite.json"), "utf-8"))) {
-        writer.write(testsuite.toJsonString());
-        writer.close();
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
   }
 
   protected TestCase createTestcase(final CounterexampleInfo cex, final Region pPresenceCondition) {

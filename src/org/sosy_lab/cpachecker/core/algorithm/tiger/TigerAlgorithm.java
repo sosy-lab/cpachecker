@@ -133,7 +133,7 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
       wasSound = false;
     }
 
-    writeTestsuite();
+    tsWriter.writeFinalTestSuite(testsuite);
 
     if (wasSound) {
       return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -628,6 +628,6 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
         testsuite.addTimedOutGoal(goal.getIndex(), goal, null);
       }
     }
-    writeTestsuite();
+    tsWriter.writeFinalTestSuite(testsuite);
   }
 }

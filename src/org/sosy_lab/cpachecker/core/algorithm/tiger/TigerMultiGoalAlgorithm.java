@@ -27,6 +27,7 @@ import com.google.common.base.Predicate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -47,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -181,6 +183,150 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     return null;
   }
 
+  private void buildBasicBlocks(
+      CFAEdge currentEdge,
+      List<CFAEdge> currentBasicBlock,
+      List<List<CFAEdge>> basicBlocks,
+      Set<CFAEdge> processedEdges) {
+    if (!processedEdges.contains(currentEdge)) {
+      processedEdges.add(currentEdge);
+      currentBasicBlock.add(currentEdge);
+      CFANode successor = currentEdge.getSuccessor();
+      if (successor.getNumLeavingEdges() == 1) {
+        buildBasicBlocks(
+            successor.getLeavingEdge(0),
+            currentBasicBlock,
+            basicBlocks,
+            processedEdges);
+      } else {
+        for (int i = 0; i < successor.getNumLeavingEdges(); i++) {
+          List<CFAEdge> newBB = new ArrayList<>();
+          basicBlocks.add(newBB);
+          buildBasicBlocks(successor.getLeavingEdge(i), newBB, basicBlocks, processedEdges);
+        }
+      }
+    }
+  }
+
+  private List<CFAEdge> getBasicBlock(CFAEdge edge, List<List<CFAEdge>> bbs) {
+    for (List<CFAEdge> bb : bbs) {
+      for (CFAEdge bbEdge : bb) {
+        if (bbEdge == edge) {
+          return bb;
+        }
+      }
+    }
+    return null;
+  }
+
+  private void liftGoals(List<CFAGoal> goals, List<List<CFAEdge>> basicBlocks) {
+    for(CFAGoal goal : goals) {
+      List<CFAEdge> edges = goal.getCFAEdgesGoal().getEdges();
+      List<CFAEdge> newEdges = new ArrayList<>();
+      List<CFAEdge> lastBB = null;
+      CFAEdge lastEdge = null;
+      for (CFAEdge edge : edges) {
+        List<CFAEdge> currentBB = getBasicBlock(edge, basicBlocks);
+        if (lastBB == null || lastBB != currentBB) {
+          lastBB = currentBB;
+          newEdges.add(lastBB.get(0));
+          lastEdge = edge;
+        } else {
+          int currentIndex = currentBB.indexOf(edge);
+          int lastIndex = currentBB.indexOf(lastEdge);
+          // goal is a loop iteration -> add basic block entrance twice
+          if (currentIndex <= lastIndex) {
+            newEdges.add(currentBB.get(0));
+          } else {
+            // do nothing, edge will be covered anyway since it is a successor of the entrance edge
+            // of current basic block
+          }
+        }
+      }
+      goal.getCFAEdgesGoal().replaceEdges(newEdges);
+    }
+  }
+
+  private LinkedList<CFAGoal> complexGoalReduction(List<CFAGoal> goals) {
+    LinkedList<CFAGoal> goalsCopy = new LinkedList<>(goals);
+    Iterator<CFAGoal> iter1 = goalsCopy.iterator();
+    // check for goal redundancy
+    while (iter1.hasNext()) {
+      Iterator<CFAGoal> iter2 = goalsCopy.iterator();
+      CFAGoal goal = iter1.next();
+      while (iter2.hasNext()) {
+        CFAGoal goal2 = iter2.next();
+        if (goal == goal2) {
+          continue;
+        }
+        CFAGoal goalCopy = new CFAGoal(goal.getCFAEdgesGoal().getEdges());
+        for (CFAEdge edge : goal2.getCFAEdgesGoal().getEdges()) {
+          goalCopy.getCFAEdgesGoal().processEdge(edge);
+        }
+        if (goalCopy.isCovered()) {
+          iter2.remove();
+        }
+      }
+
+    }
+    return goalsCopy;
+  }
+
+  private LinkedList<CFAGoal> simpleGoalReduction(List<CFAGoal> goals){
+    LinkedList<CFAGoal> goalsCopy = new LinkedList<>(goals);
+    Iterator<CFAGoal> iter1 = goalsCopy.iterator();
+    while (iter1.hasNext()) {
+      Iterator<CFAGoal> iter2 = goalsCopy.iterator();
+      CFAGoal goal = iter1.next();
+      while (iter2.hasNext()) {
+        CFAGoal goal2 = iter2.next();
+        if (goal == goal2) {
+          continue;
+        }
+        boolean sameGoal = false;
+        if (goal.getCFAEdgesGoal().getEdges().size() == goal2.getCFAEdgesGoal()
+            .getEdges()
+            .size()) {
+          for (int i = 0; i < goal.getCFAEdgesGoal().getEdges().size(); i++) {
+            if (goal.getCFAEdgesGoal().getEdges().get(i) != goal2.getCFAEdgesGoal()
+                .getEdges()
+                .get(i)) {
+              break;
+            }
+            sameGoal = true;
+          }
+        }
+        if (sameGoal) {
+          iter2.remove();
+        }
+      }
+    }
+    return goalsCopy;
+  }
+
+  private LinkedList<CFAGoal> reduceGoals(LinkedList<CFAGoal> goals) {
+    // calculate Basic Blocks
+    List<List<CFAEdge>> basicBlocks = new ArrayList<>();
+    Set<CFAEdge> processedEdges = new HashSet<>();
+    FunctionEntryNode initialNode = cfa.getMainFunction();
+    for (int i = 0; i < initialNode.getNumLeavingEdges(); i++) {
+      List<CFAEdge> basicBlock = new ArrayList<>();
+      basicBlocks.add(basicBlock);
+      buildBasicBlocks(initialNode.getLeavingEdge(i), basicBlock, basicBlocks, processedEdges);
+    }
+
+    // Lift goal edges to basic block entrance edge
+
+    liftGoals(goals, basicBlocks);
+
+
+    if (tigerConfig.shouldUseComplexGoalReduction()) {
+      return complexGoalReduction(goals);
+    } else {
+     return simpleGoalReduction(goals);
+    }
+  }
+
   private LinkedList<CFAGoal> extractGoalSyntax() {
     if (!tigerConfig.getFqlQuery().startsWith(goalPrefix)) {
       throw new RuntimeException("Could not parse FQL Query");
@@ -210,10 +356,11 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
 
   private LinkedList<CFAGoal> initializeTestGoalSet() {
     LinkedList<CFAGoal> goals = tryExtractPredefinedFQL();
-    if (goals != null) {
-      return goals;
+    if (goals == null) {
+      goals = extractGoalSyntax();
     }
-    return extractGoalSyntax();
+    goals = reduceGoals(goals);
+    return goals;
   }
 
   @Override
@@ -233,7 +380,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       wasSound = false;
     }
 
-    writeTestsuite();
+    tsWriter.writeFinalTestSuite(testsuite);
 
     if (wasSound) {
       return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -365,6 +512,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
           // only add new Testcase and check for coverage if it does not already exist
 
           testsuite.addTestCase(testcase, goal, simplifiedPresenceCondition);
+          tsWriter.writePartialTestSuite(testsuite);
 
           if (tigerConfig.getCoverageCheck() == CoverageCheck.SINGLE
               || tigerConfig.getCoverageCheck() == CoverageCheck.ALL) {
@@ -380,8 +528,16 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
               goalsToCheckCoverage.addAll(testsuite.getTestGoals());
             }
             goalsToCheckCoverage.remove(goal);
-            // TODO wont really remove goals from partition right now..
             checkGoalCoverage(goalsToCheckCoverage, testcase, removeGoalsToCover, cex);
+            Iterator<CFAGoal> iter = partition.iterator();
+            while (iter.hasNext()) {
+              CFAGoal g = iter.next();
+              if (testsuite.isGoalCovered(g)) {
+                g.setCovered();
+                iter.remove();
+              }
+            }
+
           }
         }
 
