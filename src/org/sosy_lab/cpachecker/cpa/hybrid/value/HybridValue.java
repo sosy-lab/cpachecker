@@ -160,6 +160,15 @@ public class HybridValue {
     
   }
 
+  /**
+   * Retrieves the qualified variable name from the declaration
+   * @return
+   */
+  public String getVariableName() {
+
+    return trackedVariable().getDeclaration().getQualifiedName();
+  }
+
   @Override 
   public String toString() {
     return assumption != null 

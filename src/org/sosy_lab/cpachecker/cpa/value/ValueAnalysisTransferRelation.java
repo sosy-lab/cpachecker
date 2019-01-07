@@ -113,7 +113,11 @@ import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
+import org.sosy_lab.cpachecker.cpa.hybrid.HybridAnalysisState;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
+import org.sosy_lab.cpachecker.cpa.hybrid.value.StringValue;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
@@ -1271,13 +1275,29 @@ public class ValueAnalysisTransferRelation
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
-      } else if (ae instanceof AbstractStateWithAssumptions) {
+      } else if (ae instanceof AutomatonState) {
         result.clear();
         for (ValueAnalysisState stateToStrengthen : toStrengthen) {
           super.setInfo(pElement, pPrecision, pCfaEdge);
-          AbstractStateWithAssumptions autoState = (AbstractStateWithAssumptions) ae;
+          AutomatonState autoState = (AutomatonState) ae;
           Collection<ValueAnalysisState> ret =
-              strengthenStateWithAssumptions(autoState, stateToStrengthen, pCfaEdge);
+            strengthenAutomatonAssume(autoState, stateToStrengthen, pCfaEdge);
+          if (ret == null) {
+            result.add(stateToStrengthen);
+          } else {
+            result.addAll(ret);
+          }
+        }
+        toStrengthen.clear();
+        toStrengthen.addAll(result);
+      } // CHECK
+        else if (ae instanceof HybridAnalysisState) {
+        result.clear();
+        for (ValueAnalysisState stateToStrengthen : toStrengthen) {
+          super.setInfo(pElement, pPrecision, pCfaEdge);
+          HybridAnalysisState assumptionState = (HybridAnalysisState) ae;
+          Collection<ValueAnalysisState> ret =
+          strengthenHybridAnalysisAssume(assumptionState, stateToStrengthen);
           if (ret == null) {
             result.add(stateToStrengthen);
           } else {
@@ -1530,8 +1550,8 @@ public class ValueAnalysisTransferRelation
     return newState;
   }
 
-  private Collection<ValueAnalysisState> strengthenStateWithAssumptions(
-      AbstractStateWithAssumptions pAssumptionState,
+  private Collection<ValueAnalysisState> strengthenAutomatonAssume(
+      AutomatonState pAssumptionState,
       ValueAnalysisState pState,
       CFAEdge pCfaEdge) throws CPATransferException {
 
@@ -1552,6 +1572,34 @@ public class ValueAnalysisTransferRelation
     } else {
       return Collections.singleton(newState);
     }
+  }
+
+  // CHECK
+  private Collection<ValueAnalysisState> strengthenHybridAnalysisAssume(
+      HybridAnalysisState pAssumptionState,
+      ValueAnalysisState pState) {
+
+    ValueAnalysisState newState = ValueAnalysisState.copyOf(pState);
+    for(CExpression assumption : pAssumptionState.getAssumptions()) {
+
+      HybridValue hybridValue = pAssumptionState.getHybridValueForVariableIdentifier(assumption).get(); 
+      Type type = hybridValue.getType();
+      Value innerValue = hybridValue.getValue();
+
+      // TODO
+      // ValueAnalysis currently doesn't support StringValue
+      if(!isTrackedType(type)
+        || innerValue instanceof StringValue) {
+        continue;
+      }
+      
+      String name = hybridValue.getVariableName();
+      MemoryLocation memLoc = MemoryLocation.valueOf(name);
+      newState.assignConstant(memLoc, innerValue, type);
+    } 
+
+    // CHECK: in case of no actions, a simple copy of the current state is returned - sound?
+    return Collections.singleton(newState);
   }
 
   private Collection<ValueAnalysisState> strengthen(RTTState rttState, CFAEdge edge) {

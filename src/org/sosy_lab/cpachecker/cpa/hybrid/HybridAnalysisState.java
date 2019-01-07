@@ -351,6 +351,17 @@ public class HybridAnalysisState
     return Optional.empty();
   }
 
+  public Optional<HybridValue> getHybridValueForVariableIdentifier(final CExpression pExpression) {
+    CIdExpression variableExpression = ExpressionUtils.extractIdExpression(pExpression);
+    if(variableExpression == null
+      || !variableMap.containsKey(variableExpression)) {
+      return Optional.empty();
+    }
+
+    // save call
+    return Optional.of(variableMap.get(variableExpression));
+  }
+
   // simple method to retrieve the assumption from the tracked hybrid values
   private Set<CBinaryExpression> extractAssumptions() {
     return variableMap.values()

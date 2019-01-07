@@ -412,7 +412,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
             WrapperPrecision precision = (WrapperPrecision) pReachedSet.getPrecision(priorAssumptionState);
 
             //stateToAdd.forkWithReplacements()
-            pReachedSet.add(stateToAdd, precision);
+            //pReachedSet.add(stateToAdd, precision); // algorithm doesn't terminate
 
           } catch(InvalidAutomatonException iae) {
             throw new CPAException("Error occurred while parsing the value assignments into assumption expressions.", iae);
