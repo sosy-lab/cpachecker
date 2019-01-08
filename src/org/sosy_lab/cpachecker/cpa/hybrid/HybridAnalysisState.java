@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -38,7 +34,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
 import javax.annotation.Nullable;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -57,11 +59,10 @@ public class HybridAnalysisState
     implements LatticeAbstractState<HybridAnalysisState>, AbstractStateWithAssumptions, Graphable {
 
   // map of variable expressions with their respective assumption
-  private ImmutableMap<CIdExpression, HybridValue> variableMap;
+  private Map<CIdExpression, HybridValue> variableMap;
 
-  // the declarations are later used to generate values for variables that are tracked by the
-  // value analysis, but with unknown value
-  private ImmutableMap<String, CSimpleDeclaration> declarations;
+  // the declarations that occurred on the path
+  private Map<String, CSimpleDeclaration> declarations;
 
   public HybridAnalysisState() {
     this(Collections.emptySet(), Collections.emptySet());
@@ -69,39 +70,36 @@ public class HybridAnalysisState
 
   public HybridAnalysisState(Set<CBinaryExpression> pAssumptions) {
 
-    ImmutableMap.Builder<CIdExpression, HybridValue> variableMapBuilder = ImmutableMap.builder();
-    ImmutableMap.Builder<String, CSimpleDeclaration> declarationsBuilder = ImmutableMap.builder();
+    variableMap = Maps.newHashMap();
+    declarations = Maps.newHashMap();
     for(CBinaryExpression assumption : pAssumptions) {
 
       CIdExpression currentVariable = ExpressionUtils.extractIdExpression(assumption);
-      variableMapBuilder.put(currentVariable, HybridValue.createHybridValueForAssumption(assumption));
+      variableMap.put(currentVariable, HybridValue.createHybridValueForAssumption(assumption));
       CSimpleDeclaration currentDeclaration = currentVariable.getDeclaration();
-      declarationsBuilder.put(currentDeclaration.getQualifiedName(), currentDeclaration);
+      declarations.put(currentDeclaration.getQualifiedName(), currentDeclaration);
     }
-
-    variableMap = variableMapBuilder.build();
-    declarations = declarationsBuilder.build();
   }
 
   protected HybridAnalysisState(
       Set<HybridValue> pAssumptions,
       Set<CSimpleDeclaration> pDeclarations) {
 
-    this.variableMap = ImmutableMap.copyOf(pAssumptions
+    this.variableMap = pAssumptions
         .stream()
-        .collect(Collectors.toMap(HybridValue::trackedVariable, Function.identity())));
+        .collect(Collectors.toMap(HybridValue::trackedVariable, Function.identity()));
 
-    this.declarations = ImmutableMap.copyOf(pDeclarations
+    this.declarations = pDeclarations
         .stream()
-        .collect(Collectors.toMap(CSimpleDeclaration::getQualifiedName, Function.identity())));
+        .collect(Collectors.toMap(CSimpleDeclaration::getQualifiedName, Function.identity()));
   }
 
   protected HybridAnalysisState(
       Map<CIdExpression, HybridValue> pVariableMap,
       Map<String, CSimpleDeclaration> pDeclarations) {
 
-    this.variableMap = ImmutableMap.copyOf(pVariableMap);
-    this.declarations = ImmutableMap.copyOf(pDeclarations);
+    this.variableMap = Maps.newHashMap(pVariableMap);
+    this.declarations = Maps.newHashMap(pDeclarations);
 
   }
 

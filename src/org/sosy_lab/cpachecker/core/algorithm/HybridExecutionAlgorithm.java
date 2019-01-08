@@ -28,6 +28,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -39,6 +40,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
+import org.apache.commons.math.distribution.PascalDistribution;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -312,41 +317,21 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
         continue;
       }
 
-      // gather all visited assumptions
-      Set<CAssumeEdge> visitedAssumptions = bottomStates
-        .stream()
-        .map(argState -> ARGUtils.getOnePathTo(argState))
-        .map(argPath -> extractAssumptions(argPath.getInnerEdges()))
-        .flatMap(Collection::stream)
-        .collect(Collectors.toSet());
+      @Nullable
+      Pair<CAssumeEdge, ARGState> nextAssumptionContext = getNextAssumptionWithPredecessor(
+        pAllAssumptions,
+        allARGStates,
+        bottomStates);
 
-      // remove the visited assumptions
-      pAllAssumptions.removeAll(visitedAssumptions);
+      if(nextAssumptionContext == null) {
+        // no more assumptions left
 
-      // if there are no more assumptions left, all paths have been covered
-      if(pAllAssumptions.isEmpty()) {
+        assert pAllAssumptions.isEmpty();
         break;
       }
 
-      CAssumeEdge nextAssumptionEdge = pAllAssumptions.get(0);
-      CFANode assumptionPredecessor = nextAssumptionEdge.getPredecessor();
-      ARGState priorAssumptionState = null;
-      Iterator<ARGState> stateIterator = allARGStates.iterator();
-
-      // we simply continue until either the prior state was found or there are no more arg states to work with
-      while(priorAssumptionState == null && stateIterator.hasNext()) {
-
-        // the next state to work on
-        ARGState nextState = stateIterator.next();
-
-        // check for location
-        CFANode stateNode = AbstractStates.extractLocation(nextState);
-        if(assumptionPredecessor.equals(stateNode)) {
-          priorAssumptionState = nextState;
-        }
-      }
-
-      assert priorAssumptionState != null;
+      CAssumeEdge nextAssumptionEdge = nextAssumptionContext.getFirst();
+      ARGState priorAssumptionState = nextAssumptionContext.getSecond();
 
       // the path from a parent state to the next flip assumption
       ARGPath pathFromAssumption = ARGUtils.getOnePathTo(priorAssumptionState);
@@ -358,6 +343,9 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
       // we need to add the assumption to the edge path
       pathEdges.add(nextAssumptionEdge);
       List<ARGState> pathStates = pathFromAssumption.asStatesList();
+      if(pathStates.size() < 2) {
+        throw new AssertionError("ARGPath must always contain at least 2 states.");
+      }
       ARGState parentState = pathStates.get(pathStates.size() - 2);
 
       assert priorAssumptionState.getParents().contains(parentState);
@@ -399,15 +387,17 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
             // fork ARGState with this new hybrid analysis state
             ARGState stateToAdd = priorAssumptionState.forkWithReplacements(
                 Collections.singletonList(new CompositeState(wrappedStates)));
+            
+            priorAssumptionState.replaceInARGWith(stateToAdd);
 
             // add parent state
-            stateToAdd.addParent(parentState);
+            // stateToAdd.addParent(parentState);
 
             // retrieve Precision for the prior assumption state, as it is the 'sister' state of the new state
-            WrapperPrecision precision = (WrapperPrecision) pReachedSet.getPrecision(priorAssumptionState);
+            // WrapperPrecision precision = (WrapperPrecision) pReachedSet.getPrecision(priorAssumptionState);
 
             //stateToAdd.forkWithReplacements()
-            pReachedSet.add(stateToAdd, precision); // algorithm doesn't terminate
+            //pReachedSet.add(stateToAdd, precision); // algorithm doesn't terminate
 
           } catch(InvalidAutomatonException iae) {
             throw new CPAException("Error occurred while parsing the value assignments into assumption expressions.", iae);
@@ -424,6 +414,49 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
     }
 
     return currentStatus;
+  }
+
+  @Nullable
+  private Pair<CAssumeEdge, ARGState> getNextAssumptionWithPredecessor(
+    List<CAssumeEdge> pAllAssumptions,
+    Collection<ARGState> pStates,
+    Set<ARGState> pBottomStates) {
+
+      AssumeEdgeCollectingARGVisitor visitor = new AssumeEdgeCollectingARGVisitor(pBottomStates);
+      visitor.collectAssumeEdges();
+      Set<CAssumeEdge> visitedEdges = visitor.getCollectedEdges();
+
+      pAllAssumptions.removeAll(visitedEdges);
+
+      if(pAllAssumptions.isEmpty()) {
+        return null;
+      }
+      
+      Iterator<ARGState> stateIterator = pStates.iterator();
+      ARGState nextState;
+      while((nextState = stateIterator.next()) != null 
+        && !pAllAssumptions.isEmpty()) {
+        
+        // choose next Assumption
+        CAssumeEdge nextAssumptionEdge = pAllAssumptions.get(0);
+        CFANode assumptionPredecessor = nextAssumptionEdge.getPredecessor();
+        // check for location
+        CFANode stateNode = AbstractStates.extractLocation(nextState);
+        if(assumptionPredecessor.equals(stateNode)) {
+          
+          // check for child state with assume edge
+          @Nullable
+          ARGState childState = getChildStateForAssumption(nextState, nextAssumptionEdge);
+          if(childState == null) {
+            return Pair.of(nextAssumptionEdge, nextState);
+          } else {
+            // assumption is covered, path has not yet reached bottom state
+            pAllAssumptions.remove(nextAssumptionEdge);
+          }
+        }
+      }
+
+      return null;
   }
 
   // builds the complete path formula for a path through the application denoted by the set of edges
@@ -532,6 +565,59 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
     }
 
     throw new AssertionError("HybridExecutionAgorithm cannot be run without HybridAnalysisCPA.");
+  }
+
+  @Nullable
+  private ARGState getChildStateForAssumption(ARGState pState, CAssumeEdge pAssumeEdge) {
+    for(ARGState childState : pState.getChildren()) {
+      for(CFAEdge edge : pState.getEdgesToChild(childState)) {
+        if(edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+          if(pAssumeEdge.equals(edge)) {
+            return childState;
+          }
+        }
+      }
+    }
+    return null;
+  } 
+
+  /**
+   * This class traverses recursively over a set of ARGStates and their parents
+   * and collects all Assumeedges on the  
+   */
+  private static class AssumeEdgeCollectingARGVisitor {
+
+    private final ImmutableSet<ARGState> bottomStates;
+    private Set<CAssumeEdge> collectedEdges;
+
+    AssumeEdgeCollectingARGVisitor(Collection<ARGState> pBottomStates) {
+      Preconditions.checkNotNull(pBottomStates, "Bottom states for ARGVisitor must not be null");
+      bottomStates = ImmutableSet.copyOf(pBottomStates);
+      collectedEdges = Sets.newHashSet();
+    }
+
+    void collectAssumeEdges() {
+      for(ARGState bottomState : bottomStates) {
+        visitState(bottomState);
+      }
+    }
+
+    void visitState(ARGState pState) {
+
+      for(ARGState parentState : pState.getParents()) {
+        for(CFAEdge edge : parentState.getEdgesToChild(pState)) {
+          if(edge.getEdgeType() ==  CFAEdgeType.AssumeEdge) {
+            collectedEdges.add((CAssumeEdge)edge);
+            break;
+          }
+        }
+        visitState(parentState);
+      }
+    }
+
+    Set<CAssumeEdge> getCollectedEdges() {
+      return collectedEdges;
+    }
   }
 
 }
