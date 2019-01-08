@@ -3,7 +3,7 @@ extern int __VERIFIER_nondet_int();
 int main() {
 
 
-	int number = __VERIFIER_nondet_int();
+	int number = (5 - __VERIFIER_nondet_int());
 	int check;
 
 	if(number < 0) {

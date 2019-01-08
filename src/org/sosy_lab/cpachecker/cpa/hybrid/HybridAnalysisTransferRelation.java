@@ -116,7 +116,12 @@ public class HybridAnalysisTransferRelation
 
   @Override
   protected @Nullable HybridAnalysisState handleAssumption(
-      CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption) {
+      CAssumeEdge pCfaEdge, CExpression pExpression, boolean pTruthAssumption) {
+
+    // if there is a new assumption for a tracked variable, we remove it
+    if(state.tracksVariable(pExpression)) {
+      return HybridAnalysisState.removeOnAssignment(state, ExpressionUtils.extractIdExpression(pExpression));
+    }
 
     return simpleCopy();
   }
@@ -200,11 +205,11 @@ public class HybridAnalysisTransferRelation
     }
 
     // function call assignment
-    if(pCStatement instanceof CFunctionCallAssignmentStatement) {
+    // if(pCStatement instanceof CFunctionCallAssignmentStatement) {
 
-      CFunctionCallAssignmentStatement statement = (CFunctionCallAssignmentStatement) pCStatement;
-      return handleFunctionCallAssignment(statement);
-    }
+    //   CFunctionCallAssignmentStatement statement = (CFunctionCallAssignmentStatement) pCStatement;
+    //   return handleFunctionCallAssignment(statement);
+    // }
 
     return simpleCopy();
   }

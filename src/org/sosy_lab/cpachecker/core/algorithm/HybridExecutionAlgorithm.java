@@ -382,6 +382,8 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
             // convert all value assignments (their respective formulas) to expressions
             Set<CBinaryExpression> assumptions = parseAssignments(valueAssignments);
 
+            HybridAnalysisState newState = new HybridAnalysisState(assumptions);
+
             // extract states from composite state
             CompositeState compositeState = AbstractStates
                 .extractStateByType(priorAssumptionState, CompositeState.class);
@@ -390,13 +392,6 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
                 .stream()
                 .filter(state -> !HybridAnalysisState.class.isInstance(state))
                 .collect(Collectors.toList());
-
-            HybridAnalysisState previousState =
-                AbstractStates.extractStateByType(
-                    parentState,
-                    HybridAnalysisState.class);
-
-            HybridAnalysisState newState = previousState.mergeWithArtificialAssignments(assumptions);
 
             // CompositeTransferRelation relies on the order .... this is bad
             wrappedStates.add(hybridAnalysisIndex, newState);
@@ -412,7 +407,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
             WrapperPrecision precision = (WrapperPrecision) pReachedSet.getPrecision(priorAssumptionState);
 
             //stateToAdd.forkWithReplacements()
-            //pReachedSet.add(stateToAdd, precision); // algorithm doesn't terminate
+            pReachedSet.add(stateToAdd, precision); // algorithm doesn't terminate
 
           } catch(InvalidAutomatonException iae) {
             throw new CPAException("Error occurred while parsing the value assignments into assumption expressions.", iae);

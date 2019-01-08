@@ -68,11 +68,19 @@ public class HybridAnalysisState
   }
 
   public HybridAnalysisState(Set<CBinaryExpression> pAssumptions) {
-    this(pAssumptions
-          .stream()
-          .map(expression -> HybridValue.createHybridValueForAssumption(expression))
-          .collect(Collectors.toSet()),
-        Collections.emptySet());
+
+    ImmutableMap.Builder<CIdExpression, HybridValue> variableMapBuilder = ImmutableMap.builder();
+    ImmutableMap.Builder<String, CSimpleDeclaration> declarationsBuilder = ImmutableMap.builder();
+    for(CBinaryExpression assumption : pAssumptions) {
+
+      CIdExpression currentVariable = ExpressionUtils.extractIdExpression(assumption);
+      variableMapBuilder.put(currentVariable, HybridValue.createHybridValueForAssumption(assumption));
+      CSimpleDeclaration currentDeclaration = currentVariable.getDeclaration();
+      declarationsBuilder.put(currentDeclaration.getQualifiedName(), currentDeclaration);
+    }
+
+    variableMap = variableMapBuilder.build();
+    declarations = declarationsBuilder.build();
   }
 
   protected HybridAnalysisState(
@@ -155,6 +163,7 @@ public class HybridAnalysisState
         declarationMap);
   }
 
+  @Deprecated
   public HybridAnalysisState mergeWithArtificialAssignments(Collection<CBinaryExpression> pArtificialAssumptions) {
 
     Set<CExpression> seenAssumptions = Sets.newHashSet();
@@ -308,8 +317,10 @@ public class HybridAnalysisState
   @Override
   public String toDOTLabel() {
     StringBuilder builder = new StringBuilder();
+    builder.append("[");
     variableMap.values()
       .forEach(assumption -> builder.append(assumption).append(System.lineSeparator()));
+      builder.append("]");
     return builder.toString();
   }
 

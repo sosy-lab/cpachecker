@@ -1275,11 +1275,11 @@ public class ValueAnalysisTransferRelation
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
-      } else if (ae instanceof AutomatonState) {
+      } else if (ae instanceof AbstractStateWithAssumptions) {
         result.clear();
         for (ValueAnalysisState stateToStrengthen : toStrengthen) {
           super.setInfo(pElement, pPrecision, pCfaEdge);
-          AutomatonState autoState = (AutomatonState) ae;
+          AbstractStateWithAssumptions autoState = (AbstractStateWithAssumptions) ae;
           Collection<ValueAnalysisState> ret =
             strengthenAutomatonAssume(autoState, stateToStrengthen, pCfaEdge);
           if (ret == null) {
@@ -1551,7 +1551,7 @@ public class ValueAnalysisTransferRelation
   }
 
   private Collection<ValueAnalysisState> strengthenAutomatonAssume(
-      AutomatonState pAssumptionState,
+      AbstractStateWithAssumptions pAssumptionState,
       ValueAnalysisState pState,
       CFAEdge pCfaEdge) throws CPATransferException {
 
@@ -1579,7 +1579,7 @@ public class ValueAnalysisTransferRelation
       HybridAnalysisState pAssumptionState,
       ValueAnalysisState pState) {
 
-    ValueAnalysisState newState = ValueAnalysisState.copyOf(pState);
+    ValueAnalysisState newState = pState; // use same instance for optimizations
     for(CExpression assumption : pAssumptionState.getAssumptions()) {
 
       HybridValue hybridValue = pAssumptionState.getHybridValueForVariableIdentifier(assumption).get(); 
@@ -1595,7 +1595,14 @@ public class ValueAnalysisTransferRelation
       
       String name = hybridValue.getVariableName();
       MemoryLocation memLoc = MemoryLocation.valueOf(name);
-      newState.assignConstant(memLoc, innerValue, type);
+
+      // add only, if 
+      // 1) the value contained in the state is unknown 
+      // 2) there is no value assigned to the variable 
+      if((newState.contains(memLoc) && newState.getValueFor(memLoc).equals(Value.UnknownValue.getInstance()))
+        || !newState.contains(memLoc)) {
+        newState.assignConstant(memLoc, innerValue, type);
+      }
     } 
 
     // CHECK: in case of no actions, a simple copy of the current state is returned - sound?
