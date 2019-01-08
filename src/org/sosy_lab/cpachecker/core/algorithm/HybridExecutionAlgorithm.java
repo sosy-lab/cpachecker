@@ -326,7 +326,6 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
       if(nextAssumptionContext == null) {
         // no more assumptions left
 
-        assert pAllAssumptions.isEmpty();
         break;
       }
 
@@ -404,6 +403,8 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
           }
 
         } else {
+
+          // not satisfiable
           logger.log(Level.WARNING, String.format("The boolean formula %s is not satisfiable for the solver", formulaToCheck));
         }
 
@@ -431,32 +432,43 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
       if(pAllAssumptions.isEmpty()) {
         return null;
       }
-      
-      Iterator<ARGState> stateIterator = pStates.iterator();
-      ARGState nextState;
-      while((nextState = stateIterator.next()) != null 
-        && !pAllAssumptions.isEmpty()) {
-        
-        // choose next Assumption
-        CAssumeEdge nextAssumptionEdge = pAllAssumptions.get(0);
+
+      List<CAssumeEdge> coveredEdges = Lists.newArrayList();
+      @Nullable
+      Pair<CAssumeEdge, ARGState> result = null;
+
+      for(CAssumeEdge nextAssumptionEdge : pAllAssumptions) {
+
         CFANode assumptionPredecessor = nextAssumptionEdge.getPredecessor();
-        // check for location
-        CFANode stateNode = AbstractStates.extractLocation(nextState);
-        if(assumptionPredecessor.equals(stateNode)) {
-          
-          // check for child state with assume edge
-          @Nullable
-          ARGState childState = getChildStateForAssumption(nextState, nextAssumptionEdge);
-          if(childState == null) {
-            return Pair.of(nextAssumptionEdge, nextState);
-          } else {
-            // assumption is covered, path has not yet reached bottom state
-            pAllAssumptions.remove(nextAssumptionEdge);
+
+        for(ARGState nextState : pStates) {
+
+          // check for location
+          CFANode stateNode = AbstractStates.extractLocation(nextState);
+          if(assumptionPredecessor.equals(stateNode)) {
+
+            // check for child state with assume edge
+            @Nullable
+            ARGState childState = getChildStateForAssumption(nextState, nextAssumptionEdge);
+            if(childState == null) {
+              result = Pair.of(nextAssumptionEdge, nextState);
+            } else {
+              // assumption is covered, path has not yet reached bottom state
+              coveredEdges.add(nextAssumptionEdge);
+            }
+
+            // nodes match
+            break;
           }
+        }
+        if(result != null) {
+          break;
         }
       }
 
-      return null;
+      pAllAssumptions.removeAll(coveredEdges);
+
+      return result;
   }
 
   // builds the complete path formula for a path through the application denoted by the set of edges
