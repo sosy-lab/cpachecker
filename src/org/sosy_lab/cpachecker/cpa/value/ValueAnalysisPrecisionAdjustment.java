@@ -320,9 +320,11 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
 
       for (Entry<MemoryLocation, ValueAndType> e : state.getConstants()) {
         MemoryLocation memoryLocation = e.getKey();
+
+        boolean tracking = precision.isTracking(
+            memoryLocation, e.getValue().getType(), location.getLocationNode());
         if (location != null
-            && !precision.isTracking(
-                memoryLocation, e.getValue().getType(), location.getLocationNode())) {
+            && !tracking) {
           state.forget(memoryLocation);
         }
       }

@@ -126,7 +126,7 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
 
   @Override
   public boolean isTracking(MemoryLocation pVariable, Type pType, CFANode pLocation) {
-    return super.isTracking(pVariable, pType, pLocation) && rawPrecision.contains(pVariable);
+    return super.isTracking(pVariable, pType, pLocation);// && rawPrecision.contains(pVariable);
   }
 
   @Override
