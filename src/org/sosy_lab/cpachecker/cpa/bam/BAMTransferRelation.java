@@ -70,8 +70,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
   // Callstack-CPA is used for additional recursion handling
   private final CallstackTransferRelation callstackTransfer;
 
-  // Stats
-  private int maxRecursiveDepth = 0;
+  private final BAMCPAStatistics stats;
 
   public BAMTransferRelation(
       BAMCPA bamCpa,
@@ -85,6 +84,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
         CPAs.retrieveCPAOrFail(bamCpa, CallstackCPA.class, BAMTransferRelation.class)
             .getTransferRelation();
     bamPccManager = pBamPccManager;
+    stats = bamCpa.getStatistics();
   }
 
   @Override
@@ -198,7 +198,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
         stack.size(),
         " with current Stack:",
         stack);
-    maxRecursiveDepth = Math.max(stack.size(), maxRecursiveDepth);
+    stats.updateBlockNestingLevel(stack.size());
 
     final Collection<AbstractState> resultStates =
         analyseBlockAndExpand(

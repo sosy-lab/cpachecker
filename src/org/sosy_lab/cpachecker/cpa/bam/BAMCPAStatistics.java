@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -37,6 +38,8 @@ class BAMCPAStatistics implements Statistics {
 
   private final AbstractBAMCPA cpa;
   private List<BAMBasedRefiner> refiners = new ArrayList<>();
+
+  private int maxRecursiveDepth = 0;
 
   public BAMCPAStatistics(AbstractBAMCPA cpa) {
     this.cpa = cpa;
@@ -51,10 +54,15 @@ class BAMCPAStatistics implements Statistics {
     refiners.add(pRefiner);
   }
 
+  void updateBlockNestingLevel(int newLevel) {
+    maxRecursiveDepth = Math.max(newLevel, maxRecursiveDepth);
+  }
+
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
 
     put(out, "Number of blocks", cpa.getBlockPartitioning().getBlocks().size());
+    put(out, "Max reached nesting level", maxRecursiveDepth);
     put(out, "Time for building block partitioning", cpa.blockPartitioningTimer);
     put(out, 0, cpa.reducerStatistics.reduceTime);
     put(out, 0, cpa.reducerStatistics.expandTime);
