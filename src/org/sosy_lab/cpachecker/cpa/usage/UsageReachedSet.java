@@ -75,7 +75,6 @@ public class UsageReachedSet extends PartitionedReachedSet {
   private UsageProcessor usageProcessor;
 
   private final StatTimer totalTimer = new StatTimer("Time for extracting usages");
-  private final StatTimer usageProcessingTimer = new StatTimer("Time for usage processing");
   private final StatTimer addingToContainerTimer = new StatTimer("Time for adding to container");
   private final StatTimer usageExpandingTimer = new StatTimer("Time for usage expanding");
   private final StatCounter processingSteps =
@@ -216,9 +215,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
           boolean alreadyProcessed = processedStates.contains(state);
           if (!alreadyProcessed) {
 
-            usageProcessingTimer.start();
             List<UsageInfo> usages = usageProcessor.getUsagesForState(state);
-            usageProcessingTimer.stop();
 
             usageExpandingTimer.start();
             for (UsageInfo uinfo : usages) {
@@ -343,11 +340,12 @@ public class UsageReachedSet extends PartitionedReachedSet {
   }
 
   public void printStatistics(StatisticsWriter pWriter) {
-    pWriter.spacer()
+    StatisticsWriter writer =
+        pWriter.spacer()
         .put(totalTimer)
-        .beginLevel()
-        .put(usageProcessingTimer)
-        .put(addingToContainerTimer)
+            .beginLevel();
+    usageProcessor.printStatistics(writer);
+    writer.put(addingToContainerTimer)
         .put(usageExpandingTimer)
         .endLevel()
         .put(processingSteps);

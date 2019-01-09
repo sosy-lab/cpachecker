@@ -66,9 +66,10 @@ import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.LocalVariableIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.StructureIdentifier;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 public class UsageProcessor {
-
   private final Map<String, BinderFunctionInfo> binderFunctionInfo;
 
   private final LogManager logger;
@@ -80,6 +81,12 @@ public class UsageProcessor {
 
   private Collection<CFANode> uselessNodes;
   private Collection<SingleIdentifier> redundantIds;
+
+  StatTimer totalTimer = new StatTimer("Total time for usage processing");
+  StatTimer usageTimer = new StatTimer("Time for usage extraction");
+  StatTimer expressionTimer = new StatTimer("Time for expression parsing");
+  StatTimer localTimer = new StatTimer("Time for sharedness check");
+  StatTimer usageCreationTimer = new StatTimer("Time for usage creation");
 
   public UsageProcessor(
       Configuration config,
@@ -101,25 +108,30 @@ public class UsageProcessor {
 
   public List<UsageInfo> getUsagesForState(AbstractState pState) {
 
+    totalTimer.start();
     result = new ArrayList<>();
 
     ARGState argState = (ARGState) pState;
     CFANode node = AbstractStates.extractLocation(argState);
 
     if (uselessNodes.contains(node)) {
+      totalTimer.stop();
       return result;
     }
 
     for (ARGState child : argState.getChildren()) {
       CFAEdge edge = argState.getEdgeToChild(child);
       if (edge != null) {
+        usageTimer.start();
         getUsagesForEdge(pState, child, edge);
+        usageTimer.stop();
       }
     }
 
     if (result.isEmpty()) {
       uselessNodes.add(node);
     }
+    totalTimer.stop();
     return result;
   }
 
@@ -277,8 +289,10 @@ public class UsageProcessor {
       AbstractState pChild,
       final CExpression expression,
       final Access access) {
+    expressionTimer.start();
     ExpressionHandler handler = new ExpressionHandler(access, getCurrentFunction(pChild));
     expression.accept(handler);
+    expressionTimer.stop();
 
     for (Pair<AbstractIdentifier, Access> pair : handler.getProcessedExpressions()) {
       AbstractIdentifier id = pair.getFirst();
@@ -292,9 +306,11 @@ public class UsageProcessor {
       AbstractState pChild,
       Access pAccess) {
 
+    usageCreationTimer.start();
     UsageState uState = UsageState.get(pParent);
     pId = uState.getLinksIfNecessary(pId);
     UsageInfo usage = UsageInfo.createUsageInfo(pAccess, pChild, pId);
+    usageCreationTimer.stop();
 
     // Precise information, using results of shared analysis
     if (!usage.isRelevant()) {
@@ -311,10 +327,12 @@ public class UsageProcessor {
     Map<GeneralIdentifier, DataType> localInfo = precision.get(node);
 
     if (localInfo != null) {
+      localTimer.start();
       GeneralIdentifier gId = singleId.getGeneralId();
       if (localInfo.get(gId) == DataType.LOCAL) {
         logger.log(
             Level.FINER, singleId + " is considered to be local, so it wasn't add to statistics");
+        localTimer.stop();
         return;
       } else {
         FluentIterable<GeneralIdentifier> composedIds =
@@ -327,9 +345,11 @@ public class UsageProcessor {
         if (isLocal && !isGlobal) {
           logger.log(
               Level.FINER, singleId + " is supposed to be local, so it wasn't add to statistics");
+          localTimer.stop();
           return;
         }
       }
+      localTimer.stop();
     }
 
     if (varSkipper.shouldBeSkipped(singleId, usage.getCFANode().getFunctionName())) {
@@ -358,5 +378,17 @@ public class UsageProcessor {
 
   private String getCurrentFunction(AbstractState pState) {
     return AbstractStates.extractStateByType(pState, CallstackState.class).getCurrentFunction();
+  }
+
+  public void printStatistics(StatisticsWriter pWriter) {
+    pWriter.put(totalTimer)
+        .beginLevel()
+        .put(usageTimer)
+        .beginLevel()
+        .put(expressionTimer)
+        .put(usageCreationTimer)
+        .put(localTimer)
+        .endLevel()
+        .endLevel();
   }
 }
