@@ -199,22 +199,24 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
         " with current Stack:",
         stack);
     stats.updateBlockNestingLevel(stack.size());
+    stats.switchBlock(outerSubtree, innerSubtree);
 
-    final Collection<AbstractState> resultStates =
-        analyseBlockAndExpand(
-            initialState,
-            pPrecision,
-            innerSubtree,
-            outerSubtree,
-            reducedInitialState,
-            reducedInitialPrecision);
+    try {
+      return analyseBlockAndExpand(
+          initialState,
+          pPrecision,
+          innerSubtree,
+          outerSubtree,
+          reducedInitialState,
+          reducedInitialPrecision);
 
-    logger.log(Level.FINEST, "Finished recursive analysis of depth", stack.size());
-    final Triple<AbstractState, Precision, Block> lastLevel = stack.pop();
-    assert lastLevel.equals(currentLevel);
-    bamPccManager.setCurrentBlock(outerSubtree);
-
-    return resultStates;
+    } finally {
+      logger.log(Level.FINEST, "Finished recursive analysis of depth", stack.size());
+      stats.switchBlock(innerSubtree, outerSubtree);
+      final Triple<AbstractState, Precision, Block> lastLevel = stack.pop();
+      assert lastLevel.equals(currentLevel);
+      bamPccManager.setCurrentBlock(outerSubtree);
+    }
   }
 
   /**

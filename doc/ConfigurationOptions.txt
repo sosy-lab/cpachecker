@@ -1143,6 +1143,9 @@ cpa.bam.blockHeuristic.functionPartitioning.minFunctionCalls = 0
 # similar to 'inlining' small functions, when using BAM.
 cpa.bam.blockHeuristic.functionPartitioning.minFunctionSize = 0
 
+# file for exporting detailed statistics about blocks
+cpa.bam.blockStatisticsFile = "block_statistics.txt"
+
 # abort current analysis when finding a missing block abstraction
 cpa.bam.breakForMissingBlock = true
 
