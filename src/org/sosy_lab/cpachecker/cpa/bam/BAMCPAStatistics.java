@@ -161,28 +161,30 @@ class BAMCPAStatistics implements Statistics {
   public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
 
     // write block data as CSV
-    try (Writer w = IO.openOutputFile(blockStatisticsFile, Charset.defaultCharset())) {
-      w.write("start; end; #locations; #variables; sumtime; maxtime; avgtime; #intervals");
-      w.write("\n");
-      for (Entry<Block, Timer> entry : timeForBlock.entrySet()) {
-        Block block = entry.getKey();
-        Timer timer = entry.getValue();
-        w.write(
-            String.format(
-                "%s; %s; %s; %s; %s; %s; %s; %s",
-                block.getCallNodes(),
-                block.getReturnNodes(),
-                block.getNodes().size(),
-                block.getVariables().size(),
-                timer.getSumTime(),
-                timer.getMaxTime(),
-                timer.getAvgTime(),
-                timer.getNumberOfIntervals()));
+    if (blockStatisticsFile != null) {
+      try (Writer w = IO.openOutputFile(blockStatisticsFile, Charset.defaultCharset())) {
+        w.write("start; end; #locations; #variables; sumtime; maxtime; avgtime; #intervals");
         w.write("\n");
+        for (Entry<Block, Timer> entry : timeForBlock.entrySet()) {
+          Block block = entry.getKey();
+          Timer timer = entry.getValue();
+          w.write(
+              String.format(
+                  "%s; %s; %s; %s; %s; %s; %s; %s",
+                  block.getCallNodes(),
+                  block.getReturnNodes(),
+                  block.getNodes().size(),
+                  block.getVariables().size(),
+                  timer.getSumTime(),
+                  timer.getMaxTime(),
+                  timer.getAvgTime(),
+                  timer.getNumberOfIntervals()));
+          w.write("\n");
+        }
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not export block statistics");
+        // ignore exception and continue analysis
       }
-    } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not export block statistics");
-      // ignore exception and continue analysis
     }
   }
 }
