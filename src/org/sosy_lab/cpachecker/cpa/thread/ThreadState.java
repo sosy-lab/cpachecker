@@ -31,11 +31,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadJoinStatement;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -52,13 +52,13 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
   }
 
   public class ThreadStateBuilder {
-    private final Map<String, ThreadStatus> tSet;
-    private final List<ThreadLabel> bOrder;
+    private PersistentSortedMap<String, ThreadStatus> tSet;
+    private List<ThreadLabel> bOrder;
     private boolean changed = false;
 
     private ThreadStateBuilder(ThreadState state) {
-      tSet = new HashMap<>(state.threadSet);
-      bOrder = new ArrayList<>(state.order);
+      tSet = state.threadSet;
+      bOrder = state.order;
     }
 
     public void handleParentThread(CThreadCreateStatement tCall) throws HandleCodeException {
@@ -91,7 +91,8 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
         }
       }
       ThreadLabel label = new ThreadLabel(pFunctionName, pVarName);
-      tSet.put(pVarName, status);
+      tSet = tSet.putAndCopy(pVarName, status);
+      bOrder = new ArrayList<>(bOrder);
       bOrder.add(label);
       changed = true;
     }
@@ -115,7 +116,7 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
         ThreadLabel toRemove = result.get();
         String var = toRemove.getVarName();
         if (tSet.containsKey(var) && tSet.get(var) != ThreadStatus.CREATED_THREAD) {
-          tSet.remove(var);
+          tSet = tSet.removeAndCopy(var);
           bOrder.remove(toRemove);
         }
         changed = true;
@@ -129,17 +130,17 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
     }
   }
 
-  private final ImmutableMap<String, ThreadStatus> threadSet;
+  private final PersistentSortedMap<String, ThreadStatus> threadSet;
   // The removedSet is useless now, but it will be used in future in more complicated cases
   // Do not remove it now
   private final ImmutableMap<ThreadLabel, ThreadStatus> removedSet;
   private final List<ThreadLabel> order;
 
   private ThreadState(
-      Map<String, ThreadStatus> Tset,
+      PersistentSortedMap<String, ThreadStatus> Tset,
       ImmutableMap<ThreadLabel, ThreadStatus> Rset,
       List<ThreadLabel> pOrder) {
-    threadSet = ImmutableMap.copyOf(Tset);
+    threadSet = Tset;
     removedSet = Rset;
     order = ImmutableList.copyOf(pOrder);
   }
@@ -217,7 +218,10 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
   }
 
   public static ThreadState emptyState() {
-    return new ThreadState(Collections.emptyMap(), ImmutableMap.of(), Collections.emptyList());
+    return new ThreadState(
+        PathCopyingPersistentTreeMap.of(),
+        ImmutableMap.of(),
+        Collections.emptyList());
   }
 
   @Override
