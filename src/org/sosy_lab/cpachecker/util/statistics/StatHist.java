@@ -35,17 +35,17 @@ import java.util.function.BiFunction;
  */
 public class StatHist extends AbstractStatValue {
 
-  private final Multiset<Integer> hist = ConcurrentHashMultiset.create();
+  private final Multiset<Long> hist = ConcurrentHashMultiset.create();
 
   public StatHist(String pTitle) {
     super(StatKind.AVG, pTitle);
   }
 
-  public int getTimesWithValue(Integer value) {
+  public int getTimesWithValue(Long value) {
     return hist.count(value);
   }
 
-  public void insertValue(int pNewValue) {
+  public void insertValue(long pNewValue) {
     hist.add(pNewValue);
   }
 
@@ -59,7 +59,7 @@ public class StatHist extends AbstractStatValue {
     synchronized (hist) {
       final double avg = getAvg();
       double sum = 0;
-      for (Entry<Integer> e : hist.entrySet()) {
+      for (Entry<Long> e : hist.entrySet()) {
         double deviation = avg - e.getElement();
         sum += (deviation * deviation * e.getCount());
       }
@@ -74,13 +74,13 @@ public class StatHist extends AbstractStatValue {
   }
 
   /** returns the maximum value, or MIN_INT if no value is available. */
-  public int getMax() {
-    return reduce(Math::max, Integer.MIN_VALUE);
+  public long getMax() {
+    return reduce(Math::max, Long.MIN_VALUE);
   }
 
   /** returns the minimum value, or MAX_INT if no value is available. */
-  public int getMin() {
-    return reduce(Math::min, Integer.MAX_VALUE);
+  public long getMin() {
+    return reduce(Math::min, Long.MAX_VALUE);
   }
 
   /** returns the sum of all values, or 0 if no value is available. */
@@ -88,10 +88,10 @@ public class StatHist extends AbstractStatValue {
     return reduce((res, e) -> (res + e * hist.count(e)), 0.0);
   }
 
-  private <T> T reduce(BiFunction<T, Integer, T> f, T neutral) {
+  private <T> T reduce(BiFunction<T, Long, T> f, T neutral) {
     synchronized (hist) {
       T result = neutral;
-      for (Entry<Integer> e : hist.entrySet()) {
+      for (Entry<Long> e : hist.entrySet()) {
         result = f.apply(result, e.getElement());
       }
       return result;

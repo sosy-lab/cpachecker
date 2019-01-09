@@ -39,8 +39,8 @@ public class StatHistTest {
 
   @Test
   public void testMinMax0() {
-    assert_().that(sh.getMax()).isEqualTo(Integer.MIN_VALUE);
-    assert_().that(sh.getMin()).isEqualTo(Integer.MAX_VALUE);
+    assert_().that(sh.getMax()).isEqualTo(Long.MIN_VALUE);
+    assert_().that(sh.getMin()).isEqualTo(Long.MAX_VALUE);
   }
 
   @Test
