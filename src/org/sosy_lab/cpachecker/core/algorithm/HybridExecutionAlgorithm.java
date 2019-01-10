@@ -309,7 +309,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
       // get all bottom states (has no children and is not part of the wait list)
       final Set<ARGState> bottomStates = allARGStates
           .stream()
-          .filter(argState -> argState.getChildren().isEmpty() && !argState.isDestroyed())
+          .filter(argState -> !argState.isDestroyed() && argState.getChildren().isEmpty())
           .collect(Collectors.toSet());
 
       // there is nothing left to do in this run
@@ -332,12 +332,15 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
       CAssumeEdge nextAssumptionEdge = nextAssumptionContext.getFirst();
       ARGState priorAssumptionState = nextAssumptionContext.getSecond();
 
+      // remove the current assumedge from all edges
+      pAllAssumptions.remove(nextAssumptionEdge);
+
       // the path from a parent state to the next flip assumption
-      ARGPath pathFromAssumption = ARGUtils.getOnePathTo(priorAssumptionState);
+      ARGPath pathToAssumption = ARGUtils.getOnePathTo(priorAssumptionState);
 
-      assert priorAssumptionState.equals(pathFromAssumption.getLastState());
+      assert priorAssumptionState.equals(pathToAssumption.getLastState());
 
-      List<CFAEdge> pathEdges = Lists.newArrayList(pathFromAssumption.getInnerEdges());
+      List<CFAEdge> pathEdges = Lists.newArrayList(pathToAssumption.getInnerEdges());
 
       // we need to add the assumption to the edge path
       pathEdges.add(nextAssumptionEdge);
@@ -351,45 +354,9 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
 
         // get assignments for the new path containing the flipped assumption
         if(satisfiable) {
+          try {
 
-          try(ProverEnvironment proverEnvironment = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-
-            proverEnvironment.push(formulaToCheck);
-            Preconditions.checkState(!proverEnvironment.isUnsat());
-            // retrieve the new assignments
-            Collection<ValueAssignment> valueAssignments = proverEnvironment.getModelAssignments();
-
-            // convert all value assignments (their respective formulas) to expressions
-            Set<CBinaryExpression> assumptions = parseAssignments(valueAssignments);
-
-            HybridAnalysisState newState = new HybridAnalysisState(assumptions);
-
-            // extract states from composite state
-            CompositeState compositeState = AbstractStates
-                .extractStateByType(priorAssumptionState, CompositeState.class);
-
-            List<AbstractState> wrappedStates = compositeState.getWrappedStates()
-                .stream()
-                .filter(state -> !HybridAnalysisState.class.isInstance(state))
-                .collect(Collectors.toList());
-
-            // CompositeTransferRelation relies on the order .... this is bad
-            wrappedStates.add(hybridAnalysisIndex, newState);
-
-            // fork ARGState with this new hybrid analysis state
-            ARGState stateToAdd = priorAssumptionState.forkWithReplacements(
-                Collections.singletonList(new CompositeState(wrappedStates)));
-            
-            priorAssumptionState.replaceInARGWith(stateToAdd);
-            pReachedSet.reAddToWaitlist(priorAssumptionState);
-            // add parent state
-            // stateToAdd.addParent(parentState);
-
-            // retrieve Precision for the prior assumption state, as it is the 'sister' state of the new state
-            // WrapperPrecision precision = (WrapperPrecision) pReachedSet.getPrecision(priorAssumptionState);
-
-            //stateToAdd.forkWithReplacements()
-            //pReachedSet.add(stateToAdd, precision); // algorithm doesn't terminate
+            tryAddNewStateToARG(formulaToCheck, priorAssumptionState, pReachedSet);
 
           } catch(InvalidAutomatonException iae) {
             throw new CPAException("Error occurred while parsing the value assignments into assumption expressions.", iae);
@@ -398,7 +365,18 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
         } else {
 
           // not satisfiable
-          logger.log(Level.WARNING, String.format("The boolean formula %s is not satisfiable for the solver", formulaToCheck));
+          logger.log(Level.INFO, String.format("The boolean formula %s is not satisfiable for the solver", formulaToCheck));
+
+          // now lets try to build a satisfiable formula for the path without the new assumption
+          BooleanFormula nextFormula = buildPathFormula(pathToAssumption.getInnerEdges());
+          try {
+
+            tryAddNewStateToARG(nextFormula, priorAssumptionState, pReachedSet);
+
+          } catch(InvalidAutomatonException iae) {
+            throw new CPAException("Error occurred while parsing the value assignments into assumption expressions.", iae);
+          }
+
         }
 
       } catch(SolverException sException) {
@@ -464,6 +442,53 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
       return result;
   }
 
+  private void tryAddNewStateToARG(
+      BooleanFormula pFormula,
+      ARGState pPriorAssumptioState,
+      ReachedSet pReachedSet)
+      throws InterruptedException, SolverException, InvalidAutomatonException {
+
+    try (ProverEnvironment proverEnvironment = solver
+        .newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+
+      proverEnvironment.push(pFormula);
+      Preconditions.checkState(
+          !proverEnvironment.isUnsat(),
+          String.format("Formula wasn't pre-checked and is not satisfiable. %s%s", System.lineSeparator(), pFormula));
+      // retrieve the new assignments
+      Collection<ValueAssignment> valueAssignments = proverEnvironment.getModelAssignments();
+
+      // convert all value assignments (their respective formulas) to expressions
+      Set<CBinaryExpression> assumptions = parseAssignments(valueAssignments);
+
+      HybridAnalysisState newState = new HybridAnalysisState(assumptions);
+
+      // extract states from composite state
+      CompositeState compositeState = AbstractStates
+          .extractStateByType(pPriorAssumptioState, CompositeState.class);
+
+      List<AbstractState> wrappedStates = compositeState.getWrappedStates()
+          .stream()
+          .filter(state -> !HybridAnalysisState.class.isInstance(state))
+          .collect(Collectors.toList());
+
+      // CompositeTransferRelation relies on the order .... this is bad
+      wrappedStates.add(hybridAnalysisIndex, newState);
+
+      // fork ARGState with this new hybrid analysis state
+      ARGState stateToAdd = pPriorAssumptioState.forkWithReplacements(
+          Collections.singletonList(new CompositeState(wrappedStates)));
+
+      // save to cast, priorAssumptionState is ARG state
+      WrapperPrecision precision = (WrapperPrecision) pReachedSet.getPrecision(pPriorAssumptioState);
+      pPriorAssumptioState.replaceInARGWith(stateToAdd);
+      pReachedSet.add(stateToAdd, precision);
+      pReachedSet.remove(pPriorAssumptioState);
+
+    }
+
+  }
+
   // builds the complete path formula for a path through the application denoted by the set of edges
   private BooleanFormula buildPathFormula(Collection<CFAEdge> pEdges)
       throws CPATransferException, InterruptedException {
@@ -472,7 +497,8 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
     pEdges = pEdges
         .stream()
         .filter(edge -> edge != null)
-        .collect(Collectors.toSet());
+        .filter(edge -> !(edge.getEdgeType() == CFAEdgeType.BlankEdge))
+        .collect(Collectors.toList());
 
     for(CFAEdge edge : pEdges) {
       formula = pathFormulaManager.makeAnd(formula, edge);
