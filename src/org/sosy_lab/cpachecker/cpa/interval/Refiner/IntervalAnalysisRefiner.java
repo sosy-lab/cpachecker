@@ -67,7 +67,6 @@ import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 public class IntervalAnalysisRefiner implements ARGBasedRefiner {
 
   @Option(description = "intervalAnalysisRefiner")
-
   StrongestPostOperator<IntervalAnalysisState> strongestPostOperator;
 
   private LogManager logger;
@@ -75,7 +74,6 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
   private CFA cfa;
   private Configuration config;
   private static IntervalAnalysisFeasibilityChecker checker;
-
 
   public static Refiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {

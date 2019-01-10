@@ -97,6 +97,7 @@ public class IntervalAnalysisPrecision implements Precision {
     return precision.keySet().contains(variableName);
   }
 
+  public String getType(){return "IntervalAnalysisPrecison";};
 
   public void join(IntervalAnalysisPrecision pOther){
     for(Entry<String, Long> other : pOther.getPrecision().entrySet()){
@@ -144,5 +145,9 @@ public class IntervalAnalysisPrecision implements Precision {
     public boolean containsVariable(String variableName) {
       return false;
     }
+
+    @Override
+    public String getType(){return "IntervalAnalysisFullPrecison";};
+
   }
 }
