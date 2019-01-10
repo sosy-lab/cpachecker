@@ -119,9 +119,9 @@ public class HybridAnalysisTransferRelation
       CAssumeEdge pCfaEdge, CExpression pExpression, boolean pTruthAssumption) {
 
     // if there is a new assumption for a tracked variable, we remove it
-    if(state.tracksVariable(pExpression)) {
-      return HybridAnalysisState.removeOnAssignment(state, ExpressionUtils.extractIdExpression(pExpression));
-    }
+//    if(state.tracksVariable(pExpression)) {
+//      return HybridAnalysisState.removeOnAssignment(state, ExpressionUtils.extractIdExpression(pExpression));
+//    }
 
     return simpleCopy();
   }

@@ -341,13 +341,6 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
 
       // we need to add the assumption to the edge path
       pathEdges.add(nextAssumptionEdge);
-      List<ARGState> pathStates = pathFromAssumption.asStatesList();
-      if(pathStates.size() < 2) {
-        throw new AssertionError("ARGPath must always contain at least 2 states.");
-      }
-      ARGState parentState = pathStates.get(pathStates.size() - 2);
-
-      assert priorAssumptionState.getParents().contains(parentState);
 
       // build path formula with edge path containing the new assumption
       BooleanFormula formulaToCheck = buildPathFormula(pathEdges);
@@ -388,7 +381,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
                 Collections.singletonList(new CompositeState(wrappedStates)));
             
             priorAssumptionState.replaceInARGWith(stateToAdd);
-
+            pReachedSet.reAddToWaitlist(priorAssumptionState);
             // add parent state
             // stateToAdd.addParent(parentState);
 
