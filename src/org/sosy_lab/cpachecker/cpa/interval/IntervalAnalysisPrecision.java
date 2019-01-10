@@ -30,11 +30,11 @@ import java.util.Map.Entry;
 import java.util.Objects;
 
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class IntervalAnalysisPrecision implements Precision {
-  Map<String, Interval> precision;
+
+
+  Map<String, Long> precision;
 
   public IntervalAnalysisPrecision() {
     precision = new HashMap<>();
@@ -42,9 +42,7 @@ public class IntervalAnalysisPrecision implements Precision {
 
   public IntervalAnalysisPrecision(Collection<String> pPrecision) {
     precision = new HashMap<>();
-    for (String nprecision : pPrecision) {
-      precision.put(nprecision, new Interval(null, null));
-    }
+    addAll(pPrecision);
   }
 
   @Override
@@ -56,18 +54,7 @@ public class IntervalAnalysisPrecision implements Precision {
     return false;
   }
 
-  public void joinInterval(String pState, Interval pInterval){
-    precision.replace(pState, precision.get(pState).union(pInterval));
-  }
-
-  public Interval getInterval(String memString) {
-    if (precision.containsKey(memString)) {
-      return precision.get(memString);
-    }
-    return new Interval(null, null);
-  }
-
-  public Map<String, Interval> getPrecision() {
+  public Map<String, Long> getPrecision() {
     return precision;
   }
 
@@ -90,7 +77,7 @@ public class IntervalAnalysisPrecision implements Precision {
   }
 
   public void add(String s) {
-    precision.put(s, new Interval(null, null));
+    precision.put(s, Long.MAX_VALUE);
   }
 
   public void addAll(Collection<String> add) {
@@ -99,24 +86,28 @@ public class IntervalAnalysisPrecision implements Precision {
     }
   }
 
-  public void join(IntervalAnalysisPrecision otherPrecision) {
-    for (Entry<String, Interval> prec : otherPrecision.getPrecision().entrySet()) {
-      if (!precision.containsKey(prec.getKey())) {
-        precision.put(prec.getKey(), prec.getValue());
-      } else {
-        Interval x = precision.get(prec.getKey()).union(otherPrecision.getInterval(prec.getKey()));
-        precision.replace(prec.getKey(), x);
-      }
-    }
+  public long getValue(String memLocation){
+    return precision.get(memLocation);
   }
 
-
+  public void replace(String memLocation, long size){
+    precision.replace(memLocation, size);
+  }
   public boolean containsVariable(String variableName) {
     return precision.keySet().contains(variableName);
   }
 
-  public void setInterval(String memString, Interval pInterval){
-    precision.replace(memString, pInterval);
+
+  public void join(IntervalAnalysisPrecision pOther){
+    for(Entry<String, Long> other : pOther.getPrecision().entrySet()){
+      if(precision.containsKey(other.getKey())){
+        if(other.getValue() < precision.get(other.getKey())){
+          precision.replace(other.getKey(), other.getValue());
+        }
+      }else{
+        precision.put(other.getKey(), other.getValue());
+      }
+    }
   }
 
   @Override

@@ -27,6 +27,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -90,18 +91,11 @@ public class IntervalAnalysisPrecisionAdjustment implements PrecisionAdjustment 
       if (location != null && !precision.isTracking(memString)) {
         state.forget(mem);
       } else { // precision is tracking that variable
-
-        Interval intervalByPrecision = precision.getInterval(memString);
-        if (!intervalByPrecision.isEmpty()) {
-          Interval interval = state.getInterval(memString);
-          Interval intervalPrecision = precision.getInterval(memString);
-          long high = interval.getHigh();
-          long low = interval.getLow();
-          if (high < intervalByPrecision.getHigh()) {
-            //state.removeInterval(memString);
-            //state.addInterval(memString, new Interval(low, new Interval(low, Long.MAX_VALUE)), 2000);
-          }
-
+        Interval stateInterval = state.getInterval(memString);
+        if(stateInterval.getHigh() - stateInterval.getLow() < precision.getValue(memString)){
+          long low = stateInterval.getLow();
+          state.removeInterval(memString);
+          state.addInterval(memString, new Interval(low, low + precision.getValue(memString)), 2000);
         }
       }
     }

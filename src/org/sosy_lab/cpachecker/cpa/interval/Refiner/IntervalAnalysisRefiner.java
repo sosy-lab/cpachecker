@@ -27,13 +27,15 @@ import com.google.common.base.Preconditions;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -57,7 +59,6 @@ import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
@@ -66,7 +67,6 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
 
   StrongestPostOperator<IntervalAnalysisState> strongestPostOperator;
 
-  @Option(description = "", values = "")
   private LogManager logger;
 
   private CFA cfa;
@@ -153,6 +153,7 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
     Precision precision = reachedSet.getPrecision(reachedSet.getLastState());
     IntervalAnalysisPrecision oldPrecision =
         Precisions.extractPrecisionByType(precision, IntervalAnalysisPrecision.class);
+
     minimalPrecisionRequired.join(oldPrecision);
 
     ARGState cutpoint =
@@ -168,6 +169,13 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
 
   private void widenPrecision(ARGPath pPath, IntervalAnalysisPrecision precisionToUse)
       throws CPAException, InterruptedException {
+
+    Map<String, Interval> widenedValues = new HashMap<>();
+
+    for (Entry<String, Long> precision : precisionToUse.getPrecision().entrySet()) {
+      widenedValues.put(precision.getKey(), new Interval(null, null));
+    }
+
     IntervalAnalysisState next =
         AbstractStates.extractStateByType(pPath.getFirstState(), IntervalAnalysisState.class);
     Deque<IntervalAnalysisState> pCallstack = new ArrayDeque<>();
@@ -177,25 +185,69 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
       Optional<IntervalAnalysisState> maybeNext =
           strongestPostOperator.step(next, edge, precisionToUse, pCallstack, pPath);
       if (!maybeNext.isPresent()) {
-        for (String testState : next.getVariables()) {
-          Interval currentInterval = next.forgetThis(testState);
-          Optional<IntervalAnalysisState> tempMaybeNext =
-              strongestPostOperator.step(next, edge, precisionToUse, pCallstack, pPath);
-          if (tempMaybeNext.isPresent()) {
-            Interval interval = tempMaybeNext.get().getInterval(testState);
-            precisionToUse.setInterval(testState, new Interval(interval.getLow() + 1, interval.getHigh() -1));
-          }
-          next.rememberThis(testState, currentInterval);
-        }
+        break;
       }
+      next = maybeNext.get();
       for (String variable : next.getVariables()) {
-        if (precisionToUse.containsVariable(variable)) {
-          widenInterval(precisionToUse, variable, next.getInterval(variable));
+        if (!widenedValues.keySet().contains(variable)) {
+          widenedValues.put(variable, next.getInterval(variable));
+        } else {
+          if (widenedValues.get(variable).isEmpty()) {
+            widenedValues.replace(variable, next.getInterval(variable));
+          } else {
+            widenedValues.replace(
+                variable,
+                new Interval(
+                    min(widenedValues.get(variable).getLow(), next.getInterval(variable).getLow()),
+                    max(
+                        widenedValues.get(variable).getHigh(),
+                        next.getInterval(variable).getHigh())));
+          }
         }
-        next = maybeNext.get();
       }
       iterator.advance();
     }
+
+    adjustPrecision(precisionToUse, pPath, widenedValues);
+  }
+
+  private void adjustPrecision(
+      IntervalAnalysisPrecision pPrecision, ARGPath pPath, Map<String, Interval> wideningBase)
+      throws CPAException, InterruptedException {
+    for (Entry<String, Interval> entries : wideningBase.entrySet()) {
+      long size = entries.getValue().getHigh() - entries.getValue().getLow();
+      long sizePrecision = pPrecision.getValue(entries.getKey());
+      if (size < sizePrecision) {
+        pPrecision.replace(entries.getKey(), size);
+      }
+
+      //      while(checker.isFeasible(pPath, pPrecision, new HashSet<>())){
+      //        String maxValue = getMaxStringForValue(wideningBase);
+      //        Interval value = wideningBase.get(maxValue);
+      //        long distance = value.getHigh() - value.getLow();
+      //        distance = distance / 2;
+      //        wideningBase.replace(maxValue, new Interval((long) 0, distance));
+      //        pPrecision.setSize(maxValue, distance);
+      //      }
+    }
+  }
+
+  private String getMaxStringForValue(Map<String, Interval> intervalMap) {
+    String maxValue = "";
+    Interval maxInterval = null;
+    for (Entry<String, Interval> entries : intervalMap.entrySet()) {
+      if (maxInterval == null) {
+        maxInterval = entries.getValue();
+        maxValue = entries.getKey();
+      } else {
+        if (entries.getValue().getHigh() - entries.getValue().getLow()
+            > maxInterval.getHigh() - maxInterval.getLow()) {
+          maxInterval = entries.getValue();
+          maxValue = entries.getKey();
+        }
+      }
+    }
+    return maxValue;
   }
 
   private ARGState determineCutpoint(
@@ -213,8 +265,11 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
     return cutpoint;
   }
 
-  private void widenInterval(
-      IntervalAnalysisPrecision prec, String memoryLocation, Interval currentInterval) {
-    prec.joinInterval(memoryLocation, currentInterval);
+  private long min(long x, long y) {
+    return (x < y) ? x : y;
+  }
+
+  private long max(long x, long y) {
+    return (x > y) ? x : y;
   }
 }

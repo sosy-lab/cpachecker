@@ -48,8 +48,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.refinement.GenericFeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
-public class IntervalAnalysisFeasibilityChecker
-    extends GenericFeasibilityChecker<IntervalAnalysisState> {
+public class IntervalAnalysisFeasibilityChecker {
 
   IntervalAnalysisPrecision precision;
   StrongestPostOperator<IntervalAnalysisState> strongestPostOperator;
@@ -61,12 +60,9 @@ public class IntervalAnalysisFeasibilityChecker
       final Configuration pConfig,
       final CFA pCfa)
       throws InvalidConfigurationException {
-
-    super(pStrongestPostOp, pInitialState, pCpaToRefine, pLogger, pConfig, pCfa);
     precision = new IntervalAnalysisFullPrecision();
     strongestPostOperator = pStrongestPostOp;
   }
-
 
   public void setPrecision(IntervalAnalysisPrecision pPrecision){
     precision = pPrecision;
