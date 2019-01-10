@@ -22,12 +22,10 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -53,8 +51,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithmConfiguration.CoverageCheck;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.filter.ConditionEdge;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.filter.DecisionEdge;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.CFAGoal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
@@ -97,7 +93,6 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
   private final String goalPrefix = "Goals:";
   private MultiGoalCPA multiGoalCPA;
 
-
   public TigerMultiGoalAlgorithm(
       LogManager pLogger,
       CFA pCfa,
@@ -137,14 +132,6 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
             .equals("__VERIFIER_error");
   }
 
-  private Predicate<CFAEdge> getDecisionEdgeCriterion() {
-    return edge -> edge instanceof DecisionEdge;
-  }
-
-  private Predicate<CFAEdge> getConditionEdgeCriterion() {
-    return edge -> edge instanceof ConditionEdge;
-  }
-
   private Predicate<CFAEdge> getAssumeEdgeCriterion() {
     return edge -> edge instanceof AssumeEdge;
   }
@@ -165,14 +152,12 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       edgeCriterion = getStatementCriterion();
     } else if (fql.equalsIgnoreCase(ErrorCoverage)) {
       edgeCriterion = getErrorCriterion();
-    } else if (fql.equalsIgnoreCase(decisionCoverage)) {
-      edgeCriterion = getDecisionEdgeCriterion();
-    } else if (fql.equalsIgnoreCase(conditionCoverage)) {
-      edgeCriterion = getConditionEdgeCriterion();
-    } else if (fql.equalsIgnoreCase(assumeCoverage)) {
+    } else if (fql.equalsIgnoreCase(decisionCoverage)
+        || fql.equalsIgnoreCase(conditionCoverage)
+        || fql.equalsIgnoreCase(assumeCoverage)) {
       edgeCriterion = getAssumeEdgeCriterion();
     }
-    if(edgeCriterion != null) {
+    if (edgeCriterion != null) {
       Set<CFAEdge> edges = extractEdgesByCriterion(edgeCriterion);
       LinkedList<CFAGoal> goals = new LinkedList<>();
       for (CFAEdge edge : edges) {
@@ -198,13 +183,13 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       currentBasicBlock.add(currentEdge);
       CFANode successor = currentEdge.getSuccessor();
 
-        for (int i = 0; i < successor.getNumLeavingEdges(); i++) {
+      for (int i = 0; i < successor.getNumLeavingEdges(); i++) {
         buildBasicBlocks(
             successor.getLeavingEdge(i),
             currentBasicBlock,
             basicBlocks,
             processedEdges);
-        }
+      }
     }
   }
 
@@ -220,7 +205,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
   }
 
   private void liftGoals(List<CFAGoal> goals, List<List<CFAEdge>> basicBlocks) {
-    for(CFAGoal goal : goals) {
+    for (CFAGoal goal : goals) {
       List<CFAEdge> edges = goal.getCFAEdgesGoal().getEdges();
       List<CFAEdge> newEdges = new ArrayList<>();
       List<CFAEdge> lastBB = null;
@@ -248,22 +233,15 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
   }
 
   private boolean complexGoalDominationCheck(CFAGoal goal1, CFAGoal goal2) {
-    CFAGoal goalCopy = new CFAGoal(goal1.getCFAEdgesGoal().getEdges());
-    for (CFAEdge edge : goal2.getCFAEdgesGoal().getEdges()) {
-      goalCopy.getCFAEdgesGoal().processEdge(edge);
-    }
-    if (goalCopy.isCovered()) {
-      return true;
-    }
-    return false;
+    return goal1.getCFAEdgesGoal().coveredByPath(goal2.getCFAEdgesGoal().getEdges()) ? true : false;
   }
 
   private boolean complexGoalDominationCheck(List<CFAGoal> goals, CFAGoal goal) {
     for (CFAGoal goal1 : goals) {
       if (!(goal1 == goal)) {
-      if (complexGoalDominationCheck(goal1, goal)) {
-        return true;
-      }
+        if (complexGoalDominationCheck(goal1, goal)) {
+          return true;
+        }
       }
     }
     return false;
@@ -286,9 +264,9 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
   private boolean simpleGoalDominationCheck(List<CFAGoal> goals, CFAGoal goal) {
     for (CFAGoal goal1 : goals) {
       if (!(goal1 == goal)) {
-      if (simpleGoalDominationCheck(goal1, goal)) {
-        return true;
-      }
+        if (simpleGoalDominationCheck(goal1, goal)) {
+          return true;
+        }
       }
     }
     return false;
@@ -306,16 +284,42 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       }
     }
 
-    // Lift goal edges to basic block entrance edge
-
-    liftGoals(goals, basicBlocks);
-
-
-    if (tigerConfig.shouldUseComplexGoalReduction()) {
-      goals.removeIf(goal -> complexGoalDominationCheck(goals, goal));
-    } else {
-      goals.removeIf(goal -> simpleGoalDominationCheck(goals, goal));
+    // TODO only for test-comp remove afterwards
+    Set<CFAGoal> keptGoals = new HashSet<>(goals);
+    boolean allSuccessorsGoals;
+    for (CFAGoal goal : goals) {
+      if (goal.getCFAEdgesGoal().getEdges().size() != 1) {
+        continue;
+      }
+      CFAEdge edge = goal.getCFAEdgesGoal().getEdges().get(0);
+      if (edge.getSuccessor().getNumEnteringEdges() == 1) {
+        allSuccessorsGoals = true;
+        for (CFAEdge leaving : CFAUtils.leavingEdges(edge.getSuccessor())) {
+          if (!keptGoals.stream()
+              .filter(g -> g.getCFAEdgesGoal().getEdges().get(0) == leaving)
+              .findFirst()
+              .isPresent()) {
+            allSuccessorsGoals = false;
+            break;
+          }
+        }
+        if (allSuccessorsGoals) {
+          keptGoals.remove(goal);
+        }
+      }
     }
+    goals.clear();
+    goals.addAll(keptGoals);
+
+    // TODO excluded for testcomp
+    /*
+     * // Lift goal edges to basic block entrance edge if (tigerConfig.getGoalReduction() !=
+     * GoalReduction.NONE) { liftGoals(goals, basicBlocks); }
+     *
+     * if (tigerConfig.getGoalReduction() == GoalReduction.COMPLEX) { goals.removeIf(goal ->
+     * complexGoalDominationCheck(goals, goal)); } else if (tigerConfig.getGoalReduction() ==
+     * GoalReduction.SIMPLE) { goals.removeIf(goal -> simpleGoalDominationCheck(goals, goal)); }
+     */
   }
 
   private LinkedList<CFAGoal> extractGoalSyntax() {
@@ -350,6 +354,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     if (goals == null) {
       goals = extractGoalSyntax();
     }
+    // TODO reduce goals for variable output might be wrong?
     reduceGoals(goals);
     return goals;
   }
@@ -373,6 +378,15 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
 
     tsWriter.writeFinalTestSuite(testsuite);
 
+    logger.log(
+        Level.FINE,
+        "covered "
+            + testsuite.getNumberOfFeasibleGoals()
+            + " of "
+            + (testsuite.getNumberOfInfeasibleTestGoals()
+                + testsuite.getNumberOfTimedoutTestGoals()
+                + testsuite.getNumberOfFeasibleGoals()));
+
     if (wasSound) {
       return AlgorithmStatus.SOUND_AND_PRECISE;
     } else {
@@ -384,11 +398,12 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       throws CPAException, InterruptedException {
     boolean wasSound = true;
     // run reachability analsysis for each partition
-    for (Set<CFAGoal> partition : createPartition(goalsToCover)) {
+    Set<Set<CFAGoal>> partitions = createPartition(goalsToCover);
+    for (Set<CFAGoal> partition : partitions) {
 
       // remove covered goals from previous runs
-      partition.removeIf(goal -> goal.isCovered());
-      ReachabilityAnalysisResult result = runReachabilityAnalysis(partition, pReachedSet);
+      ReachabilityAnalysisResult result =
+          runReachabilityAnalysis(partition, pReachedSet, partitions.size());
 
       if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
         logger.logf(Level.WARNING, "Analysis run was unsound!");
@@ -398,15 +413,15 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       if (result.equals(ReachabilityAnalysisResult.TIMEDOUT)) {
         logger.log(Level.INFO, "Adding timedout Goals to testsuite!");
         for (CFAGoal goal : partition) {
-          if (!goal.isCovered()) {
-            testsuite.addTimedOutGoal(goal.getIndex(), goal, null);
-          }
+          testsuite.addTimedOutGoal(
+              goal.getIndex(),
+              goal,
+              testsuite.getRemainingPresenceCondition(goal));
         }
       }
     }
     return wasSound;
   }
-
 
   private MultiGoalState getMGState(AbstractState pTargetState) {
 
@@ -417,18 +432,21 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     if (pTargetState instanceof AbstractWrapperState) {
       MultiGoalState mgState = null;
       for (AbstractState state : ((AbstractWrapperState) pTargetState).getWrappedStates()) {
-       mgState = getMGState(state);
+        mgState = getMGState(state);
         if (mgState != null) {
           return mgState;
         }
-     }
+      }
     }
 
     return null;
   }
 
   private ReachabilityAnalysisResult
-      runReachabilityAnalysis(Set<CFAGoal> partition, ReachedSet pReachedSet)
+      runReachabilityAnalysis(
+          Set<CFAGoal> partition,
+          ReachedSet pReachedSet,
+          int numberOfPartitions)
           throws CPAException, InterruptedException {
     boolean sound = true;
     boolean timedout = false;
@@ -442,13 +460,14 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     // Region presenceConditionToCover = testsuite.getRemainingPresenceCondition(pGoal);
 
     Algorithm algorithm = rebuildAlgorithm(algNotifier, cpa, pReachedSet);
-    multiGoalCPA.setTransferRelationTargets(
-        partition.stream().map(goal -> goal.getCFAEdgesGoal()).collect(Collectors.toSet()));
+
     if (timeoutCPA != null) {
-      timeoutCPA.setWalltime(tigerConfig.getCpuTimelimitPerGoal());
+      timeoutCPA.setWalltime(tigerConfig.getTimeout() / numberOfPartitions);
     }
 
     while (pReachedSet.hasWaitingState() && !partition.isEmpty()) {
+      multiGoalCPA.setTransferRelationTargets(
+          partition.stream().map(goal -> goal.getCFAEdgesGoal()).collect(Collectors.toSet()));
       Pair<Boolean, Boolean> analysisWasSound_hasTimedOut = runAlgorithm(algorithm, pReachedSet);
 
       if (analysisWasSound_hasTimedOut.getSecond()) {
@@ -476,8 +495,6 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
         logger.log(Level.INFO, "Found Counterexample");
         Region testCasePresenceCondition = bddUtils.getRegionFromWrappedBDDstate(targetState);
 
-
-
         if (cex.isSpurious()) {
           logger.logf(Level.WARNING, "Counterexample is spurious!");
         } else {
@@ -485,57 +502,48 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
           // for null goal get the presencecondition without the validProduct method
           AbstractState multiGoalState = getMGState(targetState);
           assert (multiGoalState != null);
-          CFAEdgesGoal edgesGoal = ((MultiGoalState) multiGoalState).getCoveredGoal();// getGoal();
-          CFAGoal goal =
+          Set<CFAEdgesGoal> edgesGoals = ((MultiGoalState) multiGoalState).getCoveredGoal();// getGoal();
+          Set<CFAGoal> coveredGoals =
               partition.stream()
-                  .filter(g -> g.getCFAEdgesGoal().equals(edgesGoal))
-                  .findFirst()
-                  .get();
-          assert (goal != null);
-          partition.remove(goal);
+                  .filter(g -> edgesGoals.contains(g.getCFAEdgesGoal()))
+                  .collect(Collectors.toSet());
+          assert (coveredGoals != null && coveredGoals.size() > 0);
+          partition.removeAll(coveredGoals);
+
           // TODO do we need presence conditions for goals?
-          testCasePresenceCondition = getPresenceConditionFromCexUpToEdge(cex, (CFAEdge edge) -> {
-            return false;
-          });
+          testCasePresenceCondition = getPresenceConditionFromCex(cex);
+          for (CFAGoal goal : coveredGoals) {
+            TestCase testcase = createTestcase(cex, testCasePresenceCondition);
+            // only add new Testcase and check for coverage if it does not already exist
 
-          Region simplifiedPresenceCondition = getPresenceConditionFromCexForGoal(cex, goal);
-          TestCase testcase = createTestcase(cex, testCasePresenceCondition);
-          // only add new Testcase and check for coverage if it does not already exist
+            testsuite.addTestCase(testcase, goal);
+            tsWriter.writePartialTestSuite(testsuite);
 
-          testsuite.addTestCase(testcase, goal, simplifiedPresenceCondition);
-          tsWriter.writePartialTestSuite(testsuite);
+            if (tigerConfig.getCoverageCheck() == CoverageCheck.SINGLE
+                || tigerConfig.getCoverageCheck() == CoverageCheck.ALL) {
 
-          if (tigerConfig.getCoverageCheck() == CoverageCheck.SINGLE
-              || tigerConfig.getCoverageCheck() == CoverageCheck.ALL) {
-
-            // remove covered goals from goalstocover if
-            // we want only one featureconfiguration per goal
-            // or do not want variability at all
-            // otherwise we need to keep the goals, to cover them for each possible configuration
-            boolean removeGoalsToCover =
-                !bddUtils.isVariabilityAware() || tigerConfig.shouldUseSingleFeatureGoalCoverage();
-            HashSet<CFAGoal> goalsToCheckCoverage = new HashSet<>(goalsToCover);
-            if (tigerConfig.getCoverageCheck() == CoverageCheck.ALL) {
-              goalsToCheckCoverage.addAll(testsuite.getTestGoals());
-            }
-            goalsToCheckCoverage.remove(goal);
-            checkGoalCoverage(goalsToCheckCoverage, testcase, removeGoalsToCover, cex);
-            Iterator<CFAGoal> iter = partition.iterator();
-            while (iter.hasNext()) {
-              CFAGoal g = iter.next();
-              if (testsuite.isGoalCovered(g)) {
-                g.setCovered();
-                iter.remove();
+              // remove covered goals from goalstocover if
+              // we want only one featureconfiguration per goal
+              // or do not want variability at all
+              // otherwise we need to keep the goals, to cover them for each possible configuration
+              boolean removeGoalsToCover =
+                  !bddUtils.isVariabilityAware()
+                      || tigerConfig.shouldUseSingleFeatureGoalCoverage();
+              HashSet<CFAGoal> goalsToCheckCoverage = new HashSet<>(goalsToCover);
+              if (tigerConfig.getCoverageCheck() == CoverageCheck.ALL) {
+                goalsToCheckCoverage.addAll(testsuite.getTestGoals());
               }
+              goalsToCheckCoverage.remove(goal);
+              Set<CFAGoal> newlyCoveredGoals =
+                  checkGoalCoverage(goalsToCheckCoverage, testcase, removeGoalsToCover, cex);
+              partition.removeAll(newlyCoveredGoals);
             }
-
           }
         }
 
         targetState.removeFromARG();
         pReachedSet.remove(reachedState);
         pReachedSet.reAddToWaitlist(parentArgState);
-
 
         assert ARGUtils.checkARG(pReachedSet);
       } else {
@@ -588,23 +596,22 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     return partitioning;
   }
 
-
   @Override
   public void shutdownRequested(String pArg0) {
     // TODO Auto-generated method stub
 
   }
 
-  @Override
-  protected Region getPresenceConditionFromCexForGoal(CounterexampleInfo pCex, CFAGoal pGoal) {
-    Function<CFAEdge, Boolean> isFinalEdgeForGoal = edge -> {
-      pGoal.getCFAEdgesGoal().processEdge(edge);
-      if (pGoal.isCovered()) {
-        return true;
-      }
-      return false;
-    };
-    return getPresenceConditionFromCexUpToEdge(pCex, isFinalEdgeForGoal);
-  }
+  // @Override
+  // protected Region getPresenceConditionFromCexForGoal(CounterexampleInfo pCex, CFAGoal pGoal) {
+  // Function<CFAEdge, Boolean> isFinalEdgeForGoal = edge -> {
+  // pGoal.getCFAEdgesGoal().processEdge(edge);
+  // if (pGoal.isCovered()) {
+  // return true;
+  // }
+  // return false;
+  // };
+  // return getPresenceConditionFromCexUpToEdge(pCex, isFinalEdgeForGoal);
+  // }
 
 }

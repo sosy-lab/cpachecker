@@ -3781,7 +3781,7 @@ testcase.inStats = false
 testcase.reportCoveredErrorCallAsError = false
 
 # Which CFA edges to use as test targets
-testcase.targets.type = ASSUME
+testcase.targets.type = STATEMENT
   enum:     [ASSUME, ERROR_CALL, STATEMENT]
 
 # export test values to file (line separated)
@@ -3803,6 +3803,8 @@ tiger.featureVariablePrefix = "__SELECTED_FEATURE_"
 
 # Coverage criterion given as an FQL query
 tiger.fqlQuery = PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE
+tiger.goalReduction = COMPLEX
+  enum:     [COMPLEX, SIMPLE, NONE]
 
 # List of input variables: v1,v2,v3...
 tiger.inputInterface = ""
@@ -3832,6 +3834,9 @@ tiger.removeFeaturePrefix = true
 
 # Filename for output of generated test suite
 tiger.testsuiteFile = "testsuite.txt"
+
+# walltime for the algorithm
+tiger.timeout = Increment = 0
 
 # How to proceed with timed-out goals if some time remains after processing
 # all other goals.

@@ -25,26 +25,21 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 public class CFAEdgesGoal {
 
   private List<CFAEdge> edges;
-  private int index;
 
   public CFAEdgesGoal(List<CFAEdge> pEdges) {
     edges = pEdges;
-    index = 0;
   }
 
   // returns true, if a change of state happened due to processing edge
-  public boolean processEdge(CFAEdge edge) {
+  public boolean acceptsEdge(CFAEdge edge, int index) {
     if (index < edges.size()) {
-      if (edge.equals(edges.get(index))) {
-        index++;
+      // if (edge.equals(edges.get(index))) {
+      // use object comparison instead of equals for performance reasons
+      if (edge == edges.get(index)) {
         return true;
       }
     }
     return false;
-  }
-
-  public boolean isCovered() {
-    return index >= edges.size();
   }
 
   public List<CFAEdge> getEdges() {
@@ -53,11 +48,21 @@ public class CFAEdgesGoal {
 
   public void replaceEdges(List<CFAEdge> pNewEdges) {
     edges = pNewEdges;
-    index = 0;
   }
 
-  public void setCovered() {
-    index = edges.size();
+  public boolean coveredByPath(List<CFAEdge> pPath) {
+    int index = 0;
+    for (CFAEdge edge : pPath) {
+      if (index >= edges.size()) {
+        break;
+      }
+      if (edge != null) {
+        if (edge.equals(edges.get(0))) {
+          index++;
+        }
+      }
+    }
+    return index >= edges.size();
   }
 
 }

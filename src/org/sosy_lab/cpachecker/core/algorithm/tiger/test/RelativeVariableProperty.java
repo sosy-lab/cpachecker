@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger.test;
 
 import java.math.BigInteger;
-import java.util.Map;
+import java.util.List;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCaseVariable;
 
 
 public class RelativeVariableProperty extends VariableProperty {
@@ -41,10 +42,22 @@ public class RelativeVariableProperty extends VariableProperty {
   }
 
   @Override
-  public boolean checkProperty(Map<String, BigInteger> pListToCheck, GoalPropertyType pInOrOut) {
+  public boolean checkProperty(List<TestCaseVariable> pListToCheck, GoalPropertyType pInOrOut) {
     if (inOrOut != pInOrOut) { return true; }
-    BigInteger value1 = pListToCheck.get(variable1);
-    BigInteger value2 = pListToCheck.get(variable2);
+    BigInteger value1 =
+        new BigInteger(
+        pListToCheck.stream()
+            .filter(v -> v.getName().equals(variable1))
+            .findFirst()
+            .get()
+                .getValue());
+    BigInteger value2 =
+        new BigInteger(
+        pListToCheck.stream()
+            .filter(v -> v.getName().equals(variable2))
+            .findFirst()
+            .get()
+                .getValue());
     return compareValues(value1, value2, comp);
   }
 

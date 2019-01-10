@@ -52,6 +52,7 @@ public class TimeoutPrecisionAdjustment extends SimplePrecisionAdjustment {
   @Override
   public Action prec(AbstractState pState, Precision pPrecision)
       throws CPAException {
+
     if (hasTimedout()) {
       return Action.BREAK;
     }

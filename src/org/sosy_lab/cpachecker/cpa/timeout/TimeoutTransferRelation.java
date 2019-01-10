@@ -39,7 +39,7 @@ public class TimeoutTransferRelation extends SingleEdgeTransferRelation {
           throws CPATransferException, InterruptedException {
     // TODO Auto-generated method stub
     ArrayList<AbstractState> successors = new ArrayList<>();
-    successors.add(pState);
+    successors.add(new TimeoutState(((TimeoutState) pState).getTimeoutExceeded()));
     return successors;
   }
 

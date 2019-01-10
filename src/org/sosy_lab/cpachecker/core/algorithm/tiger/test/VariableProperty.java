@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger.test;
 
 import java.math.BigInteger;
-import java.util.Map;
+import java.util.List;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCaseVariable;
 
 public abstract class VariableProperty {
 
@@ -72,6 +73,7 @@ public abstract class VariableProperty {
     }
   }
 
-  public abstract boolean checkProperty(Map<String, BigInteger> listToCheck,
+  public abstract boolean
+      checkProperty(List<TestCaseVariable> listToCheck,
       GoalPropertyType inOrOut);
 }

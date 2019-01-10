@@ -24,13 +24,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger.test;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.test.VariableProperty.GoalPropertyType;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCaseVariable;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 
 public class ExpectedGoalProperties {
@@ -64,11 +63,11 @@ public class ExpectedGoalProperties {
     List<TestCase> testCases = testSuite.getCoveringTestCases(goal);
 
     for (TestCase testCase : testCases) {
-      Map<String, BigInteger> inputs = testCase.getInputs();
-      Map<String, BigInteger> outputs = testCase.getOutputs();
-      Map<String, BigInteger> inputsAndOutputs = Maps.newLinkedHashMap();
-      inputsAndOutputs.putAll(inputs);
-      inputsAndOutputs.putAll(outputs);
+      List<TestCaseVariable> inputs = testCase.getInputs();
+      List<TestCaseVariable> outputs = testCase.getOutputs();
+      List<TestCaseVariable> inputsAndOutputs = new ArrayList<>();
+      inputsAndOutputs.addAll(inputs);
+      inputsAndOutputs.addAll(outputs);
       for (VariableProperty r : variableProperties) {
         if (!r.checkProperty(inputs, GoalPropertyType.INPUT)) { throw new AssertionError(
             "Expected input property (" + r.toString() + ") for goal " + goalName

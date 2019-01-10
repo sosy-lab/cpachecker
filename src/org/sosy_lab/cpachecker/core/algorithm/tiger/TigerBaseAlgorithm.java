@@ -19,13 +19,10 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
-import com.google.common.base.Function;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
@@ -49,6 +46,7 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.BDDUtils;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCaseVariable;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuiteWriter;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
@@ -180,8 +178,8 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
   }
 
   protected TestCase createTestcase(final CounterexampleInfo cex, final Region pPresenceCondition) {
-    Map<String, BigInteger> inputValues = values.extractInputValues(cex);
-    Map<String, BigInteger> outputValus = values.extractOutputValues(cex);
+    List<TestCaseVariable> inputValues = values.extractInputValues(cex, cfa);
+    List<TestCaseVariable> outputValus = values.extractOutputValues(cex);
     // calcualte shrinked error path
     List<Pair<CFAEdgeWithAssumptions, Boolean>> shrinkedErrorPath =
         new ErrorPathShrinker()
@@ -199,9 +197,7 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
     return testcase;
   }
   public Region
-      getPresenceConditionFromCexUpToEdge(
-          CounterexampleInfo cex,
-          Function<CFAEdge, Boolean> isFinalEdgeForGoal) {
+      getPresenceConditionFromCex(CounterexampleInfo cex) {
     if (!bddUtils.isVariabilityAware()) {
       return null;
     }
@@ -235,23 +231,20 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
           }
         }
       }
-      if (isFinalEdgeForGoal.apply(cfaEdge)) {
-        break;
-      }
     }
 
     return pc;
   }
 
-  protected void checkGoalCoverage(
+  protected Set<T> checkGoalCoverage(
       Set<T> pGoalsToCheckCoverage,
       TestCase testCase,
       boolean removeCoveredGoals,
       CounterexampleInfo cex) {
-    for (T goal : testCase.getCoveredGoals(pGoalsToCheckCoverage)) {
+    Set<T> coveredGoals = testCase.getCoveredGoals(pGoalsToCheckCoverage);
+    for (T goal : coveredGoals) {
       // TODO add infeasiblitpropagaion to testsuite
-      Region simplifiedPresenceCondition = getPresenceConditionFromCexForGoal(cex, goal);
-      testsuite.updateTestcaseToGoalMapping(testCase, goal, simplifiedPresenceCondition);
+      testsuite.updateTestcaseToGoalMapping(testCase, goal);
       String log = "Goal " + goal.getName() + " is covered by testcase " + testCase.getId();
       if (removeCoveredGoals && !bddUtils.isVariabilityAware()) {
         pGoalsToCheckCoverage.remove(goal);
@@ -259,9 +252,10 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
       }
       logger.log(Level.INFO, log);
     }
+    return coveredGoals;
   }
 
-  protected abstract Region getPresenceConditionFromCexForGoal(CounterexampleInfo pCex, T pGoal);
+  // protected abstract Region getPresenceConditionFromCexForGoal(CounterexampleInfo pCex, T pGoal);
 
   protected Algorithm rebuildAlgorithm(
       ShutdownManager algNotifier,

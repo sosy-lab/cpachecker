@@ -23,23 +23,18 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
@@ -56,9 +51,9 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithmConfiguration.
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.FQLSpecificationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.AutomatonGoal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCaseVariable;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestGoalUtils;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
@@ -81,7 +76,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationExc
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
@@ -355,7 +349,7 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
 
         TestCase testcase =
             handleUnavailableCounterexample(criticalEdge, lastState, testCasePresenceCondition);
-        testsuite.addTestCase(testcase, pGoal, null);
+        testsuite.addTestCase(testcase, pGoal);
       } else {
         // test goal is feasible
         logger.logf(Level.INFO, "Counterexample is available.");
@@ -365,15 +359,13 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
         } else {
           // HashMap<String, Boolean> features =
           // for null goal get the presencecondition without the validProduct method
-          testCasePresenceCondition = getPresenceConditionFromCexUpToEdge(cex, (CFAEdge edge) -> {
-            return false;
-          });
+          testCasePresenceCondition = getPresenceConditionFromCex(cex);
 
-          Region simplifiedPresenceCondition = getPresenceConditionFromCexForGoal(cex, pGoal);
+          // Region simplifiedPresenceCondition = getPresenceConditionFromCexForGoal(cex, pGoal);
           TestCase testcase = createTestcase(cex, testCasePresenceCondition);
           // only add new Testcase and check for coverage if it does not already exist
 
-          testsuite.addTestCase(testcase, pGoal, simplifiedPresenceCondition);
+          testsuite.addTestCase(testcase, pGoal);
 
           if (tigerConfig.getCoverageCheck() == CoverageCheck.SINGLE
               || tigerConfig.getCoverageCheck() == CoverageCheck.ALL) {
@@ -435,42 +427,42 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
   }
 
 
-  @Override
-  public Region getPresenceConditionFromCexForGoal(CounterexampleInfo cex, AutomatonGoal pGoal) {
+  // @Override
+  // public Region getPresenceConditionFromCexForGoal(CounterexampleInfo cex, AutomatonGoal pGoal) {
+  //
+  // NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = pGoal.getAutomaton();
+  // Set<NondeterministicFiniteAutomaton.State> lCurrentStates = new HashSet<>();
+  // Set<NondeterministicFiniteAutomaton.State> lNextStates = new HashSet<>();
+  //
+  // lCurrentStates.add(lAutomaton.getInitialState());
+  // Function<CFAEdge, Boolean> isFinalEdgeForGoal = cfaEdge -> {
+  // for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
+  // // Automaton accepts as soon as it sees a final state (implicit self-loop)
+  // if (lAutomaton.getFinalStates().contains(lCurrentState)) {
+  // return true;
+  // }
+  //
+  // for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : lAutomaton
+  // .getOutgoingEdges(lCurrentState)) {
+  // GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
+  //
+  // if (!lLabel.hasGuards() && lLabel.contains(cfaEdge)) {
+  // lNextStates.add(lOutgoingEdge.getTarget());
+  // if (lAutomaton.getFinalStates().contains(lOutgoingEdge.getTarget())) {
+  // return true;
+  // }
+  // }
+  // }
+  // }
+  //
+  // lCurrentStates.addAll(lNextStates);
+  // return false;
+  // };
 
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = pGoal.getAutomaton();
-    Set<NondeterministicFiniteAutomaton.State> lCurrentStates = new HashSet<>();
-    Set<NondeterministicFiniteAutomaton.State> lNextStates = new HashSet<>();
-
-    lCurrentStates.add(lAutomaton.getInitialState());
-    Function<CFAEdge, Boolean> isFinalEdgeForGoal = cfaEdge -> {
-      for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
-      // Automaton accepts as soon as it sees a final state (implicit self-loop)
-      if (lAutomaton.getFinalStates().contains(lCurrentState)) {
-        return true;
-      }
-
-      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : lAutomaton
-          .getOutgoingEdges(lCurrentState)) {
-        GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
-
-        if (!lLabel.hasGuards() && lLabel.contains(cfaEdge)) {
-          lNextStates.add(lOutgoingEdge.getTarget());
-          if (lAutomaton.getFinalStates().contains(lOutgoingEdge.getTarget())) {
-            return true;
-          }
-        }
-      }
-    }
-
-    lCurrentStates.addAll(lNextStates);
-      return false;
-    };
-
-
-
-    return getPresenceConditionFromCexUpToEdge(cex, isFinalEdgeForGoal);
-  }
+  //
+  //
+  // return getPresenceConditionFromCexUpToEdge(cex, isFinalEdgeForGoal);
+  // }
 
   private CPAFactory buildAutomataFactory(Automaton goalAutomaton) {
     CPAFactory automataFactory = ControlAutomatonCPA.factory();
@@ -603,8 +595,8 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
       parents = argState.getParents();
     }
 
-    Map<String, BigInteger> inputValues = new LinkedHashMap<>();
-    Map<String, BigInteger> outputValues = new LinkedHashMap<>();
+    List<TestCaseVariable> inputValues = new ArrayList<>();
+    List<TestCaseVariable> outputValues = new ArrayList<>();
 
     TestCase result =
         new TestCase(

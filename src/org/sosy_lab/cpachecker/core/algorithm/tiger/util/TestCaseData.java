@@ -24,17 +24,16 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class TestCaseData {
 
   private int id;
 
-  private Map<String, String> inputs;
+  private List<TestCaseVariable> inputs;
 
-  private Map<String, String> outputs;
+  private List<TestCaseVariable> outputs;
 
   private List<String> coveredGoals;
 
@@ -47,9 +46,9 @@ public class TestCaseData {
   public TestCaseData() {
     id = -1;
 
-    inputs = Maps.newLinkedHashMap();
+    inputs = new ArrayList<>();
 
-    outputs = Maps.newLinkedHashMap();
+    outputs = new ArrayList<>();
 
     coveredGoals = Lists.newLinkedList();
 
@@ -74,19 +73,19 @@ public class TestCaseData {
     id = pId;
   }
 
-  public Map<String, String> getInputs() {
+  public List<TestCaseVariable> getInputs() {
     return inputs;
   }
 
-  public void setInputs(Map<String, String> pInputs) {
+  public void setInputs(List<TestCaseVariable> pInputs) {
     inputs = pInputs;
   }
 
-  public Map<String, String> getOutputs() {
+  public List<TestCaseVariable> getOutputs() {
     return outputs;
   }
 
-  public void setOutputs(Map<String, String> pOutputs) {
+  public void setOutputs(List<TestCaseVariable> pOutputs) {
     outputs = pOutputs;
   }
 
@@ -127,11 +126,11 @@ public class TestCaseData {
 
     str.append("\tinputs and outputs {\n");
 
-    for (String s : inputs.keySet()) {
-      str.append("\t\t-> ").append(s).append(" = ").append(inputs.get(s)).append("\n");
+    for (TestCaseVariable var : inputs) {
+      str.append("\t\t-> ").append(var.getName()).append(" = ").append(var.getValue()).append("\n");
     }
-    for (String s : outputs.keySet()) {
-      str.append("\t\t<- ").append(s).append(" = ").append(outputs.get(s)).append("\n");
+    for (TestCaseVariable var : outputs) {
+      str.append("\t\t<- ").append(var.getName()).append(" = ").append(var.getValue()).append("\n");
     }
 
     str.append("\t}");

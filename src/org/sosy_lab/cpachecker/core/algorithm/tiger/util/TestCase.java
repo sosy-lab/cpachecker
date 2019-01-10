@@ -24,12 +24,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
 import com.google.common.collect.Lists;
-import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
@@ -43,8 +41,8 @@ import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 public class TestCase {
 
   private int id;
-  private Map<String, BigInteger> inputs;
-  private Map<String, BigInteger> outputs;
+  private List<TestCaseVariable> inputs;
+  private List<TestCaseVariable> outputs;
   private List<CFAEdge> path;
   private List<Pair<CFAEdgeWithAssumptions, Boolean>> errorPath;
   private Region presenceCondition;
@@ -53,8 +51,8 @@ public class TestCase {
 
   public TestCase(
       int pID,
-      Map<String, BigInteger> pInputs,
-      Map<String, BigInteger> pOutputs,
+      List<TestCaseVariable> pInputs,
+      List<TestCaseVariable> pOutputs,
       List<CFAEdge> pPath,
       List<Pair<CFAEdgeWithAssumptions, Boolean>> pShrinkedErrorPath,
       Region pPresenceCondition,
@@ -89,11 +87,11 @@ public class TestCase {
     return errorPath;
   }
 
-  public Map<String, BigInteger> getInputs() {
+  public List<TestCaseVariable> getInputs() {
     return inputs;
   }
 
-  public Map<String, BigInteger> getOutputs() {
+  public List<TestCaseVariable> getOutputs() {
     return outputs;
   }
 
@@ -105,8 +103,8 @@ public class TestCase {
     String str = "int input() {\n  static int index = 0;\n  switch (index) {\n";
 
     int index = 0;
-    for (BigInteger input : inputs.values()) {
-      str += "  case " + index + ":\n    index++;\n    return " + input + ";\n";
+    for (TestCaseVariable var : inputs) {
+      str += "  case " + index + ":\n    index++;\n    return " + var.getValue() + ";\n";
       index++;
     }
 
@@ -134,9 +132,9 @@ public class TestCase {
     return pGoal.getsCoveredByPath(this.getPath());
   }
 
-  public <T extends Goal> List<T> getCoveredGoals(Collection<T> pAllGoals)
+  public <T extends Goal> Set<T> getCoveredGoals(Collection<T> pAllGoals)
   {
-    List<T> coveredGoals = new ArrayList<>();
+    Set<T> coveredGoals = new HashSet<>();
     for (T goal : pAllGoals) {
       ThreeValuedAnswer answer = coversGoal(goal);
       if (answer.equals(ThreeValuedAnswer.ACCEPT)) {
@@ -167,11 +165,11 @@ public class TestCase {
 
     returnStr += ":\n\n";
     returnStr += "\tinputs and outputs {\n";
-    for (String variable : inputs.keySet()) {
-      returnStr += "\t\t-> " + variable + " = " + inputs.get(variable) + "\n";
+    for (TestCaseVariable variable : inputs) {
+      returnStr += "\t\t-> " + variable.getName() + " = " + variable.getValue() + "\n";
     }
-    for (String variable : outputs.keySet()) {
-      returnStr += "\t\t<- " + variable + " = " + outputs.get(variable) + "\n";
+    for (TestCaseVariable variable : outputs) {
+      returnStr += "\t\t<- " + variable.getName() + " = " + variable.getValue() + "\n";
     }
     returnStr += "\t}";
     /* if (presenceCondition != null) {
@@ -182,7 +180,7 @@ public class TestCase {
   }
 
   private boolean
-      sameValues(Map<String, BigInteger> thisValues, Map<String, BigInteger> otherValues) {
+      sameValues(List<TestCaseVariable> thisValues, List<TestCaseVariable> otherValues) {
     // if both are null they are equal
     if (thisValues == null && otherValues == null) {
       return true;
@@ -192,11 +190,15 @@ public class TestCase {
       return false;
     }
 
-    for (Entry<String, BigInteger> input : thisValues.entrySet()) {
-      if (!otherValues.containsKey(input.getKey())) {
+    if (thisValues.size() != otherValues.size()) {
+      return false;
+    }
+
+    for (int i = 0; i < thisValues.size(); i++) {
+      if (!thisValues.get(i).getName().equals(otherValues.get(i).getName())) {
         return false;
       }
-      if (!otherValues.get(input.getKey()).equals(thisValues.get(input.getKey()))) {
+      if (!thisValues.get(i).getValue().equals(otherValues.get(i).getValue())) {
         return false;
       }
     }

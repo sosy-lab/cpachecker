@@ -38,10 +38,6 @@ public class CFAGoal extends Goal {
     cfaEdgesGoal = new CFAEdgesGoal(Arrays.asList(pEdge));
   }
 
-  public boolean isCovered() {
-    return cfaEdgesGoal.isCovered();
-  }
-
   @Override
   public String getName() {
     Iterator<CFAEdge> iter = cfaEdgesGoal.getEdges().iterator();
@@ -57,24 +53,11 @@ public class CFAGoal extends Goal {
 
   @Override
   public ThreeValuedAnswer getsCoveredByPath(List<CFAEdge> pPath) {
-    CFAEdgesGoal copy = new CFAEdgesGoal(cfaEdgesGoal.getEdges());
-    for (CFAEdge edge : pPath) {
-      if (edge != null) {
-        copy.processEdge(edge);
-      }
-    }
-    if (copy.isCovered()) {
-      return ThreeValuedAnswer.ACCEPT;
-    }
-    return ThreeValuedAnswer.REJECT;
+    return cfaEdgesGoal.coveredByPath(pPath) ? ThreeValuedAnswer.ACCEPT : ThreeValuedAnswer.REJECT;
   }
 
   public CFAEdgesGoal getCFAEdgesGoal() {
     return cfaEdgesGoal;
-  }
-
-  public void setCovered() {
-    cfaEdgesGoal.setCovered();
   }
 
 }

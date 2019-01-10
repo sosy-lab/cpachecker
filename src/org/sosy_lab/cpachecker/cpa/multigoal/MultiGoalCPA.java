@@ -57,7 +57,7 @@ public class MultiGoalCPA extends AbstractCPA {
   @Override
   public AbstractState getInitialState(final CFANode pNode, final StateSpacePartition pPartition)
       throws InterruptedException {
-    return MultiGoalState.NonTargetState();
+    return new MultiGoalState(null);
   }
 
   @Override

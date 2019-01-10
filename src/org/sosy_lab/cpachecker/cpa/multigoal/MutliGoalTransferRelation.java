@@ -41,18 +41,11 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
       final Precision pPrecision,
       final CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
-    if(goals == null) {
-      return Collections.singleton(MultiGoalState.NonTargetState());
-    }
-    for (CFAEdgesGoal goal : goals) {
-      if (goal.processEdge(pCfaEdge)) {
-        if (goal.isCovered()) {
-          return Collections.singleton(MultiGoalState.TargetState(goal));
-        }
-      }
 
-    }
-    return Collections.singleton(MultiGoalState.NonTargetState());
+    MultiGoalState predState = (MultiGoalState) pState;
+    MultiGoalState successor = new MultiGoalState(predState);
+    successor.processEdge(pCfaEdge, goals);
+    return Collections.singleton(successor);
   }
 
   public Set<CFAEdgesGoal> getGoals() {

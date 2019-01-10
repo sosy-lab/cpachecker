@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.test;
 import com.google.common.collect.Lists;
 import java.math.BigInteger;
 import java.util.List;
-import java.util.Map;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCaseVariable;
 
 
 public abstract class CombinedVariableProperty extends VariableProperty {
@@ -48,11 +48,17 @@ public abstract class CombinedVariableProperty extends VariableProperty {
     this.combinator = combinator;
   }
 
-  protected BigInteger combineVariables(Map<String, BigInteger> listToCheck) {
+  protected BigInteger combineVariables(List<TestCaseVariable> listToCheck) {
     List<BigInteger> combinedValues = Lists.newLinkedList();
 
     for (String var : combinedVariables) {
-      BigInteger value = listToCheck.get(var);
+      BigInteger value =
+          new BigInteger(
+              listToCheck.stream()
+                  .filter(v -> v.getName().equals((var)))
+                  .findFirst()
+                  .get()
+                  .getValue());
       combinedValues.add(value);
     }
 
@@ -81,7 +87,8 @@ public abstract class CombinedVariableProperty extends VariableProperty {
   }
 
   @Override
-  public abstract boolean checkProperty(Map<String, BigInteger> pListToCheck,
+  public abstract boolean
+      checkProperty(List<TestCaseVariable> pListToCheck,
       GoalPropertyType pInOrOut);
 
 }

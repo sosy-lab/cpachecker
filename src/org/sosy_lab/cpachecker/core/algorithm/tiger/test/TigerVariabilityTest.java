@@ -34,11 +34,11 @@ import java.util.Map.Entry;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.AutomatonGoal;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.util.GoalCondition;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
@@ -181,13 +181,17 @@ public class TigerVariabilityTest {
       Iterable<String> excludedFeatures) {
 
     boolean covers = false;
-    for (Entry<TestCase, List<GoalCondition<AutomatonGoal>>> entry : testsuite.getMapping()
+    for (Entry<TestCase, List<AutomatonGoal>> entry : testsuite.getMapping()
         .entrySet()) {
-      for (GoalCondition goalCondition : entry.getValue()) {
+      for (AutomatonGoal goal : entry.getValue()) {
+        Region pc = testsuite.getBddUtils().makeFalse();
+        for(TestCase tc: testsuite.getCoveringTestCases(goal)) {
+          pc = testsuite.getBddUtils().makeOr(pc, tc.getPresenceCondition());
+        }
         covers =
             covers
                 || coversCondition(
-                    testsuite.getGoalPresenceCondition(goalCondition),
+                    testsuite.getBddUtils().dumpRegion(pc),
                     includedFeatures,
                     excludedFeatures);
       }

@@ -26,13 +26,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.math.BigInteger;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import javax.xml.parsers.DocumentBuilder;
@@ -196,9 +194,9 @@ public class TestSuiteWriter {
       dom = db.newDocument();
       Element root = dom.createElement("testcase");
       // TODO order of variables if important for testcomp!
-      for (Entry<String, BigInteger> var : testcase.getInputs().entrySet()) {
+      for (TestCaseVariable var : testcase.getInputs()) {
         Element input = createAndAppendElement("input", var.getValue().toString(), root, dom);
-        input.setAttribute("variable", var.getKey());
+        input.setAttribute("variable", var.getName());
       }
 
       dom.appendChild(root);

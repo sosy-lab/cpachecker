@@ -19,9 +19,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.multigoal;
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -33,21 +39,20 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
   private boolean isTarget;
   // TODO handle regions
   private Region region;
-  private CFAEdgesGoal coveredGoal;
+  Map<CFAEdgesGoal, Integer> goals;
 
-  public static MultiGoalState NonTargetState() {
-    return new MultiGoalState(false, null);
+
+  public MultiGoalState(MultiGoalState predState) {
+
+    if (predState == null) {
+      isTarget = false;
+      goals = new HashMap<>();
+    } else {
+      isTarget = predState.isTarget;
+      goals = new HashMap<>(predState.goals);
+    }
   }
 
-  public static MultiGoalState TargetState(CFAEdgesGoal pCoveredGoal) {
-    return new MultiGoalState(true, pCoveredGoal);
-  }
-
-
-  private MultiGoalState(boolean pIsTarget, CFAEdgesGoal pCoveredGoal) {
-    coveredGoal = pCoveredGoal;
-    isTarget = pIsTarget;
-  }
 
   @Override
   public String toString() {
@@ -77,12 +82,47 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
     return Collections.emptySet();
   }
 
-  public CFAEdgesGoal getCoveredGoal() {
-    return coveredGoal;
+  public Set<CFAEdgesGoal> getCoveredGoal() {
+    Set<CFAEdgesGoal> coveredGoals = new HashSet<>();
+    for (Entry<CFAEdgesGoal, Integer> entry : goals.entrySet()) {
+      if (entry.getValue() >= entry.getKey().getEdges().size()) {
+        coveredGoals.add(entry.getKey());
+      }
+    }
+    return coveredGoals;
   }
 
-  public void setCoveredGoal(CFAEdgesGoal pGoal) {
-    coveredGoal = pGoal;
+
+  @Override
+  public boolean equals(Object pObj) {
+    if(!(pObj instanceof MultiGoalState)) {
+      return false;
+    }
+    MultiGoalState other = (MultiGoalState)pObj;
+    // TODO only check if its target or not, needs rework for stop operator
+    return other.isTarget == this.isTarget;
   }
 
+  public Collection<CFAEdgesGoal> getAllGoals() {
+    if (goals == null) {
+      return Collections.emptySet();
+    }
+    return goals.keySet();
+  }
+
+  public void processEdge(CFAEdge pCfaEdge, Set<CFAEdgesGoal> allGoals) {
+    for (CFAEdgesGoal goal : allGoals) {
+      int index = 0;
+      if (goals.containsKey(goal)) {
+        index = goals.get(goal);
+      }
+      if (goal.acceptsEdge(pCfaEdge, index)) {
+        index++;
+        goals.put(goal, index);
+        if (index >= goal.getEdges().size()) {
+          isTarget = true;
+        }
+      }
+    }
+  }
 }

@@ -43,6 +43,12 @@ public class TigerAlgorithmConfiguration {
     ALL
   }
 
+  public enum GoalReduction {
+    COMPLEX,
+    SIMPLE,
+    NONE
+  }
+
   public TigerAlgorithmConfiguration(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
@@ -168,11 +174,14 @@ public class TigerAlgorithmConfiguration {
     description = "uses output specification of testcomp")
   private boolean useTestCompOutput = false;
 
+  @Option(secure = true, name = "timeout", description = "walltime for the algorithm")
+  private int timeout = 900;
+
   @Option(
     secure = true,
-    name = "useComplexGoalReduction",
-    description = "remove simple goals if covered by complexer ones")
-  private boolean useComplexGoalReduction = false;
+    name = "goalReduction",
+    description = "")
+  private GoalReduction goalReduction = GoalReduction.COMPLEX;
 
   public boolean shouldUseTestCompOutput() {
     return useTestCompOutput;
@@ -253,8 +262,12 @@ public class TigerAlgorithmConfiguration {
     this.fqlQuery = pString;
   }
 
-  public boolean shouldUseComplexGoalReduction() {
-    return useComplexGoalReduction;
+  public GoalReduction getGoalReduction() {
+    return goalReduction;
+  }
+
+  public int getTimeout() {
+    return timeout;
   }
 
 }

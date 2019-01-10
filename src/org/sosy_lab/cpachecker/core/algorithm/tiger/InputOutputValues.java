@@ -23,76 +23,94 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCaseVariable;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.harness.PredefinedTypes;
 
 public class InputOutputValues {
 
   private Set<String> inputVariables;
   private Set<String> outputVariables;
 
-  private class Variable {
-    private String name;
-    private String arrayIndex;
-
-    public String getName() {
-      return name;
-    }
-
-    public String getArrayIndex() {
-      return arrayIndex;
-    }
-
-    public String getFullName() {
-
-      if (arrayIndex != null) {
-        return name + "[" + arrayIndex + "]";
-      } else {
-        return name;
-      }
-    }
-
-    public Variable(String name, String arrayIndex) {
-      this.name = name;
-      this.arrayIndex = arrayIndex;
-    }
-
-  }
 
   public InputOutputValues(String inputInterface, String outputInterface) {
     inputVariables = new TreeSet<>();
     for (String variable : inputInterface.split(",")) {
-      inputVariables.add(variable.trim());
+      String var = variable.trim();
+      if (!var.isEmpty()) {
+        inputVariables.add(var);
+      }
     }
     outputVariables = new TreeSet<>();
     for (String variable : outputInterface.split(",")) {
-      outputVariables.add(variable.trim());
+      String var = variable.trim();
+      if (!var.isEmpty()) {
+        outputVariables.add(var);
+      }
     }
   }
 
@@ -132,9 +150,12 @@ public class InputOutputValues {
     return null;
   }
 
-  public Map<String, BigInteger> extractOutputValues(CounterexampleInfo cex) {
+  public List<TestCaseVariable> extractOutputValues(CounterexampleInfo cex) {
+    if (outputVariables == null || outputVariables.isEmpty()) {
+      return Collections.emptyList();
+    }
     Set<String> tmpOutputVariables = new LinkedHashSet<>(outputVariables);
-    Map<String, BigInteger> variableToValueAssignments = new LinkedHashMap<>();
+    List<TestCaseVariable> variableToValueAssignments = new ArrayList<>();
     CFAPathWithAssumptions path = cex.getCFAPathWithAssignments();
     int index = 0;
     for (CFAEdgeWithAssumptions edge : path) {
@@ -159,7 +180,7 @@ public class InputOutputValues {
             value = getVariableValueFromFunctionCall(index, path);
 
             if (value != null) {
-              variableToValueAssignments.put(cld.getName(), value);
+              variableToValueAssignments.add(new TestCaseVariable(cld.getName(), value.toString()));
             }
           }
         }
@@ -193,18 +214,9 @@ public class InputOutputValues {
     throw new UnsupportedOperationException();
   }
 
-  private Variable
-      getVariable(String fullName, CFAEdgeWithAssumptions edge, CFAPathWithAssumptions path) {
-    if (isArray(fullName)) {
-      return new Variable(getArrayName(fullName), getCurrentArrayIndex(fullName, edge, path));
-    } else {
-      return new Variable(fullName, null);
-    }
-  }
-
   private void tryGetInputValueFromStatements(
       Set<String> tempInputs,
-      Map<String, BigInteger> variableToValueAssignments,
+      List<TestCaseVariable> variableToValueAssignments,
       CFAEdgeWithAssumptions edge,
       CFAPathWithAssumptions path) {
 
@@ -217,11 +229,11 @@ public class InputOutputValues {
       if (expStmt.getExpression() instanceof CBinaryExpression) {
         CBinaryExpression exp = (CBinaryExpression) expStmt.getExpression();
 
-        Variable var = getVariable(exp.getOperand1().toString(), edge, path);
+        String name = exp.getOperand1().toString();
 
-        if (tempInputs.isEmpty() || tempInputs.contains(var.getName())) {
+        if (tempInputs.isEmpty() || tempInputs.contains(name)) {
           BigInteger value = new BigInteger(exp.getOperand2().toString());
-          variableToValueAssignments.put(var.getFullName(), value);
+          variableToValueAssignments.add(new TestCaseVariable(name, value.toString()));
         }
       }
     }
@@ -368,7 +380,7 @@ public class InputOutputValues {
 
   }
 
-  public Map<String, BigInteger> extractInputValues(CounterexampleInfo cex) {
+  public List<TestCaseVariable> extractInputValues(CounterexampleInfo cex, CFA pCFA) {
     // List<Value> values = new ArrayList<InputOutputValues.Value>();
 //    CFAPathWithAssumptions path = cex.getCFAPathWithAssignments();
     // for (CFAEdgeWithAssumptions edge : path) {
@@ -399,54 +411,179 @@ public class InputOutputValues {
     // }
 //        }
 //    }
+    Set<String> tempInputs = new LinkedHashSet<>(inputVariables);
 
-    Map<String, BigInteger> variableToValueAssignments = new LinkedHashMap<>();
-    Set<String> tempInputs;
-    if (inputVariables.isEmpty()) {
-      tempInputs = new LinkedHashSet<>();
-    } else {
-      boolean isEmpty = true;
-      for (String var : inputVariables) {
-        if (var.trim().isEmpty()) {
-          isEmpty = true;
-          break;
+    // CFAPathWithAssumptions path = cex.getCFAPathWithAssignments();
+    Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = cex.getExactVariableValues();
+
+    final Predicate<? super ARGState> relevantStates =
+        Predicates.in(cex.getTargetPath().getStateSet());
+    final Predicate<? super Pair<ARGState, ARGState>> relevantEdges =
+        Predicates.in(cex.getTargetPath().getStatePairs());
+
+    List<TestCaseVariable> values = new ArrayList<>();
+    Set<ARGState> visited = Sets.newHashSet();
+    Deque<ARGState> stack = Queues.newArrayDeque();
+    Deque<CFAEdge> lastEdgeStack = Queues.newArrayDeque();
+    stack.push(cex.getTargetPath().getFirstState());
+    visited.addAll(stack);
+    Optional<TestCaseVariable> value;
+    while (!stack.isEmpty()) {
+      ARGState previous = stack.pop();
+      CFAEdge lastEdge = null;
+      if (!lastEdgeStack.isEmpty()) {
+        lastEdge = lastEdgeStack.pop();
+      }
+      if (AbstractStates.isTargetState(previous)) {
+        // end of cex path reached, write test values
+        assert lastEdge != null : "Expected target state to be different from root state, but was not";
+      }
+      ARGState parent = previous;
+      Iterable<CFANode> parentLocs = AbstractStates.extractLocations(parent);
+      for (ARGState child : parent.getChildren()) {
+        if (relevantStates.apply(child) && relevantEdges.apply(Pair.of(parent, child))) {
+          Iterable<CFANode> childLocs = AbstractStates.extractLocations(child);
+          for (CFANode parentLoc : parentLocs) {
+            for (CFANode childLoc : childLocs) {
+              if (parentLoc.hasEdgeTo(childLoc)) {
+                CFAEdge edge = parentLoc.getEdgeTo(childLoc);
+
+                // add the required values for external non-void functions
+                if (edge instanceof AStatementEdge) {
+                  AStatementEdge statementEdge = (AStatementEdge) edge;
+                  if (statementEdge.getStatement() instanceof AFunctionCall) {
+                    value =
+                        getReturnValueForExternalFunction(
+                            (AFunctionCall) statementEdge.getStatement(),
+                            edge,
+                            valueMap.get(previous),
+                            pCFA);
+                    if (value.isPresent()) {
+                      values.add(value.get());
+                    }
+                  }
+                }
+
+                if (visited.add(child)) {
+                  stack.push(child);
+                  lastEdgeStack.push(edge);
+                }
+              }
+            }
+          }
         }
       }
-      if (isEmpty) {
-        tempInputs = new LinkedHashSet<>();
-      } else {
-        tempInputs = new LinkedHashSet<>(inputVariables);
+    }
+
+    /*
+     *
+     * for (CFAEdgeWithAssumptions edge : path) { tryGetInputValueFromStatements(tempInputs,
+     * variableToValueAssignments, edge, path); }
+     *
+     * if (tempInputs != null && !tempInputs.isEmpty()) { int index = 0; for (CFAEdgeWithAssumptions
+     * edge : path) { if (!edge.getCFAEdge().getCode().contains("__VERIFIER_nondet_")) { if
+     * (edge.getCFAEdge() instanceof CFunctionCallEdge) { CFunctionCallEdge fEdge =
+     * (CFunctionCallEdge) edge.getCFAEdge(); tryGetInputValueFromFunctionCallEdge( fEdge,
+     * tempInputs, variableToValueAssignments, path, index); } index++; continue; } /* Omitted for
+     * testcomp, needs rework anyway if (edge.getCFAEdge() instanceof CStatementEdge) {
+     * CStatementEdge statementEdge = (CStatementEdge) edge.getCFAEdge();
+     * tryGetInputValueFromStatementEdge(statementEdge, tempInputs, variableToValueAssignments); }
+     *
+     * index++; } }
+     */
+    return values;
+  }
+
+  public static Optional<TestCaseVariable> getReturnValueForExternalFunction(
+      final AFunctionCall functionCall,
+      final CFAEdge edge,
+      final @Nullable Collection<CFAEdgeWithAssumptions> pAssumptions,
+      final CFA pCfa) {
+    AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
+    AFunctionDeclaration functionDeclaration = functionCallExpression.getDeclaration();
+
+    if (!PredefinedTypes.isKnownTestFunction(functionDeclaration)
+        && !(functionCallExpression.getExpressionType() instanceof CVoidType)
+        && (functionCallExpression.getExpressionType() != JSimpleType.getVoid())) {
+      // only write if not predefined like e.g. malloc and is non-void
+
+      AExpression nameExpression = functionCallExpression.getFunctionNameExpression();
+      if (nameExpression instanceof AIdExpression) {
+
+        ASimpleDeclaration declaration = ((AIdExpression) nameExpression).getDeclaration();
+        if (declaration != null && pCfa.getFunctionHead(declaration.getQualifiedName()) == null) {
+          // external function with return value
+
+          if (functionCall instanceof AFunctionCallAssignmentStatement) {
+            AFunctionCallAssignmentStatement assignment =
+                (AFunctionCallAssignmentStatement) functionCall;
+
+            if (pAssumptions != null) {
+              // get return value from assumptions in counterexample
+              for (AExpression assumption : FluentIterable.from(pAssumptions)
+                  .filter(e -> e.getCFAEdge().equals(edge))
+                  .transformAndConcat(CFAEdgeWithAssumptions::getExpStmts)
+                  .transform(AExpressionStatement::getExpression)) {
+
+                if (assumption instanceof ABinaryExpression
+                    && ((ABinaryExpression) assumption).getOperator() == BinaryOperator.EQUALS) {
+
+                  ABinaryExpression binExp = (ABinaryExpression) assumption;
+
+                  if (binExp.getOperand2() instanceof ALiteralExpression
+                      && binExp.getOperand1().equals(assignment.getLeftHandSide())) {
+                    return Optional
+                        .of(
+                            new TestCaseVariable(
+                                String.valueOf(assignment.getLeftHandSide()),
+                                String.valueOf(
+                                    ((ALiteralExpression) binExp.getOperand2()).getValue())));
+                  }
+                  if (binExp.getOperand1() instanceof ALiteralExpression
+                      && binExp.getOperand2().equals(assignment.getLeftHandSide())) {
+                    return Optional
+                        .of(
+                            new TestCaseVariable(
+                                String.valueOf(assignment.getLeftHandSide()),
+                                String.valueOf(
+                                    ((ALiteralExpression) binExp.getOperand1()).getValue())));
+                  }
+                }
+              }
+            }
+
+            // could not find any value
+            // or value is irrelevant (case of function call statement)
+            // use default value
+            Type returnType = functionDeclaration.getType().getReturnType();
+            if (returnType instanceof CType) {
+              returnType = ((CType) returnType).getCanonicalType();
+
+              if (!(returnType instanceof CCompositeType
+                  || returnType instanceof CArrayType
+                  || returnType instanceof CBitFieldType
+                  || (returnType instanceof CElaboratedType
+                      && ((CElaboratedType) returnType).getKind() != ComplexTypeKind.ENUM))) {
+
+                return Optional.of(
+                    new TestCaseVariable(
+                        "Dummy",
+                    String.valueOf(
+                        ((ALiteralExpression) ((CInitializerExpression) CDefaults
+                            .forType((CType) returnType, FileLocation.DUMMY)).getExpression())
+                                .getValue()
+                                    .toString())));
+              } else {
+                throw new AssertionError("Cannot write test case value (not a literal)");
+              }
+            } else {
+              throw new AssertionError("Cannot write test case value (not a CType)");
+            }
+          }
+        }
       }
     }
-    CFAPathWithAssumptions path = cex.getCFAPathWithAssignments();
-
-    for (CFAEdgeWithAssumptions edge : path) {
-      tryGetInputValueFromStatements(tempInputs, variableToValueAssignments, edge, path);
-    }
-
-    int index = 0;
-    for (CFAEdgeWithAssumptions edge : path) {
-      if (!edge.getCFAEdge().getCode().contains("__VERIFIER_nondet_")) {
-        if (edge.getCFAEdge() instanceof CFunctionCallEdge) {
-          CFunctionCallEdge fEdge = (CFunctionCallEdge) edge.getCFAEdge();
-          tryGetInputValueFromFunctionCallEdge(
-              fEdge,
-              tempInputs,
-              variableToValueAssignments,
-              path,
-              index);
-        }
-        index++;
-        continue;
-      } /*
-         * Omitted for testcomp, needs rework anyway if (edge.getCFAEdge() instanceof
-         * CStatementEdge) { CStatementEdge statementEdge = (CStatementEdge) edge.getCFAEdge();
-         * tryGetInputValueFromStatementEdge(statementEdge, tempInputs, variableToValueAssignments);
-         * }
-         */
-      index++;
-    }
-    return variableToValueAssignments;
+    return Optional.empty();
   }
 
 }
