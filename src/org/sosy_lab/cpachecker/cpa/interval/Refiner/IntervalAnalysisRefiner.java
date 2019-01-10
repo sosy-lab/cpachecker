@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -65,6 +66,8 @@ import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 @Options(prefix = "cpa.interval.refinement")
 public class IntervalAnalysisRefiner implements ARGBasedRefiner {
 
+  @Option(description = "intervalAnalysisRefiner")
+
   StrongestPostOperator<IntervalAnalysisState> strongestPostOperator;
 
   private LogManager logger;
@@ -72,6 +75,7 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
   private CFA cfa;
   private Configuration config;
   private static IntervalAnalysisFeasibilityChecker checker;
+
 
   public static Refiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
