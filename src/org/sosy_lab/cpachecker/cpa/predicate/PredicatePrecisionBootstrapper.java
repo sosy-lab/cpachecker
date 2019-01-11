@@ -36,10 +36,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -49,14 +49,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator.KInductionInvariantGeneratorOptions;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CandidatesFromWitness;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -73,6 +72,13 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
   @Option(secure=true, description="always check satisfiability at end of block, even if precision is empty")
   private boolean checkBlockFeasibility = false;
+
+  @FileOption(Type.OPTIONAL_INPUT_FILE)
+  @Option(
+      secure = true,
+      description =
+          "Provides additional candidate invariants from witness to the initial predicates.")
+  private Path invariantsAutomatonFile = null;
 
   @Option(
       secure = true,
@@ -154,16 +160,16 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
     if (correctnessWitnessValidation) {
       try {
-        ShutdownManager sdm = ShutdownManager.createWithParent(shutdownNotifier);
-        KInductionInvariantGeneratorOptions options = new KInductionInvariantGeneratorOptions();
-        config.inject(options);
         final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
         final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
-        ReachedSet reachedSet =
-            KInductionInvariantGenerator.analyzeWitness(
-                config, specification, logger, cfa, sdm, options);
-        KInductionInvariantGenerator.extractCandidatesFromReachedSet(
-            sdm, candidates, candidateGroupLocations, reachedSet);
+        if (invariantsAutomatonFile != null) {
+          ReachedSet reachedSet =
+              CandidatesFromWitness.analyzeWitness(
+                  config, specification, logger, cfa, shutdownNotifier, invariantsAutomatonFile);
+          CandidatesFromWitness.extractCandidatesFromReachedSet(
+              shutdownNotifier, candidates, candidateGroupLocations, reachedSet);
+        }
+
         for (CandidateInvariant candidate : candidates) {
 
           ListMultimap<CFANode, AbstractionPredicate> localPredicates = ArrayListMultimap.create();
