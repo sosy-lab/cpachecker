@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
@@ -118,13 +117,15 @@ public class HybridAnalysisStatistics implements Statistics {
 
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
     writer.put(generatedForNondet)
+        .put(assumptionFound)
+        .put(feasibleAssumptionFound)
         .put(unableGeneration)
         .put(solverGenerated)
         .put(removedOnAssumption)
         .put(removedOnAssignment)
         .put(transferWithoutValueGeneration)
-        .put("Overall examined branches to new explored branches ratio        ", 
-             "       " + uncoveredToFeasiblePathsRatio() + "%");
+        .put("Overall examined branches to new explored branches ratio", 
+             "               " + uncoveredToFeasiblePathsRatio() + "%");
   }
 
   @Override
@@ -186,8 +187,8 @@ public class HybridAnalysisStatistics implements Statistics {
     return builder.toString();
   }
 
-  private int uncoveredToFeasiblePathsRatio(){
-      return Math.round(assumptionFound.getValue() / feasibleAssumptionFound.getValue());
+  private double uncoveredToFeasiblePathsRatio() {
+      return Math.round((feasibleAssumptionFound.getValue() * 100) / assumptionFound.getValue());
   }
 
 }
