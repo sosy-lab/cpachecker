@@ -53,11 +53,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
@@ -207,6 +209,11 @@ public class TestCaseExporter {
             Type returnType = functionDeclaration.getType().getReturnType();
             if (returnType instanceof CType) {
               returnType = ((CType) returnType).getCanonicalType();
+
+              if (returnType instanceof CSimpleType
+                  && ((CSimpleType) returnType).getType() == CBasicType.CHAR) {
+                return Optional.of(" ");
+              }
 
               if (!(returnType instanceof CCompositeType
                   || returnType instanceof CArrayType
