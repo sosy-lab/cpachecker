@@ -25,6 +25,9 @@ package org.sosy_lab.cpachecker.cpa.hybrid.util;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.hybrid.AssumptionGenerator;
@@ -39,13 +42,16 @@ public final class StrengthenOperatorFactory {
 
   private final AssumptionGenerator assumptionGenerator;
   private final LogManager logger;
+  private final Configuration config;
 
   public StrengthenOperatorFactory(
       AssumptionGenerator pAssumptionGenerator,
-      LogManager pLogger) {
+      LogManager pLogger,
+      Configuration pConfig) {
     operatorMap = new HashMap<>();
     assumptionGenerator = pAssumptionGenerator;
     logger = pLogger;
+    config = pConfig;
   }
 
   /**
@@ -53,11 +59,13 @@ public final class StrengthenOperatorFactory {
    *
    * @param state The state for which to provide the operator
    * @return A instance of an object implementing HybridStrengthenOperator
+   * @throws InvalidConfigurationException Might throw exception on configuration injection for Strengthening operators
    */
   @SuppressWarnings("unchecked")
-  public HybridStrengthenOperator provideStrengthenOperator(AbstractState state) {
-    // first check if the
-    String stateClassName = state.getClass().getName();
+  public HybridStrengthenOperator provideStrengthenOperator(AbstractState state) 
+      throws InvalidConfigurationException {
+    // first check if the cache contains an instance for the state type
+    final String stateClassName = state.getClass().getName();
     if(operatorMap.containsKey(stateClassName)) {
       return operatorMap.get(stateClassName);
     }
@@ -68,7 +76,8 @@ public final class StrengthenOperatorFactory {
       return pushAndReturn(
           new ValueAnalysisHybridStrengthenOperator(
               assumptionGenerator,
-              logger),
+              logger,
+              config),
           stateClassName);
     }
 

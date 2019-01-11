@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.hybrid.HybridAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.hybrid.HybridAnalysisState;
+import org.sosy_lab.cpachecker.cpa.hybrid.HybridAnalysisStatistics;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -172,6 +173,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
   private final Solver solver;
   private final FormulaManagerView formulaManagerView;
   private final PathFormulaManager pathFormulaManager;
+  private final HybridAnalysisStatistics statistics;
 
   private final Splitter FUNCTION_SCOPE_SPLITTER = Splitter.on("::");
 
@@ -245,8 +247,9 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
             pLogger,
             pNotifier,
             pCFA,
-            AnalysisDirection.FORWARD)
-    );
+            AnalysisDirection.FORWARD));
+            
+    statistics = cpa.getStatisticsInstance();
   }
 
   @Override
@@ -309,7 +312,9 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
       // get all bottom states (has no children and is not part of the wait list)
       final Set<ARGState> bottomStates = allARGStates
           .stream()
-          .filter(argState -> !argState.isDestroyed() && argState.getChildren().isEmpty())
+          .filter(argState -> !argState.isDestroyed() 
+                  && argState.getChildren().isEmpty()
+                  && !pReachedSet.getWaitlist().contains(argState))
           .collect(Collectors.toSet());
 
       // there is nothing left to do in this run
@@ -329,6 +334,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
         break;
       }
 
+      statistics.incrementAssumptionFound();
       CAssumeEdge nextAssumptionEdge = nextAssumptionContext.getFirst();
       ARGState priorAssumptionState = nextAssumptionContext.getSecond();
 
@@ -354,6 +360,8 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
 
         // get assignments for the new path containing the flipped assumption
         if(satisfiable) {
+
+          statistics.incrementFeasiblePathFound();
           try {
 
             tryAddNewStateToARG(formulaToCheck, priorAssumptionState, pReachedSet);
@@ -366,17 +374,6 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
 
           // not satisfiable
           logger.log(Level.INFO, String.format("The boolean formula %s is not satisfiable for the solver", formulaToCheck));
-
-          // now lets try to build a satisfiable formula for the path without the new assumption
-          BooleanFormula nextFormula = buildPathFormula(pathToAssumption.getInnerEdges());
-          try {
-
-            tryAddNewStateToARG(nextFormula, priorAssumptionState, pReachedSet);
-
-          } catch(InvalidAutomatonException iae) {
-            throw new CPAException("Error occurred while parsing the value assignments into assumption expressions.", iae);
-          }
-
         }
 
       } catch(SolverException sException) {
@@ -553,6 +550,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
           = cpa.getAssumptionParser()
             .parseAssumptions(String.format("%s=%s", fixedName, assignment.getValue()));
       assumptions.addAll(assumptionCollection);
+      statistics.incrementSolverGenerated();
     }
 
     assert assumptions.size() == pAssignments.size();

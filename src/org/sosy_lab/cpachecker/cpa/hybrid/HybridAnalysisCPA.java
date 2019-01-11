@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
 import com.google.common.base.Preconditions;
+
+import java.util.Collection;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -47,6 +49,8 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
@@ -55,7 +59,7 @@ import org.sosy_lab.cpachecker.cpa.hybrid.util.OperatorType;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.SimpleValueProvider;
 
 @Options(prefix = "cpa.hybrid")
-public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
+public class HybridAnalysisCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   @Option(secure = true,
           name = "initialAssumptions",
@@ -103,6 +107,8 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
   private final LogManager logger;
   private final @Nullable AssumptionParser assumptionParser;
   private final CProgramScope scope;
+  private final Configuration configuration;
+  private final HybridAnalysisStatistics statistics;
 
   protected HybridAnalysisCPA(
     CFA pCfa,
@@ -115,6 +121,8 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
     this.assumptionParser
         = new AssumptionParser(delimiter, scope, pConfiguration, pCfa.getMachineModel(), pLogger);
     pConfiguration.inject(this);
+    configuration = pConfiguration;
+    statistics = new HybridAnalysisStatistics(pConfiguration, logger);
   }
 
   @Override
@@ -139,10 +147,16 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new HybridAnalysisTransferRelation(
-      cfa,
-      logger,
-      new SimpleValueProvider(stringMaxLength, minNumber, maxNumber));
+    try {
+      return new HybridAnalysisTransferRelation(
+          cfa,
+          logger,
+          new SimpleValueProvider(stringMaxLength, minNumber, maxNumber),
+          configuration,
+          statistics);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException("Configruation is invalid for HybridAnalysisTransferRelation");
+    }
   }
 
   @Override
@@ -183,5 +197,14 @@ public class HybridAnalysisCPA implements ConfigurableProgramAnalysis {
 
   public AssumptionParser getAssumptionParser() {
     return assumptionParser;
+  }
+
+  public HybridAnalysisStatistics getStatisticsInstance() {
+    return statistics;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(statistics);
   }
 }

@@ -140,15 +140,23 @@ public class HybridAnalysisState
     return new HybridAnalysisState(pState.variableMap, newDeclarations);
   }
 
-  public static HybridAnalysisState removeOnAssignment(HybridAnalysisState pState, CLeftHandSide pCLeftHandSide) {
+  public static HybridAnalysisState removeOnAssignments(HybridAnalysisState pState, Collection<CLeftHandSide> pCLeftHandSides) {
 
     Set<CExpression> removableAssumptions = Sets.newHashSet();
 
-    for(CExpression expression : pState.variableMap.keySet()) {
-      if(ExpressionUtils.haveTheSameVariable(
-          expression,
-          pCLeftHandSide)) {
-        removableAssumptions.add(expression);
+    for(CLeftHandSide leftHandSide : pCLeftHandSides) {
+
+      if(pState.variableMap.containsKey(leftHandSide)) {
+        removableAssumptions.add(leftHandSide);
+      } else {
+
+        for(CExpression expression : pState.variableMap.keySet()) {
+          if(ExpressionUtils.haveTheSameVariable(
+              expression,
+              leftHandSide)) {
+            removableAssumptions.add(expression);
+          }
+        }
       }
     }
 
@@ -310,6 +318,11 @@ public class HybridAnalysisState
   @Override
   public int hashCode() {
       return variableMap.hashCode();
+  }
+  
+  @Override
+  public String toString() {
+    return toDOTLabel();
   }
 
   @Override

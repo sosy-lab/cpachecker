@@ -30,6 +30,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
+
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -48,14 +53,22 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /**
  * This class provides the strengthening for a HybridAnalysisState via a ValueAnalysisState
  */
+@Options(prefix = "cpa.hybrid.strengthening")
 public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOperator {
+
+  @Option(secure = true, 
+          name = "removeValueAfterStrengthening",
+          description = "Whether to remove tracked concrete values from the HybridAnalysis after strengthing the ValueAnalysis.")
+  private boolean removeValueAfterStrengthening = false;
 
   private final AssumptionGenerator assumptionGenerator;
   private final LogManager logger;
 
   public ValueAnalysisHybridStrengthenOperator(
       AssumptionGenerator pAssumptionGenerator,
-      LogManager pLogger) {
+      LogManager pLogger,
+      Configuration pConfig) throws InvalidConfigurationException {
+    pConfig.inject(this);
     this.assumptionGenerator = pAssumptionGenerator;
     this.logger = pLogger;
   }
@@ -84,31 +97,31 @@ public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOp
     Set<MemoryLocation> trackedVariables = Sets.newHashSet(strengtheningState.getTrackedMemoryLocations());
     trackedVariables.removeAll(unknownValues); // we can safely remove those memory locations, because later on we create hybrid values for them
 
-    // if(!trackedVariables.isEmpty()) {
+    if(!trackedVariables.isEmpty() && removeValueAfterStrengthening) {
 
-    //   for(CExpression variable : variableExpressions) {
+      for(CExpression variable : variableExpressions) {
 
-    //     boolean keepOffset = variable instanceof CArraySubscriptExpression;
+        boolean keepOffset = variable instanceof CArraySubscriptExpression;
 
-    //     @Nullable final String variableName = ExpressionUtils.extractVariableIdentifier(variable);
-    //     HybridValue currentValue = pStateToStrengthen.getAssumptionForVariableExpression(variable);
+        @Nullable final String variableName = ExpressionUtils.extractVariableIdentifier(variable);
+        HybridValue currentValue = pStateToStrengthen.getAssumptionForVariableExpression(variable);
 
-    //     for(MemoryLocation memoryLocation : trackedVariables) {
+        for(MemoryLocation memoryLocation : trackedVariables) {
 
-    //       if(compareNames(variableName, memoryLocation, keepOffset)
-    //           && !currentValue.isSolverGenerated()) {
+          if(compareNames(variableName, memoryLocation, keepOffset)
+              && !currentValue.isSolverGenerated()) {
 
-    //         removableAssumptions.add(variable);
-    //         // the assumption was added anyway
-    //         break;
-    //       }
+            removableAssumptions.add(variable);
+            // the assumption was added anyway
+            break;
+          }
 
-    //     }
-    //   }
+        }
+      }
 
-    //   // remove unnecessary assumptions
-    //   variableExpressions.removeAll(removableAssumptions);
-    // }
+      // remove unnecessary assumptions
+      variableExpressions.removeAll(removableAssumptions);
+    }
 
     Map<CIdExpression, HybridValue> newAssumptionMap = Maps.newHashMap();
     variableExpressions.forEach(expression -> newAssumptionMap.put(

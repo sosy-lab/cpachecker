@@ -28,6 +28,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
+
+import com.google.common.collect.Sets;
+
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -37,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -61,8 +69,15 @@ import org.sosy_lab.cpachecker.cpa.hybrid.util.StrengthenOperatorFactory;
 import org.sosy_lab.cpachecker.cpa.hybrid.value.HybridValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
+@Options(prefix = "cpa.hybrid.transfer")
 public class HybridAnalysisTransferRelation
     extends ForwardingTransferRelation<HybridAnalysisState, HybridAnalysisState, VariableTrackingPrecision> {
+
+
+  @Option(secure = true,
+          name = "removeValueOnAssumption",
+          description = "Whether to remove a tracked value, if an assumption is handled by the transfer relation, containing the variable.")
+  private boolean removeValueOnAssumption = false;
 
   private final CFA cfa;
   private final LogManager logger;
@@ -70,12 +85,16 @@ public class HybridAnalysisTransferRelation
   private final AssumptionGenerator assumptionGenerator;
 
   private final StrengthenOperatorFactory strengthenOperatorFactory;
+  private final HybridAnalysisStatistics statistics;
 
   public HybridAnalysisTransferRelation(
       CFA pCfa,
       LogManager pLogger,
-      HybridValueProvider pValueProvider)
+      HybridValueProvider pValueProvider,
+      Configuration pConfig,
+      HybridAnalysisStatistics pStatistics) throws InvalidConfigurationException
   {
+    pConfig.inject(this);
     this.cfa = pCfa;
     this.logger = pLogger;
     this.assumptionGenerator = new AssumptionGenerator(
@@ -84,7 +103,10 @@ public class HybridAnalysisTransferRelation
         pValueProvider);
     this.strengthenOperatorFactory = new StrengthenOperatorFactory(
         assumptionGenerator,
-        logger);
+        logger,
+        pConfig);
+
+    statistics = pStatistics;
   }
 
   @Override
@@ -102,9 +124,16 @@ public class HybridAnalysisTransferRelation
     HybridAnalysisState stateToStrengthen = (HybridAnalysisState) pState;
 
     for(AbstractState otherState : otherStates) {
-      operator = strengthenOperatorFactory.provideStrengthenOperator(otherState);
-      stateToStrengthen = operator.strengthen(stateToStrengthen, otherState, cfaEdge);
-      super.setInfo(stateToStrengthen, pPrecision, cfaEdge);
+      try {
+        operator = strengthenOperatorFactory.provideStrengthenOperator(otherState);
+        stateToStrengthen = operator.strengthen(stateToStrengthen, otherState, cfaEdge);
+        super.setInfo(stateToStrengthen, pPrecision, cfaEdge);
+      } catch (InvalidConfigurationException e) {
+        throw new CPATransferException(
+          String.format("Strengthening operator for %s cannot be created due to invalid configuration.",
+            otherState),
+          e);
+      }
     }
 
     super.resetInfo();
@@ -119,9 +148,17 @@ public class HybridAnalysisTransferRelation
       CAssumeEdge pCfaEdge, CExpression pExpression, boolean pTruthAssumption) {
 
     // if there is a new assumption for a tracked variable, we remove it
-//    if(state.tracksVariable(pExpression)) {
-//      return HybridAnalysisState.removeOnAssignment(state, ExpressionUtils.extractIdExpression(pExpression));
-//    }
+    if(removeValueOnAssumption) {
+      Collection<CIdExpression> variables = ExpressionUtils.extractAllVariableIdentifiers(pExpression);
+      Collection<CLeftHandSide> removeableVars = Sets.newHashSet(); 
+      for(CIdExpression variable : variables) {
+        if(state.tracksVariable(variable)) {
+          removeableVars.add(variable);
+          statistics.incrementRemovedOnAssumption();
+        }
+      }
+      return HybridAnalysisState.removeOnAssignments(state, removeableVars);
+    }
 
     return simpleCopy();
   }
@@ -134,6 +171,7 @@ public class HybridAnalysisTransferRelation
       List<CExpression> arguments, List<CParameterDeclaration> parameters,
       String calledFunctionName) {
 
+    statistics.incrementEmptyTransfer();
     return simpleCopy();
   }
 
@@ -143,6 +181,7 @@ public class HybridAnalysisTransferRelation
   protected HybridAnalysisState handleFunctionReturnEdge(CFunctionReturnEdge cfaEdge,
       CFunctionSummaryEdge fnkCall, CFunctionCall summaryExpr, String callerFunctionName) {
 
+    statistics.incrementEmptyTransfer();
     return simpleCopy();
   }
 
@@ -154,6 +193,7 @@ public class HybridAnalysisTransferRelation
       CDeclaration pCDeclaration)
       throws CPATransferException {
 
+    statistics.incrementEmptyTransfer();
     if(pCDeclaration instanceof CFunctionDeclaration
       || pCDeclaration instanceof CTypeDeclaration) {
       return simpleCopy();
@@ -168,6 +208,8 @@ public class HybridAnalysisTransferRelation
   @Override
   protected HybridAnalysisState handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
       throws CPATransferException {
+    
+    statistics.incrementEmptyTransfer();
     return simpleCopy();
   }
 
@@ -175,6 +217,7 @@ public class HybridAnalysisTransferRelation
 
   @Override
   protected HybridAnalysisState handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {
+    statistics.incrementEmptyTransfer();
     return simpleCopy();
   }
 
@@ -200,7 +243,8 @@ public class HybridAnalysisTransferRelation
       }
 
       // we need to remove the current assignment
-      return HybridAnalysisState.removeOnAssignment(state, leftHandSide);
+      statistics.incrementRemovedOnAssignment();
+      return HybridAnalysisState.removeOnAssignments(state, Collections.singleton(leftHandSide));
 
     }
 
@@ -235,9 +279,11 @@ public class HybridAnalysisTransferRelation
         HybridValue newAssumption =
             assumptionGenerator.generateAssumption(leftHandSide);
         if(newAssumption == null) {
+          statistics.incrementUnableGeneration();
           return simpleCopy();
         }
 
+        statistics.incrementGeneratedNondet();
         return HybridAnalysisState.copyWithNewAssumptions(state, newAssumption);
       } catch (InvalidAssumptionException iae) {
         throw new CPATransferException(
@@ -248,12 +294,12 @@ public class HybridAnalysisTransferRelation
       }
 
     } else {
-      return HybridAnalysisState.removeOnAssignment(state, leftHandSide);
+      statistics.incrementRemovedOnAssignment();
+      return HybridAnalysisState.removeOnAssignments(state, Collections.singleton(leftHandSide));
     }
   }
 
   private HybridAnalysisState simpleCopy() {
     return HybridAnalysisState.copyOf(state);
   }
-
 }
