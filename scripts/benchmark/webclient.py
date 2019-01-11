@@ -227,39 +227,45 @@ try:
                     self._fall_back()
                     return
 
-                try:
-                    for message in self._sse_client:
-                        data = message.data
-                        tokens = data.split(" ")
-                        if len(tokens) == 2:
-                            run_id = tokens[0]
-                            state = tokens[1]
+                # instead of a nice loop aka 'for message in self._sse_client',
+                # we use a generator to handle exceptions (AttributeError) in a better way
+                def iterate(sseClient):
+                    try:
+                        for message in sseClient:
+                            yield message
+                    except AttributeError as e:
+                        logging.warning("SSE connection terminated: %s", e)
+                        raise StopIteration
 
-                            if state == "FINISHED":
-                                if run_id in run_ids:
-                                    logging.debug('Run %s finished.', run_id)
-                                    self._web_interface._download_result_async(run_id)
+                for message in iterate(self._sse_client):
+                    data = message.data
+                    tokens = data.split(" ")
+                    if len(tokens) == 2:
+                        run_id = tokens[0]
+                        state = tokens[1]
+
+                        if state == "FINISHED":
+                            if run_id in run_ids:
+                                logging.debug('Run %s finished.', run_id)
+                                self._web_interface._download_result_async(run_id)
 
 
-                            elif state == "UNKNOWN":
-                                logging.debug('Run %s is not known by the webclient, trying to get the result.', run_id)
-                                self._web_interface._download_async(run_id)
+                        elif state == "UNKNOWN":
+                            logging.debug('Run %s is not known by the webclient, trying to get the result.', run_id)
+                            self._web_interface._download_async(run_id)
 
-                            elif state == "ERROR":
-                                self._web_interface._run_failed(run_id)
-
-                            else:
-                                logging.warning('Received unknown run state %s for run %s.', state, run_id)
-
-                            run_ids.discard(run_id)
-                            if self._shutdown or self._new_runs or len(run_ids) == 0:
-                                break;
+                        elif state == "ERROR":
+                            self._web_interface._run_failed(run_id)
 
                         else:
-                            logging.warning("Received invalid message %s", data)
+                            logging.warning('Received unknown run state %s for run %s.', state, run_id)
 
-                except AttributeError as e:
-                    logging.warning("SSE connection terminated: %s", e)
+                        run_ids.discard(run_id)
+                        if self._shutdown or self._new_runs or len(run_ids) == 0:
+                            break;
+
+                    else:
+                        logging.warning("Received invalid message %s", data)
 
             self._sse_client = None
 
