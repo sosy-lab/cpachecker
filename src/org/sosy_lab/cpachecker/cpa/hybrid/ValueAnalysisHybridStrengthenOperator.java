@@ -84,31 +84,31 @@ public class ValueAnalysisHybridStrengthenOperator implements HybridStrengthenOp
     Set<MemoryLocation> trackedVariables = Sets.newHashSet(strengtheningState.getTrackedMemoryLocations());
     trackedVariables.removeAll(unknownValues); // we can safely remove those memory locations, because later on we create hybrid values for them
 
-    if(!trackedVariables.isEmpty()) {
+    // if(!trackedVariables.isEmpty()) {
 
-      for(CExpression variable : variableExpressions) {
+    //   for(CExpression variable : variableExpressions) {
 
-        boolean keepOffset = variable instanceof CArraySubscriptExpression;
+    //     boolean keepOffset = variable instanceof CArraySubscriptExpression;
 
-        @Nullable final String variableName = ExpressionUtils.extractVariableIdentifier(variable);
-        HybridValue currentValue = pStateToStrengthen.getAssumptionForVariableExpression(variable);
+    //     @Nullable final String variableName = ExpressionUtils.extractVariableIdentifier(variable);
+    //     HybridValue currentValue = pStateToStrengthen.getAssumptionForVariableExpression(variable);
 
-        for(MemoryLocation memoryLocation : trackedVariables) {
+    //     for(MemoryLocation memoryLocation : trackedVariables) {
 
-          if(compareNames(variableName, memoryLocation, keepOffset)
-              && !currentValue.isSolverGenerated()) {
+    //       if(compareNames(variableName, memoryLocation, keepOffset)
+    //           && !currentValue.isSolverGenerated()) {
 
-            removableAssumptions.add(variable);
-            // the assumption was added anyway
-            break;
-          }
+    //         removableAssumptions.add(variable);
+    //         // the assumption was added anyway
+    //         break;
+    //       }
 
-        }
-      }
+    //     }
+    //   }
 
-      // remove unnecessary assumptions
-      variableExpressions.removeAll(removableAssumptions);
-    }
+    //   // remove unnecessary assumptions
+    //   variableExpressions.removeAll(removableAssumptions);
+    // }
 
     Map<CIdExpression, HybridValue> newAssumptionMap = Maps.newHashMap();
     variableExpressions.forEach(expression -> newAssumptionMap.put(

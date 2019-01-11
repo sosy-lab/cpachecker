@@ -205,11 +205,11 @@ public class HybridAnalysisTransferRelation
     }
 
     // function call assignment
-    // if(pCStatement instanceof CFunctionCallAssignmentStatement) {
+    if(pCStatement instanceof CFunctionCallAssignmentStatement) {
 
-    //   CFunctionCallAssignmentStatement statement = (CFunctionCallAssignmentStatement) pCStatement;
-    //   return handleFunctionCallAssignment(statement);
-    // }
+      CFunctionCallAssignmentStatement statement = (CFunctionCallAssignmentStatement) pCStatement;
+      return handleFunctionCallAssignment(statement);
+    }
 
     return simpleCopy();
   }
