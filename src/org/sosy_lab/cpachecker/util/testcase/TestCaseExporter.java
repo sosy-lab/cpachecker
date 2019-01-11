@@ -26,7 +26,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
@@ -81,15 +80,13 @@ public class TestCaseExporter {
         return strB.toString();
       };
 
-  public static void writeTestInputNondetValues(
+  public static Optional<String> writeTestInputNondetValues(
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
       final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
       final CounterexampleInfo pCounterexampleInfo,
-      final Appendable pAppendable,
       final CFA pCfa,
-      final TestValuesToFormat formatter)
-      throws IOException {
+      final TestValuesToFormat formatter) {
 
     Preconditions.checkArgument(pCounterexampleInfo.isPreciseCounterExample());
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap =
@@ -112,7 +109,7 @@ public class TestCaseExporter {
         // end of cex path reached, write test values
         assert lastEdge != null
             : "Expected target state to be different from root state, but was not";
-        pAppendable.append(formatter.convertToOutput(values));
+        return Optional.of(formatter.convertToOutput(values));
       }
       ARGState parent = previous;
       Iterable<CFANode> parentLocs = AbstractStates.extractLocations(parent);
@@ -150,6 +147,7 @@ public class TestCaseExporter {
         }
       }
     }
+    return Optional.empty();
   }
 
   public static Optional<String> getReturnValueForExternalFunction(

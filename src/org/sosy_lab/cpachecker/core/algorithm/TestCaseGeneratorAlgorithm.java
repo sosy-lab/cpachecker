@@ -46,6 +46,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Appender;
@@ -416,6 +417,8 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
     final Predicate<? super Pair<ARGState, ARGState>> relevantEdges =
         Predicates.in(pTargetPath.getStatePairs());
     try {
+      Optional<String> testOutput;
+
       if (zipTestCases) {
         Path fileName = pFile.getFileName();
         Path testFile =
@@ -435,31 +438,37 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
               XMLTestCaseExport.writeXMLMetadata(writer, cfa, specProp);
               break;
             case PLAIN:
-              TestCaseExporter.writeTestInputNondetValues(
-                  rootState,
-                  relevantStates,
-                  relevantEdges,
-                  pCexInfo,
-                  writer,
-                  cfa,
-                  TestCaseExporter.LINE_SEPARATED);
+              testOutput =
+                  TestCaseExporter.writeTestInputNondetValues(
+                      rootState,
+                      relevantStates,
+                      relevantEdges,
+                      pCexInfo,
+                      cfa,
+                      TestCaseExporter.LINE_SEPARATED);
+              if (testOutput.isPresent()) {
+                writer.write(testOutput.get());
+              }
               break;
             case XML:
-              TestCaseExporter.writeTestInputNondetValues(
-                  rootState,
-                  relevantStates,
-                  relevantEdges,
-                  pCexInfo,
-                  writer,
-                  cfa,
-                  XMLTestCaseExport.XML_TEST_CASE);
+              testOutput =
+                  TestCaseExporter.writeTestInputNondetValues(
+                      rootState,
+                      relevantStates,
+                      relevantEdges,
+                      pCexInfo,
+                      cfa,
+                      XMLTestCaseExport.XML_TEST_CASE);
+              if (testOutput.isPresent()) {
+                writer.write(testOutput.get());
+              }
               break;
             default:
               throw new AssertionError("Unknown test case format.");
           }
         }
       } else {
-        Object content;
+        Object content = null;
 
         switch (type) {
           case HARNESS:
@@ -475,35 +484,38 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
                     appendable -> XMLTestCaseExport.writeXMLMetadata(appendable, cfa, specProp);
             break;
           case PLAIN:
-            content =
-                (Appender)
-                    appendable ->
-                        TestCaseExporter.writeTestInputNondetValues(
-                            rootState,
-                            relevantStates,
-                            relevantEdges,
-                            pCexInfo,
-                            appendable,
-                            cfa,
-                            TestCaseExporter.LINE_SEPARATED);
+            testOutput =
+                TestCaseExporter.writeTestInputNondetValues(
+                    rootState,
+                    relevantStates,
+                    relevantEdges,
+                    pCexInfo,
+                    cfa,
+                    TestCaseExporter.LINE_SEPARATED);
+
+            if (testOutput.isPresent()) {
+              content = (Appender) appendable -> appendable.append(testOutput.get());
+            }
             break;
           case XML:
-            content =
-                (Appender)
-                    appendable ->
-                        TestCaseExporter.writeTestInputNondetValues(
-                            rootState,
-                            relevantStates,
-                            relevantEdges,
-                            pCexInfo,
-                            appendable,
-                            cfa,
-                            XMLTestCaseExport.XML_TEST_CASE);
+            testOutput =
+                TestCaseExporter.writeTestInputNondetValues(
+                    rootState,
+                    relevantStates,
+                    relevantEdges,
+                    pCexInfo,
+                    cfa,
+                    XMLTestCaseExport.XML_TEST_CASE);
+            if (testOutput.isPresent()) {
+              content = (Appender) appendable -> appendable.append(testOutput.get());
+            }
             break;
           default:
             throw new AssertionError("Unknown test case format.");
         }
-        IO.writeFile(pFile, Charset.defaultCharset(), content);
+        if (content != null) {
+          IO.writeFile(pFile, Charset.defaultCharset(), content);
+        }
       }
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write test case to file");
