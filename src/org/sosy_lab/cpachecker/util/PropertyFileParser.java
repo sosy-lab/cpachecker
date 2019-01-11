@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.util.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
 import org.sosy_lab.cpachecker.util.ltl.LtlParser;
@@ -68,8 +69,17 @@ public class PropertyFileParser {
   private static final Pattern PROPERTY_PATTERN =
       Pattern.compile("CHECK\\( init\\((" + CFACreator.VALID_C_FUNCTION_NAME_PATTERN + ")\\(\\)\\), LTL\\((.+)\\) \\)");
 
-  private static Map<String, ? extends Property> AVAILABLE_PROPERTIES =
+  private static final Pattern COVERAGE_PATTERN =
+      Pattern.compile(
+          "COVER\\( init\\(("
+              + CFACreator.VALID_C_FUNCTION_NAME_PATTERN
+              + ")\\(\\)\\), FQL\\((.+)\\) \\)");
+
+  private static Map<String, ? extends Property> AVAILABLE_VERIFICATION_PROPERTIES =
       Maps.uniqueIndex(EnumSet.allOf(CommonPropertyType.class), Property::toString);
+
+  private static Map<String, ? extends Property> AVAILABLE_COVERAGE_PROPERTIES =
+      Maps.uniqueIndex(EnumSet.allOf(CommonCoverageType.class), Property::toString);
 
   public PropertyFileParser(final Path pPropertyFile) {
     propertyFile = pPropertyFile;
@@ -92,9 +102,19 @@ public class PropertyFileParser {
   private Property parsePropertyLine(String rawProperty) throws InvalidPropertyFileException {
     Matcher matcher = PROPERTY_PATTERN.matcher(rawProperty);
 
-    if (rawProperty == null || !matcher.matches() || matcher.groupCount() != 2) {
-      throw new InvalidPropertyFileException(
-          String.format("The property '%s' is not well-formed!", rawProperty));
+    if (rawProperty == null) {
+      throw new InvalidPropertyFileException(String.format("The property is not well-formed!"));
+    }
+
+    Map<String, ? extends Property> propStringToProperty = AVAILABLE_VERIFICATION_PROPERTIES;
+
+    if (!matcher.matches() || matcher.groupCount() != 2) {
+      matcher = COVERAGE_PATTERN.matcher(rawProperty);
+      if (!matcher.matches() || matcher.groupCount() != 2) {
+        throw new InvalidPropertyFileException(
+            String.format("The property '%s' is not well-formed!", rawProperty));
+      }
+      propStringToProperty = AVAILABLE_COVERAGE_PROPERTIES;
     }
 
     if (entryFunction == null) {
@@ -105,8 +125,8 @@ public class PropertyFileParser {
     }
 
     String rawLtlProperty = matcher.group(2);
-    Property property = AVAILABLE_PROPERTIES.get(rawLtlProperty);
-    if (property == null) {
+    Property property = propStringToProperty.get(rawLtlProperty);
+    if (property == null && propStringToProperty == AVAILABLE_VERIFICATION_PROPERTIES) {
       try {
         property = LtlParser.parseProperty(rawLtlProperty);
       } catch (LtlParseException e) {

@@ -36,7 +36,6 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -48,6 +47,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Queues;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.util.ArrayDeque;
@@ -71,8 +71,8 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import javax.xml.parsers.ParserConfigurationException;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
@@ -291,7 +291,7 @@ class WitnessWriter implements EdgeAppender {
   private final ExpressionTreeFactory<Object> factory;
   private final Simplifier<Object> simplifier;
 
-  private final Multimap<String, NodeFlag> nodeFlags = LinkedHashMultimap.create();
+  private final SetMultimap<String, NodeFlag> nodeFlags = LinkedHashMultimap.create();
   private final Multimap<String, Property> violatedProperties = HashMultimap.create();
   private final Map<DelayedAssignmentsKey, CFAEdgeWithAssumptions> delayedAssignments = Maps.newHashMap();
 
@@ -636,7 +636,7 @@ class WitnessWriter implements EdgeAppender {
           cfaEdgeWithAssignments = currentEdgeWithAssignments;
 
         } else {
-          Builder<AExpressionStatement> allAssignments = ImmutableList.builder();
+          ImmutableList.Builder<AExpressionStatement> allAssignments = ImmutableList.builder();
           allAssignments.addAll(cfaEdgeWithAssignments.getExpStmts());
           allAssignments.addAll(currentEdgeWithAssignments.getExpStmts());
           cfaEdgeWithAssignments =

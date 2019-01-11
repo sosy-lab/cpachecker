@@ -54,7 +54,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -506,7 +506,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       singleConfigBuilder.loadFromFile(singleConfigFileName);
 
       Configuration singleConfig = singleConfigBuilder.build();
-
+      NestingAlgorithm.checkConfigs(globalConfig, singleConfig, singleConfigFileName, logger);
       return singleConfig;
 
     } catch (IOException | InvalidConfigurationException e) {
@@ -556,7 +556,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       return (status.isPrecise() && from(reached).anyMatch(AbstractStates::isTargetState))
-          || (status.isSound()
+          || ((status.isSound() || !status.wasPropertyChecked())
               && !reached.hasWaitingState()
               && !from(reached)
                   .anyMatch(or(AbstractStates::hasAssumptions, AbstractStates::isTargetState)));

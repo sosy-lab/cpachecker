@@ -35,7 +35,9 @@ import com.google.common.collect.Maps;
 import com.google.common.io.CharSource;
 import com.google.common.io.CharStreams;
 import com.google.common.io.MoreFiles;
+import com.google.common.truth.Fact;
 import com.google.common.truth.FailureMetadata;
+import com.google.common.truth.StringSubject;
 import com.google.common.truth.Subject;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
@@ -197,9 +199,9 @@ public class AutomatonInternalTest {
     final String pattern = "$20 = $5($1, $?);";
     final String source = "var1 = function(var2, egal);";
 
-    assert_().about(astMatcher).that(pattern).matches(source).withVariableValue(20, "var1");
-    assert_().about(astMatcher).that(pattern).matches(source).withVariableValue(1, "var2");
-    assert_().about(astMatcher).that(pattern).matches(source).withVariableValue(5, "function");
+    assert_().about(astMatcher).that(pattern).matches(source).andVariable(20).isEqualTo("var1");
+    assert_().about(astMatcher).that(pattern).matches(source).andVariable(1).isEqualTo("var2");
+    assert_().about(astMatcher).that(pattern).matches(source).andVariable(5).isEqualTo("function");
   }
 
   @Test
@@ -312,7 +314,7 @@ public class AutomatonInternalTest {
     assert_().about(astMatcher).that("f();").doesNotMatch("f(x, y);");
 
     assert_().about(astMatcher).that("f($1);").doesNotMatch("f();");
-    assert_().about(astMatcher).that("f($1);").matches("f(x);").withVariableValue(1, "x");
+    assert_().about(astMatcher).that("f($1);").matches("f(x);").andVariable(1).isEqualTo("x");
     assert_().about(astMatcher).that("f($1);").doesNotMatch("f(x, y);");
 
     assert_().about(astMatcher).that("f($?);").matches("f();");
@@ -328,11 +330,11 @@ public class AutomatonInternalTest {
   public void testAstMatcherFunctionCall() {
     assert_().about(astMatcher).that("$?();").matches("f();");
     assert_().about(astMatcher).that("$?();").doesNotMatch("x = f();");
-    assert_().about(astMatcher).that("$1();").matches("f();").withVariableValue(1, "f");
+    assert_().about(astMatcher).that("$1();").matches("f();").andVariable(1).isEqualTo("f");
 
     assert_().about(astMatcher).that("x = $?();").doesNotMatch("f();");
     assert_().about(astMatcher).that("x = $?();").matches("x = f();");
-    assert_().about(astMatcher).that("x = $1();").matches("x = f();").withVariableValue(1, "f");
+    assert_().about(astMatcher).that("x = $1();").matches("x = f();").andVariable(1).isEqualTo("f");
 
     assert_().about(astMatcher).that("$?($?);").matches("f();");
     assert_().about(astMatcher).that("$?($?);").matches("f(y);");
@@ -349,7 +351,7 @@ public class AutomatonInternalTest {
       new Subject.Factory<ASTMatcherSubject, String>() {
         @Override
         public ASTMatcherSubject createSubject(FailureMetadata pMd, String pThat) {
-          return new ASTMatcherSubject(pMd, pThat).named("AST matcher pattern");
+          return new ASTMatcherSubject(pMd, pThat);
         }
       };
 
@@ -369,7 +371,11 @@ public class AutomatonInternalTest {
     private boolean matches0(String src) throws InvalidAutomatonException {
       CAstNode sourceAST;
       ASTMatcher matcher;
-      sourceAST = CParserUtils.parseSingleStatement(src, parser, CProgramScope.empty());
+      try {
+        sourceAST = CParserUtils.parseSingleStatement(src, parser, CProgramScope.empty());
+      } catch (InvalidAutomatonException e) {
+        throw new RuntimeException("Cannot parse source code for test", e);
+      }
       matcher = AutomatonASTComparator.generatePatternAST(actual(), parser, CProgramScope.empty());
 
       return matcher.matches(sourceAST, args);
@@ -380,39 +386,36 @@ public class AutomatonInternalTest {
       try {
         matches = matches0(src);
       } catch (InvalidAutomatonException e) {
-        failWithRawMessageAndCause("Cannot parse source or pattern", e);
+        failWithoutActual(
+            Fact.simpleFact("expected to be a valid pattern"),
+            Fact.fact("but was", actual()),
+            Fact.fact("which cannot be parsed", e));
         return new Matches() {
-              @Override
-              public void withVariableValue(int pVar, String pValue) {
-                ASTMatcherSubject.this.fail("Cannot test value of variable with failed parsing.");
-              }
-            };
+          @Override
+          public StringSubject andVariable(int pVar) {
+            // Cannot test value of variable with failed parsing.
+            return ASTMatcherSubject.this.ignoreCheck().that("");
+          }
+        };
       }
 
       if (!matches) {
-        fail("matches", src);
+        failWithActual(Fact.fact("expected to match", src));
         return new Matches() {
-            @Override
-            public void withVariableValue(int pVar, String pValue) {
-              ASTMatcherSubject.this.fail("Cannot test value of variable if pattern does not match.");
-            }
-          };
+          @Override
+          public StringSubject andVariable(int pVar) {
+            // Cannot test value of variable if pattern does not match.
+            return ASTMatcherSubject.this.ignoreCheck().that("");
+          }
+        };
       }
       return new Matches() {
         @Override
-        public void withVariableValue(int pVar, String pExpectedValue) {
-          if (!args.getTransitionVariables().containsKey(pVar)) {
-            ASTMatcherSubject.this.failWithBadResults(
-                "has variable", pVar, "has variables", args.getTransitionVariables().keySet());
-          }
-          final String actualValue = args.getTransitionVariable(pVar).toASTString();
-          if (!actualValue.equals(pExpectedValue)) {
-            ASTMatcherSubject.this.failWithBadResults(
-                "matches <" + src + "> with value of variable $" + pVar + " being",
-                pExpectedValue,
-                "has value",
-                actualValue);
-          }
+        public StringSubject andVariable(int pVar) {
+          check("getTransitionVariables()").that(args.getTransitionVariables()).containsKey(pVar);
+          return ASTMatcherSubject.this
+              .check("transition variable $%s", pVar)
+              .that(args.getTransitionVariable(pVar).toASTString());
         }
       };
     }
@@ -420,15 +423,24 @@ public class AutomatonInternalTest {
     public void doesNotMatch(String src) {
       try {
         if (matches0(src)) {
-          fail("does not match", src);
+          if (args.getTransitionVariables().isEmpty()) {
+            failWithActual(Fact.fact("expected to not match", src));
+          } else {
+            failWithoutActual(Fact.fact("expected to not match", src),
+                Fact.fact("but was", actual()),
+                Fact.fact("with transition variables", args.getTransitionVariables()));
+          }
         }
       } catch (InvalidAutomatonException e) {
-        failWithRawMessageAndCause("Cannot parse source or pattern", e);
+        failWithoutActual(
+            Fact.simpleFact("expected to be a valid pattern"),
+            Fact.fact("but was", actual()),
+            Fact.fact("which cannot be parsed", e));
       }
     }
   }
 
   private static interface Matches {
-    void withVariableValue(int var, String value);
+    StringSubject andVariable(int var);
   }
 }

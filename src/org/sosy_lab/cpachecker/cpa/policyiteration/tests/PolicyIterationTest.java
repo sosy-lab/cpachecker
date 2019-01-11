@@ -1,5 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.tests;
 
+import static org.junit.Assume.assumeNoException;
+
 import com.google.common.collect.ImmutableMap;
 import java.nio.file.Paths;
 import java.util.Map;
@@ -223,7 +225,13 @@ public class PolicyIterationTest {
   private void check(String filename, Configuration config) throws Exception {
     String fullPath = Paths.get(TEST_DIR_PATH, filename).toString();
 
-    TestResults results = CPATestRunner.run(config, fullPath);
+    TestResults results;
+    try {
+      results = CPATestRunner.run(config, fullPath);
+    } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
+      assumeNoException("missing binary dependency for old apron binary", e);
+      throw new AssertionError(e);
+    }
     if (filename.contains("_true_assert") || filename.contains("_true-unreach")) {
       results.assertIsSafe();
     } else if (filename.contains("_false_assert") || filename.contains("_false-unreach")) {

@@ -183,7 +183,7 @@ class ASTLiteralConverter {
       cFloat = new CFloatNative(pValueStr, CFloatNativeAPI.FP_TYPE_DOUBLE);
     }
 
-    if (cFloat.toString().equals("inf") || cFloat.toString().equals("-inf")) {
+    if (cFloat.isInfinity()) {
       return new CFloatLiteralExpression(pFileLoc, pType, adjustPrecision(cFloat, pType, pExp));
     }
 
@@ -209,17 +209,13 @@ class ASTLiteralConverter {
     CBasicType basicType = ((CSimpleType) pType).getType();
     switch (basicType) {
       case FLOAT:
-        if (pCFloat.toString().equals("inf")) {
-          return APPROX_INFINITY;
-        } else if (pCFloat.toString().equals("-inf")) {
-          return APPROX_INFINITY.negate();
-        }
-        break;
       case DOUBLE:
-        if (pCFloat.toString().equals("inf")) {
-          return APPROX_INFINITY;
-        } else if (pCFloat.toString().equals("-inf")) {
-          return APPROX_INFINITY.negate();
+        if (pCFloat.isInfinity()) {
+          if (pCFloat.isNegative()) {
+            return APPROX_INFINITY.negate();
+          } else {
+            return APPROX_INFINITY;
+          }
         }
         break;
       default:

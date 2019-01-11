@@ -1,0 +1,6 @@
+format_version: "1.0"
+input_files: "class_test_true_1.c"
+properties:
+  - property_file: "../../../config/automata/ldv/class.spc"
+    expected_verdict: true
+

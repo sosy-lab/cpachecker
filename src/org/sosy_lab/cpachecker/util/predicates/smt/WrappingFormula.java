@@ -25,13 +25,14 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.errorprone.annotations.Immutable;
 import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-
+@Immutable
 abstract class WrappingFormula<TWrap extends Formula, TOut extends Formula> {
 
   private final TWrap wrapped;
@@ -74,27 +75,28 @@ abstract class WrappingFormula<TWrap extends Formula, TOut extends Formula> {
         && type.equals(other.type);
   }
 
+  @Immutable
   static final class WrappingBitvectorFormula<TWrap extends Formula>
-      extends WrappingFormula<TWrap, BitvectorFormula>
-      implements BitvectorFormula {
+      extends WrappingFormula<TWrap, BitvectorFormula> implements BitvectorFormula {
 
     WrappingBitvectorFormula(FormulaType<BitvectorFormula> type, TWrap pToWrap) {
       super(type, pToWrap);
     }
   }
 
+  @Immutable
   static final class WrappingFloatingPointFormula<TWrap extends Formula>
-      extends WrappingFormula<TWrap, FloatingPointFormula>
-      implements FloatingPointFormula {
+      extends WrappingFormula<TWrap, FloatingPointFormula> implements FloatingPointFormula {
 
     WrappingFloatingPointFormula(FormulaType<FloatingPointFormula> type, TWrap pToWrap) {
       super(type, pToWrap);
     }
   }
 
-  static final class WrappingArrayFormula<TWrap extends Formula, TI extends Formula, TE extends Formula>
-      extends WrappingFormula<TWrap, ArrayFormula<TI, TE>>
-      implements ArrayFormula<TI, TE> {
+  @Immutable
+  static final class WrappingArrayFormula<
+          TWrap extends Formula, TI extends Formula, TE extends Formula>
+      extends WrappingFormula<TWrap, ArrayFormula<TI, TE>> implements ArrayFormula<TI, TE> {
 
     WrappingArrayFormula(FormulaType<ArrayFormula<TI, TE>> type, TWrap pToWrap) {
       super(type, pToWrap);

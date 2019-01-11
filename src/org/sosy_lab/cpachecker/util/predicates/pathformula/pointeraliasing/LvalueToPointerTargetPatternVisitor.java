@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import javax.annotation.Nullable;
+import java.util.OptionalLong;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -97,7 +98,7 @@ class LvalueToPointerTargetPatternVisitor
           final Integer offset = tryEvaluateExpression(operand2);
           final Long oldOffset = result.getProperOffset();
           if (offset != null && oldOffset != null && offset < oldOffset) {
-            result.setProperOffset(oldOffset - offset * typeHandler.getBitsPerByte());
+                result.setProperOffset(oldOffset - offset);
           } else {
             result.retainBase();
           }
@@ -208,7 +209,7 @@ class LvalueToPointerTargetPatternVisitor
       result.shift(containerType);
       final Integer index = tryEvaluateExpression(e.getSubscriptExpression());
       if (index != null) {
-        result.setProperOffset(index * typeHandler.getBitSizeof(elementType));
+        result.setProperOffset(index * typeHandler.getSizeof(elementType));
       }
       return result;
     } else {
@@ -232,8 +233,13 @@ class LvalueToPointerTargetPatternVisitor
       final CType containerType = typeHandler.getSimplifiedType(ownerExpression);
       if (containerType instanceof CCompositeType) {
         assert  ((CCompositeType) containerType).getKind() != ComplexTypeKind.ENUM : "Enums are not composites!";
-        result.shift(
-            containerType, typeHandler.getBitOffset((CCompositeType) containerType, e.getFieldName()));
+
+        final OptionalLong offset =
+            typeHandler.getOffset((CCompositeType) containerType, e.getFieldName());
+        if (!offset.isPresent()) {
+          return null; // TODO this looses values of bit fields
+        }
+        result.shift(containerType, offset.getAsLong());
         return result;
       } else {
         throw new UnrecognizedCodeException(

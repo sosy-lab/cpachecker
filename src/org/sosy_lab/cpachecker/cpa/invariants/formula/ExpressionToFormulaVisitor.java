@@ -275,7 +275,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
 
   private NumeralFormula<CompoundInterval> getPointerTargetSizeLiteral(
       final CPointerType pointerType, final CType implicitType) {
-    final int pointerTargetSize = machineModel.getSizeof(pointerType.getType());
+    final BigInteger pointerTargetSize = machineModel.getSizeof(pointerType.getType());
     return asConstant(implicitType, pointerTargetSize);
   }
 
@@ -791,8 +791,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
   private static CExpression makeCastFromArrayToPointer(CExpression pArrayExpression) {
     // array-to-pointer conversion
     CArrayType arrayType = (CArrayType) pArrayExpression.getExpressionType().getCanonicalType();
-    CPointerType pointerType =
-        new CPointerType(arrayType.isConst(), arrayType.isVolatile(), arrayType.getType());
+    CPointerType pointerType = arrayType.asPointerType();
 
     return new CUnaryExpression(
         pArrayExpression.getFileLocation(), pointerType, pArrayExpression, UnaryOperator.AMPER);

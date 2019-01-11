@@ -6,7 +6,7 @@
   <option name="-heap">2000M</option>
 
   <rundefinition>
-    <option name="-config">config/components/kInduction/pdr.properties</option>
+    <option name="-config">config/unmaintained/components/kInduction/pdr.properties</option>
     <option name="-setprop">pdr.abstractionStrategy=ALLSAT_BASED_PREDICATE_ABSTRACTION</option>
     <option name="-setprop">pdr.liftingStrategy=ABSTRACTION_BASED_LIFTING</option>
     <option name="-setprop">pdr.invariantRefinementStrategy=UNSAT_CORE_BASED_STRENGTHENING</option>
@@ -30,7 +30,7 @@
     <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_13_false-unreach-call_false-termination.cil.c</exclude>
     <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_1a_true-unreach-call_false-termination.cil.c</exclude>
 
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
@@ -42,7 +42,7 @@
     <exclude>../programs/benchmarks/list-properties/*_false-unreach-call*.i</exclude>
     <exclude>../programs/benchmarks/list-properties/*_true-unreach-call*.i</exclude>
 
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
@@ -57,7 +57,7 @@
     <exclude>../programs/benchmarks/loop-invgen/id_build_true-unreach-call_true-termination.i</exclude>
     <exclude>../programs/benchmarks/loop-lit/cggmp2005_true-unreach-call_true-termination.c.i</exclude>
 
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
@@ -78,18 +78,19 @@
     <!-- Instable: sometimes timeout, sometimes not -->
     <exclude>../programs/benchmarks/systemc/pc_sfifo_3_true-unreach-call_false-termination.cil.c</exclude>
 
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
 
   <tasks>
-    <includesfile>integration-DeviceDriversLinux64.set</includesfile>
+    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+    <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
 
     <!-- Instable: sometimes timeout, sometimes not -->
     <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-net-ppp_generic.ko_false-unreach-call.cil.out.i.pp.i</exclude>
 
-    <propertyfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-skipRecursion"/>
     <option name="-64"/>
     <!-- SV-Comp files assume that malloc always succeeds -->

@@ -119,7 +119,7 @@ public class PresisionParser {
 
   private boolean shouldBeSkipped(List<String> set) {
     // Return identifier, it's not interesting for us
-    return set.get(0).equalsIgnoreCase("r");
+    return set.get(0).equalsIgnoreCase("r") || set.get(0).equalsIgnoreCase("func");
   }
 
   private void putIntoMap(

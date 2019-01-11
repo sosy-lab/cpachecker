@@ -116,6 +116,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
     argCpa = (ARGCPA)pCpa;
     stop = argCpa.getStopOperator();
 
+    @SuppressWarnings("resource")
     PredicateCPA predicateCpa =
         CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, PredicateForcedCovering.class);
     imgr = new InterpolationManager(

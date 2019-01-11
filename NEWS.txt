@@ -1,3 +1,50 @@
+Changes from CPAchecker 1.7 to CPAchecker 1.8
+---------------------------------------------
+* Support for Algorithm Selection
+  CPAchecker can now analyze the given program
+  and select an appropriate configuration depending on program features
+  such as whether loops are contained and which data types are used.
+
+* Improved Witness Export and Validation
+  The termination analysis has been enhanced to produce a violation witness,
+  when it detects that a program does not always terminate. Moreover, the
+  witness validator has been updated to support the validation of violation
+  witnesses for termination.
+
+* Execution-based Witness Validation and Harness Generation
+  A new, execution-based witness validation has been added to CPAchecker,
+  called CPA-witness2test (CPA-w2t). It can be used to create executable
+  tests from a given violation witness.
+  See the help dialog of `scripts/cpa_witness2test.py` for more information.
+  As an addition, CPAchecker can also be directly used to create
+  compilable test harnesses for found property violations
+  using configuration option `counterexample.export.exportHarness = true`.
+
+* Reducers
+  The cooperation of CPAchecker with other verifiers has been extended.
+  To sequentially combine CPAchecker with another verifier via conditional
+  model checking, the other verifier no longer needs to understand CPAchecker's
+  condition format. Instead, one can use one of the reducers implemented in CPAchecker
+  as preprocessor for the other verifier and let the reducer transform the
+  condition into a residual program (C code).
+  (cf. "Reducer-Based Construction of Conditional Verifiers".
+  Dirk Beyer, Marie-Christine Jakobs, Thomas Lemberger, Heike Wehrheim.
+  In Proc. ICSE, ACM, 2018).
+
+* Block Abstraction memoization for multi-core machines
+  BAM combined with, e.g., Value Analysis or Interval Analysis
+  can analyze a task in parallel and thus benefit from a multi-core machine
+  (cf. "Domain-Independent Multi-threaded Software Model Checking".
+  Dirk Beyer, Karlheinz Friedberger. In Proc. ASE, ACM, 2018).
+
+* Analyses based on Slicing Abstractions
+  CPAchecker now supports two variants of abstraction slicing.
+  The first represents the program counter symbolically (cf. "Slicing Abstractions",
+  Brueckner, Draeger, Finkbeiner, Wehrheim, Fundamenta Informaticae, 2008). The
+  second (cf. "Splitting via Interpolants", Ermis, Hoenicke, Podelski, VMCAI, 2012)
+  treats the program counter explicitly.
+
+
 Changes from CPAchecker 1.6.1 to CPAchecker 1.7
 -----------------------------------------------
 * CPAchecker requires Java 8.
@@ -82,7 +129,7 @@ Changes from CPAchecker 1.4 to CPAchecker 1.6
 * Witness Export and Validation
   After an analysis, CPAchecker exports witnesses
   that contain information about found counterexamples or correctness-proofs.
-  The format of the witnesses is standardized and 
+  The format of the witnesses is standardized and
   a description is available at
   https://sv-comp.sosy-lab.org/2016/witnesses
 

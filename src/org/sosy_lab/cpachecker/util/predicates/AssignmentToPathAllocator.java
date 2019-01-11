@@ -33,7 +33,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.math.IntMath;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -666,111 +665,6 @@ public class AssignmentToPathAllocator {
     }
 
     return result;
-  }
-
-  /**
-   * Search through an (ordered) list of SSAMaps
-   * for the first index where a given variable appears.
-   * @return -1 if the variable with the given SSA-index never occurs, or an index of pSsaMaps
-   */
-  @Deprecated // we cannot guarantee ordering
-  int findFirstOccurrenceOfVariable(ValueAssignment pVar, List<SSAMap> pSsaMaps) {
-
-    // both indices are inclusive bounds of the range where we still need to look
-    int lower = 0;
-    int upper = pSsaMaps.size() - 1;
-
-    int result = -1;
-    String canonicalName = getName(pVar);
-    int varSSAIdx = getSSAIndex(pVar);
-
-    /*Due to the new way to handle aliases, assignable terms of variables
-    may be replaced with UIFs in the SSAMap. If this is the case, modify upper
-    by looking for the variable in the other maps*/
-    if (pSsaMaps.size() <= 0) {
-      return result;
-    } else {
-
-      while (upper >= 0 &&
-          !pSsaMaps.get(upper).containsVariable(canonicalName)) {
-        upper--;
-      }
-
-      if (upper < 0) {
-        return result;
-      }
-    }
-
-    // do binary search
-    while (true) {
-      if (upper-lower <= 0) {
-
-        if (upper - lower == 0) {
-          int ssaIndex = pSsaMaps.get(upper).getIndex(canonicalName);
-
-          if (ssaIndex == varSSAIdx) {
-            result = upper;
-          }
-        }
-
-        return result;
-      }
-
-      int index = IntMath.mean(lower, upper);
-      int ssaIndex = pSsaMaps.get(index).getIndex(canonicalName);
-
-      if (ssaIndex < varSSAIdx) {
-        lower = index + 1;
-      } else if (ssaIndex > varSSAIdx) {
-        upper = index - 1;
-      } else {
-        // found a matching SSAMap,
-        // but we keep looking whether there is another one with a smaller index
-        assert result == -1 || result > index;
-        result = index;
-        upper = index - 1;
-      }
-    }
-  }
-
-  @Deprecated // we cannot guarantee ordering
-  int findFirstOccurrenceOfVariableFunction(ValueAssignment pTerm, List<SSAMap> pSsaMaps) {
-
-    int lower = 0;
-    int upper = pSsaMaps.size() - 1;
-
-    int result = -1;
-
-    // do binary search
-    while (true) {
-      if (upper-lower <= 0) {
-
-        if (upper - lower == 0) {
-          int ssaIndex = pSsaMaps.get(upper).getIndex(getName(pTerm));
-
-          if (ssaIndex == getSSAIndex(pTerm)) {
-            result = upper;
-          }
-        }
-
-        return result;
-      }
-
-      int index = IntMath.mean(lower, upper);
-      int ssaIndex = pSsaMaps.get(index).getIndex(getName(pTerm));
-
-      if (ssaIndex < getSSAIndex(pTerm)) {
-        lower = index + 1;
-      } else if (ssaIndex > getSSAIndex(pTerm)) {
-        upper = index - 1;
-      } else {
-        // found a matching SSAMap,
-        // but we keep looking whether there is another one with a smaller index
-        assert result == -1 || result > index;
-        result = index;
-        upper = index - 1;
-      }
-    }
   }
 
   private static final class AssignableTermsInPath {

@@ -31,7 +31,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.java_smt.api.BooleanFormula;

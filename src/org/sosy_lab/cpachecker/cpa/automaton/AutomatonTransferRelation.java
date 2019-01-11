@@ -43,6 +43,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
@@ -52,9 +53,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState.AutomatonUnknownState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
@@ -64,10 +65,11 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
-/** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState}
- * and strengthens an {@link AutomatonState.AutomatonUnknownState}.
+/**
+ * The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState} and
+ * strengthens an {@link AutomatonState.AutomatonUnknownState}.
  */
-class AutomatonTransferRelation extends SingleEdgeTransferRelation {
+class AutomatonTransferRelation implements TransferRelation {
 
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
@@ -111,6 +113,13 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
         getAbstractSuccessors0((AutomatonState) pElement, pCfaEdge, pPrecision);
     automatonSuccessors.setNextValue(result.size());
     return result;
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState pState, Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+    return Collections.singleton(((AutomatonState) pState).getAutomatonCPA().getTopState());
   }
 
   private Collection<AutomatonState> getAbstractSuccessors0(
@@ -399,12 +408,12 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException {
-    Collection<List<AbstractState>> strengtheningCombinations = new HashSet<>();
+    Set<List<AbstractState>> strengtheningCombinations = new HashSet<>();
     strengtheningCombinations.add(pOtherElements);
     boolean changed = from(pOtherElements).anyMatch(instanceOf(AutomatonUnknownState.class));
     while (changed) {
       changed = false;
-      Collection<List<AbstractState>> newCombinations = new HashSet<>();
+      Set<List<AbstractState>> newCombinations = new HashSet<>();
       for (List<AbstractState> otherStates : strengtheningCombinations) {
         Collection<List<AbstractState>> newPartialCombinations = new ArrayList<>();
         newPartialCombinations.add(new ArrayList<>());

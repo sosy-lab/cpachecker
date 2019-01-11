@@ -1327,7 +1327,7 @@ public class CFABuilder {
           (CLeftHandSide) getAssignedIdExpression(pAssignee, expectedType, pFileName);
 
       CType varType = assigneeIdExp.getExpressionType();
-      if (!(varType.equals(expectedType))) {
+      if (!varType.equals(expectedType)) {
         assert expectedType instanceof CPointerType;
         assigneeIdExp =
             new CPointerExpression(getLocation(pAssignee, pFileName), varType, assigneeIdExp);

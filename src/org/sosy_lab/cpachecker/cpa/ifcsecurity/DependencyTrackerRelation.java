@@ -358,7 +358,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
             if(lset.mayPointTo(MemoryLocation.valueOf(var2.toString()))){
               SortedSet<Variable> varset1 = trackerState.getDependencies().get(var);
               SortedSet<Variable> varset2 = trackerState.getDependencies().get(var2);
-              if(!(varset1.equals(varset2))){
+              if (!varset1.equals(varset2)) {
                 SortedSet<Variable> newvarset1=new TreeSet<>(varset2);
                 trackerState.getDependencies().put(var, newvarset1);
               }

@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
@@ -61,17 +62,13 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
- * This class evaluates expressions that evaluate to a
- * pointer type. The type of every expression visited by this
- * visitor has to be a {@link CPointerType }. The result
- * of this evaluation is a {@link SMGAddressValue}.
- * The object and the offset of the result represent
- * the address this pointer points to. The value represents
- * the value of the address itself. Note that the offset of
- * pointer addresses that point to the null object represent
- * also the explicit value of the pointer.
+ * This class evaluates expressions that evaluate to a pointer type. The type of every expression
+ * visited by this visitor has to be a {@link CPointerType }. The result of this evaluation is a
+ * {@link SMGAddressValue}. The object and the offset of the result represent the address this
+ * pointer points to. The value represents the value of the address itself. Note that the offset of
+ * pointer addresses that point to the null object represent also the explicit value of the pointer.
  */
-public class PointerVisitor extends ExpressionValueVisitor {
+class PointerVisitor extends ExpressionValueVisitor {
 
   public PointerVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
     super(pSmgExpressionEvaluator, pEdge, pSmgState);
@@ -272,9 +269,9 @@ public class PointerVisitor extends ExpressionValueVisitor {
     CExpression lVarInBinaryExp = binaryExp.getOperand1();
     CExpression rVarInBinaryExp = binaryExp.getOperand2();
     CType lVarInBinaryExpType =
-        TypeUtils.convertArrayToPointerType(TypeUtils.getRealExpressionType(lVarInBinaryExp));
+        CTypes.adjustFunctionOrArrayType(TypeUtils.getRealExpressionType(lVarInBinaryExp));
     CType rVarInBinaryExpType =
-        TypeUtils.convertArrayToPointerType(TypeUtils.getRealExpressionType(rVarInBinaryExp));
+        CTypes.adjustFunctionOrArrayType(TypeUtils.getRealExpressionType(rVarInBinaryExp));
 
     boolean lVarIsAddress = lVarInBinaryExpType instanceof CPointerType;
     boolean rVarIsAddress = rVarInBinaryExpType instanceof CPointerType;

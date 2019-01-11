@@ -160,7 +160,7 @@ public class UnsafeDetector {
 
 
   private boolean isRace(UsagePoint point1, UsagePoint point2) {
-    if (point1.access == Access.WRITE || point2.access == Access.WRITE) {
+    if (point1.getAccess() == Access.WRITE || point2.getAccess() == Access.WRITE) {
       if (ignoreEmptyLockset && point1.isEmpty() && point2.isEmpty()) {
         return false;
       }
@@ -172,8 +172,8 @@ public class UnsafeDetector {
   private boolean isDeadlockDispatch(UsagePoint point1, UsagePoint point2) {
     Preconditions.checkNotNull(intLockName);
     LockIdentifier intLock = LockIdentifier.of(intLockName);
-    DeadLockTreeNode node1 = (DeadLockTreeNode) point1.get(DeadLockTreeNode.class);
-    DeadLockTreeNode node2 = (DeadLockTreeNode) point2.get(DeadLockTreeNode.class);
+    DeadLockTreeNode node1 = point1.get(DeadLockTreeNode.class);
+    DeadLockTreeNode node2 = point2.get(DeadLockTreeNode.class);
 
     if (node2.contains(intLock) && !node1.contains(intLock)) {
       for (LockIdentifier lock1 : node1) {
@@ -190,8 +190,8 @@ public class UnsafeDetector {
 
   private boolean isDeadlockCircular(UsagePoint point1, UsagePoint point2) {
     //Deadlocks
-    DeadLockTreeNode node1 = (DeadLockTreeNode) point1.get(DeadLockTreeNode.class);
-    DeadLockTreeNode node2 = (DeadLockTreeNode) point2.get(DeadLockTreeNode.class);
+    DeadLockTreeNode node1 = point1.get(DeadLockTreeNode.class);
+    DeadLockTreeNode node2 = point2.get(DeadLockTreeNode.class);
 
     for (LockIdentifier lock1 : node1) {
       for (LockIdentifier lock2 : node2) {

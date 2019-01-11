@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -264,8 +265,13 @@ public class ControlAutomatonCPA
 
   @Override
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    return pSuccessors.equals(getTransferRelation().getAbstractSuccessorsForEdge(
-        pElement, SingletonPrecision.getInstance(), pCfaEdge));
+    ImmutableSet<? extends AbstractState> successors = ImmutableSet.copyOf(pSuccessors);
+    ImmutableSet<? extends AbstractState> actualSuccessors =
+        ImmutableSet.copyOf(
+            getTransferRelation()
+                .getAbstractSuccessorsForEdge(
+                    pElement, SingletonPrecision.getInstance(), pCfaEdge));
+    return successors.equals(actualSuccessors);
   }
 
   boolean isTreatingErrorsAsTargets() {

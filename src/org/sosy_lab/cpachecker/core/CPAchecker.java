@@ -50,7 +50,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.zip.GZIPInputStream;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownManager;
@@ -133,13 +133,6 @@ public class CPAchecker {
     description = "stop after the first error has been found"
   )
   private boolean stopAfterError = true;
-
-  @Option(
-    secure = true,
-    name = "analysis.disable",
-    description = "stop CPAchecker after startup (internal option, not intended for users)"
-  )
-  private boolean disableAnalysis = false;
 
   public static enum InitialStatesFor {
     /**
@@ -369,35 +362,34 @@ public class CPAchecker {
 
       stats.creationTime.stop();
       shutdownNotifier.shutdownIfNecessary();
-      // now everything necessary has been instantiated
 
-      if (disableAnalysis) {
-        return new CPAcheckerResult(
-            Result.NOT_YET_STARTED, violatedPropertyDescription, null, cfa, stats);
-      }
+      // now everything necessary has been instantiated: run analysis
 
-      // run analysis
       result = Result.UNKNOWN; // set to unknown so that the result is correct in case of exception
 
       AlgorithmStatus status = runAlgorithm(algorithm, reached, stats);
 
-      stats.resultAnalysisTime.start();
-      Collection<Property> violatedProperties = reached.getViolatedProperties();
-      if (!violatedProperties.isEmpty()) {
-        violatedPropertyDescription = Joiner.on(", ").join(violatedProperties);
+      if (status.wasPropertyChecked()) {
+        stats.resultAnalysisTime.start();
+        Collection<Property> violatedProperties = reached.getViolatedProperties();
+        if (!violatedProperties.isEmpty()) {
+          violatedPropertyDescription = Joiner.on(", ").join(violatedProperties);
 
-        if (!status.isPrecise()) {
-          result = Result.UNKNOWN;
+          if (!status.isPrecise()) {
+            result = Result.UNKNOWN;
+          } else {
+            result = Result.FALSE;
+          }
         } else {
-          result = Result.FALSE;
+          result = analyzeResult(reached, status.isSound());
+          if (unknownAsTrue && result == Result.UNKNOWN) {
+            result = Result.TRUE;
+          }
         }
+        stats.resultAnalysisTime.stop();
       } else {
-        result = analyzeResult(reached, status.isSound());
-        if (unknownAsTrue && result == Result.UNKNOWN) {
-          result = Result.TRUE;
-        }
+        result = Result.DONE;
       }
-      stats.resultAnalysisTime.stop();
 
     } catch (IOException e) {
       logger.logUserException(Level.SEVERE, e, "Could not read file");
@@ -618,7 +610,7 @@ public class CPAchecker {
     }
 
     if (!pReached.hasWaitingState()
-        && !(initialStatesFor.equals(Collections.singleton(InitialStatesFor.TARGET)))) {
+        && !initialStatesFor.equals(Collections.singleton(InitialStatesFor.TARGET))) {
       throw new InvalidConfigurationException("Initialization of the set of initial states failed: No analysis target found!");
     } else {
       logger.logf(

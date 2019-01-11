@@ -26,8 +26,10 @@ package org.sosy_lab.cpachecker.core;
 import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.base.Preconditions;
+import java.nio.file.Path;
+import java.util.Optional;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -47,6 +49,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtra
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.InterleavedAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ProgramSplitAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
@@ -92,6 +95,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 @Options(prefix="analysis")
 public class CoreComponentsFactory {
+
+  @Option(
+      secure = true,
+      name = "disable",
+      description = "stop CPAchecker after startup (internal option, not intended for users)")
+  private boolean disableAnalysis = false;
 
   @Option(secure=true, description="use assumption collecting algorithm")
   private boolean collectAssumptions = false;
@@ -304,7 +313,8 @@ public class CoreComponentsFactory {
     // BMCAlgorithm needs to get a ShutdownManager that also affects the CPA it is used with.
     // We must not create such a new ShutdownManager if it is not needed,
     // because otherwise the GC will throw it away and shutdowns will NOT WORK!
-    return !useProofCheckAlgorithm
+    return !disableAnalysis
+        && !useProofCheckAlgorithm
         && !useProofCheckAlgorithmWithStoredConfig
         && !useRestartingAlgorithm
         && !useImpactAlgorithm
@@ -316,6 +326,10 @@ public class CoreComponentsFactory {
       final ConfigurableProgramAnalysis cpa, final CFA cfa, final Specification pSpecification)
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
+
+    if (disableAnalysis) {
+      return NoopAlgorithm.INSTANCE;
+    }
 
     // TerminationAlgorithm requires hard coded specification.
     Specification specification;
@@ -453,7 +467,8 @@ public class CoreComponentsFactory {
 
       if (useTestCaseGeneratorAlgorithm) {
         algorithm =
-            new TestCaseGeneratorAlgorithm(algorithm, cfa, config, cpa, logger, shutdownNotifier);
+            new TestCaseGeneratorAlgorithm(
+                algorithm, cfa, config, cpa, logger, shutdownNotifier, specification);
       }
 
       if (collectAssumptions) {
@@ -574,12 +589,23 @@ public class CoreComponentsFactory {
   private Specification loadTerminationSpecification(CFA cfa, Specification originalSpecification)
       throws InvalidConfigurationException {
     Preconditions.checkState(useTerminationAlgorithm);
+    boolean atMostWitness = true;
+
+    Optional<Path> witness = Optional.empty();
+    for (Path specFile : originalSpecification.getSpecFiles()) {
+      Path fileName = specFile.getFileName();
+      if (fileName != null && fileName.toString().endsWith(".graphml")) {
+        Preconditions.checkState(!witness.isPresent(), "More than one witness file.");
+        witness = Optional.of(specFile);
+      } else {
+        atMostWitness = false;
+      }
+    }
     Specification terminationSpecification =
         TerminationAlgorithm.loadTerminationSpecification(
-            originalSpecification.getProperties(), cfa, config, logger);
+            originalSpecification.getProperties(), witness, cfa, config, logger);
 
-    if (!originalSpecification.equals(Specification.alwaysSatisfied())
-        && !originalSpecification.equals(terminationSpecification)) {
+    if (!atMostWitness && !originalSpecification.equals(terminationSpecification)) {
       throw new InvalidConfigurationException(
           originalSpecification + "is not usable with termination analysis");
     }

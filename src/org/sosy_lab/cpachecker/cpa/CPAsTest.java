@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assert_;
-import static com.google.common.truth.TruthJUnit.assume;
+import static org.junit.Assume.assumeNoException;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.ClassPath;
@@ -77,6 +77,8 @@ import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.monitor.MonitorCPA;
 import org.sosy_lab.cpachecker.cpa.powerset.PowerSetCPA;
 import org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor.SingleSuccessorCompactorCPA;
+import org.sosy_lab.cpachecker.cpa.slab.SLABCPA;
+import org.sosy_lab.cpachecker.cpa.slab.SLABPredicateWrappingCPA;
 import org.sosy_lab.cpachecker.cpa.slicing.SlicingCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.cpa.usage.UsageCPA;
@@ -114,6 +116,8 @@ public class CPAsTest {
     cpas.remove(PowerSetCPA.class);
     cpas.remove(FlowDependenceCPA.class);
     cpas.remove(SlicingCPA.class);
+    cpas.remove(SLABCPA.class);
+    cpas.remove(SLABPredicateWrappingCPA.class);
 
     cpas.remove(ARGReplayCPA.class); // needs ARG to be replayed
     cpas.remove(ABECPA.class); // Shouldn't be used by itself.
@@ -191,7 +195,8 @@ public class CPAsTest {
               .set(new AggregatedReachedSets(), AggregatedReachedSets.class)
               .createInstance();
     } catch (LinkageError e) {
-      assume().fail(e.getMessage());
+      assumeNoException(e);
+      throw new AssertionError(e);
     }
   }
 
@@ -218,8 +223,8 @@ public class CPAsTest {
     try {
       joined = cpa.getAbstractDomain().join(initial, initial);
     } catch (UnsupportedOperationException e) {
-      assume().fail(e.getMessage());
-      return;
+      assumeNoException(e);
+      throw new AssertionError(e);
     }
     assertThat(joined).named("result of join").isNotNull();
     assert_()
@@ -267,8 +272,8 @@ public class CPAsTest {
     try {
       return cpa.getAbstractDomain().isLessOrEqual(s1, s2);
     } catch (UnsupportedOperationException e) {
-      assume().fail(e.getMessage());
-      return false;
+      assumeNoException(e);
+      throw new AssertionError(e);
     }
   }
 }

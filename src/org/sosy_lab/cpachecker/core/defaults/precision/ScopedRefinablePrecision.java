@@ -100,7 +100,7 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
 
   @Override
   public VariableTrackingPrecision join(VariableTrackingPrecision consolidatedPrecision) {
-    Preconditions.checkArgument((getClass().equals(consolidatedPrecision.getClass())));
+    Preconditions.checkArgument(getClass().equals(consolidatedPrecision.getClass()));
     checkArgument(
         super.getBaseline().equals(((ScopedRefinablePrecision) consolidatedPrecision).getBaseline()));
 

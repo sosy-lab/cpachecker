@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -57,13 +56,5 @@ public class TypeUtils {
 
   public static CType getRealExpressionType(CRightHandSide exp) {
     return getRealExpressionType(exp.getExpressionType());
-  }
-
-  public static CType convertArrayToPointerType(CType type) {
-    if (type instanceof CArrayType) {
-      CArrayType arrayType = (CArrayType) type;
-      return new CPointerType(arrayType.isConst(), arrayType.isVolatile(), arrayType.getType());
-    }
-    return type;
   }
 }

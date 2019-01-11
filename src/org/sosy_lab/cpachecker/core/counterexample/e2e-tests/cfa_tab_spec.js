@@ -14,9 +14,9 @@ describe('CFA testing', function () {
     browser.get(dirname);
     browser.driver.sleep(100);
 
-    describe('Diaplay CFA dropdown test', function () {
+    describe('Display CFA dropdown test', function () {
 
-        it('Diaplay CFA dropdown test-1', function () {
+        it('Display CFA dropdown test-1', function () {
             browser.wait(EC.presenceOf(element(by.id('set-tab-1'))))
             element(by.id('set-tab-1')).click();
             browser.wait(element(by.xpath('//*[@id="cfa-toolbar"]/nav/div[1]/select')));
@@ -27,7 +27,7 @@ describe('CFA testing', function () {
 
         })
 
-        it('Diaplay CFA dropdown test-2', function () {
+        it('Display CFA dropdown test-2', function () {
             element(by.id('set-tab-1')).click();
             element(by.xpath('//*[@id="cfa-toolbar"]/nav/div[1]/select')).click();
             element(by.xpath('//*[@id="cfa-toolbar"]/nav/div[1]/select/option[1]')).click();
@@ -39,7 +39,7 @@ describe('CFA testing', function () {
 
     describe('Hover over node', function () {
 
-        it('Diaplay popover dialoag box', function () {
+        it('Display popover dialoag box', function () {
             browser.wait(EC.presenceOf(element(by.xpath('//*[@id="cfa-node23"]'))));
             browser.actions().mouseMove(element(by.xpath('//*[@id="cfa-node23"]'))).perform();
             browser.wait(EC.presenceOf(element(by.xpath('//*[@id="infoBox"]'))));
@@ -61,7 +61,7 @@ describe('CFA testing', function () {
 
     describe('Double click on node select function', function () {
         //Double Click not working
-        it('Diaplay selected function CFA  graph', function () {
+        it('Display selected function CFA  graph', function () {
             //  element(by.id('set-tab-1')).click();
             // browser.actions().doubleClick(element(by.xpath('//*[@id="cfa-node100001"]'))).click();
             // expect(element(by.xpath('//*[@id="cfa-svg-main0"]')).isDisplayed()).toBeFalsy();

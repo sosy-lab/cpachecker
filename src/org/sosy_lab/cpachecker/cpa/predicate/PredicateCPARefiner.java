@@ -246,9 +246,10 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private BlockFormulas createFormulasOnPath(final ARGPath allStatesTrace,
                                                       final List<ARGState> abstractionStatesTrace)
                                                       throws CPAException, InterruptedException {
-    BlockFormulas formulas = (isRefinementSelectionEnabled())
-        ? performRefinementSelection(allStatesTrace, abstractionStatesTrace)
-        : getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirstState());
+    BlockFormulas formulas =
+        isRefinementSelectionEnabled()
+            ? performRefinementSelection(allStatesTrace, abstractionStatesTrace)
+            : getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirstState());
 
     // a user would expect "abstractionStatesTrace.size() == formulas.size()+1",
     // however we do not have the very first state in the trace,
@@ -266,8 +267,12 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
     try {
       final ImmutableList<CFANode> errorPath =
-          ImmutableList.copyOf(
-              Lists.transform(allStatesTrace.asStatesList(), AbstractStates.EXTRACT_LOCATION));
+              allStatesTrace
+                  .asStatesList()
+                  .stream()
+                  .map(AbstractStates.EXTRACT_LOCATION)
+                  .filter(x -> x != null)
+                  .collect(ImmutableList.toImmutableList());
       final boolean repeatedCounterexample = lastErrorPaths.contains(errorPath);
       lastErrorPaths.add(errorPath);
 

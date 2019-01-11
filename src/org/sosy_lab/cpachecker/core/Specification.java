@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.util.Property;
+import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
 
 /**
@@ -76,6 +77,9 @@ public final class Specification {
       LogManager logger)
       throws InvalidConfigurationException {
     if (Iterables.isEmpty(specFiles)) {
+      if (pProperties.stream().anyMatch(p -> p.getProperty() instanceof CommonCoverageType)) {
+        return new Specification(pProperties, ImmutableListMultimap.of());
+      }
       return Specification.alwaysSatisfied();
     }
 

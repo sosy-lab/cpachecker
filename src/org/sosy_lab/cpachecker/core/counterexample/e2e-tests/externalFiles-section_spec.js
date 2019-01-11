@@ -6,7 +6,7 @@ describe('External files section in Report.js', function () {
     browser.waitForAngularEnabled(false);
     browser.get(dirname);
     browser.driver.sleep(100);
-    it('toggle error path button test', function () {
+    it('Toggle error path button test', function () {
         //Hide on first click
         element(by.xpath('//*[@id="toggle_button_error_path"]/label')).click().then(function (value) {
             // fulfillment
@@ -21,6 +21,8 @@ describe('External files section in Report.js', function () {
         }, function (reason) {
             // rejection
         });
+        browser.refresh()
+        browser.driver.sleep(100);
     });
 
     it('Toggle error path button tooltip test', function () {
@@ -99,7 +101,7 @@ describe('External files section in Report.js', function () {
     });
     browser.driver.sleep(100);
 
-    it('COnfiguration tab click test', function () {
+    it('Configuration tab click test', function () {
         container = element(by.xpath('//*[@id="externalFiles_section"]/div[8]'));
         browser.wait(EC.presenceOf(element(by.id('set-tab-2'))))
         element(by.xpath('//*[@id="externalFiles_section"]/ul/li[8]/a')).click();

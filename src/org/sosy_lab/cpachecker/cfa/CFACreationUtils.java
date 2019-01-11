@@ -23,14 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
-
-import java.util.logging.Level;
 
 /**
  * Helper class that contains some complex operations that may be useful during
@@ -114,7 +113,7 @@ public class CFACreationUtils {
   public static boolean isReachableNode(CFANode node) {
     return (node.getNumEnteringEdges() > 0)
         || (node instanceof FunctionEntryNode)
-        || (node.isLoopStart())
+        || node.isLoopStart()
         || (node instanceof CLabelNode);
   }
 

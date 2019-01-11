@@ -943,7 +943,7 @@ public class SMGTransferRelation
   }
 
   @SuppressWarnings("deprecation") // replace with machineModel.getAllFieldOffsetsInBits
-  private Pair<Long, Integer> calculateOffsetAndPositionOfFieldFromDesignator(
+  private Pair<BigInteger, Integer> calculateOffsetAndPositionOfFieldFromDesignator(
       long offsetAtStartOfStruct,
       List<CCompositeTypeMemberDeclaration> pMemberTypes,
       CDesignatedInitializer pInitializer,
@@ -955,7 +955,7 @@ public class SMGTransferRelation
 
     String fieldDesignator = ((CFieldDesignator) pInitializer.getDesignators().get(0)).getFieldName();
 
-    long offset = offsetAtStartOfStruct;
+    BigInteger offset = BigInteger.valueOf(offsetAtStartOfStruct);
     int sizeOfByte = machineModel.getSizeofCharInBits();
     for (int listCounter = 0; listCounter < pMemberTypes.size(); listCounter++) {
 
@@ -965,26 +965,35 @@ public class SMGTransferRelation
         return Pair.of(offset, listCounter);
       } else {
         if (pLValueType.getKind() == ComplexTypeKind.STRUCT) {
-          int memberSize = machineModel.getSizeofInBits(memberDcl.getType());
+          BigInteger memberSize = machineModel.getSizeofInBits(memberDcl.getType());
           if (!(memberDcl.getType() instanceof CBitFieldType)) {
-            offset += memberSize;
-            long overByte = offset % machineModel.getSizeofCharInBits();
-            if (overByte > 0) {
-              offset += machineModel.getSizeofCharInBits() - overByte;
+            offset = offset.add(memberSize);
+            BigInteger overByte =
+                offset.mod(BigInteger.valueOf(machineModel.getSizeofCharInBits()));
+            if (overByte.compareTo(BigInteger.ZERO) > 0) {
+              offset =
+                  offset.add(
+                      BigInteger.valueOf(machineModel.getSizeofCharInBits()).subtract(overByte));
             }
-            offset +=
-                machineModel.getPadding(offset / sizeOfByte, memberDcl.getType()) * sizeOfByte;
+            offset =
+                offset.add(
+                    machineModel
+                        .getPadding(
+                            offset.divide(BigInteger.valueOf(sizeOfByte)), memberDcl.getType())
+                        .multiply(BigInteger.valueOf(sizeOfByte)));
           } else {
             // Cf. implementation of {@link MachineModel#getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(...)}
             CType innerType = ((CBitFieldType) memberDcl.getType()).getType();
 
-            if (memberSize == 0) {
-              offset = machineModel.calculatePaddedBitsize(0, offset, innerType, sizeOfByte);
+            if (memberSize.compareTo(BigInteger.ZERO) == 0) {
+              offset =
+                  machineModel.calculatePaddedBitsize(
+                      BigInteger.ZERO, offset, innerType, sizeOfByte);
             } else {
               offset =
                   machineModel.calculateNecessaryBitfieldOffset(
                       offset, innerType, sizeOfByte, memberSize);
-              offset += memberSize;
+              offset = offset.add(memberSize);
             }
           }
         }
@@ -1021,7 +1030,7 @@ public class SMGTransferRelation
               pNewState,
               pNewObject,
               pOffset,
-              TypeUtils.createTypeWithLength(Math.toIntExact((sizeOfType))),
+              TypeUtils.createTypeWithLength(Math.toIntExact(sizeOfType)),
               SMGZeroValue.INSTANCE,
               pEdge);
 
@@ -1032,10 +1041,10 @@ public class SMGTransferRelation
 
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
       if (initializer instanceof CDesignatedInitializer) {
-        Pair<Long, Integer> offsetAndPosition =
-            calculateOffsetAndPositionOfFieldFromDesignator(pOffset, memberTypes,
-                (CDesignatedInitializer) initializer, pLValueType);
-        long offset = offsetAndPosition.getFirst();
+        Pair<BigInteger, Integer> offsetAndPosition =
+            calculateOffsetAndPositionOfFieldFromDesignator(
+                pOffset, memberTypes, (CDesignatedInitializer) initializer, pLValueType);
+        long offset = offsetAndPosition.getFirst().longValueExact();
         listCounter = offsetAndPosition.getSecond();
         initializer = ((CDesignatedInitializer) initializer).getRightHandSide();
 
@@ -1066,7 +1075,10 @@ public class SMGTransferRelation
           }
           @SuppressWarnings("deprecation") // replace with machineModel.getAllFieldOffsetsInBits
           long padding =
-              machineModel.getPadding(offset / machineModel.getSizeofCharInBits(), memberType);
+              machineModel
+                  .getPadding(
+                      BigInteger.valueOf(offset / machineModel.getSizeofCharInBits()), memberType)
+                  .longValueExact();
           offset += padding * machineModel.getSizeofCharInBits();
         }
         SMGState newState = offsetAndState.getFirst();
@@ -1074,7 +1086,7 @@ public class SMGTransferRelation
         List<SMGState> pNewStates =
             handleInitializer(newState, pVarDecl, pEdge, pNewObject, offset, memberType, initializer);
 
-        offset = offset + machineModel.getSizeofInBits(memberType);
+        offset = offset + machineModel.getSizeofInBits(memberType).longValueExact();
 
         final long currentOffset = offset;
         resultOffsetAndStates.addAll(Lists.transform(pNewStates, s -> Pair.of(s, currentOffset)));

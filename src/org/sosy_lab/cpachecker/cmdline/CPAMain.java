@@ -52,7 +52,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.matheclipse.core.util.WriterOutputStream;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownManager;
@@ -77,7 +77,9 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
+import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetType;
 import org.sosy_lab.cpachecker.util.Property;
+import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.util.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.util.PropertyFileParser;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
@@ -88,7 +90,6 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 public class CPAMain {
 
-  static final PrintStream ERROR_OUTPUT = System.err;
   static final int ERROR_EXIT_CODE = 1;
 
   @SuppressWarnings("resource") // We don't close LogManager
@@ -109,19 +110,15 @@ public class CPAMain {
         outputDirectory = p.outputPath;
         properties = p.properties;
       } catch (InvalidCmdlineArgumentException e) {
-        ERROR_OUTPUT.println("Could not process command line arguments: " + e.getMessage());
-        System.exit(ERROR_EXIT_CODE);
+        throw Output.fatalError("Could not process command line arguments: %s", e.getMessage());
       } catch (IOException e) {
-        ERROR_OUTPUT.println("Could not read config file " + e.getMessage());
-        System.exit(ERROR_EXIT_CODE);
+        throw Output.fatalError("Could not read config file %s", e.getMessage());
       }
 
       logOptions = new LoggingOptions(cpaConfig);
 
     } catch (InvalidConfigurationException e) {
-      ERROR_OUTPUT.println("Invalid configuration: " + e.getMessage());
-      System.exit(ERROR_EXIT_CODE);
-      return;
+      throw Output.fatalError("Invalid configuration: %s", e.getMessage());
     }
     final LogManager logManager = BasicLogManager.create(logOptions);
     cpaConfig.enableLogging(logManager);
@@ -353,6 +350,14 @@ public class CPAMain {
     return new Config(config, outputDirectory, properties);
   }
 
+  private static final ImmutableMap<Property, TestTargetType> TARGET_TYPES =
+      ImmutableMap.<Property, TestTargetType>builder()
+          .put(CommonCoverageType.COVERAGE_BRANCH, TestTargetType.ASSUME)
+          .put(CommonCoverageType.COVERAGE_CONDITION, TestTargetType.ASSUME)
+          .put(CommonCoverageType.COVERAGE_ERROR, TestTargetType.ERROR_CALL)
+          .put(CommonCoverageType.COVERAGE_STATEMENT, TestTargetType.STATEMENT)
+          .build();
+
   private static Configuration handlePropertyOptions(
       Configuration config,
       BootstrapOptions options,
@@ -392,6 +397,19 @@ public class CPAMain {
             "Unsupported combination of properties: " + properties);
       }
       alternateConfigFile = check(options.terminationConfig, "termination", "termination.config");
+    } else if (properties.contains(CommonCoverageType.COVERAGE_ERROR)
+        || properties.contains(CommonCoverageType.COVERAGE_BRANCH)
+        || properties.contains(CommonCoverageType.COVERAGE_CONDITION)
+        || properties.contains(CommonCoverageType.COVERAGE_STATEMENT)) {
+      // coverage criterion cannot be checked with other properties in combination
+      if (properties.size() != 1) {
+        throw new InvalidConfigurationException(
+            "Unsupported combination of properties: " + properties);
+      }
+      return Configuration.builder()
+          .copyFrom(config)
+          .setOption("testcase.targets.type", TARGET_TYPES.get(properties.iterator().next()).name())
+          .build();
     } else {
       alternateConfigFile = null;
     }

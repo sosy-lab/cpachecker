@@ -47,13 +47,13 @@ import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 @Options
 public abstract class EdgeReplacer {
@@ -73,7 +73,7 @@ public abstract class EdgeReplacer {
       throws InvalidConfigurationException {
     cfa = pCfa;
     logger = pLogger;
-    config.inject(this);
+    config.inject(this, EdgeReplacer.class);
     instrumentedFunctions = 0;
   }
 
@@ -205,15 +205,14 @@ public abstract class EdgeReplacer {
       rootNode = elseNode;
     }
 
+    CFAEdge ae;
     if (createUndefinedFunctionCall) {
-      CFAEdge ae = createSummaryEdge(statement, rootNode, end);
-      rootNode.addLeavingEdge(ae);
-      end.addEnteringEdge(ae);
+      ae = createSummaryEdge(statement, rootNode, end);
     } else {
-      for (CFAEdge edge : CFAUtils.enteringEdges(rootNode)) {
-        CFACreationUtils.removeEdgeFromNodes(edge);
-      }
-      cfa.removeNode(rootNode);
+      CFANode term = new CFATerminationNode(rootNode.getFunctionName());
+      cfa.addNode(term);
+      ae = new BlankEdge("blank pointer call", fileLocation, rootNode, term, "blank pointer call");
     }
+    CFACreationUtils.addEdgeUnconditionallyToCFA(ae);
   }
 }
