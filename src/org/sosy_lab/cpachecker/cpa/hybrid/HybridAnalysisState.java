@@ -328,10 +328,8 @@ public class HybridAnalysisState
   @Override
   public String toDOTLabel() {
     StringBuilder builder = new StringBuilder();
-    builder.append("[");
     variableMap.values()
       .forEach(assumption -> builder.append(assumption).append(System.lineSeparator()));
-      builder.append("]");
     return builder.toString();
   }
 
