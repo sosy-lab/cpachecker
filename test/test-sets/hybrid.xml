@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<!--
+  ~  CPAchecker is a tool for configurable software verification.
+  ~  This file is part of CPAchecker.
+  ~
+  ~  Copyright (C) 2007-2019  Dirk Beyer
+  ~  All rights reserved.
+  ~
+  ~  Licensed under the Apache License, Version 2.0 (the "License");
+  ~  you may not use this file except in compliance with the License.
+  ~  You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  ~
+  ~
+  ~  CPAchecker web page:
+  ~    http://cpachecker.sosy-lab.org
+  -->
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.17//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.17.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="960 s" memlimit="15 GB" cpuCores="2">
+
+    <rundefinition name = "hybridValue">
+        <option name="hybridAnalysis-value.properties"/>
+    </rundefinition>
+
+    <resultfiles>**.graphml*</resultfiles>
+    <option name="-benchmark"/>
+    <option name="-hybridExecution"/>
+    <option name="-heap">10000M</option>
+    <option name="-benchmark" />
+
+    <tasks name="Concurrency">
+        <includesfile>c/ConcurrencySafety-Main.set</includesfile>
+        <propertyfile>c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+
+    <tasks name="ReachSafety-ArraysReach">
+        <includesfile>c/ReachSafety-Arrays.set</includesfile>
+        <propertyfile>c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="ReachSafety-BitVectorsReach">
+        <includesfile>https://github.com/sosy-lab/sv-benchmarks/blob/master/c/ReachSafety-BitVectors.set</includesfile>
+        <propertyfile>https://github.com/sosy-lab/sv-benchmarks/blob/master/c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="ReachSafety-ControlFlow">
+        <includesfile>c/ReachSafety-ControlFlow.set</includesfile>
+        <propertyfile>c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="ReachSafety-ECA">
+        <includesfile>c/ReachSafety-ECA.set</includesfile>
+        <propertyfile>c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="ReachSafety-Floats">
+        <includesfile>c/ReachSafety-Floats.set</includesfile>
+        <propertyfile>c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="ReachSafety-HeapReach">
+        <includesfile>c/ReachSafety-Heap.set</includesfile>
+        <propertyfile>c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="ReachSafety-Loops">
+        <includesfile>c/ReachSafety-Loops.set</includesfile>
+        <propertyfile>c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="ReachSafety-ProductLines">
+        <includesfile>c/ReachSafety-ProductLines.set</includesfile>
+        <propertyfile>c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="ReachSafety-Recursive">
+        <includesfile>c/ReachSafety-Recursive.set</includesfile>
+        <propertyfile>c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="ReachSafety-Sequentialized">
+        <includesfile>c/ReachSafety-Sequentialized.set</includesfile>
+        <propertyfile>c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="Systems_DeviceDriversLinux64_ReachSafety">
+        <includesfile>c/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+        <propertyfile>c/properties/unreach-call.prp</propertyfile>
+        <option name="-64"/>
+    </tasks>
+</benchmark>

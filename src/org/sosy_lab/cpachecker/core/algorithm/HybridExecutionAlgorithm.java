@@ -454,6 +454,7 @@ public final class HybridExecutionAlgorithm implements Algorithm, ReachedSetUpda
           String.format("Formula wasn't pre-checked and is not satisfiable. %s%s", System.lineSeparator(), pFormula));
       // retrieve the new assignments
       Collection<ValueAssignment> valueAssignments = proverEnvironment.getModelAssignments();
+      statistics.nextNumOfAssignments(valueAssignments.size());
 
       // convert all value assignments (their respective formulas) to expressions
       Set<CBinaryExpression> assumptions = parseAssignments(valueAssignments);

@@ -48,6 +48,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix = "cpa.hybrid.statistics")
@@ -75,6 +77,8 @@ public class HybridAnalysisStatistics implements Statistics {
 
   private StatCounter transferWithoutValueGeneration;
 
+  private StatInt solverGeneratedAssignments;
+
   private final LogManager logger;
 
   public HybridAnalysisStatistics(
@@ -99,6 +103,9 @@ public class HybridAnalysisStatistics implements Statistics {
         new StatCounter("Tracked values removed on concrete variable assignments         ");
     transferWithoutValueGeneration = 
         new StatCounter("Program transitions without value generation                    ");
+
+    solverGeneratedAssignments
+        = new StatInt(StatKind.AVG, "Assignment statistics");
   }
 
   @Override
@@ -125,7 +132,8 @@ public class HybridAnalysisStatistics implements Statistics {
         .put(removedOnAssignment)
         .put(transferWithoutValueGeneration)
         .put("Overall examined branches to new explored branches ratio", 
-             "               " + uncoveredToFeasiblePathsRatio() + "%");
+             "               " + uncoveredToFeasiblePathsRatio() + "%")
+        .put(solverGeneratedAssignments);
   }
 
   @Override
@@ -164,6 +172,10 @@ public class HybridAnalysisStatistics implements Statistics {
 
   public void incrementEmptyTransfer() {
       transferWithoutValueGeneration.inc();
+  }
+
+  public void nextNumOfAssignments(int num) {
+    solverGeneratedAssignments.setNextValue(num);
   }
 
   private String createTestCases(UnmodifiableReachedSet pReachedSet) {
