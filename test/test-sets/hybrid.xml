@@ -25,64 +25,62 @@
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.17//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.17.dtd">
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="960 s" memlimit="15 GB" cpuCores="2">
 
-    <rundefinition name = "hybridValue">
-        <option name="hybridAnalysis-value.properties"/>
-    </rundefinition>
+    <rundefinition/>
 
     <resultfiles>**.graphml*</resultfiles>
     <option name="-benchmark"/>
-    <option name="-hybridExecution"/>
+    <option name="-hybridAnalysis-value"/>
     <option name="-heap">10000M</option>
     <option name="-benchmark" />
 
     <tasks name="Concurrency">
-        <includesfile>../../../../../test/sv-benchmarks/c/ConcurrencySafety-Main.set</includesfile>
-        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../test/sv-benchmarks/c/ConcurrencySafety-Main.set</includesfile>
+        <propertyfile>../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     </tasks>
 
     <tasks name="ReachSafety-ArraysReach">
-        <includesfile>../../../../../test/sv-benchmarks/c/ReachSafety-Arrays.set</includesfile>
-        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../test/sv-benchmarks/c/ReachSafety-Arrays.set</includesfile>
+        <propertyfile>../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="ReachSafety-BitVectorsReach">
-        <includesfile>../../../../../test/sv-benchmarks/c/ReachSafety-BitVectors.set</includesfile>
-        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../test/sv-benchmarks/c/ReachSafety-BitVectors.set</includesfile>
+        <propertyfile>../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="ReachSafety-ControlFlow">
-        <includesfile>../../../../../test/sv-benchmarks/c/ReachSafety-ControlFlow.set</includesfile>
-        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../test/sv-benchmarks/c/ReachSafety-ControlFlow.set</includesfile>
+        <propertyfile>../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="ReachSafety-ECA">
-        <includesfile>../../../../../test/sv-benchmarks/c/ReachSafety-ECA.set</includesfile>
-        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../test/sv-benchmarks/c/ReachSafety-ECA.set</includesfile>
+        <propertyfile>../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="ReachSafety-Floats">
-        <includesfile>../../../../../test/sv-benchmarks/c/ReachSafety-Floats.set</includesfile>
-        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../test/sv-benchmarks/c/ReachSafety-Floats.set</includesfile>
+        <propertyfile>../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="ReachSafety-HeapReach">
-        <includesfile>../../../../../test/sv-benchmarks/c/ReachSafety-Heap.set</includesfile>
-        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../test/sv-benchmarks/c/ReachSafety-Heap.set</includesfile>
+        <propertyfile>../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="ReachSafety-Loops">
-        <includesfile>../../../../../test/sv-benchmarks/c/ReachSafety-Loops.set</includesfile>
-        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../test/sv-benchmarks/c/ReachSafety-Loops.set</includesfile>
+        <propertyfile>../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="ReachSafety-ProductLines">
-        <includesfile>../../../../../test/sv-benchmarks/c/ReachSafety-ProductLines.set</includesfile>
-        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../test/sv-benchmarks/c/ReachSafety-ProductLines.set</includesfile>
+        <propertyfile>../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="ReachSafety-Recursive">
-        <includesfile>../../../../../test/sv-benchmarks/c/ReachSafety-Recursive.set</includesfile>
-        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../test/sv-benchmarks/c/ReachSafety-Recursive.set</includesfile>
+        <propertyfile>../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="ReachSafety-Sequentialized">
-        <includesfile>../../../../../test/sv-benchmarks/c/ReachSafety-Sequentialized.set</includesfile>
-        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../test/sv-benchmarks/c/ReachSafety-Sequentialized.set</includesfile>
+        <propertyfile>../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="Systems_DeviceDriversLinux64_ReachSafety">
-        <includesfile>../../../../../test/sv-benchmarks/c/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
-        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../test/sv-benchmarks/c/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+        <propertyfile>../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="-64"/>
     </tasks>
 </benchmark>
