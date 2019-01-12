@@ -36,53 +36,53 @@
     <option name="-benchmark" />
 
     <tasks name="Concurrency">
-        <includesfile>c/ConcurrencySafety-Main.set</includesfile>
-        <propertyfile>c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../../test/sv-benchmarks/c/ConcurrencySafety-Main.set</includesfile>
+        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     </tasks>
 
     <tasks name="ReachSafety-ArraysReach">
-        <includesfile>c/ReachSafety-Arrays.set</includesfile>
-        <propertyfile>c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../../test/sv-benchmarks/c/ReachSafety-Arrays.set</includesfile>
+        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="ReachSafety-BitVectorsReach">
-        <includesfile>https://github.com/sosy-lab/sv-benchmarks/blob/master/c/ReachSafety-BitVectors.set</includesfile>
-        <propertyfile>https://github.com/sosy-lab/sv-benchmarks/blob/master/c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../../test/sv-benchmarks/c/ReachSafety-BitVectors.set</includesfile>
+        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="ReachSafety-ControlFlow">
-        <includesfile>c/ReachSafety-ControlFlow.set</includesfile>
-        <propertyfile>c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../../test/sv-benchmarks/c/ReachSafety-ControlFlow.set</includesfile>
+        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="ReachSafety-ECA">
-        <includesfile>c/ReachSafety-ECA.set</includesfile>
-        <propertyfile>c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../../test/sv-benchmarks/c/ReachSafety-ECA.set</includesfile>
+        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="ReachSafety-Floats">
-        <includesfile>c/ReachSafety-Floats.set</includesfile>
-        <propertyfile>c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../../test/sv-benchmarks/c/ReachSafety-Floats.set</includesfile>
+        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="ReachSafety-HeapReach">
-        <includesfile>c/ReachSafety-Heap.set</includesfile>
-        <propertyfile>c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../../test/sv-benchmarks/c/ReachSafety-Heap.set</includesfile>
+        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="ReachSafety-Loops">
-        <includesfile>c/ReachSafety-Loops.set</includesfile>
-        <propertyfile>c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../../test/sv-benchmarks/c/ReachSafety-Loops.set</includesfile>
+        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="ReachSafety-ProductLines">
-        <includesfile>c/ReachSafety-ProductLines.set</includesfile>
-        <propertyfile>c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../../test/sv-benchmarks/c/ReachSafety-ProductLines.set</includesfile>
+        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="ReachSafety-Recursive">
-        <includesfile>c/ReachSafety-Recursive.set</includesfile>
-        <propertyfile>c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../../test/sv-benchmarks/c/ReachSafety-Recursive.set</includesfile>
+        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="ReachSafety-Sequentialized">
-        <includesfile>c/ReachSafety-Sequentialized.set</includesfile>
-        <propertyfile>c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../../test/sv-benchmarks/c/ReachSafety-Sequentialized.set</includesfile>
+        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
     </tasks>
     <tasks name="Systems_DeviceDriversLinux64_ReachSafety">
-        <includesfile>c/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
-        <propertyfile>c/properties/unreach-call.prp</propertyfile>
+        <includesfile>../../../../../test/sv-benchmarks/c/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+        <propertyfile>../../../../../test/sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
         <option name="-64"/>
     </tasks>
 </benchmark>
