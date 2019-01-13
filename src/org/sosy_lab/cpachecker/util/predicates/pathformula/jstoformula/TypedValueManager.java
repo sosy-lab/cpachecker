@@ -29,9 +29,10 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
+/** Manager to create {@link TypedValue} instances. */
 class TypedValueManager {
   private final FormulaManagerView fmgr;
-  private final TypedValues typedValues;
+  private final TypedValues typedValues; // TODO remove
   private final TypeTags typeTags;
   private final TypedValue undefinedValue;
   private final TypedValue nullValue;
@@ -51,30 +52,67 @@ class TypedValueManager {
     undefinedValue = new TypedValue(typeTags.UNDEFINED, typeTags.UNDEFINED);
   }
 
+  /**
+   * @return Typed value formula encoding of JavaScript's <a
+   *     href="https://www.ecma-international.org/ecma-262/5.1/#sec-4.3.9">undefined value</a>.
+   */
   TypedValue getUndefinedValue() {
     return undefinedValue;
   }
 
+  /**
+   * @return Typed value formula encoding of JavaScript's <a
+   *     href="https://www.ecma-international.org/ecma-262/5.1/#sec-4.3.11">null value</a>.
+   */
   TypedValue getNullValue() {
     return nullValue;
   }
 
+  /**
+   * @param pBooleanFormula Formula encoding of a <a
+   *     href="https://www.ecma-international.org/ecma-262/5.1/#sec-4.3.13">Boolean value</a>.
+   * @return Typed formula encoding of a <a
+   *     href="https://www.ecma-international.org/ecma-262/5.1/#sec-4.3.13">Boolean value</a>.
+   */
   TypedValue createBooleanValue(final BooleanFormula pBooleanFormula) {
     return new TypedValue(typeTags.BOOLEAN, pBooleanFormula);
   }
 
+  /**
+   * @param pFloatingPointFormula Formula encoding of a <a
+   *     href="https://www.ecma-international.org/ecma-262/5.1/#sec-4.3.19">Number value</a>.
+   * @return Typed formula encoding of a <a
+   *     href="https://www.ecma-international.org/ecma-262/5.1/#sec-4.3.19">Number value</a>.
+   */
   TypedValue createNumberValue(final FloatingPointFormula pFloatingPointFormula) {
     return new TypedValue(typeTags.NUMBER, pFloatingPointFormula);
   }
 
-  TypedValue createObjectValue(final IntegerFormula pObjectValue) {
-    return new TypedValue(typeTags.OBJECT, pObjectValue);
+  /**
+   * @param pObjectId Formula encoding of object ID (see {@link
+   *     ObjectIdFormulaManager#createObjectId()}).
+   * @return Typed formula encoding of the passed object ID.
+   */
+  TypedValue createObjectValue(final IntegerFormula pObjectId) {
+    return new TypedValue(typeTags.OBJECT, pObjectId);
   }
 
+  /**
+   * @param pStringId Formula encoding of string ID (see {@link
+   *     StringFormulaManager#getStringFormula(String)}).
+   * @return Typed formula encoding of the passed string ID.
+   * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-4.3.16">String value</a>
+   */
   TypedValue createStringValue(final IntegerFormula pStringId) {
     return new TypedValue(typeTags.STRING, pStringId);
   }
 
+  /**
+   * @param pFunctionDeclarationId Formula encoding of function declaration ID (see {@link
+   *     GlobalManagerContext#functionDeclarationIds}).
+   * @return Typed formula encoding of the passed function declaration ID.
+   * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-4.3.24">function</a>
+   */
   TypedValue createFunctionValue(final IntegerFormula pFunctionDeclarationId) {
     return new TypedValue(typeTags.FUNCTION, pFunctionDeclarationId);
   }

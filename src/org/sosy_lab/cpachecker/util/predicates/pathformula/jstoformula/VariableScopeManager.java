@@ -34,6 +34,27 @@ import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
+/**
+ * Management of the scope of JavaScript variables (see {@link TypedValues#var(IntegerFormula,
+ * IntegerFormula) var(scope,variable)}).
+ *
+ * <p>To <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-10.3.1">resolve an
+ * identifier</a> (of a variable) in ECMAScript the <a
+ * href="https://www.ecma-international.org/ecma-262/5.1/#sec-10.2">Lexical Environment</a> of the
+ * running <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-10.3">Execution Context</a>
+ * is needed. If the Lexical Environment has no binding of the identifier, the identifier is looked
+ * up in the outer environment reference of the Lexical Environment.
+ *
+ * <p>This chain of nested environments and the lookup has to be formula encoded. Therefore, each
+ * variable is associated with a so-called scope (sort of an ID of the environment). Since
+ * environments might be nested, a scope is associated with a so-called scope stack, which is an
+ * array formula that contains all scopes of the (nested environments) chain. The scope of the
+ * environment of the current execution context is encoded as a special indexed variables (see
+ * {@link #getCurrentScope()}). On every function call the current scope has to be updated (see
+ * {@link #createCurrentScope()}) to encode the change of the running execution context. To lookup
+ * the scope of a declaration, the {@link Scope#getNestingLevel() nesting level} of the declaration
+ * is used as index on the scope stack of the current scope.
+ */
 class VariableScopeManager extends ManagerWithEdgeContext {
   private final FunctionDeclaration<IntegerFormula> scopeOfDeclaration;
   private final FunctionDeclaration<ArrayFormula<IntegerFormula, IntegerFormula>>
@@ -49,6 +70,12 @@ class VariableScopeManager extends ManagerWithEdgeContext {
     globalScopeStack = afmgr.makeArray("globalScopeStack", SCOPE_STACK_TYPE);
   }
 
+  /**
+   * Get the scope (formula) of a (function or variable) declaration.
+   *
+   * @param pDeclaration The (function or variable) declaration to get the scope of.
+   * @return Scope (formula) of the passed (function or variable) declaration.
+   */
   @Nonnull
   IntegerFormula scopeOf(final JSSimpleDeclaration pDeclaration) {
     final Scope scope = pDeclaration.getScope();

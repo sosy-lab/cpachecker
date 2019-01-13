@@ -45,7 +45,10 @@ abstract class ManagerWithGlobalContext {
   final FormulaEncodingOptions options;
   final JSFormulaEncodingOptions jsOptions;
   final LogManagerWithoutDuplicates logger;
-  final ShutdownNotifier shutdownNotifier;
+
+  @SuppressWarnings("WeakerAccess")
+  final ShutdownNotifier shutdownNotifier; // not used yet, but exists for future use
+
   final AnalysisDirection direction;
   final TypedValues typedValues;
   final TypeTags typeTags;

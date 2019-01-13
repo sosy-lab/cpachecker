@@ -36,6 +36,7 @@ import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
+/** Management of formula encoding of access to a property of a JavaScript object. */
 class FieldAccessToTypedValue extends ManagerWithEdgeContext {
 
   /**

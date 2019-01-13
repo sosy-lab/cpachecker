@@ -30,6 +30,10 @@ import org.sosy_lab.java_smt.api.FormulaType.ArrayFormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
+/**
+ * All formula types used in the formula encodings of JavaScript are defined here as (named)
+ * constants to improve code readability.
+ */
 public class Types {
   static final FormulaType<IntegerFormula> SCOPE_TYPE = FormulaType.IntegerType;
   static final ArrayFormulaType<IntegerFormula, IntegerFormula> SCOPE_STACK_TYPE =
@@ -43,8 +47,9 @@ public class Types {
   static final FormulaType<IntegerFormula> STRING_TYPE = FormulaType.IntegerType;
   static final FormulaType<IntegerFormula> OBJECT_TYPE = FormulaType.IntegerType;
   static final FormulaType<IntegerFormula> OBJECT_ID_TYPE = FormulaType.IntegerType;
+  /** Maps field name to field variable. */
   static final ArrayFormulaType<IntegerFormula, IntegerFormula> OBJECT_FIELDS_TYPE =
-      FormulaType.getArrayType(STRING_TYPE, VARIABLE_TYPE); // field name to field variable
+      FormulaType.getArrayType(STRING_TYPE, VARIABLE_TYPE);
   /** Maps object id to object fields. */
   static final ArrayFormulaType<IntegerFormula, ArrayFormula<IntegerFormula, IntegerFormula>>
       OBJECT_FIELDS_VARIABLE_TYPE = FormulaType.getArrayType(OBJECT_TYPE, OBJECT_FIELDS_TYPE);

@@ -30,6 +30,15 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
+/**
+ * Management of formula encoding of function objects and their association with a function
+ * declaration, which is required to resolve a dynamic function call (call of a function object).
+ * The association is accomplished using an uninterpreted function formula called <code>
+ * declarationOf</code>.
+ *
+ * @see org.sosy_lab.cpachecker.cfa.ast.js.JSDeclaredByExpression
+ * @see org.sosy_lab.cpachecker.cfa.parser.eclipse.js.UnknownFunctionCallerDeclarationBuilder
+ */
 class JSFunctionDeclarationFormulaManager {
   private final FunctionFormulaManagerView ffmgr;
   private final FunctionDeclaration<IntegerFormula> declarationOfDeclaration;

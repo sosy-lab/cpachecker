@@ -27,6 +27,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
+/**
+ * State shared between all (formula) managers in this package that create a formula (part) for an
+ * edge.
+ */
 class EdgeManagerContext {
   final GlobalManagerContext global;
   final CFAEdge edge;

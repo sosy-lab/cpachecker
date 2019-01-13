@@ -22,7 +22,8 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * Converting JavaScript code to formulas.
+ * Converting JavaScript code to formulas. TODO give an overview of the most important classes of
+ * this package
  */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault

@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 
+/** State shared between all (formula) managers in this package. */
 class GlobalManagerContext {
   final FormulaEncodingOptions options;
   final JSFormulaEncodingOptions jsOptions;

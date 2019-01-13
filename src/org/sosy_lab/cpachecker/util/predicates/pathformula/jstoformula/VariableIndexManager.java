@@ -26,6 +26,11 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
+/**
+ * Management of SSA indices.
+ *
+ * @see org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap
+ */
 class VariableIndexManager extends ManagerWithEdgeContext {
   // Index that is used to read from variables that were not assigned yet
   private static final int VARIABLE_UNINITIALIZED = 1;

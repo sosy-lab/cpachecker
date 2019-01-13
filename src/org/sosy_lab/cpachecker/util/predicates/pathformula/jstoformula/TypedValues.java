@@ -38,6 +38,10 @@ import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
+/**
+ * Provider of uninterpreted function formulas that associate a JavaScript variable with its value,
+ * type and scope object (formula encoding).
+ */
 class TypedValues {
   private final FunctionDeclaration<IntegerFormula> typeofDeclaration;
   private final FunctionFormulaManagerView ffmgr;
@@ -48,6 +52,7 @@ class TypedValues {
   private final FunctionDeclaration<IntegerFormula> objectValueDeclaration;
   private final FunctionDeclaration<IntegerFormula> varDeclaration;
 
+  // TODO rename class to TypedVariableValues
   TypedValues(final FunctionFormulaManagerView pFfmgr) {
     ffmgr = pFfmgr;
     typeofDeclaration = pFfmgr.declareUF("typeof", JS_TYPE_TYPE, VARIABLE_TYPE);
@@ -59,30 +64,83 @@ class TypedValues {
     varDeclaration = pFfmgr.declareUF("var", VARIABLE_TYPE, SCOPE_TYPE, VARIABLE_TYPE);
   }
 
+  /**
+   * @param pVariable Formula of scoped variable (see {@link #var(IntegerFormula, IntegerFormula)
+   *     var}).
+   * @return Type tag formula associated with the passed variable.
+   * @see TypeTags
+   */
   IntegerFormula typeof(final IntegerFormula pVariable) {
     return ffmgr.callUF(typeofDeclaration, pVariable);
   }
 
+  /**
+   * @param pVariable Formula of scoped variable (see {@link #var(IntegerFormula, IntegerFormula)
+   *     var}).
+   * @return Boolean value associated with the passed variable.
+   * @see TypeTags#BOOLEAN
+   * @see TypedValueManager#createBooleanValue(BooleanFormula)
+   */
   BooleanFormula booleanValue(final IntegerFormula pVariable) {
     return ffmgr.callUF(booleanValueDeclaration, pVariable);
   }
 
+  /**
+   * @param pVariable Formula of scoped variable (see {@link #var(IntegerFormula, IntegerFormula)
+   *     var}).
+   * @return Number value associated with the passed variable.
+   * @see TypeTags#NUMBER
+   * @see TypedValueManager#createNumberValue(FloatingPointFormula)
+   */
   FloatingPointFormula numberValue(final IntegerFormula pVariable) {
     return ffmgr.callUF(numberValueDeclaration, pVariable);
   }
 
+  /**
+   * @param pVariable Formula of scoped variable (see {@link #var(IntegerFormula, IntegerFormula)
+   *     var}).
+   * @return Function value associated with the passed variable.
+   * @see TypeTags#FUNCTION
+   * @see TypedValueManager#createFunctionValue(IntegerFormula)
+   */
   IntegerFormula functionValue(final IntegerFormula pVariable) {
     return ffmgr.callUF(functionValueDeclaration, pVariable);
   }
 
+  /**
+   * @param pVariable Formula of scoped variable (see {@link #var(IntegerFormula, IntegerFormula)
+   *     var}).
+   * @return Object value associated with the passed variable.
+   * @see TypeTags#OBJECT
+   * @see TypedValueManager#createObjectValue(IntegerFormula)
+   */
   IntegerFormula objectValue(final IntegerFormula pVariable) {
     return ffmgr.callUF(objectValueDeclaration, pVariable);
   }
 
+  /**
+   * @param pVariable Formula of scoped variable (see {@link #var(IntegerFormula, IntegerFormula)
+   *     var}).
+   * @return String value associated with the passed variable.
+   * @see TypeTags#STRING
+   * @see TypedValueManager#createStringValue(IntegerFormula)
+   */
   IntegerFormula stringValue(final IntegerFormula pVariable) {
     return ffmgr.callUF(stringValueDeclaration, pVariable);
   }
 
+  /**
+   * Creates formula encoding of a JavaScript variable. It is used as encoding of variable
+   * identifiers in <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-12.2">Variable
+   * Statement</a> and <a
+   * href="https://www.ecma-international.org/ecma-262/5.1/#sec-11.1.2">Identifier Reference</a>.
+   *
+   * @param pScope Formula encoding of the scope object of the variable declaration (see {@link
+   *     VariableScopeManager}).
+   * @param pVariable Variable formula created using {@link VariableManager}.
+   * @return Formula encoding of a (scoped) JavaScript variable.
+   */
+  // TODO move to VariableScopeManager
   IntegerFormula var(final IntegerFormula pScope, final IntegerFormula pVariable) {
     return ffmgr.callUF(varDeclaration, pScope, pVariable);
   }

@@ -60,6 +60,7 @@ import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
+/** Management of formula encoding of JavaScript expressions. */
 @SuppressWarnings({"FieldCanBeLocal", "unused"})
 public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
     implements JSExpressionFormulaManager,
@@ -262,6 +263,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
 
   @Override
   public TypedValue visit(final JSDeclaredByExpression pDeclaredByExpression) {
+    // TODO move code of case to JSFunctionDeclarationFormulaManager
     assert pDeclaredByExpression.getIdExpression().getDeclaration() != null;
     final IntegerFormula variable =
         ctx.scopeMgr.scopedVariable(pDeclaredByExpression.getIdExpression().getDeclaration());
@@ -281,6 +283,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
     if (declaration == null) {
       return handlePredefined(pIdExpression);
     } else if (declaration instanceof JSFunctionDeclaration) {
+      // TODO move code of case to JSFunctionDeclarationFormulaManager
       final JSFunctionDeclaration functionDeclaration = (JSFunctionDeclaration) declaration;
       final IntegerFormula functionDeclarationId =
           fmgr.makeNumber(Types.FUNCTION_TYPE, functionDeclarationIds.get(functionDeclaration));

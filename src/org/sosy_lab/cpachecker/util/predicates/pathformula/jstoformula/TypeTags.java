@@ -26,13 +26,50 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
-@SuppressWarnings("WeakerAccess")
+/**
+ * Formula encoding of JavaScript types as returned by <a
+ * href="https://www.ecma-international.org/ecma-262/5.1/#sec-11.4.3">typeof</a>.
+ *
+ * <p>JavaScript has no static type system. Values may be of mixed type. For example a value could
+ * be a number or a boolean depending on conditions. Hence, the type of a value has to be formula
+ * encoded, too.
+ *
+ * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-11.4.3">typeof</a>
+ * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-8">Types</a>
+ */
 class TypeTags {
+  /**
+   * Formula encoding of <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-8.3">The
+   * Boolean Type</a>.
+   */
   final IntegerFormula BOOLEAN;
+  /**
+   * Formula encoding of <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-4.3.24">The
+   * Function Type</a>.
+   */
   final IntegerFormula FUNCTION;
+  /**
+   * Formula encoding of <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-8.5">The
+   * Number Type</a>.
+   */
   final IntegerFormula NUMBER;
+  /**
+   * Formula encoding of <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-8.6">The
+   * Object Type</a> and <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-8.2">The Null
+   * Type</a>.
+   *
+   * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-11.4.3">typeof</a>
+   */
   final IntegerFormula OBJECT;
+  /**
+   * Formula encoding of <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-8.4">The
+   * String Type</a>.
+   */
   final IntegerFormula STRING;
+  /**
+   * Formula encoding of <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-8.1">The
+   * Undefined Type</a>.
+   */
   final IntegerFormula UNDEFINED;
 
   TypeTags(final IntegerFormulaManagerView pFmgr) {

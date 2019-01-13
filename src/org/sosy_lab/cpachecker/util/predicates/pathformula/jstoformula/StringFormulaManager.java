@@ -27,18 +27,47 @@ import java.util.stream.IntStream;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
+/**
+ * Management of formula encoding of <a
+ * href="https://www.ecma-international.org/ecma-262/5.1/#sec-4.3.16">String values</a>.
+ *
+ * <p>String values are immutable values in JavaScript. Each value is mapped to an Id.
+ *
+ * <p>Strings are used to encode properties of JavaScript objects (see {@link
+ * ObjectFormulaManager}). That encoding requires the IDs of all strings that might be used as a
+ * property name in the program when the first object has to be formula encoded. Since this can be
+ * anytime, the IDs of all property names (i.e. strings) have to be known anytime. Therefore, the
+ * amount of strings is limited. Thus, a specific range of integers can be used as IDs (see {@link
+ * #getIdRange()}). The limit is provided as an option (see {@link
+ * JSFormulaEncodingOptions#maxFieldNameCount}). If it is detected that the limit is exceeded then a
+ * exception is thrown that cancels the analysis of the program. The limit option has to be
+ * increased to analyze the program.
+ */
 class StringFormulaManager {
 
   private final Ids<String> stringIds;
   private final FormulaManagerView fmgr;
   private final int maxFieldNameCount;
 
+  /**
+   * @param pFmgr Used to make string ID formulas.
+   * @param pMaxFieldNameCount The limit of strings that may be used in the program (see {@link
+   *     JSFormulaEncodingOptions#maxFieldNameCount}).
+   */
   StringFormulaManager(final FormulaManagerView pFmgr, final int pMaxFieldNameCount) {
     fmgr = pFmgr;
     maxFieldNameCount = pMaxFieldNameCount;
     stringIds = new Ids<>();
   }
 
+  /**
+   * Get the string ID formula of a specific string value. If the value has not been associated with
+   * an ID yet then a new ID is created for it. This might lead to the limit (of strings being used
+   * in the analyzed program) being exceeded, which results in termination of the analysis.
+   *
+   * @param pValue The string value whose string ID formula should be returned.
+   * @return The string ID of the passed string value.
+   */
   IntegerFormula getStringFormula(final String pValue) {
     final int id = stringIds.get(pValue);
     if (id > maxFieldNameCount) {
@@ -49,7 +78,9 @@ class StringFormulaManager {
   }
 
   /**
-   * Get valid string-IDs.
+   * Get all string-IDs that might be knowingly used in the analyzed program. String literals and
+   * property names result in known string-IDs, whereas calculated string values and hence there IDs
+   * are unknown.
    *
    * @return Iterable of all string-IDs in ascending order.
    */

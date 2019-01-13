@@ -34,6 +34,19 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
+/**
+ * Converter of a {@link TypedValue} to the formula encoding of its value to a specific type (see
+ * {@link TypeTags}).
+ *
+ * <p>Since a {@link TypedValue} might contain a value of any type, formula encodings for each
+ * possible case (type) of the value have to be combined to a formula. Therefore, every value has to
+ * be convertible to a value of each type. The conversion is usually only relevant in the case where
+ * the type of the {@link TypedValue} equals the target type of the conversion. An exception is the
+ * coercion to another type.
+ *
+ * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-9">Type Conversion and
+ *     Testing</a>
+ */
 class ValueConverterManager {
 
   private final TypedValues typedValues;
@@ -59,6 +72,13 @@ class ValueConverterManager {
     fpfmgr = fmgr.getFloatingPointFormulaManager();
   }
 
+  /**
+   * Converts the type value to its function formula. Everything except functions is converted to an
+   * unknown function ID.
+   *
+   * @param pValue The typed value whose value should be converted to a function based on its type.
+   * @return The value converted to its function formula.
+   */
   IntegerFormula toFunction(final TypedValue pValue) {
     final IntegerFormula type = pValue.getType();
     final IntegerFormula notAFunction = fmgr.makeNumber(Types.FUNCTION_TYPE, 0);
@@ -74,9 +94,18 @@ class ValueConverterManager {
         fmgr.makeEqual(type, typeTags.FUNCTION), typedValues.functionValue(variable), notAFunction);
   }
 
+  /**
+   * Converts the type value to its object formula. Everything except objects is converted to an
+   * unknown object ID.
+   *
+   * @param pValue The typed value whose value should be converted to a object based on its type.
+   * @return The value converted to its object formula.
+   * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-9.9">ToObject</a>
+   */
   IntegerFormula toObject(final TypedValue pValue) {
     final IntegerFormula type = pValue.getType();
     final IntegerFormula unknownObjectValue = fmgr.makeNumber(OBJECT_TYPE, -1);
+    // TODO convert boolean, number and string to Boolean/Number/String object
     if (Lists.newArrayList(
             typeTags.BOOLEAN,
             typeTags.NUMBER,
@@ -95,7 +124,16 @@ class ValueConverterManager {
         unknownObjectValue);
   }
 
+  /**
+   * Converts the type value to its string formula. Everything except strings is converted to an
+   * unknown string ID.
+   *
+   * @param pValue The typed value whose value should be converted to a string based on its type.
+   * @return The value converted to its string formula.
+   * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-9.8">ToString</a>
+   */
   IntegerFormula toStringFormula(final TypedValue pValue) {
+    // TODO convert boolean, number, object, function and undefined to string (update comment)
     final IntegerFormula type = pValue.getType();
     final IntegerFormula unknownStringValue = fmgr.makeNumber(Types.STRING_TYPE, 0);
     if (Lists.newArrayList(
@@ -116,6 +154,13 @@ class ValueConverterManager {
         unknownStringValue);
   }
 
+  /**
+   * Converts the type value to its boolean formula.
+   *
+   * @param pValue The typed value whose value should be converted to a boolean based on its type.
+   * @return The value converted to its boolean formula.
+   * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-9.2">ToBoolean</a>
+   */
   BooleanFormula toBoolean(final TypedValue pValue) {
     final IntegerFormula type = pValue.getType();
     if (type.equals(typeTags.BOOLEAN)) {
@@ -151,6 +196,16 @@ class ValueConverterManager {
     }
   }
 
+  /**
+   * Converts the type value to its boolean formula. Strings and objects are not fully supported as
+   * input values. All strings are converted to <code>NaN</code>. All objects (including the <a
+   * href="https://www.ecma-international.org/ecma-262/5.1/#sec-4.3.11">null value</a>) are
+   * converted to <code>0</code>.
+   *
+   * @param pValue The typed value whose value should be converted to a number based on its type.
+   * @return The value converted to its number formula.
+   * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-9.3">ToNumber</a>
+   */
   FloatingPointFormula toNumber(final TypedValue pValue) {
     final IntegerFormula type = pValue.getType();
     if (type.equals(typeTags.BOOLEAN)) {
@@ -184,16 +239,40 @@ class ValueConverterManager {
     }
   }
 
+  /**
+   * Convert string to boolean. <cite>The result is false if the argument is the empty String (its
+   * length is zero); otherwise the result is true.</cite>
+   *
+   * @param pValue The string ID to convert to boolean.
+   * @return Boolean formula of converted string ID.
+   * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-9.2">ToBoolean</a>
+   */
   @Nonnull
   private BooleanFormula stringToBoolean(final IntegerFormula pValue) {
     return bfmgr.not(fmgr.makeEqual(pValue, strMgr.getStringFormula("")));
   }
 
+  /**
+   * Convert number formula to boolean value formula. <cite>The result is false if the argument is
+   * +0, −0, or NaN; otherwise the result is true.</cite>
+   *
+   * @param pValue The number formula to convert to boolean.
+   * @return Boolean formula of converted number formula.
+   * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-9.2">ToBoolean</a>
+   */
   private BooleanFormula numberToBoolean(final FloatingPointFormula pValue) {
     return bfmgr.ifThenElse(
         bfmgr.or(fpfmgr.isZero(pValue), fpfmgr.isNaN(pValue)), bfmgr.makeFalse(), bfmgr.makeTrue());
   }
 
+  /**
+   * Convert boolean formula to number value formula. <cite>The result is 1 if the argument is true.
+   * The result is +0 if the argument is false.</cite>
+   *
+   * @param pValue The boolean formula to convert to number.
+   * @return Boolean formula of converted boolean formula.
+   * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-9.3">ToNumber</a>
+   */
   private FloatingPointFormula booleanToNumber(final BooleanFormula pValue) {
     return bfmgr.ifThenElse(
         pValue, fmgr.makeNumber(Types.NUMBER_TYPE, 1), fmgr.makeNumber(Types.NUMBER_TYPE, 0));

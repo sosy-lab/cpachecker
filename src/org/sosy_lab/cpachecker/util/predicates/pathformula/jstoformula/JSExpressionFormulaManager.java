@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSide;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
+/** Manager that makes formula encoding of JavaScript expressions. */
 interface JSExpressionFormulaManager {
   TypedValue makeExpression(JSRightHandSide pExpression) throws UnrecognizedCodeException;
 }

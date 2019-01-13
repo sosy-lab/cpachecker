@@ -32,13 +32,45 @@ import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSObjectLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSObjectLiteralField;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
+/**
+ * Management of formula encoding of JavaScript objects and their properties. Note that property
+ * access and prototype chain is managed by {@link FieldAccessToTypedValue}.
+ *
+ * <p>An object is represented by an ID, which is encoded as a unique integer (formula). Those IDs
+ * are managed by {@link ObjectIdFormulaManager}. The <a
+ * href="https://www.ecma-international.org/ecma-262/5.1/#sec-4.3.11">null value</a> is represented
+ * by a particular object ID (see {@link ObjectIdFormulaManager#getNullObjectId()}).
+ *
+ * <p>Properties are managed as an array formula that maps each property name (see {@link
+ * StringFormulaManager}) to a variable (see {@link VariableManager}). The variable is used to
+ * represent the value of the property. If a property is not set on an object it is mapped to a
+ * special variable, which represents an unset field. That means that all property names (i.e.
+ * strings) that might be used in the program (see {@link StringFormulaManager#getIdRange()}) are
+ * mapped by the array formula.
+ *
+ * <p>Properties of an object may change in the course of the program. That means that there is a
+ * array formula (property mapping) for each point in time. If a property is changed a new array
+ * formula (updated property mapping) is created based on the old array formula. Those array
+ * formulas are managed by a variable <i>objectFields</i> where a static index (see {@link SSAMap})
+ * is used to represent the point in time ({@code objectFields@<point-in-time>}). Since there may
+ * exist multiple objects in a program, the <i>objectFields</i> variable itself is an array that
+ * maps object IDs to their current property mapping, i.e. <i>objectFields</i> is of SMT-formula
+ * type:
+ *
+ * <pre>(Array objectId (Array propertyName propertyVariable))</pre>
+ *
+ * @see FieldAccessToTypedValue For a description of the prototype chain formula encoding.
+ */
 class ObjectFormulaManager extends ManagerWithEdgeContext {
 
   static final String OBJECT_FIELDS_VARIABLE_NAME = "objectFields";
+
+  /** Variable formula that represents an unset property. */
   private final IntegerFormula objectFieldNotSet;
 
   ObjectFormulaManager(final EdgeManagerContext pCtx) {

@@ -26,6 +26,13 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Manages mapping of (static) values to IDs (integer). Some kind of values are encoded as an
+ * integer formula (for example string literals). Each value has to be mapped to a unique integer.
+ * This class manages this mapping including the generation of the unique IDs.
+ *
+ * @param <T> The type of value that is mapped to IDs.
+ */
 class Ids<T> {
   private final Map<T, Integer> ids;
   private int currentId;
@@ -35,6 +42,13 @@ class Ids<T> {
     ids = new HashMap<>();
   }
 
+  /**
+   * Get ID of a value.
+   *
+   * @param pValue The value whose ID should be returned. If no ID exists yet then a new ID is
+   *     created.
+   * @return The ID associated with the passed value.
+   */
   public int get(final T pValue) {
     if (ids.containsKey(pValue)) {
       return ids.get(pValue);

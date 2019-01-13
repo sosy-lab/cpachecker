@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
+/** Formula management of assignments to variables and object properties. */
 class AssignmentManager extends ManagerWithEdgeContext {
 
   AssignmentManager(final EdgeManagerContext pCtx) {

@@ -23,6 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
+/**
+ * Managers in this package that create a formula (part) for an edge. This class provides access to
+ * the edge specific state that is shared between all those managers including the managers
+ * themselves. These managers use the shared state object {@link EdgeManagerContext} to initialize
+ * themselves. They should only access other {@link ManagerWithEdgeContext} outside of their
+ * constructor since those managers might have not been initialized yet and could be {@code null}.
+ * Apart from that, all other parts of the shared state can be accessed.
+ */
 abstract class ManagerWithEdgeContext extends ManagerWithGlobalContext {
   protected final EdgeManagerContext ctx;
 

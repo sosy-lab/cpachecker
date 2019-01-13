@@ -45,6 +45,7 @@ class VariableManager extends ManagerWithEdgeContext {
 
   IntegerFormula makePreviousVariable(final String name) {
     int useIndex = ctx.varIdMgr.getIndex(name);
+    // TODO previous variable might have a smaller index than `useIndex - 1`
     return fmgr.makeVariable(Types.VARIABLE_TYPE, name, useIndex - 1);
   }
 

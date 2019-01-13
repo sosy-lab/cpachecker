@@ -27,6 +27,20 @@ import javax.annotation.Nonnull;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
+/**
+ * Data class that combines the formula encoding of a JavaScript value and a type.
+ *
+ * <p>JavaScript has no static type system. Values may be of mixed type. For example a value could
+ * be a number or a boolean depending on conditions. Hence, the type of a value has to be formula
+ * encoded, too.
+ *
+ * <p>Types are encoded as {@link TypeTags}. A {@link TypedValue} is usually created/managed by
+ * {@link TypedValueManager}. Values of JavaScript variables are managed by {@link TypedValues}.
+ *
+ * @see TypeTags
+ * @see TypedValues
+ * @see TypedValueManager
+ */
 class TypedValue {
   @Nonnull private final Formula value;
   @Nonnull private final IntegerFormula type;
@@ -36,11 +50,16 @@ class TypedValue {
     type = pType;
   }
 
+  /** @return Formula encoded value. */
   @Nonnull
   public Formula getValue() {
     return value;
   }
 
+  /**
+   * @return Formula encoded type (type tag) of the value.
+   * @see TypeTags
+   */
   @Nonnull
   public IntegerFormula getType() {
     return type;

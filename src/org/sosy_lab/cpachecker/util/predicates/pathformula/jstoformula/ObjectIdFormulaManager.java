@@ -28,6 +28,11 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Ty
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
+/**
+ * Management of object IDs, whereas the <a
+ * href="https://www.ecma-international.org/ecma-262/5.1/#sec-4.3.11">null value</a> is represented
+ * by a particular object ID (see {@link ObjectIdFormulaManager#getNullObjectId()})..
+ */
 class ObjectIdFormulaManager {
 
   private final FormulaManagerView fmgr;
@@ -42,10 +47,19 @@ class ObjectIdFormulaManager {
     nextObjectId = 1; // Regular object IDs start at ID 1
   }
 
+  /**
+   * Create a new unique object ID.
+   *
+   * @return The created object ID formula.
+   */
   IntegerFormula createObjectId() {
     return fmgr.makeNumber(OBJECT_ID_TYPE, nextObjectId++);
   }
 
+  /**
+   * @return The object ID formula that represents the <a
+   *     href="https://www.ecma-international.org/ecma-262/5.1/#sec-4.3.11">null value</a>
+   */
   IntegerFormula getNullObjectId() {
     return nullObjectId;
   }
