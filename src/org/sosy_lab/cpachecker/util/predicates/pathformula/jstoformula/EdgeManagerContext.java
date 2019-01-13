@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
 class EdgeManagerContext {
   final GlobalManagerContext global;
-  final JSToFormulaConverter conv; // TODO remove field
   final CFAEdge edge;
   final String function;
   final SSAMapBuilder ssa;
@@ -48,14 +47,12 @@ class EdgeManagerContext {
 
   EdgeManagerContext(
       final GlobalManagerContext pGlobal,
-      final JSToFormulaConverter pConv,
       final CFAEdge pEdge,
       final String pFunction,
       final SSAMapBuilder pSsa,
       final Constraints pConstraints,
       final ErrorConditions pErrorConditions) {
     global = pGlobal;
-    conv = pConv;
     edge = pEdge;
     function = pFunction;
     ssa = pSsa;
@@ -74,6 +71,6 @@ class EdgeManagerContext {
   }
 
   EdgeManagerContext copy(final String pFunction) {
-    return new EdgeManagerContext(global, conv, edge, pFunction, ssa, constraints, errorConditions);
+    return new EdgeManagerContext(global, edge, pFunction, ssa, constraints, errorConditions);
   }
 }

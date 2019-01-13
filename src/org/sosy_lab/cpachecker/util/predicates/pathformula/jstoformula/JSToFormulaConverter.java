@@ -150,7 +150,7 @@ public class JSToFormulaConverter extends ManagerWithGlobalContext {
     // because this edge could write a global value.
     if (edge.getSuccessor() instanceof FunctionExitNode) {
       final EdgeManagerContext ctx =
-          new EdgeManagerContext(gctx, this, edge, function, ssa, constraints, errorConditions);
+          new EdgeManagerContext(gctx, edge, function, ssa, constraints, errorConditions);
       addGlobalAssignmentConstraints(ctx, RETURN_VARIABLE_NAME, true);
     }
 
@@ -229,7 +229,7 @@ public class JSToFormulaConverter extends ManagerWithGlobalContext {
       final ErrorConditions errorConditions)
       throws UnrecognizedCFAEdgeException, UnrecognizedCodeException {
     final EdgeManagerContext ctx =
-        new EdgeManagerContext(gctx, this, edge, function, ssa, constraints, errorConditions);
+        new EdgeManagerContext(gctx, edge, function, ssa, constraints, errorConditions);
     switch (edge.getEdgeType()) {
     case StatementEdge: {
           return makeStatement(((JSStatementEdge) edge).getStatement(), ctx);
@@ -263,13 +263,13 @@ public class JSToFormulaConverter extends ManagerWithGlobalContext {
           // get the expression from the summary edge
           final JSFunctionSummaryEdge ce = ((JSFunctionReturnEdge) edge).getSummaryEdge();
           return makeExitFunction(
-              new EdgeManagerContext(gctx, this, ce, function, ssa, constraints, errorConditions));
+              new EdgeManagerContext(gctx, ce, function, ssa, constraints, errorConditions));
     }
 
     case CallToReturnEdge:
         final JSFunctionSummaryEdge ce = (JSFunctionSummaryEdge) edge;
         return makeExitFunction(
-            new EdgeManagerContext(gctx, this, ce, function, ssa, constraints, errorConditions));
+            new EdgeManagerContext(gctx, ce, function, ssa, constraints, errorConditions));
 
     default:
       throw new UnrecognizedCFAEdgeException(edge);
