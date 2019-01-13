@@ -2,4 +2,4 @@ format_version: "1.0"
 input_files: "./access-property-using-variable-property-name.js"
 properties:
   - property_file: ../../../../../config/specification/JavaScriptAssertion.spc
-    expected_verdict: true
+    expected_verdict: false
