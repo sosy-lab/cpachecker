@@ -433,7 +433,7 @@ public class JSToFormulaConverter extends ManagerWithGlobalContext {
             currentScopeVariable,
             fmgr.makeNumber(
                 SCOPE_TYPE, gctx.functionScopeManager.createScope(calledFunctionName))));
-    // TODO refactor
+    // TODO refactor extract scopeStack management as method
     final ArrayFormula<IntegerFormula, IntegerFormula> ss;
     final int nestingLevel = functionCallExpression.getDeclaration().getScope().getNestingLevel();
     if (functionCallExpression.getDeclaration().isGlobal()) {
