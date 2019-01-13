@@ -91,7 +91,6 @@ import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.js.UnknownFunctionCallerDeclarationBuilder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
-import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -314,40 +313,6 @@ public class JSToFormulaConverter {
   private IntegerFormula makePreviousVariable(String name, SSAMapBuilder ssa) {
     int useIndex = getIndex(name, ssa);
     return fmgr.makeVariable(Types.VARIABLE_TYPE, name, useIndex - 1);
-  }
-
-  /**
-   * Takes a variable name and its type and create the corresponding formula out of it. The <code>
-   * pContextSSA</code> is used to supply this method with the necessary {@link SSAMap} and (if
-   * necessary) the {@link PointerTargetSet} can be supplied via <code>pContextPTS</code>.
-   *
-   * @param pContextSSA the SSAMap indices from which the variable should be created
-   * @param pContextPTS the PointerTargetSet which should be used for formula generation
-   * @param pVarName the name of the variable
-   * @param pType the type of the variable
-   * @param forcePointerDereference (only used in CToFormulaConverterWithPointerAliasing)
-   * @return the created formula
-   */
-  @SuppressWarnings("unused")
-  public Formula makeFormulaForVariable(
-      SSAMap pContextSSA,
-      PointerTargetSet pContextPTS,
-      String pVarName,
-      JSType pType,
-      boolean forcePointerDereference) {
-//    Preconditions.checkArgument(!(pType instanceof CEnumType));
-
-    SSAMapBuilder ssa = pContextSSA.builder();
-    Formula formula = makeVariable(pVarName, ssa);
-
-    if (!ssa.build().equals(pContextSSA)) {
-      throw new IllegalArgumentException(
-          "we cannot apply the SSAMap changes to the point where the"
-              + " information would be needed possible problems: uninitialized variables could be"
-              + " in more formulas which get conjuncted and then we get unsatisfiable formulas as a result");
-    }
-
-    return formula;
   }
 
   /**
