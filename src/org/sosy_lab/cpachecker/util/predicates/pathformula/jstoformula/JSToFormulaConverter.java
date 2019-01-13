@@ -281,7 +281,7 @@ public class JSToFormulaConverter {
    * @return the index of the variable
    */
   @SuppressWarnings("ResultOfMethodCallIgnored")
-  protected int getIndex(String name, JSType type, SSAMapBuilder ssa) {
+  protected int getIndex(String name, SSAMapBuilder ssa) {
 //    checkSsaSavedType(name, type, ssa.getType(name));
     int idx = ssa.getIndex(name);
     if (idx <= 0) {
@@ -294,7 +294,7 @@ public class JSToFormulaConverter {
       // Thus we need to make sure that calls to FormulaManagerView.instantiate()
       // will also add indices for this name,
       // which it does exactly if the name is in the SSAMap.
-      ssa.setIndex(name, type, idx);
+      ssa.setIndex(name, JSAnyType.ANY, idx);
     }
 
     return idx;
@@ -307,12 +307,12 @@ public class JSToFormulaConverter {
    * <p>This method does not update the index of the variable.
    */
   protected IntegerFormula makeVariable(String name, SSAMapBuilder ssa) {
-    int useIndex = getIndex(name, JSAnyType.ANY, ssa);
+    int useIndex = getIndex(name, ssa);
     return fmgr.makeVariable(Types.VARIABLE_TYPE, name, useIndex);
   }
 
   private IntegerFormula makePreviousVariable(String name, SSAMapBuilder ssa) {
-    int useIndex = getIndex(name, JSAnyType.ANY, ssa);
+    int useIndex = getIndex(name, ssa);
     return fmgr.makeVariable(Types.VARIABLE_TYPE, name, useIndex - 1);
   }
 
@@ -359,7 +359,7 @@ public class JSToFormulaConverter {
     int useIndex;
 
     if (direction == AnalysisDirection.BACKWARD) {
-      useIndex = getIndex(name, JSAnyType.ANY, ssa);
+      useIndex = getIndex(name, ssa);
     } else {
       useIndex = makeFreshIndex(name, ssa);
     }
