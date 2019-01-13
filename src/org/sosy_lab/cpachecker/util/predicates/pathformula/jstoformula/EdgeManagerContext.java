@@ -46,7 +46,7 @@ class EdgeManagerContext {
   final JSExpressionFormulaManager exprMgr;
   final AssignmentManager assignmentMgr;
   final ObjectFormulaManager objMgr;
-  final FieldAccessToTypedValue propMgr;
+  final PropertyAccessManager propMgr;
   final VariableScopeManager scopeMgr;
 
   EdgeManagerContext(
@@ -70,7 +70,7 @@ class EdgeManagerContext {
     exprMgr = new ExpressionToFormulaVisitor(this);
     assignmentMgr = new AssignmentManager(this);
     objMgr = new ObjectFormulaManager(this);
-    propMgr = new FieldAccessToTypedValue(this);
+    propMgr = new PropertyAccessManager(this);
     scopeMgr = new VariableScopeManager(this);
   }
 

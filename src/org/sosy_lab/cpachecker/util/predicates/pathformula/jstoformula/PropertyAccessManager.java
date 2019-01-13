@@ -37,7 +37,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 /** Management of formula encoding of access to a property of a JavaScript object. */
-class FieldAccessToTypedValue extends ManagerWithEdgeContext {
+class PropertyAccessManager extends ManagerWithEdgeContext {
 
   /**
    * The <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-8.6.2">internal property
@@ -49,7 +49,7 @@ class FieldAccessToTypedValue extends ManagerWithEdgeContext {
    */
   private final IntegerFormula prototypeField;
 
-  FieldAccessToTypedValue(final EdgeManagerContext pCtx) {
+  PropertyAccessManager(final EdgeManagerContext pCtx) {
     super(pCtx);
     prototypeField = strMgr.getStringFormula("__proto__");
   }

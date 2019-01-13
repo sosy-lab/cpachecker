@@ -39,7 +39,7 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 /**
  * Management of formula encoding of JavaScript objects and their properties. Note that property
- * access and prototype chain is managed by {@link FieldAccessToTypedValue}.
+ * access and prototype chain is managed by {@link PropertyAccessManager}.
  *
  * <p>An object is represented by an ID, which is encoded as a unique integer (formula). Those IDs
  * are managed by {@link ObjectIdFormulaManager}. The <a
@@ -64,7 +64,7 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
  *
  * <pre>(Array objectId (Array propertyName propertyVariable))</pre>
  *
- * @see FieldAccessToTypedValue For a description of the prototype chain formula encoding.
+ * @see PropertyAccessManager For a description of the prototype chain formula encoding.
  */
 class ObjectFormulaManager extends ManagerWithEdgeContext {
 
