@@ -26,11 +26,10 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
-class VariableManager {
-  private final EdgeManagerContext ctx;
+class VariableManager extends ManagerWithEdgeContext {
 
   VariableManager(final EdgeManagerContext pCtx) {
-    ctx = pCtx;
+    super(pCtx);
   }
 
   /**
@@ -41,12 +40,12 @@ class VariableManager {
    */
   protected IntegerFormula makeVariable(final String name) {
     int useIndex = ctx.varIdMgr.getIndex(name);
-    return ctx.conv.fmgr.makeVariable(Types.VARIABLE_TYPE, name, useIndex);
+    return fmgr.makeVariable(Types.VARIABLE_TYPE, name, useIndex);
   }
 
   IntegerFormula makePreviousVariable(final String name) {
     int useIndex = ctx.varIdMgr.getIndex(name);
-    return ctx.conv.fmgr.makeVariable(Types.VARIABLE_TYPE, name, useIndex - 1);
+    return fmgr.makeVariable(Types.VARIABLE_TYPE, name, useIndex - 1);
   }
 
   /**
@@ -63,7 +62,7 @@ class VariableManager {
       useIndex = ctx.varIdMgr.makeFreshIndex(name);
     }
 
-    IntegerFormula result = ctx.conv.fmgr.makeVariable(Types.VARIABLE_TYPE, name, useIndex);
+    IntegerFormula result = fmgr.makeVariable(Types.VARIABLE_TYPE, name, useIndex);
 
     if (ctx.conv.direction == AnalysisDirection.BACKWARD) {
       ctx.varIdMgr.makeFreshIndex(name);
