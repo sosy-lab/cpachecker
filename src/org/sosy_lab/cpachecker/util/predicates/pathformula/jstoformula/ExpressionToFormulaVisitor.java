@@ -266,8 +266,7 @@ public class ExpressionToFormulaVisitor
   @Override
   public TypedValue visit(final JSArrayLiteralExpression pArrayLiteralExpression)
       throws UnrecognizedCodeException {
-    throw new UnrecognizedCodeException(
-        pArrayLiteralExpression.getClass() + " not implemented yet", pArrayLiteralExpression);
+    return conv.tvmgr.createObjectValue(conv.createObjectId());
   }
 
   @Override
