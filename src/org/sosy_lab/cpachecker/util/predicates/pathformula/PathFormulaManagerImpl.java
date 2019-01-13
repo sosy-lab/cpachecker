@@ -208,7 +208,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
                 .FormulaEncodingOptions(config),
             config,
             fmgr,
-            pMachineModel,
             logger,
             shutdownNotifier,
             pDirection);

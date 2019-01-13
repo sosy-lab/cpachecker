@@ -77,7 +77,6 @@ import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.js.UnknownFunctionCallerDeclarationBuilder;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -114,7 +113,6 @@ public class JSToFormulaConverter {
   private static final String PARAM_VARIABLE_NAME = "__param__";
 
   private final FormulaEncodingOptions options;
-  protected final MachineModel machineModel;
 
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bfmgr;
@@ -167,7 +165,6 @@ public class JSToFormulaConverter {
       FormulaEncodingOptions pOptions,
       final Configuration pConfig,
       FormulaManagerView pFmgr,
-      MachineModel pMachineModel,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       AnalysisDirection pDirection)
@@ -177,7 +174,6 @@ public class JSToFormulaConverter {
 
     this.fmgr = pFmgr;
     this.options = pOptions;
-    this.machineModel = pMachineModel;
 
     this.bfmgr = pFmgr.getBooleanFormulaManager();
     ifmgr = pFmgr.getIntegerFormulaManager();
