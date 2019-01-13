@@ -1340,8 +1340,7 @@ public class JSToFormulaConverter {
       ErrorConditions errorConditions)
       throws UnrecognizedCodeException {
 
-    final TypedValue condition =
-        exp.accept(createJSRightHandSideVisitor(edge, function, ssa, constraints, errorConditions));
+    final TypedValue condition = buildTerm(exp, edge, function, ssa, constraints, errorConditions);
     BooleanFormula result = toBoolean(condition);
 
     if (!isTrue) {
