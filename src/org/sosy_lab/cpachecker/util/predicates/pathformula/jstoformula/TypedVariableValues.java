@@ -64,8 +64,7 @@ class TypedVariableValues {
   }
 
   /**
-   * @param pVariable Formula of scoped variable (see {@link #var(IntegerFormula, IntegerFormula)
-   *     var}).
+   * @param pVariable Formula of (scoped) variable.
    * @return Type tag formula associated with the passed variable.
    * @see TypeTags
    */
@@ -74,8 +73,7 @@ class TypedVariableValues {
   }
 
   /**
-   * @param pVariable Formula of scoped variable (see {@link #var(IntegerFormula, IntegerFormula)
-   *     var}).
+   * @param pVariable Formula of (scoped) variable.
    * @return Boolean value associated with the passed variable.
    * @see TypeTags#BOOLEAN
    * @see TypedValueManager#createBooleanValue(BooleanFormula)
@@ -85,8 +83,7 @@ class TypedVariableValues {
   }
 
   /**
-   * @param pVariable Formula of scoped variable (see {@link #var(IntegerFormula, IntegerFormula)
-   *     var}).
+   * @param pVariable Formula of (scoped) variable.
    * @return Number value associated with the passed variable.
    * @see TypeTags#NUMBER
    * @see TypedValueManager#createNumberValue(FloatingPointFormula)
@@ -96,8 +93,7 @@ class TypedVariableValues {
   }
 
   /**
-   * @param pVariable Formula of scoped variable (see {@link #var(IntegerFormula, IntegerFormula)
-   *     var}).
+   * @param pVariable Formula of (scoped) variable.
    * @return Function value associated with the passed variable.
    * @see TypeTags#FUNCTION
    * @see TypedValueManager#createFunctionValue(IntegerFormula)
@@ -107,8 +103,7 @@ class TypedVariableValues {
   }
 
   /**
-   * @param pVariable Formula of scoped variable (see {@link #var(IntegerFormula, IntegerFormula)
-   *     var}).
+   * @param pVariable Formula of (scoped) variable.
    * @return Object value associated with the passed variable.
    * @see TypeTags#OBJECT
    * @see TypedValueManager#createObjectValue(IntegerFormula)
@@ -118,8 +113,7 @@ class TypedVariableValues {
   }
 
   /**
-   * @param pVariable Formula of scoped variable (see {@link #var(IntegerFormula, IntegerFormula)
-   *     var}).
+   * @param pVariable Formula of (scoped) variable.
    * @return String value associated with the passed variable.
    * @see TypeTags#STRING
    * @see TypedValueManager#createStringValue(IntegerFormula)
