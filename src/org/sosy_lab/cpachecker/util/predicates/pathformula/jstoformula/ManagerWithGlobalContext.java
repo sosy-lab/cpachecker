@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 abstract class ManagerWithGlobalContext {
   final GlobalManagerContext gctx;
 
+  final FormulaEncodingOptions options;
   final LogManager logger;
   final AnalysisDirection direction;
   final TypedValues typedValues;
@@ -62,6 +63,7 @@ abstract class ManagerWithGlobalContext {
   ManagerWithGlobalContext(final GlobalManagerContext pContext) {
     gctx = pContext;
 
+    options = pContext.options;
     logger = pContext.logger;
     direction = pContext.direction;
     typedValues = pContext.typedValues;
