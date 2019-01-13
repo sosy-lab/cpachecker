@@ -23,14 +23,20 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
-import org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.JSObjectFormulaManager.JSObjectFormulaManagerWithContext;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFieldAccess;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.js.Scope;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
-class FieldAccessToTypedValue {
-  private final JSToFormulaConverter conv;
-  private final JSObjectFormulaManagerWithContext ofmgrwc;
+class FieldAccessToTypedValue extends ManagerWithEdgeContext {
 
   /**
    * The <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-8.6.2">internal property
@@ -42,11 +48,9 @@ class FieldAccessToTypedValue {
    */
   private final IntegerFormula prototypeField;
 
-  FieldAccessToTypedValue(
-      final JSToFormulaConverter pConv, final JSObjectFormulaManagerWithContext pOfmgrwc) {
-    conv = pConv;
-    ofmgrwc = pOfmgrwc;
-    prototypeField = conv.getStringFormula("__proto__");
+  FieldAccessToTypedValue(final EdgeManagerContext pCtx) {
+    super(pCtx);
+    prototypeField = gctx.strMgr.getStringFormula("__proto__");
   }
 
   /**
@@ -61,33 +65,33 @@ class FieldAccessToTypedValue {
       final int prototypeChainDepth,
       final IntegerFormula pPrototypeField,
       final IntegerFormula pFieldName) {
-    final TypedValue undefined = conv.tvmgr.getUndefinedValue();
-    if (prototypeChainDepth > conv.maxPrototypeChainLength) {
+    final TypedValue undefined = gctx.tvmgr.getUndefinedValue();
+    if (prototypeChainDepth > ctx.conv.maxPrototypeChainLength) {
       return undefined;
     }
-    final IntegerFormula prototypeObjectId = conv.typedValues.objectValue(pPrototypeField);
+    final IntegerFormula prototypeObjectId = gctx.typedValues.objectValue(pPrototypeField);
     final ArrayFormula<IntegerFormula, IntegerFormula> prototypeFields =
-        ofmgrwc.getObjectFields(prototypeObjectId);
-    final IntegerFormula fieldOnPrototype = conv.afmgr.select(prototypeFields, pFieldName);
-    final BooleanFormula hasNoParentPrototype = ofmgrwc.markFieldAsNotSet(pPrototypeField);
-    final BooleanFormula isFieldOnPrototypeNotSet = ofmgrwc.markFieldAsNotSet(fieldOnPrototype);
+        ctx.objMgr.getObjectFields(prototypeObjectId);
+    final IntegerFormula fieldOnPrototype = gctx.afmgr.select(prototypeFields, pFieldName);
+    final BooleanFormula hasNoParentPrototype = ctx.objMgr.markFieldAsNotSet(pPrototypeField);
+    final BooleanFormula isFieldOnPrototypeNotSet = ctx.objMgr.markFieldAsNotSet(fieldOnPrototype);
     final TypedValue parentPrototype =
         lookUpOnPrototypeChain(
             prototypeChainDepth + 1,
-            conv.afmgr.select(prototypeFields, prototypeField),
+            gctx.afmgr.select(prototypeFields, prototypeField),
             pFieldName);
     return new TypedValue(
-        conv.bfmgr.ifThenElse(
+        gctx.bfmgr.ifThenElse(
             hasNoParentPrototype,
             undefined.getType(),
-            conv.bfmgr.ifThenElse(
+            gctx.bfmgr.ifThenElse(
                 isFieldOnPrototypeNotSet,
                 parentPrototype.getType(),
-                conv.typedValues.typeof(fieldOnPrototype))),
-        conv.bfmgr.ifThenElse(
+                gctx.typedValues.typeof(fieldOnPrototype))),
+        gctx.bfmgr.ifThenElse(
             hasNoParentPrototype,
             undefined.getValue(),
-            conv.bfmgr.ifThenElse(
+            gctx.bfmgr.ifThenElse(
                 isFieldOnPrototypeNotSet, parentPrototype.getValue(), fieldOnPrototype)));
   }
 
@@ -100,16 +104,53 @@ class FieldAccessToTypedValue {
    *     the object.
    */
   TypedValue accessField(final IntegerFormula pObjectId, final IntegerFormula pFieldName) {
-    final ArrayFormula<IntegerFormula, IntegerFormula> fields = ofmgrwc.getObjectFields(pObjectId);
-    final IntegerFormula field = conv.afmgr.select(fields, pFieldName);
-    final BooleanFormula isObjectFieldNotSet = ofmgrwc.markFieldAsNotSet(field);
+    final ArrayFormula<IntegerFormula, IntegerFormula> fields =
+        ctx.objMgr.getObjectFields(pObjectId);
+    final IntegerFormula field = gctx.afmgr.select(fields, pFieldName);
+    final BooleanFormula isObjectFieldNotSet = ctx.objMgr.markFieldAsNotSet(field);
     final TypedValue typedValueOnPrototypeChain =
-        lookUpOnPrototypeChain(1, conv.afmgr.select(fields, prototypeField), pFieldName);
+        lookUpOnPrototypeChain(1, gctx.afmgr.select(fields, prototypeField), pFieldName);
     return new TypedValue(
-        conv.bfmgr.ifThenElse(
+        gctx.bfmgr.ifThenElse(
             isObjectFieldNotSet,
             typedValueOnPrototypeChain.getType(),
-            conv.typedValues.typeof(field)),
-        conv.bfmgr.ifThenElse(isObjectFieldNotSet, typedValueOnPrototypeChain.getValue(), field));
+            gctx.typedValues.typeof(field)),
+        gctx.bfmgr.ifThenElse(isObjectFieldNotSet, typedValueOnPrototypeChain.getValue(), field));
+  }
+
+  JSSimpleDeclaration getObjectDeclarationOfFieldAccess(final JSFieldAccess ppFieldAccess)
+      throws UnrecognizedCodeException {
+    return getObjectDeclarationOfObjectExpression(ppFieldAccess.getObject());
+  }
+
+  private long tmpVariableCount = 0;
+
+  private String generateTemporaryVariableName() {
+    ++tmpVariableCount;
+    return "tmp" + tmpVariableCount;
+  }
+
+  JSSimpleDeclaration getObjectDeclarationOfObjectExpression(final JSExpression pObjectExpression)
+      throws UnrecognizedCodeException {
+    final JSSimpleDeclaration objectDeclaration;
+    if (pObjectExpression instanceof JSIdExpression) {
+      objectDeclaration = ((JSIdExpression) pObjectExpression).getDeclaration();
+      assert objectDeclaration != null;
+    } else {
+      final String temporaryVariableName = generateTemporaryVariableName();
+      objectDeclaration =
+          new JSVariableDeclaration(
+              FileLocation.DUMMY,
+              Scope.GLOBAL,
+              temporaryVariableName,
+              temporaryVariableName,
+              temporaryVariableName,
+              new JSInitializerExpression(FileLocation.DUMMY, pObjectExpression));
+      ctx.constraints.addConstraint(
+          ctx.assignmentMgr.makeAssignment(
+              ctx.assignmentMgr.buildLvalueTerm(objectDeclaration),
+              ctx.exprMgr.makeExpression(pObjectExpression)));
+    }
+    return objectDeclaration;
   }
 }

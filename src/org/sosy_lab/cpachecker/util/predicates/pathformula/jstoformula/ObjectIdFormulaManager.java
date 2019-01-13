@@ -23,9 +23,30 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
-import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSide;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.OBJECT_ID_TYPE;
 
-interface JSExpressionFormulaManager {
-  TypedValue makeExpression(JSRightHandSide pExpression) throws UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+
+class ObjectIdFormulaManager {
+
+  private final FormulaManagerView fmgr;
+
+  private long nextObjectId;
+
+  private final IntegerFormula nullObjectId;
+
+  ObjectIdFormulaManager(final FormulaManagerView pFmgr) {
+    fmgr = pFmgr;
+    nullObjectId = pFmgr.getIntegerFormulaManager().makeNumber(0);
+    nextObjectId = 1; // Regular object IDs start at ID 1
+  }
+
+  IntegerFormula createObjectId() {
+    return fmgr.makeNumber(OBJECT_ID_TYPE, nextObjectId++);
+  }
+
+  IntegerFormula getNullObjectId() {
+    return nullObjectId;
+  }
 }

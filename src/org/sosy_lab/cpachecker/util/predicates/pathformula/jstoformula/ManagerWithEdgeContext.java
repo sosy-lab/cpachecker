@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
-import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSide;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+abstract class ManagerWithEdgeContext {
+  final GlobalManagerContext gctx;
+  protected final EdgeManagerContext ctx;
 
-interface JSExpressionFormulaManager {
-  TypedValue makeExpression(JSRightHandSide pExpression) throws UnrecognizedCodeException;
+  ManagerWithEdgeContext(final EdgeManagerContext pCtx) {
+    ctx = pCtx;
+    gctx = pCtx.global;
+  }
 }
