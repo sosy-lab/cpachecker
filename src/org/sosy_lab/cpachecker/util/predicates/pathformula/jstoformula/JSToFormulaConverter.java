@@ -355,25 +355,6 @@ public class JSToFormulaConverter {
    * assignment. This method does not handle scoping and the NON_DET_VARIABLE!
    */
   @SuppressWarnings("ResultOfMethodCallIgnored")
-  Formula makeFreshVariable(String name, JSType type, SSAMapBuilder ssa) {
-    int useIndex;
-
-    if (direction == AnalysisDirection.BACKWARD) {
-      useIndex = getIndex(name, type, ssa);
-    } else {
-      useIndex = makeFreshIndex(name, ssa);
-    }
-
-    Formula result = fmgr.makeVariable(Types.VARIABLE_TYPE, name, useIndex);
-
-    if (direction == AnalysisDirection.BACKWARD) {
-      makeFreshIndex(name, ssa);
-    }
-
-    return result;
-  }
-
-  @SuppressWarnings("ResultOfMethodCallIgnored")
   IntegerFormula makeFreshVariable(final String name, final SSAMapBuilder ssa) {
     int useIndex;
 
