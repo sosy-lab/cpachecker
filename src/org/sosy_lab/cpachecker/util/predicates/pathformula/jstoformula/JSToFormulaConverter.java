@@ -115,7 +115,6 @@ public class JSToFormulaConverter {
   final ArrayFormulaManagerView afmgr;
   final IntegerFormulaManagerView ifmgr;
   protected final LogManagerWithoutDuplicates logger;
-  protected final ShutdownNotifier shutdownNotifier;
 
   protected final AnalysisDirection direction;
 
@@ -140,7 +139,6 @@ public class JSToFormulaConverter {
     ifmgr = pFmgr.getIntegerFormulaManager();
     ffmgr = pFmgr.getFunctionFormulaManager();
     this.logger = new LogManagerWithoutDuplicates(pLogger);
-    this.shutdownNotifier = pShutdownNotifier;
 
     this.direction = pDirection;
 
@@ -156,7 +154,7 @@ public class JSToFormulaConverter {
             pOptions,
             pJSOptions,
             logger,
-            pDirection,
+            pShutdownNotifier, pDirection,
             typedValues,
             typeTags,
             new TypedValueManager(fmgr, typedValues, typeTags, objIdMgr.getNullObjectId()),

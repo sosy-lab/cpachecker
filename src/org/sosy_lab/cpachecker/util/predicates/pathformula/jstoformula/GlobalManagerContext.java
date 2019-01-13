@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -37,6 +38,7 @@ class GlobalManagerContext {
   final FormulaEncodingOptions options;
   final JSFormulaEncodingOptions jsOptions;
   final LogManager logger;
+  final ShutdownNotifier shutdownNotifier;
   final AnalysisDirection direction;
   final TypedValues typedValues;
   final TypeTags typeTags;
@@ -58,6 +60,7 @@ class GlobalManagerContext {
       final FormulaEncodingOptions pOptions,
       final JSFormulaEncodingOptions pJSOptions,
       final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier,
       final AnalysisDirection pDirection,
       final TypedValues pTypedValues,
       final TypeTags pTypeTags,
@@ -70,6 +73,7 @@ class GlobalManagerContext {
     options = pOptions;
     jsOptions = pJSOptions;
     logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
     direction = pDirection;
     typedValues = pTypedValues;
     typeTags = pTypeTags;
