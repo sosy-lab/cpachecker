@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 class GlobalManagerContext {
   final FormulaEncodingOptions options;
   final JSFormulaEncodingOptions jsOptions;
-  final LogManager logger;
+  final LogManagerWithoutDuplicates logger;
   final ShutdownNotifier shutdownNotifier;
   final AnalysisDirection direction;
   final TypedValues typedValues;
@@ -60,7 +60,7 @@ class GlobalManagerContext {
   GlobalManagerContext(
       final FormulaEncodingOptions pOptions,
       final JSFormulaEncodingOptions pJSOptions,
-      final LogManager pLogger,
+      final LogManagerWithoutDuplicates pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final AnalysisDirection pDirection,
       final TypedValues pTypedValues,
