@@ -63,26 +63,12 @@ class GlobalManagerContext {
       final LogManagerWithoutDuplicates pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final AnalysisDirection pDirection,
-      final TypedValues pTypedValues,
-      final TypeTags pTypeTags,
-      final TypedValueManager pTvmgr,
-      final Ids<JSFunctionDeclaration> pFunctionDeclarationIds,
-      final FunctionScopeManager pFunctionScopeManager,
-      final ObjectIdFormulaManager pObjIdMgr,
-      final StringFormulaManager pStrMgr,
       final FormulaManagerView pFmgr) {
     options = pOptions;
     jsOptions = pJSOptions;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     direction = pDirection;
-    typedValues = pTypedValues;
-    typeTags = pTypeTags;
-    tvmgr = pTvmgr;
-    functionDeclarationIds = pFunctionDeclarationIds;
-    functionScopeManager = pFunctionScopeManager;
-    objIdMgr = pObjIdMgr;
-    strMgr = pStrMgr;
     fmgr = pFmgr;
 
     afmgr = fmgr.getArrayFormulaManager();
@@ -91,6 +77,13 @@ class GlobalManagerContext {
     fpfmgr = fmgr.getFloatingPointFormulaManager();
     ifmgr = fmgr.getIntegerFormulaManager();
 
+    typedValues = new TypedValues(ffmgr);
+    typeTags = new TypeTags(fmgr.getIntegerFormulaManager());
+    objIdMgr = new ObjectIdFormulaManager(fmgr);
+    tvmgr = new TypedValueManager(pFmgr, typedValues, typeTags, objIdMgr.getNullObjectId());
+    functionDeclarationIds = new Ids<>();
+    functionScopeManager = new FunctionScopeManager();
+    strMgr = new StringFormulaManager(pFmgr, pJSOptions.maxFieldNameCount);
     valConv = new ValueConverterManager(typedValues, typeTags, tvmgr, strMgr, fmgr);
     jsFunDeclMgr = new JSFunctionDeclarationFormulaManager(ffmgr);
   }

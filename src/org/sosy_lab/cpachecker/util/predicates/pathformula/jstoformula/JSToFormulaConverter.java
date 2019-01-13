@@ -103,32 +103,6 @@ public class JSToFormulaConverter extends ManagerWithGlobalContext {
   @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
   private final Set<JSVariableDeclaration> globalDeclarations = new HashSet<>();
 
-  private static GlobalManagerContext createGlobalManagerContext(
-      final FormulaEncodingOptions pOptions,
-      final JSFormulaEncodingOptions pJSOptions,
-      final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier,
-      final AnalysisDirection pDirection,
-      final FormulaManagerView pFmgr) {
-    final TypedValues typedValues = new TypedValues(pFmgr.getFunctionFormulaManager());
-    final TypeTags typeTags = new TypeTags(pFmgr.getIntegerFormulaManager());
-    final ObjectIdFormulaManager objIdMgr = new ObjectIdFormulaManager(pFmgr);
-    return new GlobalManagerContext(
-        pOptions,
-        pJSOptions,
-        new LogManagerWithoutDuplicates(pLogger),
-        pShutdownNotifier,
-        pDirection,
-        typedValues,
-        typeTags,
-        new TypedValueManager(pFmgr, typedValues, typeTags, objIdMgr.getNullObjectId()),
-        new Ids<>(),
-        new FunctionScopeManager(),
-        objIdMgr,
-        new StringFormulaManager(pFmgr, pJSOptions.maxFieldNameCount),
-        pFmgr);
-  }
-
   public JSToFormulaConverter(
       final FormulaEncodingOptions pOptions,
       final JSFormulaEncodingOptions pJSOptions,
@@ -136,8 +110,14 @@ public class JSToFormulaConverter extends ManagerWithGlobalContext {
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final AnalysisDirection pDirection) {
-    super(createGlobalManagerContext(
-            pOptions, pJSOptions, pLogger, pShutdownNotifier, pDirection, pFmgr));
+    super(
+        new GlobalManagerContext(
+            pOptions,
+            pJSOptions,
+            new LogManagerWithoutDuplicates(pLogger),
+            pShutdownNotifier,
+            pDirection,
+            pFmgr));
   }
 
   @SuppressWarnings("SameParameterValue")
