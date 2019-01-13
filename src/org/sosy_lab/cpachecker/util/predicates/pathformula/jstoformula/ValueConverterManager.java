@@ -57,6 +57,7 @@ class ValueConverterManager {
   private final BooleanFormulaManagerView bfmgr;
   private final FloatingPointFormulaManagerView fpfmgr;
 
+
   ValueConverterManager(
       final TypedVariableValues pTypedVariableValues,
       final TypeTags pTypeTags,
@@ -87,7 +88,7 @@ class ValueConverterManager {
         .contains(type)) {
       return notAFunction;
     } else if (type.equals(typeTags.FUNCTION)) {
-      return typedVarValues.functionValue((IntegerFormula) pValue.getValue());
+      return (IntegerFormula) pValue.getValue();
     }
     final IntegerFormula variable = (IntegerFormula) pValue.getValue();
     return bfmgr.ifThenElse(
