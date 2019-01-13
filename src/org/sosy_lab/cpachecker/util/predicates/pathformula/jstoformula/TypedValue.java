@@ -35,10 +35,11 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
  * encoded, too.
  *
  * <p>Types are encoded as {@link TypeTags}. A {@link TypedValue} is usually created/managed by
- * {@link TypedValueManager}. Values of JavaScript variables are managed by {@link TypedValues}.
+ * {@link TypedValueManager}. Values of JavaScript variables are managed by {@link
+ * TypedVariableValues}.
  *
  * @see TypeTags
- * @see TypedValues
+ * @see TypedVariableValues
  * @see TypedValueManager
  */
 class TypedValue {

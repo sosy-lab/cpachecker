@@ -48,7 +48,7 @@ class AssignmentManager extends ManagerWithEdgeContext {
   }
 
   IntegerFormula buildLvalueTerm(final JSSimpleDeclaration pDeclaration) {
-    return typedValues.var(
+    return typedVarValues.var(
         ctx.scopeMgr.scopeOf(pDeclaration),
         ctx.varMgr.makeFreshVariable(pDeclaration.getQualifiedName()));
   }
@@ -86,7 +86,7 @@ class AssignmentManager extends ManagerWithEdgeContext {
     final JSSimpleDeclaration objectDeclaration =
         ctx.propMgr.getObjectDeclarationOfObjectExpression(pPropertyAccess.getObjectExpression());
     final IntegerFormula objectId =
-        typedValues.objectValue(ctx.scopeMgr.scopedVariable(objectDeclaration));
+        typedVarValues.objectValue(ctx.scopeMgr.scopedVariable(objectDeclaration));
     final JSExpression propertyNameExpression = pPropertyAccess.getPropertyNameExpression();
     final IntegerFormula field;
     final IntegerFormula propertyNameFormula;
@@ -110,7 +110,7 @@ class AssignmentManager extends ManagerWithEdgeContext {
     final JSSimpleDeclaration objectDeclaration =
         ctx.propMgr.getObjectDeclarationOfFieldAccess(pLhs);
     final IntegerFormula objectId =
-        typedValues.objectValue(ctx.scopeMgr.scopedVariable(objectDeclaration));
+        typedVarValues.objectValue(ctx.scopeMgr.scopedVariable(objectDeclaration));
     final String fieldName = pLhs.getFieldName();
     final IntegerFormula field = ctx.objMgr.makeFieldVariable(fieldName);
     ctx.constraints.addConstraint(ctx.objMgr.markFieldAsSet(field));
@@ -162,10 +162,10 @@ class AssignmentManager extends ManagerWithEdgeContext {
                                 fmgr.makeNumber(SCOPE_TYPE, pScopeId),
                                 ctx.scopeMgr.scopeOf(pVariableDeclaration)),
                             fmgr.makeEqual(
-                                typedValues.var(
+                                typedVarValues.var(
                                     fmgr.makeNumber(SCOPE_TYPE, pScopeId),
                                     ctx.varMgr.makePreviousVariable(variableName)),
-                                typedValues.var(
+                                typedVarValues.var(
                                     fmgr.makeNumber(SCOPE_TYPE, pScopeId),
                                     ctx.varMgr.makeVariable(variableName)))))
                 .collect(Collectors.toList())));
@@ -176,47 +176,47 @@ class AssignmentManager extends ManagerWithEdgeContext {
     final IntegerFormula rType = pRight.getType();
     if (rType.equals(typeTags.BOOLEAN)) {
       return bfmgr.and(
-          fmgr.assignment(typedValues.typeof(pLeft), typeTags.BOOLEAN),
-          fmgr.makeEqual(typedValues.booleanValue(pLeft), pRight.getValue()));
+          fmgr.assignment(typedVarValues.typeof(pLeft), typeTags.BOOLEAN),
+          fmgr.makeEqual(typedVarValues.booleanValue(pLeft), pRight.getValue()));
     }
     if (rType.equals(typeTags.FUNCTION)) {
       return bfmgr.and(
-          fmgr.assignment(typedValues.typeof(pLeft), typeTags.FUNCTION),
-          fmgr.makeEqual(typedValues.functionValue(pLeft), pRight.getValue()));
+          fmgr.assignment(typedVarValues.typeof(pLeft), typeTags.FUNCTION),
+          fmgr.makeEqual(typedVarValues.functionValue(pLeft), pRight.getValue()));
     }
     if (rType.equals(typeTags.NUMBER)) {
       return bfmgr.and(
-          fmgr.assignment(typedValues.typeof(pLeft), typeTags.NUMBER),
-          fmgr.makeEqual(typedValues.numberValue(pLeft), pRight.getValue()));
+          fmgr.assignment(typedVarValues.typeof(pLeft), typeTags.NUMBER),
+          fmgr.makeEqual(typedVarValues.numberValue(pLeft), pRight.getValue()));
     }
     if (rType.equals(typeTags.OBJECT)) {
       return bfmgr.and(
-          fmgr.assignment(typedValues.typeof(pLeft), typeTags.OBJECT),
-          fmgr.makeEqual(typedValues.objectValue(pLeft), pRight.getValue()));
+          fmgr.assignment(typedVarValues.typeof(pLeft), typeTags.OBJECT),
+          fmgr.makeEqual(typedVarValues.objectValue(pLeft), pRight.getValue()));
     }
     if (rType.equals(typeTags.STRING)) {
       return bfmgr.and(
-          fmgr.assignment(typedValues.typeof(pLeft), typeTags.STRING),
-          fmgr.makeEqual(typedValues.stringValue(pLeft), pRight.getValue()));
+          fmgr.assignment(typedVarValues.typeof(pLeft), typeTags.STRING),
+          fmgr.makeEqual(typedVarValues.stringValue(pLeft), pRight.getValue()));
     }
     return fmgr.makeAnd(
-        fmgr.assignment(typedValues.typeof(pLeft), pRight.getType()),
+        fmgr.assignment(typedVarValues.typeof(pLeft), pRight.getType()),
         bfmgr.or(
             fmgr.makeAnd(
-                fmgr.makeEqual(typedValues.typeof(pLeft), typeTags.BOOLEAN),
-                fmgr.makeEqual(typedValues.booleanValue(pLeft), valConv.toBoolean(pRight))),
+                fmgr.makeEqual(typedVarValues.typeof(pLeft), typeTags.BOOLEAN),
+                fmgr.makeEqual(typedVarValues.booleanValue(pLeft), valConv.toBoolean(pRight))),
             fmgr.makeAnd(
-                fmgr.makeEqual(typedValues.typeof(pLeft), typeTags.FUNCTION),
-                fmgr.makeEqual(typedValues.functionValue(pLeft), valConv.toFunction(pRight))),
+                fmgr.makeEqual(typedVarValues.typeof(pLeft), typeTags.FUNCTION),
+                fmgr.makeEqual(typedVarValues.functionValue(pLeft), valConv.toFunction(pRight))),
             fmgr.makeAnd(
-                fmgr.makeEqual(typedValues.typeof(pLeft), typeTags.NUMBER),
-                fmgr.makeEqual(typedValues.numberValue(pLeft), valConv.toNumber(pRight))),
+                fmgr.makeEqual(typedVarValues.typeof(pLeft), typeTags.NUMBER),
+                fmgr.makeEqual(typedVarValues.numberValue(pLeft), valConv.toNumber(pRight))),
             fmgr.makeAnd(
-                fmgr.makeEqual(typedValues.typeof(pLeft), typeTags.OBJECT),
-                fmgr.makeEqual(typedValues.objectValue(pLeft), valConv.toObject(pRight))),
+                fmgr.makeEqual(typedVarValues.typeof(pLeft), typeTags.OBJECT),
+                fmgr.makeEqual(typedVarValues.objectValue(pLeft), valConv.toObject(pRight))),
             fmgr.makeAnd(
-                fmgr.makeEqual(typedValues.typeof(pLeft), typeTags.STRING),
-                fmgr.makeEqual(typedValues.stringValue(pLeft), valConv.toStringFormula(pRight))),
-            fmgr.makeEqual(typedValues.typeof(pLeft), typeTags.UNDEFINED)));
+                fmgr.makeEqual(typedVarValues.typeof(pLeft), typeTags.STRING),
+                fmgr.makeEqual(typedVarValues.stringValue(pLeft), valConv.toStringFormula(pRight))),
+            fmgr.makeEqual(typedVarValues.typeof(pLeft), typeTags.UNDEFINED)));
   }
 }

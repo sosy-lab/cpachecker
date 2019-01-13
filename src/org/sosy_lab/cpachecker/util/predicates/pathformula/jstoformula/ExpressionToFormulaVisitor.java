@@ -273,7 +273,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
             functionDeclarationIds.get(pDeclaredByExpression.getJsFunctionDeclaration()));
     return tvmgr.createBooleanValue(
         fmgr.makeEqual(
-            jsFunDeclMgr.declarationOf(typedValues.functionValue(variable)),
+            jsFunDeclMgr.declarationOf(typedVarValues.functionValue(variable)),
             functionDeclarationId));
   }
 
@@ -300,7 +300,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
       return tvmgr.createFunctionValue(functionValueFormula);
     }
     final IntegerFormula variable = ctx.scopeMgr.scopedVariable(declaration);
-    return new TypedValue(typedValues.typeof(variable), variable);
+    return new TypedValue(typedVarValues.typeof(variable), variable);
   }
 
   @Override
@@ -308,7 +308,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
     final JSSimpleDeclaration objectDeclaration =
         ctx.propMgr.getObjectDeclarationOfFieldAccess(pFieldAccess);
     final IntegerFormula objectId =
-        typedValues.objectValue(ctx.scopeMgr.scopedVariable(objectDeclaration));
+        typedVarValues.objectValue(ctx.scopeMgr.scopedVariable(objectDeclaration));
     final IntegerFormula fieldName = strMgr.getStringFormula(pFieldAccess.getFieldName());
     return ctx.propMgr.accessField(objectId, fieldName);
   }
@@ -319,7 +319,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
     final JSSimpleDeclaration objectDeclaration =
         ctx.propMgr.getObjectDeclarationOfObjectExpression(pPropertyAccess.getObjectExpression());
     final IntegerFormula objectId =
-        typedValues.objectValue(ctx.scopeMgr.scopedVariable(objectDeclaration));
+        typedVarValues.objectValue(ctx.scopeMgr.scopedVariable(objectDeclaration));
     final JSExpression propertyNameExpression = pPropertyAccess.getPropertyNameExpression();
     final TypedValue propertyNameValue = visit(propertyNameExpression);
     final IntegerFormula fieldName =

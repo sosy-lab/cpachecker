@@ -41,7 +41,7 @@ class GlobalManagerContext {
   final LogManagerWithoutDuplicates logger;
   final ShutdownNotifier shutdownNotifier;
   final AnalysisDirection direction;
-  final TypedValues typedValues;
+  final TypedVariableValues typedVarValues;
   final TypeTags typeTags;
   final TypedValueManager tvmgr;
   final Ids<JSFunctionDeclaration> functionDeclarationIds;
@@ -78,14 +78,14 @@ class GlobalManagerContext {
     fpfmgr = fmgr.getFloatingPointFormulaManager();
     ifmgr = fmgr.getIntegerFormulaManager();
 
-    typedValues = new TypedValues(ffmgr);
+    typedVarValues = new TypedVariableValues(ffmgr);
     typeTags = new TypeTags(fmgr.getIntegerFormulaManager());
     objIdMgr = new ObjectIdFormulaManager(fmgr);
     tvmgr = new TypedValueManager(pFmgr, typeTags, objIdMgr.getNullObjectId());
     functionDeclarationIds = new Ids<>();
     functionScopeManager = new FunctionScopeManager();
     strMgr = new StringFormulaManager(pFmgr, pJSOptions.maxFieldNameCount);
-    valConv = new ValueConverterManager(typedValues, typeTags, tvmgr, strMgr, fmgr);
+    valConv = new ValueConverterManager(typedVarValues, typeTags, tvmgr, strMgr, fmgr);
     jsFunDeclMgr = new JSFunctionDeclarationFormulaManager(ffmgr);
   }
 }

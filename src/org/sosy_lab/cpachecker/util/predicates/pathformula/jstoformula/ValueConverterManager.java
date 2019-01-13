@@ -49,7 +49,7 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
  */
 class ValueConverterManager {
 
-  private final TypedValues typedValues;
+  private final TypedVariableValues typedVarValues;
   private final TypeTags typeTags;
   private final TypedValueManager tvmgr;
   private final StringFormulaManager strMgr;
@@ -58,12 +58,12 @@ class ValueConverterManager {
   private final FloatingPointFormulaManagerView fpfmgr;
 
   ValueConverterManager(
-      final TypedValues pTypedValues,
+      final TypedVariableValues pTypedVariableValues,
       final TypeTags pTypeTags,
       final TypedValueManager pTvmgr,
       final StringFormulaManager pStrMgr,
       final FormulaManagerView pFmgr) {
-    typedValues = pTypedValues;
+    typedVarValues = pTypedVariableValues;
     typeTags = pTypeTags;
     tvmgr = pTvmgr;
     strMgr = pStrMgr;
@@ -87,11 +87,13 @@ class ValueConverterManager {
         .contains(type)) {
       return notAFunction;
     } else if (type.equals(typeTags.FUNCTION)) {
-      return typedValues.functionValue((IntegerFormula) pValue.getValue());
+      return typedVarValues.functionValue((IntegerFormula) pValue.getValue());
     }
     final IntegerFormula variable = (IntegerFormula) pValue.getValue();
     return bfmgr.ifThenElse(
-        fmgr.makeEqual(type, typeTags.FUNCTION), typedValues.functionValue(variable), notAFunction);
+        fmgr.makeEqual(type, typeTags.FUNCTION),
+        typedVarValues.functionValue(variable),
+        notAFunction);
   }
 
   /**
@@ -120,7 +122,7 @@ class ValueConverterManager {
     final IntegerFormula variable = (IntegerFormula) pValue.getValue();
     return bfmgr.ifThenElse(
         fmgr.makeEqual(type, typeTags.OBJECT),
-        typedValues.objectValue(variable),
+        typedVarValues.objectValue(variable),
         unknownObjectValue);
   }
 
@@ -150,7 +152,7 @@ class ValueConverterManager {
     final IntegerFormula variable = (IntegerFormula) pValue.getValue();
     return bfmgr.ifThenElse(
         fmgr.makeEqual(type, typeTags.STRING),
-        typedValues.stringValue(variable),
+        typedVarValues.stringValue(variable),
         unknownStringValue);
   }
 
@@ -180,18 +182,18 @@ class ValueConverterManager {
       final IntegerFormula variable = (IntegerFormula) pValue.getValue();
       return bfmgr.ifThenElse(
           fmgr.makeEqual(type, typeTags.BOOLEAN),
-          typedValues.booleanValue(variable),
+          typedVarValues.booleanValue(variable),
           bfmgr.ifThenElse(
               fmgr.makeEqual(type, typeTags.NUMBER),
-              numberToBoolean(typedValues.numberValue(variable)),
+              numberToBoolean(typedVarValues.numberValue(variable)),
               bfmgr.ifThenElse(
                   fmgr.makeEqual(type, typeTags.OBJECT),
                   bfmgr.not(
                       fmgr.makeEqual(
-                          tvmgr.getNullValue().getValue(), typedValues.objectValue(variable))),
+                          tvmgr.getNullValue().getValue(), typedVarValues.objectValue(variable))),
                   bfmgr.ifThenElse(
                       fmgr.makeEqual(type, typeTags.STRING),
-                      stringToBoolean(typedValues.stringValue(variable)),
+                      stringToBoolean(typedVarValues.stringValue(variable)),
                       fmgr.makeEqual(type, typeTags.FUNCTION)))));
     }
   }
@@ -228,10 +230,10 @@ class ValueConverterManager {
       final IntegerFormula variable = (IntegerFormula) pValue.getValue();
       return bfmgr.ifThenElse(
           fmgr.makeEqual(type, typeTags.BOOLEAN),
-          booleanToNumber(typedValues.booleanValue(variable)),
+          booleanToNumber(typedVarValues.booleanValue(variable)),
           bfmgr.ifThenElse(
               fmgr.makeEqual(type, typeTags.NUMBER),
-              typedValues.numberValue(variable),
+              typedVarValues.numberValue(variable),
               bfmgr.ifThenElse(
                   fmgr.makeEqual(type, typeTags.OBJECT),
                   fmgr.makeNumber(Types.NUMBER_TYPE, 0), // TODO handle non null objects

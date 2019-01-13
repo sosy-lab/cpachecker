@@ -50,7 +50,7 @@ abstract class ManagerWithGlobalContext {
   final ShutdownNotifier shutdownNotifier; // not used yet, but exists for future use
 
   final AnalysisDirection direction;
-  final TypedValues typedValues;
+  final TypedVariableValues typedVarValues;
   final TypeTags typeTags;
   final TypedValueManager tvmgr;
   final Ids<JSFunctionDeclaration> functionDeclarationIds;
@@ -75,7 +75,7 @@ abstract class ManagerWithGlobalContext {
     logger = pContext.logger;
     shutdownNotifier = pContext.shutdownNotifier;
     direction = pContext.direction;
-    typedValues = pContext.typedValues;
+    typedVarValues = pContext.typedVarValues;
     typeTags = pContext.typeTags;
     tvmgr = pContext.tvmgr;
     functionDeclarationIds = pContext.functionDeclarationIds;

@@ -442,7 +442,7 @@ public class JSToFormulaConverter extends ManagerWithGlobalContext {
       ss =
           pCallerCtx.scopeMgr.scopeStack(
               pCallerCtx.scopeMgr.scopeOf(
-                  gctx.typedValues.functionValue(
+                  gctx.typedVarValues.functionValue(
                       pCallerCtx.scopeMgr.scopedVariable(
                           Objects.requireNonNull(functionObject.get().getDeclaration())))));
     } else {

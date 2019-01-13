@@ -42,7 +42,7 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
  * Provider of uninterpreted function formulas that associate a JavaScript variable with its value,
  * type and scope object (formula encoding).
  */
-class TypedValues {
+class TypedVariableValues {
   private final FunctionDeclaration<IntegerFormula> typeofDeclaration;
   private final FunctionFormulaManagerView ffmgr;
   private final FunctionDeclaration<BooleanFormula> booleanValueDeclaration;
@@ -52,8 +52,7 @@ class TypedValues {
   private final FunctionDeclaration<IntegerFormula> objectValueDeclaration;
   private final FunctionDeclaration<IntegerFormula> varDeclaration;
 
-  // TODO rename class to TypedVariableValues
-  TypedValues(final FunctionFormulaManagerView pFfmgr) {
+  TypedVariableValues(final FunctionFormulaManagerView pFfmgr) {
     ffmgr = pFfmgr;
     typeofDeclaration = pFfmgr.declareUF("typeof", JS_TYPE_TYPE, VARIABLE_TYPE);
     booleanValueDeclaration = pFfmgr.declareUF("booleanValue", BOOLEAN_TYPE, VARIABLE_TYPE);

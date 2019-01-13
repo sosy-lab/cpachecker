@@ -35,8 +35,8 @@ import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 /**
- * Management of the scope of JavaScript variables (see {@link TypedValues#var(IntegerFormula,
- * IntegerFormula) var(scope,variable)}).
+ * Management of the scope of JavaScript variables (see {@link
+ * TypedVariableValues#var(IntegerFormula, IntegerFormula) var(scope,variable)}).
  *
  * <p>To <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-10.3.1">resolve an
  * identifier</a> (of a variable) in ECMAScript the <a
@@ -112,7 +112,7 @@ class VariableScopeManager extends ManagerWithEdgeContext {
   }
 
   IntegerFormula scopedVariable(final JSSimpleDeclaration pDeclaration) {
-    return typedValues.var(
+    return typedVarValues.var(
         scopeOf(pDeclaration), ctx.varMgr.makeVariable(pDeclaration.getQualifiedName()));
   }
 

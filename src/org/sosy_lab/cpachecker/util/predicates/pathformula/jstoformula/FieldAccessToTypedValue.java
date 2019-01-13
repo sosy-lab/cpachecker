@@ -70,7 +70,7 @@ class FieldAccessToTypedValue extends ManagerWithEdgeContext {
     if (prototypeChainDepth > jsOptions.maxPrototypeChainLength) {
       return undefined;
     }
-    final IntegerFormula prototypeObjectId = typedValues.objectValue(pPrototypeField);
+    final IntegerFormula prototypeObjectId = typedVarValues.objectValue(pPrototypeField);
     final ArrayFormula<IntegerFormula, IntegerFormula> prototypeFields =
         ctx.objMgr.getObjectFields(prototypeObjectId);
     final IntegerFormula fieldOnPrototype = afmgr.select(prototypeFields, pFieldName);
@@ -86,7 +86,7 @@ class FieldAccessToTypedValue extends ManagerWithEdgeContext {
             bfmgr.ifThenElse(
                 isFieldOnPrototypeNotSet,
                 parentPrototype.getType(),
-                typedValues.typeof(fieldOnPrototype))),
+                typedVarValues.typeof(fieldOnPrototype))),
         bfmgr.ifThenElse(
             hasNoParentPrototype,
             undefined.getValue(),
@@ -111,7 +111,9 @@ class FieldAccessToTypedValue extends ManagerWithEdgeContext {
         lookUpOnPrototypeChain(1, afmgr.select(fields, prototypeField), pFieldName);
     return new TypedValue(
         bfmgr.ifThenElse(
-            isObjectFieldNotSet, typedValueOnPrototypeChain.getType(), typedValues.typeof(field)),
+            isObjectFieldNotSet,
+            typedValueOnPrototypeChain.getType(),
+            typedVarValues.typeof(field)),
         bfmgr.ifThenElse(isObjectFieldNotSet, typedValueOnPrototypeChain.getValue(), field));
   }
 
