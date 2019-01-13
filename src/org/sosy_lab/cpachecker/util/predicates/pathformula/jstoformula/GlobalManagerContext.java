@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 
 class GlobalManagerContext {
@@ -43,6 +44,7 @@ class GlobalManagerContext {
   final FormulaManagerView fmgr;
   final ArrayFormulaManagerView afmgr;
   final BooleanFormulaManagerView bfmgr;
+  final FunctionFormulaManagerView ffmgr;
   final FloatingPointFormulaManagerView fpfmgr;
   final IntegerFormulaManagerView ifmgr;
 
@@ -66,6 +68,7 @@ class GlobalManagerContext {
 
     afmgr = fmgr.getArrayFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
+    ffmgr = fmgr.getFunctionFormulaManager();
     fpfmgr = fmgr.getFloatingPointFormulaManager();
     ifmgr = fmgr.getIntegerFormulaManager();
 
