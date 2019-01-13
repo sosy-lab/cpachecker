@@ -120,6 +120,32 @@ public class JSToFormulaConverter {
 
   private final GlobalManagerContext gctx;
 
+  private static GlobalManagerContext createGlobalManagerContext(
+      final FormulaEncodingOptions pOptions,
+      final JSFormulaEncodingOptions pJSOptions,
+      final LogManagerWithoutDuplicates pLogger,
+      final ShutdownNotifier pShutdownNotifier,
+      final AnalysisDirection pDirection,
+      final FormulaManagerView pFmgr) {
+    final TypedValues typedValues = new TypedValues(pFmgr.getFunctionFormulaManager());
+    final TypeTags typeTags = new TypeTags(pFmgr.getIntegerFormulaManager());
+    final ObjectIdFormulaManager objIdMgr = new ObjectIdFormulaManager(pFmgr);
+    return new GlobalManagerContext(
+        pOptions,
+        pJSOptions,
+        new LogManagerWithoutDuplicates(pLogger),
+        pShutdownNotifier,
+        pDirection,
+        typedValues,
+        typeTags,
+        new TypedValueManager(pFmgr, typedValues, typeTags, objIdMgr.getNullObjectId()),
+        new Ids<>(),
+        new FunctionScopeManager(),
+        objIdMgr,
+        new StringFormulaManager(pFmgr, pJSOptions.maxFieldNameCount),
+        pFmgr);
+  }
+
   public JSToFormulaConverter(
       FormulaEncodingOptions pOptions,
       final JSFormulaEncodingOptions pJSOptions,
@@ -139,23 +165,9 @@ public class JSToFormulaConverter {
 
     afmgr = fmgr.getArrayFormulaManager();
 
-    final TypedValues typedValues = new TypedValues(ffmgr);
-    final TypeTags typeTags = new TypeTags(ifmgr);
-    final ObjectIdFormulaManager objIdMgr = new ObjectIdFormulaManager(pFmgr);
     gctx =
-        new GlobalManagerContext(
-            pOptions,
-            pJSOptions,
-            logger,
-            pShutdownNotifier, pDirection,
-            typedValues,
-            typeTags,
-            new TypedValueManager(fmgr, typedValues, typeTags, objIdMgr.getNullObjectId()),
-            new Ids<>(),
-            new FunctionScopeManager(),
-            objIdMgr,
-            new StringFormulaManager(fmgr, pJSOptions.maxFieldNameCount),
-            fmgr);
+        createGlobalManagerContext(
+            pOptions, pJSOptions, logger, pShutdownNotifier, pDirection, fmgr);
   }
 
   @SuppressWarnings("SameParameterValue")
