@@ -80,7 +80,7 @@ class VariableScopeManager extends ManagerWithEdgeContext {
    * @return Scope (formula) of the passed (function or variable) declaration.
    */
   @Nonnull
-  IntegerFormula scopeOf(final JSSimpleDeclaration pDeclaration) {
+  private IntegerFormula scopeOf(final JSSimpleDeclaration pDeclaration) {
     final Scope scope = pDeclaration.getScope();
     if (scope.isGlobalScope()) {
       return mainScope;
@@ -118,6 +118,17 @@ class VariableScopeManager extends ManagerWithEdgeContext {
     return var(scopeOf(pDeclaration), ctx.varMgr.makeVariable(pDeclaration.getQualifiedName()));
   }
 
+  /**
+   * Create a fresh scoped variable.
+   *
+   * @param pDeclaration Declaration of the variable to encode as formula.
+   * @return The scoped variable formula (with fresh index).
+   */
+  IntegerFormula declareScopedVariable(final JSSimpleDeclaration pDeclaration) {
+    return var(
+        scopeOf(pDeclaration), ctx.varMgr.makeFreshVariable(pDeclaration.getQualifiedName()));
+  }
+
   ArrayFormula<IntegerFormula, IntegerFormula> getGlobalScopeStack() {
     return globalScopeStack;
   }
@@ -133,7 +144,7 @@ class VariableScopeManager extends ManagerWithEdgeContext {
    * @param pVariable Variable formula created using {@link VariableManager}.
    * @return Formula encoding of a (scoped) JavaScript variable.
    */
-  IntegerFormula var(final IntegerFormula pScope, final IntegerFormula pVariable) {
+  private IntegerFormula var(final IntegerFormula pScope, final IntegerFormula pVariable) {
     return ffmgr.callUF(varDeclaration, pScope, pVariable);
   }
 

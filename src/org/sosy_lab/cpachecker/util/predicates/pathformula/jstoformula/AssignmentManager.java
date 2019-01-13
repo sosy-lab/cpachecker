@@ -45,9 +45,7 @@ class AssignmentManager extends ManagerWithEdgeContext {
   }
 
   IntegerFormula buildLvalueTerm(final JSSimpleDeclaration pDeclaration) {
-    return ctx.scopeMgr.var(
-        ctx.scopeMgr.scopeOf(pDeclaration),
-        ctx.varMgr.makeFreshVariable(pDeclaration.getQualifiedName()));
+    return ctx.scopeMgr.declareScopedVariable(pDeclaration);
   }
 
   /**
