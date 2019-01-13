@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
-class VariableIndexManager {
+class VariableIndexManager extends ManagerWithEdgeContext {
   // Index that is used to read from variables that were not assigned yet
   private static final int VARIABLE_UNINITIALIZED = 1;
 
@@ -34,10 +34,8 @@ class VariableIndexManager {
   // VARIABLE_UNINITIALIZED!)
   private static final int VARIABLE_FIRST_ASSIGNMENT = 2;
 
-  private final EdgeManagerContext ctx;
-
   VariableIndexManager(final EdgeManagerContext pCtx) {
-    ctx = pCtx;
+    super(pCtx);
   }
 
   /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
