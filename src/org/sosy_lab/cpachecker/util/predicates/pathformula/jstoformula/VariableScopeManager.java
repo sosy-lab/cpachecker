@@ -35,8 +35,7 @@ import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 /**
- * Management of the scope of JavaScript variables (see {@link
- * TypedVariableValues#var(IntegerFormula, IntegerFormula) var(scope,variable)}).
+ * Management of the scope of JavaScript variables.
  *
  * <p>To <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-10.3.1">resolve an
  * identifier</a> (of a variable) in ECMAScript the <a
@@ -61,6 +60,7 @@ class VariableScopeManager extends ManagerWithEdgeContext {
       scopeStackDeclaration;
   private final IntegerFormula mainScope;
   private final ArrayFormula<IntegerFormula, IntegerFormula> globalScopeStack;
+  private final FunctionDeclaration<IntegerFormula> varDeclaration;
 
   VariableScopeManager(final EdgeManagerContext pCtx) {
     super(pCtx);
@@ -68,6 +68,7 @@ class VariableScopeManager extends ManagerWithEdgeContext {
     scopeStackDeclaration = ffmgr.declareUF("scopeStack", SCOPE_STACK_TYPE, SCOPE_TYPE);
     mainScope = fmgr.makeNumber(SCOPE_TYPE, 0);
     globalScopeStack = afmgr.makeArray("globalScopeStack", SCOPE_STACK_TYPE);
+    varDeclaration = ffmgr.declareUF("var", VARIABLE_TYPE, SCOPE_TYPE, VARIABLE_TYPE);
   }
 
   /**
@@ -112,11 +113,25 @@ class VariableScopeManager extends ManagerWithEdgeContext {
   }
 
   IntegerFormula scopedVariable(final JSSimpleDeclaration pDeclaration) {
-    return typedVarValues.var(
-        scopeOf(pDeclaration), ctx.varMgr.makeVariable(pDeclaration.getQualifiedName()));
+    return var(scopeOf(pDeclaration), ctx.varMgr.makeVariable(pDeclaration.getQualifiedName()));
   }
 
   ArrayFormula<IntegerFormula, IntegerFormula> getGlobalScopeStack() {
     return globalScopeStack;
+  }
+
+  /**
+   * Creates formula encoding of a JavaScript variable. It is used as encoding of variable
+   * identifiers in <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-12.2">Variable
+   * Statement</a> and <a
+   * href="https://www.ecma-international.org/ecma-262/5.1/#sec-11.1.2">Identifier Reference</a>.
+   *
+   * @param pScope Formula encoding of the scope object of the variable declaration (see {@link
+   *     VariableScopeManager}).
+   * @param pVariable Variable formula created using {@link VariableManager}.
+   * @return Formula encoding of a (scoped) JavaScript variable.
+   */
+  IntegerFormula var(final IntegerFormula pScope, final IntegerFormula pVariable) {
+    return ffmgr.callUF(varDeclaration, pScope, pVariable);
   }
 }

@@ -28,7 +28,6 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Ty
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.JS_TYPE_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.NUMBER_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.OBJECT_TYPE;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.SCOPE_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.STRING_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.VARIABLE_TYPE;
 
@@ -50,7 +49,6 @@ class TypedVariableValues {
   private final FunctionDeclaration<IntegerFormula> functionValueDeclaration;
   private final FunctionDeclaration<IntegerFormula> stringValueDeclaration;
   private final FunctionDeclaration<IntegerFormula> objectValueDeclaration;
-  private final FunctionDeclaration<IntegerFormula> varDeclaration;
 
   TypedVariableValues(final FunctionFormulaManagerView pFfmgr) {
     ffmgr = pFfmgr;
@@ -60,7 +58,6 @@ class TypedVariableValues {
     functionValueDeclaration = pFfmgr.declareUF("functionValue", FUNCTION_TYPE, VARIABLE_TYPE);
     objectValueDeclaration = pFfmgr.declareUF("objectValue", OBJECT_TYPE, VARIABLE_TYPE);
     stringValueDeclaration = pFfmgr.declareUF("stringValue", STRING_TYPE, VARIABLE_TYPE);
-    varDeclaration = pFfmgr.declareUF("var", VARIABLE_TYPE, SCOPE_TYPE, VARIABLE_TYPE);
   }
 
   /**
@@ -122,19 +119,4 @@ class TypedVariableValues {
     return ffmgr.callUF(stringValueDeclaration, pVariable);
   }
 
-  /**
-   * Creates formula encoding of a JavaScript variable. It is used as encoding of variable
-   * identifiers in <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-12.2">Variable
-   * Statement</a> and <a
-   * href="https://www.ecma-international.org/ecma-262/5.1/#sec-11.1.2">Identifier Reference</a>.
-   *
-   * @param pScope Formula encoding of the scope object of the variable declaration (see {@link
-   *     VariableScopeManager}).
-   * @param pVariable Variable formula created using {@link VariableManager}.
-   * @return Formula encoding of a (scoped) JavaScript variable.
-   */
-  // TODO move to VariableScopeManager
-  IntegerFormula var(final IntegerFormula pScope, final IntegerFormula pVariable) {
-    return ffmgr.callUF(varDeclaration, pScope, pVariable);
-  }
 }

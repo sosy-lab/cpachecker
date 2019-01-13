@@ -48,7 +48,7 @@ class AssignmentManager extends ManagerWithEdgeContext {
   }
 
   IntegerFormula buildLvalueTerm(final JSSimpleDeclaration pDeclaration) {
-    return typedVarValues.var(
+    return ctx.scopeMgr.var(
         ctx.scopeMgr.scopeOf(pDeclaration),
         ctx.varMgr.makeFreshVariable(pDeclaration.getQualifiedName()));
   }
@@ -162,10 +162,10 @@ class AssignmentManager extends ManagerWithEdgeContext {
                                 fmgr.makeNumber(SCOPE_TYPE, pScopeId),
                                 ctx.scopeMgr.scopeOf(pVariableDeclaration)),
                             fmgr.makeEqual(
-                                typedVarValues.var(
+                                ctx.scopeMgr.var(
                                     fmgr.makeNumber(SCOPE_TYPE, pScopeId),
                                     ctx.varMgr.makePreviousVariable(variableName)),
-                                typedVarValues.var(
+                                ctx.scopeMgr.var(
                                     fmgr.makeNumber(SCOPE_TYPE, pScopeId),
                                     ctx.varMgr.makeVariable(variableName)))))
                 .collect(Collectors.toList())));
