@@ -149,7 +149,6 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
 
   @Nonnull
   private BooleanFormula makeEqual(final TypedValue pLeftOperand, final TypedValue pRightOperand) {
-    // TODO strings and functions
     final IntegerFormula leftType = pLeftOperand.getType();
     final IntegerFormula rightType = pRightOperand.getType();
     final BooleanFormula nanCase =
@@ -175,8 +174,11 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
             fmgr.makeAnd(
                 fmgr.makeEqual(typeTags.STRING, leftType),
                 fmgr.makeEqual(
-                    valConv.toStringFormula(pLeftOperand),
-                    valConv.toStringFormula(pRightOperand)))));
+                    valConv.toStringFormula(pLeftOperand), valConv.toStringFormula(pRightOperand))),
+            fmgr.makeAnd(
+                fmgr.makeEqual(typeTags.FUNCTION, leftType),
+                fmgr.makeEqual(
+                    valConv.toFunction(pLeftOperand), valConv.toFunction(pRightOperand)))));
   }
 
   @Override
