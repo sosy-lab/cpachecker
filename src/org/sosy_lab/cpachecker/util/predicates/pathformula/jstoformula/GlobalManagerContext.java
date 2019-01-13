@@ -48,6 +48,7 @@ class GlobalManagerContext {
   final ObjectIdFormulaManager objIdMgr;
   final StringFormulaManager strMgr;
   final ValueConverterManager valConv;
+  final JSFunctionDeclarationFormulaManager jsFunDeclMgr;
 
   final FormulaManagerView fmgr;
   final ArrayFormulaManagerView afmgr;
@@ -91,5 +92,6 @@ class GlobalManagerContext {
     ifmgr = fmgr.getIntegerFormulaManager();
 
     valConv = new ValueConverterManager(typedValues, typeTags, tvmgr, strMgr, fmgr);
+    jsFunDeclMgr = new JSFunctionDeclarationFormulaManager(ffmgr);
   }
 }

@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.ObjectFormulaManager.OBJECT_FIELDS_VARIABLE_NAME;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.FUNCTION_DECLARATION_TYPE;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.FUNCTION_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.SCOPE_TYPE;
 
 import com.google.common.collect.ImmutableList;
@@ -93,7 +91,6 @@ import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
-import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 /** Class containing all the code that converts JS code into a formula. */
@@ -121,8 +118,6 @@ public class JSToFormulaConverter {
   @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
   private final Set<JSVariableDeclaration> globalDeclarations = new HashSet<>();
 
-  private final FunctionDeclaration<IntegerFormula> declarationOfDeclaration;
-
   private final GlobalManagerContext gctx;
 
   public JSToFormulaConverter(
@@ -142,8 +137,6 @@ public class JSToFormulaConverter {
 
     this.direction = pDirection;
 
-    declarationOfDeclaration =
-        ffmgr.declareUF("declarationOf", FUNCTION_DECLARATION_TYPE, FUNCTION_TYPE);
     afmgr = fmgr.getArrayFormulaManager();
 
     final TypedValues typedValues = new TypedValues(ffmgr);
@@ -459,10 +452,6 @@ public class JSToFormulaConverter {
     } else {
       throw new UnrecognizedCodeException("Unknown function exit expression", ce, retExp);
     }
-  }
-
-  IntegerFormula declarationOf(final IntegerFormula pFunctionObject) {
-    return ffmgr.callUF(declarationOfDeclaration, pFunctionObject);
   }
 
   @SuppressWarnings("OptionalIsPresent")

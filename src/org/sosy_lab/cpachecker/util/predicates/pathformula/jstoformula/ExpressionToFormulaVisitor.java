@@ -271,7 +271,8 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
             functionDeclarationIds.get(pDeclaredByExpression.getJsFunctionDeclaration()));
     return tvmgr.createBooleanValue(
         fmgr.makeEqual(
-            ctx.conv.declarationOf(typedValues.functionValue(variable)), functionDeclarationId));
+            jsFunDeclMgr.declarationOf(typedValues.functionValue(variable)),
+            functionDeclarationId));
   }
 
   @Override
@@ -288,7 +289,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
               ? functionDeclarationId
               : ctx.scopeMgr.scopedVariable(functionDeclaration);
       ctx.constraints.addConstraint(
-          fmgr.makeEqual(ctx.conv.declarationOf(functionValueFormula), functionDeclarationId));
+          fmgr.makeEqual(jsFunDeclMgr.declarationOf(functionValueFormula), functionDeclarationId));
       // TODO function might be declared outside of current function
       ctx.constraints.addConstraint(
           fmgr.makeEqual(
