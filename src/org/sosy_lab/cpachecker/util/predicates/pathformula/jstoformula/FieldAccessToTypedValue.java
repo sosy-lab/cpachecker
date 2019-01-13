@@ -23,14 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.JSObjectFormulaManager.JSObjectFormulaManagerWithContext;
 import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 class FieldAccessToTypedValue {
   private final JSToFormulaConverter conv;
-  private final SSAMapBuilder ssa;
+  private final JSObjectFormulaManagerWithContext ofmgrwc;
 
   /**
    * The <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-8.6.2">internal property
@@ -42,9 +42,10 @@ class FieldAccessToTypedValue {
    */
   private final IntegerFormula prototypeField;
 
-  FieldAccessToTypedValue(final JSToFormulaConverter pConv, final SSAMapBuilder pSsa) {
+  FieldAccessToTypedValue(
+      final JSToFormulaConverter pConv, final JSObjectFormulaManagerWithContext pOfmgrwc) {
     conv = pConv;
-    ssa = pSsa;
+    ofmgrwc = pOfmgrwc;
     prototypeField = conv.getStringFormula("__proto__");
   }
 
@@ -66,12 +67,10 @@ class FieldAccessToTypedValue {
     }
     final IntegerFormula prototypeObjectId = conv.typedValues.objectValue(pPrototypeField);
     final ArrayFormula<IntegerFormula, IntegerFormula> prototypeFields =
-        conv.getObjectFields(prototypeObjectId, ssa);
+        ofmgrwc.getObjectFields(prototypeObjectId);
     final IntegerFormula fieldOnPrototype = conv.afmgr.select(prototypeFields, pFieldName);
-    final BooleanFormula hasNoParentPrototype =
-        conv.fmgr.makeEqual(pPrototypeField, conv.objectFieldNotSet);
-    final BooleanFormula isFieldOnPrototypeNotSet =
-        conv.fmgr.makeEqual(fieldOnPrototype, conv.objectFieldNotSet);
+    final BooleanFormula hasNoParentPrototype = ofmgrwc.markFieldAsNotSet(pPrototypeField);
+    final BooleanFormula isFieldOnPrototypeNotSet = ofmgrwc.markFieldAsNotSet(fieldOnPrototype);
     final TypedValue parentPrototype =
         lookUpOnPrototypeChain(
             prototypeChainDepth + 1,
@@ -101,10 +100,9 @@ class FieldAccessToTypedValue {
    *     the object.
    */
   TypedValue accessField(final IntegerFormula pObjectId, final IntegerFormula pFieldName) {
-    final ArrayFormula<IntegerFormula, IntegerFormula> fields =
-        conv.getObjectFields(pObjectId, ssa);
+    final ArrayFormula<IntegerFormula, IntegerFormula> fields = ofmgrwc.getObjectFields(pObjectId);
     final IntegerFormula field = conv.afmgr.select(fields, pFieldName);
-    final BooleanFormula isObjectFieldNotSet = conv.fmgr.makeEqual(field, conv.objectFieldNotSet);
+    final BooleanFormula isObjectFieldNotSet = ofmgrwc.markFieldAsNotSet(field);
     final TypedValue typedValueOnPrototypeChain =
         lookUpOnPrototypeChain(1, conv.afmgr.select(fields, prototypeField), pFieldName);
     return new TypedValue(

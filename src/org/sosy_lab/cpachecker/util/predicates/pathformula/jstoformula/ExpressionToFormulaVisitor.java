@@ -23,14 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
-import static java.util.stream.Collectors.toMap;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.OBJECT_FIELDS_TYPE;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -59,9 +56,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.JSObjectFormulaManager.JSObjectFormulaManagerWithContext;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -69,7 +66,8 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 @SuppressWarnings({"FieldCanBeLocal", "unused"})
 public class ExpressionToFormulaVisitor
-    implements JSRightHandSideVisitor<TypedValue, UnrecognizedCodeException> {
+    implements JSExpressionFormulaManager,
+        JSRightHandSideVisitor<TypedValue, UnrecognizedCodeException> {
 
   // TODO this option should be removed as soon as NaN and float interpolation can be used together
   private boolean useNaN;
@@ -81,6 +79,7 @@ public class ExpressionToFormulaVisitor
   protected final FormulaManagerView mgr;
   private final ErrorConditions errorConditions;
   protected final SSAMapBuilder ssa;
+  private final JSObjectFormulaManagerWithContext ofmgr;
 
   public ExpressionToFormulaVisitor(
       JSToFormulaConverter pJSToFormulaConverter,
@@ -100,6 +99,7 @@ public class ExpressionToFormulaVisitor
     constraints = pConstraints;
     mgr = pFmgr;
     errorConditions = pErrorConditions;
+    ofmgr = conv.ofmgr.withContext(ssa, constraints, this);
   }
 
   @Override
@@ -107,6 +107,11 @@ public class ExpressionToFormulaVisitor
       throws UnrecognizedCodeException {
     throw new UnrecognizedCodeException(
         "JSFunctionCallExpression not implemented yet", pFunctionCallExpression);
+  }
+
+  @Override
+  public TypedValue visit(final JSExpression pExpression) throws UnrecognizedCodeException {
+    return JSRightHandSideVisitor.super.visit(pExpression);
   }
 
   @Override
@@ -259,17 +264,13 @@ public class ExpressionToFormulaVisitor
   @Override
   public TypedValue visit(final JSObjectLiteralExpression pObjectLiteralExpression)
       throws UnrecognizedCodeException {
-    final TypedValue objectValue = conv.tvmgr.createObjectValue(conv.createObjectId());
-    final IntegerFormula ovv = (IntegerFormula) objectValue.getValue();
-    conv.setObjectFields(
-        ovv, getObjectFields(pObjectLiteralExpression.getFields()), ssa, constraints);
-    return objectValue;
+    return ofmgr.createObject(pObjectLiteralExpression);
   }
 
   @Override
   public TypedValue visit(final JSArrayLiteralExpression pArrayLiteralExpression)
       throws UnrecognizedCodeException {
-    final IntegerFormula objectId = conv.createObjectId();
+    final IntegerFormula objectId = conv.ofmgr.createObjectId();
     final TypedValue objectValue = conv.tvmgr.createObjectValue(objectId);
     // TODO assign elements to new array object
     final List<JSExpression> elements = pArrayLiteralExpression.getElements();
@@ -278,8 +279,7 @@ public class ExpressionToFormulaVisitor
             "length",
             new JSIntegerLiteralExpression(
                 FileLocation.DUMMY, BigInteger.valueOf(elements.size())));
-    conv.setObjectFields(
-        objectId, getObjectFields(Collections.singletonList(lengthField)), ssa, constraints);
+    ofmgr.setObjectFields(objectId, Collections.singletonList(lengthField));
     return objectValue;
   }
 
@@ -340,7 +340,7 @@ public class ExpressionToFormulaVisitor
     final IntegerFormula objectId =
         conv.typedValues.objectValue(conv.scopedVariable(function, objectDeclaration, ssa));
     final IntegerFormula fieldName = conv.getStringFormula(pFieldAccess.getFieldName());
-    return new FieldAccessToTypedValue(conv, ssa).accessField(objectId, fieldName);
+    return new FieldAccessToTypedValue(conv, ofmgr).accessField(objectId, fieldName);
   }
 
   @Override
@@ -362,7 +362,7 @@ public class ExpressionToFormulaVisitor
         (propertyNameExpression instanceof JSStringLiteralExpression)
             ? conv.getStringFormula(((JSStringLiteralExpression) propertyNameExpression).getValue())
             : conv.toStringFormula(propertyNameValue);
-    final FieldAccessToTypedValue f = new FieldAccessToTypedValue(conv, ssa);
+    final FieldAccessToTypedValue f = new FieldAccessToTypedValue(conv, ofmgr);
     final TypedValue propertyValue = f.accessField(objectId, fieldName);
     final TypedValue lengthProperty = f.accessField(objectId, conv.getStringFormula("length"));
     // TODO check if object is an array (otherwise `length` is no indicator if property is defined)
@@ -393,28 +393,4 @@ public class ExpressionToFormulaVisitor
     }
   }
 
-  private ArrayFormula<IntegerFormula, IntegerFormula> getObjectFields(
-      final List<JSObjectLiteralField> pFields) throws UnrecognizedCodeException {
-    final Map<IntegerFormula, JSObjectLiteralField> fieldById =
-        pFields
-            .stream()
-            .collect(toMap(field -> conv.getStringFormula(field.getFieldName()), field -> field));
-    ArrayFormula<IntegerFormula, IntegerFormula> objectFields =
-        conv.afmgr.makeArray("emptyObjectFields", OBJECT_FIELDS_TYPE);
-    for (int stringId = 1; stringId <= conv.maxFieldNameCount; stringId++) {
-      final IntegerFormula idFormula = conv.ifmgr.makeNumber(stringId);
-      final IntegerFormula fieldValue;
-      if (fieldById.containsKey(idFormula)) {
-        final JSObjectLiteralField field = fieldById.get(idFormula);
-        final IntegerFormula fieldFormula = conv.makeFieldVariable(field.getFieldName(), ssa);
-        constraints.addConstraint(conv.markFieldAsSet(fieldFormula));
-        constraints.addConstraint(conv.makeAssignment(fieldFormula, visit(field.getInitializer())));
-        fieldValue = fieldFormula;
-      } else {
-        fieldValue = conv.objectFieldNotSet;
-      }
-      objectFields = conv.afmgr.store(objectFields, idFormula, fieldValue);
-    }
-    return objectFields;
-  }
 }
