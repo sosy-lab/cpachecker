@@ -230,7 +230,7 @@ public class JSToFormulaConverter {
     typedValues = new TypedValues(ffmgr);
     typeTags = new TypeTags(ifmgr);
     objectIdCounter = 0;
-    tvmgr = new TypedValueManager(typedValues, typeTags, createObjectId());
+    tvmgr = new TypedValueManager(fmgr, typedValues, typeTags, createObjectId());
     stringIds = new Ids<>();
     functionDeclarationIds = new Ids<>();
     // Used as a special field value that represents unset fields of an object.

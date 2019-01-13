@@ -23,20 +23,25 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 class TypedValueManager {
+  private final FormulaManagerView fmgr;
   private final TypedValues typedValues;
   private final TypeTags typeTags;
   private final TypedValue undefinedValue;
   private final TypedValue nullValue;
 
   TypedValueManager(
+      final FormulaManagerView pFmgr,
       final TypedValues pTypedValues,
       final TypeTags pTypeTags,
       final IntegerFormula pNullValueObjectId) {
+    fmgr = pFmgr;
     typedValues = pTypedValues;
     typeTags = pTypeTags;
     nullValue = new TypedValue(typeTags.OBJECT, pNullValueObjectId);
@@ -74,4 +79,11 @@ class TypedValueManager {
     return new TypedValue(typeTags.FUNCTION, pFunctionDeclarationId);
   }
 
+  TypedValue ifThenElse(
+      final BooleanFormula pBooleanFormula, final TypedValue pThen, final TypedValue pElse) {
+    final BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+    return new TypedValue(
+        bfmgr.ifThenElse(pBooleanFormula, pThen.getType(), pElse.getType()),
+        bfmgr.ifThenElse(pBooleanFormula, pThen.getValue(), pElse.getValue()));
+  }
 }
