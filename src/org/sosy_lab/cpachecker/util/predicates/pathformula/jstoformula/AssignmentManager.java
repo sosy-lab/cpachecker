@@ -44,10 +44,6 @@ class AssignmentManager extends ManagerWithEdgeContext {
     super(pCtx);
   }
 
-  IntegerFormula buildLvalueTerm(final JSSimpleDeclaration pDeclaration) {
-    return ctx.scopeMgr.declareScopedVariable(pDeclaration);
-  }
-
   /**
    * Creates formula for the given assignment.
    *
@@ -120,7 +116,7 @@ class AssignmentManager extends ManagerWithEdgeContext {
   private BooleanFormula makeAssignment(final JSIdExpression pLhs, final TypedValue pRhsValue) {
     final JSSimpleDeclaration declaration = pLhs.getDeclaration();
     assert declaration != null;
-    final IntegerFormula l = buildLvalueTerm(declaration);
+    final IntegerFormula l = ctx.scopeMgr.declareScopedVariable(declaration);
     ctx.scopeMgr.updateIndicesOfOtherScopeVariables(declaration);
     return makeAssignment(l, pRhsValue);
   }

@@ -147,7 +147,7 @@ class PropertyAccessManager extends ManagerWithEdgeContext {
               new JSInitializerExpression(FileLocation.DUMMY, pObjectExpression));
       ctx.constraints.addConstraint(
           ctx.assignmentMgr.makeAssignment(
-              ctx.assignmentMgr.buildLvalueTerm(objectDeclaration),
+              ctx.scopeMgr.declareScopedVariable(objectDeclaration),
               ctx.exprMgr.makeExpression(pObjectExpression)));
     }
     return objectDeclaration;
