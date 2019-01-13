@@ -886,22 +886,24 @@ class WebInterface:
 
             else:
                 if response.status_code == 401:
-                    message = 'Error 401: Permission denied. Please check the URL given to --cloudMaster and specify credentials if necessary.'
+                    message = 'Permission denied. Please check the URL given to --cloudMaster and specify credentials if necessary.'
 
                 elif response.status_code == 404:
-                    message = 'Error 404: Not found. Please check the URL given to --cloudMaster.'
+                    message = 'Not found. Please check the URL given to --cloudMaster.'
 
                 elif response.status_code == 503:
-                    message = 'Error 503: Service Unavailable.'
+                    message = 'Service Unavailable.'
                     if counter < 5:
                         logging.debug(message)
                         sleep(60)
                         continue
 
                 else:
-                    message = 'Status {}'.format(response.status_code)
-
-                raise requests.HTTPError(path, message, response=response)
+                    message = response.text
+                # HTTPError.request is automatically filled with response.request so no need to pass it.
+                # Also HTTPError extends IOError, so there is a constructor IOError(errno, strerror, filename)
+                raise requests.HTTPError(response.status_code, message, path, response=response)
+                message = message + '(path: %s)' % path
 
 def _open_output_log(output_path):
     log_file_path = output_path + "output.log"
