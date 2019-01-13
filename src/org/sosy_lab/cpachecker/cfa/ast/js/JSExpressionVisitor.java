@@ -41,6 +41,8 @@ public interface JSExpressionVisitor<R, X extends Exception> extends JSLeftHandS
 
   R visit(JSObjectLiteralExpression pObjectLiteralExpression) throws X;
 
+  R visit(JSArrayLiteralExpression pArrayLiteralExpression) throws X;
+
   R visit(JSUndefinedLiteralExpression pUndefinedLiteralExpression) throws X;
 
   R visit(JSThisExpression pThisExpression) throws X;
@@ -66,6 +68,8 @@ public interface JSExpressionVisitor<R, X extends Exception> extends JSLeftHandS
       return visit((JSNullLiteralExpression) pExpression);
     } else if (pExpression instanceof JSObjectLiteralExpression) {
       return visit((JSObjectLiteralExpression) pExpression);
+    } else if (pExpression instanceof JSArrayLiteralExpression) {
+      return visit((JSArrayLiteralExpression) pExpression);
     } else if (pExpression instanceof JSUndefinedLiteralExpression) {
       return visit((JSUndefinedLiteralExpression) pExpression);
     } else if (pExpression instanceof JSThisExpression) {

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import java.util.Optional;
 import org.eclipse.wst.jsdt.core.dom.ArrayAccess;
+import org.eclipse.wst.jsdt.core.dom.ArrayInitializer;
 import org.eclipse.wst.jsdt.core.dom.Assignment;
 import org.eclipse.wst.jsdt.core.dom.BooleanLiteral;
 import org.eclipse.wst.jsdt.core.dom.ClassInstanceCreation;
@@ -54,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 class ExpressionCFABuilder implements ExpressionAppendable {
 
   private ArrayAccessAppendable arrayAccessAppendable;
+  private ArrayInitializerAppendable arrayInitializerAppendable;
   private AssignmentAppendable assignmentAppendable;
   private BooleanLiteralConverter booleanLiteralConverter;
   private ClassInstanceCreationAppendable classInstanceCreationAppendable;
@@ -75,6 +77,10 @@ class ExpressionCFABuilder implements ExpressionAppendable {
 
   void setArrayAccessAppendable(final ArrayAccessAppendable pArrayAccessAppendable) {
     arrayAccessAppendable = pArrayAccessAppendable;
+  }
+
+  void setArrayInitializerAppendable(final ArrayInitializerAppendable pArrayInitializerAppendable) {
+    arrayInitializerAppendable = pArrayInitializerAppendable;
   }
 
   void setAssignmentAppendable(final AssignmentAppendable pAssignmentAppendable) {
@@ -161,6 +167,8 @@ class ExpressionCFABuilder implements ExpressionAppendable {
   public JSExpression append(final JavaScriptCFABuilder pBuilder, final Expression pExpression) {
     if (pExpression instanceof ArrayAccess) {
       return arrayAccessAppendable.append(pBuilder, (ArrayAccess) pExpression);
+    } else if (pExpression instanceof ArrayInitializer) {
+      return arrayInitializerAppendable.append(pBuilder, (ArrayInitializer) pExpression);
     } else if (pExpression instanceof Assignment) {
       return assignmentAppendable.append(pBuilder, (Assignment) pExpression);
     } else if (pExpression instanceof ClassInstanceCreation) {

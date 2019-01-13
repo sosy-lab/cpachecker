@@ -87,6 +87,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSArrayLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBracketPropertyAccess;
@@ -2291,6 +2292,13 @@ public abstract class AbstractExpressionValueVisitor
   public Value visit(final JSObjectLiteralExpression pThisExpression) throws RuntimeException {
     // TODO implement evaluation of object-literal-expression
     throw new RuntimeException("Evaluation of object-literal-expression not implemented yet");
+  }
+
+  @Override
+  public Value visit(final JSArrayLiteralExpression pArrayLiteralExpression)
+      throws RuntimeException {
+    // TODO implement evaluation of array-literal-expression
+    throw new RuntimeException("Evaluation of array-literal-expression not implemented yet");
   }
 
   @Override

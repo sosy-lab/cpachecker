@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSArrayLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBracketPropertyAccess;
@@ -260,6 +261,13 @@ public class ExpressionToFormulaVisitor
     conv.setObjectFields(
         ovv, getObjectFields(pObjectLiteralExpression.getFields()), ssa, constraints);
     return objectValue;
+  }
+
+  @Override
+  public TypedValue visit(final JSArrayLiteralExpression pArrayLiteralExpression)
+      throws UnrecognizedCodeException {
+    throw new UnrecognizedCodeException(
+        pArrayLiteralExpression.getClass() + " not implemented yet", pArrayLiteralExpression);
   }
 
   @Override
