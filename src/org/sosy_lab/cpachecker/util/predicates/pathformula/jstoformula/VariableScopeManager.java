@@ -27,6 +27,8 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Ty
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.SCOPE_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.VARIABLE_TYPE;
 
+import java.util.List;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.Scope;
@@ -133,5 +135,46 @@ class VariableScopeManager extends ManagerWithEdgeContext {
    */
   IntegerFormula var(final IntegerFormula pScope, final IntegerFormula pVariable) {
     return ffmgr.callUF(varDeclaration, pScope, pVariable);
+  }
+
+  /**
+   * Indices of other scope variables have to be updated on every assignment.
+   *
+   * <p>If a function f(p) is called the first time a scope s0 is created and variables/parameters
+   * are associated with this scope like (var s0 f::p@2). On the second call of f(p) another scope
+   * s1 is created and the index of p is incremented, e.g. p=3, and p is associated to s1 by (var s1
+   * f::p@3). However, if p of the first scope is captured in a closure then it would be addressed
+   * by (var s0 f::p@3) instead of (var s0 f::p@2) since the index of p has changed due to the other
+   * call of f. To work around, indices of the same variable in other scopes are updated too, when a
+   * value is assigned to the variable. Since, p is assigned a value on the second call of f(p)
+   * using (var s1 f::p@3), the index of p in s0 has to be updated by (= (var s0 f::p@2) (var s0
+   * f::p@3)).
+   */
+  void updateIndicesOfOtherScopeVariables(final JSSimpleDeclaration pVariableDeclaration) {
+    if (pVariableDeclaration.getScope().isGlobalScope()) {
+      return;
+    }
+    final String variableName = pVariableDeclaration.getQualifiedName();
+    final List<Long> scopeIds =
+        functionScopeManager.getScopeIds(
+            pVariableDeclaration.getScope().getFunctionDeclaration().getQualifiedName());
+    ctx.constraints.addConstraint(
+        bfmgr.and(
+            scopeIds
+                .stream()
+                .map(
+                    (pScopeId) ->
+                        bfmgr.or(
+                            fmgr.makeEqual(
+                                fmgr.makeNumber(SCOPE_TYPE, pScopeId),
+                                scopeOf(pVariableDeclaration)),
+                            fmgr.makeEqual(
+                                var(
+                                    fmgr.makeNumber(SCOPE_TYPE, pScopeId),
+                                    ctx.varMgr.makePreviousVariable(variableName)),
+                                var(
+                                    fmgr.makeNumber(SCOPE_TYPE, pScopeId),
+                                    ctx.varMgr.makeVariable(variableName)))))
+                .collect(Collectors.toList())));
   }
 }
