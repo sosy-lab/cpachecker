@@ -1355,8 +1355,8 @@ public class JSToFormulaConverter {
    *
    * @param pts the pointer target set to use initially
    */
-  @SuppressWarnings("unused")
-  private PointerTargetSetBuilder createPointerTargetSetBuilder(PointerTargetSet pts) {
+  private PointerTargetSetBuilder createPointerTargetSetBuilder(
+      @SuppressWarnings("unused") PointerTargetSet pts) {
     return DummyPointerTargetSetBuilder.INSTANCE;
   }
 
