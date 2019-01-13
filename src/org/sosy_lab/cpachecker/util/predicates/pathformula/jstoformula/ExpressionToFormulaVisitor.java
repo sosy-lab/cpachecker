@@ -357,11 +357,22 @@ public class ExpressionToFormulaVisitor
     final IntegerFormula objectId =
         conv.typedValues.objectValue(conv.scopedVariable(function, objectDeclaration, ssa));
     final JSExpression propertyNameExpression = pPropertyAccess.getPropertyNameExpression();
+    final TypedValue propertyNameValue = visit(propertyNameExpression);
     final IntegerFormula fieldName =
         (propertyNameExpression instanceof JSStringLiteralExpression)
             ? conv.getStringFormula(((JSStringLiteralExpression) propertyNameExpression).getValue())
-            : conv.toStringFormula(visit(propertyNameExpression));
-    return new FieldAccessToTypedValue(conv, ssa).accessField(objectId, fieldName);
+            : conv.toStringFormula(propertyNameValue);
+    final FieldAccessToTypedValue f = new FieldAccessToTypedValue(conv, ssa);
+    final TypedValue propertyValue = f.accessField(objectId, fieldName);
+    final TypedValue lengthProperty = f.accessField(objectId, conv.getStringFormula("length"));
+    // TODO check if object is an array (otherwise `length` is no indicator if property is defined)
+    final BooleanFormula isUndefinedArrayElementIndex =
+        conv.bfmgr.and(
+            mgr.makeEqual(propertyNameValue.getType(), conv.typeTags.NUMBER),
+            conv.fpfmgr.greaterOrEquals(
+                conv.toNumber(propertyNameValue), conv.toNumber(lengthProperty)));
+    return conv.tvmgr.ifThenElse(
+        isUndefinedArrayElementIndex, conv.tvmgr.getUndefinedValue(), propertyValue);
   }
 
   private TypedValue handlePredefined(final JSIdExpression pIdExpression)
