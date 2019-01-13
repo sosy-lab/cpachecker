@@ -81,11 +81,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.DummyPointerTargetSetBuilder;
-import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -95,7 +91,7 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 /** Class containing all the code that converts JS code into a formula. */
 @SuppressWarnings({"DeprecatedIsStillUsed", "deprecation"})
-public class JSToFormulaConverter {
+public class JSToFormulaConverter extends ManagerWithGlobalContext {
 
   //names for special variables needed to deal with functions
   @Deprecated
@@ -104,26 +100,13 @@ public class JSToFormulaConverter {
 
   private static final String PARAM_VARIABLE_NAME = "__param__";
 
-  private final FormulaEncodingOptions options;
-
-  protected final FormulaManagerView fmgr;
-  protected final BooleanFormulaManagerView bfmgr;
-  final FunctionFormulaManagerView ffmgr;
-  final ArrayFormulaManagerView afmgr;
-  final IntegerFormulaManagerView ifmgr;
-  protected final LogManagerWithoutDuplicates logger;
-
-  protected final AnalysisDirection direction;
-
   @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
   private final Set<JSVariableDeclaration> globalDeclarations = new HashSet<>();
-
-  private final GlobalManagerContext gctx;
 
   private static GlobalManagerContext createGlobalManagerContext(
       final FormulaEncodingOptions pOptions,
       final JSFormulaEncodingOptions pJSOptions,
-      final LogManagerWithoutDuplicates pLogger,
+      final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       final AnalysisDirection pDirection,
       final FormulaManagerView pFmgr) {
@@ -147,27 +130,14 @@ public class JSToFormulaConverter {
   }
 
   public JSToFormulaConverter(
-      FormulaEncodingOptions pOptions,
+      final FormulaEncodingOptions pOptions,
       final JSFormulaEncodingOptions pJSOptions,
-      FormulaManagerView pFmgr,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      AnalysisDirection pDirection) {
-    this.fmgr = pFmgr;
-    this.options = pOptions;
-
-    this.bfmgr = pFmgr.getBooleanFormulaManager();
-    ifmgr = pFmgr.getIntegerFormulaManager();
-    ffmgr = pFmgr.getFunctionFormulaManager();
-    this.logger = new LogManagerWithoutDuplicates(pLogger);
-
-    this.direction = pDirection;
-
-    afmgr = fmgr.getArrayFormulaManager();
-
-    gctx =
-        createGlobalManagerContext(
-            pOptions, pJSOptions, logger, pShutdownNotifier, pDirection, fmgr);
+      final FormulaManagerView pFmgr,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier,
+      final AnalysisDirection pDirection) {
+    super(createGlobalManagerContext(
+            pOptions, pJSOptions, pLogger, pShutdownNotifier, pDirection, pFmgr));
   }
 
   @SuppressWarnings("SameParameterValue")
