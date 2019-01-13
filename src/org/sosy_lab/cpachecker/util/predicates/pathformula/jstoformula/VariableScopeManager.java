@@ -43,10 +43,10 @@ class VariableScopeManager extends ManagerWithEdgeContext {
 
   VariableScopeManager(final EdgeManagerContext pCtx) {
     super(pCtx);
-    scopeOfDeclaration = ctx.conv.ffmgr.declareUF("scopeOf", SCOPE_TYPE, VARIABLE_TYPE);
-    scopeStackDeclaration = ctx.conv.ffmgr.declareUF("scopeStack", SCOPE_STACK_TYPE, SCOPE_TYPE);
-    mainScope = ctx.conv.fmgr.makeNumber(SCOPE_TYPE, 0);
-    globalScopeStack = ctx.conv.afmgr.makeArray("globalScopeStack", SCOPE_STACK_TYPE);
+    scopeOfDeclaration = ffmgr.declareUF("scopeOf", SCOPE_TYPE, VARIABLE_TYPE);
+    scopeStackDeclaration = ffmgr.declareUF("scopeStack", SCOPE_STACK_TYPE, SCOPE_TYPE);
+    mainScope = fmgr.makeNumber(SCOPE_TYPE, 0);
+    globalScopeStack = afmgr.makeArray("globalScopeStack", SCOPE_STACK_TYPE);
   }
 
   @Nonnull
@@ -60,16 +60,16 @@ class VariableScopeManager extends ManagerWithEdgeContext {
             + " has nesting level of "
             + scope.getNestingLevel()
             + " in main function";
-    return ctx.conv.afmgr.select(
-        scopeStack(getCurrentScope()), ctx.conv.ifmgr.makeNumber(scope.getNestingLevel()));
+    return afmgr.select(
+        scopeStack(getCurrentScope()), ifmgr.makeNumber(scope.getNestingLevel()));
   }
 
   IntegerFormula scopeOf(final IntegerFormula pFunctionObject) {
-    return ctx.conv.ffmgr.callUF(scopeOfDeclaration, pFunctionObject);
+    return ffmgr.callUF(scopeOfDeclaration, pFunctionObject);
   }
 
   ArrayFormula<IntegerFormula, IntegerFormula> scopeStack(final IntegerFormula pScope) {
-    return ctx.conv.ffmgr.callUF(scopeStackDeclaration, pScope);
+    return ffmgr.callUF(scopeStackDeclaration, pScope);
   }
 
   IntegerFormula getCurrentScope() {
