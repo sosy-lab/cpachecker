@@ -56,7 +56,7 @@ class VariableManager extends ManagerWithEdgeContext {
   IntegerFormula makeFreshVariable(final String name) {
     int useIndex;
 
-    if (ctx.conv.direction == AnalysisDirection.BACKWARD) {
+    if (direction == AnalysisDirection.BACKWARD) {
       useIndex = ctx.varIdMgr.getIndex(name);
     } else {
       useIndex = ctx.varIdMgr.makeFreshIndex(name);
@@ -64,7 +64,7 @@ class VariableManager extends ManagerWithEdgeContext {
 
     IntegerFormula result = fmgr.makeVariable(Types.VARIABLE_TYPE, name, useIndex);
 
-    if (ctx.conv.direction == AnalysisDirection.BACKWARD) {
+    if (direction == AnalysisDirection.BACKWARD) {
       ctx.varIdMgr.makeFreshIndex(name);
     }
 
