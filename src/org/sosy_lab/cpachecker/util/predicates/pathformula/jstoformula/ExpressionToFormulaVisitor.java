@@ -27,10 +27,13 @@ import static java.util.stream.Collectors.toMap;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.OBJECT_FIELDS_TYPE;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSArrayLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
@@ -266,7 +269,18 @@ public class ExpressionToFormulaVisitor
   @Override
   public TypedValue visit(final JSArrayLiteralExpression pArrayLiteralExpression)
       throws UnrecognizedCodeException {
-    return conv.tvmgr.createObjectValue(conv.createObjectId());
+    final IntegerFormula objectId = conv.createObjectId();
+    final TypedValue objectValue = conv.tvmgr.createObjectValue(objectId);
+    // TODO assign elements to new array object
+    final List<JSExpression> elements = pArrayLiteralExpression.getElements();
+    final JSObjectLiteralField lengthField =
+        new JSObjectLiteralField(
+            "length",
+            new JSIntegerLiteralExpression(
+                FileLocation.DUMMY, BigInteger.valueOf(elements.size())));
+    conv.setObjectFields(
+        objectId, getObjectFields(Collections.singletonList(lengthField)), ssa, constraints);
+    return objectValue;
   }
 
   @Override

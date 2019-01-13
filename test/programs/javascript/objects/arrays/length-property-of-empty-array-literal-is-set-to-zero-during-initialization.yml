@@ -1,0 +1,5 @@
+format_version: "1.0"
+input_files: "./length-property-of-empty-array-literal-is-set-to-zero-during-initialization.js"
+properties:
+  - property_file: ../../../../../config/specification/JavaScriptAssertion.spc
+    expected_verdict: false
