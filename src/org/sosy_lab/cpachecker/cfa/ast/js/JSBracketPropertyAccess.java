@@ -70,7 +70,7 @@ public class JSBracketPropertyAccess extends AbstractLeftHandSide implements JSL
 
   @Override
   public String toASTString(final boolean pQualified) {
-    return objectExpression.toASTString(pQualified) + "." + propertyNameExpression;
+    return objectExpression.toASTString(pQualified) + "[" + propertyNameExpression + "]";
   }
 
   @Override
