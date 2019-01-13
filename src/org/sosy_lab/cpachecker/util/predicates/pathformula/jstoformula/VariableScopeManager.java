@@ -85,7 +85,7 @@ class VariableScopeManager extends ManagerWithEdgeContext {
   }
 
   IntegerFormula scopedVariable(final JSSimpleDeclaration pDeclaration) {
-    return gctx.typedValues.var(
+    return typedValues.var(
         scopeOf(pDeclaration), ctx.varMgr.makeVariable(pDeclaration.getQualifiedName()));
   }
 

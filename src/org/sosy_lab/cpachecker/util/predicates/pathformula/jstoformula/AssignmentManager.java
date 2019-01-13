@@ -37,8 +37,6 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSStringLiteralExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
@@ -49,7 +47,7 @@ class AssignmentManager extends ManagerWithEdgeContext {
   }
 
   IntegerFormula buildLvalueTerm(final JSSimpleDeclaration pDeclaration) {
-    return gctx.typedValues.var(
+    return typedValues.var(
         ctx.scopeMgr.scopeOf(pDeclaration),
         ctx.varMgr.makeFreshVariable(pDeclaration.getQualifiedName()));
   }
@@ -87,23 +85,22 @@ class AssignmentManager extends ManagerWithEdgeContext {
     final JSSimpleDeclaration objectDeclaration =
         ctx.propMgr.getObjectDeclarationOfObjectExpression(pPropertyAccess.getObjectExpression());
     final IntegerFormula objectId =
-        gctx.typedValues.objectValue(ctx.scopeMgr.scopedVariable(objectDeclaration));
+        typedValues.objectValue(ctx.scopeMgr.scopedVariable(objectDeclaration));
     final JSExpression propertyNameExpression = pPropertyAccess.getPropertyNameExpression();
     final IntegerFormula field;
     final IntegerFormula propertyNameFormula;
     if (propertyNameExpression instanceof JSStringLiteralExpression) {
       final String propertyName = ((JSStringLiteralExpression) propertyNameExpression).getValue();
       field = ctx.objMgr.makeFieldVariable(propertyName);
-      propertyNameFormula = gctx.strMgr.getStringFormula(propertyName);
+      propertyNameFormula = strMgr.getStringFormula(propertyName);
     } else {
       field = ctx.objMgr.makeFieldVariable();
       propertyNameFormula =
-          gctx.valConv.toStringFormula(ctx.exprMgr.makeExpression(propertyNameExpression));
+          valConv.toStringFormula(ctx.exprMgr.makeExpression(propertyNameExpression));
     }
     ctx.constraints.addConstraint(ctx.objMgr.markFieldAsSet(field));
     ctx.objMgr.setObjectFields(
-        objectId,
-        gctx.afmgr.store(ctx.objMgr.getObjectFields(objectId), propertyNameFormula, field));
+        objectId, afmgr.store(ctx.objMgr.getObjectFields(objectId), propertyNameFormula, field));
     return makeAssignment(field, pRhsValue);
   }
 
@@ -112,14 +109,14 @@ class AssignmentManager extends ManagerWithEdgeContext {
     final JSSimpleDeclaration objectDeclaration =
         ctx.propMgr.getObjectDeclarationOfFieldAccess(pLhs);
     final IntegerFormula objectId =
-        gctx.typedValues.objectValue(ctx.scopeMgr.scopedVariable(objectDeclaration));
+        typedValues.objectValue(ctx.scopeMgr.scopedVariable(objectDeclaration));
     final String fieldName = pLhs.getFieldName();
     final IntegerFormula field = ctx.objMgr.makeFieldVariable(fieldName);
     ctx.constraints.addConstraint(ctx.objMgr.markFieldAsSet(field));
     ctx.objMgr.setObjectFields(
         objectId,
-        gctx.afmgr.store(
-            ctx.objMgr.getObjectFields(objectId), gctx.strMgr.getStringFormula(fieldName), field));
+        afmgr.store(
+            ctx.objMgr.getObjectFields(objectId), strMgr.getStringFormula(fieldName), field));
     return makeAssignment(field, pRhsValue);
   }
 
@@ -151,35 +148,30 @@ class AssignmentManager extends ManagerWithEdgeContext {
     }
     final String variableName = pVariableDeclaration.getQualifiedName();
     final List<Long> scopeIds =
-        gctx.functionScopeManager.getScopeIds(
+        functionScopeManager.getScopeIds(
             pVariableDeclaration.getScope().getFunctionDeclaration().getQualifiedName());
     ctx.constraints.addConstraint(
-        gctx.bfmgr.and(
+        bfmgr.and(
             scopeIds
                 .stream()
                 .map(
                     (pScopeId) ->
-                        gctx.bfmgr.or(
-                            gctx.fmgr.makeEqual(
-                                gctx.fmgr.makeNumber(SCOPE_TYPE, pScopeId),
+                        bfmgr.or(
+                            fmgr.makeEqual(
+                                fmgr.makeNumber(SCOPE_TYPE, pScopeId),
                                 ctx.scopeMgr.scopeOf(pVariableDeclaration)),
-                            gctx.fmgr.makeEqual(
-                                gctx.typedValues.var(
-                                    gctx.fmgr.makeNumber(SCOPE_TYPE, pScopeId),
+                            fmgr.makeEqual(
+                                typedValues.var(
+                                    fmgr.makeNumber(SCOPE_TYPE, pScopeId),
                                     ctx.varMgr.makePreviousVariable(variableName)),
-                                gctx.typedValues.var(
-                                    gctx.fmgr.makeNumber(SCOPE_TYPE, pScopeId),
+                                typedValues.var(
+                                    fmgr.makeNumber(SCOPE_TYPE, pScopeId),
                                     ctx.varMgr.makeVariable(variableName)))))
                 .collect(Collectors.toList())));
   }
 
   @Nonnull
   BooleanFormula makeAssignment(final IntegerFormula pLeft, final TypedValue pRight) {
-    final BooleanFormulaManagerView bfmgr = gctx.bfmgr;
-    final FormulaManagerView fmgr = gctx.fmgr;
-    final TypeTags typeTags = gctx.typeTags;
-    final TypedValues typedValues = gctx.typedValues;
-
     final IntegerFormula rType = pRight.getType();
     if (rType.equals(typeTags.BOOLEAN)) {
       return bfmgr.and(
@@ -206,7 +198,6 @@ class AssignmentManager extends ManagerWithEdgeContext {
           fmgr.assignment(typedValues.typeof(pLeft), typeTags.STRING),
           fmgr.makeEqual(typedValues.stringValue(pLeft), pRight.getValue()));
     }
-    final ValueConverterManager valConv = gctx.valConv;
     return fmgr.makeAnd(
         fmgr.assignment(typedValues.typeof(pLeft), pRight.getType()),
         bfmgr.or(

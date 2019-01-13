@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
-abstract class ManagerWithEdgeContext {
-  final GlobalManagerContext gctx;
+abstract class ManagerWithEdgeContext extends ManagerWithGlobalContext {
   protected final EdgeManagerContext ctx;
 
   ManagerWithEdgeContext(final EdgeManagerContext pCtx) {
+    super(pCtx.global);
     ctx = pCtx;
-    gctx = pCtx.global;
   }
 }

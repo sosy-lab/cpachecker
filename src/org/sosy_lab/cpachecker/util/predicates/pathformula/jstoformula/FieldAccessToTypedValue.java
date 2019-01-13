@@ -50,7 +50,7 @@ class FieldAccessToTypedValue extends ManagerWithEdgeContext {
 
   FieldAccessToTypedValue(final EdgeManagerContext pCtx) {
     super(pCtx);
-    prototypeField = gctx.strMgr.getStringFormula("__proto__");
+    prototypeField = strMgr.getStringFormula("__proto__");
   }
 
   /**
@@ -65,33 +65,31 @@ class FieldAccessToTypedValue extends ManagerWithEdgeContext {
       final int prototypeChainDepth,
       final IntegerFormula pPrototypeField,
       final IntegerFormula pFieldName) {
-    final TypedValue undefined = gctx.tvmgr.getUndefinedValue();
+    final TypedValue undefined = tvmgr.getUndefinedValue();
     if (prototypeChainDepth > ctx.conv.maxPrototypeChainLength) {
       return undefined;
     }
-    final IntegerFormula prototypeObjectId = gctx.typedValues.objectValue(pPrototypeField);
+    final IntegerFormula prototypeObjectId = typedValues.objectValue(pPrototypeField);
     final ArrayFormula<IntegerFormula, IntegerFormula> prototypeFields =
         ctx.objMgr.getObjectFields(prototypeObjectId);
-    final IntegerFormula fieldOnPrototype = gctx.afmgr.select(prototypeFields, pFieldName);
+    final IntegerFormula fieldOnPrototype = afmgr.select(prototypeFields, pFieldName);
     final BooleanFormula hasNoParentPrototype = ctx.objMgr.markFieldAsNotSet(pPrototypeField);
     final BooleanFormula isFieldOnPrototypeNotSet = ctx.objMgr.markFieldAsNotSet(fieldOnPrototype);
     final TypedValue parentPrototype =
         lookUpOnPrototypeChain(
-            prototypeChainDepth + 1,
-            gctx.afmgr.select(prototypeFields, prototypeField),
-            pFieldName);
+            prototypeChainDepth + 1, afmgr.select(prototypeFields, prototypeField), pFieldName);
     return new TypedValue(
-        gctx.bfmgr.ifThenElse(
+        bfmgr.ifThenElse(
             hasNoParentPrototype,
             undefined.getType(),
-            gctx.bfmgr.ifThenElse(
+            bfmgr.ifThenElse(
                 isFieldOnPrototypeNotSet,
                 parentPrototype.getType(),
-                gctx.typedValues.typeof(fieldOnPrototype))),
-        gctx.bfmgr.ifThenElse(
+                typedValues.typeof(fieldOnPrototype))),
+        bfmgr.ifThenElse(
             hasNoParentPrototype,
             undefined.getValue(),
-            gctx.bfmgr.ifThenElse(
+            bfmgr.ifThenElse(
                 isFieldOnPrototypeNotSet, parentPrototype.getValue(), fieldOnPrototype)));
   }
 
@@ -106,16 +104,14 @@ class FieldAccessToTypedValue extends ManagerWithEdgeContext {
   TypedValue accessField(final IntegerFormula pObjectId, final IntegerFormula pFieldName) {
     final ArrayFormula<IntegerFormula, IntegerFormula> fields =
         ctx.objMgr.getObjectFields(pObjectId);
-    final IntegerFormula field = gctx.afmgr.select(fields, pFieldName);
+    final IntegerFormula field = afmgr.select(fields, pFieldName);
     final BooleanFormula isObjectFieldNotSet = ctx.objMgr.markFieldAsNotSet(field);
     final TypedValue typedValueOnPrototypeChain =
-        lookUpOnPrototypeChain(1, gctx.afmgr.select(fields, prototypeField), pFieldName);
+        lookUpOnPrototypeChain(1, afmgr.select(fields, prototypeField), pFieldName);
     return new TypedValue(
-        gctx.bfmgr.ifThenElse(
-            isObjectFieldNotSet,
-            typedValueOnPrototypeChain.getType(),
-            gctx.typedValues.typeof(field)),
-        gctx.bfmgr.ifThenElse(isObjectFieldNotSet, typedValueOnPrototypeChain.getValue(), field));
+        bfmgr.ifThenElse(
+            isObjectFieldNotSet, typedValueOnPrototypeChain.getType(), typedValues.typeof(field)),
+        bfmgr.ifThenElse(isObjectFieldNotSet, typedValueOnPrototypeChain.getValue(), field));
   }
 
   JSSimpleDeclaration getObjectDeclarationOfFieldAccess(final JSFieldAccess ppFieldAccess)

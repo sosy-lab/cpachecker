@@ -47,19 +47,19 @@ class ObjectFormulaManager extends ManagerWithEdgeContext {
     // Since, variables are used as named values, but no explicit value is assigned to a variable
     // name, any value (here 0) can be used to represent a special variable value (that is not used
     // as another special variable value somewhere else)
-    objectFieldNotSet = gctx.ifmgr.makeNumber(0);
+    objectFieldNotSet = ifmgr.makeNumber(0);
   }
 
   TypedValue createObject(final JSObjectLiteralExpression pObjectLiteralExpression)
       throws UnrecognizedCodeException {
-    final TypedValue objectValue = gctx.tvmgr.createObjectValue(gctx.objIdMgr.createObjectId());
+    final TypedValue objectValue = tvmgr.createObjectValue(objIdMgr.createObjectId());
     final IntegerFormula ovv = (IntegerFormula) objectValue.getValue();
     setObjectFields(ovv, pObjectLiteralExpression.getFields());
     return objectValue;
   }
 
   ArrayFormula<IntegerFormula, IntegerFormula> getObjectFields(final IntegerFormula pObjectId) {
-    return gctx.afmgr.select(makeObjectFieldsVariable(), pObjectId);
+    return afmgr.select(makeObjectFieldsVariable(), pObjectId);
   }
 
   private ArrayFormula<IntegerFormula, IntegerFormula> getObjectFields(
@@ -67,12 +67,11 @@ class ObjectFormulaManager extends ManagerWithEdgeContext {
     final Map<IntegerFormula, JSObjectLiteralField> fieldById =
         pFields
             .stream()
-            .collect(
-                toMap(field -> gctx.strMgr.getStringFormula(field.getFieldName()), field -> field));
+            .collect(toMap(field -> strMgr.getStringFormula(field.getFieldName()), field -> field));
     ArrayFormula<IntegerFormula, IntegerFormula> objectFields =
-        gctx.afmgr.makeArray("emptyObjectFields", OBJECT_FIELDS_TYPE);
-    for (int stringId : gctx.strMgr.getIdRange()) {
-      final IntegerFormula idFormula = gctx.ifmgr.makeNumber(stringId);
+        afmgr.makeArray("emptyObjectFields", OBJECT_FIELDS_TYPE);
+    for (int stringId : strMgr.getIdRange()) {
+      final IntegerFormula idFormula = ifmgr.makeNumber(stringId);
       final IntegerFormula fieldValue;
       if (fieldById.containsKey(idFormula)) {
         final JSObjectLiteralField field = fieldById.get(idFormula);
@@ -85,7 +84,7 @@ class ObjectFormulaManager extends ManagerWithEdgeContext {
       } else {
         fieldValue = objectFieldNotSet;
       }
-      objectFields = gctx.afmgr.store(objectFields, idFormula, fieldValue);
+      objectFields = afmgr.store(objectFields, idFormula, fieldValue);
     }
     return objectFields;
   }
@@ -99,9 +98,9 @@ class ObjectFormulaManager extends ManagerWithEdgeContext {
       final IntegerFormula pObjectId,
       final ArrayFormula<IntegerFormula, IntegerFormula> pObjectFields) {
     ctx.constraints.addConstraint(
-        gctx.afmgr.equivalence(
-            gctx.afmgr.store(makeObjectFieldsVariable(), pObjectId, pObjectFields),
-            gctx.fmgr.makeVariable(
+        afmgr.equivalence(
+            afmgr.store(makeObjectFieldsVariable(), pObjectId, pObjectFields),
+            fmgr.makeVariable(
                 Types.OBJECT_FIELDS_VARIABLE_TYPE,
                 OBJECT_FIELDS_VARIABLE_NAME,
                 ctx.varIdMgr.makeFreshIndex(OBJECT_FIELDS_VARIABLE_NAME))));
@@ -113,12 +112,12 @@ class ObjectFormulaManager extends ManagerWithEdgeContext {
       makeObjectFieldsVariable() {
     if (!ctx.ssa.allVariables().contains(OBJECT_FIELDS_VARIABLE_NAME)) {
       ctx.varIdMgr.makeFreshIndex(OBJECT_FIELDS_VARIABLE_NAME);
-      return gctx.afmgr.makeArray(
+      return afmgr.makeArray(
           OBJECT_FIELDS_VARIABLE_NAME,
           ctx.varIdMgr.makeFreshIndex(OBJECT_FIELDS_VARIABLE_NAME),
           Types.OBJECT_FIELDS_VARIABLE_TYPE);
     }
-    return gctx.fmgr.makeVariable(
+    return fmgr.makeVariable(
         Types.OBJECT_FIELDS_VARIABLE_TYPE,
         OBJECT_FIELDS_VARIABLE_NAME,
         ctx.ssa.getIndex(OBJECT_FIELDS_VARIABLE_NAME));
@@ -126,12 +125,12 @@ class ObjectFormulaManager extends ManagerWithEdgeContext {
 
   @Nonnull
   BooleanFormula markFieldAsNotSet(final IntegerFormula pField) {
-    return gctx.fmgr.makeEqual(pField, objectFieldNotSet);
+    return fmgr.makeEqual(pField, objectFieldNotSet);
   }
 
   @Nonnull
   BooleanFormula markFieldAsSet(final IntegerFormula pField) {
-    return gctx.bfmgr.not(markFieldAsNotSet(pField));
+    return bfmgr.not(markFieldAsNotSet(pField));
   }
 
   @Nonnull

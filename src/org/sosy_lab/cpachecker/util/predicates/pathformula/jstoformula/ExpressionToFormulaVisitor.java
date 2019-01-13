@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -69,17 +68,8 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
   // TODO this option should be removed as soon as NaN and float interpolation can be used together
   private final boolean useNaN;
 
-  private final TypedValueManager tvmgr;
-  private final FloatingPointFormulaManagerView fpfmgr;
-  private final FormulaManagerView fmgr;
-  private final ValueConverterManager valConv;
-
   ExpressionToFormulaVisitor(final EdgeManagerContext pCtx) {
     super(pCtx);
-    tvmgr = gctx.tvmgr;
-    fpfmgr = gctx.fpfmgr;
-    fmgr = gctx.fmgr;
-    valConv = gctx.valConv;
     useNaN = ctx.conv.useNaN;
   }
 
@@ -153,12 +143,11 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
     final FloatingPointFormula dividend = valConv.toNumber(pLeftOperand);
     final FloatingPointFormula divisor = valConv.toNumber(pRightOperand);
     final BooleanFormula nanCase =
-        useNaN ? gctx.bfmgr.or(f.isNaN(dividend), f.isNaN(divisor)) : gctx.bfmgr.makeFalse();
-    return gctx.bfmgr.ifThenElse(
-        gctx.bfmgr.or(nanCase, f.isInfinity(dividend), f.isZero(divisor)),
+        useNaN ? bfmgr.or(f.isNaN(dividend), f.isNaN(divisor)) : bfmgr.makeFalse();
+    return bfmgr.ifThenElse(
+        bfmgr.or(nanCase, f.isInfinity(dividend), f.isZero(divisor)),
         f.makeNaN(Types.NUMBER_TYPE),
-        gctx.bfmgr.ifThenElse(
-            gctx.bfmgr.or(f.isInfinity(divisor), f.isZero(dividend)), dividend, dividend));
+        bfmgr.ifThenElse(bfmgr.or(f.isInfinity(divisor), f.isZero(dividend)), dividend, dividend));
   }
 
   @Nonnull
@@ -168,26 +157,26 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
     final IntegerFormula rightType = pRightOperand.getType();
     final BooleanFormula nanCase =
         useNaN
-            ? gctx.bfmgr.and(
+            ? bfmgr.and(
                 fmgr.makeNot(fpfmgr.isNaN(valConv.toNumber(pLeftOperand))),
                 fmgr.makeNot(fpfmgr.isNaN(valConv.toNumber(pRightOperand))))
-            : gctx.bfmgr.makeTrue();
+            : bfmgr.makeTrue();
     return fmgr.makeAnd(
         fmgr.makeEqual(leftType, rightType),
-        gctx.bfmgr.or(
-            fmgr.makeEqual(gctx.typeTags.UNDEFINED, leftType),
-            gctx.bfmgr.and(
-                fmgr.makeEqual(gctx.typeTags.NUMBER, leftType),
+        bfmgr.or(
+            fmgr.makeEqual(typeTags.UNDEFINED, leftType),
+            bfmgr.and(
+                fmgr.makeEqual(typeTags.NUMBER, leftType),
                 nanCase,
                 fmgr.makeEqual(valConv.toNumber(pLeftOperand), valConv.toNumber(pRightOperand))),
             fmgr.makeAnd(
-                fmgr.makeEqual(gctx.typeTags.BOOLEAN, leftType),
+                fmgr.makeEqual(typeTags.BOOLEAN, leftType),
                 fmgr.makeEqual(valConv.toBoolean(pLeftOperand), valConv.toBoolean(pRightOperand))),
             fmgr.makeAnd(
-                fmgr.makeEqual(gctx.typeTags.OBJECT, leftType),
+                fmgr.makeEqual(typeTags.OBJECT, leftType),
                 fmgr.makeEqual(valConv.toObject(pLeftOperand), valConv.toObject(pRightOperand))),
             fmgr.makeAnd(
-                fmgr.makeEqual(gctx.typeTags.STRING, leftType),
+                fmgr.makeEqual(typeTags.STRING, leftType),
                 fmgr.makeEqual(
                     valConv.toStringFormula(pLeftOperand),
                     valConv.toStringFormula(pRightOperand)))));
@@ -195,8 +184,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
 
   @Override
   public TypedValue visit(final JSStringLiteralExpression pStringLiteralExpression) {
-    return tvmgr.createStringValue(
-        gctx.strMgr.getStringFormula(pStringLiteralExpression.getValue()));
+    return tvmgr.createStringValue(strMgr.getStringFormula(pStringLiteralExpression.getValue()));
   }
 
   @Override
@@ -236,7 +224,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
 
   @Override
   public TypedValue visit(final JSBooleanLiteralExpression pBooleanLiteralExpression) {
-    return tvmgr.createBooleanValue(gctx.bfmgr.makeBoolean(pBooleanLiteralExpression.getValue()));
+    return tvmgr.createBooleanValue(bfmgr.makeBoolean(pBooleanLiteralExpression.getValue()));
   }
 
   @Override
@@ -253,7 +241,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
   @Override
   public TypedValue visit(final JSArrayLiteralExpression pArrayLiteralExpression)
       throws UnrecognizedCodeException {
-    final IntegerFormula objectId = gctx.objIdMgr.createObjectId();
+    final IntegerFormula objectId = objIdMgr.createObjectId();
     final TypedValue objectValue = tvmgr.createObjectValue(objectId);
     // TODO assign elements to new array object
     final List<JSExpression> elements = pArrayLiteralExpression.getElements();
@@ -284,11 +272,10 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
     final IntegerFormula functionDeclarationId =
         fmgr.makeNumber(
             Types.FUNCTION_DECLARATION_TYPE,
-            gctx.functionDeclarationIds.get(pDeclaredByExpression.getJsFunctionDeclaration()));
+            functionDeclarationIds.get(pDeclaredByExpression.getJsFunctionDeclaration()));
     return tvmgr.createBooleanValue(
         fmgr.makeEqual(
-            ctx.conv.declarationOf(gctx.typedValues.functionValue(variable)),
-            functionDeclarationId));
+            ctx.conv.declarationOf(typedValues.functionValue(variable)), functionDeclarationId));
   }
 
   @Override
@@ -299,8 +286,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
     } else if (declaration instanceof JSFunctionDeclaration) {
       final JSFunctionDeclaration functionDeclaration = (JSFunctionDeclaration) declaration;
       final IntegerFormula functionDeclarationId =
-          fmgr.makeNumber(
-              Types.FUNCTION_TYPE, gctx.functionDeclarationIds.get(functionDeclaration));
+          fmgr.makeNumber(Types.FUNCTION_TYPE, functionDeclarationIds.get(functionDeclaration));
       final IntegerFormula functionValueFormula =
           functionDeclaration.isGlobal()
               ? functionDeclarationId
@@ -314,7 +300,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
       return tvmgr.createFunctionValue(functionValueFormula);
     }
     final IntegerFormula variable = ctx.scopeMgr.scopedVariable(declaration);
-    return new TypedValue(gctx.typedValues.typeof(variable), variable);
+    return new TypedValue(typedValues.typeof(variable), variable);
   }
 
   @Override
@@ -322,8 +308,8 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
     final JSSimpleDeclaration objectDeclaration =
         ctx.propMgr.getObjectDeclarationOfFieldAccess(pFieldAccess);
     final IntegerFormula objectId =
-        gctx.typedValues.objectValue(ctx.scopeMgr.scopedVariable(objectDeclaration));
-    final IntegerFormula fieldName = gctx.strMgr.getStringFormula(pFieldAccess.getFieldName());
+        typedValues.objectValue(ctx.scopeMgr.scopedVariable(objectDeclaration));
+    final IntegerFormula fieldName = strMgr.getStringFormula(pFieldAccess.getFieldName());
     return ctx.propMgr.accessField(objectId, fieldName);
   }
 
@@ -333,21 +319,21 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
     final JSSimpleDeclaration objectDeclaration =
         ctx.propMgr.getObjectDeclarationOfObjectExpression(pPropertyAccess.getObjectExpression());
     final IntegerFormula objectId =
-        gctx.typedValues.objectValue(ctx.scopeMgr.scopedVariable(objectDeclaration));
+        typedValues.objectValue(ctx.scopeMgr.scopedVariable(objectDeclaration));
     final JSExpression propertyNameExpression = pPropertyAccess.getPropertyNameExpression();
     final TypedValue propertyNameValue = visit(propertyNameExpression);
     final IntegerFormula fieldName =
         (propertyNameExpression instanceof JSStringLiteralExpression)
-            ? gctx.strMgr.getStringFormula(
+            ? strMgr.getStringFormula(
                 ((JSStringLiteralExpression) propertyNameExpression).getValue())
             : valConv.toStringFormula(propertyNameValue);
     final TypedValue propertyValue = ctx.propMgr.accessField(objectId, fieldName);
     final TypedValue lengthProperty =
-        ctx.propMgr.accessField(objectId, gctx.strMgr.getStringFormula("length"));
+        ctx.propMgr.accessField(objectId, strMgr.getStringFormula("length"));
     // TODO check if object is an array (otherwise `length` is no indicator if property is defined)
     final BooleanFormula isUndefinedArrayElementIndex =
-        gctx.bfmgr.and(
-            fmgr.makeEqual(propertyNameValue.getType(), gctx.typeTags.NUMBER),
+        bfmgr.and(
+            fmgr.makeEqual(propertyNameValue.getType(), typeTags.NUMBER),
             fpfmgr.greaterOrEquals(
                 valConv.toNumber(propertyNameValue), valConv.toNumber(lengthProperty)));
     return tvmgr.ifThenElse(isUndefinedArrayElementIndex, tvmgr.getUndefinedValue(), propertyValue);
