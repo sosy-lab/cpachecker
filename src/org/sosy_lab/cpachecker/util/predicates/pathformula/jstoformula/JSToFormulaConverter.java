@@ -1369,7 +1369,6 @@ public class JSToFormulaConverter {
    * @param constraints the constraints needed during visiting
    * @param errorConditions the error conditions
    */
-  @SuppressWarnings("unused")
   private JSRightHandSideVisitor<TypedValue, UnrecognizedCodeException>
       createJSRightHandSideVisitor(
           CFAEdge pEdge,
