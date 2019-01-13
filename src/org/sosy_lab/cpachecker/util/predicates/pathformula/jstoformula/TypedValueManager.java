@@ -32,18 +32,15 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 /** Manager to create {@link TypedValue} instances. */
 class TypedValueManager {
   private final FormulaManagerView fmgr;
-  private final TypedValues typedValues; // TODO remove
   private final TypeTags typeTags;
   private final TypedValue undefinedValue;
   private final TypedValue nullValue;
 
   TypedValueManager(
       final FormulaManagerView pFmgr,
-      final TypedValues pTypedValues,
       final TypeTags pTypeTags,
       final IntegerFormula pNullValueObjectId) {
     fmgr = pFmgr;
-    typedValues = pTypedValues;
     typeTags = pTypeTags;
     nullValue = new TypedValue(typeTags.OBJECT, pNullValueObjectId);
     // The value of undefined is always the same.
