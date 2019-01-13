@@ -40,10 +40,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -102,7 +98,6 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 /** Class containing all the code that converts JS code into a formula. */
 @SuppressWarnings({"DeprecatedIsStillUsed", "deprecation"})
-@Options(prefix = "cpa.predicate.js")
 public class JSToFormulaConverter {
 
   //names for special variables needed to deal with functions
@@ -127,51 +122,17 @@ public class JSToFormulaConverter {
   @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
   private final Set<JSVariableDeclaration> globalDeclarations = new HashSet<>();
 
-  // TODO this option should be removed as soon as NaN and float interpolation can be used together
-  @Option(secure = true, description = "Do not check for NaN in operations")
-  boolean useNaN = true;
-
-  /**
-   * The maximum length of an object prototype chain that is assumed. If a field is not set on an
-   * object, the field is looked up in the prototype of the object. If the field is not set on that
-   * prototype, the field is looked up in the prototype of the prototype and so on till a prototype
-   * is null. This prototype chains in JavaScript programs might be arbitrary long but it is always
-   * finite. The analysis only supports a maximum length of prototype chain. It is assumed that no
-   * prototype chain is longer as this maximum.
-   */
-  @Option(
-      secure = true,
-      description = "The maximum length of an object prototype chain that is assumed")
-  int maxPrototypeChainLength = 5;
-
-  /**
-   * Count of string constants ist restricted to a limit to avoid quantifier in object encoding.
-   * Note that some string constants (like the empty sting or field names) are implicitly present in
-   * all programs and are counted, too. Each string constant is mapped to an integer (field-ID).
-   * Object fields are encoded as an array that maps field-ID to field variable. A special field
-   * variable marks a field as unset. Since the Object fields array maps all fields that might exist
-   * in the program, all field-IDs have to be known to avoid a "for all" quantifier.
-   */
-  @Option(
-      secure = true,
-      description = "Maximum count of different constants used as string or field name")
-  private int maxFieldNameCount = 3;
-
   private final FunctionDeclaration<IntegerFormula> declarationOfDeclaration;
 
   private final GlobalManagerContext gctx;
 
   public JSToFormulaConverter(
       FormulaEncodingOptions pOptions,
-      final Configuration pConfig,
+      final JSFormulaEncodingOptions pJSOptions,
       FormulaManagerView pFmgr,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      AnalysisDirection pDirection)
-      throws InvalidConfigurationException {
-
-    pConfig.inject(this, JSToFormulaConverter.class);
-
+      AnalysisDirection pDirection) {
     this.fmgr = pFmgr;
     this.options = pOptions;
 
@@ -193,6 +154,7 @@ public class JSToFormulaConverter {
     gctx =
         new GlobalManagerContext(
             pOptions,
+            pJSOptions,
             logger,
             pDirection,
             typedValues,
@@ -201,7 +163,7 @@ public class JSToFormulaConverter {
             new Ids<>(),
             new FunctionScopeManager(),
             objIdMgr,
-            new StringFormulaManager(fmgr, maxFieldNameCount),
+            new StringFormulaManager(fmgr, pJSOptions.maxFieldNameCount),
             fmgr);
   }
 

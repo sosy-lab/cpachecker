@@ -42,6 +42,7 @@ abstract class ManagerWithGlobalContext {
   final GlobalManagerContext gctx;
 
   final FormulaEncodingOptions options;
+  final JSFormulaEncodingOptions jsOptions;
   final LogManager logger;
   final AnalysisDirection direction;
   final TypedValues typedValues;
@@ -64,6 +65,7 @@ abstract class ManagerWithGlobalContext {
     gctx = pContext;
 
     options = pContext.options;
+    jsOptions = pContext.jsOptions;
     logger = pContext.logger;
     direction = pContext.direction;
     typedValues = pContext.typedValues;

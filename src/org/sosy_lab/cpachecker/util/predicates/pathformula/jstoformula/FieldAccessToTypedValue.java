@@ -66,7 +66,7 @@ class FieldAccessToTypedValue extends ManagerWithEdgeContext {
       final IntegerFormula pPrototypeField,
       final IntegerFormula pFieldName) {
     final TypedValue undefined = tvmgr.getUndefinedValue();
-    if (prototypeChainDepth > ctx.conv.maxPrototypeChainLength) {
+    if (prototypeChainDepth > jsOptions.maxPrototypeChainLength) {
       return undefined;
     }
     final IntegerFormula prototypeObjectId = typedValues.objectValue(pPrototypeField);

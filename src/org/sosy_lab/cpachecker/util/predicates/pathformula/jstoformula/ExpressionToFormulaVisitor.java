@@ -65,12 +65,8 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
     implements JSExpressionFormulaManager,
         JSRightHandSideVisitor<TypedValue, UnrecognizedCodeException> {
 
-  // TODO this option should be removed as soon as NaN and float interpolation can be used together
-  private final boolean useNaN;
-
   ExpressionToFormulaVisitor(final EdgeManagerContext pCtx) {
     super(pCtx);
-    useNaN = ctx.conv.useNaN;
   }
 
   @Override
@@ -143,7 +139,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
     final FloatingPointFormula dividend = valConv.toNumber(pLeftOperand);
     final FloatingPointFormula divisor = valConv.toNumber(pRightOperand);
     final BooleanFormula nanCase =
-        useNaN ? bfmgr.or(f.isNaN(dividend), f.isNaN(divisor)) : bfmgr.makeFalse();
+        jsOptions.useNaN ? bfmgr.or(f.isNaN(dividend), f.isNaN(divisor)) : bfmgr.makeFalse();
     return bfmgr.ifThenElse(
         bfmgr.or(nanCase, f.isInfinity(dividend), f.isZero(divisor)),
         f.makeNaN(Types.NUMBER_TYPE),
@@ -156,7 +152,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
     final IntegerFormula leftType = pLeftOperand.getType();
     final IntegerFormula rightType = pRightOperand.getType();
     final BooleanFormula nanCase =
-        useNaN
+        jsOptions.useNaN
             ? bfmgr.and(
                 fmgr.makeNot(fpfmgr.isNaN(valConv.toNumber(pLeftOperand))),
                 fmgr.makeNot(fpfmgr.isNaN(valConv.toNumber(pRightOperand))))
@@ -346,7 +342,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
       case "Infinity":
         return tvmgr.createNumberValue(fpfmgr.makePlusInfinity(Types.NUMBER_TYPE));
       case "NaN":
-        if (!useNaN) {
+        if (!jsOptions.useNaN) {
           logger.log(
               Level.WARNING,
               "NaN is used in "
