@@ -192,6 +192,7 @@ public class JSToFormulaConverter {
     final ObjectIdFormulaManager objIdMgr = new ObjectIdFormulaManager(pFmgr);
     gctx =
         new GlobalManagerContext(
+            logger,
             typedValues,
             typeTags,
             new TypedValueManager(fmgr, typedValues, typeTags, objIdMgr.getNullObjectId()),

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -37,6 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
  * @see GlobalManagerContext
  */
 abstract class ManagerWithGlobalContext {
+  final LogManager logger;
   final TypedValues typedValues;
   final TypeTags typeTags;
   final TypedValueManager tvmgr;
@@ -54,6 +56,7 @@ abstract class ManagerWithGlobalContext {
   final IntegerFormulaManagerView ifmgr;
 
   ManagerWithGlobalContext(final GlobalManagerContext pContext) {
+    logger = pContext.logger;
     typedValues = pContext.typedValues;
     typeTags = pContext.typeTags;
     tvmgr = pContext.tvmgr;
