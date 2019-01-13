@@ -347,7 +347,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
         return tvmgr.createNumberValue(fpfmgr.makePlusInfinity(Types.NUMBER_TYPE));
       case "NaN":
         if (!useNaN) {
-          ctx.conv.logger.log(
+          logger.log(
               Level.WARNING,
               "NaN is used in "
                   + pIdExpression.getFileLocation()

@@ -72,7 +72,7 @@ class VariableIndexManager extends ManagerWithEdgeContext {
     //    checkSsaSavedType(name, type, ssa.getType(name));
     int idx = ctx.ssa.getIndex(name);
     if (idx <= 0) {
-      ctx.conv.logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", name);
+      logger.log(Level.ALL, "WARNING: Auto-instantiating variable:", name);
       idx = VARIABLE_UNINITIALIZED;
 
       // It is important to store the index in the variable here.
