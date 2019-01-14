@@ -77,7 +77,9 @@ public class HybridAnalysisState
       CIdExpression currentVariable = ExpressionUtils.extractIdExpression(assumption);
       variableMap.put(currentVariable, HybridValue.createHybridValueForAssumption(assumption));
       CSimpleDeclaration currentDeclaration = currentVariable.getDeclaration();
-      declarations.put(currentDeclaration.getQualifiedName(), currentDeclaration);
+      if (currentDeclaration != null) {
+        declarations.put(currentDeclaration.getQualifiedName(), currentDeclaration);
+      }
     }
   }
 
