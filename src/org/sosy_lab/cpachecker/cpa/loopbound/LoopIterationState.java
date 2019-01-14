@@ -24,9 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.loopbound;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Ordering;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -56,17 +54,20 @@ interface LoopIterationState {
 
   public static class UndeterminedLoopIterationState implements LoopIterationState {
 
-    private final PersistentSortedMap<ComparableLoop, LoopIteration> iterations;
+    private final PersistentSortedMap<Loop, LoopIteration> iterations;
 
     private final int maxLoopIteration;
 
     private final boolean loopCounterAbstracted;
 
     private UndeterminedLoopIterationState() {
-      this(PathCopyingPersistentTreeMap.<ComparableLoop, LoopIteration>of(), 0, false);
+      this(PathCopyingPersistentTreeMap.of(), 0, false);
     }
 
-    private UndeterminedLoopIterationState(PersistentSortedMap<ComparableLoop, LoopIteration> pIterations, int pMaxLoopIteration, boolean pLoopCounterAbstracted) {
+    private UndeterminedLoopIterationState(
+        PersistentSortedMap<Loop, LoopIteration> pIterations,
+        int pMaxLoopIteration,
+        boolean pLoopCounterAbstracted) {
       iterations = Objects.requireNonNull(pIterations);
       Preconditions.checkArgument(pMaxLoopIteration >= 0);
       maxLoopIteration = pMaxLoopIteration;
@@ -75,7 +76,7 @@ interface LoopIterationState {
 
     @Override
     public LoopIterationState visitLoopHead(LoopEntry pLoopEntry) {
-      ComparableLoop loop = new ComparableLoop(pLoopEntry.getLoop());
+      Loop loop = pLoopEntry.getLoop();
       LoopIteration storedIteration = iterations.getOrDefault(
           loop,
           new LoopIteration(pLoopEntry.getEntryPoint(), 0));
@@ -130,8 +131,7 @@ interface LoopIterationState {
 
     @Override
     public int getLoopIterationCount(Loop pLoop) {
-      ComparableLoop loop = new ComparableLoop(pLoop);
-      LoopIteration iteration = iterations.get(loop);
+      LoopIteration iteration = iterations.get(pLoop);
       if (iteration == null) {
         return 0;
       }
@@ -141,11 +141,11 @@ interface LoopIterationState {
     @Override
     public Set<Loop> getDeepestIterationLoops() {
       ImmutableSet.Builder<Loop> builder = ImmutableSet.builder();
-      for (Map.Entry<ComparableLoop, LoopIteration> entry : iterations.entrySet()) {
+      for (Map.Entry<Loop, LoopIteration> entry : iterations.entrySet()) {
         int count = entry.getValue().getCount();
         assert count <= maxLoopIteration;
         if (count == maxLoopIteration) {
-          builder.add(entry.getKey().getLoop());
+          builder.add(entry.getKey());
         }
       }
       return builder.build();
@@ -161,9 +161,9 @@ interface LoopIterationState {
       if (getMaxIterationCount() <= pLoopIterationsBeforeAbstraction) {
         return this;
       }
-      PersistentSortedMap<ComparableLoop, LoopIteration> iters = this.iterations;
-      for (Map.Entry<ComparableLoop, LoopIteration> entry : iters.entrySet()) {
-        ComparableLoop loop = entry.getKey();
+      PersistentSortedMap<Loop, LoopIteration> iters = this.iterations;
+      for (Map.Entry<Loop, LoopIteration> entry : iters.entrySet()) {
+        Loop loop = entry.getKey();
         LoopIteration oldIterationCount = entry.getValue();
         if (oldIterationCount.getCount() > pLoopIterationsBeforeAbstraction) {
           iters =
@@ -178,52 +178,6 @@ interface LoopIterationState {
 
     public static LoopIterationState newState() {
       return new UndeterminedLoopIterationState();
-    }
-
-    private static class ComparableLoop implements Comparable<ComparableLoop> {
-
-      private final Loop loop;
-
-      public ComparableLoop(Loop pLoop) {
-        this.loop = Objects.requireNonNull(pLoop);
-      }
-
-      public Loop getLoop() {
-        return loop;
-      }
-
-      @Override
-      public String toString() {
-        return loop.toString();
-      }
-
-      @Override
-      public int hashCode() {
-        return loop.hashCode();
-      }
-
-      @Override
-      public boolean equals(Object pObj) {
-        if (this == pObj) {
-          return true;
-        }
-        if (pObj instanceof ComparableLoop) {
-          ComparableLoop other = (ComparableLoop) pObj;
-          return loop.equals(other.loop);
-        }
-        return false;
-      }
-
-      @Override
-      public int compareTo(ComparableLoop pOther) {
-        return ComparisonChain.start()
-            // Compare by size
-            .compare(getLoop().getLoopNodes().size(), pOther.getLoop().getLoopNodes().size())
-            // Compare lexicographically by contained nodes
-            .compare(getLoop().getLoopNodes(), pOther.getLoop().getLoopNodes(),
-                Ordering.<CFANode>natural()
-                .lexicographical()).result();
-      }
     }
 
     private static class LoopIteration {

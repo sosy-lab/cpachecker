@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.delegation;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -249,6 +249,8 @@ public class SymbolicDelegatingRefiner implements ARGBasedRefiner, StatisticsPro
         return SymbolicDelegatingRefiner.class.getSimpleName();
       }
     });
+
+    symbolicRefiner.collectStatistics(statsCollection);
   }
 
   @Override

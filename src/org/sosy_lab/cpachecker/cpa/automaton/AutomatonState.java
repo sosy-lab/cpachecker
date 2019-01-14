@@ -213,9 +213,28 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
       return false;
     }
     AutomatonState otherState = (AutomatonState) pObj;
-
-    return this.internalState.equals(otherState.internalState)
-        && this.vars.equals(otherState.vars);
+    if (assumptions == null) {
+      if (otherState.assumptions != null) {
+        return false;
+      }
+    } else if (!assumptions.equals(otherState.assumptions)) {
+      return false;
+    }
+    if (vars == null) {
+      if (otherState.vars != null) {
+        return false;
+      }
+    } else if (!vars.equals(otherState.vars)) {
+      return false;
+    }
+    if (internalState == null) {
+      if (otherState.internalState != null) {
+        return false;
+      }
+    } else if (!internalState.equals(otherState.internalState)) {
+      return false;
+    }
+    return true;
   }
 
   @Override

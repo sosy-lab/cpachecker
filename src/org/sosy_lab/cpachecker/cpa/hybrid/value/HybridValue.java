@@ -162,7 +162,7 @@ public class HybridValue {
 
   /**
    * Retrieves the qualified variable name from the declaration
-   * @return
+   * @return return the qualified name
    */
   public String getVariableName() {
 

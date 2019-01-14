@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.exceptions;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Strings;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
 /**

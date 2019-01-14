@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.counterexamples;
 
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -120,6 +120,17 @@ public final class CEXExportOptions {
 
   @Option(
       secure = true,
+      name = "exportAllFoundErrorPaths",
+      description =
+          "export error paths to files immediately after they were found, "
+              + "including spurious error-paths before executing a refinement. "
+              + "Note that we do not track already exported error-paths and export them "
+              + "at every refinement as long as they are not removed from the reached-set. "
+              + "Most helpful for debugging refinements.")
+  private boolean dumpAllFoundErrorPaths = false;
+
+  @Option(
+      secure = true,
       name = "exportImmediately",
       description = "export error paths to files immediately after they were found")
   private boolean dumpErrorPathImmediately = false;
@@ -210,6 +221,10 @@ public final class CEXExportOptions {
       return null;
     }
     return exportExtendedWitness ? extendedWitnessFile : null;
+  }
+
+  public boolean dumpAllFoundErrorPaths() {
+    return dumpAllFoundErrorPaths;
   }
 
   /** export error paths to files immediately after they were found, or after the whole analysis. */

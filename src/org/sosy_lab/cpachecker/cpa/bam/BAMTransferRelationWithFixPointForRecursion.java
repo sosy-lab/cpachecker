@@ -33,7 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.logging.Level;
-import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -43,9 +43,9 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
@@ -75,10 +75,11 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   public BAMTransferRelationWithFixPointForRecursion(
       Configuration pConfig,
       BAMCPA pBamCpa,
-      ProofChecker wrappedChecker,
-      ShutdownNotifier pShutdownNotifier)
+      ShutdownNotifier pShutdownNotifier,
+      AlgorithmFactory pAlgorithmFactory,
+      BAMPCCManager pBamPccManager)
       throws InvalidConfigurationException {
-    super(pConfig, pBamCpa, wrappedChecker, pShutdownNotifier);
+    super(pBamCpa, pShutdownNotifier, pAlgorithmFactory, pBamPccManager);
     pConfig.inject(this);
     bamCpa = pBamCpa;
   }
@@ -233,8 +234,8 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
    * {x} is covered by {(x or y),z}
    * {(x and y),z} is covered by {x,z}
    */
-  private Collection<AbstractState> getStatesNotCoveredBy(@Nonnull final Collection<AbstractState> baseStates,
-      @Nonnull final Collection<AbstractState> coveringStates)
+  private Collection<AbstractState> getStatesNotCoveredBy(@NonNull final Collection<AbstractState> baseStates,
+      @NonNull final Collection<AbstractState> coveringStates)
       throws CPAException, InterruptedException {
     final Collection<AbstractState> notCoveredStates = new ArrayList<>();
     for (final AbstractState baseState : baseStates) {
@@ -246,8 +247,8 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   }
 
   /** is there any covering-state, that covers the base-state? */
-  private boolean isCoveredByAny(@Nonnull final AbstractState baseState,
-                                 @Nonnull final Collection<AbstractState> coveringStates)
+  private boolean isCoveredByAny(@NonNull final AbstractState baseState,
+                                 @NonNull final Collection<AbstractState> coveringStates)
           throws CPAException, InterruptedException {
     if (coveringStates.contains(baseState)) {
       return true;

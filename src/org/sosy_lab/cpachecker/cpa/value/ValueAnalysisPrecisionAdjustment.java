@@ -323,8 +323,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
 
         boolean tracking = precision.isTracking(
             memoryLocation, e.getValue().getType(), location.getLocationNode());
-        if (location != null
-            && !tracking) {
+        if (!tracking) {
           state.forget(memoryLocation);
         }
       }

@@ -28,6 +28,7 @@ import argparse
 import os
 import re
 import sys
+from collections import defaultdict
 from enum import Enum
 
 class EdgeType(Enum):
@@ -88,10 +89,11 @@ def getFilenamesFromLine(line):
   if line[:8]=="#include":
     fname = line.split()[1]
   else:
-    m = re.search("^[a-zA-Z\.]*\.(config|terminatingStatements|checkerConfig)(?:Files|)\s*=\s*(.*)\s*",line)
+    m = re.search("^[a-zA-Z\.]*(config|Config|terminatingStatements)(?:Files|)\s*=\s*(.*)\s*",line)
     if m != None:
       fname = m.group(2)
       typ = EdgeType.SPECIAL
+      if fname in ["true","false"]: fname = None # ignore some options with unusual name
     else:
       m = re.search("^specification\s*=\s*(.*)\s*",line)
       if m != None:
@@ -132,7 +134,9 @@ def listFiles(paths):
           yield os.path.normpath(os.path.join(root,item))
 
 
-def writeDot(nodes, out, showChildDependencies = True, showParentDependencies = True, markDependencies = True):
+def writeDot(nodes, out, showChildDependencies = True,
+    showParentDependencies = True, markDependencies = True,
+    clusterNodes = False, clusterKeywords = False):
   '''print dot file for limited set of nodes'''
 
   out.write('digraph configs {\n')
@@ -141,9 +145,31 @@ def writeDot(nodes, out, showChildDependencies = True, showParentDependencies = 
 
   allNodesDict,childDependencyNodes,parentDependencyNodes = determineDependencies(nodes, showChildDependencies, showParentDependencies)
 
-  for name,node in sorted(allNodesDict.items()):
-    isDependency = name in childDependencyNodes or name in parentDependencyNodes
-    out.write(determineNode(node,dependencyNode = isDependency and markDependencies))
+  if clusterNodes or clusterKeywords:
+    categoryMapping = defaultdict(dict)
+    unclustered = list()
+    for name,node in sorted(allNodesDict.items()):
+      if clusterNodes:
+        categoryMapping[normPath(os.path.dirname(node.name))][name] = node
+      else:
+        matches = [keyword for keyword in clusterKeywords if keyword.lower() in name.lower()]
+        if len(matches) == 1:
+          categoryMapping[matches[0]][name] = node
+        else:
+          unclustered.append(node)
+    for index,(category,categoryNodesDict) in enumerate(sorted(categoryMapping.items())):
+      out.write('subgraph cluster_%s {' % index)
+      out.write('label = "%s";' % category)
+      for name,node in sorted(categoryNodesDict.items()):
+        isDependency = name in childDependencyNodes or name in parentDependencyNodes
+        out.write(determineNode(node,dependencyNode = isDependency and markDependencies))
+      out.write('}\n')
+    for node in unclustered:
+      out.write(determineNode(node))
+  else:
+    for name,node in sorted(allNodesDict.items()):
+      isDependency = name in childDependencyNodes or name in parentDependencyNodes
+      out.write(determineNode(node,dependencyNode = isDependency and markDependencies))
 
   if not markDependencies:
     nodes = allNodesDict
@@ -223,7 +249,9 @@ def determineNode(node, dependencyNode = False):
 
 def determineColor(node):
   color = None
-  if os.path.splitext(node.name)[1] != ".properties":
+  if "unmaintained/" in node.name:
+    color = "magenta"
+  elif os.path.splitext(node.name)[1] != ".properties":
     color = "gold"
   elif not node.parents or (len(node.parents) == 1 and node.parents[0] == node.name):
     color = "forestgreen"
@@ -261,17 +289,22 @@ Examples:
     # graph showing everything included in or depending on 'predicateAnalysis.properties':
     python3 scripts/configViz.py --root config/predicateAnalysis.properties --depend config/predicateAnalysis.properties > graph.dot
     """)
-    parser.add_argument("--dir", metavar="DIRECTORY", default=['config/', 'test/config'], action="append",
+    parser.add_argument("--dir", metavar="DIRECTORY", default=['config/', 'test/config'], nargs='+',
         help="directory where the configuration files reside")
-    parser.add_argument("--root", metavar="ROOT", default=None,
+    parser.add_argument("--root", metavar="ROOT", default=None, nargs="+",
         help="configuration file for which a graph should be generated. " +
             "When specified, only files included (directly or indirectely) from this file are shown")
     parser.add_argument("--depend", metavar="DEPEND", default=None,
         help="configuration file for which a graph should be generated. " +
             "When specified, only files depending (directly or indirectely) on this file are shown")
-    parser.add_argument("--filter", metavar="FILTER", default=None,
+    parser.add_argument("--filter", metavar="FILTER", default=None, nargs='+',
         help="String to filter nodes. " +
-            "When specified, only matching nodes are shown")
+            "When specified, only matching nodes are shown. " +
+            "When specified multiple times, nodes matching any filter will be shown.")
+    parser.add_argument("--exclude", metavar="EXCLUDE", default=None, nargs='+',
+        help="String to filter nodes. " +
+            "When specified, only non-matching nodes are shown. " +
+            "When specified multiple times, nodes matching any filter will be removed.")
     parser.add_argument("--ranksep", metavar="NUM", default=3,
         help="ranksep to use in the graphviz output file")
     parser.add_argument("--logLevel", metavar="LEVEL", default=1,
@@ -284,6 +317,11 @@ Examples:
         help="Show parents of selected nodes")
     parser.add_argument("--samedep", action="store_true",
         help="Make dependency nodes look like regular nodes")
+    parser.add_argument("--clusterNodes", action="store_true",
+        help="Cluster nodes by their directory")
+    parser.add_argument("--clusterKeywords", default=None, nargs="+",
+        help="Cluster nodes based on the given keyword. If a config would belong to two given keywords, "+
+             "it is in neither of the clusters, because the graphviz engine cannot make overlapping clusters.")
     return parser.parse_args()
 
 
@@ -317,6 +355,11 @@ def componentsSanityCheck(nodes):
         log("Component file %s is unused!" % name, 2)
       if "includes/" in name:
         log("Include file %s is unused!" % name)
+    elif 'unmaintained/' not in name and all('unmaintained/' in parent for parent in node.parents):
+      if "components/" in name:
+        log("Component file %s is unmaintained!" % name, 2)
+      if "includes/" in name:
+        log("Include file %s is unmaintained!" % name, 2)
 
 def transitiveReductionCheck(nodes):
   wlist = [node for name,node in nodes.items()] # type: list of node names
@@ -359,13 +402,14 @@ if __name__ == "__main__":
   componentsSanityCheck(nodes)
   transitiveReductionCheck(nodes)
 
-  nodesFromRoot = {}
+  children = list()
   if args.root != None:
-    if args.root not in nodes:
-      log("Root file '%s' not found." % args.root)
-    else:
-      children = getTransitiveChildren(args.root, nodes)
-      nodesFromRoot = dict((k,v) for k,v in nodes.items() if k in children)
+    for root in args.root:
+        if root not in nodes:
+          log("Root file '%s' not found." % root)
+        else:
+          children.extend(getTransitiveChildren(root, nodes))
+  nodesFromRoot = dict((k,v) for k,v in nodes.items() if k in children)
 
   nodesFromDepend = {}
   if args.depend != None:
@@ -385,12 +429,16 @@ if __name__ == "__main__":
 
   if args.filter != None:
     nodes = dict((k,v) for k,v in nodes.items()
-        if args.filter in k)
+        if any(f.lower() in k.lower() for f in args.filter))
+
+  if args.exclude != None:
+    nodes = dict((k,v) for k,v in nodes.items()
+        if not any(f in k for f in args.exclude))
 
   # write dot-output
   out = sys.stdout #open("configViz.dot","w")
   if not args.rsf:
-    writeDot(nodes, out, args.showChildren, args.showParents, not args.samedep)
+    writeDot(nodes, out, args.showChildren, args.showParents, not args.samedep, args.clusterNodes, args.clusterKeywords)
   else:
     writeRSF(nodes, out, args.showChildren, args.showParents)
 

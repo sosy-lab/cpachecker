@@ -214,4 +214,9 @@ public class CFloatNaN extends CFloat {
   public boolean greaterThan(CFloat pFloat) {
     return false;
   }
+
+  @Override
+  protected CFloatWrapper getWrapper() {
+    return copyWrapper();
+  }
 }

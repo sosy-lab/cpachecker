@@ -32,7 +32,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -125,8 +125,10 @@ public class ExpressionToFormulaVisitor
     return mgr.makeNumber(conv.getFormulaTypeFromCType(implicitType), pointerTargetSize);
   }
 
-  private CType getPromotedCType(CType t) {
+  private CType getPromotedTypeForArithmetic(CExpression exp) {
+    CType t = exp.getExpressionType();
     t = t.getCanonicalType();
+    t = CTypes.adjustFunctionOrArrayType(t);
     if (CTypes.isIntegerType(t)) {
       // Integer types smaller than int are promoted when an operation is performed on them.
       return conv.machineModel.applyIntegerPromotion(t);
@@ -182,10 +184,8 @@ public class ExpressionToFormulaVisitor
     }
 
     // to INT or bigger
-    final CType t1 = exp.getOperand1().getExpressionType();
-    final CType t2 = exp.getOperand2().getExpressionType();
-    final CType promT1 = getPromotedCType(t1).getCanonicalType();
-    final CType promT2 = getPromotedCType(t2).getCanonicalType();
+    CType promT1 = getPromotedTypeForArithmetic(exp.getOperand1());
+    CType promT2 = getPromotedTypeForArithmetic(exp.getOperand2());
 
     final Formula ret;
 
@@ -348,12 +348,14 @@ public class ExpressionToFormulaVisitor
     if (exp.getOperand2() instanceof CIntegerLiteralExpression) {
       // We use a BigInteger because it can always be made positive, this is not true for type long!
       BigInteger modulo = ((CIntegerLiteralExpression) exp.getOperand2()).getValue();
-      // modular congruence expects a positive modulo. If our divisor b in a%b is negative, we
-      // actually want to generate a modular congruence condition mod (-b):
-      modulo = modulo.abs();
-      BooleanFormula modularCongruence = mgr.makeModularCongruence(ret, f1, modulo, signed);
-      if (!bfmgr.isTrue(modularCongruence)) {
-        constraints.addConstraint(modularCongruence);
+      if (!modulo.equals(BigInteger.ZERO)) {
+        // modular congruence expects a positive modulo. If our divisor b in a%b is negative, we
+        // actually want to generate a modular congruence condition mod (-b):
+        modulo = modulo.abs();
+        BooleanFormula modularCongruence = mgr.makeModularCongruence(ret, f1, modulo, signed);
+        if (!bfmgr.isTrue(modularCongruence)) {
+          constraints.addConstraint(modularCongruence);
+        }
       }
     }
 
@@ -379,8 +381,13 @@ public class ExpressionToFormulaVisitor
         mgr.makeLessThan(f2, ret, signed)
     );
 
-    constraints.addConstraint(signAndNumBound);
-    constraints.addConstraint(denomBound);
+    BooleanFormula newConstraints =
+        bfmgr.ifThenElse(
+            mgr.makeEqual(f2, zero),
+            bfmgr.makeTrue(), // if divisor is zero, make no constraint
+            bfmgr.and(signAndNumBound, denomBound));
+
+    constraints.addConstraint(newConstraints);
   }
 
   @Override
@@ -479,7 +486,11 @@ public class ExpressionToFormulaVisitor
     case TILDE: {
       // Handle Integer Promotion
       CType t = operand.getExpressionType();
-      CType promoted = getPromotedCType(t.getCanonicalType());
+      CType promoted = t.getCanonicalType();
+      if (CTypes.isIntegerType(promoted)) {
+        // Integer types smaller than int are promoted when an operation is performed on them.
+        promoted = conv.machineModel.applyIntegerPromotion(promoted);
+      }
       Formula operandFormula = toFormula(operand);
       operandFormula = conv.makeCast(t, promoted, operandFormula, constraints, edge);
       Formula ret;

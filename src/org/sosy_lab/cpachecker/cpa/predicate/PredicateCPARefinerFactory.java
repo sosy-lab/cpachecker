@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.util.Optional;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -140,7 +140,9 @@ public class PredicateCPARefinerFactory {
     PredicateAbstractionManager predAbsManager = predicateCpa.getPredicateManager();
     PredicateCPAInvariantsManager invariantsManager = predicateCpa.getInvariantsManager();
 
-    PrefixProvider prefixProvider = predicateCpa.getPrefixProvider();
+    PrefixProvider prefixProvider =
+        new PredicateBasedPrefixProvider(
+            config, logger, solver, predicateCpa.getPathFormulaManager(), shutdownNotifier);
     PrefixSelector prefixSelector = new PrefixSelector(variableClassification, loopStructure);
 
     InterpolationManager interpolationManager =

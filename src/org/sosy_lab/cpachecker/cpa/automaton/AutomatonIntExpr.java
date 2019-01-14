@@ -288,14 +288,14 @@ interface AutomatonIntExpr extends AutomatonExpression<Integer> {
   /** Addition of {@link AutomatonIntExpr} instances. */
   static class Plus extends BinaryAutomatonIntExpr {
     public Plus(AutomatonIntExpr pA, AutomatonIntExpr pB) {
-      super(pA, pB, ((a, b) -> a + b), "+");
+      super(pA, pB, (a, b) -> a + b, "+");
     }
   }
 
   /** Subtraction of {@link AutomatonIntExpr} instances. */
   static class Minus extends BinaryAutomatonIntExpr {
     public Minus(AutomatonIntExpr pA, AutomatonIntExpr pB) {
-      super(pA, pB, ((a, b) -> a - b), "-");
+      super(pA, pB, (a, b) -> a - b, "-");
     }
   }
 }

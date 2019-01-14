@@ -254,7 +254,7 @@ public class OctagonState implements AbstractState {
     int result = 7;
     result = prime * result + Objects.hashCode(variableToIndexMap);
     result = prime * result + Objects.hashCode(variableToTypeMap);
-    result = prime * result + Objects.hashCode(isLoopHead);
+    result = prime * result + Boolean.hashCode(isLoopHead);
     return result;
   }
 

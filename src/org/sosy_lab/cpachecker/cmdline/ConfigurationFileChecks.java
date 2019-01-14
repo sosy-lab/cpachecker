@@ -29,9 +29,12 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
 import static java.lang.Boolean.parseBoolean;
+import static org.junit.Assume.assumeNoException;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
@@ -57,7 +60,7 @@ import java.util.logging.LogRecord;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -119,12 +122,16 @@ public class ConfigurationFileChecks {
           "differential.program",
           // handled by code outside of CPAchecker class
           "output.disable",
+          "statistics.print",
           "limits.time.cpu",
           "limits.time.cpu::required",
           "limits.time.cpu.thread",
+          "log.consoleLevel",
           "memorysafety.config",
+          "memorycleanup.config",
           "overflow.config",
           "termination.config",
+          "termination.violation.witness",
           "witness.validation.violation.config",
           "witness.validation.correctness.config",
           "pcc.proofgen.doPCC",
@@ -140,6 +147,7 @@ public class ConfigurationFileChecks {
           "invariantGeneration.kInduction.async",
           "invariantGeneration.kInduction.guessCandidatesFromCFA",
           "invariantGeneration.kInduction.terminateOnCounterexample",
+          "counterexample.export.allowImpreciseCounterexamples", // refactor BMCAlgorithm for this
           // irrelevant if other solver is used
           "solver.z3.requireProofs",
           // present in many config files that explicitly disable counterexample checks
@@ -175,6 +183,13 @@ public class ConfigurationFileChecks {
               + " analysis finishing in time. All other analyses are terminated."
     )
     private boolean useParallelAlgorithm = false;
+
+    @Option(
+      secure = true,
+      name = "analysis.useInterleavedAnalyses",
+      description = "start different analyses interleaved and continue after unknown result"
+    )
+    private boolean useInterleavedAlgorithm = false;
 
     @Option(secure=true, name="limits.time.cpu::required",
         description="Enforce that the given CPU time limit is set as the value of limits.time.cpu.")
@@ -239,8 +254,8 @@ public class ConfigurationFileChecks {
     try {
       config = parse(configFile).build();
     } catch (InvalidConfigurationException | IOException | URISyntaxException e) {
-      assume().fail(e.getMessage());
-      throw new AssertionError();
+      assumeNoException(e);
+      throw new AssertionError(e);
     }
     assume()
         .withMessage("Test configs (which are loaded from URL resources) may contain any option")
@@ -333,17 +348,6 @@ public class ConfigurationFileChecks {
       CharStreams.copy(r, w);
     }
     try (Reader r =
-            Files.newBufferedReader(
-                Paths.get("config/specification/SplitterGuidingAutomaton.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get(
-                    tempFolder.getRoot().getAbsolutePath()
-                        + "/config/specification/SplitterGuidingAutomaton.spc"),
-                StandardCharsets.UTF_8)) {
-      CharStreams.copy(r, w);
-    }
-    try (Reader r =
             Files.newBufferedReader(Paths.get("config/specification/modifications-present.spc"));
         Writer w =
             IO.openOutputFile(
@@ -372,12 +376,27 @@ public class ConfigurationFileChecks {
                 StandardCharsets.UTF_8)) {
       CharStreams.copy(r, w);
     }
+
+    try (Reader r =
+            Files.newBufferedReader(
+                Paths.get("config/specification/test-comp-terminatingfunctions.spc"));
+        Writer w =
+            IO.openOutputFile(
+                Paths.get(
+                    tempFolder.getRoot().getAbsolutePath()
+                        + "/config/specification/test-comp-terminatingfunctions.spc"),
+                StandardCharsets.UTF_8)) {
+      CharStreams.copy(r, w);
+    }
   }
 
   @Test
   public void checkDefaultSpecification() throws InvalidConfigurationException {
     assume().that(configFile).isInstanceOf(Path.class);
-    final Iterable<Path> basePath = CONFIG_DIR.relativize((Path) configFile);
+    Iterable<Path> basePath = CONFIG_DIR.relativize((Path) configFile);
+    if (basePath.iterator().next().equals(Paths.get("unmaintained"))) {
+      basePath = Iterables.skip(basePath, 1);
+    }
     assume().that(basePath).hasSize(1);
     final Configuration config = createConfigurationForTestInstantiation();
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
@@ -398,7 +417,8 @@ public class ConfigurationFileChecks {
     } else if (isOptionEnabled(config, "cfa.checkNullPointers")) {
       assertThat(spec).endsWith("specification/null-deref.spc");
     } else if (isOptionEnabled(config, "analysis.algorithm.termination")
-        || isOptionEnabled(config, "analysis.algorithm.nonterminationWitnessCheck")) {
+        || isOptionEnabled(config, "analysis.algorithm.nonterminationWitnessCheck")
+        || basePath.toString().contains("validation-termination")) {
       assertThat(spec).isEmpty();
     } else if (basePath.toString().contains("overflow")) {
       if (isSvcompConfig) {
@@ -411,9 +431,11 @@ public class ConfigurationFileChecks {
       assertThat(spec).endsWith("specification/UninitializedVariables.spc");
     } else if (cpas.contains("cpa.smg.SMGCPA")) {
       if (isSvcompConfig) {
-        assertThat(spec).contains("specification/sv-comp-memorysafety.spc");
+        assertThat(spec).matches(".*specification/sv-comp-memory(cleanup|safety).spc$");
       } else {
-        assertThat(spec).contains("specification/memorysafety.spc");
+        if (!spec.contains("specification/sv-comp-memorycleanup.spc")) {
+          assertThat(spec).contains("specification/memorysafety.spc");
+        }
       }
     } else if (basePath.toString().startsWith("ldv")) {
       assertThat(spec).endsWith("specification/sv-comp-errorlabel.spc");
@@ -426,7 +448,9 @@ public class ConfigurationFileChecks {
     } else if (isTestGenerationConfig) {
       assertThat(spec).isAnyOf(null, "");
     } else if (isDifferentialConfig) {
-      assertThat(spec).isAnyOf(null, "", "specification/modifications-present.spc");
+      if (!Strings.isNullOrEmpty(spec)) {
+        assertThat(spec).endsWith("specification/modifications-present.spc");
+      }
     } else if (spec != null) {
       // TODO should we somehow restrict which configs may specify "no specification"?
       assertThat(spec).endsWith("specification/default.spc");
@@ -474,9 +498,9 @@ public class ConfigurationFileChecks {
         assume().fail("Java frontend has a bug and cannot be run twice");
       }
       throw e;
-    } catch (UnsatisfiedLinkError e) {
-      assume().fail(e.getMessage());
-      return;
+    } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
+      assumeNoException(e);
+      throw new AssertionError(e);
     }
 
     assert_()
@@ -505,11 +529,11 @@ public class ConfigurationFileChecks {
               "Failure in CPAchecker run with following log\n%s\n",
               formatLogRecords(logHandler.getStoredLogRecords()))
           .that(result.getResult())
-          .named("analysis result '%s'", result.getResultString())
           .isNotEqualTo(CPAcheckerResult.Result.NOT_YET_STARTED);
     }
 
-    if (!(options.useParallelAlgorithm || options.useRestartingAlgorithm)) {
+    if (!(options.useParallelAlgorithm || options.useRestartingAlgorithm)
+        || options.useInterleavedAlgorithm) {
       // TODO find a solution how to check for unused properties correctly even with
       // RestartAlgorithm
       assert_()
@@ -537,8 +561,8 @@ public class ConfigurationFileChecks {
           .setOption("differential.program", createEmptyProgram(false))
           .build();
     } catch (InvalidConfigurationException | IOException | URISyntaxException e) {
-      assume().fail(e.getMessage());
-      throw new AssertionError();
+      assumeNoException(e);
+      throw new AssertionError(e);
     }
   }
 

@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.arg.path;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.util.List;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 

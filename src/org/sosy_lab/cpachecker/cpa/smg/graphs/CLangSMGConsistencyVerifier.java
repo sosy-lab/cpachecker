@@ -136,8 +136,9 @@ public class CLangSMGConsistencyVerifier {
       object_union.addAll(frame.getAllObjects());
     }
 
-    boolean toReturn = object_union.containsAll(pSmg.getObjects()) &&
-                       pSmg.getObjects().containsAll(object_union);
+    boolean toReturn =
+        object_union.containsAll(pSmg.getObjects().asSet())
+            && pSmg.getObjects().asSet().containsAll(object_union);
 
     if (! toReturn) {
       pLogger.log(Level.SEVERE, "CLangSMG inconsistent: union of stack, heap and global object is not the same set as the set of SMG objects");

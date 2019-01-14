@@ -52,7 +52,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -555,8 +555,6 @@ public class FormulaManagerView {
     Formula t;
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.modulo((IntegerFormula) pF1, (IntegerFormula) pF2);
-    } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
-      t = getRationalFormulaManager().modulo((NumeralFormula) pF1, (NumeralFormula) pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
       t = bitvectorFormulaManager.modulo((BitvectorFormula) pF1, (BitvectorFormula) pF2, pSigned);
     } else {

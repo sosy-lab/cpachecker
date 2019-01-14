@@ -226,14 +226,12 @@ public class CounterexampleCheckAlgorithm
   /**
    * check whether there is a feasible counterexample in the reachedset.
    *
-   * @param checker executes a precise counterexample-check
+   * @param pChecker executes a precise counterexample-check
    * @param errorState where the counterexample ends
    * @param reached all reached states of the analysis, some of the states are part of the CEX path
    */
   protected boolean checkErrorPaths(
-      CounterexampleChecker checker,
-      ARGState errorState,
-      ReachedSet reached)
+      CounterexampleChecker pChecker, ARGState errorState, ReachedSet reached)
       throws CPAException, InterruptedException {
 
     ARGState rootState = (ARGState) reached.getFirstState();
@@ -244,7 +242,7 @@ public class CounterexampleCheckAlgorithm
       statesOnErrorPath = ARGUtils.getAllStatesOnPathsTo(errorState);
     }
 
-    return checker.checkCounterexample(rootState, errorState, statesOnErrorPath);
+    return pChecker.checkCounterexample(rootState, errorState, statesOnErrorPath);
   }
 
   @Override

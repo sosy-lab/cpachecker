@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**

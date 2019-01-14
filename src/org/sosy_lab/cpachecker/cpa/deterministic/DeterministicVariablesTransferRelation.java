@@ -203,9 +203,10 @@ public class DeterministicVariablesTransferRelation
 
         // add or remove assigned variable, depending on state of return variable
         if(assignedVariables.size() == 1) {
-          state = areAllDeterministic(Collections.singleton(LIVE_DECL_EQUIVALENCE.wrap(returnVariable)))
-              ? state.addDeterministicVariable((Iterables.getOnlyElement(assignedVariables)))
-              : state.removeDeterministicVariable((Iterables.getOnlyElement(assignedVariables)));
+          state =
+              areAllDeterministic(Collections.singleton(LIVE_DECL_EQUIVALENCE.wrap(returnVariable)))
+                  ? state.addDeterministicVariable(Iterables.getOnlyElement(assignedVariables))
+                  : state.removeDeterministicVariable(Iterables.getOnlyElement(assignedVariables));
         }
       }
 
@@ -270,7 +271,7 @@ public class DeterministicVariablesTransferRelation
     if (pAssignment instanceof AExpressionAssignmentStatement) {
       Wrapper<ASimpleDeclaration> assignedVariable = Iterables.getOnlyElement(assignedVariables);
 
-      return (areAllDeterministic(handleExpression((AExpression) pAssignment.getRightHandSide())))
+      return areAllDeterministic(handleExpression((AExpression) pAssignment.getRightHandSide()))
           ? state.addDeterministicVariable(assignedVariable)
           : state.removeDeterministicVariable(assignedVariable);
     }

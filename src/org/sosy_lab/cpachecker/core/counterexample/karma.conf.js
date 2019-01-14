@@ -4,20 +4,13 @@
 // Generated on Fri Jun 29 2018 17:07:20 GMT+0530 (India Standard Time)
 var fs = require('fs');
 
-//Replace scripts tag from HTML file and generate report.html for testing
-fs.readFile('report.html', 'utf8', function (err, data) {
-  if (err) {
-    throw err;
-  }
-  theFile = data.toString().split("\n");
-  theFile.splice(11, 33);
-  fs.writeFile('testReport.html', theFile.join("\n"), function (err) {
-    if (err) {
-      return console.log(err);
-    }
-  });
-});
-
+// Replace scripts tag from HTML file and generate testReport.html for testing:
+// Remove everything from the line with REPORT_CSS to the line after REPORT_JS
+// (".*" matches a single line, "[^]*" arbitrarily many lines).
+fs.writeFileSync('testReport.html',
+  fs.readFileSync('report.html', 'utf8')
+    .replace(/^.*REPORT_CSS[^]*REPORT_JS.*\n.*$/m, "")
+  )
 
 module.exports = function (config) {
   config.set({

@@ -33,11 +33,37 @@ import org.sosy_lab.common.NativeLibraries;
  * easily compare expectations towards how certain floating point operations on a given system and C
  * compilation should work with the reality from inside a Java based framework.
  */
-class CFloatNativeAPI {
+public class CFloatNativeAPI {
   private CFloatNativeAPI() {}
 
   static {
     NativeLibraries.loadLibrary("FloatingPoints");
+  }
+
+  public enum CNativeType {
+    SINGLE(0),
+    DOUBLE(1),
+    LONG_DOUBLE(2),
+    CHAR(3),
+    SHORT(4),
+    INT(5),
+    LONG(6),
+    LONG_LONG(7),
+    UCHAR(8),
+    USHORT(9),
+    UINT(10),
+    ULONG(11),
+    ULONG_LONG(12);
+
+    private final int ordinal;
+
+    private CNativeType(final int pOrdinal) {
+      ordinal = pOrdinal;
+    }
+
+    public int getOrdinal() {
+      return ordinal;
+    }
   }
 
   public static final CFloat ZERO_SINGLE;

@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
+class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
   private final SMGExpressionEvaluator smgExpressionEvaluator;
 

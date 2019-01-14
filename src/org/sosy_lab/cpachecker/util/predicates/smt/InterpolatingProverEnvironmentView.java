@@ -42,7 +42,7 @@ class InterpolatingProverEnvironmentView<E> extends BasicProverEnvironmentView<E
   }
 
   @Override
-  public BooleanFormula getInterpolant(List<E> formulasOfA)
+  public BooleanFormula getInterpolant(Collection<E> formulasOfA)
       throws SolverException, InterruptedException {
     return delegate.getInterpolant(formulasOfA);
   }

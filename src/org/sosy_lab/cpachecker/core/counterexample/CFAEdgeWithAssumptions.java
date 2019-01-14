@@ -23,11 +23,12 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.List;
 import java.util.Objects;
-import javax.annotation.Nullable;
+import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -40,19 +41,22 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 public class CFAEdgeWithAssumptions {
 
   private final CFAEdge edge;
-  private final Collection<AExpressionStatement> expressionStmts;
+  private final ImmutableList<AExpressionStatement> expressionStmts;
   private final String comment;
 
   /**
-   * Creates a edge {@link CFAEdgeWithAssumptions} that contains concrete assumptions along the error path.
+   * Creates a edge {@link CFAEdgeWithAssumptions} that contains concrete assumptions along the
+   * error path.
    *
    * @param pEdge The CFAEdge that represents a part of the errorpath.
    * @param pExpStmt The concrete assumptions represented as expression statements
-   * @param pComment Further comments that should be given to the user about this part of the path but can't be represented as assumption.
+   * @param pComment Further comments that should be given to the user about this part of the path
+   *     but can't be represented as assumption.
    */
-  public CFAEdgeWithAssumptions(CFAEdge pEdge, Collection<AExpressionStatement> pExpStmt, String pComment) {
+  public CFAEdgeWithAssumptions(
+      CFAEdge pEdge, Collection<AExpressionStatement> pExpStmt, String pComment) {
     edge = Objects.requireNonNull(pEdge);
-    expressionStmts = Objects.requireNonNull(pExpStmt);
+    expressionStmts = ImmutableList.copyOf(pExpStmt);
     comment = Objects.requireNonNull(pComment);
   }
 
@@ -64,22 +68,21 @@ public class CFAEdgeWithAssumptions {
      */
     edge = pEdgeWA.edge;
 
-    Collection<AExpressionStatement> expStmts1 = pEdgeWA.getExpStmts();
-    Collection<AExpressionStatement> expStmts2 = pEdgeWA2.getExpStmts();
+    Set<AExpressionStatement> expStmts1 = ImmutableSet.copyOf(pEdgeWA.getExpStmts());
+    ImmutableList.Builder<AExpressionStatement> result = ImmutableList.builder();
+    result.addAll(pEdgeWA.getExpStmts());
 
-    List<AExpressionStatement> result = new ArrayList<>(pEdgeWA.expressionStmts);
-
-    for (AExpressionStatement expStmt2 : expStmts2) {
+    for (AExpressionStatement expStmt2 : pEdgeWA2.getExpStmts()) {
       if (!expStmts1.contains(expStmt2)) {
         result.add(expStmt2);
       }
     }
 
     comment = pEdgeWA.comment;
-    expressionStmts = result;
+    expressionStmts = result.build();
   }
 
-  public Collection<AExpressionStatement> getExpStmts() {
+  public ImmutableList<AExpressionStatement> getExpStmts() {
     return expressionStmts;
   }
 
@@ -141,35 +144,13 @@ public class CFAEdgeWithAssumptions {
     return result.toString();
   }
 
-  /**
-   * Returns a message that contain information of the concrete values pertaining to
-   * this edge of the error path.
-   *
-   * @return returns a message that contain information of the concrete values pertaining to
-   * this edge of the error path.
-   */
-  public String prettyPrint() {
-    String expStmt = this.prettyPrintCode(0);
-    return expStmt + getComment();
-  }
-
-  /**
-   * Get a message that can be used inside of html.
-   *
-   * @return returns a message that contain information of the concrete values pertaining to
-   * this edge of the error path for a html page.
-   */
-  public String printForHTML() {
-    return prettyPrint().replace(System.lineSeparator(), "\n");
-  }
-
   @Override
   public String toString() {
-      StringBuilder assumption = new StringBuilder();
-      for (AExpressionStatement assum : expressionStmts) {
-          assumption.append('\n' + "\t\t" + assum);
-      }
-      return edge + " " + assumption;
+    StringBuilder str = new StringBuilder(edge.toString());
+    for (AExpressionStatement assum : expressionStmts) {
+      str.append("\n\t").append(assum);
+    }
+    return str.toString();
   }
 
   @Nullable

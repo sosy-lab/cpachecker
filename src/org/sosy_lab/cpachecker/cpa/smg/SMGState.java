@@ -43,7 +43,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
@@ -95,6 +96,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   private static final String HAS_INVALID_READS = "has-invalid-reads";
   private static final String HAS_INVALID_WRITES = "has-invalid-writes";
   private static final String HAS_LEAKS = "has-leaks";
+  private static final String HAS_HEAP_OBJECTS = "has-heap-objects";
 
   private static final Pattern externalAllocationRecursivePattern = Pattern.compile("^(r_)(\\d+)(_.*)$");
 
@@ -973,7 +975,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
           int level = reachedObjectSubSmg.getLevel();
           SMGTargetSpecifier tg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
 
-          if ((!reached.contains(reachedObjectSubSmg))
+          if (!reached.contains(reachedObjectSubSmg)
               && (level != 0 || tg == SMGTargetSpecifier.ALL)
               && !subDlsValue.isZero()) {
             assert level > 0;
@@ -1016,7 +1018,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         int level = reachedObjectSubSmg.getLevel();
         SMGTargetSpecifier tg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
 
-        if ((!reached.contains(reachedObjectSubSmg))
+        if (!reached.contains(reachedObjectSubSmg)
             && (level != 0 || tg == SMGTargetSpecifier.ALL)
             && !subDlsValue.isZero()) {
           assert level > 0;
@@ -1385,10 +1387,20 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   @Override
-  public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    // SMG Properties:
-    // has-leaks:boolean
+  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
+    switch (pProperty) {
+      case "toString":
+        return this.toString();
+      case "heapObjects":
+        return heap.getHeapObjects();
+      default:
+        // try boolean properties
+        return checkProperty(pProperty);
+    }
+  }
 
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
     switch (pProperty) {
       case HAS_LEAKS:
         if (errorInfo.hasMemoryLeak()) {
@@ -1418,6 +1430,15 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
           return true;
         }
         return false;
+      case HAS_HEAP_OBJECTS:
+        // Having heap objects is not an error on its own.
+        // However, when combined with program exit, we can detect property MemCleanup.
+        Set<SMGObject> heapObs = heap.getHeapObjects();
+        Preconditions.checkState(
+            heapObs.size() >= 1 && heapObs.contains(SMGNullObject.INSTANCE),
+            "NULL must always be a heap object");
+        return heapObs.size() != 1;
+
       default:
         throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
     }
@@ -1642,56 +1663,53 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     // If copy range is 0, do nothing
     if (copyRange == 0) { return newSMGState; }
 
+    // If self assignment, do nothing
+    // TODO this check should not be necessary,
+    // there might be a bug in the lines below causing trouble with such cases
+    if (pSource.equals(pTarget) && pSourceOffset == pTargetOffset) {
+      return newSMGState;
+    }
+
     long targetRangeSize = pTargetOffset + copyRange;
 
     SMGEdgeHasValueFilter filterSource = SMGEdgeHasValueFilter.objectFilter(pSource);
     SMGEdgeHasValueFilter filterTarget = SMGEdgeHasValueFilter.objectFilter(pTarget);
 
-    // Remove all Target edges in range
+    // Remove all target edges in range
     for (SMGEdgeHasValue edge : getHVEdges(filterTarget)) {
       if (edge.overlapsWith(pTargetOffset, targetRangeSize, heap.getMachineModel())) {
-        boolean hvEdgeIsZero = edge.getValue() == SMGZeroValue.INSTANCE;
         heap.removeHasValueEdge(edge);
-        if (hvEdgeIsZero) {
+
+        // Shrink overlapping zero edge
+        if (edge.getValue() == SMGZeroValue.INSTANCE) {
           SMGObject object = edge.getObject();
 
-          MachineModel maModel = heap.getMachineModel();
-
-          // Shrink overlapping zero edge
           long zeroEdgeOffset = edge.getOffset();
-
-          long zeroEdgeOffset2 = zeroEdgeOffset + edge.getSizeInBits(maModel);
-
           if (zeroEdgeOffset < pTargetOffset) {
-            SMGEdgeHasValue newZeroEdge =
+            heap.addHasValueEdge(
                 new SMGEdgeHasValue(
                     Math.toIntExact(pTargetOffset - zeroEdgeOffset),
                     zeroEdgeOffset,
                     object,
-                    SMGZeroValue.INSTANCE);
-            heap.addHasValueEdge(newZeroEdge);
+                    SMGZeroValue.INSTANCE));
           }
 
+          long zeroEdgeOffset2 = zeroEdgeOffset + edge.getSizeInBits(heap.getMachineModel());
           if (targetRangeSize < zeroEdgeOffset2) {
-            SMGEdgeHasValue newZeroEdge =
+            heap.addHasValueEdge(
                 new SMGEdgeHasValue(
                     Math.toIntExact(zeroEdgeOffset2 - targetRangeSize),
                     targetRangeSize,
                     object,
-                    SMGZeroValue.INSTANCE);
-            heap.addHasValueEdge(newZeroEdge);
+                    SMGZeroValue.INSTANCE));
           }
         }
       }
     }
 
-    // Copy all Source edges
-    Set<SMGEdgeHasValue> sourceEdges = getHVEdges(filterSource);
-
     // Shift the source edge offset depending on the target range offset
     long copyShift = pTargetOffset - pSourceOffset;
-
-    for (SMGEdgeHasValue edge : sourceEdges) {
+    for (SMGEdgeHasValue edge : getHVEdges(filterSource)) {
       if (edge.overlapsWith(pSourceOffset, pSourceLastCopyBitOffset, heap.getMachineModel())) {
         long offset = edge.getOffset() + copyShift;
         newSMGState = writeValue0(pTarget, offset, edge.getType(), edge.getValue()).getState();
@@ -1928,10 +1946,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
-  public boolean executeHeapAbstraction(
-      Set<SMGAbstractionBlock> blocks, boolean usesHeapInterpolation)
+  public boolean executeHeapAbstraction(Set<SMGAbstractionBlock> blocks)
       throws SMGInconsistentException {
     final SMGAbstractionManager manager;
+    boolean usesHeapInterpolation = true; // TODO do we need this flag?
     if (usesHeapInterpolation) {
       manager = new SMGAbstractionManager(logger, heap, this, blocks, 2, 2, 2);
     } else {
@@ -1968,7 +1986,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   public boolean forgetNonTrackedHve(Set<SMGMemoryPath> pMempaths) {
 
-    Set<SMGEdgeHasValue> trackkedHves = new HashSet<>(pMempaths.size());
+    Set<SMGEdgeHasValue> trackkedHves = new HashSet<>();
     Set<SMGValue> trackedValues = new HashSet<>();
     trackedValues.add(SMGZeroValue.INSTANCE);
 
@@ -1998,7 +2016,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
 
     if (change) {
-      for (SMGValue value : ImmutableSet.copyOf(heap.getValues())) {
+      for (SMGValue value : heap.getValues()) {
         if (!trackedValues.contains(value)) {
           heap.removePointsToEdge(value);
           heap.removeValue(value);
@@ -2068,6 +2086,12 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return change;
   }
 
+  /**
+   * remove a named variable from the stack (function scope or global). Remove all edges from and to
+   * it.
+   *
+   * <p>Does not prune the SMG for unreachable objects, needs to be done separately.
+   */
   public SMGStateInformation forgetStackVariable(MemoryLocation pMemoryLocation) {
     return heap.forgetStackVariable(pMemoryLocation);
   }

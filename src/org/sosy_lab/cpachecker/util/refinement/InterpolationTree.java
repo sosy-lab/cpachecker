@@ -33,18 +33,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-
-import org.sosy_lab.common.io.IO;
-import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayDeque;
@@ -59,13 +47,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * This class represents an interpolation tree, i.e. a set of states connected through a successor-predecessor-relation.
- * The tree is built from traversing backwards from error states. It can be used to retrieve paths from the root of the
- * tree to error states, in a way, that only path not yet excluded by previous path interpolation need to be interpolated.
+ * This class represents an interpolation tree, i.e. a set of states connected through a
+ * successor-predecessor-relation. The tree is built from traversing backwards from error states. It
+ * can be used to retrieve paths from the root of the tree to error states, in a way, that only path
+ * not yet excluded by previous path interpolation need to be interpolated.
  */
-public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>> {
+public class InterpolationTree<S extends AbstractState, I extends Interpolant<S, I>> {
   /**
    * the logger in use
    */
@@ -232,7 +231,16 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
 
         sb.append("itp is " + interpolants.get(current.getKey()));
 
-        result.append(current.getKey().getStateId() + " [label=\"" + (current.getKey().getStateId() + " / " + AbstractStates.extractLocation(current.getKey())) + " has itp " + (sb.toString()) + "\"]" + "\n");
+        result.append(
+            current.getKey().getStateId()
+                + " [label=\""
+                + (current.getKey().getStateId()
+                    + " / "
+                    + AbstractStates.extractLocation(current.getKey()))
+                + " has itp "
+                + sb.toString()
+                + "\"]"
+                + "\n");
         result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
 
       } else {
@@ -484,7 +492,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
     return predecessorRelation.get(pState);
   }
 
-  private interface InterpolationStrategy<I extends Interpolant<?>> {
+  private interface InterpolationStrategy<I extends Interpolant<?, ?>> {
 
     ARGPath getNextPathForInterpolation();
 

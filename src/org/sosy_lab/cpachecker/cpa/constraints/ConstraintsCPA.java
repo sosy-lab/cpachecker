@@ -93,6 +93,8 @@ public class ConstraintsCPA
   private final ConstraintsSolver constraintsSolver;
   private final Solver solver;
 
+  private final ConstraintsStatistics stats = new ConstraintsStatistics();
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ConstraintsCPA.class);
   }
@@ -108,7 +110,7 @@ public class ConstraintsCPA
     CtoFormulaConverter converter =
         initializeCToFormulaConverter(formulaManager, pLogger, pConfig, pShutdownNotifier,
             pCfa.getMachineModel());
-    constraintsSolver = new ConstraintsSolver(pConfig, solver, formulaManager, converter);
+    constraintsSolver = new ConstraintsSolver(pConfig, solver, formulaManager, converter, stats);
 
     SymbolicValues.initialize();
     abstractDomain = initializeAbstractDomain();
@@ -116,8 +118,9 @@ public class ConstraintsCPA
     stopOperator = initializeStopOperator();
 
     transferRelation =
-        new ConstraintsTransferRelation(constraintsSolver, pCfa.getMachineModel(), logger, pConfig);
-    precisionAdjustment = new ConstraintsPrecisionAdjustment();
+        new ConstraintsTransferRelation(
+            constraintsSolver, stats, pCfa.getMachineModel(), logger, pConfig);
+    precisionAdjustment = new ConstraintsPrecisionAdjustment(stats);
     precision = FullConstraintsPrecision.getInstance();
   }
 
@@ -150,7 +153,7 @@ public class ConstraintsCPA
       case SEP:
         return MergeSepOperator.getInstance();
       case JOIN_FITTING_CONSTRAINT:
-        return new ConstraintsMergeOperator();
+        return new ConstraintsMergeOperator(stats);
       default:
         throw new AssertionError("Unhandled merge type " + mergeType);
     }
@@ -218,12 +221,7 @@ public class ConstraintsCPA
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-    transferRelation.collectStatistics(statsCollection);
-    precisionAdjustment.collectStatistics(statsCollection);
-
-    if (mergeOperator instanceof Statistics) {
-      statsCollection.add((Statistics) mergeOperator);
-    }
+    statsCollection.add(stats);
   }
 
   @Override

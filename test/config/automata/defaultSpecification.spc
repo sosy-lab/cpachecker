@@ -1,3 +1,3 @@
 #include UninitializedVariablesObservingAutomaton.txt
 
-#include ../../../config/specification/ErrorLocation.spc
+#include ../../../config/specification/default.spc

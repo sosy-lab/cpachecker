@@ -101,41 +101,10 @@ public final class ExpressionTrees {
         }
       };
 
-  public static final Predicate<ExpressionTree<?>> IS_CONSTANT =
-      new Predicate<ExpressionTree<?>>() {
-
-        @Override
-        public boolean apply(ExpressionTree<?> pExpressionTree) {
-          return isConstant(pExpressionTree);
-        }
-      };
-
-  public static final Predicate<ExpressionTree<?>> IS_LEAF =
-      new Predicate<ExpressionTree<?>>() {
-
-        @Override
-        public boolean apply(ExpressionTree<?> pExpressionTree) {
-          return isLeaf(pExpressionTree);
-        }
-      };
-
-  public static final Predicate<ExpressionTree<?>> IS_AND =
-      new Predicate<ExpressionTree<?>>() {
-
-        @Override
-        public boolean apply(ExpressionTree<?> pExpressionTree) {
-          return isAnd(pExpressionTree);
-        }
-      };
-
-  public static final Predicate<ExpressionTree<?>> IS_OR =
-      new Predicate<ExpressionTree<?>>() {
-
-        @Override
-        public boolean apply(ExpressionTree<?> pExpressionTree) {
-          return isOr(pExpressionTree);
-        }
-      };
+  public static final Predicate<ExpressionTree<?>> IS_CONSTANT = ExpressionTrees::isConstant;
+  public static final Predicate<ExpressionTree<?>> IS_LEAF = ExpressionTrees::isLeaf;
+  public static final Predicate<ExpressionTree<?>> IS_AND = ExpressionTrees::isAnd;
+  public static final Predicate<ExpressionTree<?>> IS_OR = ExpressionTrees::isOr;
 
   private ExpressionTrees() {
 
@@ -368,16 +337,7 @@ public final class ExpressionTrees {
       return pExpressionTree;
     }
     if (isOr(pExpressionTree)) {
-      return Or.of(
-          getChildren(pExpressionTree)
-              .transform(
-                  new Function<ExpressionTree<LeafType>, ExpressionTree<LeafType>>() {
-
-                    @Override
-                    public ExpressionTree<LeafType> apply(ExpressionTree<LeafType> pExprTree) {
-                      return toDNF(pExprTree);
-                    }
-                  }));
+      return Or.of(getChildren(pExpressionTree).transform(pExprTree -> toDNF(pExprTree)));
     }
     assert isAnd(pExpressionTree);
     Iterator<ExpressionTree<LeafType>> elementIterator = getChildren(pExpressionTree).iterator();
@@ -419,16 +379,7 @@ public final class ExpressionTrees {
       return pExpressionTree;
     }
     if (isAnd(pExpressionTree)) {
-      return And.of(
-          getChildren(pExpressionTree)
-              .transform(
-                  new Function<ExpressionTree<LeafType>, ExpressionTree<LeafType>>() {
-
-                    @Override
-                    public ExpressionTree<LeafType> apply(ExpressionTree<LeafType> pExprTree) {
-                      return toCNF(pExprTree);
-                    }
-                  }));
+      return And.of(getChildren(pExpressionTree).transform(pExprTree -> toCNF(pExprTree)));
     }
     assert isOr(pExpressionTree);
     Iterator<ExpressionTree<LeafType>> elementIterator = getChildren(pExpressionTree).iterator();
@@ -794,13 +745,7 @@ public final class ExpressionTrees {
   public static <S, T> ExpressionTree<T> convert(
       ExpressionTree<S> pSource, final Function<? super S, ? extends T> pLeafConverter) {
     final Function<ExpressionTree<S>, ExpressionTree<T>> convert =
-        new Function<ExpressionTree<S>, ExpressionTree<T>>() {
-
-          @Override
-          public ExpressionTree<T> apply(ExpressionTree<S> pTree) {
-            return convert(pTree, pLeafConverter);
-          }
-        };
+        pTree -> convert(pTree, pLeafConverter);
     ExpressionTreeVisitor<S, ExpressionTree<T>, NoException> converter =
         new CachingVisitor<S, ExpressionTree<T>, NoException>() {
 

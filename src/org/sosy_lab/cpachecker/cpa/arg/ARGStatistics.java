@@ -48,7 +48,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -500,6 +500,16 @@ public class ARGStatistics implements Statistics {
     if (!counterexampleOptions.disabledCompletely()
         && counterexampleOptions.dumpErrorPathImmediately()) {
       cexExporter.exportCounterexampleIfRelevant(pTargetState, pCounterexampleInfo);
+    }
+  }
+
+  public void exportCounterexampleOnTheFly(UnmodifiableReachedSet pReachedSet)
+      throws InterruptedException {
+    if (counterexampleOptions.dumpAllFoundErrorPaths()) {
+      for (Map.Entry<ARGState, CounterexampleInfo> cex :
+          getAllCounterexamples(pReachedSet).entrySet()) {
+        exportCounterexampleOnTheFly(cex.getKey(), cex.getValue());
+      }
     }
   }
 

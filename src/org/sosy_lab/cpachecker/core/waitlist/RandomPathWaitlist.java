@@ -29,7 +29,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.LinkedList;
 import java.util.Random;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -65,7 +65,7 @@ public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractStat
   public void add(AbstractState pStat) {
     super.add(pStat);
     CFANode location = AbstractStates.extractLocation(pStat);
-    if (parent == null || (!parent.hasEdgeTo(location))) {
+    if (parent == null || !parent.hasEdgeTo(location)) {
       parent = location;
       successorsOfParent = 0;
     } else {

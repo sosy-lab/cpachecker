@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -58,6 +59,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -263,11 +265,22 @@ public class ControlAutomatonCPA
 
   @Override
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    return pSuccessors.equals(getTransferRelation().getAbstractSuccessorsForEdge(
-        pElement, SingletonPrecision.getInstance(), pCfaEdge));
+    ImmutableSet<? extends AbstractState> successors = ImmutableSet.copyOf(pSuccessors);
+    ImmutableSet<? extends AbstractState> actualSuccessors =
+        ImmutableSet.copyOf(
+            getTransferRelation()
+                .getAbstractSuccessorsForEdge(
+                    pElement, SingletonPrecision.getInstance(), pCfaEdge));
+    return successors.equals(actualSuccessors);
   }
 
   boolean isTreatingErrorsAsTargets() {
     return treatErrorsAsTargets;
+  }
+
+  @Override
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition)
+      throws InterruptedException {
+    return new AutomatonPrecision(automaton);
   }
 }

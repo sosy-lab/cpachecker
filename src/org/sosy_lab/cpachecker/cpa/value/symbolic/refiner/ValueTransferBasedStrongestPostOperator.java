@@ -39,7 +39,10 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsTransferRelation;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
@@ -51,16 +54,16 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-/**
- * Strongest post-operator based on symbolic value analysis.
- */
+/** Strongest post-operator based on symbolic value analysis. */
 public class ValueTransferBasedStrongestPostOperator
-    implements SymbolicStrongestPostOperator {
+    implements SymbolicStrongestPostOperator, StatisticsProvider {
 
   private final ValueAnalysisTransferRelation valueTransfer;
   // used for abstraction
   private final ValueAnalysisStrongestPostOperator valueStrongestPost;
   private final ConstraintsTransferRelation constraintsTransfer;
+
+  private final ConstraintsStatistics constraintsStatistics;
 
   public ValueTransferBasedStrongestPostOperator(
       final ConstraintsSolver pSolver,
@@ -80,11 +83,13 @@ public class ValueTransferBasedStrongestPostOperator
 
     valueStrongestPost = new ValueAnalysisStrongestPostOperator(pLogger, pConfig, pCfa);
 
+    // Use name of this strongest post operator to differentiate from ConstraintsCPA
+    constraintsStatistics =
+        new ConstraintsStatistics(ValueTransferBasedStrongestPostOperator.class.getSimpleName());
+
     constraintsTransfer =
-        new ConstraintsTransferRelation(pSolver,
-                                        pCfa.getMachineModel(),
-                                        pLogger,
-            pConfig);
+        new ConstraintsTransferRelation(
+            pSolver, constraintsStatistics, pCfa.getMachineModel(), pLogger, pConfig);
   }
 
   @Override
@@ -245,5 +250,10 @@ public class ValueTransferBasedStrongestPostOperator
       final ConstraintsState pConstraints) {
 
     return new ForgettingCompositeState(pNextValueState, pConstraints);
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    statsCollection.add(constraintsStatistics);
   }
 }

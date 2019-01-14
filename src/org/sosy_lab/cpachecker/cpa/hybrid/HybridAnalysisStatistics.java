@@ -200,7 +200,7 @@ public class HybridAnalysisStatistics implements Statistics {
   }
 
   private double uncoveredToFeasiblePathsRatio() {
-      return Math.round((feasibleAssumptionFound.getValue() * 100) / assumptionFound.getValue());
+      return (feasibleAssumptionFound.getValue() * 100) / assumptionFound.getValue();
   }
 
 }

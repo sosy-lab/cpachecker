@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -134,7 +133,7 @@ public class LtlParserUtils {
       StoredHeader storedHeader = storedAutomaton.getStoredHeader();
 
       List<NameAndExtra<List<Object>>> accNames = storedHeader.getAcceptanceNames();
-      if (!(Iterables.getOnlyElement(accNames).name.equals("Buchi"))) {
+      if (!Iterables.getOnlyElement(accNames).name.equals("Buchi")) {
         throw new LtlParseException(
             String.format(
                 "Only 'Buchi'-acceptance is allowed, but instead the following was found: %s",
@@ -196,7 +195,7 @@ public class LtlParserUtils {
     private List<AutomatonTransition> getTransitions(
         BooleanExpression<AtomLabel> pLabelExpr, String pSuccessorName)
         throws LtlParseException, UnrecognizedCodeException {
-      Builder<AutomatonTransition> transitions = ImmutableList.builder();
+      ImmutableList.Builder<AutomatonTransition> transitions = ImmutableList.builder();
 
       switch (pLabelExpr.getType()) {
         case EXP_OR:
@@ -204,7 +203,7 @@ public class LtlParserUtils {
           transitions.addAll(getTransitions(pLabelExpr.getRight(), pSuccessorName));
           break;
         default:
-          Builder<AExpression> expressions = ImmutableList.builder();
+          ImmutableList.Builder<AExpression> expressions = ImmutableList.builder();
           expressions.addAll(getExpressions(pLabelExpr));
           transitions.add(createTransition(expressions.build(), pSuccessorName));
           break;
@@ -215,7 +214,7 @@ public class LtlParserUtils {
 
     private List<CExpression> getExpressions(BooleanExpression<AtomLabel> pLabelExpr)
         throws LtlParseException, UnrecognizedCodeException {
-      Builder<CExpression> expBuilder = ImmutableList.builder();
+      ImmutableList.Builder<CExpression> expBuilder = ImmutableList.builder();
 
       Type type = pLabelExpr.getType();
       switch (type) {

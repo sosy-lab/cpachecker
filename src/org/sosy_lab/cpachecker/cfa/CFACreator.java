@@ -106,8 +106,8 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.dependencegraph.DGBuilder;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
+import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraphBuilder;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
@@ -536,7 +536,7 @@ private boolean classifyNodes = false;
                 + "to improve dependence graph construction.");
       }
       try {
-        DGBuilder depGraphBuilder =
+        DependenceGraphBuilder depGraphBuilder =
             DependenceGraph.builder(cfa, varClassification, config, logger, shutdownNotifier);
         depGraph = Optional.of(depGraphBuilder.build());
         depGraphBuilder.collectStatistics(stats.statisticsCollection);

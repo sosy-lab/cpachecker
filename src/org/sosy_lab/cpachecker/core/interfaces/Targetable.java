@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import java.util.Set;
 
-import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
  * This interface is provided as a shortcut, so that other CPAs' strengthen
@@ -43,5 +43,5 @@ public interface Targetable {
    * @return A non-null String, may be empty if no description is available.
    * @throws IllegalStateException if {@link #isTarget()} returns false
    */
-  @Nonnull Set<Property> getViolatedProperties() throws IllegalStateException;
+  @NonNull Set<Property> getViolatedProperties() throws IllegalStateException;
 }

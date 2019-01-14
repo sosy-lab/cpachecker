@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-
 public class TypeUtils {
   public static CType createTypeWithLength(int pSizeInBits) {
     if (pSizeInBits % 8 == 0) {

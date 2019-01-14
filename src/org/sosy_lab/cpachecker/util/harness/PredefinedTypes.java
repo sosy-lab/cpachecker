@@ -29,7 +29,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Predicate;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
@@ -76,6 +76,7 @@ public final class PredefinedTypes {
 
   public static boolean isKnownTestFunction(@Nullable AFunctionDeclaration pDeclaration) {
     return isMalloc(pDeclaration)
+        || isCalloc(pDeclaration)
         || isFree(pDeclaration)
         || isExit(pDeclaration)
         || isAbort(pDeclaration)
@@ -102,6 +103,14 @@ public final class PredefinedTypes {
         "malloc",
         CPointerType.POINTER_TO_VOID,
         Collections.singletonList(PredefinedTypes::isIntegerType));
+  }
+
+  private static boolean isCalloc(@Nullable AFunctionDeclaration pDeclaration) {
+    return functionMatchesExactType(
+        pDeclaration,
+        "calloc",
+        CPointerType.POINTER_TO_VOID,
+        ImmutableList.of(PredefinedTypes::isIntegerType, PredefinedTypes::isIntegerType));
   }
 
   private static boolean isMemcpy(@Nullable AFunctionDeclaration pDeclaration) {

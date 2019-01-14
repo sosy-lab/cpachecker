@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.ci;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Writer;
@@ -139,7 +138,7 @@ public class CustomInstructionApplications {
   }
 
   public ImmutableSet<CFANode> getStartAndEndLocationsOfCIApplications() {
-    Builder<CFANode> result = ImmutableSet.builder();
+    ImmutableSet.Builder<CFANode> result = ImmutableSet.builder();
 
     for (AppliedCustomInstruction aci : cis.values()) {
       result.addAll(aci.getStartAndEndNodes());
@@ -307,8 +306,13 @@ public class CustomInstructionApplications {
         throws UnrecognizedCodeException, AppliedCustomInstructionParsingFailedException,
             IOException, InterruptedException {
       CustomInstructionApplications cia = findSimpleCustomInstructionApplications();
-      logger.log(Level.INFO, "Found ", cia.getMapping().size(), " applications of binary operatior",
-          binaryOperatorForSimpleCustomInstruction, " in code.");
+      logger.log(
+          Level.INFO,
+          "Found ",
+          cia.getMapping().size(),
+          " applications of binary operator",
+          binaryOperatorForSimpleCustomInstruction,
+          " in code.");
       return cia;
     }
   }

@@ -30,6 +30,7 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -41,7 +42,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 public class ConstraintsMergeOperatorTest {
 
-  private final ConstraintsMergeOperator op = new ConstraintsMergeOperator();
+  private final ConstraintsMergeOperator op =
+      new ConstraintsMergeOperator(new ConstraintsStatistics());
   private final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
   private final Type defType = CNumericTypes.INT;
 

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -39,7 +40,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-public class CSizeOfVisitor extends BaseSizeofVisitor {
+class CSizeOfVisitor extends BaseSizeofVisitor {
   private final CFAEdge edge;
   private final SMGState state;
   private final Optional<CExpression> expression;
@@ -55,24 +56,24 @@ public class CSizeOfVisitor extends BaseSizeofVisitor {
   }
 
   @Override
-  public Integer visit(CArrayType pArrayType) throws IllegalArgumentException {
+  public BigInteger visit(CArrayType pArrayType) throws IllegalArgumentException {
 
     CExpression arrayLength = pArrayType.getLength();
 
-    int sizeOfType = pArrayType.getType().accept(this);
+    BigInteger sizeOfType = pArrayType.getType().accept(this);
 
     /* If the array type has a constant size, we can simply
      * get the length of the array, but if the size
      * of the array type is variable, we have to try and calculate
      * the current size.
      */
-    int length;
+    BigInteger length;
 
     if(arrayLength == null) {
       // treat size of unknown array length type as ptr
       return super.visit(pArrayType);
     } else if (arrayLength instanceof CIntegerLiteralExpression) {
-      length = ((CIntegerLiteralExpression) arrayLength).getValue().intValue();
+      length = ((CIntegerLiteralExpression) arrayLength).getValue();
     } else if (edge instanceof CDeclarationEdge) {
 
       /* If we currently declare the array of this type,
@@ -91,7 +92,7 @@ public class CSizeOfVisitor extends BaseSizeofVisitor {
       if (lengthAsExplicitValue.isUnknown()) {
         length = handleUnkownArrayLengthValue(pArrayType);
       } else {
-        length = lengthAsExplicitValue.getAsInt();
+        length = lengthAsExplicitValue.getValue();
       }
 
     } else {
@@ -121,18 +122,18 @@ public class CSizeOfVisitor extends BaseSizeofVisitor {
         }
 
         SMGObject arrayObject = addressOfField.getObject();
-        int offset = addressOfField.getOffset().getAsInt();
-        return arrayObject.getSize() - offset;
+        BigInteger offset = addressOfField.getOffset().getValue();
+        return BigInteger.valueOf(arrayObject.getSize()).subtract(offset);
       } else {
         throw new IllegalArgumentException(
             "Unable to calculate the size of the array type " + pArrayType.toASTString("") + ".");
       }
     }
 
-    return length * sizeOfType;
+    return length.multiply(sizeOfType);
   }
 
-  int handleUnkownArrayLengthValue(CArrayType pArrayType) {
+  BigInteger handleUnkownArrayLengthValue(CArrayType pArrayType) {
     throw new IllegalArgumentException(
         "Can't calculate array length of type " + pArrayType.toASTString("") + ".");
   }

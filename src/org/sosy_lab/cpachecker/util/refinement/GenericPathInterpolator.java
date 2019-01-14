@@ -69,8 +69,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  * @param <S> the state type to create interpolants for
  * @param <I> the type of the interpolants created by this class
  */
-@Options(prefix="cpa.value.refinement")
-public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Interpolant<S>>
+@Options(prefix = "cpa.value.refinement")
+public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Interpolant<S, I>>
     implements PathInterpolator<I> {
 
   @Option(secure=true, description="whether or not to perform path slicing before interpolation")
@@ -317,8 +317,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
           boolean isAbstractEdgeFunctionCall =
               abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.FunctionCallEdge;
 
-          functionCalls.push(
-              (Pair.of((FunctionCallEdge) originalEdge, isAbstractEdgeFunctionCall)));
+          functionCalls.push(Pair.of((FunctionCallEdge) originalEdge, isAbstractEdgeFunctionCall));
         }
 
         // when returning from a function, ...
@@ -349,10 +348,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
 
     ARGPath slicedErrorPathPrefix = new ARGPath(pErrorPathPrefix.asStatesList(), abstractEdges);
 
-    return (isFeasible(slicedErrorPathPrefix))
-        ? pErrorPathPrefix
-        : slicedErrorPathPrefix;
-
+    return isFeasible(slicedErrorPathPrefix) ? pErrorPathPrefix : slicedErrorPathPrefix;
   }
 
   @Override

@@ -59,6 +59,16 @@ body {
 	cursor: pointer;
 }
 
+.disabled-btn {
+        color: #c0c0c0;
+        border-color: #ffffff !important;
+}
+
+.disabled-btn:hover {
+        background-color: #ffffff !important;
+        color: #c0c0c0 !important;
+}
+
 .header img.logo {
 	float: left;
 	height: 40px;
@@ -255,6 +265,11 @@ input:checked+.slider:before {
 
 #err-table tr.clickedErrPathElement {
 	outline: #df80ff solid 2px;
+}
+
+.important {
+        background-color: #ffc107;
+        outline: #ffc107 solid 2px;
 }
 
 .marked-source-line {
@@ -643,3 +658,4 @@ text {
 .bold {
 	font-weight: bold;
 }
+

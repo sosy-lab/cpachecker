@@ -23,8 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.dominator;
 
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
@@ -52,8 +54,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
  */
 public class DominatorCPA implements ConfigurableProgramAnalysis {
 
-  private DominatorDomain abstractDomain;
-  private DominatorState initialState;
+  private AbstractDomain abstractDomain;
   private TransferRelation transferRelation;
   private MergeOperator mergeOperator;
   private StopOperator stopOperator;
@@ -64,8 +65,7 @@ public class DominatorCPA implements ConfigurableProgramAnalysis {
   }
 
   public DominatorCPA() {
-    abstractDomain = new DominatorDomain();
-    initialState = new DominatorState();
+    abstractDomain = DelegateAbstractDomain.getInstance();
     transferRelation = new DominatorTransferRelation();
     mergeOperator = new MergeJoinOperator(abstractDomain);
     stopOperator = new StopJoinOperator(abstractDomain);
@@ -99,6 +99,6 @@ public class DominatorCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
-    return initialState;
+    return new DominatorState(ImmutableSet.of(pNode));
   }
 }

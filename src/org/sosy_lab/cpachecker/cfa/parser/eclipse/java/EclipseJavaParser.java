@@ -38,8 +38,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -243,7 +243,7 @@ class EclipseJavaParser implements Parser {
 
     // Set Compliance Options to support Version
     @SuppressWarnings("unchecked")
-    Hashtable<String, String> options = JavaCore.getOptions();
+    Map<String, String> options = JavaCore.getOptions();
     JavaCore.setComplianceOptions(version, options);
     parser.setCompilerOptions(options);
 

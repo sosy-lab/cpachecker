@@ -142,23 +142,27 @@ public class CustomInstruction{
   }
 
   private final CFANode ciStartNode;
-  private final Collection<CFANode> ciEndNodes;
+  private final Set<CFANode> ciEndNodes;
   private final List<String> inputVariables;
   private final List<String> outputVariables;
   private final ShutdownNotifier shutdownNotifier;
 
-
   /**
-   * Constructor of CustomInstruction.
-   * Note that the input-/output variables have to be sorted alphabetically!
+   * Constructor of CustomInstruction. Note that the input-/output variables have to be sorted
+   * alphabetically!
+   *
    * @param pCIStartNode CFANode
    * @param pCIEndNodes Collection of CFANode
    * @param pInputVariables List of String, represents the input variables
    * @param pOutputVariables List of String, represents the outputvariables
    * @param pShutdownNotifier ShutdownNotifier
    */
-  public CustomInstruction(final CFANode pCIStartNode, final Collection<CFANode> pCIEndNodes,
-      final List<String> pInputVariables, final List<String> pOutputVariables, final ShutdownNotifier pShutdownNotifier) {
+  public CustomInstruction(
+      final CFANode pCIStartNode,
+      final Set<CFANode> pCIEndNodes,
+      final List<String> pInputVariables,
+      final List<String> pOutputVariables,
+      final ShutdownNotifier pShutdownNotifier) {
 
       ciStartNode = pCIStartNode;
       ciEndNodes = pCIEndNodes;
@@ -191,10 +195,10 @@ public class CustomInstruction{
   }
 
   /**
-   * Returns the (fake!) SMT description which is a
-   * conjunctions of output variables and predicates (IVj = 0) for each input variable j.
-   * Note that this is prefix notation!
-   * @return (define-fun aci Bool((and (= IV1 0) (and (= IV2 0) (and OV1 OV2))))
+   * Returns the (fake!) SMT description which is a conjunctions of output variables and predicates
+   * (IVj = 0) for each input variable j. Note that this is prefix notation!
+   *
+   * @return (define-fun ci Bool((and (= IV1 0) (and (= IV2 0) (and OV1 OV2))))
    */
   public Pair<List<String>, String> getFakeSMTDescription() {
     if (inputVariables.size() == 0 && outputVariables.size() == 0) {
@@ -239,7 +243,7 @@ public class CustomInstruction{
       }
     }
 
-    for (int i=0; i<BracketCounter+1; i++) { // +1 because of the Bracket of define-fun ci Bool(...)
+    for (int i=0; i<BracketCounter+1; i++) { // +1 because of the Bracket of (define-fun ci Bool ...)
       sb.append(")");
     }
 
@@ -970,7 +974,7 @@ public class CustomInstruction{
       if (!ciExp.getExpressionType().equals(aciFloatExp.getExpressionType())) {
         throw new AppliedCustomInstructionParsingFailedException("The expression type of the FloatLiteralExpression of ci " + ciExp + " (" + ciExp.getExpressionType() + ") is not equal to the one of the aci " + aciFloatExp + " (" + aciFloatExp.getExpressionType() + ").");
       }
-      if (!ciExp.getValue().equals(aciFloatExp.getValue())) {
+      if (ciExp.getValue().compareTo(aciFloatExp.getValue()) != 0) {
         throw new AppliedCustomInstructionParsingFailedException("The value of the CCharLiteralExpression of ci " + ciExp + " and aci " + aciFloatExp + " are different.");
       }
       return null;

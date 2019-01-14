@@ -25,6 +25,9 @@ package org.sosy_lab.cpachecker.cpa.constraints.refiner.precision;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,13 +36,9 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
-
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 
 /**
  * ConstraintsPrecision that uses the code constraints represent.
@@ -57,7 +56,7 @@ class ConstraintBasedConstraintsPrecision
   private final static ConstraintBasedConstraintsPrecision
       EMPTY = new ConstraintBasedConstraintsPrecision();
 
-  private Multimap<CFANode, Constraint> trackedLocally;
+  private SetMultimap<CFANode, Constraint> trackedLocally;
   private Multimap<String, Constraint> trackedInFunction;
   private Set<Constraint> trackedGlobally;
 
@@ -79,10 +78,9 @@ class ConstraintBasedConstraintsPrecision
   }
 
   private ConstraintBasedConstraintsPrecision(
-      final Multimap<CFANode, Constraint> pTrackedLocally,
+      final SetMultimap<CFANode, Constraint> pTrackedLocally,
       final Multimap<String, Constraint> pTrackedInFunction,
-      final Set<Constraint> pTrackedGlobally
-  ) {
+      final Set<Constraint> pTrackedGlobally) {
     trackedLocally = pTrackedLocally;
     trackedInFunction = pTrackedInFunction;
     trackedGlobally = pTrackedGlobally;
@@ -132,7 +130,7 @@ class ConstraintBasedConstraintsPrecision
     assert pOther instanceof ConstraintBasedConstraintsPrecision;
 
     ConstraintBasedConstraintsPrecision other = (ConstraintBasedConstraintsPrecision) pOther;
-    Multimap<CFANode, Constraint> joinedLocal = HashMultimap.create(trackedLocally);
+    SetMultimap<CFANode, Constraint> joinedLocal = HashMultimap.create(trackedLocally);
     Multimap<String, Constraint> joinedFunctionwise = HashMultimap.create(trackedInFunction);
     Set<Constraint> joinedGlobal = new HashSet<>(trackedGlobally);
 

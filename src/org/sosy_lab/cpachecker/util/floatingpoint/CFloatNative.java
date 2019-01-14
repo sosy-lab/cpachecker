@@ -329,4 +329,9 @@ public class CFloatNative extends CFloat {
     // TODO ... implement some time; not too urgent
     return false;
   }
+
+  @Override
+  protected CFloatWrapper getWrapper() {
+    return wrapper;
+  }
 }

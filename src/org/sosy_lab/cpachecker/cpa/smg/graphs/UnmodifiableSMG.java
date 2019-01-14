@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import java.util.Set;
 import java.util.TreeMap;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 
 /**
  * A view on a {@link SMG}, where no modifications are allowed.
@@ -52,9 +53,9 @@ public interface UnmodifiableSMG {
 
   PredRelation getErrorPredicateRelation();
 
-  Set<SMGValue> getValues();
+  PersistentSet<SMGValue> getValues();
 
-  Set<SMGObject> getObjects();
+  PersistentSet<SMGObject> getObjects();
 
   Set<SMGEdgeHasValue> getHVEdges();
 

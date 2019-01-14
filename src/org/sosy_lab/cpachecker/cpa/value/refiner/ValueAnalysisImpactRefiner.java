@@ -25,14 +25,14 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -227,7 +227,7 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
 
       CFANode dummyCfaNode = new CFANode("dummy");
       VariableTrackingPrecision previsousPrecision = null;
-      Multimap<CFANode, MemoryLocation> previousIncrement = null;
+      SetMultimap<CFANode, MemoryLocation> previousIncrement = null;
       timePrecision.start();
       for (Map.Entry<ARGState, ValueAnalysisInterpolant> itp : pInterpolationTree
           .getInterpolantMapping()) {
@@ -242,7 +242,7 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
           VariableTrackingPrecision currentPrecision =
               extractValuePrecision(pReached, currentState);
 
-          Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
+          SetMultimap<CFANode, MemoryLocation> increment = HashMultimap.create();
           for (MemoryLocation memoryLocation : pInterpolationTree
               .getInterpolantForState(currentState).getMemoryLocations()) {
             increment.put(dummyCfaNode, memoryLocation);
@@ -250,8 +250,7 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
 
           VariableTrackingPrecision newPrecision = currentPrecision;
           // precision or increment changed -> create new precision and apply
-          if (previsousPrecision != currentPrecision
-              || !(increment.equals(previousIncrement))) {
+          if (previsousPrecision != currentPrecision || !increment.equals(previousIncrement)) {
             newPrecision = currentPrecision.withIncrement(increment);
           }
 

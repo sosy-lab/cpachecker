@@ -44,20 +44,9 @@ import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -65,7 +54,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.Address;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
@@ -74,61 +62,27 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcr
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.exceptions.NoException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class ValueAnalysisConcreteErrorPathAllocator {
+public class ValueAnalysisConcreteErrorPathAllocator
+    extends ConcreteErrorPathAllocator<ValueAnalysisState> {
 
   private static final String MEMORY_NAME = "Value_Analysis_Heap";
 
-  private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
-
-  public ValueAnalysisConcreteErrorPathAllocator(Configuration pConfig, LogManager pLogger, MachineModel pMachineModel) throws InvalidConfigurationException {
-    this.assumptionToEdgeAllocator =
-        AssumptionToEdgeAllocator.create(pConfig, pLogger, pMachineModel);
+  public ValueAnalysisConcreteErrorPathAllocator(
+      Configuration pConfig, LogManager pLogger, MachineModel pMachineModel)
+      throws InvalidConfigurationException {
+    super(
+        ValueAnalysisState.class,
+        AssumptionToEdgeAllocator.create(pConfig, pLogger, pMachineModel));
   }
 
-  public ConcreteStatePath allocateAssignmentsToPath(ARGPath pPath) {
-
-    List<Pair<ValueAnalysisState, List<CFAEdge>>> path = new ArrayList<>(pPath.size());
-
-    PathIterator it = pPath.fullPathIterator();
-
-    while (it.hasNext()) {
-      List<CFAEdge> innerEdges = new ArrayList<>();
-
-      do {
-        it.advance();
-        innerEdges.add(it.getIncomingEdge());
-      } while (!it.isPositionWithState());
-
-      ValueAnalysisState state =
-          AbstractStates.extractStateByType(it.getAbstractState(), ValueAnalysisState.class);
-
-      if (state == null) {
-        return null;
-      }
-
-      path.add(Pair.of(state, innerEdges));
-    }
-
-    return createConcreteStatePath(path);
-  }
-
-  public CFAPathWithAssumptions allocateAssignmentsToPath(
-      List<Pair<ValueAnalysisState, List<CFAEdge>>> pPath) {
-    ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath);
-    return CFAPathWithAssumptions.of(concreteStatePath, assumptionToEdgeAllocator);
-  }
-
-  private ConcreteStatePath createConcreteStatePath(
+  @Override
+  protected ConcreteStatePath createConcreteStatePath(
       List<Pair<ValueAnalysisState, List<CFAEdge>>> pPath) {
 
     List<ConcreteStatePathNode> result = new ArrayList<>(pPath.size());
@@ -243,84 +197,6 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return true;
   }
 
-  private boolean isLeftHandSideValueKnown(CLeftHandSide pLHS, Set<CLeftHandSide> pAlreadyAssigned) {
-
-    ValueKnownVisitor v = new ValueKnownVisitor(pAlreadyAssigned);
-    return pLHS.accept(v);
-  }
-
-  /**
-   * Checks, if we know a value. This is the case, if the value will not be assigned in the future.
-   * Since we traverse the multi edge from bottom to top, this means if a left hand side, that was already
-   * assigned, may not be part of the Left Hand Side we want to know the value of.
-   *
-   */
-  private static class ValueKnownVisitor extends DefaultCExpressionVisitor<Boolean, NoException> {
-
-    private final Set<CLeftHandSide> alreadyAssigned;
-
-    public ValueKnownVisitor(Set<CLeftHandSide> pAlreadyAssigned) {
-      alreadyAssigned = pAlreadyAssigned;
-    }
-
-    @Override
-    protected Boolean visitDefault(CExpression pExp) {
-      return true;
-    }
-
-    @Override
-    public Boolean visit(CArraySubscriptExpression pE) {
-      return !alreadyAssigned.contains(pE);
-    }
-
-    @Override
-    public Boolean visit(CBinaryExpression pE) {
-      return pE.getOperand1().accept(this)
-          && pE.getOperand2().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CCastExpression pE) {
-      return pE.getOperand().accept(this);
-    }
-
-    //TODO Complex Cast
-    @Override
-    public Boolean visit(CFieldReference pE) {
-      return !alreadyAssigned.contains(pE);
-    }
-
-    @Override
-    public Boolean visit(CIdExpression pE) {
-      return !alreadyAssigned.contains(pE);
-    }
-
-    @Override
-    public Boolean visit(CPointerExpression pE) {
-      return !alreadyAssigned.contains(pE);
-    }
-
-    @Override
-    public Boolean visit(CUnaryExpression pE) {
-      return pE.getOperand().accept(this);
-    }
-  }
-
-
-  private boolean isDeclarationValueKnown(CDeclarationEdge pCfaEdge, Set<CLeftHandSide> pAlreadyAssigned) {
-
-    CDeclaration dcl = pCfaEdge.getDeclaration();
-
-    if (dcl instanceof CVariableDeclaration) {
-      CIdExpression idExp = new CIdExpression(dcl.getFileLocation(), dcl);
-
-      return isLeftHandSideValueKnown(idExp, pAlreadyAssigned);
-    }
-
-    // only variable declaration matter for value analysis
-    return true;
-  }
-
   private static Map<LeftHandSide, Address> generateVariableAddresses(Iterable<ValueAnalysisState> pPath) {
 
     // Get all base IdExpressions for memory locations, ignoring the offset
@@ -400,16 +276,14 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     }
   }
 
-  private static Map<String, Memory> allocateAddresses(ValueAnalysisState pValueState,
-      Map<LeftHandSide, Address> pVariableAddressMap) {
-
+  private static Map<String, Memory> allocateAddresses(
+      ValueAnalysisState pValueState, Map<LeftHandSide, Address> pVariableAddressMap) {
     Map<Address, Object> values = createHeapValues(pValueState, pVariableAddressMap);
-
     return ImmutableMap.of(MEMORY_NAME, new Memory(MEMORY_NAME, values));
   }
 
-  private static Map<Address, Object> createHeapValues(ValueAnalysisState pValueState,
-      Map<LeftHandSide, Address> pVariableAddressMap) {
+  private static Map<Address, Object> createHeapValues(
+      ValueAnalysisState pValueState, Map<LeftHandSide, Address> pVariableAddressMap) {
 
     Map<Address, Object> result = new HashMap<>();
 

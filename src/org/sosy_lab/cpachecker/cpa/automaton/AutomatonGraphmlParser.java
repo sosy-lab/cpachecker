@@ -67,7 +67,7 @@ import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -734,7 +734,9 @@ public class AutomatonGraphmlParser {
   private ExpressionTree<AExpression> logAndRemoveUnknown(ExpressionTree<AExpression> invariant) {
     FluentIterable<AExpression> expressions =
         FluentIterable.from(ExpressionTrees.traverseRecursively(invariant))
-            .filter(ExpressionTrees::isLeaf)
+            .filter(
+                Predicates.and(
+                    ExpressionTrees::isLeaf, Predicates.not(ExpressionTrees::isConstant)))
             .transform(leaf -> ((LeafExpression<AExpression>) leaf).getExpression());
     Multimap<AExpression, AIdExpression> invalid = LinkedHashMultimap.create();
     for (AExpression assumption : expressions) {

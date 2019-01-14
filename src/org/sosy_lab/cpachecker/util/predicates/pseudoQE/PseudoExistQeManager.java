@@ -40,7 +40,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -382,21 +382,18 @@ public class PseudoExistQeManager implements StatisticsProvider {
                   new ArrayList<>(pExistFormula.getQuantifiedVarFormulas()),
                   pExistFormula.getInnerFormula());
 
-      BooleanFormula afterQE;
+      BooleanFormula afterQE = quantifiedFormula;
       // Apply the Quantifier elimination tactic
-      if (solverQeTactic == SolverQeTactic.LIGHT) {
+      if (solverQeTactic == SolverQeTactic.LIGHT || solverQeTactic == SolverQeTactic.FULL) {
         afterQE = fmgr.applyTactic(quantifiedFormula, Tactic.QE_LIGHT);
-      } else if (solverQeTactic == SolverQeTactic.FULL) {
+      }
+      if (solverQeTactic == SolverQeTactic.FULL) {
         try {
           afterQE = qFmgr.get().eliminateQuantifiers(quantifiedFormula);
         } catch (SolverException e) {
           logger.log(
               Level.FINER, "Solver based Quantifier Elimination failed with SolverException!", e);
-          // Unable to solve the QE-problem
-          afterQE = quantifiedFormula;
         }
-      } else {
-        afterQE = quantifiedFormula;
       }
       int numberQuantifiers = numberQuantifiers(afterQE);
       // Check if number of quantified vars less than before
@@ -413,7 +410,6 @@ public class PseudoExistQeManager implements StatisticsProvider {
                   + "quantified variable(s).");
           stats.solverQeSucessCounter += pExistFormula.getNumberOfQuantifiers();
         } else {
-
           // Extract Formula and map of quantified vars and create new Formula
 
           // TODO:    1. extract the Variable names of the still bound variables

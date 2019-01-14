@@ -34,7 +34,6 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
@@ -42,7 +41,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -66,38 +64,32 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.defaults.MultiStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 @Options(prefix = "heuristicSelection")
-public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
+public class SelectionAlgorithm extends NestingAlgorithm {
 
   private static class SelectionAlgorithmCFAVisitor implements CFAVisitor {
 
     private final HashSet<String> functionNames = new HashSet<>();
     private Set<String> arrayVariables = new HashSet<>();
     private HashSet<String> floatVariables = new HashSet<>();
-    private int functionCount = 0;
 
     @Override
     public TraversalProcess visitEdge(CFAEdge pEdge) {
@@ -111,7 +103,6 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
               if (exp instanceof AIdExpression) {
                 final AIdExpression id = (AIdExpression) exp;
                 functionNames.add(id.getName());
-                functionCount = functionCount + 1;
               }
             }
             break;
@@ -163,25 +154,29 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
 
     @Override
     public TraversalProcess visitNode(CFANode pNode) {
-      // TODO Auto-generated method stub
       return TraversalProcess.CONTINUE;
     }
   }
 
-  private static class SelectionAlgorithmStatistics implements Statistics {
+  private static class SelectionAlgorithmStatistics extends MultiStatistics {
 
+    private int sizeOfPreAnaReachedSet = 0;
     private String chosenConfig = "";
-    private int onlyRelevantBools = 0;
     private double relevantBoolRatio = 0.0;
     private double relevantAddressedRatio = 0.0;
-    private int containsExternalFunctionCalls = 0;
-    // TODO: Change name
+    private boolean containsExternalFunctionCalls = false;
     private int numberOfAllRightFunctions = 0;
-    private int requiresAliasHandling = 0;
-    private int requiresLoopHandling = 0;
-    private int requiresCompositeTypeHandling = 0;
-    private int requiresArrayHandling = 0;
-    private int requiresFloatHandling = 0;
+    private boolean requiresOnlyRelevantBoolsHandling = false;
+    private boolean requiresAliasHandling = false;
+    private boolean requiresLoopHandling = false;
+    private boolean requiresCompositeTypeHandling = false;
+    private boolean requiresArrayHandling = false;
+    private boolean requiresFloatHandling = false;
+    private boolean requiresRecursionHandling = false;
+
+    SelectionAlgorithmStatistics(LogManager pLogger) {
+      super(pLogger);
+    }
 
     @Override
     public String getName() {
@@ -190,16 +185,19 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
 
     @Override
     public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
+      out.println("Size of preliminary analysis reached set:      " + sizeOfPreAnaReachedSet);
       out.println("Used algorithm property:                       " + chosenConfig);
-      out.println("Program containing only relevant bools:        " + onlyRelevantBools);
+      out.println(
+          "Program containing only relevant bools:        " + (requiresOnlyRelevantBoolsHandling ? 1 : 0));
       out.println(
           String.format("Relevant boolean vars / relevant vars ratio:   %.4f", relevantBoolRatio));
-      out.println("Requires alias handling:                       " + requiresAliasHandling);
-      out.println("Requires loop handling:                        " + requiresLoopHandling);
+      out.println("Requires alias handling:                       " + (requiresAliasHandling ? 1 : 0));
+      out.println("Requires loop handling:                        " + (requiresLoopHandling ? 1 : 0));
       out.println(
-          "Requires composite-type handling:              " + requiresCompositeTypeHandling);
-      out.println("Requires array handling:                       " + requiresArrayHandling);
-      out.println("Requires float handling:                       " + requiresFloatHandling);
+          "Requires composite-type handling:              " + (requiresCompositeTypeHandling ? 1 : 0));
+      out.println("Requires array handling:                       " + (requiresArrayHandling ? 1 : 0));
+      out.println("Requires float handling:                       " + (requiresFloatHandling ? 1 : 0));
+      out.println("Requires recursion handling:                   " + (requiresRecursionHandling ? 1 : 0));
       out.println(
           String.format(
               "Relevant addressed vars / relevant vars ratio: %.4f", relevantAddressedRatio));
@@ -207,17 +205,26 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
           "Program containing external functions:         " + containsExternalFunctionCalls);
       out.println("Number of all righthand side functions:        " + numberOfAllRightFunctions);
       out.println();
+
+      super.printStatistics(out, result, reached);
     }
   }
 
-  private final CFA cfa;
-  private final ShutdownNotifier shutdownNotifier;
-  private final Configuration globalConfig;
-  private final Specification specification;
-  private final LogManager logger;
+  private Algorithm preAnalysisAlgorithm;
+  private ReachedSet preAnalysisReachedSet;
 
-  private Algorithm chosenAlgorithm;
   private final SelectionAlgorithmStatistics stats;
+
+  @Option(secure = true, description = "Configuration for preliminary algorithm.")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path preAnalysisAlgorithmConfig = null;
+
+  @Option(
+    secure = true,
+    description = "Configuration for programs containing recursion."
+  )
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path recursionConfig;
 
   @Option(secure = true, description = "Configuration for loop-free programs.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
@@ -267,16 +274,46 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
       Specification pSpecification,
       LogManager pLogger)
       throws InvalidConfigurationException {
-
+    super(pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
     pConfig.inject(this);
+    stats = new SelectionAlgorithmStatistics(pLogger);
+  }
 
-    cfa = Objects.requireNonNull(pCfa);
-    shutdownNotifier = Objects.requireNonNull(pShutdownNotifier);
-    globalConfig = Objects.requireNonNull(pConfig);
-    specification = Objects.requireNonNull(pSpecification);
-    logger = Objects.requireNonNull(pLogger);
+  private AlgorithmStatus performPreAnalysisAlgorithm() throws CPAException, InterruptedException {
 
-    stats = new SelectionAlgorithmStatistics();
+    String info = "Performing preliminary analysis algorithm ...";
+    logger.log(Level.INFO, info);
+
+    Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> preAnaAlg;
+    final Path preAnalysisConfig = preAnalysisAlgorithmConfig;
+    ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
+    try {
+      preAnaAlg = createAlgorithm(preAnalysisConfig, cfa.getMainFunction(), shutdownManager);
+    } catch (InvalidConfigurationException e) {
+      logger.logUserException(
+          Level.WARNING,
+          e,
+          "Skipping preAnalysisAlgorithm because the configuration file "
+              + preAnalysisConfig.toString()
+              + " is invalid");
+      return AlgorithmStatus.UNSOUND_AND_PRECISE;
+    } catch (IOException e) {
+      String message =
+          "Skipping preAnalysisAlgorithm because the configuration file "
+              + preAnalysisConfig.toString()
+              + " could not be read";
+      if (shutdownNotifier.shouldShutdown() && e instanceof ClosedByInterruptException) {
+        logger.log(Level.WARNING, message);
+      } else {
+        logger.logUserException(Level.WARNING, e, message);
+      }
+      return AlgorithmStatus.UNSOUND_AND_PRECISE;
+    }
+
+    preAnalysisAlgorithm = preAnaAlg.getFirst();
+    preAnalysisReachedSet = preAnaAlg.getThird();
+
+    return preAnalysisAlgorithm.run(preAnalysisReachedSet);
   }
 
   @SuppressWarnings({"resource", "null"})
@@ -294,18 +331,39 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
         cfa.getVarClassification().isPresent(),
         "SelectionAlgorithm requires variable classification");
 
-    // Preliminary analysis
+    extractStatisticsFromCfa();
+
+    final Path chosenConfig = chooseConfig();
+
+    return run0(pReachedSet, chosenConfig);
+  }
+
+  /** analyze the CFA and extract useful statistics. */
+  private void extractStatisticsFromCfa() throws CPAException {
     SelectionAlgorithmCFAVisitor visitor = new SelectionAlgorithmCFAVisitor();
     CFANode startingNode = cfa.getMainFunction();
     CFATraversal.dfs().traverseOnce(startingNode, visitor);
     for (String name : visitor.functionNames) {
       if (!cfa.getAllFunctionNames().contains(name)) {
-        stats.containsExternalFunctionCalls = 1;
+        stats.containsExternalFunctionCalls = true;
       }
     }
-    stats.numberOfAllRightFunctions = visitor.functionCount;
+    stats.numberOfAllRightFunctions = visitor.functionNames.size();
 
-    ForwardingReachedSet reached = (ForwardingReachedSet) pReachedSet;
+    // Preliminary algorithm run
+    if (preAnalysisAlgorithmConfig != null) {
+      try {
+        performPreAnalysisAlgorithm();
+      } catch (UnsupportedCodeException e) {
+        if (e.getMessage().contains("recursion")) {
+          stats.requiresRecursionHandling = true;
+        }
+      } catch (InterruptedException e) {
+        // Caught, so that SelectionAlgorithm continues and does not get interrupted completely
+        // after pre analysis
+      }
+      stats.sizeOfPreAnaReachedSet = preAnalysisReachedSet.size();
+    }
 
     Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
     VariableClassification variableClassification = cfa.getVarClassification().get();
@@ -313,68 +371,73 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     if (!variableClassification.getRelevantVariables().isEmpty()) {
       stats.relevantBoolRatio =
           ((double)
-                  (Sets.intersection(
+                  Sets.intersection(
                           variableClassification.getIntBoolVars(),
                           variableClassification.getRelevantVariables())
-                      .size()))
-              / (double) (variableClassification.getRelevantVariables().size());
+                      .size())
+              / (double) variableClassification.getRelevantVariables().size();
 
       stats.relevantAddressedRatio =
           ((double)
-                  (Sets.intersection(
+                  Sets.intersection(
                           variableClassification.getAddressedVariables(),
                           variableClassification.getRelevantVariables())
-                      .size()))
-              / (double) (variableClassification.getRelevantVariables().size());
+                      .size())
+              / (double) variableClassification.getRelevantVariables().size();
     }
 
-    boolean hasOnlyRelevantIntBoolVars =
+    stats.requiresOnlyRelevantBoolsHandling =
         variableClassification
             .getIntBoolVars()
             .containsAll(variableClassification.getRelevantVariables());
 
-    boolean requiresAliasHandling =
+    stats.requiresAliasHandling =
         !variableClassification.getAddressedVariables().isEmpty()
             || !variableClassification.getAddressedFields().isEmpty();
-    stats.requiresAliasHandling = requiresAliasHandling ? 1 : 0;
 
-    boolean requiresLoopHandling =
+    stats.requiresLoopHandling =
         !loopStructure.isPresent() || !loopStructure.get().getAllLoops().isEmpty();
-    stats.requiresLoopHandling = requiresLoopHandling ? 1 : 0;
 
-    boolean requiresCompositeTypeHandling = !variableClassification.getRelevantFields().isEmpty();
-    stats.requiresCompositeTypeHandling = requiresCompositeTypeHandling ? 1 : 0;
+    stats.requiresCompositeTypeHandling = !variableClassification.getRelevantFields().isEmpty();
 
-    boolean requiresArrayHandling =
+    stats.requiresArrayHandling =
         !Collections.disjoint(variableClassification.getRelevantVariables(), visitor.arrayVariables)
             || !Collections.disjoint(
                 variableClassification.getAddressedFields().values(), visitor.arrayVariables);
-    stats.requiresArrayHandling = requiresArrayHandling ? 1 : 0;
 
-    boolean requiresFloatHandling =
+    stats.requiresFloatHandling =
         !Collections.disjoint(variableClassification.getRelevantVariables(), visitor.floatVariables)
             || !Collections.disjoint(
                 variableClassification.getAddressedFields().values(), visitor.floatVariables);
-    stats.requiresFloatHandling = requiresFloatHandling ? 1 : 0;
+  }
 
-    stats.onlyRelevantBools = hasOnlyRelevantIntBoolVars ? 1 : 0;
-
+  /** use statistical data and choose a configuration for further analysis. */
+  private Path chooseConfig() {
     final Path chosenConfig;
 
     // Perform heuristic
-    if (!requiresLoopHandling && loopFreeConfig != null) {
+    String info = "Performing heuristic ...";
+    logger.log(Level.INFO, info);
+
+    if (stats.requiresRecursionHandling && recursionConfig != null) {
+      // Run recursion config
+      chosenConfig = recursionConfig;
+    } else if (!stats.requiresLoopHandling && loopFreeConfig != null) {
       // Run standard loop-free config
       chosenConfig = loopFreeConfig;
-    } else if (hasOnlyRelevantIntBoolVars && onlyBoolConfig != null) {
+    } else if (stats.requiresOnlyRelevantBoolsHandling && onlyBoolConfig != null) {
       // Run bool only config
       chosenConfig = onlyBoolConfig;
-    } else if (requiresCompositeTypeHandling && compositeTypeConfig != null) {
-      chosenConfig = compositeTypeConfig;
     } else if (stats.relevantAddressedRatio > addressedRatio && addressedConfig != null) {
       chosenConfig = addressedConfig;
-    } else if (requiresArrayHandling && arrayConfig != null) {
+      // EXCHANGED
+    } else if (stats.requiresCompositeTypeHandling && compositeTypeConfig != null) {
+      chosenConfig = compositeTypeConfig;
+    } else if (stats.requiresArrayHandling && arrayConfig != null) {
       chosenConfig = arrayConfig;
-    } else if ((requiresFloatHandling || requiresArrayHandling || requiresCompositeTypeHandling)
+    } else if ((stats.requiresFloatHandling
+            || stats.requiresArrayHandling
+            || stats.requiresCompositeTypeHandling)
         && complexLoopConfig != null) {
       // Run complex loop config
       chosenConfig = complexLoopConfig;
@@ -382,9 +445,14 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
       // Run standard loop config
       chosenConfig = loopConfig;
     }
+    stats.chosenConfig = chosenConfig.toString();
+    return chosenConfig;
+  }
 
-    stats.chosenConfig = chosenConfig.toString().substring(7);
-
+  /** build all components for the analysis and run the further analysis. */
+  private AlgorithmStatus run0(ReachedSet pReachedSet, final Path chosenConfig)
+      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+    Algorithm chosenAlgorithm;
     Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg;
     ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     try {
@@ -393,13 +461,13 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
       logger.logUserException(
           Level.WARNING,
           e,
-          "Skipping one analysis because the configuration file "
+          "Skipping SelectionAlgorithm because the configuration file "
               + chosenConfig.toString()
               + " is invalid");
       return AlgorithmStatus.UNSOUND_AND_PRECISE;
     } catch (IOException e) {
       String message =
-          "Skipping one analysis because the configuration file "
+          "Skipping SelectionAlgorithm because the configuration file "
               + chosenConfig.toString()
               + " could not be read";
       if (shutdownNotifier.shouldShutdown() && e instanceof ClosedByInterruptException) {
@@ -414,6 +482,7 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
     // ConfigurableProgramAnalysis chosenCpa = currentAlg.getSecond();
     ReachedSet reachedSetForChosenAnalysis = currentAlg.getThird();
 
+    ForwardingReachedSet reached = (ForwardingReachedSet) pReachedSet;
     reached.setDelegate(reachedSetForChosenAnalysis);
 
     return chosenAlgorithm.run(reachedSetForChosenAnalysis);
@@ -422,62 +491,18 @@ public class SelectionAlgorithm implements Algorithm, StatisticsProvider {
   private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(
       Path singleConfigFileName, CFANode mainFunction, ShutdownManager singleShutdownManager)
       throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
-
-    ReachedSet reached;
-    ConfigurableProgramAnalysis cpa;
-    Algorithm algorithm;
-
-    ConfigurationBuilder singleConfigBuilder = Configuration.builder();
-    singleConfigBuilder.copyFrom(globalConfig);
-    singleConfigBuilder.clearOption("analysis.selectAnalysisHeuristically");
-    singleConfigBuilder.loadFromFile(singleConfigFileName);
-
-    Configuration singleConfig = singleConfigBuilder.build();
-    LogManager singleLogger = logger.withComponentName("Analysis " + singleConfigFileName);
-
-    ResourceLimitChecker singleLimits =
-        ResourceLimitChecker.fromConfiguration(singleConfig, singleLogger, singleShutdownManager);
-    singleLimits.start();
-
     AggregatedReachedSets aggregateReached = new AggregatedReachedSets();
-
-    CoreComponentsFactory coreComponents =
-        new CoreComponentsFactory(
-            singleConfig, singleLogger, singleShutdownManager.getNotifier(), aggregateReached);
-    cpa = coreComponents.createCPA(cfa, specification);
-
-    GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-
-    algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
-
-    reached = createInitialReachedSetForRestart(cpa, mainFunction, coreComponents, singleLogger);
-
-    return Triple.of(algorithm, cpa, reached);
-  }
-
-  private ReachedSet createInitialReachedSetForRestart(
-      ConfigurableProgramAnalysis cpa,
-      CFANode mainFunction,
-      CoreComponentsFactory pFactory,
-      LogManager singleLogger)
-      throws InterruptedException {
-    singleLogger.log(Level.FINE, "Creating initial reached set");
-
-    AbstractState initialState =
-        cpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition());
-    Precision initialPrecision =
-        cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition());
-
-    ReachedSet reached = pFactory.createReachedSet();
-    reached.add(initialState, initialPrecision);
-    return reached;
+    return super.createAlgorithm(
+        singleConfigFileName,
+        mainFunction,
+        singleShutdownManager,
+        aggregateReached,
+        Collections.singleton("analysis.selectAnalysisHeuristically"),
+        stats.getSubStatistics());
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (chosenAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) chosenAlgorithm).collectStatistics(pStatsCollection);
-    }
     pStatsCollection.add(stats);
   }
 }

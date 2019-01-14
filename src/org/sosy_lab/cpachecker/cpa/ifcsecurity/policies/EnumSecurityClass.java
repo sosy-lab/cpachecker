@@ -81,7 +81,7 @@ public class EnumSecurityClass extends SecurityClasses{
        return (getClass().getName().compareTo(pObj.getClass().getName()));
      }
      EnumSecurityClass other=(EnumSecurityClass) pObj;
-     return ((this.sc).compareTo(other.sc));
+     return (this.sc.compareTo(other.sc));
   }
 
   @Override

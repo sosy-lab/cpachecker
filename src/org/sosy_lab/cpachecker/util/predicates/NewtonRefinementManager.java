@@ -42,8 +42,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
-import org.checkerframework.checker.nullness.compatqual.NullableDecl;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -102,14 +101,14 @@ public class NewtonRefinementManager implements StatisticsProvider {
     description =
         "use unsatisfiable Core in order to abstract the predicates produced while NewtonRefinement"
   )
-  private boolean useUnsatCore = true;
+  private boolean infeasibleCore = true;
 
   @Option(
     secure = true,
     description =
         "use live variables in order to abstract the predicates produced while NewtonRefinement"
   )
-  private boolean useLiveVariables = true;
+  private boolean liveVariables = true;
 
   @Option(
     secure = true,
@@ -118,8 +117,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
             + "  EDGE : Based on Pathformulas of every edge in ARGPath\n"
             + "  BLOCK: Based on Pathformulas at Abstractionstates"
   )
-  private PathFormulaAbstractionLevel pathFormulaAbstractionLevel =
-      PathFormulaAbstractionLevel.BLOCK;
+  private PathFormulaAbstractionLevel abstractionLevel = PathFormulaAbstractionLevel.EDGE;
 
   public enum PathFormulaAbstractionLevel {
     BLOCK, //Abstracts the whole Block(between abstraction states) at once
@@ -132,7 +130,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     description =
         "Activate fallback to interpolation. Typically in case of a repeated counterexample."
   )
-  private boolean fallbackToInterpolation = false;
+  private boolean fallback = false;
 
   public NewtonRefinementManager(
       LogManager pLogger, Solver pSolver, PathFormulaManager pPfmgr, Configuration config)
@@ -172,7 +170,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
       } else {
         // Create infeasible Counterexample
         List<BooleanFormula> predicates;
-        switch (pathFormulaAbstractionLevel) {
+        switch (abstractionLevel) {
           case EDGE:
             predicates = createPredicatesEdgeLevel(pAllStatesTrace, pFormulas, pathLocations);
             break;
@@ -194,7 +192,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
         }
 
         // Apply Live Variable filtering if configured
-        if (useLiveVariables) {
+        if (liveVariables) {
           predicates = filterFutureLiveVariables(pathLocations, predicates);
         }
         // Drop last predicate as it should always be false.
@@ -211,7 +209,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * @return true if active
    */
   public boolean fallbackToInterpolation() {
-    return fallbackToInterpolation;
+    return fallback;
   }
 
   /**
@@ -241,7 +239,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
     // Compute the unsatisfiable core if configured, else create empty Optional
     Optional<List<BooleanFormula>> unsatCore;
-    if (useUnsatCore) {
+    if (infeasibleCore) {
       unsatCore = Optional.of(computeUnsatCore(pathFormulas, pPath));
     } else {
       unsatCore = Optional.empty();
@@ -446,7 +444,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
                 new Predicate<Entry<String, Formula>>() {
 
                   @Override
-                  public boolean apply(@NullableDecl Entry<String, Formula> pInput) {
+                  public boolean apply(@Nullable Entry<String, Formula> pInput) {
                     if (pInput == null) {
                       return false;
                     } else {
@@ -748,11 +746,11 @@ public class NewtonRefinementManager implements StatisticsProvider {
       pOut.println("  Total Time spent                          : " + totalTimer.getSumTime());
       pOut.println(
           "  Time spent for strongest postcondition    : " + postConditionTimer.getSumTime());
-      if (useUnsatCore) {
+      if (infeasibleCore) {
         pOut.println(
             "  Time spent for unsat Core                 : " + unsatCoreTimer.getSumTime());
       }
-      if (useLiveVariables) {
+      if (liveVariables) {
         pOut.println(
             "  Time spent for Live Variable projection   : " + futureLivesTimer.getSumTime());
         pOut.println("  Number of quantified Future Live variables: " + noOfQuantifiedFutureLives);

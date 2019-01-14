@@ -45,7 +45,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -63,7 +63,7 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
 
   @Override
   protected List<String> getVarsInRequirements(ApronState pRequirement) {
-    Collection<String> result = getConvexHullRequiredVars(pRequirement, null); // TODO
+    Collection<String> result = getAllVarsUsed(pRequirement);
     stateToRequiredVars = Pair.of(pRequirement, result);
     return new ArrayList<>(result);
   }
@@ -81,15 +81,19 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
     List<String> varNames = getAllVarNames(pRequirement);
     Collection<String> requiredVarNames = null;
 
-    if(stateToRequiredVars != null) {
-      requiredVarNames = stateToRequiredVars.getSecond();
-      if(stateToRequiredVars.getFirst() != pRequirement) {
-        requiredVarNames = null;
+    if (pRequiredVars != null) {
+      requiredVarNames = getConvexHullRequiredVars(pRequirement, pRequiredVars);
+    } else {
+      if (stateToRequiredVars != null) {
+        requiredVarNames = stateToRequiredVars.getSecond();
+        if (stateToRequiredVars.getFirst() != pRequirement) {
+          requiredVarNames = null;
+        }
       }
-    }
 
-    if(requiredVarNames == null) {
-      requiredVarNames = getConvexHullRequiredVars(pRequirement, null); // TODO
+      if (requiredVarNames == null) {
+        requiredVarNames = getAllVarsUsed(pRequirement);
+      }
     }
 
     String converted;
@@ -157,6 +161,17 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
     return seenRequired;
   }
 
+  private Collection<String> getAllVarsUsed(final ApronState pRequirement) {
+    List<String> varNames = getAllVarNames(pRequirement);
+    Tcons0[] constraints =
+        pRequirement.getApronNativeState().toTcons(pRequirement.getManager().getManager());
+    Set<String> constraintVars = new HashSet<>(constraints.length);
+
+    for (Tcons0 constraint : constraints) {
+      constraintVars.addAll(getVarsInConstraint(constraint, varNames));
+    }
+    return new ArrayList<>(constraintVars);
+  }
 
   private Set<String> getVarsInConstraint(final Tcons0 constraint, final List<String> varNames) {
     Set<String> vars = Sets.newHashSetWithExpectedSize(constraint.getSize());
@@ -205,7 +220,7 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
         throw new AssertionError();
     }
 
-    String left = convertLeftConstraintPartToFormula(varNames, map, varsConsidered);
+    String left = convertLeftConstraintPartToFormula(constraint, varNames, map, varsConsidered);
     if(left == null) {
       return null;
     }
@@ -243,12 +258,16 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
     throw new AssertionError("Cannot deal with this non-integer scalar");
   }
 
-  private @Nullable String convertLeftConstraintPartToFormula(final List<String> varNames,
-      final SSAMap map, final Collection<String> varsConsidered) {
+  private @Nullable String convertLeftConstraintPartToFormula(
+      final Tcons0 constraint,
+      final List<String> varNames,
+      final SSAMap map,
+      final Collection<String> varsConsidered) {
     boolean toConsider = false;
     StringBuilder sb = new StringBuilder();
 
     Deque<Pair<Texpr0Node, Integer>> stack = new ArrayDeque<>();
+    stack.push(Pair.of(constraint.toTexpr0Node(), 0));
 
     Pair<Texpr0Node, Integer> currentPair;
     Texpr0Node current;
@@ -268,9 +287,9 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
         case Texpr0BinNode.OP_SUB:
           sb.append("-");
           break;
-        case Texpr0BinNode.OP_MUL:
-          sb.append("*");
-          break;
+          case Texpr0BinNode.OP_MUL:
+            sb.append("*");
+            break;
         case Texpr0BinNode.OP_DIV:
           sb.append("/");
           break;
@@ -281,8 +300,9 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
           throw new AssertionError("Unsupported binary operator.");
         }
 
+        stack.push(
+            Pair.of(((Texpr0BinNode) current).getRightArgument(), currentPair.getSecond() + 1));
         stack.push(Pair.of(((Texpr0BinNode) current).getLeftArgument(), 0));
-        stack.push(Pair.of(((Texpr0BinNode) current).getRightArgument(), currentPair.getSecond() + 1));
       } else if (current instanceof Texpr0UnNode) {
 
         switch (((Texpr0UnNode) current).getOperation()) {
@@ -308,9 +328,9 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
           if (cst.isScalar()) {
             sb.append(" ");
             sb.append(getIntegerValFromScalar((Scalar) cst));
+          } else {
+            throw new AssertionError("Cannot handle coefficient");
           }
-
-          throw new AssertionError("Cannot handle coefficient");
         }
         addClosingRoundBrackets(sb, currentPair.getSecond());
       }

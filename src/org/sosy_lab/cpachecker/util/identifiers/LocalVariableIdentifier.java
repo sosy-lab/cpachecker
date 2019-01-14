@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.util.identifiers;
 
 import com.google.common.base.Strings;
 import java.util.Objects;
-import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class LocalVariableIdentifier extends VariableIdentifier {
-  protected @Nonnull String function; // function, where this variable was declared
+  protected @NonNull String function; // function, where this variable was declared
 
   public LocalVariableIdentifier(String nm, CType t, String func, int dereference) {
     super(nm, t, dereference);

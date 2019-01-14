@@ -38,7 +38,7 @@ public abstract class CFloat {
    * @param pSummand the other {@link CFloat} instance to add
    * @return the resulting {@link CFloat}
    */
-  public abstract CFloat add(CFloat pSummand);
+  public abstract CFloat add(final CFloat pSummand);
 
   /**
    * Add multiple {@link CFloat} objects to <code>this</code> and return the resulting {@link
@@ -53,7 +53,7 @@ public abstract class CFloat {
    * @param pSummands the other {@link CFloat} instances to add
    * @return the resulting {@link CFloat}
    */
-  public abstract CFloat add(CFloat... pSummands);
+  public abstract CFloat add(final CFloat... pSummands);
 
   /**
    * Multiply <code>this</code> with another {@link CFloat} object and return the resulting {@link
@@ -65,7 +65,7 @@ public abstract class CFloat {
    * @param pFactor the other {@link CFloat} instance to multiply
    * @return the resulting {@link CFloat}
    */
-  public abstract CFloat multiply(CFloat pFactor);
+  public abstract CFloat multiply(final CFloat pFactor);
 
   /**
    * Multiply <code>this</code> with multiple {@link CFloat} objects and return the resulting {@link
@@ -92,7 +92,7 @@ public abstract class CFloat {
    * @param pSubtrahend the other {@link CFloat} instance to subtract
    * @return the resulting {@link CFloat}
    */
-  public abstract CFloat subtract(CFloat pSubtrahend);
+  public abstract CFloat subtract(final CFloat pSubtrahend);
 
   /**
    * Divide <code>this</code> by another {@link CFloat} object and return the resulting {@link
@@ -104,7 +104,7 @@ public abstract class CFloat {
    * @param pDivisor the other {@link CFloat} instance to divide by
    * @return the resulting {@link CFloat}
    */
-  public abstract CFloat divideBy(CFloat pDivisor);
+  public abstract CFloat divideBy(final CFloat pDivisor);
 
   /**
    * Compute the power of <code>this</code> to another {@link CFloat} instance.
@@ -116,7 +116,7 @@ public abstract class CFloat {
    * @return the resulting {@link CFloat} object with the value of <code>this</code> to the power of
    *     <code>exponent</code>
    */
-  public abstract CFloat powTo(CFloat exponent);
+  public abstract CFloat powTo(final CFloat exponent);
 
   /**
    * /** Compute the power of <code>this</code> to an integral exponent.
@@ -128,7 +128,7 @@ public abstract class CFloat {
    * @return the resulting {@link CFloat} object with the value of <code>this</code> to the power of
    *     <code>exponent</code>
    */
-  public abstract CFloat powToIntegral(int exponent);
+  public abstract CFloat powToIntegral(final int exponent);
 
   /**
    * Compute the square root of <code>this</code>.
@@ -246,7 +246,7 @@ public abstract class CFloat {
    * @return a {@link CFloat} instance with the absolute value of <code>this</code> and the sign of
    *     <code>source</code>
    */
-  public abstract CFloat copySignFrom(CFloat source);
+  public abstract CFloat copySignFrom(final CFloat source);
 
   /**
    * Try to cast <code>this</code> to some floating point number type.
@@ -258,7 +258,7 @@ public abstract class CFloat {
    * @return a new {@link CFloat} instance with the type <code>toType</code> and (approximately) the
    *     value of <code>this</code>
    */
-  public abstract CFloat castTo(int toType);
+  public abstract CFloat castTo(final int toType);
 
   /**
    * Try to cast <code>this</code> to another number type, more precisely some implementation of the
@@ -267,7 +267,7 @@ public abstract class CFloat {
    * @param toType the target number type
    * @return a new {@link Number} instance with (approximately) the value of <code>this</code>
    */
-  public abstract Number castToOther(int toType);
+  public abstract Number castToOther(final int toType);
 
   /**
    * Somehow create a {@link CFloatWrapper} instance holding an exponent and mantissa representing
@@ -281,6 +281,14 @@ public abstract class CFloat {
    *     this</code>
    */
   public abstract CFloatWrapper copyWrapper();
+
+  /**
+   * The sole meaning of this method is to be able to get to the exponent and mantissa of an
+   * instance of {@link CFloat} without creating discard-objects via {@link CFloat#copyWrapper()}.
+   *
+   * @return the {@link CFloatWrapper} member of this instance
+   */
+  protected abstract CFloatWrapper getWrapper();
 
   /**
    * Return the API representation of the floating point number type of <code>this</code>.
@@ -300,7 +308,15 @@ public abstract class CFloat {
    * @param other the other {@link CFloat} instance to compare <code>this</code> to
    * @return whether <code>this</code> is greater than <code>other</code>
    */
-  public abstract boolean greaterThan(CFloat other);
+  public abstract boolean greaterThan(final CFloat other);
+
+  public final long getExponent() {
+    return getWrapper().getExponent();
+  }
+
+  public final long getMantissa() {
+    return getWrapper().getMantissa();
+  }
 
   public final int getNormalizedMantissaLength() {
     int length = 0;

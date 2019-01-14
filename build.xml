@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- vim: set tabstop=8 shiftwidth=4 expandtab : -->
 <project name="CPAchecker" basedir="." default="build"
+         xmlns:unless="ant:unless"
          xmlns:ivy="antlib:org.apache.ivy.ant">
     <!-- Include a file in which all properties can be overridden.
          This file won't get checked in and can be used to change properties
@@ -8,7 +9,7 @@
     <property file="build.properties"/>
     <property environment="env"/>
 
-    <property name="version.base" value="1.7-svn"/> <!-- change here for a release -->
+    <property name="version.base" value="1.8-svn"/> <!-- change here for a release -->
 
     <!-- Customization of build process. -->
     <property name="jar.file" value="cpachecker.jar"/>
@@ -17,12 +18,18 @@
     <property name="class.main" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
     <property name="jar.excludes" value=""/>
     <property name="project.url" value="http://cpachecker.sosy-lab.org"/>
-    <property name="ivy.configurations" value="build, runtime, test, format-source, spotbugs"/>
+    <property name="ivy.configurations" value="build, runtime, test, format-source, spotbugs, checkstyle"/>
     <property name="documentation.options.file" value="doc/ConfigurationOptions.txt"/>
 
-    <!-- TODO: disable reference-equality check because commonly used in CPAchecker -->
+    <!-- The following error-prone checks are disabled:
+         BadImport: we often import FluentIterable.from and we have a Checkstyle check instead
+         ReferenceEquality: TODO enable this and fix alarms
+         EqualsGetClass: TODO enable this and fix alarms?
+         -->
     <property name="errorprone.options" value="
+        -Xep:BadImport:OFF
         -Xep:ReferenceEquality:OFF
+        -Xep:EqualsGetClass:OFF
         "/>
 
     <import file="build/build-ivy.xml"/>
@@ -33,6 +40,7 @@
     <import file="build/build-dist.xml"/>
     <import file="build/build-junit.xml"/>
     <import file="build/build-format-source.xml"/>
+    <import file="build/build-checkstyle.xml"/>
     <import file="build/build-spotbugs.xml"/>
     <import file="build/build-configuration-checks.xml"/>
 
@@ -43,9 +51,13 @@
     <path id="classpath">
         <pathelement location="${class.dir}"/>
         <fileset dir="lib" includes="*.jar"/>
-        <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar build/annotations.jar build/error_prone_annotations.jar"/>
+        <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar"/>
     </path>
 
+    <!-- Needs to include all annotation processors and error-prone -->
+    <path id="processorpath">
+        <fileset dir="${ivy.lib.dir}" includes="build/*.jar runtime/common.jar"/>
+    </path>
 
     <!-- Main targets -->
 
@@ -95,13 +107,32 @@
 
     <target name="build-dependencies" depends="init, resolve-dependencies, build-subprojects"/>
 
+    <target name="build-project-ecj" depends="build-dependencies" description="Build project with the Eclipse JDT compiler">
+        <condition property="java8">
+            <equals arg1="${ant.java.version}" arg2="1.8"/>
+        </condition>
+        <replace
+            dir="${source.dir}" includes="**/*Scanner.java **/*Parser.java"
+            preserveLastModified="true"
+            token="@javax.annotation.Generated"
+            value="@javax.annotation.processing.Generated"
+            unless:set="java8"/>
+        <antcall target="compile.build-project-ecj"/>
+        <replace
+            dir="${source.dir}" includes="**/*Scanner.java **/*Parser.java"
+            preserveLastModified="true"
+            token="@javax.annotation.processing.Generated"
+            value="@javax.annotation.Generated"
+            unless:set="java8"/>
+    </target>
+
     <available file=".factorypath" property="factorypath.present"/>
     <target name="-warn-factorypath" unless="factorypath.present">
         <echo level="warning">If you use Eclipse, please copy .factorypath.template to .factorypath and (if necessary) adjust the path to your CPAchecker directory in it.</echo>
         <echo level="warning">This will help you get additional helpful compiler warnings.</echo>
     </target>
 
-    <target name="standard-checks" depends="tests, spotbugs"/>
+    <target name="standard-checks" depends="tests, spotbugs, checkstyle"/>
 
     <target name="python-unit-tests" depends="build" description="Run unit tests of python scripts">
         <!-- Tests are only executed if python is available, ignored otherwise. -->
@@ -120,7 +151,7 @@
             var revision = project.getProperty("version.revision");
             project.setProperty("version.revision.without-suffix", revision.replaceAll("[A-Za-z]*$", ''));
         ]]></script>
-        <get src="https://vcloud.sosy-lab.org/cpachecker/webclient/tool?revision=${version.revision.without-suffix}" dest="CPAchecker.zip" verbose="false"/>
+        <get src="https://vcloud.sosy-lab.org/cpachecker/webclient/tool/archive?revision=${version.revision.without-suffix}" dest="CPAchecker.zip" verbose="false"/>
         <unzip src="CPAchecker.zip" dest="." failOnEmptyArchive="true" overwrite="true">
             <patternset>
                 <include name="cpachecker.jar"/>

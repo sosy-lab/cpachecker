@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.harness;
 import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.getCanonicalType;
 import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.isPredefinedFunction;
 import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.isPredefinedFunctionWithoutVerifierError;
-import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.isPredefinedType;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -43,13 +42,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -69,7 +67,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -78,7 +75,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -91,7 +87,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -110,12 +105,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -214,7 +207,6 @@ public class HarnessExporter {
                   ? FluentIterable.from(externalFunctions)
                       .filter(Predicates.not(Predicates.equalTo(errorFunction.get())))
                   : externalFunctions);
-      copyTypeDeclarations(codeAppender);
       codeAppender.append(vector);
     } else {
       logger.log(
@@ -267,59 +259,6 @@ public class HarnessExporter {
         };
     CFATraversal.dfs().traverseOnce(cfa.getMainFunction(), externalFunctionCollector);
     return externalFunctions;
-  }
-
-  private void copyTypeDeclarations(CodeAppender pTarget) throws IOException {
-    Set<ADeclaration> declarations = new LinkedHashSet<>();
-    CFATraversal.dfs()
-        .traverseOnce(
-            cfa.getMainFunction(),
-            new CFAVisitor() {
-
-              @Override
-              public TraversalProcess visitNode(CFANode pNode) {
-                return TraversalProcess.CONTINUE;
-              }
-
-              @Override
-              public TraversalProcess visitEdge(CFAEdge pEdge) {
-                if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-                  ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
-                  ADeclaration declaration = declarationEdge.getDeclaration();
-                  if (declaration instanceof CTypeDeclaration) {
-                    CTypeDeclaration typeDeclaration = (CTypeDeclaration) declaration;
-                    if (!isPredefinedType((CTypeDeclaration) declaration)) {
-                      CType declaredType = typeDeclaration.getType().getCanonicalType();
-                      if (declaredType instanceof CElaboratedType && declaredType.isIncomplete()) {
-                        CElaboratedType elaboratedType = (CElaboratedType) declaredType;
-                        final CComplexType dummyType;
-                        switch (elaboratedType.getKind()) {
-                          case ENUM:
-                            dummyType = new CEnumType(elaboratedType.isConst(), elaboratedType.isVolatile(), Collections.emptyList(), elaboratedType.getName(), elaboratedType.getOrigName());
-                            break;
-                          case STRUCT:
-                          case UNION:
-                            dummyType = new CCompositeType(elaboratedType.isConst(), elaboratedType.isVolatile(), elaboratedType.getKind(), Collections.emptyList(), elaboratedType.getName(), elaboratedType.getOrigName());
-                            break;
-                          default:
-                            throw new AssertionError("Unsupported kind of elaborated type: " + elaboratedType.getKind());
-                        }
-                        declarations.add(new CComplexTypeDeclaration(FileLocation.DUMMY, typeDeclaration.isGlobal(), dummyType));
-                      } else {
-                        declarations.add(declaration);
-                      }
-                    }
-                  }
-                } else if (pEdge.getEdgeType() == CFAEdgeType.BlankEdge
-                    && !pEdge.getPredecessor().equals(cfa.getMainFunction())) {
-                  return TraversalProcess.ABORT;
-                }
-                return TraversalProcess.CONTINUE;
-              }
-            });
-    for (ADeclaration declaration : declarations) {
-      pTarget.appendln(declaration.toASTString());
-    }
   }
 
   /**
@@ -538,7 +477,7 @@ public class HarnessExporter {
         pPrevious,
         pChild,
         leftHandSide,
-        value -> (vector -> vector.addInputValue(pFunctionCallExpression.getDeclaration(), value)),
+        value -> vector -> vector.addInputValue(pFunctionCallExpression.getDeclaration(), value),
         pValueMap);
   }
 
@@ -569,7 +508,7 @@ public class HarnessExporter {
         pPrevious,
         pChild,
         leftHandSide,
-        value -> (vector -> vector.addInputValue(pVariableDeclaration, toInitializer(value))),
+        value -> vector -> vector.addInputValue(pVariableDeclaration, toInitializer(value)),
         pValueMap);
   }
 
@@ -586,7 +525,7 @@ public class HarnessExporter {
           AbstractStates.asIterable(argState).filter(AutomatonState.class);
       for (AutomatonState automatonState : automatonStates) {
         for (AExpression assumption : automatonState.getAssumptions()) {
-          Optional<ALiteralExpression> value = getOther(assumption, pLeftHandSide);
+          Optional<AExpression> value = getOther(assumption, pLeftHandSide);
           if (value.isPresent()) {
             AExpression v = castIfNecessary(pLeftHandSide.getExpressionType(), value.get());
             return Optional.of(new State(pChild, pUpdate.apply(v).apply(pPrevious.testVector)));
@@ -600,7 +539,7 @@ public class HarnessExporter {
                 .filter(e -> e.getCFAEdge().equals(pEdge))
                 .transformAndConcat(CFAEdgeWithAssumptions::getExpStmts)
                 .transform(AExpressionStatement::getExpression)) {
-          Optional<ALiteralExpression> value = getOther(assumption, pLeftHandSide);
+          Optional<AExpression> value = getOther(assumption, pLeftHandSide);
           if (value.isPresent()) {
             AExpression v = castIfNecessary(pLeftHandSide.getExpressionType(), value.get());
             return Optional.of(new State(pChild, pUpdate.apply(v).apply(pPrevious.testVector)));
@@ -926,7 +865,7 @@ public class HarnessExporter {
     return false;
   }
 
-  private static Optional<ALiteralExpression> getOther(
+  private static Optional<AExpression> getOther(
       AExpression pAssumption, ALeftHandSide pLeftHandSide) {
     if (!(pAssumption instanceof ABinaryExpression)) {
       return Optional.empty();
@@ -937,13 +876,11 @@ public class HarnessExporter {
             != org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.EQUALS) {
       return Optional.empty();
     }
-    if (binOp.getOperand2() instanceof ALiteralExpression
-        && binOp.getOperand1().equals(pLeftHandSide)) {
-      return Optional.of((ALiteralExpression) binOp.getOperand2());
+    if (binOp.getOperand1().equals(pLeftHandSide)) {
+      return Optional.of(binOp.getOperand2());
     }
-    if (binOp.getOperand1() instanceof ALiteralExpression
-        && binOp.getOperand2().equals(pLeftHandSide)) {
-      return Optional.of((ALiteralExpression) binOp.getOperand1());
+    if (binOp.getOperand2().equals(pLeftHandSide)) {
+      return Optional.of(binOp.getOperand1());
     }
     return Optional.empty();
   }

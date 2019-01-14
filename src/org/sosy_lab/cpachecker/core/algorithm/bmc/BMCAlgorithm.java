@@ -43,7 +43,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -60,6 +60,8 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -152,6 +154,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     config = pConfig;
     cfa = pCFA;
 
+    @SuppressWarnings("resource")
     PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, BMCAlgorithm.class);
     solver = predCpa.getSolver();
     fmgr = solver.getFormulaManager();
@@ -201,6 +204,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * This method tries to find a feasible path to (one of) the target state(s). It does so by asking
    * the solver for a satisfying assignment.
    */
+  @SuppressWarnings("resource")
   @Override
   protected void analyzeCounterexample(
       final BooleanFormula pCounterexampleFormula,
@@ -297,19 +301,27 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       // replay error path for a more precise satisfying assignment
       PathChecker pathChecker;
       try {
-        Solver solver = this.solver;
-        PathFormulaManager pmgr = this.pmgr;
+        Solver solverForPathChecker = this.solver;
+        PathFormulaManager pmgrForPathChecker = this.pmgr;
 
-        if (solver.getVersion().toLowerCase().contains("smtinterpol")) {
+        if (solverForPathChecker.getVersion().toLowerCase().contains("smtinterpol")) {
           // SMTInterpol does not support reusing the same solver
-          solver = Solver.create(config, logger, shutdownNotifier);
-          FormulaManagerView formulaManager = solver.getFormulaManager();
-          pmgr = new PathFormulaManagerImpl(formulaManager, config, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
+          solverForPathChecker = Solver.create(config, logger, shutdownNotifier);
+          FormulaManagerView formulaManager = solverForPathChecker.getFormulaManager();
+          pmgrForPathChecker =
+              new PathFormulaManagerImpl(
+                  formulaManager, config, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
           // cannot dump pCounterexampleFormula, PathChecker would use wrong FormulaManager for it
-          cexFormula = solver.getFormulaManager().getBooleanFormulaManager().makeTrue();
+          cexFormula = solverForPathChecker.getFormulaManager().getBooleanFormulaManager().makeTrue();
         }
 
-        pathChecker = new PathChecker(config, logger, pmgr, solver, assignmentToPathAllocator);
+        pathChecker =
+            new PathChecker(
+                config,
+                logger,
+                pmgrForPathChecker,
+                solverForPathChecker,
+                assignmentToPathAllocator);
 
       } catch (InvalidConfigurationException e) {
         // Configuration has somehow changed and can no longer be used to create the solver and path formula manager

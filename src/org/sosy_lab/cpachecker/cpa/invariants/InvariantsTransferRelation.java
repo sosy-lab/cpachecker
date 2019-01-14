@@ -316,6 +316,11 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       CExpression actualParam = param.getSecond();
       CParameterDeclaration declaration = declarationIterator.next();
 
+      // Ignore unsupported types
+      if (!BitVectorInfo.isSupported(declaration.getType())) {
+        continue;
+      }
+
       NumeralFormula<CompoundInterval> value = actualParam.accept(actualParamExpressionToFormulaVisitor);
       if (containsArrayWildcard(value)) {
         value = toConstant(value, pElement.getEnvironment());

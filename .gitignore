@@ -8,6 +8,10 @@ a.out
 /bin
 /build.properties
 /output
+/Checkstyle.html
+/Checkstyle.xml
+/Checkstyle.Test.html
+/Checkstyle.Test.xml
 /ConfigurationChecks.html
 /cpachecker.jar
 /CPAchecker-*.zip

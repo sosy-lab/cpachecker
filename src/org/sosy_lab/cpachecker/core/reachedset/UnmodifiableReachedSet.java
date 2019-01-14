@@ -23,16 +23,14 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.function.BiConsumer;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
-
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.function.BiConsumer;
-
-import javax.annotation.Nullable;
 
 /**
  * Interface representing an unmodifiable reached set
@@ -83,9 +81,11 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
 
   /**
    * Returns the first state that was added to the reached set.
+   * May be null if the state gets removed from the reached set.
+   *
    * @throws IllegalStateException If the reached set is empty.
    */
-  AbstractState getFirstState();
+  @Nullable AbstractState getFirstState();
 
   /**
    * Returns the last state that was added to the reached set.
