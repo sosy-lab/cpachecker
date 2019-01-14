@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.hybrid;
 
+import com.google.common.base.Predicate;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -127,6 +128,7 @@ public class HybridAnalysisState
     newDeclarations.putAll(hybridValues
       .stream()
       .map(value -> ExpressionUtils.extractDeclaration(value.getAssumption()))
+        .filter(e->e!=null)
       .collect(Collectors.toMap(CSimpleDeclaration::getQualifiedName, Function.identity())));
 
     return new HybridAnalysisState(
