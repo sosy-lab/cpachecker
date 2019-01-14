@@ -183,11 +183,10 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
 
             except (HTTPError, WebClientError) as e:
                 output_handler.set_error("VerifierCloud problem", runSet)
-                logging.warning('Could not submit run %s, got error: "%s" for request with the following params %s',
+                logging.warning('Could not submit run %s, got error: "%s" for request with the following body %s',
                                 run.identifier,
                                 e,
-                                #this are the parameters, truncate content in case it is very large:
-                                [(k,v[:50]) for (k,v) in e.request.files]
+                                getattr(e.request, 'body', None)[:200]]
                                )
                 return result_futures # stop submitting runs
 

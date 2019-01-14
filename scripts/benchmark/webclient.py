@@ -903,7 +903,6 @@ class WebInterface:
                 # HTTPError.request is automatically filled with response.request so no need to pass it.
                 # Also HTTPError extends IOError, so there is a constructor IOError(errno, strerror, filename)
                 raise requests.HTTPError(response.status_code, message, path, response=response)
-                message = message + '(path: %s)' % path
 
 def _open_output_log(output_path):
     log_file_path = output_path + "output.log"
