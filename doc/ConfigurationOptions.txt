@@ -962,8 +962,8 @@ cpa.arg.automaton.exportDotFile = "ARG_parts/ARG.%03d.spc.dot"
 cpa.arg.automaton.exportSpcFile = "ARG_parts/ARG.%03d.spc"
 
 # after determining branches, which one of them should be exported?
-cpa.arg.automaton.selectionStrategy = LEAFS
-  enum:     [NONE, ALL, LEAFS, WEIGHTED, FIRST_BFS]
+cpa.arg.automaton.selectionStrategy = LEAVES
+  enum:     [NONE, ALL, LEAVES, WEIGHTED, FIRST_BFS]
 
 # minimum ratio of siblings such that one of them will be exported
 cpa.arg.automaton.siblingRatio = 0.4

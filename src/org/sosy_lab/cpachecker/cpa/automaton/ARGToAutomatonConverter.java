@@ -85,7 +85,7 @@ public class ARGToAutomatonConverter {
     /** export all branches, will contain redundant paths, mostly for debugging. */
     ALL,
     /** export all leaf nodes of the ARG, very precise, no redundant paths are exported. */
-    LEAFS,
+    LEAVES,
     /** export some intermediate nodes, sound due to export of siblings if needed. */
     WEIGHTED,
     /**
@@ -103,7 +103,7 @@ public class ARGToAutomatonConverter {
   @Option(
       secure = true,
       description = "after determining branches, which one of them should be exported?")
-  private BranchExportStrategy selectionStrategy = BranchExportStrategy.LEAFS;
+  private BranchExportStrategy selectionStrategy = BranchExportStrategy.LEAVES;
 
   @Option(
       secure = true,
@@ -281,7 +281,7 @@ public class ARGToAutomatonConverter {
             .transformAndConcat(entry -> entry.getValue().getIgnoreStates())
             .transform(ignores -> getAutomatonForStates(root, ignores.asSet()));
 
-      case LEAFS: // ALL_PATHS, export all leaf-nodes, sub-graphs cover the whole graph.
+      case LEAVES: // ALL_PATHS, export all leaf-nodes, sub-graphs cover the whole graph.
         // no redundant paths expected, if leafs are reached via different paths.
         return from(pDependencies.entrySet())
             // end-states do not have outgoing edges, and thus no next states.
