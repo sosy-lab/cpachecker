@@ -56,6 +56,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -77,6 +78,8 @@ public class ARGToAutomatonConverter {
     NONE,
     /** split at non-nested conditions only */
     GLOBAL_CONDITIONS,
+    /** split different leaf states */
+    LEAVES
   }
 
   public enum BranchExportStrategy {
@@ -138,6 +141,8 @@ public class ARGToAutomatonConverter {
         return Collections.singleton(getAutomatonForStates(root, ImmutableList.of()));
       case GLOBAL_CONDITIONS:
         return getGlobalConditionSplitAutomata(root, selectionStrategy);
+      case LEAVES:
+        return from(getLeaves(root)).transform(l -> getAutomatonForLeaf(root, l));
       default:
         throw new AssertionError("unexpected strategy");
     }
@@ -687,6 +692,102 @@ public class ARGToAutomatonConverter {
       }
     }
     return next;
+  }
+
+  private Iterable<ARGState> getLeaves(ARGState pRoot) {
+    FluentIterable<ARGState> leaves =
+        from(pRoot.getSubgraph()).filter(s -> s.getChildren().size() == 0);
+    boolean targetsOnly = true; // TODO add an option for this?
+    return targetsOnly ? leaves.filter(ARGState::isTarget) : leaves;
+  }
+
+  /** generate an automaton that leads to the leaf state. */
+  private static Automaton getAutomatonForLeaf(ARGState pRoot, ARGState pLeaf) {
+    try {
+      return getAutomatonForLeaf0(pRoot, pLeaf);
+    } catch (InvalidAutomatonException e) {
+      throw new AssertionError("unexpected exception", e);
+    }
+  }
+
+  /** generate an automaton that traverses the subgraph, but leaves out ignored states. */
+  private static Automaton getAutomatonForLeaf0(ARGState pRoot, ARGState pLeaf)
+      throws InvalidAutomatonException {
+
+    Preconditions.checkArgument(pRoot != pLeaf);
+    Preconditions.checkArgument(!pRoot.isCovered());
+    Preconditions.checkArgument(!pLeaf.isCovered());
+
+    Collection<ARGState> allStatesOnPaths = getAllStatesOnPathsTo(pLeaf);
+    Preconditions.checkArgument(allStatesOnPaths.contains(pRoot));
+    Preconditions.checkArgument(allStatesOnPaths.contains(pLeaf));
+
+    Map<String, AutomatonVariable> variables = Collections.emptyMap();
+    List<AutomatonInternalState> states = new ArrayList<>();
+    states.add(AutomatonInternalState.ERROR);
+
+    Deque<ARGState> waitlist = new ArrayDeque<>();
+    Collection<ARGState> finished = new HashSet<>();
+    waitlist.add(pRoot);
+    while (!waitlist.isEmpty()) {
+      ARGState s = uncover(waitlist.pop());
+      if (!finished.add(s)) {
+        continue;
+      }
+      List<AutomatonBoolExpr> locationQueries = new ArrayList<>();
+      List<AutomatonTransition> transitions = new ArrayList<>();
+      for (ARGState child : s.getChildren()) {
+        child = uncover(child);
+        if (!allStatesOnPaths.contains(child)) {
+          // ignore those states here, BOTTOM-state will be inserted afterwards automatically.
+          continue;
+        }
+        CFANode location = AbstractStates.extractLocation(child);
+        AutomatonBoolExpr locationQuery =
+            new AutomatonBoolExpr.CPAQuery("location", "nodenumber==" + location.getNodeNumber());
+        locationQueries.add(locationQuery);
+        String id = child.isTarget() ? AutomatonInternalState.ERROR.getName() : id(child);
+        transitions.add(
+            new AutomatonTransition(
+                locationQuery, ImmutableList.of(), ImmutableList.of(), ImmutableList.of(), id));
+        waitlist.add(child);
+      }
+
+      if (s.isTarget()) {
+        assert transitions.isEmpty();
+        assert states.contains(AutomatonInternalState.ERROR);
+      } else {
+        transitions.add(
+            new AutomatonTransition(
+                buildOtherwise(locationQueries),
+                ImmutableList.of(),
+                ImmutableList.of(),
+                AutomatonInternalState.BOTTOM));
+        boolean hasSeveralChildren = transitions.size() > 1;
+        states.add(
+            new AutomatonInternalState(id(s), transitions, false, hasSeveralChildren, false));
+      }
+    }
+    return new Automaton("ARG", variables, states, id(pRoot));
+  }
+
+  /** the same as {@link ARGUtils#getAllStatesOnPathsTo}, but with coverage handling. */
+  private static Collection<ARGState> getAllStatesOnPathsTo(ARGState pLeaf) {
+    Collection<ARGState> finished = new LinkedHashSet<>();
+    Deque<ARGState> waitlist = new ArrayDeque<>();
+    waitlist.add(pLeaf);
+    while (!waitlist.isEmpty()) {
+      ARGState s = waitlist.pop();
+      if (!finished.add(s)) {
+        continue;
+      }
+      waitlist.addAll(s.getParents());
+      while (s.isCovered()) {
+        s = s.getCoveringState();
+        waitlist.addAll(s.getParents());
+      }
+    }
+    return finished;
   }
 
   /** create simple dot-graph for dependencies, marking loop-states. useful for debugging. */
