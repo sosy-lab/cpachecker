@@ -277,13 +277,13 @@ public class ARGToAutomatonConverter {
         return Collections.emptyList();
 
       case ALL: // export all nodes, mainly for debugging.
-        return FluentIterable.from(pDependencies.entrySet())
+        return from(pDependencies.entrySet())
             .transformAndConcat(entry -> entry.getValue().getIgnoreStates())
             .transform(ignores -> getAutomatonForStates(root, ignores.asSet()));
 
       case LEAFS: // ALL_PATHS, export all leaf-nodes, sub-graphs cover the whole graph.
         // no redundant paths expected, if leafs are reached via different paths.
-        return FluentIterable.from(pDependencies.entrySet())
+        return from(pDependencies.entrySet())
             // end-states do not have outgoing edges, and thus no next states.
             .filter(entry -> entry.getValue().getNextStates().isEmpty())
             .transformAndConcat(entry -> entry.getValue().getIgnoreStates())
@@ -318,8 +318,7 @@ public class ARGToAutomatonConverter {
       }
     }
 
-    return FluentIterable.from(paths)
-        .transform(ignores -> getAutomatonForStates(pRoot, ignores.asSet()));
+    return from(paths).transform(ignores -> getAutomatonForStates(pRoot, ignores.asSet()));
   }
 
   /**
@@ -456,7 +455,7 @@ public class ARGToAutomatonConverter {
       return true;
     }
     Collection<Integer> siblings =
-        FluentIterable.from(pDependencies.get(s).getParents())
+        from(pDependencies.get(s).getParents())
             .transformAndConcat(p -> pDependencies.get(p).getNextStates())
             .transform(n -> sizeOfBranch(n))
             .toSet();
