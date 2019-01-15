@@ -345,16 +345,16 @@ class PredicateCPAStatistics implements Statistics {
     }
     out.println();
 
-    out.println("Time for post operator:              " + statistics.postTimer);
-    out.println("  Time for path formula creation:    " + statistics.pathFormulaTimer);
+    put(out, 0, statistics.postTimer);
+    put(out, 1, statistics.pathFormulaTimer);
     if (statistics.satCheckTimer.getNumberOfIntervals() > 0) {
-      out.println("  Time for satisfiability checks:    " + statistics.satCheckTimer);
+      put(out, 1, statistics.satCheckTimer);
     }
-    out.println("Time for strengthen operator:        " + statistics.strengthenTimer);
+    put(out, 0, statistics.strengthenTimer);
     if (statistics.strengthenCheckTimer.getNumberOfIntervals() > 0) {
-      out.println("  Time for satisfiability checks:    " + statistics.strengthenCheckTimer);
+      put(out, 1, statistics.strengthenCheckTimer);
     }
-    out.println("Time for prec operator:              " + statistics.totalPrecTime);
+    put(out, 0, statistics.totalPrecTime);
     if (numAbstractions > 0) {
       out.println("  Time for abstraction:              " + statistics.computingAbstractionTime + " (Max: " + statistics.computingAbstractionTime.getMaxTime().formatAs(SECONDS) + ", Count: " + statistics.computingAbstractionTime.getNumberOfIntervals() + ")");
       if (as.trivialPredicatesTime.getNumberOfIntervals() > 0) {
@@ -379,20 +379,20 @@ class PredicateCPAStatistics implements Statistics {
     }
 
     if (statistics.totalMergeTime.getNumberOfIntervals() != 0) { // at least used once
-      out.println("Time for merge operator:             " + statistics.totalMergeTime);
+      put(out, 0, statistics.totalMergeTime);
     }
 
-    out.println("Time for coverage check:             " + statistics.coverageCheckTimer);
+    put(out, 0, statistics.coverageCheckTimer);
     if (statistics.bddCoverageCheckTimer.getNumberOfIntervals() > 0) {
-      out.println("  Time for BDD entailment checks:    " + statistics.bddCoverageCheckTimer);
+      put(out, 1, statistics.bddCoverageCheckTimer);
     }
     if (statistics.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
-      out.println("  Time for symbolic coverage checks: " + statistics.symbolicCoverageCheckTimer);
+      put(out, 1, statistics.symbolicCoverageCheckTimer);
     }
     out.println("Total time for SMT solver (w/o itp): " + TimeSpan.sum(solver.solverTime.getSumTime(), as.abstractionSolveTime.getSumTime(), as.abstractionEnumTime.getOuterSumTime()).formatAs(SECONDS));
 
     if (statistics.abstractionCheckTimer.getNumberOfIntervals() > 0) {
-      out.println("Time for abstraction checks:       " + statistics.abstractionCheckTimer);
+      put(out, 0, statistics.abstractionCheckTimer);
       out.println("Time for unsat checks:             " + statistics.satCheckTimer + " (Calls: " + statistics.satCheckTimer.getNumberOfIntervals() + ")");
     }
     out.println();
