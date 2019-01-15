@@ -27,6 +27,8 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -35,7 +37,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -138,7 +139,7 @@ public class ARGToAutomatonConverter {
   public Iterable<Automaton> getAutomata(ARGState root) {
     switch (strategy) {
       case NONE:
-        return Collections.singleton(getAutomatonForStates(root, ImmutableList.of()));
+        return Collections.singleton(getAutomatonForStates(root, Predicates.alwaysFalse(), false));
       case GLOBAL_CONDITIONS:
         return getGlobalConditionSplitAutomata(root, selectionStrategy);
       case LEAVES:
@@ -150,21 +151,21 @@ public class ARGToAutomatonConverter {
 
   /** generate an automaton that traverses the subgraph, but leaves out ignored states. */
   private static Automaton getAutomatonForStates(
-      ARGState pRoot, Collection<ARGState> ignoredStates) {
+      ARGState pRoot, Predicate<ARGState> ignoreState, boolean withTargetState) {
     try {
-      return getAutomatonForStates0(pRoot, ignoredStates);
+      return getAutomatonForStates0(pRoot, ignoreState, withTargetState);
     } catch (InvalidAutomatonException e) {
       throw new AssertionError("unexpected exception", e);
     }
   }
 
   /** generate an automaton that traverses the subgraph, but leaves out ignored states. */
-  private static Automaton getAutomatonForStates0(ARGState root, Collection<ARGState> ignoredStates)
+  private static Automaton getAutomatonForStates0(
+      ARGState root, Predicate<ARGState> ignoreState, boolean withTargetState)
       throws InvalidAutomatonException {
 
-    Preconditions.checkArgument(!ignoredStates.contains(root));
+    Preconditions.checkArgument(!ignoreState.apply(root));
     Preconditions.checkArgument(!root.isCovered());
-    Preconditions.checkArgument(Iterables.all(ignoredStates, s -> !s.isCovered()));
 
     Map<String, AutomatonVariable> variables = Collections.emptyMap();
 
@@ -173,6 +174,9 @@ public class ARGToAutomatonConverter {
     waitlist.add(root);
 
     List<AutomatonInternalState> states = new ArrayList<>();
+    if (withTargetState) {
+      states.add(AutomatonInternalState.ERROR);
+    }
     while (!waitlist.isEmpty()) {
       ARGState s = uncover(waitlist.pop());
       if (!finished.add(s)) {
@@ -182,7 +186,7 @@ public class ARGToAutomatonConverter {
       List<AutomatonBoolExpr> locationQueries = new ArrayList<>();
       for (ARGState child : s.getChildren()) {
         child = uncover(child);
-        if (ignoredStates.contains(child)) {
+        if (ignoreState.apply(child)) {
           // ignore those states here, BOTTOM-state will be inserted afterwards automatically.
           // Note: if sibling with same location is not ignored, ignorance might be useless.
           continue;
@@ -192,25 +196,33 @@ public class ARGToAutomatonConverter {
         AutomatonBoolExpr locationQuery =
             new AutomatonBoolExpr.CPAQuery("location", "nodenumber==" + location.getNodeNumber());
         locationQueries.add(locationQuery);
+        final String id;
+        if (withTargetState && child.isTarget()) {
+          id = AutomatonInternalState.ERROR.getName();
+        } else {
+          id = id(child);
+        }
         transitions.add(
             new AutomatonTransition(
-                locationQuery,
-                ImmutableList.of(),
-                ImmutableList.of(),
-                ImmutableList.of(),
-                id(child)));
+                locationQuery, ImmutableList.of(), ImmutableList.of(), ImmutableList.of(), id));
         waitlist.add(child);
       }
 
-      transitions.add(
-          new AutomatonTransition(
-              buildOtherwise(locationQueries),
-              ImmutableList.of(),
-              ImmutableList.of(),
-              AutomatonInternalState.BOTTOM));
+      if (withTargetState && s.isTarget()) {
+        assert transitions.isEmpty();
+        assert states.contains(AutomatonInternalState.ERROR);
+      } else {
+        transitions.add(
+            new AutomatonTransition(
+                buildOtherwise(locationQueries),
+                ImmutableList.of(),
+                ImmutableList.of(),
+                AutomatonInternalState.BOTTOM));
 
-      boolean hasSeveralChildren = s.getChildren().size() > 1;
-      states.add(new AutomatonInternalState(id(s), transitions, false, hasSeveralChildren, false));
+        boolean hasSeveralChildren = transitions.size() > 1;
+        states.add(
+            new AutomatonInternalState(id(s), transitions, false, hasSeveralChildren, false));
+      }
     }
 
     return new Automaton("ARG", variables, states, id(root));
@@ -284,7 +296,7 @@ public class ARGToAutomatonConverter {
       case ALL: // export all nodes, mainly for debugging.
         return from(pDependencies.entrySet())
             .transformAndConcat(entry -> entry.getValue().getIgnoreStates())
-            .transform(ignores -> getAutomatonForStates(root, ignores.asSet()));
+            .transform(ignores -> getAutomatonForStates(root, s -> ignores.contains(s), false));
 
       case LEAVES: // ALL_PATHS, export all leaf-nodes, sub-graphs cover the whole graph.
         // no redundant paths expected, if leafs are reached via different paths.
@@ -292,7 +304,7 @@ public class ARGToAutomatonConverter {
             // end-states do not have outgoing edges, and thus no next states.
             .filter(entry -> entry.getValue().getNextStates().isEmpty())
             .transformAndConcat(entry -> entry.getValue().getIgnoreStates())
-            .transform(ignores -> getAutomatonForStates(root, ignores.asSet()));
+            .transform(ignores -> getAutomatonForStates(root, s -> ignores.contains(s), false));
 
       case WEIGHTED: // export all nodes, where children are heavier than a given limit
         return getWeightedAutomata(root, pDependencies);
@@ -323,7 +335,8 @@ public class ARGToAutomatonConverter {
       }
     }
 
-    return from(paths).transform(ignores -> getAutomatonForStates(pRoot, ignores.asSet()));
+    return from(paths)
+        .transform(ignores -> getAutomatonForStates(pRoot, s -> ignores.contains(s), false));
   }
 
   /**
@@ -420,14 +433,16 @@ public class ARGToAutomatonConverter {
         // This might lead to redundant traces in the exported automata.
         // Should we add a deeper analysis that also looks for (non-)exported grand-children?
         for (PersistentSet<ARGState> ignores : bi.getIgnoreStates()) {
-          automata.add(getAutomatonForStates(root, Sets.union(ignores.asSet(), finishedChildren)));
+          automata.add(
+              getAutomatonForStates(
+                  root, as -> (ignores.contains(as) || finishedChildren.contains(as)), false));
         }
         completeExportOfState = true;
       } else {
         // no children are exported -> export current node or skip and export parent
         if (shouldExportAutomatonFor(root, s, pDependencies)) {
           for (PersistentSet<ARGState> ignores : bi.getIgnoreStates()) {
-            automata.add(getAutomatonForStates(root, ignores.asSet()));
+            automata.add(getAutomatonForStates(root, as -> ignores.contains(as), false));
           }
           completeExportOfState = true;
         } else {
@@ -703,72 +718,14 @@ public class ARGToAutomatonConverter {
 
   /** generate an automaton that leads to the leaf state. */
   private static Automaton getAutomatonForLeaf(ARGState pRoot, ARGState pLeaf) {
-    try {
-      return getAutomatonForLeaf0(pRoot, pLeaf);
-    } catch (InvalidAutomatonException e) {
-      throw new AssertionError("unexpected exception", e);
-    }
-  }
-
-  /** generate an automaton that traverses the subgraph, but leaves out ignored states. */
-  private static Automaton getAutomatonForLeaf0(ARGState pRoot, ARGState pLeaf)
-      throws InvalidAutomatonException {
 
     Preconditions.checkArgument(pRoot != pLeaf);
-    Preconditions.checkArgument(!pRoot.isCovered());
     Preconditions.checkArgument(!pLeaf.isCovered());
-
     Collection<ARGState> allStatesOnPaths = getAllStatesOnPathsTo(pLeaf);
     Preconditions.checkArgument(allStatesOnPaths.contains(pRoot));
     Preconditions.checkArgument(allStatesOnPaths.contains(pLeaf));
 
-    Map<String, AutomatonVariable> variables = Collections.emptyMap();
-    List<AutomatonInternalState> states = new ArrayList<>();
-    states.add(AutomatonInternalState.ERROR);
-
-    Deque<ARGState> waitlist = new ArrayDeque<>();
-    Collection<ARGState> finished = new HashSet<>();
-    waitlist.add(pRoot);
-    while (!waitlist.isEmpty()) {
-      ARGState s = uncover(waitlist.pop());
-      if (!finished.add(s)) {
-        continue;
-      }
-      List<AutomatonBoolExpr> locationQueries = new ArrayList<>();
-      List<AutomatonTransition> transitions = new ArrayList<>();
-      for (ARGState child : s.getChildren()) {
-        child = uncover(child);
-        if (!allStatesOnPaths.contains(child)) {
-          // ignore those states here, BOTTOM-state will be inserted afterwards automatically.
-          continue;
-        }
-        CFANode location = AbstractStates.extractLocation(child);
-        AutomatonBoolExpr locationQuery =
-            new AutomatonBoolExpr.CPAQuery("location", "nodenumber==" + location.getNodeNumber());
-        locationQueries.add(locationQuery);
-        String id = child.isTarget() ? AutomatonInternalState.ERROR.getName() : id(child);
-        transitions.add(
-            new AutomatonTransition(
-                locationQuery, ImmutableList.of(), ImmutableList.of(), ImmutableList.of(), id));
-        waitlist.add(child);
-      }
-
-      if (s.isTarget()) {
-        assert transitions.isEmpty();
-        assert states.contains(AutomatonInternalState.ERROR);
-      } else {
-        transitions.add(
-            new AutomatonTransition(
-                buildOtherwise(locationQueries),
-                ImmutableList.of(),
-                ImmutableList.of(),
-                AutomatonInternalState.BOTTOM));
-        boolean hasSeveralChildren = transitions.size() > 1;
-        states.add(
-            new AutomatonInternalState(id(s), transitions, false, hasSeveralChildren, false));
-      }
-    }
-    return new Automaton("ARG", variables, states, id(pRoot));
+    return getAutomatonForStates(pRoot, s -> !allStatesOnPaths.contains(s), true);
   }
 
   /** the same as {@link ARGUtils#getAllStatesOnPathsTo}, but with coverage handling. */
