@@ -344,8 +344,15 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
 
     PathFormula pf = pElement.getPathFormula();
 
-    PathFormula previousPathFormula = pAssumeElement.getPreviousPathFormula(pf);
-    if (previousPathFormula != null) {
+    Collection<AbstractState> oldStates = pAssumeElement.getStatesForPreconditions();
+    com.google.common.base.Optional<PredicateAbstractState> optionalPreviousPredicateState =
+        AbstractStates.projectToType(oldStates, PredicateAbstractState.class).first();
+
+    if (optionalPreviousPredicateState.isPresent() && optionalPreviousPredicateState.get().getPathFormula() != null) {
+      assert !pElement.equals(optionalPreviousPredicateState.get())
+          : "Found current state as state for preconditions."
+              + " Most likely this means strengthen of the PredicateCPA is called after strengthen of the OverflowCPA!";
+      PathFormula previousPathFormula = optionalPreviousPredicateState.get().getPathFormula();
       for (CExpression preconditionAssumption : from(pAssumeElement.getPreconditionAssumptions())
           .filter(CExpression.class)) {
         if (CFAUtils.getIdExpressionsOfExpression(preconditionAssumption)
