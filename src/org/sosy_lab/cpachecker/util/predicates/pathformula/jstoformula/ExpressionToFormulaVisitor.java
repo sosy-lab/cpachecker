@@ -220,11 +220,51 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
         return tvmgr.createNumberValue(fmgr.makeNegate(valConv.toNumber(operand)));
       case VOID:
         return tvmgr.getUndefinedValue();
+      case TYPE_OF:
+        return tvmgr.createStringValue(typeOf(operand));
       default:
         throw new UnrecognizedCodeException(
             "JSUnaryExpression not implemented yet", pUnaryExpression);
     }
   }
+
+  @Nonnull
+  private IntegerFormula typeOf(final TypedValue pValue) {
+    final IntegerFormula type = pValue.getType();
+    if (type.equals(typeTags.BOOLEAN)) {
+      return strMgr.getStringFormula("boolean");
+    } else if (type.equals(typeTags.FUNCTION)) {
+      return strMgr.getStringFormula("function");
+    } else if (type.equals(typeTags.NUMBER)) {
+      return strMgr.getStringFormula("number");
+    } else if (type.equals(typeTags.STRING)) {
+      return strMgr.getStringFormula("string");
+    } else if (type.equals(typeTags.UNDEFINED)) {
+      return strMgr.getStringFormula("undefined");
+    } else if (type.equals(typeTags.OBJECT)) {
+      return strMgr.getStringFormula("object");
+    } else {
+      // variable
+      final IntegerFormula variable = (IntegerFormula) pValue.getValue();
+      return bfmgr.ifThenElse(
+          fmgr.makeEqual(type, typeTags.BOOLEAN),
+          strMgr.getStringFormula("boolean"),
+          bfmgr.ifThenElse(
+              fmgr.makeEqual(type, typeTags.FUNCTION),
+              strMgr.getStringFormula("function"),
+              bfmgr.ifThenElse(
+              fmgr.makeEqual(type, typeTags.NUMBER),
+              strMgr.getStringFormula("number"),
+              bfmgr.ifThenElse(
+                  fmgr.makeEqual(type, typeTags.STRING),
+                  strMgr.getStringFormula("string"),
+                  bfmgr.ifThenElse(
+                    fmgr.makeEqual(type, typeTags.UNDEFINED),
+                    strMgr.getStringFormula("undefined"),
+                    strMgr.getStringFormula("object"))))));
+    }
+  }
+
 
   @Override
   public TypedValue visit(final JSIntegerLiteralExpression pIntegerLiteralExpression) {
