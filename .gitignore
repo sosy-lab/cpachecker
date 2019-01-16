@@ -67,3 +67,5 @@ a.out
 .idea/findbugs-idea.xml
 .idea/junitgenerator-prj-settings.xml
 .idea/vcs.xml
+
+test/programs/javascript-test262-benchmark
