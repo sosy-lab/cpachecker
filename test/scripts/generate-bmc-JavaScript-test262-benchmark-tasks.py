@@ -1,0 +1,31 @@
+import os
+import textwrap
+from pathlib import Path
+
+project_root_dir = Path(__file__).parent.parent.parent
+property_file = project_root_dir / 'config/specification/JavaScriptAssertion.spc'
+if (not property_file.exists()):
+    print('Property file {} not found'.format(property_file))
+    exit(1)
+assert_lib_file = project_root_dir / 'test/programs/javascript-test262-benchmark/CPAchecker-test262-assert.js'
+if (not assert_lib_file.exists()):
+    print('Assertion library file {} not found'.format(assert_lib_file))
+    exit(1)
+
+for file in project_root_dir.glob(
+        'test/programs/javascript-test262-benchmark/test/language/statements/*/*.js'):
+    print(file)
+    relative_path_to_property_file = os.path.relpath(str(property_file), str(file.parent))
+    relative_path_to_assert_lib_file = os.path.relpath(str(assert_lib_file), str(file.parent))
+    yml_file = file.parent / (file.stem + '.yml')
+    yml_file.write_text(textwrap.dedent("""\
+        format_version: "1.0"
+        input_files:
+            - "{assert_lib_file}"
+            - "{input_file}"
+        properties:
+          - property_file: {property_file}
+            expected_verdict: true
+        """).format(assert_lib_file=relative_path_to_assert_lib_file,
+                    input_file='./' + file.name,
+                    property_file=relative_path_to_property_file))
