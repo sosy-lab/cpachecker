@@ -2,6 +2,16 @@ import os
 import textwrap
 from pathlib import Path
 
+
+def contains_eval(file_content):
+    return 'eval(' in file_content
+
+
+def is_skip(file):
+    file_content = file.read_text()
+    return contains_eval(file_content)
+
+
 project_root_dir = Path(__file__).parent.parent.parent
 property_file = project_root_dir / 'config/specification/JavaScriptAssertion.spc'
 if (not property_file.exists()):
@@ -15,6 +25,9 @@ if (not assert_lib_file.exists()):
 for file in project_root_dir.glob(
         'test/programs/javascript-test262-benchmark/test/language/statements/*/*.js'):
     print(file)
+    if is_skip(file):
+        print('SKIP {}'.format(file))
+        continue
     relative_path_to_property_file = os.path.relpath(str(property_file), str(file.parent))
     relative_path_to_assert_lib_file = os.path.relpath(str(assert_lib_file), str(file.parent))
     yml_file = file.parent / (file.stem + '.yml')
