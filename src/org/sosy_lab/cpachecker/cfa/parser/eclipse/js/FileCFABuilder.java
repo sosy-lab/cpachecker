@@ -59,7 +59,8 @@ class FileCFABuilder implements JavaScriptUnitAppendable {
             FileLocation.DUMMY, functionDeclaration, exitNode, Optional.absent());
     exitNode.setEntryNode(entryNode);
     builder =
-        new CFABuilder(new FunctionScopeImpl(pScope, functionDeclaration), pLogger, entryNode);
+        new CFABuilder(
+            new FunctionScopeImpl(pScope, functionDeclaration, pLogger), pLogger, entryNode);
   }
 
   @Override

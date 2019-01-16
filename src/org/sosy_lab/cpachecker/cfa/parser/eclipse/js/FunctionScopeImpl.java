@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Level;
 import javax.annotation.Nonnull;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
@@ -35,15 +37,18 @@ class FunctionScopeImpl implements FunctionScope {
 
   private final Scope parentScope;
   private final JSFunctionDeclaration functionDeclaration;
+  private final LogManager logger;
 
   /** Declarations in the body of the function mapped by their original name. */
   private final Map<String, JSSimpleDeclaration> localDeclarations = new HashMap<>();
 
   FunctionScopeImpl(
       @Nonnull final Scope pParentScope,
-      @Nonnull final JSFunctionDeclaration pFunctionDeclaration) {
+      @Nonnull final JSFunctionDeclaration pFunctionDeclaration,
+      final LogManager pLogger) {
     parentScope = pParentScope;
     functionDeclaration = pFunctionDeclaration;
+    logger = pLogger;
     setQualifiedNameOfParameters();
     setScopeOfParameters();
   }
@@ -77,9 +82,12 @@ class FunctionScopeImpl implements FunctionScope {
   @Override
   public void addDeclaration(@Nonnull final JSSimpleDeclaration pDeclaration) {
     final String origName = pDeclaration.getOrigName();
-    assert !localDeclarations.containsKey(origName)
-        : "Duplicate declaration " + origName + " in " + qualifiedNameOfScope();
-    localDeclarations.put(origName, pDeclaration);
+    if (localDeclarations.containsKey(origName)) {
+      logger.log(
+          Level.WARNING, "Duplicate declaration " + origName + " in " + qualifiedNameOfScope());
+    } else {
+      localDeclarations.put(origName, pDeclaration);
+    }
   }
 
   @Override

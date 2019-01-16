@@ -101,7 +101,7 @@ public class FunctionScopeImplTest {
             originalName,
             name,
             parameters);
-    functionScope = new FunctionScopeImpl(parentScope, functionDeclaration);
+    functionScope = new FunctionScopeImpl(parentScope, functionDeclaration, null);
   }
 
   @Test

@@ -67,7 +67,7 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
     currentScope.addDeclaration(jsFunctionDeclaration);
     pBuilder.appendEdge(JSDeclarationEdge.of(jsFunctionDeclaration));
     final FunctionScopeImpl functionScope =
-        new FunctionScopeImpl(currentScope, jsFunctionDeclaration);
+        new FunctionScopeImpl(currentScope, jsFunctionDeclaration, pBuilder.getLogger());
     final String returnVariableName = "__retval__";
     final JSVariableDeclaration returnVariableDeclaration =
         new JSVariableDeclaration(

@@ -183,7 +183,8 @@ public class UnknownFunctionCallerDeclarationBuilder implements FunctionDeclarat
       unknownFunctionCallerCFABuilder =
           pBuilder.copyWith(
               entryNode,
-              new FunctionScopeImpl(DummyScope.instance, unknownFunctionCallerDeclaration));
+              new FunctionScopeImpl(
+                  DummyScope.instance, unknownFunctionCallerDeclaration, pBuilder.getLogger()));
     }
   }
 
