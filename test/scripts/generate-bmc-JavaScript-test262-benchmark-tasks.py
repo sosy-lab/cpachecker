@@ -21,7 +21,8 @@ property_file = project_root_dir / 'config/specification/JavaScriptAssertion.spc
 if not property_file.exists():
     print('Property file {} not found'.format(property_file))
     exit(1)
-assert_lib_file = project_root_dir / 'test/programs/javascript-test262-benchmark/CPAchecker-test262-assert.js'
+assert_lib_file = \
+    project_root_dir / 'test/programs/javascript-test262-benchmark/CPAchecker-test262-assert.js'
 if not assert_lib_file.exists():
     print('Assertion library file {} not found'.format(assert_lib_file))
     exit(1)
