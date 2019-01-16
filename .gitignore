@@ -68,4 +68,5 @@ a.out
 .idea/junitgenerator-prj-settings.xml
 .idea/vcs.xml
 
-test/programs/javascript-test262-benchmark
+test/programs/javascript-test262-benchmark/*
+!test/programs/javascript-test262-benchmark/CPAchecker-test262-assert.js
