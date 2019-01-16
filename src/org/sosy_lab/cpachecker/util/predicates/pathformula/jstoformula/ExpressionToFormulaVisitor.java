@@ -127,6 +127,16 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
       case GREATER_EQUALS:
         return tvmgr.createBooleanValue(
             fpfmgr.greaterOrEquals(valConv.toNumber(leftOperand), valConv.toNumber(rightOperand)));
+      case AND:
+        // TODO encode as bitwise and
+        logger.logOnce(Level.WARNING, "Bitwise-And (&) is currently only implemented as logical-And");
+        return tvmgr.createBooleanValue(
+            bfmgr.and(valConv.toBoolean(leftOperand), valConv.toBoolean(rightOperand)));
+      case OR:
+        // TODO encode as bitwise or
+        logger.logOnce(Level.WARNING, "Bitwise-Or (|) is currently only implemented as logical-Or");
+        return tvmgr.createBooleanValue(
+            bfmgr.or(valConv.toBoolean(leftOperand), valConv.toBoolean(rightOperand)));
       default:
         throw new UnrecognizedCodeException(
             "JSBinaryExpression not implemented yet", pBinaryExpression);
