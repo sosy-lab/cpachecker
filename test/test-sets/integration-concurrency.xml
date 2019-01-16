@@ -12,23 +12,22 @@
   <tasks name="value-concurrency">
     <option name="-valueAnalysis-concurrency"/>
 
-    <include>../programs/benchmarks/pthread-atomic/*_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/mix000_*opt_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/mix009_*opt_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/mix031_*opt_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/mix034_*opt_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/mix041_*opt_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/mix048_*opt_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/mix054_*opt_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/podwr*opt_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/rfi000_*opt_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/rfi001_*opt_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/safe006_*opt_true-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/safe007_*opt_true-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/safe010_*opt_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/safe028_*opt_true-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/safe036_*opt_true-unreach-call.i</include>
-    <include>../programs/benchmarks/ldv-races/*_true-unreach-call*.i</include>
+    <include>../programs/benchmarks/pthread-atomic/*.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix000_*opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix009_*opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix031_*opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix034_*opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix041_*opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix048_*opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix054_*opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/podwr*opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi000_*opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi001_*opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe006_*opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe007_*opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe010_*opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe028_*opt.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe036_*opt.yml</include>
   </tasks>
 
   <tasks name="value-concurrency-Refinement">
@@ -36,29 +35,29 @@
     <option name="-setprop">analysis.algorithm.CEGAR=true</option>
     <option name="-setprop">cegar.refiner=cpa.value.refiner.ValueAnalysisRefiner</option>
 
-    <include>../programs/benchmarks/pthread-wmm/mix000_*oepc_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/mix009_*oepc_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/mix031_*oepc_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/mix034_*oepc_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/mix041_*oepc_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/mix048_*oepc_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/mix054_*oepc_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/podwr*oepc_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/rfi000_*oepc_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/rfi001_*oepc_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/safe006_*oepc_true-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/safe010_*oepc_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/safe036_*oepc_true-unreach-call.i</include>
+    <include>../programs/benchmarks/pthread-wmm/mix000_*oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix009_*oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix031_*oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix034_*oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix041_*oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix048_*oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/mix054_*oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/podwr*oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi000_*oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi001_*oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe006_*oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe010_*oepc.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe036_*oepc.yml</include>
   </tasks>
 
   <tasks name="bdd-concurrency">
     <option name="-bddAnalysis-concurrency"/>
 
-    <include>../programs/benchmarks/pthread-wmm/rfi005_*_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/rfi010_*_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/safe014_*_false-unreach-call.i</include>
-    <include>../programs/benchmarks/pthread-wmm/thin000_*_false-unreach-call.i</include>
-    <include>../programs/benchmarks/ldv-races/*_false-unreach-call*.i</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi005_*.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/rfi010_*.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/safe014_*.yml</include>
+    <include>../programs/benchmarks/pthread-wmm/thin000_*.yml</include>
+    <include>../programs/benchmarks/ldv-races/**.yml</include>
   </tasks>
 
   <columns>

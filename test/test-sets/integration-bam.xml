@@ -26,26 +26,26 @@
 
   <!-- analysis of recursive programs -->
   <tasks name="value">
-    <include>../programs/benchmarks/recursive-simple/a*.c</include>
-    <include>../programs/benchmarks/recursive-simple/f*.c</include>
+    <include>../programs/benchmarks/recursive-simple/a*.yml</include>
+    <include>../programs/benchmarks/recursive-simple/f*.yml</include>
     <option name="-valueAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="interval">
-    <include>../programs/benchmarks/recursive-simple/i*.c</include>
+    <include>../programs/benchmarks/recursive-simple/i*.yml</include>
     <option name="-intervalAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="valuePredicate">
-    <include>../programs/benchmarks/recursive-simple/s*.c</include>
+    <include>../programs/benchmarks/recursive-simple/s*.yml</include>
     <option name="-valueAnalysis-predicateAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="predicate_tree">
-    <include>../programs/benchmarks/recursive/*.c</include>
-    <exclude>../programs/benchmarks/recursive/*1_*.c</exclude>
-    <exclude>../programs/benchmarks/recursive/*2_*.c</exclude>
-    <exclude>../programs/benchmarks/recursive/*3_*.c</exclude>
+    <include>../programs/benchmarks/recursive/*.yml</include>
+    <exclude>../programs/benchmarks/recursive/*1_*.yml</exclude>
+    <exclude>../programs/benchmarks/recursive/*2_*.yml</exclude>
+    <exclude>../programs/benchmarks/recursive/*3_*.yml</exclude>
     <option name="-predicateAnalysis-bam-rec"/>
   </tasks>
 
@@ -64,7 +64,7 @@
   </tasks>
 
   <tasks name="predicate_tree_wellscoped">
-    <include>../programs/benchmarks/recursive/*1_*.c</include>
+    <include>../programs/benchmarks/recursive/*1_*.yml</include>
     <option name="-setprop">cpa.predicate.refinement.strategy=tree_wellscoped</option>
     <option name="-setprop">solver.solver=mathsat5</option>
     <option name="-predicateAnalysis-bam-rec"/>
@@ -75,14 +75,12 @@
   <tasks name="VA-parallelBam-noCegar">
     <option name="-valueAnalysis-parallelBam"/>
     <option name='-setprop'>algorithm.parallelBam.numberOfThreads=8</option>
-    <include>../programs/benchmarks/eca-rers2012/Problem03*true-unreach-call*.c</include>
-    <include>../programs/benchmarks/eca-rers2012/Problem03*false-unreach-call*.c</include>
+    <include>../programs/benchmarks/eca-rers2012/Problem03*.yml</include>
   </tasks>
   <tasks name="VA-parallelBam-Cegar">
     <option name="-valueAnalysis-parallelBam-Cegar"/>
     <option name='-setprop'>algorithm.parallelBam.numberOfThreads=8</option>
-    <include>../programs/benchmarks/eca-rers2012/Problem02*true-unreach-call*.c</include>
-    <include>../programs/benchmarks/eca-rers2012/Problem02*false-unreach-call*.c</include>
+    <include>../programs/benchmarks/eca-rers2012/Problem02*.yml</include>
   </tasks>
 
 
@@ -146,7 +144,8 @@
     <option name="-64"/>
     <option name="-setprop">analysis.checkCounterexamples=true</option>
     <option name="-setprop">counterexample.checker=CBMC</option>
-    <includesfile>integration-DeviceDriversLinux64.set</includesfile>
+    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+    <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-scsi-dc395x.ko_true-unreach-call.cil.out.i.pp.i</exclude>
     <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-net-wan-farsync.ko_false-unreach-call.cil.out.i.pp.i</exclude>
     <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-input-misc-keyspan_remote.ko_false-unreach-call.cil.out.i.pp.i</exclude>

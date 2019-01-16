@@ -70,8 +70,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
   // Callstack-CPA is used for additional recursion handling
   private final CallstackTransferRelation callstackTransfer;
 
-  // Stats
-  private int maxRecursiveDepth = 0;
+  private final BAMCPAStatistics stats;
 
   public BAMTransferRelation(
       BAMCPA bamCpa,
@@ -85,6 +84,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
         CPAs.retrieveCPAOrFail(bamCpa, CallstackCPA.class, BAMTransferRelation.class)
             .getTransferRelation();
     bamPccManager = pBamPccManager;
+    stats = bamCpa.getStatistics();
   }
 
   @Override
@@ -197,23 +197,25 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
         stack.size(),
         " with current Stack:",
         stack);
-    maxRecursiveDepth = Math.max(stack.size(), maxRecursiveDepth);
+    stats.updateBlockNestingLevel(stack.size());
+    stats.switchBlock(outerSubtree, innerSubtree);
 
-    final Collection<AbstractState> resultStates =
-        analyseBlockAndExpand(
-            initialState,
-            pPrecision,
-            innerSubtree,
-            outerSubtree,
-            reducedInitialState,
-            reducedInitialPrecision);
+    try {
+      return analyseBlockAndExpand(
+          initialState,
+          pPrecision,
+          innerSubtree,
+          outerSubtree,
+          reducedInitialState,
+          reducedInitialPrecision);
 
-    logger.log(Level.FINEST, "Finished recursive analysis of depth", stack.size());
-    final Triple<AbstractState, Precision, Block> lastLevel = stack.pop();
-    assert lastLevel.equals(currentLevel);
-    bamPccManager.setCurrentBlock(outerSubtree);
-
-    return resultStates;
+    } finally {
+      logger.log(Level.FINEST, "Finished recursive analysis of depth", stack.size());
+      stats.switchBlock(innerSubtree, outerSubtree);
+      final Triple<AbstractState, Precision, Block> lastLevel = stack.pop();
+      assert lastLevel.equals(currentLevel);
+      bamPccManager.setCurrentBlock(outerSubtree);
+    }
   }
 
   /**

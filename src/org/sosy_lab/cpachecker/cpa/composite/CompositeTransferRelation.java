@@ -94,17 +94,51 @@ final class CompositeTransferRelation implements TransferRelation {
     Collection<CompositeState> results;
 
     AbstractStateWithLocations locState = extractStateByType(compositeState, AbstractStateWithLocations.class);
-    if (locState == null) {
-      throw new CPATransferException("Analysis without any CPA tracking locations is not supported, please add one to the configuration (e.g., LocationCPA).");
-    }
-
     results = new ArrayList<>(2);
-
-    for (CFAEdge edge : locState.getOutgoingEdges()) {
-      getAbstractSuccessorForEdge(compositeState, compositePrecision, edge, results);
+    if (locState == null) {
+      getAbstractSuccessors(compositeState, compositePrecision, results);
+    } else {
+      for (CFAEdge edge : locState.getOutgoingEdges()) {
+        getAbstractSuccessorForEdge(compositeState, compositePrecision, edge, results);
+      }
     }
 
     return results;
+  }
+
+  private void getAbstractSuccessors(
+      CompositeState pCompositeState,
+      CompositePrecision pCompositePrecision,
+      Collection<CompositeState> compositeSuccessors)
+      throws CPATransferException, InterruptedException {
+    int resultCount = 1;
+    List<AbstractState> componentElements = pCompositeState.getWrappedStates();
+    checkArgument(componentElements.size() == size, "State with wrong number of component states given");
+    List<Collection<? extends AbstractState>> allComponentsSuccessors = new ArrayList<>(size);
+
+    // first, call all the post operators
+    for (int i = 0; i < size; i++) {
+      TransferRelation lCurrentTransfer = transferRelations.get(i);
+      AbstractState lCurrentElement = componentElements.get(i);
+      Precision lCurrentPrecision = pCompositePrecision.get(i);
+
+      Collection<? extends AbstractState> componentSuccessors;
+      componentSuccessors =
+          lCurrentTransfer.getAbstractSuccessors(lCurrentElement, lCurrentPrecision);
+      resultCount *= componentSuccessors.size();
+
+      if (resultCount == 0) {
+        // shortcut
+        break;
+      }
+
+      allComponentsSuccessors.add(componentSuccessors);
+    }
+
+    for (List<AbstractState> successor :
+        createCartesianProduct(allComponentsSuccessors, resultCount)) {
+      compositeSuccessors.add(new CompositeState(successor));
+    }
   }
 
   @Override

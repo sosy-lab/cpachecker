@@ -114,9 +114,9 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
     }
   }
 
-
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  public static ImpactGlobalRefiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+  @SuppressWarnings({"unchecked", "rawtypes", "resource"})
+  public static ImpactGlobalRefiner create(ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
     PredicateCPA predicateCpa =
         CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, ImpactRefiner.class);
     return new ImpactGlobalRefiner(predicateCpa.getConfiguration(),
