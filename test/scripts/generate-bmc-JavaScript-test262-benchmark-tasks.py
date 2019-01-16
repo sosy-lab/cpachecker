@@ -11,9 +11,15 @@ def contains_syntax_error(file_content):
     return 'type: SyntaxError' in file_content
 
 
+def contains_try_statement(file_content):
+    return 'try' in file_content
+
+
 def is_skip(file):
     file_content = file.read_text()
-    return contains_eval(file_content) or contains_syntax_error(file_content)
+    return (contains_eval(file_content)
+            or contains_syntax_error(file_content)
+            or contains_try_statement(file_content))
 
 
 project_root_dir = Path(__file__).parent.parent.parent
