@@ -28,10 +28,11 @@ if (not assert_lib_file.exists()):
 
 for file in project_root_dir.glob(
         'test/programs/javascript-test262-benchmark/test/language/statements/*/*.js'):
-    print(file)
     if is_skip(file):
         print('SKIP {}'.format(file))
         continue
+    else:
+        print('GENERATE TASK FOR {}'.format(file))
     relative_path_to_property_file = os.path.relpath(str(property_file), str(file.parent))
     relative_path_to_assert_lib_file = os.path.relpath(str(assert_lib_file), str(file.parent))
     yml_file = file.parent / (file.stem + '.yml')
