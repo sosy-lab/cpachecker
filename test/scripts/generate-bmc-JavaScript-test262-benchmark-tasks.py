@@ -19,7 +19,8 @@ def is_skip(file):
     file_content = file.read_text()
     return (contains_eval(file_content)
             or contains_syntax_error(file_content)
-            or contains_try_statement(file_content))
+            or contains_try_statement(file_content)
+            or 'tail-call-optimization' in file_content)
 
 
 project_root_dir = Path(__file__).parent.parent.parent
