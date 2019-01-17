@@ -20,12 +20,17 @@ def contains_for_in_statement(file_content):
     return re.search('\\s+for\\s*\\([^)]+in', file_content)
 
 
+def contains_with_statement(file_content):
+    return re.search('\\s+with\\s*\\([^)]+\\)\\s*{', file_content)
+
+
 def is_skip(file):
     file_content = file.read_text()
     return (contains_eval(file_content)
             or contains_syntax_error(file_content)
             or contains_try_statement(file_content)
             or contains_for_in_statement(file_content)
+            or contains_with_statement(file_content)
             or 'new function ' in file_content  # constructor call of function expression
             or '.isPrototypeOf(' in file_content
             or 'with(' in file_content
