@@ -26,6 +26,7 @@ def is_skip(file):
             or contains_syntax_error(file_content)
             or contains_try_statement(file_content)
             or contains_for_in_statement(file_content)
+            or 'new function ' in file_content  # constructor call of function expression
             or '.isPrototypeOf(' in file_content
             or 'with(' in file_content
             or 'arguments[' in file_content
