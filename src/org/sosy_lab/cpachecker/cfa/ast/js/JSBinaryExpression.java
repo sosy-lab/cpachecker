@@ -91,8 +91,8 @@ public class JSBinaryExpression extends ABinaryExpression implements JSExpressio
 
   public enum BinaryOperator implements ABinaryOperator {
     AND("&"),
-    CONDITIONAL_AND("&&"),
-    CONDITIONAL_OR("||"),
+    CONDITIONAL_AND("&&"), // TODO remove, since eliminated in CFA
+    CONDITIONAL_OR("||"), // TODO remove, since eliminated in CFA
     DIVIDE("/"),
     EQUALS("=="),
     EQUAL_EQUAL_EQUAL("==="),
