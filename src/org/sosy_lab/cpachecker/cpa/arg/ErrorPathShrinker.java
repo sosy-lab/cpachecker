@@ -75,7 +75,6 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.Pair;
 
-
 /** The Class ErrorPathShrinker gets an targetPath and creates a new Path,
  * with only the important edges of the Path. The idea behind this Class is,
  * that not every action (CFAEdge) before an error occurs is important for
@@ -508,7 +507,8 @@ public final class ErrorPathShrinker {
 
   private String str(AExpression exp) {
     if (exp instanceof AIdExpression) {
-      return ((AIdExpression) exp).getDeclaration().getQualifiedName();
+      final AIdExpression id = (AIdExpression) exp;
+      return id.getDeclaration() == null ? id.getName() : id.getDeclaration().getQualifiedName();
     } else {
       return exp.toASTString();
     }
