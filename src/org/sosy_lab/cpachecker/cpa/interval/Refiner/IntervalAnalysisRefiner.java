@@ -174,14 +174,11 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
 
     Map<String, Interval> widenedValues = new HashMap<>();
 
-    for (Entry<String, Long> precision : precisionToUse.getPrecision().entrySet()) {
-      widenedValues.put(precision.getKey(), new Interval(null, null));
-    }
-
     IntervalAnalysisState next =
         AbstractStates.extractStateByType(pPath.getFirstState(), IntervalAnalysisState.class);
     Deque<IntervalAnalysisState> pCallstack = new ArrayDeque<>();
     PathIterator iterator = pPath.fullPathIterator();
+
     while (iterator.hasNext()) {
       final CFAEdge edge = iterator.getOutgoingEdge();
       Optional<IntervalAnalysisState> maybeNext =
@@ -194,8 +191,8 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
         if (!widenedValues.keySet().contains(variable)) {
           widenedValues.put(variable, next.getInterval(variable));
         } else {
-          if (widenedValues.get(variable).isEmpty()) {
-            widenedValues.replace(variable, next.getInterval(variable));
+          if (widenedValues.get(variable) == null) {
+            widenedValues.replace(variable, new Interval(next.getInterval(variable).getLow(), next.getInterval(variable).getHigh()));
           } else {
             widenedValues.replace(
                 variable,
@@ -209,7 +206,6 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
       }
       iterator.advance();
     }
-
     adjustPrecision(precisionToUse, pPath, widenedValues);
   }
 
@@ -222,15 +218,14 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
       if (size < sizePrecision) {
         pPrecision.replace(entries.getKey(), size);
       }
-
-      //      while(checker.isFeasible(pPath, pPrecision, new HashSet<>())){
-      //        String maxValue = getMaxStringForValue(wideningBase);
-      //        Interval value = wideningBase.get(maxValue);
-      //        long distance = value.getHigh() - value.getLow();
-      //        distance = distance / 2;
-      //        wideningBase.replace(maxValue, new Interval((long) 0, distance));
-      //        pPrecision.setSize(maxValue, distance);
-      //      }
+    }
+    while(checker.isFeasible(pPath, pPrecision, new HashSet<>())){
+      String maxValue = getMaxStringForValue(wideningBase);
+      Interval value = wideningBase.get(maxValue);
+      long distance = value.getHigh() - value.getLow();
+      distance = distance / 2;
+      wideningBase.replace(maxValue, new Interval((long) 0, distance));
+      pPrecision.replace(maxValue, distance);
     }
   }
 
