@@ -1,5 +1,5 @@
 format_version: "1.0"
 input_files: "./typeof-undefined.js"
 properties:
-  - property_file: ../../../../../config/specification/JavaScriptAssertion.spc
+  - property_file: ../../../../../test/config/specification/JavaScriptAssertion.spc
     expected_verdict: false

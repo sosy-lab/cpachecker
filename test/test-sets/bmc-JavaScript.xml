@@ -19,12 +19,12 @@
         <exclude>../programs/javascript/binary-expressions.yml</exclude>
         <excludesfile>unimplemented-features-JavaScript.set</excludesfile>
         <excludesfile>predicateAnalysis-JavaScript-encodeFloatAsRational.set</excludesfile>
-        <propertyfile>../../config/specification/JavaScriptAssertion.spc</propertyfile>
+        <propertyfile>../../test/config/specification/JavaScriptAssertion.spc</propertyfile>
     </tasks>
 
     <tasks>
         <include>../programs/javascript/binary-expressions.yml</include>
-        <propertyfile>../../config/specification/JavaScriptAssertion.spc</propertyfile>
+        <propertyfile>../../test/config/specification/JavaScriptAssertion.spc</propertyfile>
     </tasks>
 
     <tasks>
@@ -34,6 +34,6 @@
         <option name="-setprop">cpa.predicate.js.useNaN=false</option>
         <exclude>../programs/javascript/binary-expressions.yml</exclude>
         <includesfile>predicateAnalysis-JavaScript-encodeFloatAsRational.set</includesfile>
-        <propertyfile>../../config/specification/JavaScriptAssertion.spc</propertyfile>
+        <propertyfile>../../test/config/specification/JavaScriptAssertion.spc</propertyfile>
     </tasks>
 </benchmark>
