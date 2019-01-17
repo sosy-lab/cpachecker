@@ -32,6 +32,7 @@ def is_skip(file):
             or contains_for_in_statement(file_content)
             or contains_with_statement(file_content)
             or 'new function ' in file_content  # constructor call of function expression
+            or 'Object.getOwnPropertyDescriptor(' in file_content
             or '.isPrototypeOf(' in file_content
             or 'with(' in file_content
             or 'arguments[' in file_content
