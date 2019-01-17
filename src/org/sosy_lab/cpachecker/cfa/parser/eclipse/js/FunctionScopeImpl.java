@@ -61,8 +61,6 @@ class FunctionScopeImpl implements FunctionScope {
   private void setQualifiedNameOfParameters() {
     for (final JSParameterDeclaration parameterDeclaration : functionDeclaration.getParameters()) {
       final String parameterName = parameterDeclaration.getName();
-      assert !getParentScope().findDeclaration(parameterName).isPresent()
-          : "Parameter name " + parameterName + " may not shadow identifier of parent scope";
       parameterDeclaration.setQualifiedName(qualifiedVariableNameOf(parameterName));
     }
   }
