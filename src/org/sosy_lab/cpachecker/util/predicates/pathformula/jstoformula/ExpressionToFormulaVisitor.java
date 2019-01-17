@@ -391,8 +391,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
     return tvmgr.ifThenElse(isUndefinedArrayElementIndex, tvmgr.getUndefinedValue(), propertyValue);
   }
 
-  private TypedValue handlePredefined(final JSIdExpression pIdExpression)
-      throws UnrecognizedCodeException {
+  private TypedValue handlePredefined(final JSIdExpression pIdExpression) {
     final String name = pIdExpression.getName();
     switch (name) {
       case "Infinity":
@@ -407,8 +406,12 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
         }
         return tvmgr.createNumberValue(fpfmgr.makeNaN(Types.NUMBER_TYPE));
       default:
-        throw new UnrecognizedCodeException(
-            "Variable without declaration is not defined on global object", pIdExpression);
+        logger.logfOnce(
+            Level.WARNING,
+            "Variable without declaration is not defined on global object (%s): %s",
+            pIdExpression.getFileLocation(),
+            pIdExpression);
+        return tvmgr.getUndefinedValue();
     }
   }
 
