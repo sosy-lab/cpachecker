@@ -31,6 +31,7 @@ def is_skip(file):
             or 'new Array(' in file_content
             or 'new Boolean(' in file_content
             or 'new Function(' in file_content
+            or 'Function(' in file_content
             or 'new Number(' in file_content
             or 'new String(' in file_content
             or 'new Object(' in file_content)
