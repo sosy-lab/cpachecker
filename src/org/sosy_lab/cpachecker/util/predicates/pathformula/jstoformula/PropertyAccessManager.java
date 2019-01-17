@@ -134,7 +134,12 @@ class PropertyAccessManager extends ManagerWithEdgeContext {
     final JSSimpleDeclaration objectDeclaration;
     if (pObjectExpression instanceof JSIdExpression) {
       objectDeclaration = ((JSIdExpression) pObjectExpression).getDeclaration();
-      assert objectDeclaration != null;
+      assert objectDeclaration != null
+          : "Object '"
+              + pObjectExpression
+              + "' is not declared ("
+              + pObjectExpression.getFileLocation()
+              + ")";
     } else {
       final String temporaryVariableName = generateTemporaryVariableName();
       objectDeclaration =
