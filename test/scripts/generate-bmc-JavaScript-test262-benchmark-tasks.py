@@ -20,7 +20,20 @@ def is_skip(file):
     return (contains_eval(file_content)
             or contains_syntax_error(file_content)
             or contains_try_statement(file_content)
-            or 'tail-call-optimization' in file_content)
+            or '.isPrototypeOf(' in file_content
+            or 'with(' in file_content
+            or 'arguments[' in file_content
+            or 'Math.' in file_content
+            or 'es6id:' in file_content
+            or 'features: [default-parameters' in file_content
+            or 'assert.throws(' in file_content
+            or 'tail-call-optimization' in file_content
+            or 'new Array(' in file_content
+            or 'new Boolean(' in file_content
+            or 'new Function(' in file_content
+            or 'new Number(' in file_content
+            or 'new String(' in file_content
+            or 'new Object(' in file_content)
 
 
 project_root_dir = Path(__file__).parent.parent.parent
