@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
-
+import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBracketPropertyAccess;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
@@ -114,10 +114,20 @@ class AssignmentManager extends ManagerWithEdgeContext {
 
   @Nonnull
   private BooleanFormula makeAssignment(final JSIdExpression pLhs, final TypedValue pRhsValue) {
-    final JSSimpleDeclaration declaration = pLhs.getDeclaration();
-    assert declaration != null;
-    final IntegerFormula l = ctx.scopeMgr.declareScopedVariable(declaration);
-    ctx.scopeMgr.updateIndicesOfOtherScopeVariables(declaration);
+    final JSSimpleDeclaration declaration;
+    final EdgeManagerContext varCtx;
+    if (pLhs.getDeclaration() != null) {
+      declaration = pLhs.getDeclaration();
+      varCtx = ctx;
+    } else {
+      logger.logOnce(
+          Level.WARNING,
+          "Assignment to undeclared variable '" + pLhs + "' (" + pLhs.getFileLocation() + ")");
+      declaration = globalDeclarationsMgr.get(pLhs);
+      varCtx = ctx.copy("main");
+    }
+    final IntegerFormula l = varCtx.scopeMgr.declareScopedVariable(declaration);
+    varCtx.scopeMgr.updateIndicesOfOtherScopeVariables(declaration);
     return makeAssignment(l, pRhsValue);
   }
 

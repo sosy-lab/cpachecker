@@ -59,6 +59,7 @@ abstract class ManagerWithGlobalContext {
   final StringFormulaManager strMgr;
   final ValueConverterManager valConv;
   final JSFunctionDeclarationFormulaManager jsFunDeclMgr;
+  final GlobalDeclarationManager globalDeclarationsMgr;
 
   final FormulaManagerView fmgr;
   final ArrayFormulaManagerView afmgr;
@@ -84,6 +85,7 @@ abstract class ManagerWithGlobalContext {
     strMgr = pContext.strMgr;
     valConv = pContext.valConv;
     jsFunDeclMgr = pContext.jsFunDeclMgr;
+    globalDeclarationsMgr = pContext.globalDeclarationsMgr;
 
     fmgr = pContext.fmgr;
     afmgr = pContext.afmgr;

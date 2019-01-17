@@ -331,9 +331,12 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
 
   @Override
   public TypedValue visit(final JSIdExpression pIdExpression) throws UnrecognizedCodeException {
-    final JSSimpleDeclaration declaration = pIdExpression.getDeclaration();
+    JSSimpleDeclaration declaration = pIdExpression.getDeclaration();
     if (declaration == null) {
-      return handlePredefined(pIdExpression);
+      if (!globalDeclarationsMgr.has(pIdExpression)) {
+        return handlePredefined(pIdExpression);
+      }
+      declaration = globalDeclarationsMgr.get(pIdExpression);
     } else if (declaration instanceof JSFunctionDeclaration) {
       // TODO move code of case to JSFunctionDeclarationFormulaManager
       final JSFunctionDeclaration functionDeclaration = (JSFunctionDeclaration) declaration;
