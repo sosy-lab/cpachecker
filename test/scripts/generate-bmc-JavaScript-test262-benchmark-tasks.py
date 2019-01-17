@@ -37,7 +37,11 @@ def is_skip(file):
 
 
 project_root_dir = Path(__file__).parent.parent.parent
-property_file = project_root_dir / 'config/specification/JavaScriptAssertion.spc'
+
+# Specification-Dateien im "config"-Ordner sind aus Sicherheitsgründen in der VerifierCloud
+# verboten. Daher wird als Workaround auf ein anderes Verzeichnis verwiesen:
+property_file = project_root_dir / 'test/config/specification/JavaScriptAssertion.spc'
+# property_file = project_root_dir / 'config/specification/JavaScriptAssertion.spc'
 if not property_file.exists():
     print('Property file {} not found'.format(property_file))
     exit(1)
