@@ -252,7 +252,7 @@ public class UsageContainer {
         .put(resetTimer)
         .put(unsafeDetectionTimer)
         .put(searchingInCachesTimer)
-        .put(addingToSetTimer)
+        .put(addingToSetTimer);
   }
 
   public String getUnsafeStatus() {
