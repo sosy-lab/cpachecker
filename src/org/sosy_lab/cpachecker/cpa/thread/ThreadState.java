@@ -32,10 +32,10 @@ import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentSortedMap;
+import java.util.TreeMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadJoinStatement;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -52,13 +52,21 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
   }
 
   public class ThreadStateBuilder {
-    private PersistentSortedMap<String, ThreadStatus> tSet;
+    private Map<String, ThreadStatus> tSet;
     private List<ThreadLabel> bOrder;
     private boolean changed = false;
 
     private ThreadStateBuilder(ThreadState state) {
       tSet = state.threadSet;
       bOrder = state.order;
+    }
+
+    private void cloneIfNecessary() {
+      if (!changed) {
+        tSet = new TreeMap<>(tSet);
+        bOrder = new ArrayList<>(bOrder);
+        changed = true;
+      }
     }
 
     public void handleParentThread(CThreadCreateStatement tCall) throws HandleCodeException {
@@ -91,10 +99,9 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
         }
       }
       ThreadLabel label = new ThreadLabel(pFunctionName, pVarName);
-      tSet = tSet.putAndCopy(pVarName, status);
-      bOrder = new ArrayList<>(bOrder);
+      cloneIfNecessary();
+      tSet.put(pVarName, status);
       bOrder.add(label);
-      changed = true;
     }
 
     public ThreadState build() {
@@ -115,8 +122,9 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
       if (result.isPresent()) {
         ThreadLabel toRemove = result.get();
         String var = toRemove.getVarName();
+        cloneIfNecessary();
         if (tSet.containsKey(var) && tSet.get(var) != ThreadStatus.CREATED_THREAD) {
-          tSet = tSet.removeAndCopy(var);
+          tSet.remove(var);
           bOrder.remove(toRemove);
         }
         changed = true;
@@ -130,14 +138,14 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
     }
   }
 
-  private final PersistentSortedMap<String, ThreadStatus> threadSet;
+  private final Map<String, ThreadStatus> threadSet;
   // The removedSet is useless now, but it will be used in future in more complicated cases
   // Do not remove it now
   private final ImmutableMap<ThreadLabel, ThreadStatus> removedSet;
   private final List<ThreadLabel> order;
 
   private ThreadState(
-      PersistentSortedMap<String, ThreadStatus> Tset,
+      Map<String, ThreadStatus> Tset,
       ImmutableMap<ThreadLabel, ThreadStatus> Rset,
       List<ThreadLabel> pOrder) {
     threadSet = Tset;
@@ -210,7 +218,10 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
 
   @Override
   public ThreadState prepareToStore() {
-    return new ThreadState(this.threadSet, ImmutableMap.of(), Collections.emptyList());
+    return new ThreadState(
+        this.threadSet,
+        ImmutableMap.of(),
+        Collections.emptyList());
   }
 
   public ThreadStateBuilder getBuilder() {
@@ -219,7 +230,7 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
 
   public static ThreadState emptyState() {
     return new ThreadState(
-        PathCopyingPersistentTreeMap.of(),
+        ImmutableMap.of(),
         ImmutableMap.of(),
         Collections.emptyList());
   }
@@ -252,7 +263,12 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
 
   @Override
   public boolean isLessOrEqual(ThreadState pOther) {
-    return Objects.equals(removedSet, pOther.removedSet)
-        && pOther.threadSet.entrySet().containsAll(threadSet.entrySet());
+    boolean b =
+        Objects.equals(removedSet, pOther.removedSet);
+    if (b && pOther.threadSet == threadSet) {
+      return true;
+    }
+    b &= pOther.threadSet.entrySet().containsAll(threadSet.entrySet());
+    return b;
   }
 }

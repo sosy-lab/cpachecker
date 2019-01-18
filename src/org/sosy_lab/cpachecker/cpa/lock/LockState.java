@@ -26,16 +26,15 @@ package org.sosy_lab.cpachecker.cpa.lock;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Maps;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
-import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cpa.lock.effects.AcquireLockEffect;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
@@ -98,15 +97,25 @@ public class LockState extends AbstractLockState {
   }
 
   public class LockStateBuilder extends AbstractLockStateBuilder {
-    private SortedMap<LockIdentifier, Integer> mutableLocks;
+    private Map<LockIdentifier, Integer> mutableLocks;
+    private boolean changed;
 
     public LockStateBuilder(LockState state) {
       super(state);
-      mutableLocks = Maps.newTreeMap(state.locks);
+      mutableLocks = state.locks;
+      changed = false;
+    }
+
+    public void cloneIfNecessary() {
+      if (!changed) {
+        changed = true;
+        mutableLocks = new TreeMap<>(mutableLocks);
+      }
     }
 
     @Override
     public void add(LockIdentifier lockId) {
+      cloneIfNecessary();
       Integer a = mutableLocks.getOrDefault(lockId, 0) + 1;
       mutableLocks.put(lockId, a);
     }
@@ -115,6 +124,7 @@ public class LockState extends AbstractLockState {
     public void free(LockIdentifier lockId) {
       if (mutableLocks.containsKey(lockId)) {
         Integer a = mutableLocks.get(lockId) - 1;
+        cloneIfNecessary();
         if (a > 0) {
           mutableLocks.put(lockId, a);
         } else {
@@ -125,6 +135,7 @@ public class LockState extends AbstractLockState {
 
     @Override
     public void reset(LockIdentifier lockId) {
+      cloneIfNecessary();
       mutableLocks.remove(lockId);
     }
 
@@ -154,6 +165,7 @@ public class LockState extends AbstractLockState {
         return;
       }
       Integer size = ((LockState) mutableToRestore).locks.get(lockId);
+      cloneIfNecessary();
       mutableLocks.remove(lockId);
       if (size != null) {
         mutableLocks.put(lockId, size);
@@ -188,6 +200,7 @@ public class LockState extends AbstractLockState {
 
     @Override
     public void resetAll() {
+      cloneIfNecessary();
       mutableLocks.clear();
     }
 
@@ -198,13 +211,19 @@ public class LockState extends AbstractLockState {
 
     @Override
     public void removeLocksExcept(Set<LockIdentifier> locksToProcess) {
-      Set<LockIdentifier> expandableLocks =
-          Sets.difference(new HashSet<>(mutableLocks.keySet()), locksToProcess);
-      expandableLocks.forEach(l -> mutableLocks.remove(l));
+      cloneIfNecessary();
+      Iterator<Entry<LockIdentifier, Integer>> iterator = mutableLocks.entrySet().iterator();
+      while (iterator.hasNext()) {
+        LockIdentifier lockId = iterator.next().getKey();
+        if (!locksToProcess.contains(lockId)) {
+          iterator.remove();
+        }
+      }
     }
 
     @Override
     public void reduceLockCounters(Set<LockIdentifier> locksToProcess) {
+      cloneIfNecessary();
       locksToProcess.forEach(l -> mutableLocks.replace(l, 1));
     }
 
@@ -214,15 +233,20 @@ public class LockState extends AbstractLockState {
 
     @Override
     public void returnLocksExcept(LockState pRootState, Set<LockIdentifier> usedLocks) {
-      Set<LockIdentifier> expandableLocks = Sets.difference(pRootState.locks.keySet(), usedLocks);
-      expandableLocks.forEach(l -> mutableLocks.put(l, pRootState.getCounter(l)));
+      cloneIfNecessary();
+      for (Entry<LockIdentifier, Integer> entry : pRootState.locks.entrySet()) {
+        LockIdentifier lockId = entry.getKey();
+        if (!usedLocks.contains(lockId)) {
+          mutableLocks.put(lockId, entry.getValue());
+        }
+      }
     }
 
     @Override
     public void expandLockCounters(
         AbstractLockState pRootState,
         Set<LockIdentifier> locksToProcess) {
-      SortedMap<LockIdentifier, Integer> rootLocks = ((LockState) pRootState).locks;
+      Map<LockIdentifier, Integer> rootLocks = ((LockState) pRootState).locks;
       for (LockIdentifier lock : locksToProcess) {
         if (rootLocks.containsKey(lock)) {
           Integer size = mutableLocks.get(lock);
@@ -255,17 +279,17 @@ public class LockState extends AbstractLockState {
     }
   }
 
-  private final SortedMap<LockIdentifier, Integer> locks;
+  private final ImmutableMap<LockIdentifier, Integer> locks;
   // if we need restore state, we save it here
   // Used for function annotations like annotate.function_name.restore
   public LockState() {
     super();
-    locks = Maps.newTreeMap();
+    locks = ImmutableMap.of();
   }
 
-  protected LockState(SortedMap<LockIdentifier, Integer> gLocks, LockState state) {
+  protected LockState(Map<LockIdentifier, Integer> gLocks, LockState state) {
     super(state);
-    this.locks = Maps.newTreeMap(gLocks);
+    this.locks = ImmutableMap.copyOf(gLocks);
   }
 
   @Override
@@ -394,5 +418,17 @@ public class LockState extends AbstractLockState {
   @Override
   protected Set<LockIdentifier> getLocks() {
     return locks.keySet();
+  }
+
+  @Override
+  public boolean isLessOrEqual(AbstractLockState other) {
+    // State is less, if it has the same locks as the other and may be some more
+
+    for (LockIdentifier lock : other.getLocks()) {
+      if (!locks.containsKey(lock)) {
+        return false;
+      }
+    }
+    return true;
   }
 }
