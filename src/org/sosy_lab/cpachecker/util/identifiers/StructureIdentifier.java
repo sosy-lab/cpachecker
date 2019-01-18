@@ -95,7 +95,7 @@ public class StructureIdentifier extends SingleIdentifier {
 
   @Override
   public GeneralIdentifier getGeneralId() {
-    return new GeneralStructureFieldIdentifier(name, type, dereference, owner);
+    return new GeneralStructureFieldIdentifier(name, dereference);
   }
 
   public StructureFieldIdentifier toStructureFieldIdentifier() {

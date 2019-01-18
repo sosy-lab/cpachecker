@@ -77,7 +77,7 @@ public class LocalVariableIdentifier extends VariableIdentifier {
 
   @Override
   public GeneralIdentifier getGeneralId() {
-    return new GeneralLocalVariableIdentifier(name, type, function, dereference);
+    return new GeneralLocalVariableIdentifier(name, dereference);
   }
 
   @Override
