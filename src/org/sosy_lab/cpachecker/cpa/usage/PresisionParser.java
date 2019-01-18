@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.Maps;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -32,8 +31,10 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -56,7 +57,7 @@ public class PresisionParser {
   }
 
   public Map<CFANode, Map<GeneralIdentifier, DataType>> parse(Path file) {
-    Map<CFANode, Map<GeneralIdentifier, DataType>> localStatistics = Maps.newHashMap();
+    Map<CFANode, Map<GeneralIdentifier, DataType>> localStatistics = new IdentityHashMap<>();
     Map<Integer, CFANode> idToNodeMap = new HashMap<>();
     cfa.getAllNodes().forEach(n -> idToNodeMap.put(n.getNodeNumber(), n));
 
@@ -75,7 +76,7 @@ public class PresisionParser {
           // Get node number
           String nodeId = matcher.group().substring(1);
           node = idToNodeMap.get(Integer.parseInt(nodeId));
-          info = new HashMap<>();
+          info = new TreeMap<>();
         } else if (line.length() > 0) {
           // it's information about local statistics
           List<String> localSet = Splitter.on(";").splitToList(line);
