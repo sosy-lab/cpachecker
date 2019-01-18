@@ -102,6 +102,8 @@ def execute_benchmark(benchmark, output_handler):
                    "--debug", str(benchmark.config.debug)]
         if benchmark.config.cloudMaster:
             cmdLine.extend(["--master", benchmark.config.cloudMaster])
+        if benchmark.config.zipResultFiles:
+            cmdLine.extend(["--zip-result-files", str(benchmark.config.zipResultFiles)])
         if benchmark.config.debug:
             cmdLine.extend(["--print-new-files", "true"])
 
