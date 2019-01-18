@@ -2437,6 +2437,9 @@ cpa.slicing.weakeningStrategy = CEX
 # Enable GCC extension 'Arrays of Length Zero'.
 cpa.smg.GCCZeroLengthArray = false
 
+# Allocate memory on declaration of external variable
+cpa.smg.allocateExternalVariables = true
+
 # Array allocation functions
 cpa.smg.arrayAllocationFunctions = {"calloc"}
 
@@ -2472,9 +2475,9 @@ cpa.smg.guessSize = 2
 # Size of memory that cannot be calculated will be guessed.
 cpa.smg.guessSizeOfUnknownMemorySize = false
 
-# Handle extern variables with incomplete type (extern int array[]) as
+# Handle external variables with incomplete type (extern int array[]) as
 # external allocation
-cpa.smg.handleExternVariableAsExternalAllocation = false
+cpa.smg.handleIncompleteExternalVariableAsExternalAllocation = false
 
 # with this option enabled, memory that is not freed before the end of main
 # is reported as memleak even if it is reachable from local variables in main
