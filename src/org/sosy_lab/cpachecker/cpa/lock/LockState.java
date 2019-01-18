@@ -251,6 +251,7 @@ public class LockState extends AbstractLockState {
         if (rootLocks.containsKey(lock)) {
           Integer size = mutableLocks.get(lock);
           Integer rootSize = rootLocks.get(lock);
+          cloneIfNecessary();
           // null is also correct (it shows, that we've found new lock)
 
           Integer newSize;
