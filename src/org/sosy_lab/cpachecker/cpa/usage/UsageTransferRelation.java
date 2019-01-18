@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.usage;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -37,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -123,7 +123,7 @@ public class UsageTransferRelation implements TransferRelation {
     binderFunctionInfo = binderFunctionInfoBuilder.build();
 
     // BindedFunctions should not be analysed
-    skippedfunctions = Sets.union(skippedfunctions, binderFunctions);
+    skippedfunctions = new TreeSet<>(Sets.union(skippedfunctions, binderFunctions));
   }
 
   @Override
@@ -133,6 +133,7 @@ public class UsageTransferRelation implements TransferRelation {
 
     Collection<AbstractState> results;
 
+    statistics.transferRelationTimer.start();
     CFANode node = extractLocation(pElement);
     results = new ArrayList<>(node.getNumLeavingEdges());
 
@@ -140,6 +141,8 @@ public class UsageTransferRelation implements TransferRelation {
       CFAEdge edge = node.getLeavingEdge(edgeIdx);
       results.addAll(getAbstractSuccessorsForEdge(pElement, pPrecision, edge));
     }
+
+    statistics.transferRelationTimer.stop();
     return results;
   }
 
@@ -148,20 +151,23 @@ public class UsageTransferRelation implements TransferRelation {
       AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
 
-    statistics.transferRelationTimer.start();
+    statistics.transferForEdgeTimer.start();
     Collection<AbstractState> result = new ArrayList<>();
     CFAEdge currentEdge = pCfaEdge;
     UsageState oldState = (UsageState) pState;
 
-    if (abortFunctions.contains(pCfaEdge.getSuccessor().getFunctionName())) {
-      statistics.transferRelationTimer.stop();
+    statistics.checkForSkipTimer.start();
+    currentEdge = changeIfNeccessary(pCfaEdge);
+    statistics.checkForSkipTimer.stop();
+
+    if (currentEdge == null) {
+      // Abort function
+      statistics.transferForEdgeTimer.stop();
       return Collections.emptySet();
     }
 
-    currentEdge = changeIfNeccessary(pCfaEdge);
-
-    AbstractState oldWrappedState = oldState.getWrappedState();
     statistics.usagePreparationTimer.start();
+    AbstractState oldWrappedState = oldState.getWrappedState();
     Optional<Pair<AbstractIdentifier, AbstractIdentifier>> newLinks =
         handleEdge(oldState, currentEdge);
     statistics.usagePreparationTimer.stop();
@@ -184,18 +190,19 @@ public class UsageTransferRelation implements TransferRelation {
     if (currentEdge != pCfaEdge) {
       callstackTransfer.disableRecursiveContext();
     }
-    statistics.transferRelationTimer.stop();
+    statistics.transferForEdgeTimer.stop();
     return result;
   }
 
   private CFAEdge changeIfNeccessary(CFAEdge pCfaEdge) {
     if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
       String functionName = pCfaEdge.getSuccessor().getFunctionName();
-      if (skippedfunctions.contains(functionName)) {
+
+      if (abortFunctions.contains(functionName)) {
+        return null;
+      } else if (skippedfunctions.contains(functionName)) {
         CFAEdge newEdge = ((FunctionCallEdge) pCfaEdge).getSummaryEdge();
-        Preconditions.checkNotNull(
-            newEdge, "Cannot find summary edge for " + pCfaEdge + " as skipped function");
-        logger.log(Level.FINEST, pCfaEdge.getSuccessor().getFunctionName() + " is skipped");
+        logger.log(Level.FINEST, functionName + " will be skipped");
         callstackTransfer.enableRecursiveContext();
         return newEdge;
       }
@@ -280,9 +287,7 @@ public class UsageTransferRelation implements TransferRelation {
         if (idIn == null || idFrom == null) {
           return Optional.empty();
         }
-        if (newState.containsLinks(idFrom)) {
-          idFrom = newState.getLinksIfNecessary(idFrom);
-        }
+        idFrom = newState.getLinksIfNecessary(idFrom);
         logger.log(Level.FINEST, "Link " + idIn + " and " + idFrom);
         return Optional.of(Pair.of(idIn, idFrom));
       }

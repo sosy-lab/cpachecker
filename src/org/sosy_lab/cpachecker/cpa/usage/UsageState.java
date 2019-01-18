@@ -26,18 +26,15 @@ package org.sosy_lab.cpachecker.cpa.usage;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableMap;
 import java.util.Map.Entry;
 import java.util.Objects;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
-import org.sosy_lab.cpachecker.util.identifiers.Identifiers;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -48,12 +45,12 @@ public class UsageState extends AbstractSingleWrapperState
   private static final long serialVersionUID = -898577877284268426L;
   private final transient StateStatistics stats;
 
-  private transient PersistentSortedMap<AbstractIdentifier, AbstractIdentifier>
+  private transient ImmutableMap<AbstractIdentifier, AbstractIdentifier>
       variableBindingRelation;
 
   private UsageState(
       final AbstractState pWrappedElement,
-      final PersistentSortedMap<AbstractIdentifier, AbstractIdentifier> pVarBind,
+      final ImmutableMap<AbstractIdentifier, AbstractIdentifier> pVarBind,
       final StateStatistics pStats) {
     super(pWrappedElement);
     variableBindingRelation = pVarBind;
@@ -63,7 +60,7 @@ public class UsageState extends AbstractSingleWrapperState
   public static UsageState createInitialState(final AbstractState pWrappedElement) {
     return new UsageState(
         pWrappedElement,
-        PathCopyingPersistentTreeMap.of(),
+        ImmutableMap.of(),
         new StateStatistics());
   }
 
@@ -74,49 +71,37 @@ public class UsageState extends AbstractSingleWrapperState
         state.stats);
   }
 
-  public boolean containsLinks(final AbstractIdentifier id) {
-    /* Special contains!
-     *  if we have *b, map also contains **b, ***b and so on.
-     *  So, if we get **b, having (*b, c), we give *c
-     */
-    return from(Identifiers.getDereferencedIdentifiers(id))
-        .anyMatch(variableBindingRelation::containsKey);
-  }
-
   public UsageState put(final AbstractIdentifier id1, final AbstractIdentifier id2) {
     if (!id1.equals(id2)) {
       UsageState result = new UsageState(this.getWrappedState(), this);
-      result.variableBindingRelation = variableBindingRelation.putAndCopy(id1, id2);
+      // Optimization to store
+      int d1 = id1.getDereference();
+      AbstractIdentifier newId1 = id1.cloneWithDereference(0);
+      int d2 = id2.getDereference();
+      AbstractIdentifier newId2 = id2.cloneWithDereference(d2 - d1);
+      ImmutableMap.Builder<AbstractIdentifier, AbstractIdentifier> builder = ImmutableMap.builder();
+      builder.putAll(variableBindingRelation);
+      builder.put(newId1, newId2);
+      result.variableBindingRelation = builder.build();
+
       return result;
     }
     return this;
   }
 
   public AbstractIdentifier getLinksIfNecessary(final AbstractIdentifier id) {
-
-    if (!containsLinks(id)) {
-      return id;
-    }
     /* Special get!
      * If we get **b, having (*b, c), we give *c
      */
-    Optional<AbstractIdentifier> linkedId =
-        from(Identifiers.getDereferencedIdentifiers(id))
-            .firstMatch(variableBindingRelation::containsKey);
-
-    if (linkedId.isPresent()) {
-      AbstractIdentifier pointsFrom = linkedId.get();
-      int delta = id.getDereference() - pointsFrom.getDereference();
-      AbstractIdentifier initialId = variableBindingRelation.get(pointsFrom);
-      AbstractIdentifier pointsTo =
-          initialId.cloneWithDereference(initialId.getDereference() + delta);
-      if (this.containsLinks(pointsTo)) {
-        pointsTo = getLinksIfNecessary(pointsTo);
-      }
-      return pointsTo;
+    AbstractIdentifier newId = id.cloneWithDereference(0);
+    if (variableBindingRelation.containsKey(newId)) {
+      int d = id.getDereference();
+      AbstractIdentifier initialId = variableBindingRelation.get(newId);
+      AbstractIdentifier pointsTo = initialId.cloneWithDereference(initialId.getDereference() + d);
+      return getLinksIfNecessary(pointsTo);
     }
 
-    return null;
+    return id;
   }
 
   public UsageState copy(final AbstractState pWrappedState) {
@@ -141,8 +126,11 @@ public class UsageState extends AbstractSingleWrapperState
       return false;
     }
     UsageState other = (UsageState) obj;
-    return Objects.equals(variableBindingRelation, other.variableBindingRelation)
+    boolean b =
+        Objects.equals(variableBindingRelation, other.variableBindingRelation)
         && getWrappedState().equals(other.getWrappedState());
+
+    return b;
   }
 
   @Override
@@ -201,20 +189,23 @@ public class UsageState extends AbstractSingleWrapperState
   @Override
   public UsageState join(UsageState pOther) {
     stats.joinTimer.start();
-    PersistentSortedMap<AbstractIdentifier, AbstractIdentifier> newRelation =
-        PathCopyingPersistentTreeMap.copyOf(this.variableBindingRelation);
+
+    ImmutableMap.Builder<AbstractIdentifier, AbstractIdentifier> newRelation =
+        ImmutableMap.builder();
+    newRelation.putAll(variableBindingRelation);
+
     for (Entry<AbstractIdentifier, AbstractIdentifier> entry :
         pOther.variableBindingRelation.entrySet()) {
-      newRelation = newRelation.putAndCopy(entry.getKey(), entry.getValue());
+      newRelation.put(entry.getKey(), entry.getValue());
     }
     stats.joinTimer.stop();
-    return new UsageState(this.getWrappedState(), newRelation, stats);
+    return new UsageState(this.getWrappedState(), newRelation.build(), stats);
   }
 
   protected Object readResolve() {
     return new UsageState(
         getWrappedState(),
-        PathCopyingPersistentTreeMap.of(),
+        ImmutableMap.of(),
         new StateStatistics());
   }
 }

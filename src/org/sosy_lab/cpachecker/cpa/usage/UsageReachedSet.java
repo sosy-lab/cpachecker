@@ -37,6 +37,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -192,10 +193,11 @@ public class UsageReachedSet extends PartitionedReachedSet {
         LockState locks, expandedLocks;
         Map<LockState, LockState> reduceToExpand = new HashMap<>();
         Map<AbstractState, List<UsageInfo>> stateToUsage = new HashMap<>();
-        Set<AbstractState> processedStates = new HashSet<>();
+        // Not states for optimizations
+        Set<Integer> processedIds = new TreeSet<>();
         Deque<AbstractState> stateWaitlist = new ArrayDeque<>();
         stateWaitlist.add(state);
-        processedStates.add(state);
+        processedIds.add(getId(state));
 
         while (!stateWaitlist.isEmpty()) {
           state = stateWaitlist.poll();
@@ -212,7 +214,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
             }
           }
           // handle state
-          boolean alreadyProcessed = processedStates.contains(state);
+          boolean alreadyProcessed = processedIds.contains(getId(state));
           if (!alreadyProcessed) {
 
             List<UsageInfo> usages = usageProcessor.getUsagesForState(state);
@@ -254,7 +256,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
 
             expandedUsages.clear();
             for (ARGState child : argState.getChildren()) {
-              if (!processedStates.contains(child)) {
+              if (!processedIds.contains(getId(child))) {
                 stateWaitlist.add(child);
               }
             }
@@ -266,7 +268,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
             stateToUsage.put(state, expandedUsages);
           }
           if (!alreadyProcessed) {
-            processedStates.add(argState);
+            processedIds.add(getId(argState));
           }
 
           // Search state in the BAM cache
@@ -349,5 +351,9 @@ public class UsageReachedSet extends PartitionedReachedSet {
         .put(usageExpandingTimer)
         .endLevel()
         .put(processingSteps);
+  }
+
+  private int getId(AbstractState e) {
+    return ((ARGState) e).getStateId();
   }
 }
