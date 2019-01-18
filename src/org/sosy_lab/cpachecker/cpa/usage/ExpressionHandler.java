@@ -40,18 +40,23 @@ import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.FunctionIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.Identifiers;
+import org.sosy_lab.cpachecker.util.identifiers.LocalVariableIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.StructureIdentifier;
 
 public class ExpressionHandler extends DefaultCExpressionVisitor<Void, NoException> {
 
   private final List<Pair<AbstractIdentifier, Access>> result;
   private final String fName;
   private Access accessMode;
+  private VariableSkipper varSkipper;
 
-  public ExpressionHandler(Access mode, String functionName) {
+  public ExpressionHandler(Access mode, String functionName, VariableSkipper pSkipper) {
     result = new ArrayList<>();
     accessMode = mode;
     fName = functionName;
+    varSkipper = pSkipper;
   }
 
   @Override
@@ -122,11 +127,34 @@ public class ExpressionHandler extends DefaultCExpressionVisitor<Void, NoExcepti
 
   private void addExpression(CExpression e) {
     AbstractIdentifier id = Identifiers.createIdentifier(e, fName);
-    result.add(Pair.of(id, accessMode));
+    if (isRelevantForAnalysis(id)) {
+      result.add(Pair.of(id, accessMode));
+    }
   }
 
   public List<Pair<AbstractIdentifier, Access>> getProcessedExpressions() {
     return result;
+  }
+
+  private boolean isRelevantForAnalysis(AbstractIdentifier pId) {
+    if (varSkipper.shouldBeSkipped(pId, fName)) {
+      return false;
+    }
+
+    if (pId instanceof LocalVariableIdentifier && pId.getDereference() <= 0) {
+      // we don't save in statistics ordinary local variables
+      return false;
+    }
+    if (pId instanceof StructureIdentifier && !pId.isGlobal() && !pId.isDereferenced()) {
+      // skips such cases, as 'a.b'
+      return false;
+    }
+
+    if (pId instanceof FunctionIdentifier) {
+      return false;
+    }
+
+    return true;
   }
 
   @Override

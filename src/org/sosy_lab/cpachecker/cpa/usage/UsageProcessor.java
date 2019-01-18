@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
-import static com.google.common.collect.FluentIterable.from;
-
-import com.google.common.collect.FluentIterable;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.util.IdentityHashSet;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -61,11 +60,8 @@ import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
-import org.sosy_lab.cpachecker.util.identifiers.FunctionIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
-import org.sosy_lab.cpachecker.util.identifiers.LocalVariableIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
-import org.sosy_lab.cpachecker.util.identifiers.StructureIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -76,6 +72,7 @@ public class UsageProcessor {
   private final VariableSkipper varSkipper;
 
   private Map<CFANode, Map<GeneralIdentifier, DataType>> precision;
+  private Map<CFAEdge, Collection<Pair<AbstractIdentifier, Access>>> usages;
   // Not a set, as usage.equals do not consider id
   private List<UsageInfo> result;
 
@@ -84,9 +81,11 @@ public class UsageProcessor {
 
   StatTimer totalTimer = new StatTimer("Total time for usage processing");
   StatTimer usageTimer = new StatTimer("Time for usage extraction");
-  StatTimer expressionTimer = new StatTimer("Time for expression parsing");
   StatTimer localTimer = new StatTimer("Time for sharedness check");
+  StatTimer usagePreparationTimer = new StatTimer("Time for usage preparation");
   StatTimer usageCreationTimer = new StatTimer("Time for usage creation");
+  StatTimer usageCacheTimer = new StatTimer("Time for usage cache operations");
+  StatTimer cleaningCacheTimer = new StatTimer("Time for cleaning cache");
 
   public UsageProcessor(
       Configuration config,
@@ -100,6 +99,7 @@ public class UsageProcessor {
     varSkipper = new VariableSkipper(config);
     precision = pPrecision;
     uselessNodes = new IdentityHashSet<>();
+    usages = new IdentityHashMap<>();
   }
 
   public void updateRedundantUnsafes(Set<SingleIdentifier> set) {
@@ -122,58 +122,84 @@ public class UsageProcessor {
     for (ARGState child : argState.getChildren()) {
       CFAEdge edge = argState.getEdgeToChild(child);
       if (edge != null) {
-        usageTimer.start();
-        getUsagesForEdge(pState, child, edge);
-        usageTimer.stop();
+        Collection<Pair<AbstractIdentifier, Access>> ids;
+        usageCacheTimer.start();
+        if (usages.containsKey(edge)) {
+          ids = usages.get(edge);
+          usageCacheTimer.stop();
+        } else {
+          usageCacheTimer.stop();
+          usageTimer.start();
+          ids = getUsagesForEdge(child, edge);
+          usageTimer.stop();
+          if (!ids.isEmpty()) {
+            usages.put(edge, ids);
+          }
+        }
+        usagePreparationTimer.start();
+        for (Pair<AbstractIdentifier, Access> pair : ids) {
+          AbstractIdentifier id = pair.getFirst();
+          if (redundantIds.contains(id)) {
+            continue;
+          }
+          createUsageAndAdd(id, pState, child, pair.getSecond());
+        }
+        usagePreparationTimer.stop();
       }
     }
 
     if (result.isEmpty()) {
       uselessNodes.add(node);
+      cleaningCacheTimer.start();
+      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+        CFAEdge e = node.getLeavingEdge(i);
+        usages.remove(e);
+      }
+      cleaningCacheTimer.stop();
     }
     totalTimer.stop();
     return result;
   }
 
-  public void getUsagesForEdge(AbstractState pParent, AbstractState pChild, CFAEdge pCfaEdge) {
+  public Collection<Pair<AbstractIdentifier, Access>>
+      getUsagesForEdge(AbstractState pChild, CFAEdge pCfaEdge) {
 
     switch (pCfaEdge.getEdgeType()) {
       case DeclarationEdge:
         {
           CDeclarationEdge declEdge = (CDeclarationEdge) pCfaEdge;
-        handleDeclaration(pParent, pChild, declEdge);
-          break;
+        return handleDeclaration(pChild, declEdge);
         }
 
         // if edge is a statement edge, e.g. a = b + c
       case StatementEdge:
         {
           CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
-        handleStatement(pParent, pChild, statementEdge.getStatement());
-          break;
+        return handleStatement(pChild, statementEdge.getStatement());
         }
 
       case AssumeEdge:
         {
-        visitStatement(pParent, pChild, ((CAssumeEdge) pCfaEdge).getExpression(), Access.READ);
-          break;
+        return visitStatement(
+            pChild,
+            ((CAssumeEdge) pCfaEdge).getExpression(),
+            Access.READ);
         }
 
       case FunctionCallEdge:
         {
-        handleFunctionCall(pParent, pChild, (CFunctionCallEdge) pCfaEdge);
-          break;
+        return handleFunctionCall(pChild, (CFunctionCallEdge) pCfaEdge);
         }
 
       default:
         {
-          break;
+        return Collections.emptySet();
         }
     }
   }
 
-  private void
-      handleFunctionCall(AbstractState pParent, AbstractState pChild, CFunctionCallEdge edge) {
+  private Collection<Pair<AbstractIdentifier, Access>>
+      handleFunctionCall(AbstractState pChild, CFunctionCallEdge edge) {
     CStatement statement = edge.getRawAST().get();
 
     if (statement instanceof CFunctionCallAssignmentStatement) {
@@ -184,55 +210,58 @@ public class UsageProcessor {
           ((CFunctionCallAssignmentStatement) statement).getRightHandSide();
       CExpression variable = ((CFunctionCallAssignmentStatement) statement).getLeftHandSide();
 
-      // expression - only name of function
-      handleFunctionCallExpression(pParent, pChild, right);
-      visitStatement(pParent, pChild, variable, Access.WRITE);
+      List<Pair<AbstractIdentifier, Access>> internalIds = new ArrayList<>();
+      internalIds.addAll(handleFunctionCallExpression(pChild, right));
+      internalIds.addAll(visitStatement(pChild, variable, Access.WRITE));
+      return internalIds;
 
     } else if (statement instanceof CFunctionCallStatement) {
-      handleFunctionCallExpression(
-          pParent,
+      return handleFunctionCallExpression(
           pChild,
           ((CFunctionCallStatement) statement).getFunctionCallExpression());
     }
+    return Collections.emptySet();
   }
 
-  private void
-      handleDeclaration(AbstractState pParent, AbstractState pChild, CDeclarationEdge declEdge) {
+  private Collection<Pair<AbstractIdentifier, Access>>
+      handleDeclaration(AbstractState pChild, CDeclarationEdge declEdge) {
 
     if (declEdge.getDeclaration().getClass() != CVariableDeclaration.class) {
       // not a variable declaration
-      return;
+      return Collections.emptySet();
     }
     CVariableDeclaration decl = (CVariableDeclaration) declEdge.getDeclaration();
 
     if (decl.isGlobal()) {
-      return;
+      return Collections.emptySet();
     }
 
     CInitializer init = decl.getInitializer();
 
     if (init == null) {
       // no assignment
-      return;
+      return Collections.emptySet();
     }
 
     if (init instanceof CInitializerExpression) {
       CExpression initExpression = ((CInitializerExpression) init).getExpression();
       // Use EdgeType assignment for initializer expression to avoid mistakes related to expressions
       // "int CPACHECKER_TMP_0 = global;"
-      visitStatement(pParent, pChild, initExpression, Access.READ);
+      return visitStatement(pChild, initExpression, Access.READ);
 
       // We do not add usage for currently declared variable
       // It can not cause a race
     }
+    return Collections.emptySet();
   }
 
-  private void handleFunctionCallExpression(
-      AbstractState pParent,
+  private Collection<Pair<AbstractIdentifier, Access>> handleFunctionCallExpression(
       AbstractState pChild,
       final CFunctionCallExpression fcExpression) {
 
     String functionCallName = fcExpression.getFunctionNameExpression().toASTString();
+
+    List<Pair<AbstractIdentifier, Access>> internalIds = new ArrayList<>();
 
     if (binderFunctionInfo.containsKey(functionCallName)) {
       BinderFunctionInfo currentInfo = binderFunctionInfo.get(functionCallName);
@@ -242,62 +271,61 @@ public class UsageProcessor {
 
       for (int i = 0; i < params.size(); i++) {
         id = currentInfo.createParamenterIdentifier(params.get(i), i, getCurrentFunction(pChild));
-        createUsageAndAdd(id, pParent, pChild, currentInfo.getBindedAccess(i));
+        internalIds.add(Pair.of(id, currentInfo.getBindedAccess(i)));
       }
-
     } else {
+
       fcExpression.getParameterExpressions()
-          .forEach(p -> visitStatement(pParent, pChild, p, Access.READ));
-      visitStatement(pParent, pChild, fcExpression.getFunctionNameExpression(), Access.READ);
+          .forEach(p -> internalIds.addAll(visitStatement(pChild, p, Access.READ)));
+      internalIds
+          .addAll(visitStatement(pChild, fcExpression.getFunctionNameExpression(), Access.READ));
     }
+    return internalIds;
   }
 
-  private void
-      handleStatement(AbstractState pParent, AbstractState pChild, final CStatement pStatement) {
+  private Collection<Pair<AbstractIdentifier, Access>>
+      handleStatement(AbstractState pChild, final CStatement pStatement) {
 
     if (pStatement instanceof CAssignment) {
       // assignment like "a = b" or "a = foo()"
       CAssignment assignment = (CAssignment) pStatement;
       CExpression left = assignment.getLeftHandSide();
       CRightHandSide right = assignment.getRightHandSide();
+      List<Pair<AbstractIdentifier, Access>> internalIds = new ArrayList<>();
 
       if (right instanceof CExpression) {
-        visitStatement(pParent, pChild, (CExpression) right, Access.READ);
+        internalIds.addAll(visitStatement(pChild, (CExpression) right, Access.READ));
 
       } else if (right instanceof CFunctionCallExpression) {
-        handleFunctionCallExpression(pParent, pChild, (CFunctionCallExpression) right);
+        internalIds.addAll(handleFunctionCallExpression(pChild, (CFunctionCallExpression) right));
       }
-      visitStatement(pParent, pChild, left, Access.WRITE);
+      internalIds.addAll(visitStatement(pChild, left, Access.WRITE));
+      return internalIds;
 
     } else if (pStatement instanceof CFunctionCallStatement) {
-      handleFunctionCallExpression(
-          pParent,
+      return handleFunctionCallExpression(
           pChild,
           ((CFunctionCallStatement) pStatement).getFunctionCallExpression());
 
     } else if (pStatement instanceof CExpressionStatement) {
-      visitStatement(
-          pParent,
+      return visitStatement(
           pChild,
           ((CExpressionStatement) pStatement).getExpression(),
           Access.WRITE);
     }
+    return Collections.emptySet();
   }
 
-  private void visitStatement(
-      AbstractState pParent,
+  private Collection<Pair<AbstractIdentifier, Access>>
+      visitStatement(
       AbstractState pChild,
       final CExpression expression,
       final Access access) {
-    expressionTimer.start();
-    ExpressionHandler handler = new ExpressionHandler(access, getCurrentFunction(pChild));
+    ExpressionHandler handler =
+        new ExpressionHandler(access, getCurrentFunction(pChild), varSkipper);
     expression.accept(handler);
-    expressionTimer.stop();
 
-    for (Pair<AbstractIdentifier, Access> pair : handler.getProcessedExpressions()) {
-      AbstractIdentifier id = pair.getFirst();
-      createUsageAndAdd(id, pParent, pChild, pair.getSecond());
-    }
+    return handler.getProcessedExpressions();
   }
 
   private void createUsageAndAdd(
@@ -319,10 +347,6 @@ public class UsageProcessor {
 
     SingleIdentifier singleId = usage.getId();
 
-    if (redundantIds.contains(singleId)) {
-      return;
-    }
-
     CFANode node = AbstractStates.extractLocation(pParent);
     Map<GeneralIdentifier, DataType> localInfo = precision.get(node);
 
@@ -335,13 +359,23 @@ public class UsageProcessor {
         localTimer.stop();
         return;
       } else {
-        FluentIterable<GeneralIdentifier> composedIds =
-            from(singleId.getComposedIdentifiers())
-                .filter(SingleIdentifier.class)
-                .transform(SingleIdentifier::getGeneralId);
 
-        boolean isLocal = composedIds.anyMatch(i -> localInfo.get(i) == DataType.LOCAL);
-        boolean isGlobal = composedIds.anyMatch(i -> localInfo.get(i) == DataType.GLOBAL);
+        boolean isLocal = false;
+        boolean isGlobal = false;
+
+        for (AbstractIdentifier id : singleId.getComposedIdentifiers()) {
+          if (id instanceof SingleIdentifier) {
+            GeneralIdentifier gcId = ((SingleIdentifier) id).getGeneralId();
+            DataType type = localInfo.get(gcId);
+            if (type == DataType.GLOBAL) {
+              // Add global var to statistics in any case
+              isGlobal = true;
+              break;
+            } else if (type == DataType.LOCAL) {
+              isLocal = true;
+            }
+          }
+        }
         if (isLocal && !isGlobal) {
           logger.log(
               Level.FINER, singleId + " is supposed to be local, so it wasn't add to statistics");
@@ -350,25 +384,6 @@ public class UsageProcessor {
         }
       }
       localTimer.stop();
-    }
-
-    if (varSkipper.shouldBeSkipped(singleId, usage.getCFANode().getFunctionName())) {
-      return;
-    }
-
-    if (singleId instanceof LocalVariableIdentifier && singleId.getDereference() <= 0) {
-      // we don't save in statistics ordinary local variables
-      return;
-    }
-    if (singleId instanceof StructureIdentifier
-        && !singleId.isGlobal()
-        && !singleId.isDereferenced()) {
-      // skips such cases, as 'a.b'
-      return;
-    }
-
-    if (singleId instanceof FunctionIdentifier) {
-      return;
     }
 
     logger.log(Level.FINER, "Add " + usage + " to unsafe statistics");
@@ -383,12 +398,15 @@ public class UsageProcessor {
   public void printStatistics(StatisticsWriter pWriter) {
     pWriter.put(totalTimer)
         .beginLevel()
+        .put(usageCacheTimer)
+        .put(cleaningCacheTimer)
         .put(usageTimer)
+        .put(usagePreparationTimer)
         .beginLevel()
-        .put(expressionTimer)
         .put(usageCreationTimer)
         .put(localTimer)
         .endLevel()
-        .endLevel();
+        .put("Number of useless nodes", uselessNodes.size())
+        .put("Number of cached edges", usages.size());
   }
 }

@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.usage;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.Iterator;
 import java.util.List;
@@ -94,18 +93,24 @@ public class UsageInfo implements Comparable<UsageInfo> {
   public static UsageInfo createUsageInfo(
       @NonNull Access atype, @NonNull AbstractState state, AbstractIdentifier ident) {
     if (ident instanceof SingleIdentifier) {
-      FluentIterable<CompatibleState> states =
-          AbstractStates.asIterable(state).filter(CompatibleState.class);
-      if (states.allMatch(s -> s.isRelevantFor((SingleIdentifier) ident))) {
-        UsageInfo result =
-            new UsageInfo(
-                atype,
-                AbstractStates.extractLocation(state),
-                (SingleIdentifier) ident,
-                states.transform(CompatibleState::prepareToStore).toList());
-        result.core.keyState = state;
-        return result;
+      ImmutableList.Builder<CompatibleState> storedStates = ImmutableList.builder();
+
+      for (AbstractState s : AbstractStates.asIterable(state)) {
+        if (s instanceof CompatibleState) {
+          if (!((CompatibleState) s).isRelevantFor((SingleIdentifier) ident)) {
+            return IRRELEVANT_USAGE;
+          }
+          storedStates.add(((CompatibleState) s).prepareToStore());
+        }
       }
+      UsageInfo result =
+          new UsageInfo(
+              atype,
+              AbstractStates.extractLocation(state),
+              (SingleIdentifier) ident,
+              storedStates.build());
+      result.core.keyState = state;
+      return result;
     }
     return IRRELEVANT_USAGE;
   }
