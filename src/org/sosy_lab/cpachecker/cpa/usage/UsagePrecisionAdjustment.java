@@ -40,9 +40,13 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 class UsagePrecisionAdjustment implements PrecisionAdjustment {
 
   private final PrecisionAdjustment wrappedPrecAdjustment;
+  private final UsageCPAStatistics stats;
 
-  public UsagePrecisionAdjustment(PrecisionAdjustment pWrappedPrecAdjustment) {
+  public UsagePrecisionAdjustment(
+      PrecisionAdjustment pWrappedPrecAdjustment,
+      UsageCPAStatistics pStats) {
     wrappedPrecAdjustment = pWrappedPrecAdjustment;
+    stats = pStats;
   }
 
   @Override
@@ -54,6 +58,7 @@ class UsagePrecisionAdjustment implements PrecisionAdjustment {
       AbstractState fullState)
       throws CPAException, InterruptedException {
 
+    stats.precTimer.start();
     Preconditions.checkArgument(pElement instanceof UsageState);
     UsageState element = (UsageState) pElement;
 
@@ -74,6 +79,7 @@ class UsagePrecisionAdjustment implements PrecisionAdjustment {
             fullState);
 
     if (!optionalUnwrappedResult.isPresent()) {
+      stats.precTimer.stop();
       return Optional.empty();
     }
 
@@ -85,11 +91,13 @@ class UsagePrecisionAdjustment implements PrecisionAdjustment {
 
     if ((oldElement == newElement) && (oldPrecision == newPrecision)) {
       // nothing has changed
+      stats.precTimer.stop();
       return Optional.of(PrecisionAdjustmentResult.create(pElement, oldPrecision, action));
     }
 
     UsageState resultElement = element.copy(newElement);
 
+    stats.precTimer.stop();
     return Optional.of(PrecisionAdjustmentResult.create(resultElement, newPrecision, action));
   }
 }

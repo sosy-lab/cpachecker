@@ -82,9 +82,15 @@ public class UsageCPAStatistics implements Statistics {
   private BAMMultipleCEXSubgraphComputer computer;
 
   final StatTimer transferRelationTimer = new StatTimer("Time for transfer relation");
+  final StatTimer transferForEdgeTimer = new StatTimer("Time for transfer for edge");
   final StatTimer usagePreparationTimer = new StatTimer("Time for usage transfer");
+  final StatTimer checkForSkipTimer = new StatTimer("Time for checking edge for skip");
   final StatTimer innerAnalysisTimer = new StatTimer("Time for inner analyses");
-  final StatTimer extractStatesTimer = new StatTimer("Time for state extraction");
+  final StatTimer stopTimer = new StatTimer("Time for stop operator");
+  final StatTimer innerStopTimer = new StatTimer("Time for inner stop operators");
+  final StatTimer usageStopTimer = new StatTimer("Time for usage stop operator");
+  final StatTimer precTimer = new StatTimer("Time for prec operator");
+  final StatTimer mergeTimer = new StatTimer("Time for merge operator");
   private final StatTimer printStatisticsTimer = new StatTimer("Time for printing statistics");
   private final StatTimer printUnsafesTimer = new StatTimer("Time for unsafes printing");
   // public final StatCounter numberOfStatesCounter = new StatCounter("Number of states");
@@ -106,9 +112,21 @@ public class UsageCPAStatistics implements Statistics {
 
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
     writer.put(transferRelationTimer)
+        .beginLevel()
+        .put(transferForEdgeTimer)
+        .beginLevel()
+        .put(checkForSkipTimer)
           .put(usagePreparationTimer)
           .put(innerAnalysisTimer)
-        .put(extractStatesTimer);
+        .endLevel()
+        .endLevel()
+        .put(precTimer)
+        .put(mergeTimer)
+        .put(stopTimer)
+        .beginLevel()
+        .put(usageStopTimer)
+        .put(innerStopTimer)
+        .endLevel();
 
     ReachedSet reachedSet;
     if (reached instanceof ForwardingReachedSet) {

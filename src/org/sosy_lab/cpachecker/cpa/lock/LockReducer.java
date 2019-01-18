@@ -56,14 +56,26 @@ public class LockReducer implements Reducer, StatisticsProvider {
   public class LockReducerStatistics implements Statistics {
 
     private StatTimer lockReducing = new StatTimer("Time for reducing locks");
+    private StatTimer reduceUselessLocksTimer = new StatTimer("Time for reducing useless locks");
+    private StatTimer reduceLockCountersTimer = new StatTimer("Time for reducing lock counters");
     private StatTimer lockExpanding = new StatTimer("Time for expanding locks");
+    private StatTimer expandUselessLocksTimer = new StatTimer("Time for expanding useless locks");
+    private StatTimer expandLockCountersTimer = new StatTimer("Time for expanding lock counters");
 
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       StatisticsWriter.writingStatisticsTo(pOut)
           .put(lockReducing)
+          .beginLevel()
+          .put(reduceUselessLocksTimer)
+          .put(reduceLockCountersTimer)
+          .endLevel()
           .put(lockExpanding)
+          .beginLevel()
+          .put(expandUselessLocksTimer)
+          .put(expandLockCountersTimer)
+          .endLevel()
           .put("Size of unreducable map", LockReducer.this.notReducedLocks.size());
     }
 
@@ -112,12 +124,16 @@ public class LockReducer implements Reducer, StatisticsProvider {
     Set<LockIdentifier> locksToProcess = expandedElement.getLocks();
 
     builder.reduce();
+    stats.reduceUselessLocksTimer.start();
     if (reduceUselessLocks) {
       Set<LockIdentifier> notReduce = new HashSet<>(notReducedLocks.get(pCallNode));
       builder.removeLocksExcept(Sets.union(pContext.getCapturedLocks(), notReduce));
       // All other locks are successfully removed
       locksToProcess = Sets.intersection(locksToProcess, pContext.getCapturedLocks());
     }
+    stats.reduceUselessLocksTimer.stop();
+
+    stats.reduceLockCountersTimer.start();
     switch (reduceLockCounters) {
       case BLOCK:
         locksToProcess = Sets.difference(locksToProcess, pContext.getCapturedLocks());
@@ -128,6 +144,7 @@ public class LockReducer implements Reducer, StatisticsProvider {
       case NONE:
         break;
     }
+    stats.reduceLockCountersTimer.stop();
     AbstractLockState reducedState = builder.build();
     assert getVariableExpandedState(pExpandedElement, pContext, reducedState)
         .equals(pExpandedElement);
@@ -148,6 +165,7 @@ public class LockReducer implements Reducer, StatisticsProvider {
     // Restore only what we reduced
     Set<LockIdentifier> locksToProcess = rootElement.getLocks();
 
+    stats.expandUselessLocksTimer.start();
     builder.expand(rootElement);
     if (reduceUselessLocks) {
       Set<LockIdentifier> notReduce =
@@ -157,6 +175,9 @@ public class LockReducer implements Reducer, StatisticsProvider {
           Sets.union(pReducedContext.getCapturedLocks(), notReduce));
       locksToProcess = Sets.intersection(locksToProcess, pReducedContext.getCapturedLocks());
     }
+    stats.expandUselessLocksTimer.stop();
+
+    stats.expandLockCountersTimer.start();
     switch (reduceLockCounters) {
       case BLOCK:
         locksToProcess = Sets.difference(locksToProcess, pReducedContext.getCapturedLocks());
@@ -167,6 +188,7 @@ public class LockReducer implements Reducer, StatisticsProvider {
       case NONE:
         break;
     }
+    stats.expandLockCountersTimer.stop();
     stats.lockExpanding.stop();
     return builder.build();
   }

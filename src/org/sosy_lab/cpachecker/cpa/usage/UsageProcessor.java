@@ -80,12 +80,10 @@ public class UsageProcessor {
   private Collection<SingleIdentifier> redundantIds;
 
   StatTimer totalTimer = new StatTimer("Total time for usage processing");
-  StatTimer usageTimer = new StatTimer("Time for usage extraction");
   StatTimer localTimer = new StatTimer("Time for sharedness check");
   StatTimer usagePreparationTimer = new StatTimer("Time for usage preparation");
   StatTimer usageCreationTimer = new StatTimer("Time for usage creation");
-  StatTimer usageCacheTimer = new StatTimer("Time for usage cache operations");
-  StatTimer cleaningCacheTimer = new StatTimer("Time for cleaning cache");
+  StatTimer searchingCacheTimer = new StatTimer("Time for searching in cache");
 
   public UsageProcessor(
       Configuration config,
@@ -120,42 +118,50 @@ public class UsageProcessor {
     }
 
     for (ARGState child : argState.getChildren()) {
-      CFAEdge edge = argState.getEdgeToChild(child);
-      if (edge != null) {
+      CFANode childNode = AbstractStates.extractLocation(child);
+
+      try {
+        CFAEdge edge = node.getEdgeTo(childNode);
         Collection<Pair<AbstractIdentifier, Access>> ids;
-        usageCacheTimer.start();
+
         if (usages.containsKey(edge)) {
           ids = usages.get(edge);
-          usageCacheTimer.stop();
         } else {
-          usageCacheTimer.stop();
-          usageTimer.start();
           ids = getUsagesForEdge(child, edge);
-          usageTimer.stop();
           if (!ids.isEmpty()) {
             usages.put(edge, ids);
           }
         }
+
         usagePreparationTimer.start();
         for (Pair<AbstractIdentifier, Access> pair : ids) {
           AbstractIdentifier id = pair.getFirst();
-          if (redundantIds.contains(id)) {
+          UsageState uState = UsageState.get(pState);
+          id = uState.getLinksIfNecessary(id);
+
+          searchingCacheTimer.start();
+          boolean b = redundantIds.contains(id);
+          searchingCacheTimer.stop();
+          if (b) {
             continue;
           }
-          createUsageAndAdd(id, pState, child, pair.getSecond());
+          createUsageAndAdd(id, node, child, pair.getSecond());
         }
         usagePreparationTimer.stop();
+
+      } catch (IllegalArgumentException e) {
+        // No edge, for example, due to BAM
+        // Note, function call edge was already handled, we do not miss it
+        continue;
       }
     }
 
     if (result.isEmpty()) {
       uselessNodes.add(node);
-      cleaningCacheTimer.start();
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         CFAEdge e = node.getLeavingEdge(i);
         usages.remove(e);
       }
-      cleaningCacheTimer.stop();
     }
     totalTimer.stop();
     return result;
@@ -330,13 +336,11 @@ public class UsageProcessor {
 
   private void createUsageAndAdd(
       AbstractIdentifier pId,
-      AbstractState pParent,
+      CFANode pNode,
       AbstractState pChild,
       Access pAccess) {
 
     usageCreationTimer.start();
-    UsageState uState = UsageState.get(pParent);
-    pId = uState.getLinksIfNecessary(pId);
     UsageInfo usage = UsageInfo.createUsageInfo(pAccess, pChild, pId);
     usageCreationTimer.stop();
 
@@ -345,13 +349,11 @@ public class UsageProcessor {
       return;
     }
 
-    SingleIdentifier singleId = usage.getId();
+    localTimer.start();
+    Map<GeneralIdentifier, DataType> localInfo = precision.get(pNode);
 
-    CFANode node = AbstractStates.extractLocation(pParent);
-    Map<GeneralIdentifier, DataType> localInfo = precision.get(node);
-
-    if (localInfo != null) {
-      localTimer.start();
+    if (localInfo != null && localInfo.containsValue(DataType.LOCAL)) {
+      SingleIdentifier singleId = usage.getId();
       GeneralIdentifier gId = singleId.getGeneralId();
       if (localInfo.get(gId) == DataType.LOCAL) {
         logger.log(
@@ -383,9 +385,9 @@ public class UsageProcessor {
           return;
         }
       }
-      localTimer.stop();
     }
 
+    localTimer.stop();
     logger.log(Level.FINER, "Add " + usage + " to unsafe statistics");
 
     result.add(usage);
@@ -398,11 +400,9 @@ public class UsageProcessor {
   public void printStatistics(StatisticsWriter pWriter) {
     pWriter.put(totalTimer)
         .beginLevel()
-        .put(usageCacheTimer)
-        .put(cleaningCacheTimer)
-        .put(usageTimer)
         .put(usagePreparationTimer)
         .beginLevel()
+        .put(searchingCacheTimer)
         .put(usageCreationTimer)
         .put(localTimer)
         .endLevel()

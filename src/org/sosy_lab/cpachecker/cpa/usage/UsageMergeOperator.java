@@ -31,15 +31,18 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class UsageMergeOperator implements MergeOperator {
 
   private final MergeOperator wrappedMerge;
+  private final UsageCPAStatistics stats;
 
-  public UsageMergeOperator(MergeOperator wrapped) {
+  public UsageMergeOperator(MergeOperator wrapped, UsageCPAStatistics pStats) {
     wrappedMerge = wrapped;
+    stats = pStats;
   }
 
   @Override
   public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision)
       throws CPAException, InterruptedException {
 
+    stats.mergeTimer.start();
     UsageState uState1 = (UsageState) pState1;
     UsageState uState2 = (UsageState) pState2;
 
@@ -60,8 +63,10 @@ public class UsageMergeOperator implements MergeOperator {
     }
 
     if (mergedState.equals(wrappedState2) && result.equals(uState2)) {
+      stats.mergeTimer.stop();
       return pState2;
     } else {
+      stats.mergeTimer.stop();
       return result;
     }
   }

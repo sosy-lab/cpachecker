@@ -85,6 +85,9 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
   public static class LockStatistics implements Statistics {
 
     private final StatTimer transferTimer = new StatTimer("Time for transfer");
+    private final StatTimer operationsTimer = new StatTimer("Time for extracting effects");
+    private final StatTimer filteringTimer = new StatTimer("Time for filtering effects");
+    private final StatTimer applyTimer = new StatTimer("Time for applying effects");
     private final StatInt lockEffects = new StatInt(StatKind.SUM, "Number of effects");
     private final StatInt locksInState = new StatInt(StatKind.AVG, "Number of locks in state");
     private final StatInt locksInStateWithLocks =
@@ -93,7 +96,12 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       StatisticsWriter w = StatisticsWriter.writingStatisticsTo(pOut)
-          .put(transferTimer)
+              .put(transferTimer)
+              .beginLevel()
+              .put(operationsTimer)
+              .put(filteringTimer)
+              .put(applyTimer)
+              .endLevel()
           .put(lockEffects)
           .put(locksInState)
           .put(locksInStateWithLocks);
@@ -140,18 +148,24 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
 
     stats.transferTimer.start();
 
+    stats.operationsTimer.start();
     // First, determine operations with locks
     List<AbstractLockEffect> toProcess = determineOperations(cfaEdge);
     stats.lockEffects.setNextValue(toProcess.size());
+    stats.operationsTimer.stop();
 
     if (pPrecision instanceof SingletonPrecision) {
       // From refiner
     } else {
       LockPrecision lockPrecision = (LockPrecision) pPrecision;
+      stats.filteringTimer.start();
       toProcess = lockPrecision.filter(cfaEdge.getPredecessor(), toProcess);
+      stats.filteringTimer.stop();
     }
 
+    stats.applyTimer.start();
     AbstractLockState successor = applyEffects(lockStatisticsElement, toProcess);
+    stats.applyTimer.stop();
 
     stats.transferTimer.stop();
 

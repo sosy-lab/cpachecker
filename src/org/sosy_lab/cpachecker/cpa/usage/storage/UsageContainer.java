@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.usage.storage;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -64,6 +63,8 @@ public class UsageContainer {
 
   private final StatTimer resetTimer = new StatTimer("Time for reseting unsafes");
   private final StatTimer unsafeDetectionTimer = new StatTimer("Time for unsafe detection");
+  private final StatTimer searchingInCachesTimer = new StatTimer("Time for searching in caches");
+  private final StatTimer addingToSetTimer = new StatTimer("Time for adding ti usage point set");
 
   private boolean usagesCalculated = false;
   private boolean oneTotalIteration = false;
@@ -78,10 +79,12 @@ public class UsageContainer {
 
   public void add(SingleIdentifier pId, UsageInfo pUsage) {
     SingleIdentifier id = pId;
+    searchingInCachesTimer.start();
     if (id instanceof StructureIdentifier) {
       id = ((StructureIdentifier) id).toStructureFieldIdentifier();
     }
     if (oneTotalIteration && !unrefinedIds.containsKey(id)) {
+      searchingInCachesTimer.stop();
       return;
     }
 
@@ -94,27 +97,31 @@ public class UsageContainer {
     } else {
       uset = unrefinedIds.get(id);
     }
+    searchingInCachesTimer.stop();
 
+    addingToSetTimer.start();
     uset.add(pUsage);
+    addingToSetTimer.stop();
   }
 
   private void calculateUnsafesIfNecessary() {
     if (!usagesCalculated) {
       unsafeDetectionTimer.start();
       usagesCalculated = true;
-      Set<SingleIdentifier> toDelete = new HashSet<>();
 
-      for (Entry<SingleIdentifier, UnrefinedUsagePointSet> entry : unrefinedIds.entrySet()) {
+      Iterator<Entry<SingleIdentifier, UnrefinedUsagePointSet>> iterator =
+          unrefinedIds.entrySet().iterator();
+      while (iterator.hasNext()) {
+        Entry<SingleIdentifier, UnrefinedUsagePointSet> entry = iterator.next();
         UnrefinedUsagePointSet tmpList = entry.getValue();
         if (detector.isUnsafe(tmpList)) {
           if (!oneTotalIteration) {
             initialUsages += tmpList.size();
           }
         } else {
-          toDelete.add(entry.getKey());
+          iterator.remove();
         }
       }
-      toDelete.forEach(unrefinedIds::remove);
 
       if (!oneTotalIteration) {
         initialUnsafes = new TreeSet<>(unrefinedIds.keySet());
@@ -243,7 +250,9 @@ public class UsageContainer {
         .put("Total amount of failed unsafes", generalFailedSize)
         .put(failedUsages)
         .put(resetTimer)
-        .put(unsafeDetectionTimer);
+        .put(unsafeDetectionTimer)
+        .put(searchingInCachesTimer)
+        .put(addingToSetTimer)
   }
 
   public String getUnsafeStatus() {
@@ -256,6 +265,6 @@ public class UsageContainer {
   }
 
   public Set<SingleIdentifier> getNotInterestingUnsafes() {
-    return Sets.union(falseUnsafes, refinedIds.keySet());
+    return new TreeSet<>(Sets.union(falseUnsafes, refinedIds.keySet()));
   }
 }
