@@ -92,7 +92,7 @@ class ClassInstanceCreationCFABuilder implements ClassInstanceCreationAppendable
                     declaration,
                     Optional.empty(),
                     thisArg,
-                    true))));
+                    isKnownFunctionDeclaration))));
     return resultVariableId;
   }
 
