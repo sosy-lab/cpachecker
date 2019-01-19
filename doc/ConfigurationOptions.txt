@@ -1955,6 +1955,9 @@ cpa.predicate.invariants.useGlobalInvariants = true
 # interpolation.)
 cpa.predicate.invariants.useStrongInvariantsOnly = true
 
+# Log edge formulas for debugging purposes
+cpa.predicate.js.logEdgeFormulas = false
+
 # Maximum count of different constants used as string or field name
 cpa.predicate.js.maxFieldNameCount = 3
 
