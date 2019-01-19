@@ -31,6 +31,8 @@ import static org.mockito.Mockito.verify;
 import com.google.common.truth.Truth;
 import java.util.List;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
+import org.eclipse.wst.jsdt.core.dom.FunctionExpression;
+import org.eclipse.wst.jsdt.core.dom.ParenthesizedExpression;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
@@ -81,7 +83,9 @@ public class FunctionDeclarationCFABuilderTest extends CFABuilderTestBase {
   @Test
   public void testAnonymousFunctionDeclaration() {
     final FunctionDeclaration declaration =
-        parseStatement(FunctionDeclaration.class, "function () {}");
+        ((FunctionExpression)
+                parseExpression(ParenthesizedExpression.class, "(function () {})").getExpression())
+            .getMethod();
 
     builder.setStatementAppendable(mock(StatementAppendable.class));
 
@@ -92,7 +96,7 @@ public class FunctionDeclarationCFABuilderTest extends CFABuilderTestBase {
     final ParseResult parseResult = builder.getParseResult();
     Truth.assertThat(parseResult.getFunctions()).hasSize(1);
     final String functionKey = parseResult.getFunctions().firstKey();
-    Truth.assertThat(functionKey).startsWith("__CPACHECKER_ANONYMOUS_FUNCTION_");
+    Truth.assertThat(functionKey).startsWith("CPAchecker_FunctionExpression_");
     final FunctionEntryNode functionEntryNode = parseResult.getFunctions().get(functionKey);
     Truth.assertThat(functionEntryNode).isNotNull();
     Truth.assertThat(functionEntryNode.getFunctionDefinition()).isEqualTo(result);

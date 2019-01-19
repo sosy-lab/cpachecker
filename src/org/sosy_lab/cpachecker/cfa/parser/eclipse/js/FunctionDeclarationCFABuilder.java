@@ -27,6 +27,7 @@ import com.google.common.base.Optional;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
+import org.eclipse.wst.jsdt.core.dom.FunctionExpression;
 import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.eclipse.wst.jsdt.core.dom.SingleVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.CFASecondPassBuilder;
@@ -145,8 +146,15 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
   }
 
   public static String getFunctionName(final FunctionDeclaration node) {
-    return node.getMethodName() == null
-        ? "__CPACHECKER_ANONYMOUS_FUNCTION_" + node.hashCode()
-        : ((SimpleName) node.getMethodName()).getIdentifier();
+    final String originalName =
+        node.getMethodName() == null ? "" : ((SimpleName) node.getMethodName()).getIdentifier();
+    // Declarations of function expressions get a prefix added to their name.
+    // Thereby, they do not override functions that are declared in the scope with the same name;
+    // like in:
+    //   function f() {}
+    //   var g = function f() {};
+    return node.getParent() instanceof FunctionExpression
+        ? "CPAchecker_FunctionExpression_" + originalName + "_" + node.hashCode()
+        : originalName;
   }
 }
