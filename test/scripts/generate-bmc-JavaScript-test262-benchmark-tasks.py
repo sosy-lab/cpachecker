@@ -25,6 +25,10 @@ def contains_with_statement(file_content):
 
 
 def is_skip(file):
+    """
+    Return if file should be skipped (contains unsupported features)
+    :type file: Path
+    """
     file_content = file.read_text()
     return (contains_eval(file_content)
             or contains_syntax_error(file_content)
