@@ -102,6 +102,8 @@ public class JSToFormulaConverter extends ManagerWithGlobalContext {
   @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
   private final Set<JSVariableDeclaration> globalDeclarations = new HashSet<>();
 
+  private final EdgeFormulaLogger edgeFormulaLogger;
+
   public JSToFormulaConverter(
       final FormulaEncodingOptions pOptions,
       final JSFormulaEncodingOptions pJSOptions,
@@ -117,6 +119,7 @@ public class JSToFormulaConverter extends ManagerWithGlobalContext {
             pShutdownNotifier,
             pDirection,
             pFmgr));
+    edgeFormulaLogger = new EdgeFormulaLogger(pJSOptions.logEdgeFormulas, logger);
   }
 
   @SuppressWarnings("SameParameterValue")
@@ -165,6 +168,8 @@ public class JSToFormulaConverter extends ManagerWithGlobalContext {
       // i.e. no writes to SSAMap, no branching and length should stay the same
       return oldFormula;
     }
+
+    edgeFormulaLogger.log(edge, edgeFormula);
 
     BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;

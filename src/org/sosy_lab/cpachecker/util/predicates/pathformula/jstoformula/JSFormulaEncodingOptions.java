@@ -34,6 +34,9 @@ import org.sosy_lab.common.configuration.Options;
  */
 @Options(prefix = "cpa.predicate.js")
 public class JSFormulaEncodingOptions {
+  @Option(secure = true, description = "Log edge formulas for debugging purposes")
+  boolean logEdgeFormulas = false;
+
   // TODO this option should be removed as soon as NaN and float interpolation can be used together
   @Option(secure = true, description = "Do not check for NaN in operations")
   boolean useNaN = true;
