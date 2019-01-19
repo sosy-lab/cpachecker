@@ -28,7 +28,6 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Ty
 
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
-import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSDeclaredByExpression;
@@ -65,7 +64,6 @@ class JSFunctionDeclarationFormulaManager extends ManagerWithEdgeContext {
 
   BooleanFormula declareFunction(final JSFunctionDeclaration pDeclaration)
       throws UnrecognizedCodeException {
-    logger.log(Level.WARNING, "declare function:   " + pDeclaration);
     final IntegerFormula functionObjectId = createFunctionObject();
     final IntegerFormula funObjVar = ctx.scopeMgr.declareScopedVariable(pDeclaration);
     return bfmgr.and(
