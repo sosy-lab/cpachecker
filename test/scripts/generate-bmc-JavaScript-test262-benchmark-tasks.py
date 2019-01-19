@@ -36,6 +36,7 @@ def is_skip(file):
             or '.isPrototypeOf(' in file_content
             or 'with(' in file_content
             or 'arguments[' in file_content
+            or 'arguments.length' in file_content
             or 'Math.' in file_content
             or 'es6id:' in file_content
             or 'features: [default-parameters' in file_content
