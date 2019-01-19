@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFieldAccess;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSNullLiteralExpression;
@@ -315,18 +314,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
 
   @Override
   public TypedValue visit(final JSDeclaredByExpression pDeclaredByExpression) {
-    // TODO move code of case to JSFunctionDeclarationFormulaManager
-    assert pDeclaredByExpression.getIdExpression().getDeclaration() != null;
-    final IntegerFormula variable =
-        ctx.scopeMgr.scopedVariable(pDeclaredByExpression.getIdExpression().getDeclaration());
-    final IntegerFormula functionDeclarationId =
-        fmgr.makeNumber(
-            Types.FUNCTION_DECLARATION_TYPE,
-            functionDeclarationIds.get(pDeclaredByExpression.getJsFunctionDeclaration()));
-    return tvmgr.createBooleanValue(
-        fmgr.makeEqual(
-            jsFunDeclMgr.declarationOf(typedVarValues.functionValue(variable)),
-            functionDeclarationId));
+    return ctx.jsFunDeclMgr.makeDeclaredBy(pDeclaredByExpression);
   }
 
   @Override
@@ -337,22 +325,6 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
         return handlePredefined(pIdExpression);
       }
       declaration = globalDeclarationsMgr.get(pIdExpression);
-    } else if (declaration instanceof JSFunctionDeclaration) {
-      // TODO move code of case to JSFunctionDeclarationFormulaManager
-      final JSFunctionDeclaration functionDeclaration = (JSFunctionDeclaration) declaration;
-      final IntegerFormula functionDeclarationId =
-          fmgr.makeNumber(Types.FUNCTION_TYPE, functionDeclarationIds.get(functionDeclaration));
-      final IntegerFormula functionValueFormula =
-          functionDeclaration.isGlobal()
-              ? functionDeclarationId
-              : ctx.scopeMgr.scopedVariable(functionDeclaration);
-      ctx.constraints.addConstraint(
-          fmgr.makeEqual(jsFunDeclMgr.declarationOf(functionValueFormula), functionDeclarationId));
-      // TODO function might be declared outside of current function
-      ctx.constraints.addConstraint(
-          fmgr.makeEqual(
-              ctx.scopeMgr.scopeOf(functionValueFormula), ctx.scopeMgr.getCurrentScope()));
-      return tvmgr.createFunctionValue(functionValueFormula);
     }
     final IntegerFormula variable = ctx.scopeMgr.scopedVariable(declaration);
     return new TypedValue(typedVarValues.typeof(variable), variable);

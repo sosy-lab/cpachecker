@@ -26,7 +26,18 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.FUNCTION_DECLARATION_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.FUNCTION_TYPE;
 
-import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
+import com.google.common.collect.ImmutableList;
+import java.util.Collections;
+import java.util.logging.Level;
+import javax.annotation.Nonnull;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSDeclaredByExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSObjectLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSObjectLiteralField;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
@@ -39,17 +50,61 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
  * @see org.sosy_lab.cpachecker.cfa.ast.js.JSDeclaredByExpression
  * @see org.sosy_lab.cpachecker.cfa.parser.eclipse.js.UnknownFunctionCallerDeclarationBuilder
  */
-class JSFunctionDeclarationFormulaManager {
-  private final FunctionFormulaManagerView ffmgr;
+class JSFunctionDeclarationFormulaManager extends ManagerWithEdgeContext {
   private final FunctionDeclaration<IntegerFormula> declarationOfDeclaration;
 
-  JSFunctionDeclarationFormulaManager(final FunctionFormulaManagerView pFfmgr) {
-    ffmgr = pFfmgr;
+  JSFunctionDeclarationFormulaManager(final EdgeManagerContext pCtx) {
+    super(pCtx);
     declarationOfDeclaration =
         ffmgr.declareUF("declarationOf", FUNCTION_DECLARATION_TYPE, FUNCTION_TYPE);
   }
 
-  IntegerFormula declarationOf(final IntegerFormula pFunctionObject) {
+  private IntegerFormula declarationOf(final IntegerFormula pFunctionObject) {
     return ffmgr.callUF(declarationOfDeclaration, pFunctionObject);
+  }
+
+  BooleanFormula declareFunction(final JSFunctionDeclaration pDeclaration)
+      throws UnrecognizedCodeException {
+    logger.log(Level.WARNING, "declare function:   " + pDeclaration);
+    final IntegerFormula functionObjectId = createFunctionObject();
+    final IntegerFormula funObjVar = ctx.scopeMgr.declareScopedVariable(pDeclaration);
+    return bfmgr.and(
+        fmgr.assignment(typedVarValues.typeof(funObjVar), typeTags.FUNCTION),
+        fmgr.makeEqual(typedVarValues.functionValue(funObjVar), functionObjectId),
+        fmgr.makeEqual(typedVarValues.objectValue(funObjVar), functionObjectId),
+        fmgr.makeEqual(ctx.scopeMgr.scopeOf(functionObjectId), ctx.scopeMgr.getCurrentScope()),
+        fmgr.makeEqual(declarationOf(functionObjectId), getFunctionDeclarationId(pDeclaration)));
+  }
+
+  @Nonnull
+  private IntegerFormula createFunctionObject() throws UnrecognizedCodeException {
+    // TODO implement without creating CFA expressions
+    return (IntegerFormula)
+        ctx.objMgr
+            .createObject(
+                new JSObjectLiteralExpression(
+                    FileLocation.DUMMY,
+                    ImmutableList.of(
+                        new JSObjectLiteralField(
+                            "prototype",
+                            new JSObjectLiteralExpression(
+                                FileLocation.DUMMY, Collections.emptyList())))))
+            .getValue();
+  }
+
+  TypedValue makeDeclaredBy(final JSDeclaredByExpression pDeclaredByExpression) {
+    final JSSimpleDeclaration variableDeclaration =
+        pDeclaredByExpression.getIdExpression().getDeclaration();
+    assert variableDeclaration != null;
+    return tvmgr.createBooleanValue(
+        fmgr.makeEqual(
+            declarationOf(
+                typedVarValues.functionValue(ctx.scopeMgr.scopedVariable(variableDeclaration))),
+            getFunctionDeclarationId(pDeclaredByExpression.getJsFunctionDeclaration())));
+  }
+
+  @Nonnull
+  private IntegerFormula getFunctionDeclarationId(final JSFunctionDeclaration pDeclaration) {
+    return fmgr.makeNumber(FUNCTION_DECLARATION_TYPE, functionDeclarationIds.get(pDeclaration));
   }
 }

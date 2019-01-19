@@ -48,6 +48,7 @@ class EdgeManagerContext {
   final ObjectFormulaManager objMgr;
   final PropertyAccessManager propMgr;
   final VariableScopeManager scopeMgr;
+  final JSFunctionDeclarationFormulaManager jsFunDeclMgr;
 
   EdgeManagerContext(
       final GlobalManagerContext pGlobal,
@@ -72,6 +73,7 @@ class EdgeManagerContext {
     objMgr = new ObjectFormulaManager(this);
     propMgr = new PropertyAccessManager(this);
     scopeMgr = new VariableScopeManager(this);
+    jsFunDeclMgr = new JSFunctionDeclarationFormulaManager(this);
   }
 
   EdgeManagerContext copy(final String pFunction) {

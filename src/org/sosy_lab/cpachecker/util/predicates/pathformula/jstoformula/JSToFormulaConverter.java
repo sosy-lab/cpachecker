@@ -29,7 +29,6 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Ty
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -297,16 +296,7 @@ public class JSToFormulaConverter extends ManagerWithGlobalContext {
       throws UnrecognizedCodeException {
 
     if (pDeclaration instanceof JSFunctionDeclaration) {
-      // TODO implement without creating CFA expressions
-      return ctx.assignmentMgr.makeAssignment(
-          new JSIdExpression(FileLocation.DUMMY, pDeclaration),
-          new JSObjectLiteralExpression(
-              FileLocation.DUMMY,
-              ImmutableList.of(
-                  new JSObjectLiteralField(
-                      "prototype",
-                      new JSObjectLiteralExpression(
-                          FileLocation.DUMMY, Collections.emptyList())))));
+      return ctx.jsFunDeclMgr.declareFunction((JSFunctionDeclaration) pDeclaration);
     }
     if (!(pDeclaration instanceof JSVariableDeclaration)) {
       // struct prototype, function declaration, typedef etc.

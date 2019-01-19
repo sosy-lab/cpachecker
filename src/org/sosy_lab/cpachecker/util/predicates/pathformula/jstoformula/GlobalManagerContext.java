@@ -49,7 +49,6 @@ class GlobalManagerContext {
   final ObjectIdFormulaManager objIdMgr;
   final StringFormulaManager strMgr;
   final ValueConverterManager valConv;
-  final JSFunctionDeclarationFormulaManager jsFunDeclMgr;
   final GlobalDeclarationManager globalDeclarationsMgr;
 
   final FormulaManagerView fmgr;
@@ -87,7 +86,6 @@ class GlobalManagerContext {
     functionScopeManager = new FunctionScopeManager();
     strMgr = new StringFormulaManager(pFmgr, pJSOptions.maxFieldNameCount);
     valConv = new ValueConverterManager(typedVarValues, typeTags, tvmgr, strMgr, fmgr);
-    jsFunDeclMgr = new JSFunctionDeclarationFormulaManager(ffmgr);
     globalDeclarationsMgr = new GlobalDeclarationManager();
   }
 }

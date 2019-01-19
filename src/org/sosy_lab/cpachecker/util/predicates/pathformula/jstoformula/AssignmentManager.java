@@ -144,7 +144,8 @@ class AssignmentManager extends ManagerWithEdgeContext {
     if (rType.equals(typeTags.FUNCTION)) {
       return bfmgr.and(
           fmgr.assignment(typedVarValues.typeof(pLeft), typeTags.FUNCTION),
-          fmgr.makeEqual(typedVarValues.functionValue(pLeft), pRight.getValue()));
+          fmgr.makeEqual(typedVarValues.functionValue(pLeft), pRight.getValue()),
+          fmgr.makeEqual(typedVarValues.objectValue(pLeft), pRight.getValue()));
     }
     if (rType.equals(typeTags.NUMBER)) {
       return bfmgr.and(

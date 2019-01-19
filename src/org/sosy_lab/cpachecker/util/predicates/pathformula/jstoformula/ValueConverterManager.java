@@ -113,16 +113,15 @@ class ValueConverterManager {
             typeTags.BOOLEAN,
             typeTags.NUMBER,
             typeTags.STRING,
-            typeTags.FUNCTION,
             typeTags.UNDEFINED)
         .contains(type)) {
       return unknownObjectValue;
-    } else if (type.equals(typeTags.OBJECT)) {
+    } else if (type.equals(typeTags.OBJECT) || type.equals(typeTags.FUNCTION)) {
       return (IntegerFormula) pValue.getValue();
     }
     final IntegerFormula variable = (IntegerFormula) pValue.getValue();
     return bfmgr.ifThenElse(
-        fmgr.makeEqual(type, typeTags.OBJECT),
+        bfmgr.or(fmgr.makeEqual(type, typeTags.OBJECT), fmgr.makeEqual(type, typeTags.FUNCTION)),
         typedVarValues.objectValue(variable),
         unknownObjectValue);
   }
