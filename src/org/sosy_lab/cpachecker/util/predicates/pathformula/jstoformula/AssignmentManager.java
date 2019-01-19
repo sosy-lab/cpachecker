@@ -168,9 +168,10 @@ class AssignmentManager extends ManagerWithEdgeContext {
             fmgr.makeAnd(
                 fmgr.makeEqual(typedVarValues.typeof(pLeft), typeTags.BOOLEAN),
                 fmgr.makeEqual(typedVarValues.booleanValue(pLeft), valConv.toBoolean(pRight))),
-            fmgr.makeAnd(
+            bfmgr.and(
                 fmgr.makeEqual(typedVarValues.typeof(pLeft), typeTags.FUNCTION),
-                fmgr.makeEqual(typedVarValues.functionValue(pLeft), valConv.toFunction(pRight))),
+                fmgr.makeEqual(typedVarValues.functionValue(pLeft), valConv.toFunction(pRight)),
+                fmgr.makeEqual(typedVarValues.objectValue(pLeft), valConv.toObject(pRight))),
             fmgr.makeAnd(
                 fmgr.makeEqual(typedVarValues.typeof(pLeft), typeTags.NUMBER),
                 fmgr.makeEqual(typedVarValues.numberValue(pLeft), valConv.toNumber(pRight))),
