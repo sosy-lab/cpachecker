@@ -59,7 +59,9 @@ class ClassInstanceCreationCFABuilder implements ClassInstanceCreationAppendable
       final JavaScriptCFABuilder pBuilder, final ClassInstanceCreation pNode) {
     final JSExpression function =
         pNode.getMember() != null
-            ? pBuilder.resolve((SimpleName) pNode.getMember())
+            ? pNode.getMember() instanceof SimpleName
+                ? pBuilder.resolve((SimpleName) pNode.getMember())
+                : pBuilder.append(pNode.getMember()) // function expression
             : pBuilder.append(pNode.getExpression());
     final boolean isKnownFunctionDeclaration =
         (function instanceof JSIdExpression)
