@@ -17,7 +17,6 @@
         <include>../programs/javascript/*/*.yml</include>
         <include>../programs/javascript/*/*/*.yml</include>
         <exclude>../programs/javascript/binary-expressions.yml</exclude>
-        <excludesfile>unimplemented-features-JavaScript.set</excludesfile>
         <excludesfile>predicateAnalysis-JavaScript-encodeFloatAsRational.set</excludesfile>
         <propertyfile>../../test/config/specification/JavaScriptAssertion.spc</propertyfile>
     </tasks>
