@@ -1,0 +1,112 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN"
+        "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="240 s" hardtimelimit="300 s" memlimit="4000 MB"
+           cpuCores="2">
+    <!--
+        Download and generate task definition files:
+            git clone https://github.com/tc39/test262 test/programs/javascript-test262-benchmark
+            git checkout af984c01f6f89d46bc0789af70c599c88c033d0b
+            rm -rf test/programs/javascript-test262-benchmark/.git
+            rm -rf test/programs/javascript-test262-benchmark/.gitignore
+            python3 test/scripts/generate-javascript-test262-benchmark-task-definition-files.py
+        Run this benchmark:
+            scripts/benchmark.py test/test-sets/bmc-JavaScript-test262-benchmark.xml
+    -->
+
+
+    <option name="-noout"/>
+    <option name="-heap">300M</option>
+    <option name="-setprop">cpa.loopbound.maxLoopIterations=10</option>
+    <option name="-setprop">cpa.predicate.js.maxFieldNameCount=20</option>
+    <option name="-setprop">solver.solver=z3</option>
+
+    <rundefinition>
+        <option name="-bmc-JavaScript"/>
+    </rundefinition>
+
+    <tasks>
+        <include>../programs/javascript-test262-benchmark/test/language/statements/*/*.yml</include>
+
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/async-function/*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/async-generator/*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/class/*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for-await-of/*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for-in/*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for-of/*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/generators/*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/with/*.yml</exclude>
+
+        <!-- already excluded by task generator script -->
+        <!--<exclude>../programs/javascript-test262-benchmark/test/language/statements/const/*.yml</exclude>-->
+        <!--<exclude>../programs/javascript-test262-benchmark/test/language/statements/debugger/*.yml</exclude>-->
+        <!--<exclude>../programs/javascript-test262-benchmark/test/language/statements/let/*.yml</exclude>-->
+        <!--<exclude>../programs/javascript-test262-benchmark/test/language/statements/throw/*.yml</exclude>-->
+        <!--<exclude>../programs/javascript-test262-benchmark/test/language/statements/try/*.yml</exclude>-->
+
+        <!-- default parameters are not supported yet -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/scope-paramsbody-var-open.yml</exclude>
+
+        <!-- only syntax checks -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/*/let-block-with-newline*.yml</exclude>
+
+        <!-- recursion is not supported yet -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/dflt-params-trailing-comma_*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/params-trailing-comma-multiple_*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/params-trailing-comma-single_*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.2_A8_T3.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A3_T1.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A3_T2.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A3_T3.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A9.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S14_A2.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T4.yml</exclude>
+
+        <!-- TODO constructor with return -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.2_A8_T2.yml</exclude>
+
+        <!-- TODO Nodes in CFA but not reachable through traversal -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S14_A5_T1.yml</exclude>
+
+        <!-- TODO Unknown kind of expression (not handled yet): ListExpression -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/scope-body-lex-open.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-open-case.yml</exclude>
+
+        <!-- TODO Assume edge can not be added since another leaving edge already exists -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-open-dflt.yml</exclude>
+
+        <!-- TODO Array sort and toString -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.1_A5_T1.yml</exclude>
+
+        <!-- TODO Timeout -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/S12.6.3_A14.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/scope-body-lex-boundary_*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/return/12.9-1.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T1.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T3.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-close-dflt.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A1.yml</exclude>
+
+        <!-- TODO unknown -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/continue/12.7-1.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A4_T2.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A4_T4.yml</exclude>
+
+        <!-- TODO function name contains unicode -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S14_A5_T2.yml</exclude>
+
+        <!-- TODO function arguments variable -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A15_T5.yml</exclude>
+
+        <!-- TODO let scope -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/block/scope-lex-close.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-close-case.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/block/scope-lex-open.yml</exclude>
+
+        <!-- TODO wrong result (false) -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A4_T3.yml</exclude>
+
+        <!--<propertyfile>../../config/specification/JavaScriptAssertion.spc</propertyfile>-->
+        <propertyfile>../config/specification/JavaScriptAssertion.spc</propertyfile>
+    </tasks>
+</benchmark>
