@@ -73,6 +73,7 @@ if not assert_lib_file.exists():
     print('Assertion library file {} not found'.format(assert_lib_file))
     exit(1)
 
+yml_file_names = set()
 for file in project_root_dir.glob(
         'test/programs/javascript-test262-benchmark/test/language/statements/*/*.js'):
     if is_skip(file):
@@ -82,7 +83,13 @@ for file in project_root_dir.glob(
         print('GENERATE TASK FOR {}'.format(file))
     relative_path_to_property_file = os.path.relpath(str(property_file), str(file.parent))
     relative_path_to_assert_lib_file = os.path.relpath(str(assert_lib_file), str(file.parent))
-    yml_file = file.parent / (file.stem + '.yml')
+    yml_file_name = file.stem + '.yml'
+    i = 0
+    while yml_file_name in yml_file_names:
+        yml_file_name = '{}_{}.yml'.format(file.stem, i)
+        i = i + 1
+    yml_file_names.add(yml_file_name)
+    yml_file = file.parent / yml_file_name
     yml_file.write_text(textwrap.dedent("""\
         format_version: "1.0"
         input_files:
