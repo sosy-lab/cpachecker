@@ -38,6 +38,7 @@ def is_skip(file):
             or 'delete ' in file_content  # delete expression
             or 'delete(' in file_content  # delete expression
             or 'new function ' in file_content  # constructor call of function expression
+            or '= eval;' in file_content  # code evaluation is not supported yet
             or 'Object.getOwnPropertyDescriptor(' in file_content
             or '.hasOwnProperty(' in file_content
             or '.isPrototypeOf(' in file_content
