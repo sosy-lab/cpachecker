@@ -1,6 +1,6 @@
 function __VERIFIER_error() {}
 
-function $ERROR() {
+function $ERROR(message) {
   __VERIFIER_error();
 }
 
