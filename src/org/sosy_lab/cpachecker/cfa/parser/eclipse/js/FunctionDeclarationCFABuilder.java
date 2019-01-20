@@ -48,8 +48,7 @@ import org.sosy_lab.cpachecker.cfa.model.js.JSReturnStatementEdge;
 @SuppressWarnings("ResultOfMethodCallIgnored")
 class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
 
-  @Override
-  public JSFunctionDeclaration append(
+  private JSFunctionDeclaration getJSFunctionDeclaration(
       final JavaScriptCFABuilder pBuilder, final FunctionDeclaration pFunctionDeclaration) {
     final Scope currentScope = pBuilder.getScope();
     final List<JSParameterDeclaration> parameters =
@@ -57,14 +56,21 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
     final String originalFunctionName = getFunctionName(pFunctionDeclaration);
     final String functionName = currentScope.uniquifyName(originalFunctionName);
     final String functionQualifiedName = currentScope.qualifiedFunctionNameOf(functionName);
+    return new JSFunctionDeclaration(
+        pBuilder.getFileLocation(pFunctionDeclaration),
+        ScopeConverter.toCFAScope(currentScope),
+        functionName,
+        originalFunctionName,
+        functionQualifiedName,
+        parameters);
+  }
+
+  @Override
+  public JSFunctionDeclaration append(
+      final JavaScriptCFABuilder pBuilder, final FunctionDeclaration pFunctionDeclaration) {
     final JSFunctionDeclaration jsFunctionDeclaration =
-        new JSFunctionDeclaration(
-            pBuilder.getFileLocation(pFunctionDeclaration),
-            ScopeConverter.toCFAScope(pBuilder.getScope()),
-            functionName,
-            originalFunctionName,
-            functionQualifiedName,
-            parameters);
+        getJSFunctionDeclaration(pBuilder, pFunctionDeclaration);
+    final Scope currentScope = pBuilder.getScope();
     currentScope.addDeclaration(jsFunctionDeclaration);
     pBuilder.appendEdge(JSDeclarationEdge.of(jsFunctionDeclaration));
     final FunctionScopeImpl functionScope =
@@ -80,7 +86,8 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
             new JSInitializerExpression(
                 FileLocation.DUMMY, new JSUndefinedLiteralExpression(FileLocation.DUMMY)));
 
-    final FunctionExitNode exitNode = new FunctionExitNode(functionQualifiedName);
+    final FunctionExitNode exitNode =
+        new FunctionExitNode(jsFunctionDeclaration.getQualifiedName());
     final JSFunctionEntryNode entryNode =
         new JSFunctionEntryNode(
             FileLocation.DUMMY,
