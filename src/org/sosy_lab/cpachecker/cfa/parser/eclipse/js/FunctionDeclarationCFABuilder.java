@@ -65,6 +65,19 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
         parameters);
   }
 
+  private JSVariableDeclaration createReturnVariableDeclaration(
+      final org.sosy_lab.cpachecker.cfa.ast.js.Scope pScope) {
+    final String returnVariableName = "__retval__";
+    return new JSVariableDeclaration(
+        FileLocation.DUMMY,
+        pScope,
+        returnVariableName,
+        returnVariableName,
+        returnVariableName,
+        new JSInitializerExpression(
+            FileLocation.DUMMY, new JSUndefinedLiteralExpression(FileLocation.DUMMY)));
+  }
+
   @Override
   public JSFunctionDeclaration append(
       final JavaScriptCFABuilder pBuilder, final FunctionDeclaration pFunctionDeclaration) {
@@ -75,17 +88,8 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
     pBuilder.appendEdge(JSDeclarationEdge.of(jsFunctionDeclaration));
     final FunctionScopeImpl functionScope =
         new FunctionScopeImpl(currentScope, jsFunctionDeclaration, pBuilder.getLogger());
-    final String returnVariableName = "__retval__";
     final JSVariableDeclaration returnVariableDeclaration =
-        new JSVariableDeclaration(
-            FileLocation.DUMMY,
-            ScopeConverter.toCFAScope(functionScope),
-            returnVariableName,
-            returnVariableName,
-            returnVariableName,
-            new JSInitializerExpression(
-                FileLocation.DUMMY, new JSUndefinedLiteralExpression(FileLocation.DUMMY)));
-
+        createReturnVariableDeclaration(ScopeConverter.toCFAScope(functionScope));
     final FunctionExitNode exitNode =
         new FunctionExitNode(jsFunctionDeclaration.getQualifiedName());
     final JSFunctionEntryNode entryNode =
@@ -114,8 +118,7 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
                     Optional.of(
                         new JSExpressionAssignmentStatement(
                             FileLocation.DUMMY,
-                            new JSIdExpression(
-                                FileLocation.DUMMY, returnVariableName, returnVariableDeclaration),
+                            new JSIdExpression(FileLocation.DUMMY, returnVariableDeclaration),
                             returnValue))),
                 FileLocation.DUMMY,
                 pPredecessor,
