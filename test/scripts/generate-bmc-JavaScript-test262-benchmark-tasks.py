@@ -39,6 +39,7 @@ def is_skip(file):
             or 'delete(' in file_content  # delete expression
             or 'new function ' in file_content  # constructor call of function expression
             or 'Object.getOwnPropertyDescriptor(' in file_content
+            or '.hasOwnProperty(' in file_content
             or '.isPrototypeOf(' in file_content
             or 'with(' in file_content
             or 'arguments[' in file_content
