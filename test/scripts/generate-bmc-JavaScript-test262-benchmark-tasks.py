@@ -35,7 +35,8 @@ def is_skip(file):
             or contains_try_statement(file_content)
             or contains_for_in_statement(file_content)
             or contains_with_statement(file_content)
-            or 'delete ' in file_content  # delete statement
+            or 'delete ' in file_content  # delete expression
+            or 'delete(' in file_content  # delete expression
             or 'new function ' in file_content  # constructor call of function expression
             or 'Object.getOwnPropertyDescriptor(' in file_content
             or '.isPrototypeOf(' in file_content
