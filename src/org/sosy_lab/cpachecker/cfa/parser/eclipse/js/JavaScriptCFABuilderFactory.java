@@ -32,11 +32,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 final class JavaScriptCFABuilderFactory {
 
   static JavaScriptCFABuilder withAllFeatures(final Scope pScope, final LogManager pLogger) {
+    final FunctionDeclarationCFABuilder knownFunctionDeclarationBuilder =
+        new FunctionDeclarationCFABuilder();
     final FileCFABuilder fileBuilder =
-        new FileCFABuilder(pScope, pLogger, new JavaScriptUnitCFABuilder());
+        new FileCFABuilder(
+            pScope, pLogger, new JavaScriptUnitCFABuilder(), knownFunctionDeclarationBuilder);
     final JavaScriptCFABuilderImpl builder = new JavaScriptCFABuilderImpl(fileBuilder.getBuilder());
     final UnknownFunctionCallerDeclarationBuilder unknownConstructorCallerDeclarationBuilder =
-        new UnknownFunctionCallerDeclarationBuilder(new FunctionDeclarationCFABuilder(), true);
+        new UnknownFunctionCallerDeclarationBuilder(knownFunctionDeclarationBuilder, true);
     final UnknownFunctionCallerDeclarationBuilder unknownFunctionCallerDeclarationBuilder =
         new UnknownFunctionCallerDeclarationBuilder(
             unknownConstructorCallerDeclarationBuilder, false);

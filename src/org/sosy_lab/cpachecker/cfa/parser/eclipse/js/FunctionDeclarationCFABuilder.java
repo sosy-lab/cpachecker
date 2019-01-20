@@ -24,7 +24,10 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import com.google.common.base.Optional;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
 import org.eclipse.wst.jsdt.core.dom.FunctionExpression;
@@ -48,7 +51,23 @@ import org.sosy_lab.cpachecker.cfa.model.js.JSReturnStatementEdge;
 @SuppressWarnings("ResultOfMethodCallIgnored")
 class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
 
-  private JSFunctionDeclaration getJSFunctionDeclaration(
+  private final Map<FunctionDeclaration, JSFunctionDeclaration> declarationMap;
+
+  FunctionDeclarationCFABuilder() {
+    declarationMap = new HashMap<>();
+  }
+
+  void addDeclarationMapping(
+      final FunctionDeclaration pFunctionDeclaration,
+      final JSFunctionDeclaration pJsFunctionDeclaration) {
+    if (declarationMap.containsKey(pFunctionDeclaration)) {
+      throw new CFAGenerationRuntimeException(
+          "Function declaration " + pFunctionDeclaration + " added multiple times to mapping");
+    }
+    declarationMap.put(pFunctionDeclaration, pJsFunctionDeclaration);
+  }
+
+  JSFunctionDeclaration getJSFunctionDeclaration(
       final JavaScriptCFABuilder pBuilder, final FunctionDeclaration pFunctionDeclaration) {
     final Scope currentScope = pBuilder.getScope();
     final List<JSParameterDeclaration> parameters =
@@ -78,14 +97,33 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
             FileLocation.DUMMY, new JSUndefinedLiteralExpression(FileLocation.DUMMY)));
   }
 
+  @SuppressWarnings("DanglingJavadoc")
   @Override
   public JSFunctionDeclaration append(
       final JavaScriptCFABuilder pBuilder, final FunctionDeclaration pFunctionDeclaration) {
-    final JSFunctionDeclaration jsFunctionDeclaration =
-        getJSFunctionDeclaration(pBuilder, pFunctionDeclaration);
+    // TODO assert that declaration of function expression is not appended multiple times by adding it to the declarationMap
     final Scope currentScope = pBuilder.getScope();
-    currentScope.addDeclaration(jsFunctionDeclaration);
-    pBuilder.appendEdge(JSDeclarationEdge.of(jsFunctionDeclaration));
+    final JSFunctionDeclaration jsFunctionDeclaration;
+    if (declarationMap.containsKey(pFunctionDeclaration)) {
+      jsFunctionDeclaration = declarationMap.get(pFunctionDeclaration);
+    } else {
+      if (!(pFunctionDeclaration.getParent() instanceof FunctionExpression)) {
+        /**
+         * Function declaration (of function declaration statement) should have been added to {@link
+         * #declarationMap} by {@link Hoisting}.
+         */
+        pBuilder
+            .getLogger()
+            .logf(
+                Level.WARNING,
+                "Function declaration %s not found in hoisting map: %s",
+                getFunctionName(pFunctionDeclaration),
+                pFunctionDeclaration);
+      }
+      jsFunctionDeclaration = getJSFunctionDeclaration(pBuilder, pFunctionDeclaration);
+      currentScope.addDeclaration(jsFunctionDeclaration);
+      pBuilder.appendEdge(JSDeclarationEdge.of(jsFunctionDeclaration));
+    }
     final FunctionScopeImpl functionScope =
         new FunctionScopeImpl(currentScope, jsFunctionDeclaration, pBuilder.getLogger());
     final JSVariableDeclaration returnVariableDeclaration =
@@ -103,7 +141,9 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
 
     addFunctionEntryNode(functionCFABuilder);
 
+    new Hoisting(functionScope, this).append(functionCFABuilder, pFunctionDeclaration.getBody());
     functionCFABuilder.append(pFunctionDeclaration.getBody());
+
     if (!functionCFABuilder.getExitNode().equals(exitNode)) {
       functionCFABuilder.appendEdge(
           exitNode,

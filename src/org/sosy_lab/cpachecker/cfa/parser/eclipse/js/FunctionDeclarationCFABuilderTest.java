@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.util.test.ReturnValueCaptor;
 
 public class FunctionDeclarationCFABuilderTest extends CFABuilderTestBase {
 
@@ -114,13 +115,13 @@ public class FunctionDeclarationCFABuilderTest extends CFABuilderTestBase {
     builder.setStatementAppendable(statementAppendable);
     final FunctionDeclarationCFABuilder functionDeclarationCFABuilder =
         new FunctionDeclarationCFABuilder();
-    final JSFunctionDeclaration[] innerDeclarationCaptor = {null};
+    final ReturnValueCaptor<JSFunctionDeclaration> innerDeclarationCaptor =
+        new ReturnValueCaptor<>();
     builder.setFunctionDeclarationAppendable(
-        (pBuilder, pFunctionDeclaration) -> {
-          innerDeclarationCaptor[0] =
-              functionDeclarationCFABuilder.append(pBuilder, pFunctionDeclaration);
-          return innerDeclarationCaptor[0];
-        });
+        (pBuilder, pFunctionDeclaration) ->
+            innerDeclarationCaptor
+                .captureReturn(functionDeclarationCFABuilder::append)
+                .apply(pBuilder, pFunctionDeclaration));
     final JSFunctionDeclaration outerDeclaration =
         functionDeclarationCFABuilder.append(builder, declaration);
 
@@ -135,7 +136,8 @@ public class FunctionDeclarationCFABuilderTest extends CFABuilderTestBase {
     Truth.assertThat(outerFunctionEntryNode).isNotNull();
     Truth.assertThat(outerFunctionEntryNode.getFunctionDefinition()).isEqualTo(outerDeclaration);
 
-    final JSFunctionDeclaration innerDeclaration = innerDeclarationCaptor[0];
+    Truth.assertThat(innerDeclarationCaptor.getTimesCalled()).isEqualTo(1);
+    final JSFunctionDeclaration innerDeclaration = innerDeclarationCaptor.getReturnValue(0);
     Truth.assertThat(innerDeclaration).isNotNull();
     Truth.assertThat(innerDeclaration.getName()).isEqualTo("inner");
     Truth.assertThat(innerDeclaration.getQualifiedName()).isEqualTo("outer.inner");

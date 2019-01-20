@@ -39,12 +39,16 @@ class FileCFABuilder implements JavaScriptUnitAppendable {
   private final CFABuilder builder;
   private final FunctionExitNode exitNode;
   private final JavaScriptUnitAppendable javaScriptUnitAppendable;
+  private final FunctionDeclarationCFABuilder knownFunctionDeclarationBuilder;
+  private final FunctionScope scope;
 
   FileCFABuilder(
       final Scope pScope,
       final LogManager pLogger,
-      final JavaScriptUnitAppendable pJavaScriptUnitAppendable) {
+      final JavaScriptUnitAppendable pJavaScriptUnitAppendable,
+      final FunctionDeclarationCFABuilder pKnownFunctionDeclarationBuilder) {
     javaScriptUnitAppendable = pJavaScriptUnitAppendable;
+    knownFunctionDeclarationBuilder = pKnownFunctionDeclarationBuilder;
     final JSFunctionDeclaration functionDeclaration =
         new JSFunctionDeclaration(
             FileLocation.DUMMY,
@@ -58,14 +62,14 @@ class FileCFABuilder implements JavaScriptUnitAppendable {
         new JSFunctionEntryNode(
             FileLocation.DUMMY, functionDeclaration, exitNode, Optional.absent());
     exitNode.setEntryNode(entryNode);
-    builder =
-        new CFABuilder(
-            new FunctionScopeImpl(pScope, functionDeclaration, pLogger), pLogger, entryNode);
+    scope = new FunctionScopeImpl(pScope, functionDeclaration, pLogger);
+    builder = new CFABuilder(scope, pLogger, entryNode);
   }
 
   @Override
   public void append(final JavaScriptCFABuilder pBuilder, final JavaScriptUnit pUnit) {
     pBuilder.appendEdge(DummyEdge.withDescription("File start dummy edge"));
+    new Hoisting(scope, knownFunctionDeclarationBuilder).append(pBuilder, pUnit);
     javaScriptUnitAppendable.append(pBuilder, pUnit);
     pBuilder.appendEdge(exitNode, DummyEdge.withDescription("File end dummy edge"));
   }
