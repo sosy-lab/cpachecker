@@ -95,7 +95,7 @@ public class IntervalAnalysisPrecisionAdjustment implements PrecisionAdjustment 
         if(stateInterval.getHigh() - stateInterval.getLow() < precision.getValue(memString)){
           long low = stateInterval.getLow();
           state.removeInterval(memString);
-          state.addInterval(memString, new Interval(low, low + precision.getValue(memString)), 2000);
+          state.addInterval(memString, new Interval(low, low).plus(precision.getValue(memString)), 2000);
         }
       }
     }
