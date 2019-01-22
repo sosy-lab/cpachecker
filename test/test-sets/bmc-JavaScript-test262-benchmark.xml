@@ -65,6 +65,7 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T4*.yml</exclude>
 
         <!-- TODO constructor with return -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.2_A8_T1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.2_A8_T2*.yml</exclude>
 
         <!-- TODO Nodes in CFA but not reachable through traversal -->
