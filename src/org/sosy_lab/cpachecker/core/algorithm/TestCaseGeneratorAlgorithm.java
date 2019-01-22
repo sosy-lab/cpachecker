@@ -62,6 +62,7 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -88,7 +89,6 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
-import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
@@ -156,7 +156,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
   private final ShutdownNotifier shutdownNotifier;
   private final Set<CFAEdge> testTargets;
   private final SpecificationProperty specProp;
-  private final VerificationTaskMetaData verificationTaskMetaData;
+  private final String producerString;
   private FileSystem zipFS = null;
 
   public TestCaseGeneratorAlgorithm(
@@ -182,7 +182,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
     testTargets =
         ((TestTargetTransferRelation) testTargetCpa.getTransferRelation()).getTestTargets();
     harnessExporter = new HarnessExporter(pConfig, logger, pCfa);
-    verificationTaskMetaData = new VerificationTaskMetaData(pConfig, pSpec);
+    producerString = CPAchecker.getCPAcheckerVersionAndApproach(pConfig);
 
     Preconditions.checkState(
         !isZippedTestCaseWritingEnabled() || testCaseZip != null,
@@ -438,7 +438,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
                   writer, rootState, relevantStates, relevantEdges, pCexInfo);
               break;
             case METADATA:
-              XMLTestCaseExport.writeXMLMetadata(writer, cfa, specProp, verificationTaskMetaData);
+              XMLTestCaseExport.writeXMLMetadata(writer, cfa, specProp, producerString);
               break;
             case PLAIN:
               testOutput =
@@ -486,7 +486,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
                 (Appender)
                     appendable ->
                         XMLTestCaseExport.writeXMLMetadata(
-                            appendable, cfa, specProp, verificationTaskMetaData);
+                            appendable, cfa, specProp, producerString);
             break;
           case PLAIN:
             testOutput =

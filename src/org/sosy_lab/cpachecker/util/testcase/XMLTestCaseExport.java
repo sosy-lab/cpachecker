@@ -26,10 +26,8 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
-import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 
 public class XMLTestCaseExport {
 
@@ -39,7 +37,7 @@ public class XMLTestCaseExport {
       final Appendable pWriter,
       final CFA pCfa,
       final @Nullable SpecificationProperty pProp,
-      final @Nullable VerificationTaskMetaData pVerificationTaskMetaData)
+      final String producerString)
       throws IOException {
 
     Preconditions.checkArgument(pCfa.getFileNames().size() == 1);
@@ -55,11 +53,7 @@ public class XMLTestCaseExport {
     pWriter.append("</sourcecodelang>\n");
 
     pWriter.append("\t<producer>");
-    pWriter.append(
-        "CPAchecker "
-            + (pVerificationTaskMetaData == null
-                ? CPAchecker.getCPAcheckerVersion()
-                : pVerificationTaskMetaData.getProducerString()));
+    pWriter.append(producerString);
     pWriter.append("</producer>\n");
 
     if (pProp != null) {
