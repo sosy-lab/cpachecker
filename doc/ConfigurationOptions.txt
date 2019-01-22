@@ -271,6 +271,9 @@ analysis.matchAssignedFunctionPointers.ignoreUnknownAssignments = false
 # analysis
 analysis.memorizeReachedAfterRestart = false
 
+# Name of the used analysis, defaults to the name of the used configuration
+analysis.name = no default value
+
 # Partition the initial states based on the type of location they were
 # created for (see 'initialStatesFor')
 analysis.partitionInitialStates = false

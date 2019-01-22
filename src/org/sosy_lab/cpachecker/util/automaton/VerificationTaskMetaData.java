@@ -33,12 +33,15 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.StringJoiner;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cmdline.CPAMain;
+import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
@@ -61,6 +64,12 @@ public class VerificationTaskMetaData {
     )
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private Path invariantsAutomatonFile = null;
+
+    @Option(
+        secure = true,
+        name = CPAMain.ANALYSIS_NAME_OPTION,
+        description = "Name of the used analysis, defaults to the name of the used configuration")
+    private String analysisName;
   }
 
   private final VerificationTaskMetaData.HackyOptions hackyOptions = new HackyOptions();
@@ -109,6 +118,26 @@ public class VerificationTaskMetaData {
    */
   public Set<SpecificationProperty> getProperties() {
     return specification.getProperties();
+  }
+
+  /**
+   * Returns a descriptive name for the main analysis that is performed.
+   */
+  private String getAnalysisName() {
+    return hackyOptions.analysisName;
+  }
+
+  /**
+   * Returns a string that describes the program that produced an output file.
+   * This is primarily intended for use in the producer field of verification witnesses.
+   */
+  public String getProducerString() {
+    StringJoiner joiner = new StringJoiner(" / ");
+    joiner.add("CPAchecker " + CPAchecker.getCPAcheckerVersion());
+    if (getAnalysisName() != null) {
+      joiner.add(getAnalysisName());
+    }
+    return joiner.toString();
   }
 
   private final void classifyAutomataFiles() throws IOException {
