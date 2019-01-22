@@ -70,3 +70,4 @@ a.out
 
 test/programs/javascript-test262-benchmark/*
 !test/programs/javascript-test262-benchmark/CPAchecker-test262-assert.js
+!test/programs/javascript-test262-benchmark/CPAchecker-test262-assert-negated.js

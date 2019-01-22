@@ -29,7 +29,7 @@
         <include>../programs/javascript-test262-benchmark/test/language/statements/*/*.yml</include>
 
         <!-- default parameters are not supported yet -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/scope-paramsbody-var-open.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/scope-paramsbody-var-open*.yml</exclude>
 
         <!-- only syntax checks -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/*/let-block-with-newline*.yml</exclude>
@@ -71,11 +71,11 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S14_A5_T1.yml</exclude>
 
         <!-- TODO Unknown kind of expression (not handled yet): ListExpression -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/scope-body-lex-open.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-open-case.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/scope-body-lex-open*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-open-case*.yml</exclude>
 
         <!-- TODO Assume edge can not be added since another leaving edge already exists -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-open-dflt.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-open-dflt*.yml</exclude>
 
         <!-- TODO Array sort and toString -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.1_A5_T1.yml</exclude>
@@ -83,13 +83,14 @@
         <!-- TODO Timeout -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/S12.6.3_A14.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/scope-body-lex-boundary*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/return/12.9-1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T1.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T3.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-close-dflt.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-close-dflt*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A1.yml</exclude>
 
         <!-- TODO unknown -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/continue/12.7-1.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/continue/12.7-1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A4_T2.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A4_T4.yml</exclude>
 

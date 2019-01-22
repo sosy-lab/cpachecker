@@ -44,6 +44,15 @@ def is_skip_directory(dir):
     return any(dir == (root / sub_dir) for sub_dir in skipped_directories)
 
 
+def contains_assertion(file):
+    file_content = file.read_text()
+    assertion_sub_strings = [
+        'assert(',
+        'assert.sameValue(',
+    ]
+    return any(s in file_content for s in assertion_sub_strings)
+
+
 def is_skip(file):
     """
     Return if file should be skipped (contains unsupported features)
@@ -79,6 +88,21 @@ def is_skip(file):
             or 'new Object(' in file_content)
 
 
+def create_task_file(assert_lib_file, input_file_name, property_file, expected_verdict):
+    yml_file.write_text(textwrap.dedent("""\
+        format_version: "1.0"
+        input_files:
+            - "{assert_lib_file}"
+            - "{input_file}"
+        properties:
+          - property_file: {property_file}
+            expected_verdict: {expected_verdict}
+        """).format(expected_verdict=expected_verdict,
+                    assert_lib_file=assert_lib_file,
+                    input_file='./' + input_file_name,
+                    property_file=property_file))
+
+
 project_root_dir = Path(__file__).parent.parent.parent
 
 # Specification-Dateien im "config"-Ordner sind aus Sicherheitsgründen in der VerifierCloud
@@ -93,8 +117,14 @@ assert_lib_file = \
 if not assert_lib_file.exists():
     print('Assertion library file {} not found'.format(assert_lib_file))
     exit(1)
+assert_lib_negated_file = \
+    project_root_dir / 'test/programs/javascript-test262-benchmark/CPAchecker-test262-assert-negated.js'
+if not assert_lib_negated_file.exists():
+    print('Negated assertion library file {} not found'.format(assert_lib_negated_file))
+    exit(1)
 
 yml_file_names = set()
+
 for file in project_root_dir.glob(
         'test/programs/javascript-test262-benchmark/test/language/statements/*/*.js'):
     if is_skip_directory(file.parent) or is_skip(file):
@@ -103,7 +133,6 @@ for file in project_root_dir.glob(
     else:
         print('GENERATE TASK FOR {}'.format(file))
     relative_path_to_property_file = os.path.relpath(str(property_file), str(file.parent))
-    relative_path_to_assert_lib_file = os.path.relpath(str(assert_lib_file), str(file.parent))
     yml_file_name = file.stem + '.yml'
     i = 0
     while yml_file_name in yml_file_names:
@@ -111,14 +140,17 @@ for file in project_root_dir.glob(
         i = i + 1
     yml_file_names.add(yml_file_name)
     yml_file = file.parent / yml_file_name
-    yml_file.write_text(textwrap.dedent("""\
-        format_version: "1.0"
-        input_files:
-            - "{assert_lib_file}"
-            - "{input_file}"
-        properties:
-          - property_file: {property_file}
-            expected_verdict: true
-        """).format(assert_lib_file=relative_path_to_assert_lib_file,
-                    input_file='./' + file.name,
-                    property_file=relative_path_to_property_file))
+    create_task_file(
+        assert_lib_file=os.path.relpath(str(assert_lib_file), str(file.parent)),
+        input_file_name=file.name,
+        property_file=relative_path_to_property_file,
+        expected_verdict='true')
+    if contains_assertion(file):
+        # negated test
+        yml_file_name = '{}_{}_false.yml'.format(file.stem, i)
+        yml_file = file.parent / yml_file_name
+        create_task_file(
+            assert_lib_file=os.path.relpath(str(assert_lib_negated_file), str(file.parent)),
+            input_file_name=file.name,
+            property_file=relative_path_to_property_file,
+            expected_verdict='false')
