@@ -53,9 +53,9 @@
 
 
         <!-- recursion is not supported yet -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/dflt-params-trailing-comma_*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/params-trailing-comma-multiple_*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/params-trailing-comma-single_*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/dflt-params-trailing-comma*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/params-trailing-comma-multiple*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/params-trailing-comma-single*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.2_A8_T3.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A3_T1.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A3_T2.yml</exclude>
@@ -82,8 +82,7 @@
 
         <!-- TODO Timeout -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/S12.6.3_A14.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/scope-body-lex-boundary_*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/return/12.9-1.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/scope-body-lex-boundary*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T1.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T3.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-close-dflt.yml</exclude>
