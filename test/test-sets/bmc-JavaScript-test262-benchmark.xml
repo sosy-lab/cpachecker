@@ -49,6 +49,24 @@
 
         <!-- only syntax checks -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/*/let-block-with-newline*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/*/let-identifier-with-newline*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/variable/arguments-non-strict.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2_A8_T1.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2_A8_T2.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/labeled/value-await-non-module-escaped.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/param-arguments-non-strict.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/variable/arguments-fn-non-strict.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/empty/S12.3_A1.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.1_A1_T1.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/variable/eval-non-strict.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/param-eval-non-strict.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/line-terminator-strict.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/line-terminator-non-strict.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/name-arguments-non-strict.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/labeled/value-await-non-module.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/param-duplicated-non-strict.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/labeled/value-yield-non-strict-escaped.yml</exclude>
+
 
         <!-- recursion is not supported yet -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/dflt-params-trailing-comma_*.yml</exclude>
