@@ -28,22 +28,6 @@
     <tasks>
         <include>../programs/javascript-test262-benchmark/test/language/statements/*/*.yml</include>
 
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/async-function/*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/async-generator/*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/class/*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for-await-of/*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for-in/*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for-of/*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/generators/*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/with/*.yml</exclude>
-
-        <!-- already excluded by task generator script -->
-        <!--<exclude>../programs/javascript-test262-benchmark/test/language/statements/const/*.yml</exclude>-->
-        <!--<exclude>../programs/javascript-test262-benchmark/test/language/statements/debugger/*.yml</exclude>-->
-        <!--<exclude>../programs/javascript-test262-benchmark/test/language/statements/let/*.yml</exclude>-->
-        <!--<exclude>../programs/javascript-test262-benchmark/test/language/statements/throw/*.yml</exclude>-->
-        <!--<exclude>../programs/javascript-test262-benchmark/test/language/statements/try/*.yml</exclude>-->
-
         <!-- default parameters are not supported yet -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/scope-paramsbody-var-open.yml</exclude>
 
