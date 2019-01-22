@@ -29,13 +29,17 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
+import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 
 public class XMLTestCaseExport {
 
   private XMLTestCaseExport() {}
 
   public static void writeXMLMetadata(
-      final Appendable pWriter, final CFA pCfa, final @Nullable SpecificationProperty pProp)
+      final Appendable pWriter,
+      final CFA pCfa,
+      final @Nullable SpecificationProperty pProp,
+      final @Nullable VerificationTaskMetaData pVerificationTaskMetaData)
       throws IOException {
 
     Preconditions.checkArgument(pCfa.getFileNames().size() == 1);
@@ -51,7 +55,11 @@ public class XMLTestCaseExport {
     pWriter.append("</sourcecodelang>\n");
 
     pWriter.append("\t<producer>");
-    pWriter.append("CPAchecker " + CPAchecker.getCPAcheckerVersion());
+    pWriter.append(
+        "CPAchecker "
+            + (pVerificationTaskMetaData == null
+                ? CPAchecker.getCPAcheckerVersion()
+                : pVerificationTaskMetaData.getProducerString()));
     pWriter.append("</producer>\n");
 
     if (pProp != null) {

@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
+import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
@@ -155,6 +156,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
   private final ShutdownNotifier shutdownNotifier;
   private final Set<CFAEdge> testTargets;
   private final SpecificationProperty specProp;
+  private final VerificationTaskMetaData verificationTaskMetaData;
   private FileSystem zipFS = null;
 
   public TestCaseGeneratorAlgorithm(
@@ -180,6 +182,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
     testTargets =
         ((TestTargetTransferRelation) testTargetCpa.getTransferRelation()).getTestTargets();
     harnessExporter = new HarnessExporter(pConfig, logger, pCfa);
+    verificationTaskMetaData = new VerificationTaskMetaData(pConfig, pSpec);
 
     Preconditions.checkState(
         !isZippedTestCaseWritingEnabled() || testCaseZip != null,
@@ -435,7 +438,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
                   writer, rootState, relevantStates, relevantEdges, pCexInfo);
               break;
             case METADATA:
-              XMLTestCaseExport.writeXMLMetadata(writer, cfa, specProp);
+              XMLTestCaseExport.writeXMLMetadata(writer, cfa, specProp, verificationTaskMetaData);
               break;
             case PLAIN:
               testOutput =
@@ -481,7 +484,9 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
           case METADATA:
             content =
                 (Appender)
-                    appendable -> XMLTestCaseExport.writeXMLMetadata(appendable, cfa, specProp);
+                    appendable ->
+                        XMLTestCaseExport.writeXMLMetadata(
+                            appendable, cfa, specProp, verificationTaskMetaData);
             break;
           case PLAIN:
             testOutput =
