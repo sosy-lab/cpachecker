@@ -24,6 +24,26 @@ def contains_with_statement(file_content):
     return re.search('\\s+with\\s*\\([^)]+\\)\\s*{', file_content)
 
 
+def is_skip_directory(dir):
+    """
+    Return if directory should be skipped (contains only files with unsupported features)
+    :type dir: Path
+    :return:
+    """
+    root = project_root_dir / 'test/programs/javascript-test262-benchmark/test/language/statements/'
+    skipped_directories = [
+        'async-function',
+        'async-generator',
+        'class',
+        'for-await-of',
+        'for-in',
+        'for-of',
+        'generators',
+        'with',
+    ]
+    return any(dir == (root / sub_dir) for sub_dir in skipped_directories)
+
+
 def is_skip(file):
     """
     Return if file should be skipped (contains unsupported features)
@@ -77,7 +97,7 @@ if not assert_lib_file.exists():
 yml_file_names = set()
 for file in project_root_dir.glob(
         'test/programs/javascript-test262-benchmark/test/language/statements/*/*.js'):
-    if is_skip(file):
+    if is_skip_directory(file.parent) or is_skip(file):
         print('SKIP {}'.format(file))
         continue
     else:
