@@ -23,8 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.STRING_TYPE;
+
 import java.util.stream.IntStream;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 /**
@@ -48,6 +52,8 @@ class StringFormulaManager {
   private final Ids<String> stringIds;
   private final FormulaManagerView fmgr;
   private final int maxFieldNameCount;
+  private final FunctionFormulaManagerView ffmgr;
+  private final FunctionDeclaration<IntegerFormula> concatStringsUF;
 
   /**
    * @param pFmgr Used to make string ID formulas.
@@ -56,6 +62,8 @@ class StringFormulaManager {
    */
   StringFormulaManager(final FormulaManagerView pFmgr, final int pMaxFieldNameCount) {
     fmgr = pFmgr;
+    ffmgr = fmgr.getFunctionFormulaManager();
+    concatStringsUF = ffmgr.declareUF("concatStrings", STRING_TYPE, STRING_TYPE, STRING_TYPE);
     maxFieldNameCount = pMaxFieldNameCount;
     stringIds = new Ids<>();
   }
@@ -74,7 +82,7 @@ class StringFormulaManager {
       throw new RuntimeException(
           "Reached cpa.predicate.js.maxFieldNameCount of " + maxFieldNameCount);
     }
-    return fmgr.makeNumber(Types.STRING_TYPE, id);
+    return fmgr.makeNumber(STRING_TYPE, id);
   }
 
   /**
@@ -86,5 +94,18 @@ class StringFormulaManager {
    */
   Iterable<Integer> getIdRange() {
     return IntStream.rangeClosed(1, maxFieldNameCount)::iterator;
+  }
+
+  /**
+   * Concatenation of two string IDs is only supported as uninterpreted function.
+   *
+   * @param pLeftStringId Left operand
+   * @param pRightStringId Right operand
+   * @return String ID
+   * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-11.6.1">The Addition
+   *     operator ( + )</a>
+   */
+  IntegerFormula concat(final IntegerFormula pLeftStringId, final IntegerFormula pRightStringId) {
+    return ffmgr.callUF(concatStringsUF, pLeftStringId, pRightStringId);
   }
 }

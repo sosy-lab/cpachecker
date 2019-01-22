@@ -101,8 +101,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
       case NOT_EQUAL_EQUAL:
         return tvmgr.createBooleanValue(fmgr.makeNot(makeEqual(leftOperand, rightOperand)));
       case PLUS:
-        return tvmgr.createNumberValue(
-            fpfmgr.add(valConv.toNumber(leftOperand), valConv.toNumber(rightOperand)));
+        return makePlus(leftOperand, rightOperand);
       case MINUS:
         return tvmgr.createNumberValue(
             fpfmgr.subtract(valConv.toNumber(leftOperand), valConv.toNumber(rightOperand)));
@@ -140,6 +139,27 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
         throw new UnrecognizedCodeException(
             "JSBinaryExpression not implemented yet", pBinaryExpression);
     }
+  }
+
+  private TypedValue makePlus(final TypedValue pLeftOperand, final TypedValue pRightOperand) {
+    final IntegerFormula resultVar = ctx.varMgr.makeFreshVariable("additionResult");
+    final BooleanFormula resultIsString =
+        bfmgr.or(
+            fmgr.makeEqual(pLeftOperand.getType(), typeTags.STRING),
+            fmgr.makeEqual(pRightOperand.getType(), typeTags.STRING));
+    final IntegerFormula concatResult =
+        strMgr.concat(
+            valConv.toStringFormula(pLeftOperand), valConv.toStringFormula(pRightOperand));
+    final FloatingPointFormula numericAdditionResult =
+        fpfmgr.add(valConv.toNumber(pLeftOperand), valConv.toNumber(pRightOperand));
+    ctx.constraints.addConstraint(
+        bfmgr.ifThenElse(
+            resultIsString,
+            ctx.assignmentMgr.makeAssignment(resultVar, tvmgr.createStringValue(concatResult)),
+            ctx.assignmentMgr.makeAssignment(
+                resultVar, tvmgr.createNumberValue(numericAdditionResult))));
+    return new TypedValue(
+        bfmgr.ifThenElse(resultIsString, typeTags.STRING, typeTags.NUMBER), resultVar);
   }
 
   @Nonnull
