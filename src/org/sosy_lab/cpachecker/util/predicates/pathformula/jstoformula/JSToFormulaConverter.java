@@ -52,9 +52,11 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializers;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSObjectLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSObjectLiteralField;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
@@ -396,16 +398,32 @@ public class JSToFormulaConverter extends ManagerWithGlobalContext {
       if (!returnVariableDeclaration.isPresent()) {
         throw new UnrecognizedCodeException("Void function used in assignment", ce, retExp);
       }
-      // TODO constructor return value might not be the created object (see 9. of
-      // https://www.ecma-international.org/ecma-262/5.1/#sec-13.2.2)
-      final JSIdExpression rhs =
-          funcCallExp.isConstructorCall()
-              ? new JSIdExpression(
-                  FileLocation.DUMMY, funcCallExp.getDeclaration().getThisVariableDeclaration())
-              : new JSIdExpression(funcCallExp.getFileLocation(), returnVariableDeclaration.get());
-      return pCtx.copy(callerFunction)
-          .assignmentMgr
-          .makeAssignment(exp.getLeftHandSide(), rhs, pCtx);
+      final JSIdExpression returnVarIdExpr =
+          new JSIdExpression(funcCallExp.getFileLocation(), returnVariableDeclaration.get());
+      final EdgeManagerContext callerCtx = pCtx.copy(callerFunction);
+      final JSLeftHandSide lhs = exp.getLeftHandSide();
+      if (!funcCallExp.isConstructorCall()) {
+        return callerCtx.assignmentMgr.makeAssignment(lhs, returnVarIdExpr, pCtx);
+      }
+      final JSIdExpression createdObjectIdExpr =
+          new JSIdExpression(
+              FileLocation.DUMMY, funcCallExp.getDeclaration().getThisVariableDeclaration());
+      final TypedValue returnValue = pCtx.exprMgr.makeExpression(returnVarIdExpr);
+      final BooleanFormula returnValueIsObject =
+          bfmgr.or(
+              fmgr.makeEqual(returnValue.getType(), typeTags.FUNCTION),
+              fmgr.makeEqual(returnValue.getType(), typeTags.OBJECT));
+      assert lhs instanceof JSIdExpression;
+      final JSSimpleDeclaration lhsDeclaration = ((JSIdExpression) lhs).getDeclaration();
+      assert lhsDeclaration != null;
+      final IntegerFormula lhsVar = callerCtx.scopeMgr.declareScopedVariable(lhsDeclaration);
+      callerCtx.scopeMgr.updateIndicesOfOtherScopeVariables(lhsDeclaration);
+      return bfmgr.ifThenElse(
+          returnValueIsObject,
+          callerCtx.assignmentMgr.makeAssignment(
+              lhsVar, pCtx.exprMgr.makeExpression(returnVarIdExpr)),
+          callerCtx.assignmentMgr.makeAssignment(
+              lhsVar, pCtx.exprMgr.makeExpression(createdObjectIdExpr)));
     } else {
       throw new UnrecognizedCodeException("Unknown function exit expression", ce, retExp);
     }
