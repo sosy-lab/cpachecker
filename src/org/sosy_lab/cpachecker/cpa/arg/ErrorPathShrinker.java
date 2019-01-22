@@ -274,9 +274,13 @@ public final class ErrorPathShrinker {
   }
 
   private void handleFunctionCallEdge(List<? extends AExpression> arguments, List<? extends AParameterDeclaration> functionParameters) {
-
     addCurrentCFAEdgeToShortPath(); // functioncalls are important
-    for (int i = 0; i < arguments.size(); i++) {
+    // More arguments than declared might be passed in case of a variadic function.
+    // Less arguments than declared might be passed in case of a optional parameters.
+    // Only explicitly declared and passed parameters are considered relevant (that means variadic
+    // and optional parameters are not).
+    final int argumentCount = Math.min(arguments.size(), functionParameters.size());
+    for (int i = 0; i < argumentCount; i++) {
       AExpression arg = arguments.get(i);
       final String paramName = functionParameters.get(i).getQualifiedName();
       if (isImportant(paramName)) {
