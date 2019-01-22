@@ -158,8 +158,11 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
             ctx.assignmentMgr.makeAssignment(resultVar, tvmgr.createStringValue(concatResult)),
             ctx.assignmentMgr.makeAssignment(
                 resultVar, tvmgr.createNumberValue(numericAdditionResult))));
-    return new TypedValue(
-        bfmgr.ifThenElse(resultIsString, typeTags.STRING, typeTags.NUMBER), resultVar);
+    ctx.constraints.addConstraint(
+        fmgr.makeEqual(
+            typedVarValues.typeof(resultVar),
+            bfmgr.ifThenElse(resultIsString, typeTags.STRING, typeTags.NUMBER)));
+    return new TypedValue(typedVarValues.typeof(resultVar), resultVar);
   }
 
   @Nonnull
