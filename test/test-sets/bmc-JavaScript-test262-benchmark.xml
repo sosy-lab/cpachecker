@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN"
         "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="240 s" hardtimelimit="300 s" memlimit="4000 MB"
+<benchmark tool="cpachecker" timelimit="400 s" hardtimelimit="430 s" memlimit="4000 MB"
            cpuCores="2">
     <!--
         Download and generate task definition files:
