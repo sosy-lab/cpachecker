@@ -153,7 +153,8 @@ for file in project_root_dir.glob(
         file = file.parent / (file.stem + '.js.negated')
         print('GENERATE NEGATED VERSION OF {}'.format(file))
         file.write_text(file_content_negated)
-    yml_file_name = '{}_{}_false.yml'.format(file.stem, i)
+    yml_file_name =\
+        '{}_false.yml'.format(file.stem) if i == 0 else '{}_{}_false.yml'.format(file.stem, i)
     yml_file = file.parent / yml_file_name.replace('.js', '')
     create_task_file(
         yml_file=yml_file,
