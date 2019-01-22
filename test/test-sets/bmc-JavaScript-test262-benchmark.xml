@@ -34,41 +34,41 @@
         <!-- only syntax checks -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/*/let-block-with-newline*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/*/let-identifier-with-newline*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/variable/arguments-non-strict.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2_A8_T1.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2_A8_T2.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/labeled/value-await-non-module-escaped.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/param-arguments-non-strict.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/variable/arguments-fn-non-strict.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/empty/S12.3_A1.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.1_A1_T1.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/variable/eval-non-strict.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/param-eval-non-strict.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/line-terminator-strict.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/line-terminator-non-strict.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/name-arguments-non-strict.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/labeled/value-await-non-module.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/param-duplicated-non-strict.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/labeled/value-yield-non-strict-escaped.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/variable/arguments-non-strict*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2_A8_T1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2_A8_T2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/labeled/value-await-non-module-escaped*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/param-arguments-non-strict*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/variable/arguments-fn-non-strict*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/empty/S12.3_A1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.1_A1_T1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/variable/eval-non-strict*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/param-eval-non-strict*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/line-terminator-strict*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/line-terminator-non-strict*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/name-arguments-non-strict*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/labeled/value-await-non-module*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/param-duplicated-non-strict*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/labeled/value-yield-non-strict-escaped*.yml</exclude>
 
 
         <!-- recursion is not supported yet -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/dflt-params-trailing-comma*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/params-trailing-comma-multiple*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/params-trailing-comma-single*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.2_A8_T3.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A3_T1.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A3_T2.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A3_T3.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A9.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S14_A2.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T4.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.2_A8_T3*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A3_T1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A3_T2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A3_T3*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A9*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S14_A2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T4*.yml</exclude>
 
         <!-- TODO constructor with return -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.2_A8_T2.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.2_A8_T2*.yml</exclude>
 
         <!-- TODO Nodes in CFA but not reachable through traversal -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S14_A5_T1.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S14_A5_T1*.yml</exclude>
 
         <!-- TODO Unknown kind of expression (not handled yet): ListExpression -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/scope-body-lex-open*.yml</exclude>
@@ -78,35 +78,35 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-open-dflt*.yml</exclude>
 
         <!-- TODO Array sort and toString -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.1_A5_T1.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.1_A5_T1*.yml</exclude>
 
         <!-- TODO Timeout -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/S12.6.3_A14.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/S12.6.3_A14*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/scope-body-lex-boundary*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/return/12.9-1*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T1.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T3.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T3*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-close-dflt*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A1.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A1*.yml</exclude>
 
         <!-- TODO unknown -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/continue/12.7-1*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A4_T2.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A4_T4.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A4_T2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A4_T4*.yml</exclude>
 
         <!-- TODO function name contains unicode -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S14_A5_T2.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S14_A5_T2*.yml</exclude>
 
         <!-- TODO function arguments variable -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A15_T5.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A15_T5*.yml</exclude>
 
         <!-- TODO let scope -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/block/scope-lex-close.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-close-case.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/block/scope-lex-open.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/block/scope-lex-close*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-close-case*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/block/scope-lex-open*.yml</exclude>
 
         <!-- TODO wrong result (false) -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A4_T3.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A4_T3*.yml</exclude>
 
         <!--<propertyfile>../../config/specification/JavaScriptAssertion.spc</propertyfile>-->
         <propertyfile>../config/specification/JavaScriptAssertion.spc</propertyfile>

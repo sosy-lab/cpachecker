@@ -86,7 +86,7 @@ def is_skip(file_content):
             or 'new Object(' in file_content)
 
 
-def create_task_file(assert_lib_file, input_file_name, property_file, expected_verdict):
+def create_task_file(yml_file, assert_lib_file, input_file_name, property_file, expected_verdict):
     yml_file.write_text(textwrap.dedent("""\
         format_version: "1.0"
         input_files:
@@ -140,16 +140,24 @@ for file in project_root_dir.glob(
     yml_file_names.add(yml_file_name)
     yml_file = file.parent / yml_file_name
     create_task_file(
+        yml_file=yml_file,
         assert_lib_file=os.path.relpath(str(assert_lib_file), str(file.parent)),
         input_file_name=file.name,
         property_file=relative_path_to_property_file,
         expected_verdict='true')
-    if contains_assertion(file_content):
-        # negated test
-        yml_file_name = '{}_{}_false.yml'.format(file.stem, i)
-        yml_file = file.parent / yml_file_name
-        create_task_file(
-            assert_lib_file=os.path.relpath(str(assert_lib_negated_file), str(file.parent)),
-            input_file_name=file.name,
-            property_file=relative_path_to_property_file,
-            expected_verdict='false')
+    # negated test
+    if '$ERROR(' in file_content:
+        # negate condition of if-statement directly before call of $ERROR
+        file_content_negated = re.sub(r'(\sif\s*\()(.*?)(\)\s*{?\s*\$ERROR\()', r'\1!(\2)\3',
+                                      file_content)
+        file = file.parent / (file.stem + '.js.negated')
+        print('GENERATE NEGATED VERSION OF {}'.format(file))
+        file.write_text(file_content_negated)
+    yml_file_name = '{}_{}_false.yml'.format(file.stem, i)
+    yml_file = file.parent / yml_file_name.replace('.js', '')
+    create_task_file(
+        yml_file=yml_file,
+        assert_lib_file=os.path.relpath(str(assert_lib_negated_file), str(file.parent)),
+        input_file_name=file.name,
+        property_file=relative_path_to_property_file,
+        expected_verdict='false')
