@@ -44,8 +44,7 @@ def is_skip_directory(dir):
     return any(dir == (root / sub_dir) for sub_dir in skipped_directories)
 
 
-def contains_assertion(file):
-    file_content = file.read_text()
+def contains_assertion(file_content):
     assertion_sub_strings = [
         'assert(',
         'assert.sameValue(',
@@ -53,12 +52,11 @@ def contains_assertion(file):
     return any(s in file_content for s in assertion_sub_strings)
 
 
-def is_skip(file):
+def is_skip(file_content):
     """
     Return if file should be skipped (contains unsupported features)
-    :type file: Path
+    :type file_content: str
     """
-    file_content = file.read_text()
     return (contains_eval(file_content)
             or contains_syntax_error(file_content)
             or contains_try_statement(file_content)
@@ -127,7 +125,8 @@ yml_file_names = set()
 
 for file in project_root_dir.glob(
         'test/programs/javascript-test262-benchmark/test/language/statements/*/*.js'):
-    if is_skip_directory(file.parent) or is_skip(file):
+    file_content = file.read_text()
+    if is_skip_directory(file.parent) or is_skip(file_content):
         print('SKIP {}'.format(file))
         continue
     else:
@@ -145,7 +144,7 @@ for file in project_root_dir.glob(
         input_file_name=file.name,
         property_file=relative_path_to_property_file,
         expected_verdict='true')
-    if contains_assertion(file):
+    if contains_assertion(file_content):
         # negated test
         yml_file_name = '{}_{}_false.yml'.format(file.stem, i)
         yml_file = file.parent / yml_file_name
