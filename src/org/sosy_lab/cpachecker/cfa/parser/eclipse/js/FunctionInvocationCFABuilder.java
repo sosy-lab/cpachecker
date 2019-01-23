@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
@@ -96,6 +95,6 @@ class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
       final JavaScriptCFABuilder pBuilder,
       final FunctionInvocation pNode,
       final List<JSExpression> pArguments) {
-    pArguments.addAll(pBuilder.append((List<Expression>) pNode.arguments()));
+    pArguments.addAll(pBuilder.append(pNode.arguments()));
   }
 }
