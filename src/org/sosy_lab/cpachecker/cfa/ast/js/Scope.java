@@ -28,7 +28,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class Scope {
-  public static Scope GLOBAL = new Scope(Collections.emptyList());
+  public final static Scope GLOBAL = new Scope(Collections.emptyList());
 
   private List<JSFunctionDeclaration> declarationStack;
 
