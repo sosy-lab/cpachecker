@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -176,17 +177,27 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
   public int compareTo(CompatibleState pOther) {
     ThreadState other = (ThreadState) pOther;
     int result = 0;
-    int size = this.order.size();
+    int size = this.threadSet.size();
 
-    result = other.order.size() - size; // decreasing queue
+    result = other.threadSet.size() - size; // decreasing queue
 
     if (result != 0) {
       return result;
     }
 
-    //Sizes are equal
-    for (int i = 0; i < size; i++) {
-      result = this.order.get(i).compareTo(other.order.get(i));
+    Iterator<String> thisIterator = this.threadSet.keySet().iterator();
+    Iterator<String> otherIterator = other.threadSet.keySet().iterator();
+
+    while (thisIterator.hasNext() && otherIterator.hasNext()) {
+      String thisLabel = thisIterator.next();
+      String otherLabel = otherIterator.next();
+      result = thisLabel.compareTo(otherLabel);
+      if (result != 0) {
+        return result;
+      }
+      ThreadStatus thisStatus = this.threadSet.get(thisLabel);
+      ThreadStatus otherStatus = other.threadSet.get(otherLabel);
+      result = thisStatus.compareTo(otherStatus);
       if (result != 0) {
         return result;
       }
