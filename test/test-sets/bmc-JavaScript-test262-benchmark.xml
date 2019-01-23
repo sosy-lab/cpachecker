@@ -64,6 +64,16 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S14_A2*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T4*.yml</exclude>
 
+        <!-- TODO Function.length -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2_A3*.yml</exclude>
+
+        <!-- TODO $ERROR in else case -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A10_T1_false.yml</exclude>
+
+        <!-- TODO $ERROR not reached -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/do-while/S12.6.1_A4_T5_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A4_T5_false.yml</exclude>
+
         <!-- TODO constructor with return -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.2_A8_T1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.2_A8_T2*.yml</exclude>
@@ -99,6 +109,7 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S14_A5_T2*.yml</exclude>
 
         <!-- TODO function arguments variable -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A15_T4*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A15_T5*.yml</exclude>
 
         <!-- TODO let scope -->
@@ -108,6 +119,9 @@
 
         <!-- TODO wrong result (false) -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A4_T3*.yml</exclude>
+
+        <!-- TODO global object assignment -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/variable/S12.2_A11*.yml</exclude>
 
         <!--<propertyfile>../../config/specification/JavaScriptAssertion.spc</propertyfile>-->
         <propertyfile>../config/specification/JavaScriptAssertion.spc</propertyfile>
