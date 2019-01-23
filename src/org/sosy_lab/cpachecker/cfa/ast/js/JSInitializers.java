@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.ast.js;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -40,21 +41,16 @@ public class JSInitializers {
    */
   public static List<JSExpressionAssignmentStatement> convertToAssignments(
       JSVariableDeclaration decl, CFAEdge edge) throws UnrecognizedCodeException {
-
-    JSInitializer init = decl.getInitializer();
+    final JSLeftHandSide lhs = new JSIdExpression(decl.getFileLocation(), decl);
+    final JSInitializer init = decl.getInitializer();
     if (init == null) {
-      return ImmutableList.of();
-    }
-
-    JSLeftHandSide lhs = new JSIdExpression(decl.getFileLocation(), decl);
-
-    if (init instanceof JSInitializerExpression) {
-      JSExpression initExp = ((JSInitializerExpression)init).getExpression();
-      // Create a regular assignment
-      JSExpressionAssignmentStatement assignment =
-          new JSExpressionAssignmentStatement(decl.getFileLocation(), lhs, initExp);
-      return ImmutableList.of(assignment);
-
+      return ImmutableList.of(
+          new JSExpressionAssignmentStatement(
+              decl.getFileLocation(), lhs, new JSUndefinedLiteralExpression(FileLocation.DUMMY)));
+    } else if (init instanceof JSInitializerExpression) {
+      return ImmutableList.of(
+          new JSExpressionAssignmentStatement(
+              decl.getFileLocation(), lhs, ((JSInitializerExpression) init).getExpression()));
     } else {
       throw new UnrecognizedCodeException("Unknown initializer type", edge, init);
     }
