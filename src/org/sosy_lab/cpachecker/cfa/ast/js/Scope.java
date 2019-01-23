@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.ast.js;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 public class Scope {
   public final static Scope GLOBAL = new Scope(Collections.emptyList());
@@ -54,5 +55,22 @@ public class Scope {
 
   public JSFunctionDeclaration getFunctionDeclaration() {
     return declarationStack.get(getNestingLevel());
+  }
+
+  @Override
+  public boolean equals(final Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    if (pOther == null || getClass() != pOther.getClass()) {
+      return false;
+    }
+    final Scope scope = (Scope) pOther;
+    return Objects.equals(declarationStack, scope.declarationStack);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(declarationStack);
   }
 }
