@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import java.nio.file.Path;
 import java.util.Optional;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
@@ -42,9 +41,7 @@ interface Scope {
    * contain characters that are valid in a file name, because it is part of the qualified name of
    * the scope, which is used in function identifiers for which a file <code>
    * cfa__qualifiedFunctionName.dot</code> is created (in the output directory) whose name contains
-   * the qualified name of the scope (see {@link
-   * org.sosy_lab.cpachecker.cfa.export.DOTBuilder2.DOTViewBuilder#writeFunctionFile(String,
-   * Path)}).
+   * the qualified name of the scope.
    *
    * @return Name of this scope.
    */
@@ -56,9 +53,7 @@ interface Scope {
    * qualified name of the parent scope. The separator may only contain characters that are valid in
    * a file name, because the qualified name of the scope is used in function identifiers for which
    * a file <code>cfa__qualifiedFunctionName.dot</code> is created (in the output directory) whose
-   * name contains the qualified name of the scope (see {@link
-   * org.sosy_lab.cpachecker.cfa.export.DOTBuilder2.DOTViewBuilder#writeFunctionFile(String,
-   * Path)}).
+   * name contains the qualified name of the scope.
    *
    * @return The qualified scope name separator.
    * @see Scope#qualifiedNameOfScope()
@@ -73,9 +68,7 @@ interface Scope {
    * scope. The qualified name may only contain characters that are valid in a file name, because
    * the qualified name of the scope is used in function identifiers for which a file <code>
    * cfa__qualifiedFunctionName.dot</code> is created (in the output directory) whose name contains
-   * the qualified name of the scope (see {@link
-   * org.sosy_lab.cpachecker.cfa.export.DOTBuilder2.DOTViewBuilder#writeFunctionFile(String,
-   * Path)}).
+   * the qualified name of the scope.
    *
    * @return The qualified name of this scope.
    */
