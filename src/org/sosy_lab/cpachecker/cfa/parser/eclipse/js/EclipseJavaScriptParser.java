@@ -38,7 +38,6 @@ import org.eclipse.wst.jsdt.core.dom.ASTNode;
 import org.eclipse.wst.jsdt.core.dom.ASTParser;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.internal.core.JavaProject;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.JavaScriptParser;
@@ -59,7 +58,7 @@ class EclipseJavaScriptParser implements JavaScriptParser {
 
   @SuppressWarnings("WeakerAccess") // is called by EclipseParsers.getJavaScriptParser using
   // reflection
-  public EclipseJavaScriptParser(final LogManager pLogger) throws InvalidConfigurationException {
+  public EclipseJavaScriptParser(final LogManager pLogger) {
     logger = pLogger;
   }
 
@@ -69,7 +68,7 @@ class EclipseJavaScriptParser implements JavaScriptParser {
 
   @Override
   public ParseResult parseFile(final String filename)
-      throws ParserException, IOException, InterruptedException {
+      throws ParserException {
     final Path file = Paths.get(filename);
     try {
       return parseString(
