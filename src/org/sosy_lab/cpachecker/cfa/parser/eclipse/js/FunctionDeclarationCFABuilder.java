@@ -141,7 +141,7 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
 
     addFunctionEntryNode(functionCFABuilder);
 
-    new Hoisting(functionScope, this).append(functionCFABuilder, pFunctionDeclaration.getBody());
+    new Hoisting(functionScope, this, functionCFABuilder).append(pFunctionDeclaration.getBody());
     functionCFABuilder.append(pFunctionDeclaration.getBody());
 
     if (!functionCFABuilder.getExitNode().equals(exitNode)) {

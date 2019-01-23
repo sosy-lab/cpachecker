@@ -37,25 +37,28 @@ class Hoisting {
 
   private final FunctionScope functionScope;
   private final FunctionDeclarationCFABuilder functionDeclarationCFABuilder;
+  private final JavaScriptCFABuilder builder;
 
   Hoisting(
       final FunctionScope pFunctionScope,
-      final FunctionDeclarationCFABuilder pFunctionDeclarationCFABuilder) {
+      final FunctionDeclarationCFABuilder pFunctionDeclarationCFABuilder,
+      final JavaScriptCFABuilder pBuilder) {
     functionScope = pFunctionScope;
     functionDeclarationCFABuilder = pFunctionDeclarationCFABuilder;
+    builder = pBuilder;
   }
 
-  void append(final JavaScriptCFABuilder pBuilder, final Statement pStatement) {
-    createStatementBuilder().append(pBuilder, pStatement);
+  void append(final Statement pStatement) {
+    createStatementBuilder().append(builder, pStatement);
   }
 
-  void append(final JavaScriptCFABuilder pBuilder, final JavaScriptUnit pUnit) {
+  void append(final JavaScriptUnit pUnit) {
     final StatementAppendable stmtBuilder = createStatementBuilder();
     for (final ASTNode node : pUnit.statements()) {
       if (node instanceof Statement) {
-        stmtBuilder.append(pBuilder, (Statement) node);
+        stmtBuilder.append(builder, (Statement) node);
       } else if (node instanceof FunctionDeclaration) {
-        declareFunction(pBuilder, (FunctionDeclaration) node);
+        declareFunction(builder, (FunctionDeclaration) node);
       } else {
         throw new CFAGenerationRuntimeException(
             "Unknown kind of node (not handled yet): " + node.getClass().getSimpleName(), node);
