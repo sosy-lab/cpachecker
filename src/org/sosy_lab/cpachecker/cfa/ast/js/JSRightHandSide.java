@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.js;
 
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
-import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 
 /** Interface for all possible right-hand sides of an assignment. */
 public interface JSRightHandSide extends JSAstNode, ARightHandSide {
