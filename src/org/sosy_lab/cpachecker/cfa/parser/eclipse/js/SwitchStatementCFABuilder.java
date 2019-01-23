@@ -49,7 +49,8 @@ class SwitchStatementCFABuilder implements SwitchStatementAppendable {
 
   @Override
   public void append(final JavaScriptCFABuilder pBuilder, final SwitchStatement pSwitchStatement) {
-    new Builder(pBuilder, pSwitchStatement);
+    @SuppressWarnings("unused")
+    final Builder builder = new Builder(pBuilder, pSwitchStatement);
   }
 
   private static final class Builder {
