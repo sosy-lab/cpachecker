@@ -26,11 +26,13 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 import java.util.LinkedHashMap;
 import java.util.List;
 import org.eclipse.wst.jsdt.core.dom.ASTNode;
+import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclarationStatement;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.Statement;
 import org.eclipse.wst.jsdt.core.dom.SwitchCase;
+import org.eclipse.wst.jsdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.wst.jsdt.core.dom.VariableKind;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
@@ -95,7 +97,24 @@ class Hoisting {
     stmtBuilder.setDoWhileStatementAppendable(
         (pBuilder, pStatement) -> stmtBuilder.append(pBuilder, pStatement.getBody()));
     stmtBuilder.setForStatementAppendable(
-        (pBuilder, pStatement) -> stmtBuilder.append(pBuilder, pStatement.getBody()));
+        (pBuilder, pStatement) -> {
+          @SuppressWarnings("unchecked")
+          final List<Expression> initializers = pStatement.initializers();
+          initializers.stream()
+              .filter(VariableDeclarationExpression.class::isInstance)
+              .map(VariableDeclarationExpression.class::cast)
+              .forEachOrdered(
+                  (VariableDeclarationExpression varDeclExpr) -> {
+                    if (varDeclExpr.getKind() != VariableKind.VAR) {
+                      return;
+                    }
+                    @SuppressWarnings("unchecked")
+                    final List<VariableDeclarationFragment> variableDeclarationFragments =
+                        varDeclExpr.fragments();
+                    addVariableDeclarations(variableDeclarationFragments);
+                  });
+          stmtBuilder.append(pBuilder, pStatement.getBody());
+        });
     stmtBuilder.setIfStatementAppendable(
         (pBuilder, pStatement) -> {
           stmtBuilder.append(pBuilder, pStatement.getThenStatement());
@@ -125,25 +144,30 @@ class Hoisting {
           @SuppressWarnings("unchecked")
           final List<VariableDeclarationFragment> variableDeclarationFragments =
               pVariableDeclarationStatement.fragments();
-          for (final VariableDeclarationFragment variableDeclarationFragment :
-              variableDeclarationFragments) {
-            final String variableIdentifier = variableDeclarationFragment.getName().getIdentifier();
-            // Hoisted function declaration may not be overwritten, since it assigns a value
-            // contrary to
-            // a hoisted variable declaration
-            declarationMap.putIfAbsent(
-                variableIdentifier,
-                new JSVariableDeclaration(
-                    pBuilder.getFileLocation(variableDeclarationFragment),
-                    ScopeConverter.toCFAScope(pBuilder.getScope()),
-                    variableIdentifier,
-                    variableIdentifier,
-                    pBuilder.getScope().qualifiedVariableNameOf(variableIdentifier),
-                    null));
-          }
+          addVariableDeclarations(variableDeclarationFragments);
         });
     stmtBuilder.setFunctionDeclarationStatementAppendable(this::declareFunction);
     return stmtBuilder;
+  }
+
+  private void addVariableDeclarations(
+      final List<VariableDeclarationFragment> pVariableDeclarationFragments) {
+    for (final VariableDeclarationFragment variableDeclarationFragment :
+        pVariableDeclarationFragments) {
+      final String variableIdentifier = variableDeclarationFragment.getName().getIdentifier();
+      // Hoisted function declaration may not be overwritten, since it assigns a value
+      // contrary to
+      // a hoisted variable declaration
+      declarationMap.putIfAbsent(
+          variableIdentifier,
+          new JSVariableDeclaration(
+              builder.getFileLocation(variableDeclarationFragment),
+              ScopeConverter.toCFAScope(builder.getScope()),
+              variableIdentifier,
+              variableIdentifier,
+              builder.getScope().qualifiedVariableNameOf(variableIdentifier),
+              null));
+    }
   }
 
   private void declareVariables() {
