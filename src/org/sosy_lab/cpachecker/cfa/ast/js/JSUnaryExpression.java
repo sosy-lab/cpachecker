@@ -55,8 +55,16 @@ public class JSUnaryExpression extends AUnaryExpression implements JSExpression 
   }
 
   @Override
-  public String toASTString() {
-    return getOperator().getOperator() + getOperand().toParenthesizedASTString();
+  public String toASTString(boolean pQualified) {
+    switch (getOperator()) {
+      case PLUS:
+      case MINUS:
+      case COMPLEMENT:
+      case NOT:
+        return super.toASTString(pQualified);
+      default:
+        return getOperator() + " " + getOperand().toParenthesizedASTString(pQualified);
+    }
   }
 
   @Override
@@ -89,6 +97,11 @@ public class JSUnaryExpression extends AUnaryExpression implements JSExpression 
     @Override
     public String getOperator() {
       return mOp;
+    }
+
+    @Override
+    public String toString() {
+      return getOperator();
     }
   }
 
