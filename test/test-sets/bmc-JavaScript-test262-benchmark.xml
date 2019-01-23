@@ -84,6 +84,7 @@
         <!-- TODO Timeout -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/S12.6.3_A14*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/scope-body-lex-boundary*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/return/12.9-1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T3*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-close-dflt*.yml</exclude>
