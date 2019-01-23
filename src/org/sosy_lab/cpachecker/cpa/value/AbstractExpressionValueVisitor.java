@@ -2425,7 +2425,8 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   // TODO comment
-  public Value evaluate(final JSRightHandSide pExp, final JSType pTargetType) {
+  public Value evaluate(
+      final JSRightHandSide pExp, @SuppressWarnings("unused") final JSType pTargetType) {
     // TODO cast?
     return pExp.accept(this);
   }
