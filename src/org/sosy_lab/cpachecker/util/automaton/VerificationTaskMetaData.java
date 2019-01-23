@@ -79,7 +79,7 @@ public class VerificationTaskMetaData {
       throws InvalidConfigurationException {
     pConfig.inject(hackyOptions);
     specification = checkNotNull(pSpecification);
-    producerString = CPAchecker.getCPAcheckerVersionAndApproach(pConfig);
+    producerString = CPAchecker.getVersion(pConfig);
   }
 
   public List<Path> getInputWitnessFiles() throws IOException {

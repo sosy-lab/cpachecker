@@ -182,7 +182,7 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
     testTargets =
         ((TestTargetTransferRelation) testTargetCpa.getTransferRelation()).getTestTargets();
     harnessExporter = new HarnessExporter(pConfig, logger, pCfa);
-    producerString = CPAchecker.getCPAcheckerVersionAndApproach(pConfig);
+    producerString = CPAchecker.getVersion(pConfig);
 
     Preconditions.checkState(
         !isZippedTestCaseWritingEnabled() || testCaseZip != null,

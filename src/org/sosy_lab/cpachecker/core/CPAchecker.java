@@ -240,7 +240,6 @@ public class CPAchecker {
   private final ShutdownManager shutdownManager;
   private final ShutdownNotifier shutdownNotifier;
   private final CoreComponentsFactory factory;
-  private final String versionAndApproach;
 
   // The content of this String is read from a file that is created by the
   // ant task "init".
@@ -287,37 +286,30 @@ public class CPAchecker {
    * Returns a string that contains the version of CPAchecker as well as information on which
    * analysis is executed.
    */
-  public static String getCPAcheckerVersionAndApproach(Configuration pConfig)
-      throws InvalidConfigurationException {
+  public static String getVersion(Configuration pConfig) {
     StringJoiner joiner = new StringJoiner(" / ");
-    joiner.add("CPAchecker " + CPAchecker.getCPAcheckerVersion());
-    String analysisName = new ApproachNameInformation(pConfig).getApproachName();
-    if (analysisName != null) {
-      joiner.add(analysisName);
+    joiner.add("CPAchecker " + getPlainVersion());
+    try {
+      String analysisName = new ApproachNameInformation(pConfig).getApproachName();
+      if (analysisName != null) {
+        joiner.add(analysisName);
+      }
+    } catch (InvalidConfigurationException e) {
+      // Injecting a non-required "secure" String option without restrictions on allowed values
+      // actually never fails, and avoiding a throws clause simplifies callers of this method.
+      throw new AssertionError(e);
     }
     return joiner.toString();
   }
 
-  public static String getVersionAndApproach(Configuration pConfig)
-      throws InvalidConfigurationException {
-    return addJavaInformation(getCPAcheckerVersionAndApproach(pConfig));
-  }
-
-  public static String getVersion() {
-    return addJavaInformation(version);
-  }
-
-  private static String addJavaInformation(String pVersion) {
-    return pVersion
-        + " ("
-        + StandardSystemProperty.JAVA_VM_NAME.value()
-        + " "
-        + StandardSystemProperty.JAVA_VERSION.value()
-        + ")";
-  }
-
-  public static String getCPAcheckerVersion() {
+  public static String getPlainVersion() {
     return version;
+  }
+
+  public static String getJavaInformation() {
+    return StandardSystemProperty.JAVA_VM_NAME.value()
+        + " "
+        + StandardSystemProperty.JAVA_VERSION.value();
   }
 
   public CPAchecker(
@@ -327,7 +319,6 @@ public class CPAchecker {
     logger = pLogManager;
     shutdownManager = pShutdownManager;
     shutdownNotifier = pShutdownManager.getNotifier();
-    versionAndApproach = getVersionAndApproach(config);
 
     config.inject(this);
     factory =
@@ -339,7 +330,7 @@ public class CPAchecker {
       List<String> programDenotation, Set<SpecificationProperty> properties) {
     checkArgument(!programDenotation.isEmpty());
 
-    logger.log(Level.INFO, versionAndApproach, "started");
+    logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
 
     MainCPAStatistics stats = null;
     Algorithm algorithm = null;

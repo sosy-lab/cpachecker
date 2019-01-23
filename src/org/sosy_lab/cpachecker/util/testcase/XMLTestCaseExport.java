@@ -20,6 +20,7 @@
 package org.sosy_lab.cpachecker.util.testcase;
 
 import com.google.common.base.Preconditions;
+import com.google.common.xml.XmlEscapers;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
@@ -53,7 +54,7 @@ public class XMLTestCaseExport {
     pWriter.append("</sourcecodelang>\n");
 
     pWriter.append("\t<producer>");
-    pWriter.append(producerString);
+    pWriter.append(XmlEscapers.xmlContentEscaper().escape(producerString));
     pWriter.append("</producer>\n");
 
     if (pProp != null) {
