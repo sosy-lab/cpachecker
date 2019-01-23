@@ -28,6 +28,8 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
 public class JSFunctionType extends AFunctionType implements JSType {
@@ -69,5 +71,25 @@ public class JSFunctionType extends AFunctionType implements JSType {
   @Override
   public <R, X extends Exception> R accept(JSTypeVisitor<R, X> pVisitor) throws X {
     return pVisitor.visit(this);
+  }
+
+  @Override
+  public boolean equals(@Nullable final Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    if (pOther == null || getClass() != pOther.getClass()) {
+      return false;
+    }
+    if (!super.equals(pOther)) {
+      return false;
+    }
+    final JSFunctionType that = (JSFunctionType) pOther;
+    return Objects.equals(name, that.name);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), name);
   }
 }
