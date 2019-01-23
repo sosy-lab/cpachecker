@@ -25,10 +25,8 @@
  * A {@link org.sosy_lab.cpachecker.cfa.parser.eclipse.js.EclipseJavaScriptParser} implementation
  * based on the Eclipse JSDT project.
  *
- * Important: this package may NOT contain public types,
- * and may not be accessed directly,
- * because we load it in a separate class loader.
- * Use {@link org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers}
- * to get an instance.
+ * <p>Important: this package may NOT contain public types, and may not be accessed directly,
+ * because we load it in a separate class loader. Use {@link
+ * org.sosy_lab.cpachecker.cfa.parser.Parsers} to get an instance.
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
