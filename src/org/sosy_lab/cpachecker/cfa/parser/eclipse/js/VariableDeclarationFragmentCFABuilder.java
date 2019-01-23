@@ -23,10 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import java.util.Optional;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
@@ -43,15 +45,41 @@ class VariableDeclarationFragmentCFABuilder implements VariableDeclarationFragme
         pVariableDeclarationFragment.getInitializer() == null
           ? new JSUndefinedLiteralExpression(FileLocation.DUMMY)
           : pBuilder.append(pVariableDeclarationFragment.getInitializer());
-    final JSVariableDeclaration variableDeclaration =
-        new JSVariableDeclaration(
-            pBuilder.getFileLocation(pVariableDeclarationFragment),
-            ScopeConverter.toCFAScope(pBuilder.getScope()),
-            variableIdentifier,
-            variableIdentifier,
-            pBuilder.getScope().qualifiedVariableNameOf(variableIdentifier),
-            new JSInitializerExpression(expression.getFileLocation(), expression));
-    pBuilder.getScope().addDeclaration(variableDeclaration);
+
+    final Optional<? extends JSSimpleDeclaration> hoistedDeclaration =
+        pBuilder.getScope().findDeclaration(variableIdentifier);
+    final FunctionScope functionScope = pBuilder.getScope().getScope(FunctionScope.class);
+    final Optional<? extends JSSimpleDeclaration> outerDeclaration =
+        functionScope == null
+            ? Optional.empty()
+            : functionScope.getParentScope().findDeclaration(variableIdentifier);
+
+    final JSVariableDeclaration variableDeclaration;
+    // check if found declaration is hoisted declaration and not another (shadowed) declaration
+    // outside of the function (scope
+    if (hoistedDeclaration.isPresent() && !hoistedDeclaration.equals(outerDeclaration)) {
+      // variable declared by a hoisted declaration using 'var' or a function declaration
+      final JSSimpleDeclaration d = hoistedDeclaration.get();
+      variableDeclaration =
+          new JSVariableDeclaration(
+              pBuilder.getFileLocation(pVariableDeclarationFragment),
+              ScopeConverter.toCFAScope(pBuilder.getScope()),
+              d.getName(),
+              d.getOrigName(),
+              d.getQualifiedName(),
+              new JSInitializerExpression(expression.getFileLocation(), expression));
+    } else {
+      // variable declared using 'let' or 'const'
+      variableDeclaration =
+          new JSVariableDeclaration(
+              pBuilder.getFileLocation(pVariableDeclarationFragment),
+              ScopeConverter.toCFAScope(pBuilder.getScope()),
+              variableIdentifier,
+              variableIdentifier,
+              pBuilder.getScope().qualifiedVariableNameOf(variableIdentifier),
+              new JSInitializerExpression(expression.getFileLocation(), expression));
+    }
+
     pBuilder.appendEdge(JSDeclarationEdge.of(variableDeclaration));
     return variableDeclaration;
   }

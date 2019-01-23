@@ -23,14 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import java.util.LinkedHashMap;
+import java.util.List;
 import org.eclipse.wst.jsdt.core.dom.ASTNode;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclarationStatement;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.Statement;
 import org.eclipse.wst.jsdt.core.dom.SwitchCase;
-import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
+import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
+import org.eclipse.wst.jsdt.core.dom.VariableKind;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 
 class Hoisting {
@@ -38,6 +43,7 @@ class Hoisting {
   private final FunctionScope functionScope;
   private final FunctionDeclarationCFABuilder functionDeclarationCFABuilder;
   private final JavaScriptCFABuilder builder;
+  private final LinkedHashMap<String, JSSimpleDeclaration> declarationMap;
 
   Hoisting(
       final FunctionScope pFunctionScope,
@@ -46,10 +52,12 @@ class Hoisting {
     functionScope = pFunctionScope;
     functionDeclarationCFABuilder = pFunctionDeclarationCFABuilder;
     builder = pBuilder;
+    declarationMap = new LinkedHashMap<>();
   }
 
   void append(final Statement pStatement) {
     createStatementBuilder().append(builder, pStatement);
+    declareVariables();
   }
 
   void append(final JavaScriptUnit pUnit) {
@@ -64,6 +72,7 @@ class Hoisting {
             "Unknown kind of node (not handled yet): " + node.getClass().getSimpleName(), node);
       }
     }
+    declareVariables();
   }
 
   private StatementAppendable createStatementBuilder() {
@@ -108,15 +117,46 @@ class Hoisting {
         (pBuilder, pStatement) -> stmtBuilder.append(pBuilder, pStatement.getBody()));
 
     // statements that may lead to a hoisted declaration
-    stmtBuilder.setVariableDeclarationStatementAppendable(this::declareVariable);
+    stmtBuilder.setVariableDeclarationStatementAppendable(
+        (pBuilder, pVariableDeclarationStatement) -> {
+          if (pVariableDeclarationStatement.getKind() != VariableKind.VAR) {
+            return;
+          }
+          @SuppressWarnings("unchecked")
+          final List<VariableDeclarationFragment> variableDeclarationFragments =
+              pVariableDeclarationStatement.fragments();
+          for (final VariableDeclarationFragment variableDeclarationFragment :
+              variableDeclarationFragments) {
+            final String variableIdentifier = variableDeclarationFragment.getName().getIdentifier();
+            // Hoisted function declaration may not be overwritten, since it assigns a value
+            // contrary to
+            // a hoisted variable declaration
+            declarationMap.putIfAbsent(
+                variableIdentifier,
+                new JSVariableDeclaration(
+                    pBuilder.getFileLocation(variableDeclarationFragment),
+                    ScopeConverter.toCFAScope(pBuilder.getScope()),
+                    variableIdentifier,
+                    variableIdentifier,
+                    pBuilder.getScope().qualifiedVariableNameOf(variableIdentifier),
+                    null));
+          }
+        });
     stmtBuilder.setFunctionDeclarationStatementAppendable(this::declareFunction);
     return stmtBuilder;
   }
 
-  private void declareVariable(
-      final JavaScriptCFABuilder pBuilder,
-      final VariableDeclarationStatement pVariableDeclarationStatement) {
-    // TODO declare hoisted variable
+  private void declareVariables() {
+    declarationMap.values().stream()
+        .filter(JSVariableDeclaration.class::isInstance)
+        .map(JSVariableDeclaration.class::cast)
+        .forEachOrdered(this::declareVariable);
+  }
+
+  @SuppressWarnings("ResultOfMethodCallIgnored")
+  private void declareVariable(final JSVariableDeclaration jsVariableDeclaration) {
+    functionScope.addDeclaration(jsVariableDeclaration);
+    builder.appendEdge(JSDeclarationEdge.of(jsVariableDeclaration));
   }
 
   private void declareFunction(
@@ -132,6 +172,7 @@ class Hoisting {
     final JSFunctionDeclaration jsFunctionDeclaration =
         functionDeclarationCFABuilder.getJSFunctionDeclaration(pBuilder, pFunctionDeclaration);
     functionScope.addDeclaration(jsFunctionDeclaration);
+    declarationMap.put(jsFunctionDeclaration.getOrigName(), jsFunctionDeclaration);
     functionDeclarationCFABuilder.addDeclarationMapping(
         pFunctionDeclaration, jsFunctionDeclaration);
     pBuilder.appendEdge(JSDeclarationEdge.of(jsFunctionDeclaration));
