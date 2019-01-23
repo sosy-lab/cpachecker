@@ -28,6 +28,8 @@ import com.google.common.collect.Sets;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +40,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
@@ -53,11 +57,15 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** Utility class to extract candidates from witness file */
 public class CandidatesFromWitness {
@@ -191,6 +199,90 @@ public class CandidatesFromWitness {
                 expressionTrees.get(expressionTreeLocationInvariant.getGroupId()),
                 toCodeVisitorCache));
       }
+    }
+  }
+
+  public static void extractCandidateVariablesFromReachedSet(
+      final ShutdownNotifier pShutdownNotifier,
+      final Multimap<CFANode, MemoryLocation> candidates,
+      final Multimap<String, CFANode> candidateGroupLocations,
+      ReachedSet reachedSet) {
+    Set<CFANode> visited = Sets.newHashSet();
+    Multimap<String, MemoryLocation> groupIDToMemoryLocation = HashMultimap.create();
+    Map<String, ExpressionTree<AExpression>> expressionTrees = Maps.newHashMap();
+    // TODO: considering potential Candidates because of FunctionReturnEdges
+    for (AbstractState abstractState : reachedSet) {
+      if (pShutdownNotifier.shouldShutdown()) {
+        return;
+      }
+      Iterable<CFANode> locations = AbstractStates.extractLocations(abstractState);
+      Iterables.addAll(visited, locations);
+      for (AutomatonState automatonState :
+          AbstractStates.asIterable(abstractState).filter(AutomatonState.class)) {
+        ExpressionTree<AExpression> candidate = automatonState.getCandidateInvariants();
+        String groupId = automatonState.getInternalStateName();
+        candidateGroupLocations.putAll(groupId, locations);
+        if (!candidate.equals(ExpressionTrees.getTrue())) {
+          ExpressionTree<AExpression> previous = expressionTrees.get(groupId);
+          if (previous == null) {
+            previous = ExpressionTrees.getTrue();
+          }
+          ExpressionTree<AExpression> candidateAnd = And.of(previous, candidate);
+          groupIDToMemoryLocation.removeAll(groupId);
+          Set<CExpression> variableNames = new HashSet<>();
+          findVariables(candidateAnd, variableNames);
+          CallstackState callstackState =
+              AbstractStates.extractStateByType(abstractState, CallstackState.class);
+          for (CExpression variableName : variableNames) {
+            groupIDToMemoryLocation.put(
+                groupId,
+                MemoryLocation.valueOf(
+                    callstackState.getCurrentFunction(), variableName.toString()));
+            }
+
+
+        }
+      }
+    }
+    for (String groupID : candidateGroupLocations.keySet()) {
+      for (MemoryLocation m : groupIDToMemoryLocation.get(groupID)) {
+        for (CFANode n : candidateGroupLocations.get(groupID)) {
+          String function = m.getFunctionName();
+          String variable = m.getIdentifier();
+          candidates.put(n, MemoryLocation.valueOf(function, variable));
+        }
+      }
+    }
+  }
+
+  private static void findVariables(
+      ExpressionTree<AExpression> expression, Set<CExpression> variableNames) {
+    if (expression instanceof Or<?>) {
+      Or<AExpression> expressionOr = (Or<AExpression>) expression;
+      Iterator<ExpressionTree<AExpression>> operands = expressionOr.iterator();
+      while(operands.hasNext()) {
+        ExpressionTree<AExpression> next = operands.next();
+        findVariables(next, variableNames);
+      }
+    } else if (expression instanceof And<?>) {
+      And<AExpression> expressionAnd = (And<AExpression>) expression;
+      Iterator<ExpressionTree<AExpression>> operands = expressionAnd.iterator();
+      while(operands.hasNext()) {
+        ExpressionTree<AExpression> next = operands.next();
+        findVariables(next, variableNames);
+      }
+    } else if (expression instanceof LeafExpression<?>) {
+      Object expressionC = ((LeafExpression<?>) expression).getExpression();
+      extractCIdExpressionsfromCExpression((CExpression) expressionC, variableNames);
+    }
+  }
+
+  private static void extractCIdExpressionsfromCExpression(
+      CExpression expressionC, Set<CExpression> variableNames) {
+    Iterable<CIdExpression> filteredExpressionsC = CFAUtils.getIdExpressionsOfExpression(expressionC);
+    Iterator<CIdExpression> iteratorIdExpressions = filteredExpressionsC.iterator();
+    while (iteratorIdExpressions.hasNext()) {
+      variableNames.add(iteratorIdExpressions.next());
     }
   }
 }
