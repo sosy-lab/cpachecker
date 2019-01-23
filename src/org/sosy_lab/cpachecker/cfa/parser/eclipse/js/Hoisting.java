@@ -50,10 +50,10 @@ class Hoisting {
   }
 
   void append(final JavaScriptCFABuilder pBuilder, final JavaScriptUnit pUnit) {
-    final StatementAppendable builder = createStatementBuilder();
+    final StatementAppendable stmtBuilder = createStatementBuilder();
     for (final ASTNode node : pUnit.statements()) {
       if (node instanceof Statement) {
-        builder.append(pBuilder, (Statement) node);
+        stmtBuilder.append(pBuilder, (Statement) node);
       } else if (node instanceof FunctionDeclaration) {
         declareFunction(pBuilder, (FunctionDeclaration) node);
       } else {
@@ -64,50 +64,50 @@ class Hoisting {
   }
 
   private StatementAppendable createStatementBuilder() {
-    final StatementCFABuilder builder = new StatementCFABuilder();
+    final StatementCFABuilder stmtBuilder = new StatementCFABuilder();
 
     // statements that do not contain (declaration) statements
-    builder.setBreakStatementAppendable((pBuilder, pStatement) -> {});
-    builder.setContinueStatementAppendable((pBuilder, pStatement) -> {});
-    builder.setEmptyStatementAppendable((pBuilder, pStatement) -> {});
-    builder.setExpressionStatementAppendable((pBuilder, pStatement) -> null);
-    builder.setReturnStatementAppendable((pBuilder, pStatement) -> {});
+    stmtBuilder.setBreakStatementAppendable((pBuilder, pStatement) -> {});
+    stmtBuilder.setContinueStatementAppendable((pBuilder, pStatement) -> {});
+    stmtBuilder.setEmptyStatementAppendable((pBuilder, pStatement) -> {});
+    stmtBuilder.setExpressionStatementAppendable((pBuilder, pStatement) -> null);
+    stmtBuilder.setReturnStatementAppendable((pBuilder, pStatement) -> {});
 
     // visit (sub-) statements of control flow statements
-    builder.setBlockStatementAppendable(
+    stmtBuilder.setBlockStatementAppendable(
         (pBuilder, pStatement) -> {
           for (final Object statement : pStatement.statements()) {
-            builder.append(pBuilder, (Statement) statement);
+            stmtBuilder.append(pBuilder, (Statement) statement);
           }
         });
-    builder.setDoWhileStatementAppendable(
-        (pBuilder, pStatement) -> builder.append(pBuilder, pStatement.getBody()));
-    builder.setForStatementAppendable(
-        (pBuilder, pStatement) -> builder.append(pBuilder, pStatement.getBody()));
-    builder.setIfStatementAppendable(
+    stmtBuilder.setDoWhileStatementAppendable(
+        (pBuilder, pStatement) -> stmtBuilder.append(pBuilder, pStatement.getBody()));
+    stmtBuilder.setForStatementAppendable(
+        (pBuilder, pStatement) -> stmtBuilder.append(pBuilder, pStatement.getBody()));
+    stmtBuilder.setIfStatementAppendable(
         (pBuilder, pStatement) -> {
-          builder.append(pBuilder, pStatement.getThenStatement());
+          stmtBuilder.append(pBuilder, pStatement.getThenStatement());
           if (pStatement.getElseStatement() != null) {
-            builder.append(pBuilder, pStatement.getElseStatement());
+            stmtBuilder.append(pBuilder, pStatement.getElseStatement());
           }
         });
-    builder.setLabeledStatementAppendable(
-        (pBuilder, pStatement) -> builder.append(pBuilder, pStatement.getBody()));
-    builder.setSwitchStatementAppendable(
+    stmtBuilder.setLabeledStatementAppendable(
+        (pBuilder, pStatement) -> stmtBuilder.append(pBuilder, pStatement.getBody()));
+    stmtBuilder.setSwitchStatementAppendable(
         (pBuilder, pStatement) -> {
           for (final Object statement : pStatement.statements()) {
             if (!(statement instanceof SwitchCase)) {
-              builder.append(pBuilder, (Statement) statement);
+              stmtBuilder.append(pBuilder, (Statement) statement);
             }
           }
         });
-    builder.setWhileStatementAppendable(
-        (pBuilder, pStatement) -> builder.append(pBuilder, pStatement.getBody()));
+    stmtBuilder.setWhileStatementAppendable(
+        (pBuilder, pStatement) -> stmtBuilder.append(pBuilder, pStatement.getBody()));
 
     // statements that may lead to a hoisted declaration
-    builder.setVariableDeclarationStatementAppendable(this::declareVariable);
-    builder.setFunctionDeclarationStatementAppendable(this::declareFunction);
-    return builder;
+    stmtBuilder.setVariableDeclarationStatementAppendable(this::declareVariable);
+    stmtBuilder.setFunctionDeclarationStatementAppendable(this::declareFunction);
+    return stmtBuilder;
   }
 
   private void declareVariable(
