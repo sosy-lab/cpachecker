@@ -267,7 +267,6 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
       return strMgr.getStringFormula("object");
     } else {
       // variable
-      final IntegerFormula variable = (IntegerFormula) pValue.getValue();
       return bfmgr.ifThenElse(
           fmgr.makeEqual(type, typeTags.BOOLEAN),
           strMgr.getStringFormula("boolean"),
