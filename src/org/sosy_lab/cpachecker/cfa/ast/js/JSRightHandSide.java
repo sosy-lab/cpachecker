@@ -30,7 +30,7 @@ public interface JSRightHandSide extends JSAstNode, ARightHandSide {
 
   long serialVersionUID = -2745522112521546118L;
 
-  public <R, X extends Exception> R accept(JSRightHandSideVisitor<R, X> pV) throws X;
+  <R, X extends Exception> R accept(JSRightHandSideVisitor<R, X> pV) throws X;
 
   @Override
   default <R, X extends Exception> R accept(JSAstNodeVisitor<R, X> pV) throws X {
