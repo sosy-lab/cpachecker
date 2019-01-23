@@ -44,7 +44,7 @@ public final class JSParameterDeclaration extends AParameterDeclaration
   }
 
   /**
-   * Is set in {@link FunctionScopeImpl#setQualifiedNameOfParameters()}.
+   * Is set by the function scope.
    *
    * @param pQualifiedName The qualified name of the parameter, which depends on the qualified name
    *     of the function scope.
