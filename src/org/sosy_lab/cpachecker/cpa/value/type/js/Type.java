@@ -49,11 +49,11 @@ public final class Type {
     throw new AssertionError("Unhandled value type " + pValue.getClass());
   }
 
-  public static NumericValue toNumber(final JSUndefinedValue pValue) {
+  public static NumericValue toNumber(@SuppressWarnings("unused") final JSUndefinedValue pValue) {
     return new NumericValue(Double.NaN);
   }
 
-  public static NumericValue toNumber(final NullValue pValue) {
+  public static NumericValue toNumber(@SuppressWarnings("unused") final NullValue pValue) {
     return new NumericValue(0.0);
   }
 
