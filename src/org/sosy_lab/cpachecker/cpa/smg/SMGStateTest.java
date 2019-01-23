@@ -192,7 +192,8 @@ public class SMGStateTest {
     SMGValue value10 = SMGKnownSymValue.valueOf(10);
     SMGValue value11 = SMGKnownSymValue.valueOf(11);
     SMGValue value12 = SMGKnownSymValue.valueOf(12);
-    SMGValue value13 = SMGKnownSymValue.valueOf(13);SMGObject dll = new SMGDoublyLinkedList(96, 0, 0, 4, 0, 0);
+    SMGValue value13 = SMGKnownSymValue.valueOf(13);
+    SMGObject dll = new SMGDoublyLinkedList(96, 0, 0, 4, 0, 0);
    SMGEdgeHasValue dllN = new SMGEdgeHasValue(pointerType, 0, dll, value5);
    SMGEdgeHasValue dllP = new SMGEdgeHasValue(pointerType, 4, dll, value5);
    heap.addHeapObject(dll);
