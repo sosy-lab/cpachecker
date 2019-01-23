@@ -29,8 +29,6 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
-import java.util.Collection;
-
 /**
  * This is a dummy computer, that considers all predicates as relevant.
  * BAM-predicate-analysis using this RelevantPredicateComputer will run
