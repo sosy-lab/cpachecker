@@ -29,7 +29,6 @@ import com.google.common.truth.Truth;
 import org.eclipse.wst.jsdt.core.dom.ForStatement;
 import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
@@ -48,7 +47,7 @@ public final class ForStatementCFABuilderTest extends CFABuilderTestBase {
   private JavaScriptCFABuilder loopBuilder;
 
   @Override
-  public void init() throws InvalidConfigurationException {
+  public void init() {
     super.init();
     bodyStatementEdgeCaptor = new ReturnValueCaptor<>();
     expressionEdgeCaptor = new ReturnValueCaptor<>();

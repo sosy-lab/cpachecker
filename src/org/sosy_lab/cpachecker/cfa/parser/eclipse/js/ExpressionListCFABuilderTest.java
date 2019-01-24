@@ -32,7 +32,6 @@ import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.eclipse.wst.jsdt.core.dom.PrefixExpression;
 import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
@@ -50,7 +49,7 @@ public class ExpressionListCFABuilderTest extends CFABuilderTestBase {
   private ReturnValueCaptor<CFAEdge> secondSideEffectEdgeCaptor;
 
   @Override
-  public void init() throws InvalidConfigurationException {
+  public void init() {
     super.init();
     sideEffectEdgeCaptor = new ReturnValueCaptor<>();
     secondSideEffectEdgeCaptor = new ReturnValueCaptor<>();

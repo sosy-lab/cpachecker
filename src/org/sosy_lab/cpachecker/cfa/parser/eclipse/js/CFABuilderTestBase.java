@@ -27,7 +27,6 @@ import java.util.Collection;
 import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.junit.Before;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public abstract class CFABuilderTestBase {
@@ -37,7 +36,7 @@ public abstract class CFABuilderTestBase {
   protected CFANode entryNode;
 
   @Before
-  public void init() throws InvalidConfigurationException {
+  public void init() {
     builder = JavaScriptCFABuilderFactory.createTestJavaScriptCFABuilder();
     parser = new EclipseJavaScriptParser(builder.getLogger());
     entryNode = builder.getExitNode();

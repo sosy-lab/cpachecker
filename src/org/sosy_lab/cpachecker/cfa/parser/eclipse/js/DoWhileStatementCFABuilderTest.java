@@ -28,7 +28,6 @@ import static org.mockito.Mockito.mock;
 import com.google.common.truth.Truth;
 import org.eclipse.wst.jsdt.core.dom.DoStatement;
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
@@ -46,7 +45,7 @@ public final class DoWhileStatementCFABuilderTest extends CFABuilderTestBase {
   private JavaScriptCFABuilder loopBuilder;
 
   @Override
-  public void init() throws InvalidConfigurationException {
+  public void init() {
     super.init();
     bodyStatementEdgeCaptor = new ReturnValueCaptor<>();
     conditionEdgeCaptor = new ReturnValueCaptor<>();
