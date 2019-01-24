@@ -145,10 +145,23 @@ public class ARGState extends AbstractSingleWrapperState
     if (currentLocs != null && childLocs != null) {
       // first try to get a normal edge
       // consider only the actual analysis direction
-      Collection<CFAEdge> ingoingEdgesOfChild = Sets.newHashSet(childLocs.getIngoingEdges());
-      for (CFAEdge edge : currentLocs.getOutgoingEdges()) {
-        if (ingoingEdgesOfChild.contains(edge)) { return edge; }
+      Collection<CFANode> currentNodes = Sets.newHashSet(currentLocs.getLocationNodes());
+      for (CFAEdge edge : childLocs.getIngoingEdges()) {
+        if (currentNodes.contains(edge.getPredecessor())) {
+          return edge;
+        }
       }
+      Collection<CFANode> childNodes = Sets.newHashSet(childLocs.getLocationNodes());
+      for (CFAEdge edge : currentLocs.getOutgoingEdges()) {
+        if (childNodes.contains(edge.getSuccessor())) {
+          return edge;
+        }
+      }
+
+      // Collection<CFAEdge> ingoingEdgesOfChild = Sets.newHashSet(childLocs.getIngoingEdges());
+      // for (CFAEdge edge : currentLocs.getOutgoingEdges()) {
+      // if (ingoingEdgesOfChild.contains(edge)) { return edge; }
+      // }
 
       // then try to get a special edge, just to have some edge.
       for (CFANode currentLoc : currentLocs.getLocationNodes()) {

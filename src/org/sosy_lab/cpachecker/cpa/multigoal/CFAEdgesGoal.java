@@ -65,4 +65,8 @@ public class CFAEdgesGoal {
     return index >= edges.size();
   }
 
+  public void addEdge(CFAEdge pEdge) {
+    edges.add(pEdge);
+  }
+
 }

@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
@@ -42,7 +43,7 @@ public class MultiGoalCPA extends AbstractCPA {
     super("sep", "sep", null);
 
     precisionAdjustment = new MultiGoalPrecisionAdjustment();
-    transferRelation = new MutliGoalTransferRelation(null);
+    transferRelation = new MutliGoalTransferRelation();
   }
 
   public void setTransferRelationTargets(Set<CFAEdgesGoal> pTargets) {
@@ -57,11 +58,21 @@ public class MultiGoalCPA extends AbstractCPA {
   @Override
   public AbstractState getInitialState(final CFANode pNode, final StateSpacePartition pPartition)
       throws InterruptedException {
-    return new MultiGoalState(null);
+    return MultiGoalState.createInitialState();
   }
 
   @Override
   public MultiGoalPrecisionAdjustment getPrecisionAdjustment() {
     return precisionAdjustment;
   }
+
+  public void addCoveredGoal(CFAEdgesGoal pGoal) {
+    transferRelation.addCoveredGoal(pGoal);
+  }
+
+  @Override
+  public MergeOperator getMergeOperator() {
+    return new MultiGoalMergeOperator();
+  }
+
 }

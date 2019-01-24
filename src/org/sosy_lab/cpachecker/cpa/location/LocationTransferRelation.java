@@ -25,11 +25,14 @@ package org.sosy_lab.cpachecker.cpa.location;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.multigoal.MultiGoalState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -61,4 +64,39 @@ public class LocationTransferRelation implements TransferRelation {
     CFANode node = ((LocationState) element).getLocationNode();
     return CFAUtils.successorsOf(node).transform(n -> factory.getState(n)).toList();
   }
+
+  public enum WeavingType {
+    DECLARATION,
+    ASSIGNMENT,
+    ASSUMPTION
+  }
+
+  private WeaveEdgeFactory weaveFactory;
+
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pState,
+      List<AbstractState> pOtherStates,
+      @Nullable CFAEdge pCfaEdge,
+      Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+    MultiGoalState mgState = null;
+    for (AbstractState otherState : pOtherStates) {
+      if (otherState instanceof MultiGoalState) {
+        mgState = (MultiGoalState) otherState;
+        break;
+      }
+    }
+    if (mgState == null || !mgState.needsWeaving()) {
+      return Collections.singleton(pState);
+    }
+    if (weaveFactory == null) {
+      weaveFactory = new WeaveEdgeFactory();
+    }
+    return Collections.singleton(weaveFactory.create(mgState, pCfaEdge));
+  }
+
+
+
 }
