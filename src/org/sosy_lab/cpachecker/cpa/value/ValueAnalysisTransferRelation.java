@@ -115,8 +115,8 @@ import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
@@ -1288,13 +1288,13 @@ public class ValueAnalysisTransferRelation
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
-      } else if (ae instanceof AutomatonState) {
+      } else if (ae instanceof AbstractStateWithAssumptions) {
         result.clear();
         for (ValueAnalysisState stateToStrengthen : toStrengthen) {
           super.setInfo(pElement, pPrecision, pCfaEdge);
-          AutomatonState autoState = (AutomatonState) ae;
+          AbstractStateWithAssumptions stateWithAssumptions = (AbstractStateWithAssumptions) ae;
           Collection<ValueAnalysisState> ret =
-              strengthenAutomatonAssume(autoState, stateToStrengthen, pCfaEdge);
+              strengthenWithAssumptions(stateWithAssumptions, stateToStrengthen, pCfaEdge);
           if (ret == null) {
             result.add(stateToStrengthen);
           } else {
@@ -1557,11 +1557,13 @@ public class ValueAnalysisTransferRelation
     return newState;
   }
 
-  private Collection<ValueAnalysisState> strengthenAutomatonAssume(AutomatonState pAutomatonState, ValueAnalysisState pState, CFAEdge pCfaEdge) throws CPATransferException {
+  private Collection<ValueAnalysisState> strengthenWithAssumptions(
+      AbstractStateWithAssumptions pStateWithAssumptions, ValueAnalysisState pState, CFAEdge pCfaEdge)
+      throws CPATransferException {
 
     ValueAnalysisState newState = pState;
 
-    for (AExpression assumption : pAutomatonState.getAssumptions()) {
+    for (AExpression assumption : pStateWithAssumptions.getAssumptions()) {
       newState = handleAssumption(assumption, true);
 
       if (newState == null) {

@@ -123,6 +123,8 @@ public class ReportGenerator {
   private final Map<String, Object> argRelevantEdges;
   private final Map<Integer, Object> argRelevantNodes;
 
+  private final String producer; // HTML-escaped producer string
+
   public ReportGenerator(
       Configuration pConfig,
       LogManager pLogger,
@@ -138,6 +140,7 @@ public class ReportGenerator {
     argEdges = new HashMap<>();
     argRelevantEdges = new HashMap<>();
     argRelevantNodes = new HashMap<>();
+    producer = htmlEscaper().escape(CPAchecker.getVersion(pConfig));
   }
 
   public void generate(CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
@@ -326,11 +329,7 @@ public class ReportGenerator {
 
   private void insertMetaTags(Writer writer) {
     try {
-      writer.write(
-          "<meta name='generator'"
-              + " content='CPAchecker "
-              + CPAchecker.getCPAcheckerVersion()
-              + "'>\n");
+      writer.write("<meta name='generator'" + " content='" + producer + "'>\n");
     } catch (IOException e) {
       logger.logUserException(WARNING, e, "Could not create report: Inserting metatags failed.");
     }
@@ -340,9 +339,8 @@ public class ReportGenerator {
     try {
       String generated =
           String.format(
-              "Generated on %s by CPAchecker %s",
-              new SimpleDateFormat(DATE_TIME_FORMAT).format(new Date()),
-              CPAchecker.getCPAcheckerVersion());
+              "Generated on %s by %s",
+              new SimpleDateFormat(DATE_TIME_FORMAT).format(new Date()), producer);
       writer.write(generated);
     } catch (IOException e) {
       logger.logUserException(

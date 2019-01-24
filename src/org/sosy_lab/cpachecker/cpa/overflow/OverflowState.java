@@ -55,11 +55,10 @@ class OverflowState implements AbstractStateWithAssumptions, Graphable, Abstract
       Set<? extends AExpression> pAssumptions, boolean pHasOverflow, OverflowState parent) {
     assumptions = ImmutableSet.copyOf(pAssumptions);
     hasOverflow = pHasOverflow;
+    previousStates = null;
     if (parent != null) {
-      previousStates = parent.previousStates;
       currentStates = parent.currentStates;
     } else {
-      previousStates = ImmutableSet.of();
       currentStates = ImmutableSet.of();
     }
   }
@@ -132,9 +131,13 @@ class OverflowState implements AbstractStateWithAssumptions, Graphable, Abstract
 
   @Override
   public Set<AbstractState> getStatesForPreconditions() {
-    assert alreadyStrengthened
-        : "OverflowState has not yet been strengthened! This is most likely caused by a wrong CPA order!";
-    return previousStates;
+    if (alreadyStrengthened) {
+      assert (previousStates != null)
+          : "Expected state information to be not null after strengthening!";
+      return previousStates;
+    } else {
+      return currentStates;
+    }
   }
 
   @Override
@@ -144,9 +147,7 @@ class OverflowState implements AbstractStateWithAssumptions, Graphable, Abstract
 
   protected void updateStatesForPreconditions(List<AbstractState> pCurrentStates) {
     if (!alreadyStrengthened) {
-      // Update previousStates; we can forget the information if there are no assumptions.
-      // This will help with garbage collection:
-      previousStates = assumptions.isEmpty() ? ImmutableSet.of() : currentStates;
+      previousStates = currentStates;
       // update current states while deliberately removing "this".
       // Other states may get hold of this set via getStatesForPreconditions().
       // We want to prevent infinite recursion and accelerate garbage collection.
