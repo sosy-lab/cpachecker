@@ -94,7 +94,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerBaseAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerConfiguration;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WrapperUtil;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -456,7 +456,7 @@ public class CFACreator {
           "Tiger algorithm is only supported for C!"); }
 
       if (useTiger) {
-        TigerAlgorithm.originalMainFunction = mainFunctionName;
+        TigerBaseAlgorithm.originalMainFunction = mainFunctionName;
         mainFunctionName = WrapperUtil.CPAtiger_MAIN;
       }
 

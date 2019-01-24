@@ -82,7 +82,7 @@ public class TimeoutCPA extends AbstractCPA {
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    return new TimeoutState(false);
+    return TimeoutState.TIMEOUTNOTEXCEEDED;
   }
 
   @Override

@@ -37,9 +37,12 @@ public class TimeoutTransferRelation extends SingleEdgeTransferRelation {
   public Collection<? extends AbstractState>
       getAbstractSuccessorsForEdge(AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
           throws CPATransferException, InterruptedException {
-    // TODO Auto-generated method stub
     ArrayList<AbstractState> successors = new ArrayList<>();
-    successors.add(new TimeoutState(((TimeoutState) pState).getTimeoutExceeded()));
+    if (((TimeoutState) pState).getTimeoutExceeded()) {
+      successors.add(TimeoutState.TIMEOUTEXCEEDED);
+    } else {
+      successors.add(TimeoutState.TIMEOUTNOTEXCEEDED);
+    }
     return successors;
   }
 

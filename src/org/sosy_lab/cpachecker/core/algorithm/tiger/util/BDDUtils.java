@@ -180,7 +180,7 @@ public class BDDUtils {
     return null;
   }
 
-  public Region composeRemainingPresenceConditions(Goal pGoal, TestSuite testsuite) {
+  public Region composeRemainingPresenceConditions(Goal pGoal, TestSuite<Goal> testsuite) {
     if (bddCpa == null) {
       return null;
     }

@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerBaseAlgorithm;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -139,7 +139,9 @@ public class WrapperUtil {
       LogManager logger)
       throws IOException, CParserException, InvalidConfigurationException, InterruptedException {
     // create wrapper code
-    CFunctionEntryNode entryNode = (CFunctionEntryNode)tmpParseResult.getFunctions().get(TigerAlgorithm.originalMainFunction);
+    CFunctionEntryNode entryNode =
+        (CFunctionEntryNode) tmpParseResult.getFunctions()
+            .get(TigerBaseAlgorithm.originalMainFunction);
 
     List<FileToParse> tmpList = new ArrayList<>();
     tmpList.add(WrapperUtil.getWrapperCFunction(entryNode, logger));

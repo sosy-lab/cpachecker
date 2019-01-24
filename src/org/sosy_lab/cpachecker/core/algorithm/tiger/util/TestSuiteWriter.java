@@ -21,13 +21,11 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.file.Path;
-import java.security.MessageDigest;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
@@ -72,7 +70,7 @@ public class TestSuiteWriter {
     originalMainFunction = pOriginalMainFunction;
     useTestCompOutput = pUseTestCompOutput;
     outputFolder = pOutputFolder;
-    writtenTestCases = new HashSet<TestCase>();
+    writtenTestCases = new HashSet<>();
     spec = pSpec;
     initTestSuiteFolder();
   }
@@ -86,36 +84,6 @@ public class TestSuiteWriter {
     newElement.appendChild(dom.createTextNode(elementTest));
     parentElement.appendChild(newElement);
     return newElement;
-  }
-
-  private static String getFileChecksum(MessageDigest digest, File file) throws IOException {
-    // Get file input stream for reading the file content
-    FileInputStream fis = new FileInputStream(file);
-
-    // Create byte array to read data in chunks
-    byte[] byteArray = new byte[1024];
-    int bytesCount = 0;
-
-    // Read file data and update in message digest
-    while ((bytesCount = fis.read(byteArray)) != -1) {
-      digest.update(byteArray, 0, bytesCount);
-    } ;
-
-    // close the stream; We don't need it now.
-    fis.close();
-
-    // Get the hash's bytes
-    byte[] bytes = digest.digest();
-
-    // This bytes[] has bytes in decimal format;
-    // Convert it to hexadecimal format
-    StringBuilder sb = new StringBuilder();
-    for (int i = 0; i < bytes.length; i++) {
-      sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
-    }
-
-    // return complete hash
-    return sb.toString();
   }
 
   private void writeMetaData() {
@@ -169,15 +137,13 @@ public class TestSuiteWriter {
         // send DOM to file
         DOMSource domSource = new DOMSource(dom);
         StreamResult streamResult =
-            new StreamResult(new FileOutputStream(outputFolder + "/metadata.xml"));
+            new StreamResult(new File(outputFolder + "/metadata.xml"));
         tr.transform(
             domSource,
             streamResult);
 
       } catch (TransformerException te) {
         logger.log(Level.WARNING, te.getMessage());
-      } catch (IOException ioe) {
-        logger.log(Level.WARNING, ioe.getMessage());
       }
     } catch (ParserConfigurationException pce) {
       logger.log(Level.WARNING, "UsersXML: Error trying to instantiate DocumentBuilder " + pce);
@@ -217,15 +183,13 @@ public class TestSuiteWriter {
         tr.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
 
         // send DOM to file
+        File outputFile = new File(outputFolder + "/testcase-" + testcase.getId() + ".xml");
         tr.transform(
             new DOMSource(dom),
-            new StreamResult(
-                new FileOutputStream(outputFolder + "/testcase-" + testcase.getId() + ".xml")));
+            new StreamResult(outputFile));
 
       } catch (TransformerException te) {
         logger.log(Level.WARNING, te.getMessage());
-      } catch (IOException ioe) {
-        logger.log(Level.WARNING, ioe.getMessage());
       }
     } catch (ParserConfigurationException pce) {
       logger.log(Level.WARNING, "UsersXML: Error trying to instantiate DocumentBuilder " + pce);

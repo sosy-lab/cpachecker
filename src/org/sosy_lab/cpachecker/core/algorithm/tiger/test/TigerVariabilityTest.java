@@ -103,7 +103,8 @@ public class TigerVariabilityTest {
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
     assertThat(result).isInstanceOf(TestSuite.class);
-    TestSuite testSuite = (TestSuite) result;
+    @SuppressWarnings("unchecked")
+    TestSuite<AutomatonGoal> testSuite = (TestSuite<AutomatonGoal>) result;
 
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
@@ -130,7 +131,8 @@ public class TigerVariabilityTest {
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
     assertThat(result).isInstanceOf(TestSuite.class);
-    TestSuite testSuite = (TestSuite) result;
+    @SuppressWarnings("unchecked")
+    TestSuite<AutomatonGoal> testSuite = (TestSuite<AutomatonGoal>) result;
 
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
@@ -214,7 +216,8 @@ public class TigerVariabilityTest {
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
     assertThat(result).isInstanceOf(TestSuite.class);
-    TestSuite<AutomatonGoal> testSuite = (TestSuite) result;
+    @SuppressWarnings("unchecked")
+    TestSuite<AutomatonGoal> testSuite = (TestSuite<AutomatonGoal>) result;
 
     assertTrue(testSuite.getTestCases().size() == 8);
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
@@ -328,7 +331,8 @@ public class TigerVariabilityTest {
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
     assertThat(result).isInstanceOf(TestSuite.class);
-    TestSuite<AutomatonGoal> testSuite = (TestSuite) result;
+    @SuppressWarnings("unchecked")
+    TestSuite<AutomatonGoal> testSuite = (TestSuite<AutomatonGoal>) result;
 
     assertTrue(testSuite.getTestCases().size() == 6);
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);

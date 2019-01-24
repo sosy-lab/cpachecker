@@ -239,8 +239,7 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
   protected Set<T> checkGoalCoverage(
       Set<T> pGoalsToCheckCoverage,
       TestCase testCase,
-      boolean removeCoveredGoals,
-      CounterexampleInfo cex) {
+      boolean removeCoveredGoals) {
     Set<T> coveredGoals = testCase.getCoveredGoals(pGoalsToCheckCoverage);
     for (T goal : coveredGoals) {
       // TODO add infeasiblitpropagaion to testsuite

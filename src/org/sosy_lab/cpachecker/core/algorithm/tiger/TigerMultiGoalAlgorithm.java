@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -68,6 +67,7 @@ import org.sosy_lab.cpachecker.cpa.multigoal.MultiGoalCPA;
 import org.sosy_lab.cpachecker.cpa.multigoal.MultiGoalState;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
@@ -109,8 +109,8 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
 
   public MultiGoalCPA getMultiGoalCPA(ConfigurableProgramAnalysis pCpa) {
     if (pCpa instanceof WrapperCPA) {
-      MultiGoalCPA cpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(MultiGoalCPA.class);
-      return cpa;
+      MultiGoalCPA mgCPA = ((WrapperCPA) pCpa).retrieveWrappedCpa(MultiGoalCPA.class);
+      return mgCPA;
     } else if (pCpa instanceof MultiGoalCPA) {
       return ((MultiGoalCPA) pCpa);
     }
@@ -168,122 +168,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     return null;
   }
 
-  private void buildBasicBlocks(
-      CFAEdge currentEdge,
-      List<CFAEdge> currentBasicBlock,
-      List<List<CFAEdge>> basicBlocks,
-      Set<CFAEdge> processedEdges) {
-    if (!processedEdges.contains(currentEdge)) {
-      if (currentEdge.getPredecessor().getNumLeavingEdges() > 1) {
-        List<CFAEdge> newBB = new ArrayList<>();
-        basicBlocks.add(newBB);
-        currentBasicBlock = newBB;
-      }
-      processedEdges.add(currentEdge);
-      currentBasicBlock.add(currentEdge);
-      CFANode successor = currentEdge.getSuccessor();
-
-      for (int i = 0; i < successor.getNumLeavingEdges(); i++) {
-        buildBasicBlocks(
-            successor.getLeavingEdge(i),
-            currentBasicBlock,
-            basicBlocks,
-            processedEdges);
-      }
-    }
-  }
-
-  private List<CFAEdge> getBasicBlock(CFAEdge edge, List<List<CFAEdge>> bbs) {
-    for (List<CFAEdge> bb : bbs) {
-      for (CFAEdge bbEdge : bb) {
-        if (bbEdge == edge) {
-          return bb;
-        }
-      }
-    }
-    return null;
-  }
-
-  private void liftGoals(List<CFAGoal> goals, List<List<CFAEdge>> basicBlocks) {
-    for (CFAGoal goal : goals) {
-      List<CFAEdge> edges = goal.getCFAEdgesGoal().getEdges();
-      List<CFAEdge> newEdges = new ArrayList<>();
-      List<CFAEdge> lastBB = null;
-      CFAEdge lastEdge = null;
-      for (CFAEdge edge : edges) {
-        List<CFAEdge> currentBB = getBasicBlock(edge, basicBlocks);
-        if (lastBB == null || lastBB != currentBB) {
-          lastBB = currentBB;
-          newEdges.add(lastBB.get(0));
-          lastEdge = edge;
-        } else {
-          int currentIndex = currentBB.indexOf(edge);
-          int lastIndex = currentBB.indexOf(lastEdge);
-          // goal is a loop iteration -> add basic block entrance twice
-          if (currentIndex <= lastIndex) {
-            newEdges.add(currentBB.get(0));
-          } else {
-            // do nothing, edge will be covered anyway since it is a successor of the entrance edge
-            // of current basic block
-          }
-        }
-      }
-      goal.getCFAEdgesGoal().replaceEdges(newEdges);
-    }
-  }
-
-  private boolean complexGoalDominationCheck(CFAGoal goal1, CFAGoal goal2) {
-    return goal1.getCFAEdgesGoal().coveredByPath(goal2.getCFAEdgesGoal().getEdges()) ? true : false;
-  }
-
-  private boolean complexGoalDominationCheck(List<CFAGoal> goals, CFAGoal goal) {
-    for (CFAGoal goal1 : goals) {
-      if (!(goal1 == goal)) {
-        if (complexGoalDominationCheck(goal1, goal)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  private boolean simpleGoalDominationCheck(CFAGoal goal1, CFAGoal goal2) {
-    // check for same amount of goals
-    if (goal1.getCFAEdgesGoal().getEdges().size() != goal2.getCFAEdgesGoal().getEdges().size()) {
-      return false;
-    }
-    // check if both goals contain the same edges
-    for (int i = 0; i < goal1.getCFAEdgesGoal().getEdges().size(); i++) {
-      if (goal1.getCFAEdgesGoal().getEdges().get(i) != goal2.getCFAEdgesGoal().getEdges().get(i)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  private boolean simpleGoalDominationCheck(List<CFAGoal> goals, CFAGoal goal) {
-    for (CFAGoal goal1 : goals) {
-      if (!(goal1 == goal)) {
-        if (simpleGoalDominationCheck(goal1, goal)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
   private void reduceGoals(LinkedList<CFAGoal> goals) {
-    // calculate Basic Blocks
-    List<List<CFAEdge>> basicBlocks = new ArrayList<>();
-    Set<CFAEdge> processedEdges = new HashSet<>();
-    for (FunctionEntryNode fNode : cfa.getAllFunctionHeads()) {
-      for (int i = 0; i < fNode.getNumLeavingEdges(); i++) {
-        List<CFAEdge> basicBlock = new ArrayList<>();
-        basicBlocks.add(basicBlock);
-        buildBasicBlocks(fNode.getLeavingEdge(i), basicBlock, basicBlocks, processedEdges);
-      }
-    }
-
     // TODO only for test-comp remove afterwards
     Set<CFAGoal> keptGoals = new HashSet<>(goals);
     boolean allSuccessorsGoals;
@@ -310,16 +195,6 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     }
     goals.clear();
     goals.addAll(keptGoals);
-
-    // TODO excluded for testcomp
-    /*
-     * // Lift goal edges to basic block entrance edge if (tigerConfig.getGoalReduction() !=
-     * GoalReduction.NONE) { liftGoals(goals, basicBlocks); }
-     *
-     * if (tigerConfig.getGoalReduction() == GoalReduction.COMPLEX) { goals.removeIf(goal ->
-     * complexGoalDominationCheck(goals, goal)); } else if (tigerConfig.getGoalReduction() ==
-     * GoalReduction.SIMPLE) { goals.removeIf(goal -> simpleGoalDominationCheck(goals, goal)); }
-     */
   }
 
   private LinkedList<CFAGoal> extractGoalSyntax() {
@@ -344,7 +219,9 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
           }
         }
       }
-      cfaGoals.add(new CFAGoal(goalEdges));
+      if (goalEdges.size() >= 1) {
+        cfaGoals.add(new CFAGoal(goalEdges));
+      }
     }
     return cfaGoals;
   }
@@ -398,6 +275,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       throws CPAException, InterruptedException {
     boolean wasSound = true;
     // run reachability analsysis for each partition
+    logger.logf(Level.FINE, "Starting Tiger MGA with " + goalsToCover.size() + " goals.");
     Set<Set<CFAGoal>> partitions = createPartition(goalsToCover);
     for (Set<CFAGoal> partition : partitions) {
 
@@ -464,10 +342,11 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     if (timeoutCPA != null) {
       timeoutCPA.setWalltime(tigerConfig.getTimeout() / numberOfPartitions);
     }
+    multiGoalCPA.setTransferRelationTargets(
+        partition.stream().map(goal -> goal.getCFAEdgesGoal()).collect(Collectors.toSet()));
 
     while (pReachedSet.hasWaitingState() && !partition.isEmpty()) {
-      multiGoalCPA.setTransferRelationTargets(
-          partition.stream().map(goal -> goal.getCFAEdgesGoal()).collect(Collectors.toSet()));
+
       Pair<Boolean, Boolean> analysisWasSound_hasTimedOut = runAlgorithm(algorithm, pReachedSet);
 
       if (analysisWasSound_hasTimedOut.getSecond()) {
@@ -485,9 +364,6 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       if (reachedState != null) {
 
         ARGState targetState = (ARGState) reachedState;
-        Collection<ARGState> parentArgStates = targetState.getParents();
-        assert (parentArgStates.size() == 1);
-        ARGState parentArgState = parentArgStates.iterator().next();
 
         Optional<CounterexampleInfo> cexi = targetState.getCounterexampleInformation();
         assert cexi.isPresent();
@@ -513,6 +389,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
           // TODO do we need presence conditions for goals?
           testCasePresenceCondition = getPresenceConditionFromCex(cex);
           for (CFAGoal goal : coveredGoals) {
+            multiGoalCPA.addCoveredGoal(goal.getCFAEdgesGoal());
             TestCase testcase = createTestcase(cex, testCasePresenceCondition);
             // only add new Testcase and check for coverage if it does not already exist
 
@@ -535,15 +412,16 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
               }
               goalsToCheckCoverage.remove(goal);
               Set<CFAGoal> newlyCoveredGoals =
-                  checkGoalCoverage(goalsToCheckCoverage, testcase, removeGoalsToCover, cex);
-              partition.removeAll(newlyCoveredGoals);
+                  checkGoalCoverage(goalsToCheckCoverage, testcase, removeGoalsToCover);
+              for (CFAGoal newlyCoveredGoal : newlyCoveredGoals) {
+                partition.remove(newlyCoveredGoal);
+                multiGoalCPA.addCoveredGoal(newlyCoveredGoal.getCFAEdgesGoal());
+              }
             }
           }
         }
 
-        targetState.removeFromARG();
-        pReachedSet.remove(reachedState);
-        pReachedSet.reAddToWaitlist(parentArgState);
+        removeStateAndWeavedParents(targetState, pReachedSet);
 
         assert ARGUtils.checkARG(pReachedSet);
       } else {
@@ -571,6 +449,28 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
 
   }
 
+
+  private void removeStateAndWeavedParents(ARGState state, ReachedSet pReachedSet) {
+    Collection<ARGState> parentArgStates = state.getParents();
+    assert (parentArgStates.size() == 1);
+    ARGState parentArgState = parentArgStates.iterator().next();
+    state.removeFromARG();
+    pReachedSet.remove(state);
+    while (parentArgState.getParents().size() == 1) {
+      MultiGoalState mgState =
+          AbstractStates.extractStateByType(parentArgState, MultiGoalState.class);
+      if (mgState != null && !mgState.getWeavedEdges().isEmpty()) {
+        ARGState newParent = parentArgState.getParents().iterator().next();
+        parentArgState.removeFromARG();
+        pReachedSet.remove(parentArgState);
+        parentArgState = newParent;
+      } else {
+        break;
+      }
+    }
+
+    pReachedSet.reAddToWaitlist(parentArgState);
+  }
   private <T> Set<Set<T>> createPartition(LinkedList<T> allEdges) {
     HashSet<Set<T>> partitioning = new HashSet<>();
     HashSet<T> partition = new HashSet<>();

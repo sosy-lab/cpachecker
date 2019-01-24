@@ -381,7 +381,7 @@ public class TigerAlgorithm extends TigerBaseAlgorithm<AutomatonGoal> {
               goalsToCheckCoverage.addAll(testsuite.getTestGoals());
             }
             goalsToCheckCoverage.remove(pGoal);
-            checkGoalCoverage(goalsToCheckCoverage, testcase, removeGoalsToCover, cex);
+            checkGoalCoverage(goalsToCheckCoverage, testcase, removeGoalsToCover);
           }
 
         }

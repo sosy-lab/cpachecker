@@ -46,8 +46,8 @@ public class ExpectedGoalProperties {
     variableProperties = Lists.newLinkedList();
   }
 
-  public boolean checkProperties(TestSuite testSuite) {
-    Goal goal = testSuite.getGoalByName(goalName);
+  public <T extends Goal> boolean checkProperties(TestSuite<T> testSuite) {
+    T goal = testSuite.getGoalByName(goalName);
 
     if (goal == null) { throw new AssertionError(
         "Expected goal " + goalName + " not included in testSuite!"); }

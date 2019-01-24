@@ -380,6 +380,21 @@ public class InputOutputValues {
 
   }
 
+  private CFAEdge getEdge(CFANode parent, CFANode child) {
+    for (int i = 0; i < parent.getNumLeavingEdges(); i++) {
+      if (parent.getLeavingEdge(i).getSuccessor() == child) {
+        return parent.getLeavingEdge(i);
+      }
+    }
+
+    for (int i = 0; i < child.getNumEnteringEdges(); i++) {
+      if (child.getEnteringEdge(i).getPredecessor() == parent) {
+        return child.getEnteringEdge(i);
+      }
+    }
+    return null;
+  }
+
   public List<TestCaseVariable> extractInputValues(CounterexampleInfo cex, CFA pCFA) {
     // List<Value> values = new ArrayList<InputOutputValues.Value>();
 //    CFAPathWithAssumptions path = cex.getCFAPathWithAssignments();
@@ -445,8 +460,7 @@ public class InputOutputValues {
           Iterable<CFANode> childLocs = AbstractStates.extractLocations(child);
           for (CFANode parentLoc : parentLocs) {
             for (CFANode childLoc : childLocs) {
-              if (parentLoc.hasEdgeTo(childLoc)) {
-                CFAEdge edge = parentLoc.getEdgeTo(childLoc);
+              CFAEdge edge = getEdge(parentLoc, childLoc);
 
                 // add the required values for external non-void functions
                 if (edge instanceof AStatementEdge) {
@@ -468,7 +482,7 @@ public class InputOutputValues {
                   stack.push(child);
                   lastEdgeStack.push(edge);
                 }
-              }
+
             }
           }
         }

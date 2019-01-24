@@ -25,10 +25,13 @@ package org.sosy_lab.cpachecker.cpa.timeout;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-public class TimeoutState implements AbstractState {
-  private final boolean timeoutExceeded;
+public enum TimeoutState implements AbstractState {
+  TIMEOUTEXCEEDED(true),
+  TIMEOUTNOTEXCEEDED(false);
 
-  public TimeoutState(boolean pTimeoutExceeded) {
+  private boolean timeoutExceeded;
+
+  TimeoutState(boolean pTimeoutExceeded) {
     this.timeoutExceeded = pTimeoutExceeded;
   }
 
