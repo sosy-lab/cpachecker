@@ -49,8 +49,7 @@ class SwitchStatementCFABuilder implements SwitchStatementAppendable {
 
   @Override
   public void append(final JavaScriptCFABuilder pBuilder, final SwitchStatement pSwitchStatement) {
-    @SuppressWarnings("unused")
-    final Builder builder = new Builder(pBuilder, pSwitchStatement);
+    new Builder(pBuilder, pSwitchStatement).build(pBuilder, pSwitchStatement);
   }
 
   private static final class Builder {
@@ -81,11 +80,15 @@ class SwitchStatementCFABuilder implements SwitchStatementAppendable {
      */
     private CFANode dummyEntryToDefaultCase = null;
 
-    @SuppressWarnings("unchecked")
     private Builder(final JavaScriptCFABuilder pBuilder, final SwitchStatement pSwitchStatement) {
       exitNode = pBuilder.createNode();
       elseCaseBuilder = pBuilder.copyWith(new SwitchScope(pBuilder.getScope(), exitNode));
       value = pBuilder.append(pSwitchStatement.getExpression());
+    }
+
+    @SuppressWarnings("unchecked")
+    private void build(
+        final JavaScriptCFABuilder pBuilder, final SwitchStatement pSwitchStatement) {
       visitSwitchStatements(pSwitchStatement.statements());
       if (currentCaseBuilder == null) {
         // switch has no cases
