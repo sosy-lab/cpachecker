@@ -81,9 +81,11 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
 
   /**
    * Returns the first state that was added to the reached set.
+   * May be null if the state gets removed from the reached set.
+   *
    * @throws IllegalStateException If the reached set is empty.
    */
-  AbstractState getFirstState();
+  @Nullable AbstractState getFirstState();
 
   /**
    * Returns the last state that was added to the reached set.

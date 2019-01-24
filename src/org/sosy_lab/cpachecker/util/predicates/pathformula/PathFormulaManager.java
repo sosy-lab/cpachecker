@@ -198,6 +198,8 @@ public interface PathFormulaManager {
       BooleanFormula pMainFormula,
       BooleanFormula pEsxtractionFormula);
 
+  PathFormulaBuilder createNewPathFormulaBuilder();
+
   /**
    * Builds a weakest precondition for the given edge and the postcondition
    *
@@ -207,4 +209,8 @@ public interface PathFormulaManager {
    */
   BooleanFormula buildWeakestPrecondition(CFAEdge pEdge, BooleanFormula pPostcond)
       throws UnrecognizedCFAEdgeException, UnrecognizedCodeException, InterruptedException;
+
+  PointerTargetSet
+      mergePts(PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMap pSSA)
+          throws InterruptedException;
 }

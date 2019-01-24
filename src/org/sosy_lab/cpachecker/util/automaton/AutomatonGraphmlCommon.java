@@ -100,7 +100,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
@@ -381,7 +380,7 @@ public class AutomatonGraphmlCommon {
       graph.appendChild(
           createDataElement(KeyDef.SOURCECODELANGUAGE, pCfa.getLanguage().toString()));
       graph.appendChild(
-          createDataElement(KeyDef.PRODUCER, "CPAchecker " + CPAchecker.getCPAcheckerVersion()));
+          createDataElement(KeyDef.PRODUCER, pVerificationTaskMetaData.getProducerString()));
 
       int nSpecs = 0;
       for (SpecificationProperty property : pVerificationTaskMetaData.getProperties()) {

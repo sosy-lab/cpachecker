@@ -29,7 +29,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import java.io.Serializable;
+
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -38,16 +38,21 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.cpa.arg.Splitable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
+import java.io.Serializable;
+import java.util.Collection;
+
 /**
  * AbstractState for Symbolic Predicate Abstraction CPA
  */
-public abstract class PredicateAbstractState implements AbstractState, Partitionable, Serializable {
+public abstract class PredicateAbstractState
+    implements AbstractState, Partitionable, Serializable, Splitable {
 
   private static final long serialVersionUID = -265763837277453447L;
 
@@ -261,5 +266,15 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
     return new NonAbstractionState(pathFormula, abstractionFormula,
         PathCopyingPersistentTreeMap.<CFANode, Integer>of());
+  }
+
+  @Override
+  public AbstractState forkWithReplacements(Collection<AbstractState> pReplacementStates) {
+    for (AbstractState state : pReplacementStates) {
+      if (state instanceof PredicateAbstractState) {
+        return state;
+      }
+    }
+    return this;
   }
 }

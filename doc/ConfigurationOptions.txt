@@ -278,6 +278,9 @@ analysis.matchAssignedFunctionPointers.ignoreUnknownAssignments = false
 # analysis
 analysis.memorizeReachedAfterRestart = false
 
+# Name of the used analysis, defaults to the name of the used configuration
+analysis.name = no default value
+
 # Partition the initial states based on the type of location they were
 # created for (see 'initialStatesFor')
 analysis.partitionInitialStates = false
@@ -961,12 +964,16 @@ cpa.arg.automaton.export = false
 cpa.arg.automaton.exportCompressed = true
 
 # translate final ARG into an automaton, depends on 'automaton.export=true'
-cpa.arg.automaton.exportDotFile = "ARG_parts/ARG.%03d.spc.dot"
-cpa.arg.automaton.exportSpcFile = "ARG_parts/ARG.%03d.spc"
+cpa.arg.automaton.exportDotFile = "ARG_parts/ARG.%06d.spc.dot"
+cpa.arg.automaton.exportSpcFile = "ARG_parts/ARG.%06d.spc"
+cpa.arg.automaton.exportSpcZipFile = "ARG_parts.zip"
+
+# export all automata into one zip-file, depends on 'automaton.export=true'
+cpa.arg.automaton.exportZipped = true
 
 # after determining branches, which one of them should be exported?
-cpa.arg.automaton.selectionStrategy = LEAFS
-  enum:     [NONE, ALL, LEAFS, WEIGHTED, FIRST_BFS]
+cpa.arg.automaton.selectionStrategy = LEAVES
+  enum:     [NONE, ALL, LEAVES, WEIGHTED, FIRST_BFS]
 
 # minimum ratio of siblings such that one of them will be exported
 cpa.arg.automaton.siblingRatio = 0.4
@@ -977,7 +984,7 @@ cpa.arg.automaton.skipFirstNum = 10
 
 # which coarse strategy should be applied when analyzing the ARG?
 cpa.arg.automaton.strategy = GLOBAL_CONDITIONS
-  enum:     [NONE, GLOBAL_CONDITIONS]
+  enum:     [NONE, GLOBAL_CONDITIONS, LEAVES]
 
 # compress the produced correctness-witness automata using GZIP compression.
 cpa.arg.compressWitness = true
@@ -1016,6 +1023,13 @@ cpa.arg.inCPAEnabledAnalysis = false
 # whether to keep covered states in the reached set as addition to keeping
 # them in the ARG
 cpa.arg.keepCoveredStatesInReached = false
+
+# write the ARG at various stages during execution into dot files whose name
+# is specified by this option. Only works if 'cpa.arg.logARGs=true'
+cpa.arg.log.fileTemplate = "ARG_log/ARG_%04d.dot"
+
+# Enable logging of ARGs at various positions
+cpa.arg.logARGs = false
 
 # If this option is enabled, ARG states will also be merged if the first
 # wrapped state is subsumed by the second wrapped state (and the parents are
@@ -1138,6 +1152,9 @@ cpa.bam.blockHeuristic.functionPartitioning.minFunctionCalls = 0
 # only consider function with a minimum number of CFA nodes. This approach is
 # similar to 'inlining' small functions, when using BAM.
 cpa.bam.blockHeuristic.functionPartitioning.minFunctionSize = 0
+
+# file for exporting detailed statistics about blocks
+cpa.bam.blockStatisticsFile = "block_statistics.txt"
 
 # abort current analysis when finding a missing block abstraction
 cpa.bam.breakForMissingBlock = true
@@ -1997,6 +2014,12 @@ cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-zA-Z0-9_]*"
 # ignoreIrrelevantVariables is set to true)
 cpa.predicate.overflowVariablesAreRelevant = false
 
+# Which path-formula builder to use.Depending on this setting additional
+# terms are added to the path formulas,e.g. SYMBOLICLOCATIONS will add track
+# the program counter symbolically with a special variable %pc
+cpa.predicate.pathFormulaBuilderVariant = DEFAULT
+  enum:     [DEFAULT, SYMBOLICLOCATIONS]
+
 # Where to apply the found predicates to?
 cpa.predicate.precision.sharing = LOCATION
   enum:     [GLOBAL, SCOPE, FUNCTION, LOCATION, LOCATION_INSTANCE]
@@ -2233,12 +2256,19 @@ cpa.predicate.satCheckAtAbstraction = false
 # Call 'simplify' on generated formulas.
 cpa.predicate.simplifyGeneratedPathFormulas = false
 
+# Whether to perform dynamic block encoding as part of each refinement
+# iteration
+cpa.predicate.slicingabstractions.dynamicBlockEncoding = false
+
 # Only slices the minimal amount of edges to guarantuee progress
 cpa.predicate.slicingabstractions.minimalslicing = false
 
 # Reduces the amount of solver calls by directely slicing some edgesthat are
 # mathematically proven to be infeasible in any case
 cpa.predicate.slicingabstractions.optimizeslicing = true
+
+# Whether to remove parts fo the ARG from which no target state is reachable
+cpa.predicate.slicingabstractions.removeSafeRegions = true
 
 # C99 only defines the overflow of unsigned integer type.
 cpa.predicate.solver.ufCheckingProver.isSignedOverflowSafe = true
@@ -2413,6 +2443,9 @@ cpa.slicing.weakeningStrategy = CEX
 # Enable GCC extension 'Arrays of Length Zero'.
 cpa.smg.GCCZeroLengthArray = false
 
+# Allocate memory on declaration of external variable
+cpa.smg.allocateExternalVariables = true
+
 # Array allocation functions
 cpa.smg.arrayAllocationFunctions = {"calloc"}
 
@@ -2448,9 +2481,9 @@ cpa.smg.guessSize = 2
 # Size of memory that cannot be calculated will be guessed.
 cpa.smg.guessSizeOfUnknownMemorySize = false
 
-# Handle extern variables with incomplete type (extern int array[]) as
+# Handle external variables with incomplete type (extern int array[]) as
 # external allocation
-cpa.smg.handleExternVariableAsExternalAllocation = false
+cpa.smg.handleIncompleteExternalVariableAsExternalAllocation = false
 
 # with this option enabled, memory that is not freed before the end of main
 # is reported as memleak even if it is reachable from local variables in main
@@ -3008,9 +3041,6 @@ heuristicSelection.preAnalysisAlgorithmConfig = no default value
 
 # Configuration for programs containing recursion.
 heuristicSelection.recursionConfig = no default value
-
-# Usage of an preliminary algorithm analysis.
-heuristicSelection.usePreAnalysisAlgorithm = false
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
@@ -3779,6 +3809,10 @@ testcase.inStats = false
 # test case and report false (only possible in combination with error call
 # property specification
 testcase.reportCoveredErrorCallAsError = false
+
+# Which strategy to use to optimize set of test target edges
+testcase.targets.optimization.strategy = NONE
+  enum:     [NONE, COVERED_NEXT_EDGE, TESTCOMP]
 
 # Which CFA edges to use as test targets
 testcase.targets.type = STATEMENT

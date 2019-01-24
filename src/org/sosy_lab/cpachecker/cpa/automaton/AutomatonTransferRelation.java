@@ -53,9 +53,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState.AutomatonUnknownState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
@@ -65,10 +65,11 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
-/** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState}
- * and strengthens an {@link AutomatonState.AutomatonUnknownState}.
+/**
+ * The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState} and
+ * strengthens an {@link AutomatonState.AutomatonUnknownState}.
  */
-class AutomatonTransferRelation extends SingleEdgeTransferRelation {
+class AutomatonTransferRelation implements TransferRelation {
 
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
@@ -112,6 +113,13 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
         getAbstractSuccessors0((AutomatonState) pElement, pCfaEdge, pPrecision);
     automatonSuccessors.setNextValue(result.size());
     return result;
+  }
+
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState pState, Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+    return Collections.singleton(((AutomatonState) pState).getAutomatonCPA().getTopState());
   }
 
   private Collection<AutomatonState> getAbstractSuccessors0(

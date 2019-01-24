@@ -6,7 +6,7 @@
   <option name="-heap">2000M</option>
 
   <rundefinition>
-    <option name="-config">config/components/kInduction/pdr.properties</option>
+    <option name="-config">config/unmaintained/components/kInduction/pdr.properties</option>
     <option name="-setprop">pdr.abstractionStrategy=ALLSAT_BASED_PREDICATE_ABSTRACTION</option>
     <option name="-setprop">pdr.liftingStrategy=ABSTRACTION_BASED_LIFTING</option>
     <option name="-setprop">pdr.invariantRefinementStrategy=UNSAT_CORE_BASED_STRENGTHENING</option>
@@ -84,7 +84,8 @@
   </tasks>
 
   <tasks>
-    <includesfile>integration-DeviceDriversLinux64.set</includesfile>
+    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+    <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
 
     <!-- Instable: sometimes timeout, sometimes not -->
     <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-net-ppp_generic.ko_false-unreach-call.cil.out.i.pp.i</exclude>

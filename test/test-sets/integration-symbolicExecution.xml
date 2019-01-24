@@ -64,7 +64,8 @@
   </tasks>
 
   <tasks>
-    <includesfile>integration-DeviceDriversLinux64.set</includesfile>
+    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+    <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-*false-unreach-call*</exclude> <!-- timeouts -->
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_false-unreach-call_ok_linux-43_1a-drivers--scsi--megaraid--megaraid_mm_true-termination.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude> <!-- flapping timeout / unknown -->
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>

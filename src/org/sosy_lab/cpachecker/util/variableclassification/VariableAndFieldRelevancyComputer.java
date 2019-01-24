@@ -533,9 +533,10 @@ final class VariableAndFieldRelevancyComputer {
               throw new UnrecognizedCodeException("Unhandled assignment", edge, assignment);
             }
           } else if (statement instanceof CFunctionCallStatement) {
-            ((CFunctionCallStatement) statement)
-                .getFunctionCallExpression()
-                .accept(CollectingRHSVisitor.create(pCfa, VariableOrField.unknown()));
+            result =
+              result.withDependencies(
+                  ((CFunctionCallStatement) statement).getFunctionCallExpression()
+                      .accept(CollectingRHSVisitor.create(pCfa, VariableOrField.unknown())));
           }
           break;
         }

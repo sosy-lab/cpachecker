@@ -27,6 +27,8 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -35,7 +37,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -56,6 +57,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -77,6 +79,8 @@ public class ARGToAutomatonConverter {
     NONE,
     /** split at non-nested conditions only */
     GLOBAL_CONDITIONS,
+    /** split different leaf states */
+    LEAVES
   }
 
   public enum BranchExportStrategy {
@@ -85,7 +89,7 @@ public class ARGToAutomatonConverter {
     /** export all branches, will contain redundant paths, mostly for debugging. */
     ALL,
     /** export all leaf nodes of the ARG, very precise, no redundant paths are exported. */
-    LEAFS,
+    LEAVES,
     /** export some intermediate nodes, sound due to export of siblings if needed. */
     WEIGHTED,
     /**
@@ -103,7 +107,7 @@ public class ARGToAutomatonConverter {
   @Option(
       secure = true,
       description = "after determining branches, which one of them should be exported?")
-  private BranchExportStrategy selectionStrategy = BranchExportStrategy.LEAFS;
+  private BranchExportStrategy selectionStrategy = BranchExportStrategy.LEAVES;
 
   @Option(
       secure = true,
@@ -135,9 +139,11 @@ public class ARGToAutomatonConverter {
   public Iterable<Automaton> getAutomata(ARGState root) {
     switch (strategy) {
       case NONE:
-        return Collections.singleton(getAutomatonForStates(root, ImmutableList.of()));
+        return Collections.singleton(getAutomatonForStates(root, Predicates.alwaysFalse(), false));
       case GLOBAL_CONDITIONS:
         return getGlobalConditionSplitAutomata(root, selectionStrategy);
+      case LEAVES:
+        return from(getLeaves(root)).transform(l -> getAutomatonForLeaf(root, l));
       default:
         throw new AssertionError("unexpected strategy");
     }
@@ -145,21 +151,21 @@ public class ARGToAutomatonConverter {
 
   /** generate an automaton that traverses the subgraph, but leaves out ignored states. */
   private static Automaton getAutomatonForStates(
-      ARGState pRoot, Collection<ARGState> ignoredStates) {
+      ARGState pRoot, Predicate<ARGState> ignoreState, boolean withTargetState) {
     try {
-      return getAutomatonForStates0(pRoot, ignoredStates);
+      return getAutomatonForStates0(pRoot, ignoreState, withTargetState);
     } catch (InvalidAutomatonException e) {
       throw new AssertionError("unexpected exception", e);
     }
   }
 
   /** generate an automaton that traverses the subgraph, but leaves out ignored states. */
-  private static Automaton getAutomatonForStates0(ARGState root, Collection<ARGState> ignoredStates)
+  private static Automaton getAutomatonForStates0(
+      ARGState root, Predicate<ARGState> ignoreState, boolean withTargetState)
       throws InvalidAutomatonException {
 
-    Preconditions.checkArgument(!ignoredStates.contains(root));
+    Preconditions.checkArgument(!ignoreState.apply(root));
     Preconditions.checkArgument(!root.isCovered());
-    Preconditions.checkArgument(Iterables.all(ignoredStates, s -> !s.isCovered()));
 
     Map<String, AutomatonVariable> variables = Collections.emptyMap();
 
@@ -168,6 +174,9 @@ public class ARGToAutomatonConverter {
     waitlist.add(root);
 
     List<AutomatonInternalState> states = new ArrayList<>();
+    if (withTargetState) {
+      states.add(AutomatonInternalState.ERROR);
+    }
     while (!waitlist.isEmpty()) {
       ARGState s = uncover(waitlist.pop());
       if (!finished.add(s)) {
@@ -177,7 +186,7 @@ public class ARGToAutomatonConverter {
       List<AutomatonBoolExpr> locationQueries = new ArrayList<>();
       for (ARGState child : s.getChildren()) {
         child = uncover(child);
-        if (ignoredStates.contains(child)) {
+        if (ignoreState.apply(child)) {
           // ignore those states here, BOTTOM-state will be inserted afterwards automatically.
           // Note: if sibling with same location is not ignored, ignorance might be useless.
           continue;
@@ -187,25 +196,33 @@ public class ARGToAutomatonConverter {
         AutomatonBoolExpr locationQuery =
             new AutomatonBoolExpr.CPAQuery("location", "nodenumber==" + location.getNodeNumber());
         locationQueries.add(locationQuery);
+        final String id;
+        if (withTargetState && child.isTarget()) {
+          id = AutomatonInternalState.ERROR.getName();
+        } else {
+          id = id(child);
+        }
         transitions.add(
             new AutomatonTransition(
-                locationQuery,
-                ImmutableList.of(),
-                ImmutableList.of(),
-                ImmutableList.of(),
-                id(child)));
+                locationQuery, ImmutableList.of(), ImmutableList.of(), ImmutableList.of(), id));
         waitlist.add(child);
       }
 
-      transitions.add(
-          new AutomatonTransition(
-              buildOtherwise(locationQueries),
-              ImmutableList.of(),
-              ImmutableList.of(),
-              AutomatonInternalState.BOTTOM));
+      if (withTargetState && s.isTarget()) {
+        assert transitions.isEmpty();
+        assert states.contains(AutomatonInternalState.ERROR);
+      } else {
+        transitions.add(
+            new AutomatonTransition(
+                buildOtherwise(locationQueries),
+                ImmutableList.of(),
+                ImmutableList.of(),
+                AutomatonInternalState.BOTTOM));
 
-      boolean hasSeveralChildren = s.getChildren().size() > 1;
-      states.add(new AutomatonInternalState(id(s), transitions, false, hasSeveralChildren, false));
+        boolean hasSeveralChildren = transitions.size() > 1;
+        states.add(
+            new AutomatonInternalState(id(s), transitions, false, hasSeveralChildren, false));
+      }
     }
 
     return new Automaton("ARG", variables, states, id(root));
@@ -277,17 +294,17 @@ public class ARGToAutomatonConverter {
         return Collections.emptyList();
 
       case ALL: // export all nodes, mainly for debugging.
-        return FluentIterable.from(pDependencies.entrySet())
+        return from(pDependencies.entrySet())
             .transformAndConcat(entry -> entry.getValue().getIgnoreStates())
-            .transform(ignores -> getAutomatonForStates(root, ignores.asSet()));
+            .transform(ignores -> getAutomatonForStates(root, s -> ignores.contains(s), false));
 
-      case LEAFS: // ALL_PATHS, export all leaf-nodes, sub-graphs cover the whole graph.
+      case LEAVES: // ALL_PATHS, export all leaf-nodes, sub-graphs cover the whole graph.
         // no redundant paths expected, if leafs are reached via different paths.
-        return FluentIterable.from(pDependencies.entrySet())
+        return from(pDependencies.entrySet())
             // end-states do not have outgoing edges, and thus no next states.
             .filter(entry -> entry.getValue().getNextStates().isEmpty())
             .transformAndConcat(entry -> entry.getValue().getIgnoreStates())
-            .transform(ignores -> getAutomatonForStates(root, ignores.asSet()));
+            .transform(ignores -> getAutomatonForStates(root, s -> ignores.contains(s), false));
 
       case WEIGHTED: // export all nodes, where children are heavier than a given limit
         return getWeightedAutomata(root, pDependencies);
@@ -318,8 +335,8 @@ public class ARGToAutomatonConverter {
       }
     }
 
-    return FluentIterable.from(paths)
-        .transform(ignores -> getAutomatonForStates(pRoot, ignores.asSet()));
+    return from(paths)
+        .transform(ignores -> getAutomatonForStates(pRoot, s -> ignores.contains(s), false));
   }
 
   /**
@@ -416,14 +433,16 @@ public class ARGToAutomatonConverter {
         // This might lead to redundant traces in the exported automata.
         // Should we add a deeper analysis that also looks for (non-)exported grand-children?
         for (PersistentSet<ARGState> ignores : bi.getIgnoreStates()) {
-          automata.add(getAutomatonForStates(root, Sets.union(ignores.asSet(), finishedChildren)));
+          automata.add(
+              getAutomatonForStates(
+                  root, as -> (ignores.contains(as) || finishedChildren.contains(as)), false));
         }
         completeExportOfState = true;
       } else {
         // no children are exported -> export current node or skip and export parent
         if (shouldExportAutomatonFor(root, s, pDependencies)) {
           for (PersistentSet<ARGState> ignores : bi.getIgnoreStates()) {
-            automata.add(getAutomatonForStates(root, ignores.asSet()));
+            automata.add(getAutomatonForStates(root, as -> ignores.contains(as), false));
           }
           completeExportOfState = true;
         } else {
@@ -456,7 +475,7 @@ public class ARGToAutomatonConverter {
       return true;
     }
     Collection<Integer> siblings =
-        FluentIterable.from(pDependencies.get(s).getParents())
+        from(pDependencies.get(s).getParents())
             .transformAndConcat(p -> pDependencies.get(p).getNextStates())
             .transform(n -> sizeOfBranch(n))
             .toSet();
@@ -688,6 +707,44 @@ public class ARGToAutomatonConverter {
       }
     }
     return next;
+  }
+
+  private Iterable<ARGState> getLeaves(ARGState pRoot) {
+    FluentIterable<ARGState> leaves =
+        from(pRoot.getSubgraph()).filter(s -> s.getChildren().size() == 0);
+    boolean targetsOnly = true; // TODO add an option for this?
+    return targetsOnly ? leaves.filter(ARGState::isTarget) : leaves;
+  }
+
+  /** generate an automaton that leads to the leaf state. */
+  private static Automaton getAutomatonForLeaf(ARGState pRoot, ARGState pLeaf) {
+
+    Preconditions.checkArgument(pRoot != pLeaf);
+    Preconditions.checkArgument(!pLeaf.isCovered());
+    Collection<ARGState> allStatesOnPaths = getAllStatesOnPathsTo(pLeaf);
+    Preconditions.checkArgument(allStatesOnPaths.contains(pRoot));
+    Preconditions.checkArgument(allStatesOnPaths.contains(pLeaf));
+
+    return getAutomatonForStates(pRoot, s -> !allStatesOnPaths.contains(s), true);
+  }
+
+  /** the same as {@link ARGUtils#getAllStatesOnPathsTo}, but with coverage handling. */
+  private static Collection<ARGState> getAllStatesOnPathsTo(ARGState pLeaf) {
+    Collection<ARGState> finished = new LinkedHashSet<>();
+    Deque<ARGState> waitlist = new ArrayDeque<>();
+    waitlist.add(pLeaf);
+    while (!waitlist.isEmpty()) {
+      ARGState s = waitlist.pop();
+      if (!finished.add(s)) {
+        continue;
+      }
+      waitlist.addAll(s.getParents());
+      while (s.isCovered()) {
+        s = s.getCoveringState();
+        waitlist.addAll(s.getParents());
+      }
+    }
+    return finished;
   }
 
   /** create simple dot-graph for dependencies, marking loop-states. useful for debugging. */

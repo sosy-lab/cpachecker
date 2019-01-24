@@ -58,7 +58,9 @@ public class UnsatCoreCounterexampleFilter extends AbstractNegatedPathCounterexa
       ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     super(pConfig, pLogger, pCpa);
     logger = pLogger;
-    PredicateCPA predicateCpa = CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, UnsatCoreCounterexampleFilter.class);
+    @SuppressWarnings("resource")
+    PredicateCPA predicateCpa =
+        CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, UnsatCoreCounterexampleFilter.class);
     solver = predicateCpa.getSolver();
   }
 

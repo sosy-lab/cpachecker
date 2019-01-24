@@ -195,6 +195,7 @@ public class CPAMain {
 
   private static final String SPECIFICATION_OPTION = "specification";
   private static final String ENTRYFUNCTION_OPTION = "analysis.entryFunction";
+  public static final String APPROACH_NAME_OPTION = "analysis.name";
 
   @Options
   private static class BootstrapOptions {
@@ -307,6 +308,7 @@ public class CPAMain {
     // from default values, config file, and command-line arguments
     ConfigurationBuilder configBuilder = Configuration.builder();
     configBuilder.setOptions(EXTERN_OPTION_DEFAULTS);
+    configBuilder.setOption(APPROACH_NAME_OPTION, extractApproachNameFromConfigName(configFile));
     if (configFile != null) {
       configBuilder.loadFromFile(configFile);
     }
@@ -345,6 +347,12 @@ public class CPAMain {
     }
 
     return new Config(config, outputDirectory, properties);
+  }
+
+  private static String extractApproachNameFromConfigName(String configFilename) {
+    String filename = Paths.get(configFilename).getFileName().toString();
+    // remove the extension (most likely ".properties")
+    return filename.contains(".") ? filename.substring(0, filename.lastIndexOf(".")) : filename;
   }
 
   private static final ImmutableMap<Property, TestTargetType> TARGET_TYPES =
@@ -578,6 +586,7 @@ public class CPAMain {
           "Validating (violation|correctness) witnesses is not supported if option witness.validation.(violation|correctness).config is not specified.");
     }
     return Configuration.builder()
+        .copyFrom(config)
         .loadFromFile(validationConfigFile)
         .setOptions(overrideOptions)
         .clearOption("witness.validation.file")

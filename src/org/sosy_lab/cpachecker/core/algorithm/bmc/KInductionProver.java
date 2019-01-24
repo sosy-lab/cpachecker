@@ -179,6 +179,7 @@ class KInductionProver implements AutoCloseable {
         new UnrolledReachedSet(
             algorithm, cpa, pLoopHeads, reachedSetFactory.create(), this::ensureK);
 
+    @SuppressWarnings("resource")
     PredicateCPA stepCasePredicateCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
     if (pUnsatCoreGeneration) {
       prover =

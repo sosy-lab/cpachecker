@@ -39,8 +39,8 @@ public class StatHistTest {
 
   @Test
   public void testMinMax0() {
-    assert_().that(sh.getMax()).isEqualTo(Integer.MIN_VALUE);
-    assert_().that(sh.getMin()).isEqualTo(Integer.MAX_VALUE);
+    assert_().that(sh.getMax()).isEqualTo(Long.MIN_VALUE);
+    assert_().that(sh.getMin()).isEqualTo(Long.MAX_VALUE);
   }
 
   @Test
@@ -64,15 +64,24 @@ public class StatHistTest {
   }
 
   @Test
+  public void testMean0() {
+    assert_().that(sh.getMean()).isEqualTo(0);
+  }
+
+  @Test
   public void testAvg1() {
     sh.insertValue(1);
     assert_().that(sh.getAvg()).isEqualTo(1.0);
+    assert_().that(sh.getMean()).isEqualTo(1);
     sh.insertValue(1);
     assert_().that(sh.getAvg()).isEqualTo(1.0);
+    assert_().that(sh.getMean()).isEqualTo(1);
     sh.insertValue(4);
     assert_().that(sh.getAvg()).isEqualTo(2.0);
+    assert_().that(sh.getMean()).isEqualTo(1);
     sh.insertValue(4);
     assert_().that(sh.getAvg()).isEqualTo(2.5);
+    assert_().that(sh.getMean()).isEqualTo(1);
   }
 
   @Test
@@ -84,5 +93,6 @@ public class StatHistTest {
     assert_().that(sh.getStdDeviation()).isEqualTo(2.0);
     assert_().that(sh.getMin()).isEqualTo(2);
     assert_().that(sh.getMax()).isEqualTo(9);
+    assert_().that(sh.getMean()).isEqualTo(4);
   }
 }
