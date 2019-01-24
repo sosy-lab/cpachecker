@@ -108,7 +108,7 @@ class EclipseJavaScriptParser implements JavaScriptParser {
     return cfaTimer;
   }
 
-  private ParseResult buildCFA(final ASTNode ast, final Scope pScope) throws JSParserException {
+  private ParseResult buildCFA(final ASTNode ast, final Scope pScope) {
     cfaTimer.start();
     try {
       return JavaScriptCFABuilderFactory.withAllFeatures(pScope, logger)
