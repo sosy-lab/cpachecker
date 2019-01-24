@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -76,7 +75,7 @@ public class ExpressionListCFABuilder implements ExpressionListAppendable {
     // A side effect in an expression might change the result of any previous expression in the
     // expression-list. Therefore, every expression previous to an expression with a side effect
     // is assigned to a temporary variable.
-    final Builder<JSExpression> resultBuilder = ImmutableList.builder();
+    final ImmutableList.Builder<JSExpression> resultBuilder = ImmutableList.builder();
     final List<JSExpression> sideEffectFreeExpressions = new ArrayList<>();
     for (final Expression e : pExpressions) {
       // An expression has a side effect if an edge is added to the CFA.
