@@ -78,9 +78,6 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/scope-body-lex-open*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-open-case*.yml</exclude>
 
-        <!-- TODO Assume edge can not be added since another leaving edge already exists -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-open-dflt*.yml</exclude>
-
         <!-- TODO Array sort and toString -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.1_A5_T1*.yml</exclude>
 
@@ -111,6 +108,7 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/block/scope-lex-close*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-close-case*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/block/scope-lex-open*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-open-dflt*.yml</exclude>
 
         <!-- TODO wrong result (false) -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-close-dflt*.yml</exclude>
