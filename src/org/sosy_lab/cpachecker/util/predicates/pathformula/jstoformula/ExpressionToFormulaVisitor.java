@@ -252,6 +252,12 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
       throws UnrecognizedCodeException {
     final TypedValue operand = visit(pUnaryExpression.getOperand());
     switch (pUnaryExpression.getOperator()) {
+      case COMPLEMENT:
+        return tvmgr.createNumberValue(
+            fpfmgr.castFrom(
+                bitVecMgr.not(valConv.toInt32(operand)),
+                true,
+                FormulaType.getDoublePrecisionFloatingPointType()));
       case NOT:
         return tvmgr.createBooleanValue(fmgr.makeNot(valConv.toBoolean(operand)));
       case PLUS:
