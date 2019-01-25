@@ -64,7 +64,6 @@ def is_skip(file_content):
             or contains_with_statement(file_content)
             or 'delete ' in file_content  # delete expression
             or 'delete(' in file_content  # delete expression
-            or 'new function ' in file_content  # constructor call of function expression
             or '= eval;' in file_content  # code evaluation is not supported yet
             or 'Object.getOwnPropertyDescriptor(' in file_content
             or '.hasOwnProperty(' in file_content
