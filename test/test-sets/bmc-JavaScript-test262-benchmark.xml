@@ -72,7 +72,7 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A4_T5_false.yml</exclude>
 
         <!-- TODO string concat -->
-        <include>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.2_A8_T2*.yml</include>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.2_A8_T2*.yml</exclude>
 
         <!-- TODO Nodes in CFA but not reachable through traversal -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S14_A5_T1*.yml</exclude>
