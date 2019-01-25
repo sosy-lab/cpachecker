@@ -739,10 +739,7 @@ public class ARGToAutomatonConverter {
         continue;
       }
       waitlist.addAll(s.getParents());
-      while (s.isCovered()) {
-        s = s.getCoveringState();
-        waitlist.addAll(s.getParents());
-      }
+      waitlist.addAll(s.getCoveredByThis());
     }
     return finished;
   }
