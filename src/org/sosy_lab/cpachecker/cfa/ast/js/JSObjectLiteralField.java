@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.js;
 
-public class JSObjectLiteralField {
+import java.io.Serializable;
+
+public class JSObjectLiteralField implements Serializable {
+  private static final long serialVersionUID = 4296342221371726270L;
   private final String fieldName;
   private final JSExpression initializer;
 

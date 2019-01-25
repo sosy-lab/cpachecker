@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.js;
 
+import com.google.common.base.Optional;
 import java.util.List;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
@@ -42,22 +42,22 @@ public class JSFunctionCallExpression extends AFunctionCallExpression implements
       final JSExpression pFunctionName,
       final List<JSExpression> pParameters,
       final JSFunctionDeclaration pDeclaration,
-      final Optional<JSIdExpression> pFunctionObject,
-      final Optional<JSExpression> pThisArg,
+      final java.util.Optional<JSIdExpression> pFunctionObject,
+      final java.util.Optional<JSExpression> pThisArg,
       final boolean pIsConstructorCall) {
 
     super(pFileLocation, JSAnyType.ANY, pFunctionName, pParameters, pDeclaration);
-    functionObject = pFunctionObject;
-    thisArg = pThisArg;
+    functionObject = Optional.fromJavaUtil(pFunctionObject);
+    thisArg = Optional.fromJavaUtil(pThisArg);
     isConstructorCall = pIsConstructorCall;
   }
 
-  public Optional<JSIdExpression> getFunctionObject() {
-    return functionObject;
+  public java.util.Optional<JSIdExpression> getFunctionObject() {
+    return Optional.toJavaUtil(functionObject);
   }
 
-  public Optional<JSExpression> getThisArg() {
-    return thisArg;
+  public java.util.Optional<JSExpression> getThisArg() {
+    return Optional.toJavaUtil(thisArg);
   }
 
   public boolean isConstructorCall() {

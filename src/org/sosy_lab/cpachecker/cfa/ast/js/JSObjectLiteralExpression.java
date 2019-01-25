@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cfa.ast.js;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import java.io.Serializable;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -31,15 +33,15 @@ import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 
 public final class JSObjectLiteralExpression extends ALiteralExpression
-    implements JSLiteralExpression {
+    implements JSLiteralExpression, Serializable {
 
   private static final long serialVersionUID = 1443097940197858933L;
-  private final List<JSObjectLiteralField> fields;
+  private final ImmutableList<JSObjectLiteralField> fields;
 
   public JSObjectLiteralExpression(
       final FileLocation pFileLocation, final List<JSObjectLiteralField> pFields) {
     super(pFileLocation, JSAnyType.ANY);
-    fields = pFields;
+    fields = ImmutableList.copyOf(pFields);
   }
 
   @Override

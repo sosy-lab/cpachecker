@@ -24,17 +24,19 @@
 package org.sosy_lab.cpachecker.cfa.ast.js;
 
 import com.google.common.collect.ImmutableList;
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class Scope {
+public class Scope implements Serializable {
   public final static Scope GLOBAL = new Scope(Collections.emptyList());
 
-  private List<JSFunctionDeclaration> declarationStack;
+  private static final long serialVersionUID = 3809830161836828582L;
+  private ImmutableList<JSFunctionDeclaration> declarationStack;
 
   private Scope(final List<JSFunctionDeclaration> pDeclarationStack) {
-    declarationStack = pDeclarationStack;
+    declarationStack = ImmutableList.copyOf(pDeclarationStack);
   }
 
   public boolean isGlobalScope() {
