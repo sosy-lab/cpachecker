@@ -108,6 +108,7 @@ public final class CInitializers {
       return ImmutableList.of(assignment);
 
     } else if (init instanceof CInitializerList) {
+
       return handleInitializerList(lhs, (CInitializerList)init,
           decl.getFileLocation(), edge);
 
@@ -146,7 +147,7 @@ public final class CInitializers {
     Deque<Iterator<CExpression>> nextSubobjects = new ArrayDeque<>(2);
 
     { // For starting, we go to the first very subobject of the "current object".
-      // We cannot go to the first suboject at the deepest nesting level
+      // We cannot go to the first subobject at the deepest nesting level
       // as findFirstSubobjectWithType does in case the first initializer value
       // is a nested brace-delimited initializer list.
       currentSubobjects.push(currentObject);
@@ -459,6 +460,7 @@ public final class CInitializers {
 
     CFieldReference designatedField = null;
 
+
     if (startingFieldName.isPresent()) {
       // find the designated field and advance the iterator up to this point
       while (fields.hasNext()) {
@@ -476,6 +478,10 @@ public final class CInitializers {
     } else {
       // first field
       designatedField = fields.next();
+      // if not looking for a specific fieldname, field members without declaration should be skipped
+      while(designatedField.getFieldName().contains("__anon_type_member") && fields.hasNext()){
+        designatedField = fields.next();
+      }
     }
 
     currentSubobjects.push(designatedField);
