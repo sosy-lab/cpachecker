@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN"
         "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="400 s" hardtimelimit="430 s" memlimit="4000 MB"
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="4000 MB"
            cpuCores="2">
     <!--
         Download and generate task definition files:
@@ -85,13 +85,14 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.1_A5_T1*.yml</exclude>
 
         <!-- TODO Timeout -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/S12.6.3_A14*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/scope-body-lex-boundary*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/return/12.9-1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/S12.6.3_A14*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/S12.6.3_A15_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/scope-body-lex-boundary*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T3*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-close-dflt*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A1.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A1_false.yml</exclude>
 
         <!-- TODO unknown -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/continue/12.7-1*.yml</exclude>
@@ -112,6 +113,7 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/block/scope-lex-open*.yml</exclude>
 
         <!-- TODO wrong result (false) -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-close-dflt*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A4_T3*.yml</exclude>
 
         <!-- TODO global object assignment -->
