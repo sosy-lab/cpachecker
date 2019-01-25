@@ -28,6 +28,7 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -57,6 +58,7 @@ class GlobalManagerContext {
   final FunctionFormulaManagerView ffmgr;
   final FloatingPointFormulaManagerView fpfmgr;
   final IntegerFormulaManagerView ifmgr;
+  final BitvectorFormulaManagerView bitVecMgr;
 
   GlobalManagerContext(
       final FormulaEncodingOptions pOptions,
@@ -77,6 +79,7 @@ class GlobalManagerContext {
     ffmgr = fmgr.getFunctionFormulaManager();
     fpfmgr = fmgr.getFloatingPointFormulaManager();
     ifmgr = fmgr.getIntegerFormulaManager();
+    bitVecMgr = fmgr.getBitvectorFormulaManager();
 
     typedVarValues = new TypedVariableValues(ffmgr);
     typeTags = new TypeTags(fmgr.getIntegerFormulaManager());

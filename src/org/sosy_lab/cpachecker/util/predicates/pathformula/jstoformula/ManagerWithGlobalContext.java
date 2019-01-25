@@ -28,6 +28,7 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -66,6 +67,7 @@ abstract class ManagerWithGlobalContext {
   final FunctionFormulaManagerView ffmgr;
   final FloatingPointFormulaManagerView fpfmgr;
   final IntegerFormulaManagerView ifmgr;
+  final BitvectorFormulaManagerView bitVecMgr;
 
   ManagerWithGlobalContext(final GlobalManagerContext pContext) {
     gctx = pContext;
@@ -91,5 +93,6 @@ abstract class ManagerWithGlobalContext {
     ffmgr = pContext.ffmgr;
     fpfmgr = pContext.fpfmgr;
     ifmgr = pContext.ifmgr;
+    bitVecMgr = pContext.bitVecMgr;
   }
 }
