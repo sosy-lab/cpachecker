@@ -28,6 +28,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.BinaryOperator;
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -54,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -126,19 +128,35 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
         return tvmgr.createBooleanValue(
             fpfmgr.greaterOrEquals(valConv.toNumber(leftOperand), valConv.toNumber(rightOperand)));
       case AND:
-        // TODO encode as bitwise and
-        logger.logOnce(Level.WARNING, "Bitwise-And (&) is currently only implemented as logical-And");
-        return tvmgr.createBooleanValue(
-            bfmgr.and(valConv.toBoolean(leftOperand), valConv.toBoolean(rightOperand)));
+        return makeBitwiseOperator(bitVecMgr::and, leftOperand, rightOperand);
       case OR:
-        // TODO encode as bitwise or
-        logger.logOnce(Level.WARNING, "Bitwise-Or (|) is currently only implemented as logical-Or");
-        return tvmgr.createBooleanValue(
-            bfmgr.or(valConv.toBoolean(leftOperand), valConv.toBoolean(rightOperand)));
+        return makeBitwiseOperator(bitVecMgr::or, leftOperand, rightOperand);
+      case LEFT_SHIFT:
+        return makeBitwiseOperator(bitVecMgr::shiftLeft, leftOperand, rightOperand);
+      case RIGHT_SHIFT_UNSIGNED:
+        return makeBitwiseOperator(
+            (l, r) -> bitVecMgr.shiftRight(l, r, false), leftOperand, rightOperand);
+      case RIGHT_SHIFT_SIGNED:
+        return makeBitwiseOperator(
+            (l, r) -> bitVecMgr.shiftRight(l, r, true), leftOperand, rightOperand);
+      case XOR:
+        return makeBitwiseOperator(bitVecMgr::xor, leftOperand, rightOperand);
       default:
         throw new UnrecognizedCodeException(
             "JSBinaryExpression not implemented yet", pBinaryExpression);
     }
+  }
+
+  @Nonnull
+  private TypedValue makeBitwiseOperator(
+      final BinaryOperator<BitvectorFormula> pOperator,
+      final TypedValue pLeftOperand,
+      final TypedValue pRightOperand) {
+    return tvmgr.createNumberValue(
+        fpfmgr.castFrom(
+            pOperator.apply(valConv.toInt32(pLeftOperand), valConv.toInt32(pRightOperand)),
+            true,
+            FormulaType.getDoublePrecisionFloatingPointType()));
   }
 
   private TypedValue makePlus(final TypedValue pLeftOperand, final TypedValue pRightOperand) {

@@ -30,8 +30,11 @@ import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
+import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 /**
@@ -278,5 +281,13 @@ class ValueConverterManager {
   private FloatingPointFormula booleanToNumber(final BooleanFormula pValue) {
     return bfmgr.ifThenElse(
         pValue, fmgr.makeNumber(Types.NUMBER_TYPE, 1), fmgr.makeNumber(Types.NUMBER_TYPE, 0));
+  }
+
+  BitvectorFormula toInt32(final TypedValue pValue) {
+    // TODO check NaN and infinity?
+    return fpfmgr.castTo(
+        toNumber(pValue),
+        FormulaType.getBitvectorTypeWithSize(32),
+        FloatingPointRoundingMode.TOWARD_ZERO);
   }
 }
