@@ -109,9 +109,9 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-close-case*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/block/scope-lex-open*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-open-dflt*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-close-dflt*.yml</exclude>
 
         <!-- TODO wrong result (false) -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-close-dflt*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A4_T3*.yml</exclude>
 
         <!-- TODO global object assignment -->
