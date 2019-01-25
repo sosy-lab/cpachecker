@@ -27,11 +27,13 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Ty
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.FUNCTION_TYPE;
 
 import com.google.common.collect.ImmutableList;
+import java.math.BigInteger;
 import java.util.Collections;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSDeclaredByExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSObjectLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSObjectLiteralField;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
@@ -64,7 +66,7 @@ class JSFunctionDeclarationFormulaManager extends ManagerWithEdgeContext {
 
   BooleanFormula declareFunction(final JSFunctionDeclaration pDeclaration)
       throws UnrecognizedCodeException {
-    final IntegerFormula functionObjectId = createFunctionObject();
+    final IntegerFormula functionObjectId = createFunctionObject(pDeclaration);
     final IntegerFormula funObjVar = ctx.scopeMgr.declareScopedVariable(pDeclaration);
     return bfmgr.and(
         fmgr.assignment(typedVarValues.typeof(funObjVar), typeTags.FUNCTION),
@@ -75,7 +77,8 @@ class JSFunctionDeclarationFormulaManager extends ManagerWithEdgeContext {
   }
 
   @Nonnull
-  private IntegerFormula createFunctionObject() throws UnrecognizedCodeException {
+  private IntegerFormula createFunctionObject(final JSFunctionDeclaration pDeclaration)
+      throws UnrecognizedCodeException {
     // TODO implement without creating CFA expressions
     return (IntegerFormula)
         ctx.objMgr
@@ -86,7 +89,12 @@ class JSFunctionDeclarationFormulaManager extends ManagerWithEdgeContext {
                         new JSObjectLiteralField(
                             "prototype",
                             new JSObjectLiteralExpression(
-                                FileLocation.DUMMY, Collections.emptyList())))))
+                                FileLocation.DUMMY, Collections.emptyList())),
+                        new JSObjectLiteralField(
+                            "length",
+                            new JSIntegerLiteralExpression(
+                                FileLocation.DUMMY,
+                                BigInteger.valueOf(pDeclaration.getParameters().size()))))))
             .getValue();
   }
 
