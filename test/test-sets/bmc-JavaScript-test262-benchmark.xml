@@ -74,9 +74,6 @@
         <!-- TODO string concat -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.2_A8_T2*.yml</exclude>
 
-        <!-- TODO Nodes in CFA but not reachable through traversal -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S14_A5_T1*.yml</exclude>
-
         <!-- TODO Unknown kind of expression (not handled yet): ListExpression -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/scope-body-lex-open*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-open-case*.yml</exclude>
@@ -102,6 +99,7 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A4_T4*.yml</exclude>
 
         <!-- TODO function name contains unicode -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S14_A5_T1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S14_A5_T2*.yml</exclude>
 
         <!-- TODO function arguments variable -->
