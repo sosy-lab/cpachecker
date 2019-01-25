@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -1276,13 +1277,8 @@ public class ValueAnalysisTransferRelation
         for (ValueAnalysisState stateToStrengthen : toStrengthen) {
           super.setInfo(pElement, pPrecision, pCfaEdge);
           AbstractStateWithAssumptions stateWithAssumptions = (AbstractStateWithAssumptions) ae;
-          Collection<ValueAnalysisState> ret =
-              strengthenWithAssumptions(stateWithAssumptions, stateToStrengthen, pCfaEdge);
-          if (ret == null) {
-            result.add(stateToStrengthen);
-          } else {
-            result.addAll(ret);
-          }
+          result.addAll(
+              strengthenWithAssumptions(stateWithAssumptions, stateToStrengthen, pCfaEdge));
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
@@ -1530,8 +1526,10 @@ public class ValueAnalysisTransferRelation
     return newState;
   }
 
-  private Collection<ValueAnalysisState> strengthenWithAssumptions(
-      AbstractStateWithAssumptions pStateWithAssumptions, ValueAnalysisState pState, CFAEdge pCfaEdge)
+  private @NonNull Collection<ValueAnalysisState> strengthenWithAssumptions(
+      AbstractStateWithAssumptions pStateWithAssumptions,
+      ValueAnalysisState pState,
+      CFAEdge pCfaEdge)
       throws CPATransferException {
 
     ValueAnalysisState newState = pState;
