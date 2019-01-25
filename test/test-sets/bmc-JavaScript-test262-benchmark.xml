@@ -74,10 +74,6 @@
         <!-- TODO string concat -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.2_A8_T2*.yml</exclude>
 
-        <!-- TODO Unknown kind of expression (not handled yet): ListExpression -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/scope-body-lex-open*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-open-case*.yml</exclude>
-
         <!-- TODO Array sort and toString -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.1_A5_T1*.yml</exclude>
 
@@ -105,9 +101,11 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13_A15_T5*.yml</exclude>
 
         <!-- TODO let scope -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/scope-body-lex-open*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/block/scope-lex-close*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-close-case*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/block/scope-lex-open*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-open-case*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-open-dflt*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/scope-lex-close-dflt*.yml</exclude>
 

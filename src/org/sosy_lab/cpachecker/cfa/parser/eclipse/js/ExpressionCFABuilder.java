@@ -35,6 +35,7 @@ import org.eclipse.wst.jsdt.core.dom.FieldAccess;
 import org.eclipse.wst.jsdt.core.dom.FunctionExpression;
 import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
 import org.eclipse.wst.jsdt.core.dom.InfixExpression;
+import org.eclipse.wst.jsdt.core.dom.ListExpression;
 import org.eclipse.wst.jsdt.core.dom.NullLiteral;
 import org.eclipse.wst.jsdt.core.dom.NumberLiteral;
 import org.eclipse.wst.jsdt.core.dom.ObjectLiteral;
@@ -64,6 +65,7 @@ class ExpressionCFABuilder implements ExpressionAppendable {
   private FunctionExpressionAppendable functionExpressionAppendable;
   private FunctionInvocationAppendable functionInvocationAppendable;
   private InfixExpressionAppendable infixExpressionAppendable;
+  private ListExpressionAppendable listExpressionAppendable;
   private NullLiteralConverter nullLiteralConverter;
   private NumberLiteralConverter numberLiteralConverter;
   private ObjectLiteralAppendable objectLiteralAppendable;
@@ -118,6 +120,10 @@ class ExpressionCFABuilder implements ExpressionAppendable {
   void setInfixExpressionAppendable(
       final InfixExpressionAppendable pInfixExpressionAppendable) {
     infixExpressionAppendable = pInfixExpressionAppendable;
+  }
+
+  void setListExpressionAppendable(final ListExpressionAppendable pListExpressionAppendable) {
+    listExpressionAppendable = pListExpressionAppendable;
   }
 
   void setNullLiteralConverter(final NullLiteralConverter pNullLiteralConverter) {
@@ -183,6 +189,8 @@ class ExpressionCFABuilder implements ExpressionAppendable {
       return functionInvocationAppendable.append(pBuilder, (FunctionInvocation) pExpression);
     } else if (pExpression instanceof InfixExpression) {
       return infixExpressionAppendable.append(pBuilder, (InfixExpression) pExpression);
+    } else if (pExpression instanceof ListExpression) {
+      return listExpressionAppendable.append(pBuilder, (ListExpression) pExpression);
     } else if (pExpression instanceof NullLiteral) {
       return nullLiteralConverter.convert(pBuilder, (NullLiteral) pExpression);
     } else if (pExpression instanceof NumberLiteral) {
