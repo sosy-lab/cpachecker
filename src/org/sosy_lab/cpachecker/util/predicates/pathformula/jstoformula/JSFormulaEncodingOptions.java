@@ -65,7 +65,7 @@ public class JSFormulaEncodingOptions {
   @Option(
       secure = true,
       description = "Maximum count of different constants used as string or field name")
-  int maxFieldNameCount = 3;
+  int maxFieldNameCount = 4;
 
   public JSFormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this, JSFormulaEncodingOptions.class);
