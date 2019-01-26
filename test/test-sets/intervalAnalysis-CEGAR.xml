@@ -1,19 +1,16 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="930 s" memlimit="5 GB" cpuCores="2">
-  <!-- default SV-COMP limit is 900s, sufficient for testing -->
-
+<benchmark tool="cpachecker" timelimit="300 s" hardtimelimit="330 s" memlimit="5 GB" cpuCores="2">
+  <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   <option name="-heap">13000M</option>
   <option name="-noout"/>
   <option name="-disable-java-assertions"/>
-
-  <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
 
   <rundefinition>
     <option name="-intervalAnalysis-CEGAR"/>
   </rundefinition>
 
   <tasks name="intervalCBenchmark">
-    <include>../programs/benchmarks/loops/*.yml</include>
+    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
   </tasks>
 </benchmark>
