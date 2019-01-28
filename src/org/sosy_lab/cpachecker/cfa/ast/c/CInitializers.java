@@ -446,9 +446,9 @@ public final class CInitializers {
           throws UnrecognizedCodeException {
 
     Iterator<CFieldReference> fields =
-        from(structType.getMembers())
+        from(structType.getMembers()).filter(field -> !field.getName().contains("__anon_type_member"))
             .transform(
-                field ->
+                field  ->
                     new CFieldReference(
                         loc, field.getType(), field.getName(), currentSubobject, false))
             .iterator();
@@ -478,10 +478,6 @@ public final class CInitializers {
     } else {
       // first field
       designatedField = fields.next();
-      // if not looking for a specific fieldname, field members without declaration should be skipped
-      while(designatedField.getFieldName().contains("__anon_type_member") && fields.hasNext()){
-        designatedField = fields.next();
-      }
     }
 
     currentSubobjects.push(designatedField);
