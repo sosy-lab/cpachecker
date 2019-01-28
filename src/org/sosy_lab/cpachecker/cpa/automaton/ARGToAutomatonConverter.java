@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -50,19 +51,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -86,8 +83,8 @@ public class ARGToAutomatonConverter {
     GLOBAL_CONDITIONS,
     /** split different leaf states */
     LEAVES,
-    /** split using information from the call stack */
-    CALLSTACK
+    /** split at target states */
+    TARGETS,
   }
 
   public enum BranchExportStrategy {
@@ -106,15 +103,29 @@ public class ARGToAutomatonConverter {
     FIRST_BFS
   }
 
+  public enum DataExportStrategy {
+    /** export locations, i.e., most precise information. */
+    LOCATION,
+    /** export call-stack information, i.e., very abstract representation. */
+    CALLSTACK
+  }
+
   @Option(
       secure = true,
       description = "which coarse strategy should be applied when analyzing the ARG?")
-  private SplitterStrategy strategy = SplitterStrategy.GLOBAL_CONDITIONS;
+  private SplitterStrategy splitStrategy = SplitterStrategy.TARGETS;
 
   @Option(
       secure = true,
       description = "after determining branches, which one of them should be exported?")
   private BranchExportStrategy selectionStrategy = BranchExportStrategy.LEAVES;
+
+  @Option(
+      secure = true,
+      description =
+          "what data should be exported from the ARG nodes? "
+              + "A different strategy might result in a smaller automaton.")
+  private DataExportStrategy dataStrategy = DataExportStrategy.LOCATION;
 
   @Option(
       secure = true,
@@ -135,45 +146,56 @@ public class ARGToAutomatonConverter {
 
   public ARGToAutomatonConverter(@Nullable Configuration config)
       throws InvalidConfigurationException {
-    if (config == null) {
-      strategy = SplitterStrategy.NONE;
-      selectionStrategy = BranchExportStrategy.NONE;
-    } else {
-      config.inject(this);
-    }
+    config.inject(this);
   }
 
-  public Iterable<Automaton> getAutomata(ARGState root) {
-    switch (strategy) {
-      case NONE:
-        return Collections.singleton(getAutomatonForStates(root, Predicates.alwaysFalse(), false));
-      case GLOBAL_CONDITIONS:
-        return getGlobalConditionSplitAutomata(root, selectionStrategy);
-      case LEAVES:
-        return from(getLeaves(root)).transform(l -> getAutomatonForLeaf(root, l));
+  /**
+   * get a single (!) automaton for the whole program. If a splitting strategy is set, it is used to
+   * determine the leaves of this automaton.
+   *
+   * @param targetsOnly Export all possible paths or only paths leading to target states.
+   */
+  public Automaton getAutomaton(ARGState root, boolean targetsOnly) {
+    switch (dataStrategy) {
+      case LOCATION:
+        return getLocationAutomatonForStates(root, Predicates.alwaysFalse(), targetsOnly);
       case CALLSTACK:
-        return from(getLeaves(root))
-            .filter(x -> AbstractStates.extractStateByType(x, CallstackState.class) != null)
-            .transform(l -> getCallstackAutomatonForLeaf(l));
+        return getCallstackAutomatonForStates(root, getLeaves(root, targetsOnly), targetsOnly);
       default:
         throw new AssertionError("unexpected strategy");
     }
   }
 
+  /** get several automata according to the splitter strategy. */
+  public Iterable<Automaton> getAutomata(ARGState root) {
+    switch (splitStrategy) {
+      case NONE:
+        return Collections.singleton(
+            getLocationAutomatonForStates(root, Predicates.alwaysFalse(), false));
+      case GLOBAL_CONDITIONS:
+        return getGlobalConditionSplitAutomata(root, selectionStrategy);
+      case LEAVES:
+        return from(getLeaves(root, false)).transform(l -> getAutomatonForLeaf(root, l));
+      case TARGETS:
+        return from(getLeaves(root, true)).transform(l -> getAutomatonForLeaf(root, l));
+      default:
+        throw new AssertionError("unexpected strategy");
+    }
+  }
 
   /** generate an automaton that traverses the subgraph, but leaves out ignored states. */
-  private static Automaton getAutomatonForStates(
-      ARGState pRoot, Predicate<ARGState> ignoreState, boolean withTargetState) {
+  private static Automaton getLocationAutomatonForStates(
+      ARGState pRoot, Predicate<ARGState> ignoreState, boolean withTargetStates) {
     try {
-      return getAutomatonForStates0(pRoot, ignoreState, withTargetState);
+      return getLocationAutomatonForStates0(pRoot, ignoreState, withTargetStates);
     } catch (InvalidAutomatonException e) {
       throw new AssertionError("unexpected exception", e);
     }
   }
 
   /** generate an automaton that traverses the subgraph, but leaves out ignored states. */
-  private static Automaton getAutomatonForStates0(
-      ARGState root, Predicate<ARGState> ignoreState, boolean withTargetState)
+  private static Automaton getLocationAutomatonForStates0(
+      ARGState root, Predicate<ARGState> ignoreState, boolean withTargetStates)
       throws InvalidAutomatonException {
 
     Preconditions.checkArgument(!ignoreState.apply(root));
@@ -186,7 +208,7 @@ public class ARGToAutomatonConverter {
     waitlist.add(root);
 
     List<AutomatonInternalState> states = new ArrayList<>();
-    if (withTargetState) {
+    if (withTargetStates) {
       states.add(AutomatonInternalState.ERROR);
     }
     while (!waitlist.isEmpty()) {
@@ -209,7 +231,7 @@ public class ARGToAutomatonConverter {
             new AutomatonBoolExpr.CPAQuery("location", "nodenumber==" + location.getNodeNumber());
         locationQueries.add(locationQuery);
         final String id;
-        if (withTargetState && child.isTarget()) {
+        if (withTargetStates && child.isTarget()) {
           id = AutomatonInternalState.ERROR.getName();
         } else {
           id = id(child);
@@ -220,7 +242,7 @@ public class ARGToAutomatonConverter {
         waitlist.add(child);
       }
 
-      if (withTargetState && s.isTarget()) {
+      if (withTargetStates && s.isTarget()) {
         assert transitions.isEmpty();
         assert states.contains(AutomatonInternalState.ERROR);
       } else {
@@ -267,6 +289,7 @@ public class ARGToAutomatonConverter {
     return new AutomatonBoolExpr.Negation(otherwise);
   }
 
+  @Deprecated // unmaintained?
   private Iterable<Automaton> getGlobalConditionSplitAutomata(
       ARGState root, BranchExportStrategy branchExportStrategy) {
     Map<ARGState, BranchingInfo> dependencies = getGlobalBranchingTree(root);
@@ -308,7 +331,8 @@ public class ARGToAutomatonConverter {
       case ALL: // export all nodes, mainly for debugging.
         return from(pDependencies.entrySet())
             .transformAndConcat(entry -> entry.getValue().getIgnoreStates())
-            .transform(ignores -> getAutomatonForStates(root, s -> ignores.contains(s), false));
+            .transform(
+                ignores -> getLocationAutomatonForStates(root, s -> ignores.contains(s), false));
 
       case LEAVES: // ALL_PATHS, export all leaf-nodes, sub-graphs cover the whole graph.
         // no redundant paths expected, if leafs are reached via different paths.
@@ -316,7 +340,8 @@ public class ARGToAutomatonConverter {
             // end-states do not have outgoing edges, and thus no next states.
             .filter(entry -> entry.getValue().getNextStates().isEmpty())
             .transformAndConcat(entry -> entry.getValue().getIgnoreStates())
-            .transform(ignores -> getAutomatonForStates(root, s -> ignores.contains(s), false));
+            .transform(
+                ignores -> getLocationAutomatonForStates(root, s -> ignores.contains(s), false));
 
       case WEIGHTED: // export all nodes, where children are heavier than a given limit
         return getWeightedAutomata(root, pDependencies);
@@ -348,7 +373,8 @@ public class ARGToAutomatonConverter {
     }
 
     return from(paths)
-        .transform(ignores -> getAutomatonForStates(pRoot, s -> ignores.contains(s), false));
+        .transform(
+            ignores -> getLocationAutomatonForStates(pRoot, s -> ignores.contains(s), false));
   }
 
   /**
@@ -446,7 +472,7 @@ public class ARGToAutomatonConverter {
         // Should we add a deeper analysis that also looks for (non-)exported grand-children?
         for (PersistentSet<ARGState> ignores : bi.getIgnoreStates()) {
           automata.add(
-              getAutomatonForStates(
+              getLocationAutomatonForStates(
                   root, as -> (ignores.contains(as) || finishedChildren.contains(as)), false));
         }
         completeExportOfState = true;
@@ -454,7 +480,7 @@ public class ARGToAutomatonConverter {
         // no children are exported -> export current node or skip and export parent
         if (shouldExportAutomatonFor(root, s, pDependencies)) {
           for (PersistentSet<ARGState> ignores : bi.getIgnoreStates()) {
-            automata.add(getAutomatonForStates(root, as -> ignores.contains(as), false));
+            automata.add(getLocationAutomatonForStates(root, as -> ignores.contains(as), false));
           }
           completeExportOfState = true;
         } else {
@@ -721,73 +747,97 @@ public class ARGToAutomatonConverter {
     return next;
   }
 
-  private Iterable<ARGState> getLeaves(ARGState pRoot) {
+  private static Iterable<ARGState> getLeaves(ARGState pRoot, boolean targetsOnly) {
     FluentIterable<ARGState> leaves =
         from(pRoot.getSubgraph()).filter(s -> s.getChildren().size() == 0);
-    boolean targetsOnly = true; // TODO add an option for this?
     return targetsOnly ? leaves.filter(ARGState::isTarget) : leaves;
   }
 
   /** generate an automaton that leads to the leaf state. */
-  private static Automaton getAutomatonForLeaf(ARGState pRoot, ARGState pLeaf) {
+  private Automaton getAutomatonForLeaf(ARGState pRoot, ARGState pLeaf) {
 
     Preconditions.checkArgument(pRoot != pLeaf);
     Preconditions.checkArgument(!pLeaf.isCovered());
-    Collection<ARGState> allStatesOnPaths = getAllStatesOnPathsTo(pLeaf);
-    Preconditions.checkArgument(allStatesOnPaths.contains(pRoot));
-    Preconditions.checkArgument(allStatesOnPaths.contains(pLeaf));
 
-    return getAutomatonForStates(pRoot, s -> !allStatesOnPaths.contains(s), true);
+    switch (dataStrategy) {
+      case LOCATION:
+        Collection<ARGState> allStatesOnPaths = getAllStatesOnPathsTo(pLeaf);
+        Preconditions.checkArgument(allStatesOnPaths.contains(pRoot));
+        Preconditions.checkArgument(allStatesOnPaths.contains(pLeaf));
+        return getLocationAutomatonForStates(pRoot, s -> !allStatesOnPaths.contains(s), true);
+      case CALLSTACK:
+        return getCallstackAutomatonForStates(pRoot, Collections.singleton(pLeaf), true);
+      default:
+        throw new AssertionError("unhandled case");
+    }
   }
 
-  private static Automaton getCallstackAutomatonForLeaf(ARGState pLeaf) {
-    // bring the information from the call stack in a form that eases further steps:
-    final CallstackState callstack = AbstractStates.extractStateByType(pLeaf, CallstackState.class);
-    final Integer targetNodeNumber =
-        AbstractStates.extractStateByType(pLeaf, LocationState.class)
-            .getLocationNode()
-            .getNodeNumber();
-    final int max = callstack.getDepth();
-    final CFANode[] nodeStack = new CFANode[max];
-    final String[] nameStack = new String[max];
-    CallstackState current = callstack;
-    for (int i = max - 1; i >= 0; i--) {
-      nodeStack[i] = current.getCallNode();
-      nameStack[i] = current.getCurrentFunction();
-      current = current.getPreviousState();
-    }
-
-    // build the parts of the automaton:
-    final List<AutomatonInternalState> states = new ArrayList<>();
-    states.add(AutomatonInternalState.ERROR);
-    final Function<Integer, String> idForIndex = x -> id(nodeStack[x], nameStack[x]);
-    for (int i = 0; i < max; i++) {
-      final List<AutomatonTransition> transitions = new ArrayList<>();
-      if (i < max - 1) {
-        // calling the next function on the stack corresponds to going to the next automaton state
-        transitions.add(makeLocationTransition(nodeStack[i + 1].getNodeNumber(), idForIndex.apply(i + 1)));
-      } else {
-        // the last transition to the target state needs to be treated differently:
-        transitions.add(makeLocationTransition(targetNodeNumber, AutomatonInternalState.ERROR.getName()));
-      }
-      // returning from the current function corresponds to returning to the previous automaton
-      // state (except for the main function, hence i > 0):
-      if (i > 0) {
-        transitions.add(
-            makeLocationTransition(
-                nodeStack[i].getLeavingSummaryEdge().getSuccessor().getNodeNumber(),
-                idForIndex.apply(i - 1)));
-      }
-      AutomatonInternalState a = new AutomatonInternalState(idForIndex.apply(i), transitions);
-      states.add(a);
-    }
-
-    // build the actual automaton:
+  private static Automaton getCallstackAutomatonForStates(
+      ARGState pRoot, Iterable<ARGState> pLeaves, boolean withTargetStates) {
     try {
-      return new Automaton("ARG", Collections.emptyMap(), states, idForIndex.apply(0));
+      return getCallstackAutomatonForStates0(pRoot, pLeaves, withTargetStates);
     } catch (InvalidAutomatonException e) {
       throw new AssertionError("unexpected exception", e);
     }
+  }
+
+  private static Automaton getCallstackAutomatonForStates0(
+      ARGState pRoot, Iterable<ARGState> pLeaves, boolean withTargetStates)
+      throws InvalidAutomatonException {
+
+    // build the call graph, i.e., a directed tree starting at main-entry
+    Multimap<CallstackState, CallstackState> callstacks = LinkedHashMultimap.create();
+    Map<CallstackState, CallstackState> inverseCallstacks = new LinkedHashMap<>();
+    Multimap<CallstackState, ARGState> callstackToLeaves = LinkedHashMultimap.create();
+    for (ARGState leaf : pLeaves) {
+      CallstackState callstack = AbstractStates.extractStateByType(leaf, CallstackState.class);
+      Preconditions.checkNotNull(callstack);
+      callstackToLeaves.put(callstack, leaf);
+      CallstackState prev = callstack.getPreviousState();
+      while (prev != null) {
+        callstacks.put(prev, callstack);
+        inverseCallstacks.put(callstack, prev);
+        callstack = prev;
+        prev = callstack.getPreviousState();
+      }
+    }
+
+    final List<AutomatonInternalState> states = new ArrayList<>();
+    if (withTargetStates) {
+      states.add(AutomatonInternalState.ERROR);
+    }
+
+    // build automaton from call-graph
+    CallstackState root = AbstractStates.extractStateByType(pRoot, CallstackState.class);
+    Deque<CallstackState> waitlist = new ArrayDeque<>();
+    waitlist.push(root);
+    while (!waitlist.isEmpty()) {
+      CallstackState elem = waitlist.removeFirst();
+      final List<AutomatonTransition> transitions = new ArrayList<>();
+      for (ARGState leaf : callstackToLeaves.get(elem)) {
+        transitions.add(
+            makeLocationTransition(
+                AbstractStates.extractLocation(leaf).getNodeNumber(),
+                withTargetStates ? AutomatonInternalState.ERROR.getName() : id(leaf)));
+      }
+      for (CallstackState called : callstacks.get(elem)) {
+        waitlist.add(called);
+        // calling the next function on the stack corresponds to going to the next automaton state
+        transitions.add(makeLocationTransition(called.getCallNode().getNodeNumber(), id(called)));
+      }
+      final CallstackState callee = inverseCallstacks.get(elem);
+      if (callee != null) {
+        // returning from the current function corresponds to returning to the previous automaton
+        // state (except for the main function, hence i > 0):
+        transitions.add(
+            makeLocationTransition(
+                elem.getCallNode().getLeavingSummaryEdge().getSuccessor().getNodeNumber(),
+                id(callee)));
+      }
+      states.add(new AutomatonInternalState(id(elem), transitions));
+    }
+
+    return new Automaton("ARG", Collections.emptyMap(), states, id(root));
   }
 
   private static AutomatonTransition makeLocationTransition(int nodeNumber, String followStateName) {
@@ -865,19 +915,13 @@ public class ARGToAutomatonConverter {
         + "}";
   }
 
-  private static String id(CFANode pNode, String pFunctionName) {
-    CFAEdge edge = null;
-    String position = "L?";
-    // we set a position even if there is no FunctionCallEdge here on purpose!(this is needed for
-    // main, whose node from the CallstackState does not have a leaving FunctionCallEdge)
-    for (int i = 0; i < pNode.getNumLeavingEdges(); i++) {
-      edge = pNode.getLeavingEdge(i);
-      position = "L" + Integer.toString(edge.getLineNumber());
-      if (edge instanceof FunctionCallEdge) {
-        break;
-      }
+  private static String id(CallstackState s) {
+    String str = s.getCurrentFunction() + "_L" + s.getCallNode().getNodeNumber();
+    while (s.getPreviousState() != null) {
+      s = s.getPreviousState();
+      str = s.getCurrentFunction() + "_L" + s.getCallNode().getNodeNumber() + "__" + str;
     }
-    return pFunctionName + "_" + position;
+    return str.toString();
   }
 
   private static final class BranchingInfo {

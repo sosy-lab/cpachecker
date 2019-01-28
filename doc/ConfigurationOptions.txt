@@ -954,6 +954,11 @@ cpa.arg.CTranslation.file = "ARG.c"
 # minimum ratio of branch compared to whole program to be exported
 cpa.arg.automaton.branchRatio = 0.5
 
+# what data should be exported from the ARG nodes? A different strategy might
+# result in a smaller automaton.
+cpa.arg.automaton.dataStrategy = LOCATION
+  enum:     [LOCATION, CALLSTACK]
+
 # translate final ARG into an automaton
 cpa.arg.automaton.export = false
 
@@ -980,8 +985,8 @@ cpa.arg.automaton.siblingRatio = 0.4
 cpa.arg.automaton.skipFirstNum = 10
 
 # which coarse strategy should be applied when analyzing the ARG?
-cpa.arg.automaton.strategy = GLOBAL_CONDITIONS
-  enum:     [NONE, GLOBAL_CONDITIONS, LEAVES, CALLSTACK]
+cpa.arg.automaton.splitStrategy = TARGETS
+  enum:     [NONE, GLOBAL_CONDITIONS, LEAVES, TARGETS]
 
 # compress the produced correctness-witness automata using GZIP compression.
 cpa.arg.compressWitness = true

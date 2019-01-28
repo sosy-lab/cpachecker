@@ -32,7 +32,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.io.MoreFiles;
@@ -445,20 +444,12 @@ public class ARGStatistics implements Statistics {
     }
 
     if (exportAutomaton && (automatonSpcFile != null || automatonSpcDotFile != null)) {
-      ARGToAutomatonConverter argToAutomatonConverter;
-      try {
-        argToAutomatonConverter = new ARGToAutomatonConverter(null);
-      } catch (InvalidConfigurationException e) {
-        throw new AssertionError("should not happen");
-      }
       try {
         if (exportAutomatonZipped && automatonSpcZipFile != null) {
           Files.deleteIfExists(automatonSpcZipFile);
         }
         final int baseId = -1; // id for the exported 'complete' automaton
-        Automaton automaton =
-            Iterables.getOnlyElement(argToAutomatonConverter.getAutomata(rootState));
-        writeAutomaton(baseId, automaton);
+        writeAutomaton(baseId, argToAutomatonSplitter.getAutomaton(rootState, true));
       } catch (IOException io) {
         logger.logUserException(Level.WARNING, io, "Could not write ARG to automata to file");
       }
