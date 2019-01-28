@@ -161,7 +161,7 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
     ARGState cutpoint =
         determineCutpoint(targetPathToUse.reverseFullPathIterator(), minimalPrecisionRequired);
 
-    widenPrecision(targetPathToUse, minimalPrecisionRequired);
+    //widenPrecision(targetPathToUse, minimalPrecisionRequired);
 
     Preconditions.checkNotNull(cutpoint);
 

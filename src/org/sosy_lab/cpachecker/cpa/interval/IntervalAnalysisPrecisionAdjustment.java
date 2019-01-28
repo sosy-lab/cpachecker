@@ -92,11 +92,11 @@ public class IntervalAnalysisPrecisionAdjustment implements PrecisionAdjustment 
         state.forget(mem);
       } else if (!precision.getType().equals("IntervalAnalysisFullPrecison") ){ // precision is tracking that variable
         Interval stateInterval = state.getInterval(memString);
-        if(stateInterval.getHigh() - stateInterval.getLow() < precision.getValue(memString)){
-          long low = stateInterval.getLow();
-          state.removeInterval(memString);
-          state.addInterval(memString, new Interval(low, low).plus(precision.getValue(memString)), 2000);
-        }
+//        if(stateInterval.getHigh() - stateInterval.getLow() < precision.getValue(memString)){
+//          long low = stateInterval.getLow();
+//          state.removeInterval(memString);
+//          state.addInterval(memString, new Interval(low, low).plus(precision.getValue(memString)), 2000);
+//        }
       }
     }
   }
