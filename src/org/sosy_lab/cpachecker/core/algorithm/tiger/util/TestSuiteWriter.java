@@ -19,6 +19,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
+import com.google.common.xml.XmlEscapers;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -57,6 +58,7 @@ public class TestSuiteWriter {
   private String outputFolder;
   private Set<TestCase> writtenTestCases;
   private String spec;
+  private String producer;
 
   public TestSuiteWriter(
       CFA pCfa,
@@ -64,7 +66,8 @@ public class TestSuiteWriter {
       String pOriginalMainFunction,
       boolean pUseTestCompOutput,
       String pOutputFolder,
-      String pSpec) {
+      String pSpec,
+      String pProducer) {
     cfa = pCfa;
     logger = pLogger;
     originalMainFunction = pOriginalMainFunction;
@@ -72,6 +75,7 @@ public class TestSuiteWriter {
     outputFolder = pOutputFolder;
     writtenTestCases = new HashSet<>();
     spec = pSpec;
+    producer = pProducer;
     initTestSuiteFolder();
   }
 
@@ -87,6 +91,10 @@ public class TestSuiteWriter {
   }
 
   private void writeMetaData() {
+    logger.log(
+        Level.INFO,
+        "Writing Metadata with FQL Statement: " + spec + " and producer " + producer);
+
     Document dom;
     DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
     try {
@@ -95,7 +103,11 @@ public class TestSuiteWriter {
       Element root = dom.createElement("test-metadata");
 
       createAndAppendElement("sourcecodelang", cfa.getLanguage().toString(), root, dom);
-      createAndAppendElement("producer", "CPA-Tiger", root, dom);
+      createAndAppendElement(
+          "producer",
+          XmlEscapers.xmlContentEscaper().escape(producer),
+          root,
+          dom);
       createAndAppendElement("specification", spec, root, dom);
       Path file = cfa.getFileNames().get(0);
       createAndAppendElement("programfile", file.toString(), root, dom);

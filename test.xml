@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="300 s" hardtimelimit="960 s" memlimit="15 GB" cpuCores="8">
+
+  <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz" cpuCores="8"/>
+	
+  <resultfiles>**output/*</resultfiles>
+
+  <option name="-benchmark"/>
+  <option name="-heap">10000M</option>
+  <option name="-tigertestcomp19"/>
+
+
+
+  <rundefinition name="test-comp19_code-coverage">
+     <propertyfile>coverage-branches.prp</propertyfile>
+  </rundefinition>
+
+
+  <tasks name="test-comp">
+    <includesfile>/home/sruland/TigerIntegration/test-comp.set</includesfile>
+    <option name="-32"/>
+  </tasks>
+
+
+
+</benchmark>
+

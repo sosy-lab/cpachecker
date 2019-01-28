@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -143,6 +144,8 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
     if(tigerConfig.shouldUseTestCompOutput()) {
       outputFolder += "test-suite";
     }
+    String producerString = CPAchecker.getVersion(pConfig);
+
     tsWriter =
         new TestSuiteWriter(
             pCfa,
@@ -150,7 +153,8 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
             originalMainFunction,
             tigerConfig.shouldUseTestCompOutput(),
             outputFolder,
-            tigerConfig.getFqlQuery());
+            tigerConfig.getFqlQuery(),
+            producerString);
   }
 
   public TimeoutCPA getTimeoutCPA(ConfigurableProgramAnalysis pCpa) {

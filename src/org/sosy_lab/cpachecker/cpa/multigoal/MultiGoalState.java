@@ -19,6 +19,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.multigoal;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,12 +44,13 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
 
 
   private boolean hasFinishedGoal;
-  private LinkedHashSet<Pair<CFAEdge, WeavingType>> edgesToWeave;
+  private ImmutableSet<Pair<CFAEdge, WeavingType>> edgesToWeave;
   // TODO handle regions
   private Region region;
-  Map<CFAEdgesGoal, Integer> goals;
+  ImmutableMap<CFAEdgesGoal, Integer> goals;
   Set<CFAEdge> weavedEdges;
   boolean isInitialState;
+  private int hash = 0;
 
   public static MultiGoalState createInitialState() {
     return new MultiGoalState();
@@ -55,23 +59,30 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
   private MultiGoalState() {
     isInitialState = true;
     hasFinishedGoal = false;
-    goals = new HashMap<>();
+    goals = ImmutableMap.copyOf(Collections.emptyMap());
+    edgesToWeave = ImmutableSet.copyOf(Collections.emptySet());
+    weavedEdges = new HashSet<>();
   }
-  public MultiGoalState(MultiGoalState predState) {
-    if (predState == null) {
-      hasFinishedGoal = false;
-    } else {
-      hasFinishedGoal = predState.hasFinishedGoal;
-      if (predState.goals != null) {
-        goals = new HashMap<>(predState.goals);
-      }
-      if (predState.weavedEdges != null) {
-        weavedEdges = new HashSet<>(predState.weavedEdges);
+
+  public MultiGoalState(
+      Map<CFAEdgesGoal, Integer> pGoals,
+      LinkedHashSet<Pair<CFAEdge, WeavingType>> pEdgesToWeave,
+      Set<CFAEdge> pWeavedEdges) {
+    hasFinishedGoal = false;
+    goals =
+        pGoals == null ? ImmutableMap.copyOf(Collections.emptySet()) : ImmutableMap.copyOf(pGoals);
+    for (Entry<CFAEdgesGoal, Integer> goal : goals.entrySet()) {
+      if (goal.getValue() >= goal.getKey().getEdges().size()) {
+        hasFinishedGoal = true;
+        break;
       }
     }
-
+    weavedEdges = pWeavedEdges == null ? new HashSet<>() : new HashSet<>(pWeavedEdges);
+    edgesToWeave =
+        pEdgesToWeave == null
+            ? ImmutableSet.copyOf(Collections.emptySet())
+            : ImmutableSet.copyOf(pEdgesToWeave);
   }
-
 
   @Override
   public String toString() {
@@ -152,39 +163,20 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
       return false;
     }
 
-    if (!other.getEdgesToWeave().equals(other.edgesToWeave)) {
+    if (!other.getEdgesToWeave().equals(this.getEdgesToWeave())) {
       return false;
     }
     if (!other.getWeavedEdges().equals(this.getWeavedEdges())) {
+      return false;
+    }
+    if (other.region != null && other.region.equals(this.region)) {
       return false;
     }
 
     return true;
   }
 
-  @Override
-  public int hashCode() {
-    int result = 1;
-    result = hasFinishedGoal ? result * 37 + 1 : result * 37 + 0;
-    for (CFAEdgesGoal goal : getCoveredGoal()) {
-      result = result * 37 + goal.hashCode();
-    }
-
-    for (Pair<CFAEdge, WeavingType> edgeToWeave : getEdgesToWeave()) {
-      result = result * 37 + edgeToWeave.getFirst().hashCode();
-      result = result * 37 + edgeToWeave.getSecond().hashCode();
-    }
-
-    for (CFAEdge weavedEdge : getWeavedEdges()) {
-      result = result * 37 + weavedEdge.hashCode();
-    }
-    return result;
-  }
-
-  public Map<CFAEdgesGoal, Integer> getGoals() {
-    if (goals == null) {
-      return Collections.emptyMap();
-    }
+  public ImmutableMap<CFAEdgesGoal, Integer> getGoals() {
     return goals;
   }
 
@@ -192,42 +184,15 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
     return !getEdgesToWeave().isEmpty();
   }
 
-  public LinkedHashSet<Pair<CFAEdge, WeavingType>> getEdgesToWeave() {
-    if (edgesToWeave == null) {
-      return new LinkedHashSet<>();
-    }
+  public ImmutableSet<Pair<CFAEdge, WeavingType>> getEdgesToWeave() {
     return edgesToWeave;
   }
 
-
-  void addWeavingEdge(CFAEdge weavingEdge, WeavingType type) {
-    if (edgesToWeave == null) {
-      edgesToWeave = new LinkedHashSet<>();
-    }
-    edgesToWeave.add(Pair.of(weavingEdge, type));
-  }
-
-  public void putGoal(CFAEdgesGoal pGoal, int pIndex) {
-    if (goals == null) {
-      goals = new HashMap<>();
-    }
-    goals.put(pGoal, pIndex);
-    if (pIndex >= pGoal.getEdges().size()) {
-      hasFinishedGoal = true;
-    }
-  }
-
   public void addWeavedEdge(CFAEdge pWeaveEdge) {
-    if (weavedEdges == null) {
-      weavedEdges = new HashSet<>();
-    }
     weavedEdges.add(pWeaveEdge);
   }
 
   public Set<CFAEdge> getWeavedEdges() {
-    if (weavedEdges == null) {
-      return Collections.emptySet();
-    }
     return weavedEdges;
   }
 
@@ -240,46 +205,63 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
   }
 
 
+
+  @Override
+  public int hashCode() {
+    if (hash == 0) {
+      // Important: we cannot use weavedEdges.hashCode(), because the hash code of a map
+      // depends on the hash code of its values, and those may change.
+      final int prime = 31;
+      hash = 1;
+      hash = prime * hash + (isInitialState ? 0 : 1);
+      hash = prime * hash + (hasFinishedGoal ? 0 : 1);
+      hash = prime * hash + ((edgesToWeave == null) ? 0 : edgesToWeave.hashCode());
+      hash = prime * hash + ((goals == null) ? 0 : goals.hashCode());
+      hash = prime * hash + ((region == null) ? 0 : region.hashCode());
+    }
+    return hash;
+  }
+
+  private static <T> Set<T> union(Set<T> set1, Set<T> set2) {
+    if (set1 == null && set2 == null) {
+      return Collections.emptySet();
+    } else if (set1 != null && set2 == null) {
+      return set1;
+    } else if (set1 == null && set2 != null) {
+      return set2;
+    } else {
+      return Sets.union(set1, set2);
+    }
+  }
+
+  private static ImmutableMap<CFAEdgesGoal, Integer>
+      mergeGoals(MultiGoalState pState1, MultiGoalState pState2) {
+    if (pState1.goals == null && pState2.goals == null) {
+      return ImmutableMap.copyOf(Collections.emptyMap());
+    } else if (pState1.goals != null && pState2.goals == null) {
+      return ImmutableMap.copyOf(pState1.goals);
+    } else if (pState1.goals == null && pState2.goals != null) {
+      return ImmutableMap.copyOf(pState2.goals);
+    } else {
+      HashMap<CFAEdgesGoal, Integer> newGoals = new HashMap<>(pState1.goals);
+      pState2.goals
+          .forEach((key, value) -> newGoals.merge(key, value, (v1, v2) -> v1 > v2 ? v1 : v2));
+      return ImmutableMap.copyOf(newGoals);
+    }
+  }
+
   public static MultiGoalState createMergedState(MultiGoalState pState1, MultiGoalState pState2) {
     MultiGoalState mergedState = new MultiGoalState();
     mergedState.hasFinishedGoal = pState1.hasFinishedGoal || pState2.hasFinishedGoal;
     mergedState.isInitialState = false;
-    if (pState1.edgesToWeave != null || pState2.edgesToWeave != null) {
-      mergedState.edgesToWeave = new LinkedHashSet<>();
-      mergedState.edgesToWeave.addAll(pState1.getEdgesToWeave());
-      mergedState.edgesToWeave.addAll(pState2.getEdgesToWeave());
-    }
-    if (pState1.weavedEdges != null || pState2.weavedEdges != null) {
-    mergedState.weavedEdges = new HashSet<>();
-      mergedState.weavedEdges.addAll(pState1.getWeavedEdges());
-      mergedState.weavedEdges.addAll(pState2.getWeavedEdges());
-    }
-    if (pState1.goals != null || pState2.goals != null) {
-      mergedState.goals = new HashMap<>();
-      if (pState1.goals != null) {
-        mergedState.goals.putAll(pState1.goals);
-      }
 
-      if (pState2.goals != null) {
-        for (Entry<CFAEdgesGoal, Integer> goal : pState2.goals.entrySet()) {
-          if (!mergedState.getGoals().containsKey(goal.getKey())
-              || mergedState.getGoals().get(goal.getKey()) > goal.getValue()) {
-            mergedState.putGoal(goal.getKey(), goal.getValue());
-          }
-        }
-      }
-    }
+    mergedState.edgesToWeave =
+        ImmutableSet.copyOf(union(pState1.edgesToWeave, pState2.edgesToWeave));
+
+    mergedState.weavedEdges = union(pState1.weavedEdges, pState2.weavedEdges);
+
+    mergedState.goals = mergeGoals(pState1, pState2);
+
     return mergedState;
   }
-
-  public void removeGoal(CFAEdgesGoal pGoal) {
-    goals.remove(pGoal);
-  }
-
-  public void removeGoals(HashSet<CFAEdgesGoal> pFinishedGoals) {
-    for (CFAEdgesGoal goal : pFinishedGoals) {
-      removeGoal(goal);
-    }
-  }
-
 }

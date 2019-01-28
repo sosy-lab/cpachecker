@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithmConfiguration.CoverageCheck;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.CFAGoal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCaseVariable;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -245,6 +246,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     logger.logf(Level.INFO, "We empty pReachedSet to stop complaints of an incomplete analysis");
 
     goalsToCover = initializeTestGoalSet();
+    logger.log(Level.INFO, "trying to cover: " + goalsToCover.size() + " goals");
     testsuite = new TestSuite<>(bddUtils, goalsToCover, tigerConfig);
 
     boolean wasSound = true;
@@ -256,7 +258,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     tsWriter.writeFinalTestSuite(testsuite);
 
     logger.log(
-        Level.FINE,
+        Level.INFO,
         "covered "
             + testsuite.getNumberOfFeasibleGoals()
             + " of "
@@ -395,6 +397,17 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
 
             testsuite.addTestCase(testcase, goal);
             tsWriter.writePartialTestSuite(testsuite);
+            if (testcase.getInputs() != null) {
+              StringBuilder builder = new StringBuilder();
+              builder.append("Wrote testcase with inputs: ");
+              for (TestCaseVariable input : testcase.getInputs()) {
+                builder.append(input.getName() + ":" + input.getValue() + ";\t");
+              }
+              logger
+                  .log(Level.INFO, builder.toString());
+            } else {
+              logger.log(Level.INFO, "Wrote testcase without inputs");
+            }
 
             if (tigerConfig.getCoverageCheck() == CoverageCheck.SINGLE
                 || tigerConfig.getCoverageCheck() == CoverageCheck.ALL) {

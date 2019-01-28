@@ -19,10 +19,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -76,15 +76,15 @@ public class WeaveEdgeFactory {
   private class WeavingCacheKey {
     CFANode initialCFANode;
     CFANode finalCFANode;
-    LinkedHashSet<Pair<CFAEdge, WeavingType>> weavingEdges;
+    ImmutableSet<Pair<CFAEdge, WeavingType>> weavingEdges;
 
     public WeavingCacheKey(
         CFANode pInitialCFANode,
         CFANode pFinalCFANode,
-        LinkedHashSet<Pair<CFAEdge, WeavingType>> pWeavingEdges) {
+        ImmutableSet<Pair<CFAEdge, WeavingType>> pWeavingEdges) {
       initialCFANode = pInitialCFANode;
       finalCFANode = pFinalCFANode;
-      weavingEdges = new LinkedHashSet<>(pWeavingEdges);
+      weavingEdges = pWeavingEdges;
     }
 
     @Override
