@@ -56,7 +56,9 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
@@ -810,7 +812,9 @@ public class ARGToAutomatonConverter {
     // build automaton from call-graph
     CallstackState root = AbstractStates.extractStateByType(pRoot, CallstackState.class);
     Deque<CallstackState> waitlist = new ArrayDeque<>();
+    Set<CFANode> reached = new HashSet<>();
     waitlist.push(root);
+    reached.add(root.getCallNode());
     while (!waitlist.isEmpty()) {
       CallstackState elem = waitlist.removeFirst();
       final List<AutomatonTransition> transitions = new ArrayList<>();
@@ -821,14 +825,17 @@ public class ARGToAutomatonConverter {
                 withTargetStates ? AutomatonInternalState.ERROR.getName() : id(leaf)));
       }
       for (CallstackState called : callstacks.get(elem)) {
-        waitlist.add(called);
+        if (!reached.contains(called.getCallNode())) {
+          waitlist.add(called);
+          reached.add(called.getCallNode());
+        }
         // calling the next function on the stack corresponds to going to the next automaton state
         transitions.add(makeLocationTransition(called.getCallNode().getNodeNumber(), id(called)));
       }
       final CallstackState callee = inverseCallstacks.get(elem);
       if (callee != null) {
         // returning from the current function corresponds to returning to the previous automaton
-        // state (except for the main function, hence i > 0):
+        // state (except for the main function):
         transitions.add(
             makeLocationTransition(
                 elem.getCallNode().getLeavingSummaryEdge().getSuccessor().getNodeNumber(),
@@ -916,12 +923,41 @@ public class ARGToAutomatonConverter {
   }
 
   private static String id(CallstackState s) {
-    String str = s.getCurrentFunction() + "_L" + s.getCallNode().getNodeNumber();
-    while (s.getPreviousState() != null) {
-      s = s.getPreviousState();
-      str = s.getCurrentFunction() + "_L" + s.getCallNode().getNodeNumber() + "__" + str;
+    return id(s, false);
+  }
+
+  private static String id(CallstackState s, boolean complete) {
+    StringBuilder strBuilder = new StringBuilder().append(currentCallDescription(s));
+    if (complete) {
+      while (s.getPreviousState() != null) {
+        s = s.getPreviousState();
+        strBuilder.insert(0, currentCallDescription(s) + "__");
+      }
     }
-    return str.toString();
+    return strBuilder.toString();
+  }
+
+  private static String currentCallDescription(final CallstackState s) {
+    return s.getCurrentFunction()
+        + "_N"
+        + s.getCallNode().getNodeNumber()
+        + "_L"
+        + getCallLineNumber(s);
+  }
+
+  private static int getCallLineNumber(final CallstackState s) {
+    final CFANode node = s.getCallNode();
+    int position = 0;
+    // we set a position even if there is no FunctionCallEdge here on purpose!(this is needed for
+    // main, whose node from the CallstackState does not have a leaving FunctionCallEdge)
+    for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+      final CFAEdge edge = node.getLeavingEdge(i);
+      position = edge.getLineNumber();
+      if (edge instanceof FunctionCallEdge) {
+        break;
+      }
+    }
+    return position;
   }
 
   private static final class BranchingInfo {
