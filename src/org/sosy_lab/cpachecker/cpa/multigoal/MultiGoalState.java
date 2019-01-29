@@ -21,7 +21,6 @@ package org.sosy_lab.cpachecker.cpa.multigoal;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,7 +37,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.location.LocationTransferRelation.WeavingType;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 public class MultiGoalState implements AbstractState, Targetable, Graphable {
 
@@ -46,7 +44,6 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
   private boolean hasFinishedGoal;
   private ImmutableSet<Pair<CFAEdge, WeavingType>> edgesToWeave;
   // TODO handle regions
-  private Region region;
   ImmutableMap<CFAEdgesGoal, Integer> goals;
   Set<CFAEdge> weavedEdges;
   boolean isInitialState;
@@ -138,6 +135,9 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
   }
 
   public Set<CFAEdgesGoal> getCoveredGoal() {
+    if (goals.isEmpty()) {
+      return Collections.emptySet();
+    }
     Set<CFAEdgesGoal> coveredGoals = new HashSet<>();
     for (Entry<CFAEdgesGoal, Integer> entry : goals.entrySet()) {
       if (entry.getValue() >= entry.getKey().getEdges().size()) {
@@ -150,6 +150,11 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
 
   @Override
   public boolean equals(Object pObj) {
+
+    if (pObj == this) {
+      return true;
+    }
+
     if(!(pObj instanceof MultiGoalState)) {
       return false;
     }
@@ -159,7 +164,8 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
       return false;
     }
 
-    if (!other.getCoveredGoal().equals(this.getCoveredGoal())) {
+    if (other.goals == null && this.goals == null
+        || !other.goals.entrySet().equals(this.goals.entrySet())) {
       return false;
     }
 
@@ -167,9 +173,6 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
       return false;
     }
     if (!other.getWeavedEdges().equals(this.getWeavedEdges())) {
-      return false;
-    }
-    if (other.region != null && other.region.equals(this.region)) {
       return false;
     }
 
@@ -217,7 +220,7 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
       hash = prime * hash + (hasFinishedGoal ? 0 : 1);
       hash = prime * hash + ((edgesToWeave == null) ? 0 : edgesToWeave.hashCode());
       hash = prime * hash + ((goals == null) ? 0 : goals.hashCode());
-      hash = prime * hash + ((region == null) ? 0 : region.hashCode());
+      // hash = prime * hash + ((region == null) ? 0 : region.hashCode());
     }
     return hash;
   }
@@ -226,11 +229,13 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
     if (set1 == null && set2 == null) {
       return Collections.emptySet();
     } else if (set1 != null && set2 == null) {
-      return set1;
+      return new HashSet<>(set1);
     } else if (set1 == null && set2 != null) {
-      return set2;
+      return new HashSet<>(set2);
     } else {
-      return Sets.union(set1, set2);
+      HashSet<T> set = new HashSet<>(set1);
+      set.addAll(set2);
+      return set;
     }
   }
 

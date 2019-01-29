@@ -29,8 +29,13 @@ public class MultiGoalMergeOperator implements MergeOperator {
   @Override
   public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision)
       throws CPAException, InterruptedException {
+
     MultiGoalState state1 = (MultiGoalState) pState1;
     MultiGoalState state2 = (MultiGoalState) pState2;
+    // no need to merge if they are equal states
+    if (state1.equals(state2)) {
+      return state2;
+    }
 
     // merge only, if there is no difference in covered goals and weaving states
     if (state1.getCoveredGoal().equals(state2.getCoveredGoal())

@@ -23,6 +23,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -48,6 +49,11 @@ public class MultiGoalCPA extends AbstractCPA {
 
   public void setTransferRelationTargets(Set<CFAEdgesGoal> pTargets) {
     transferRelation.setGoals(pTargets);
+  }
+
+  @Override
+  public AbstractDomain getAbstractDomain() {
+    return new MultiGoalAbstractDomain();
   }
 
   @Override
