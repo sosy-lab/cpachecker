@@ -34,6 +34,7 @@ class ListExpressionCFABuilder implements ListExpressionAppendable {
   @Override
   public JSExpression append(
       final JavaScriptCFABuilder pBuilder, final ListExpression pListExpression) {
-    return Iterables.getLast(pBuilder.append((List<Expression>) pListExpression.expressions()));
+    final List<Expression> expressions = pListExpression.expressions();
+    return Iterables.getLast(pBuilder.append(expressions));
   }
 }
