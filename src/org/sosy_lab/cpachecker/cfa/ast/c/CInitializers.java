@@ -460,8 +460,6 @@ public final class CInitializers {
     }
 
     CFieldReference designatedField = null;
-    //!field.getName().contains("__anon_type_member")
-//field.getType().toString().contains("struct"))
 
     if (startingFieldName.isPresent()) {
       // find the designated field and advance the iterator up to this point
