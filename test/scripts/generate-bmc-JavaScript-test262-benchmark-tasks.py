@@ -129,7 +129,7 @@ file_patterns = [
 for file_pattern in file_patterns:
     for file in project_root_dir.glob(file_pattern):
         file_content = file.read_text()
-        if is_skip_directory(file.parent) or is_skip(file_content):
+        if is_skip_directory(file.parent) or is_skip(file_content) or 'bigint' in file.stem:
             print('SKIP {}'.format(file))
             continue
         else:
