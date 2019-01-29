@@ -121,43 +121,47 @@ if not assert_lib_negated_file.exists():
     exit(1)
 
 yml_file_names = set()
+file_patterns = [
+    'test/programs/javascript-test262-benchmark/test/language/statements/*/*.js',
+    'test/programs/javascript-test262-benchmark/test/language/expressions/bitwise-*/*.js',
+]
 
-for file in project_root_dir.glob(
-        'test/programs/javascript-test262-benchmark/test/language/statements/*/*.js'):
-    file_content = file.read_text()
-    if is_skip_directory(file.parent) or is_skip(file_content):
-        print('SKIP {}'.format(file))
-        continue
-    else:
-        print('GENERATE TASK FOR {}'.format(file))
-    relative_path_to_property_file = os.path.relpath(str(property_file), str(file.parent))
-    yml_file_name = file.stem + '.yml'
-    i = 0
-    while yml_file_name in yml_file_names:
-        yml_file_name = '{}_{}.yml'.format(file.stem, i)
-        i = i + 1
-    yml_file_names.add(yml_file_name)
-    yml_file = file.parent / yml_file_name
-    create_task_file(
-        yml_file=yml_file,
-        assert_lib_file=os.path.relpath(str(assert_lib_file), str(file.parent)),
-        input_file_name=file.name,
-        property_file=relative_path_to_property_file,
-        expected_verdict='true')
-    # negated test
-    if '$ERROR(' in file_content:
-        # negate condition of if-statement directly before call of $ERROR
-        file_content_negated = re.sub(r'(\sif\s*\()(.*?)(\)\s*{?\s*\$ERROR\()', r'\1!(\2)\3',
-                                      file_content)
-        file = file.parent / (file.stem + '.js.negated')
-        print('GENERATE NEGATED VERSION OF {}'.format(file))
-        file.write_text(file_content_negated)
-    yml_file_name =\
-        '{}_false.yml'.format(file.stem) if i == 0 else '{}_{}_false.yml'.format(file.stem, i)
-    yml_file = file.parent / yml_file_name.replace('.js', '')
-    create_task_file(
-        yml_file=yml_file,
-        assert_lib_file=os.path.relpath(str(assert_lib_negated_file), str(file.parent)),
-        input_file_name=file.name,
-        property_file=relative_path_to_property_file,
-        expected_verdict='false')
+for file_pattern in file_patterns:
+    for file in project_root_dir.glob(file_pattern):
+        file_content = file.read_text()
+        if is_skip_directory(file.parent) or is_skip(file_content):
+            print('SKIP {}'.format(file))
+            continue
+        else:
+            print('GENERATE TASK FOR {}'.format(file))
+        relative_path_to_property_file = os.path.relpath(str(property_file), str(file.parent))
+        yml_file_name = file.stem + '.yml'
+        i = 0
+        while yml_file_name in yml_file_names:
+            yml_file_name = '{}_{}.yml'.format(file.stem, i)
+            i = i + 1
+        yml_file_names.add(yml_file_name)
+        yml_file = file.parent / yml_file_name
+        create_task_file(
+            yml_file=yml_file,
+            assert_lib_file=os.path.relpath(str(assert_lib_file), str(file.parent)),
+            input_file_name=file.name,
+            property_file=relative_path_to_property_file,
+            expected_verdict='true')
+        # negated test
+        if '$ERROR(' in file_content:
+            # negate condition of if-statement directly before call of $ERROR
+            file_content_negated = re.sub(r'(\sif\s*\()(.*?)(\)\s*{?\s*\$ERROR\()', r'\1!(\2)\3',
+                                          file_content)
+            file = file.parent / (file.stem + '.js.negated')
+            print('GENERATE NEGATED VERSION OF {}'.format(file))
+            file.write_text(file_content_negated)
+        yml_file_name =\
+            '{}_false.yml'.format(file.stem) if i == 0 else '{}_{}_false.yml'.format(file.stem, i)
+        yml_file = file.parent / yml_file_name.replace('.js', '')
+        create_task_file(
+            yml_file=yml_file,
+            assert_lib_file=os.path.relpath(str(assert_lib_negated_file), str(file.parent)),
+            input_file_name=file.name,
+            property_file=relative_path_to_property_file,
+            expected_verdict='false')
