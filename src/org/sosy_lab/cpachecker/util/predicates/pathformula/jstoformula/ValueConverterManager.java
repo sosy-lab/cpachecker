@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Ty
 
 import com.google.common.collect.Lists;
 import javax.annotation.Nonnull;
+import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -35,6 +36,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 /**
@@ -59,7 +61,7 @@ class ValueConverterManager {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final FloatingPointFormulaManagerView fpfmgr;
-
+  private final BitvectorFormulaManagerView bitVecMgr;
 
   ValueConverterManager(
       final TypedVariableValues pTypedVariableValues,
@@ -74,6 +76,7 @@ class ValueConverterManager {
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
     fpfmgr = fmgr.getFloatingPointFormulaManager();
+    bitVecMgr = fmgr.getBitvectorFormulaManager();
   }
 
   /**
@@ -284,10 +287,12 @@ class ValueConverterManager {
   }
 
   BitvectorFormula toInt32(final TypedValue pValue) {
-    // TODO check NaN and infinity?
-    return fpfmgr.castTo(
-        toNumber(pValue),
-        FormulaType.getBitvectorTypeWithSize(32),
-        FloatingPointRoundingMode.TOWARD_ZERO);
+    // TODO values out of range, e.g. 2^32
+    final FloatingPointFormula number = toNumber(pValue);
+    final BitvectorType bv32 = FormulaType.getBitvectorTypeWithSize(32);
+    return bfmgr.ifThenElse(
+        bfmgr.or(fpfmgr.isNaN(number), fpfmgr.isInfinity(number)),
+        bitVecMgr.makeBitvector(bv32, 0),
+        fpfmgr.castTo(number, bv32, FloatingPointRoundingMode.TOWARD_ZERO));
   }
 }
