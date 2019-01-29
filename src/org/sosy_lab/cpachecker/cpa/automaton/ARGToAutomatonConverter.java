@@ -50,14 +50,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -69,7 +74,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  * the state space.
  *
  * <p>The idea is based on the paper "Structurally Defined Conditional Data-Flow Static Analysis"
- * from Elena Sherman and Matthew B. Dwyer.
+ * from Elena Sherman and Matthew B. Dwyer (2018).
  */
 @Options(prefix = "cpa.arg.automaton")
 public class ARGToAutomatonConverter {
@@ -80,7 +85,9 @@ public class ARGToAutomatonConverter {
     /** split at non-nested conditions only */
     GLOBAL_CONDITIONS,
     /** split different leaf states */
-    LEAVES
+    LEAVES,
+    /** split using information from the call stack */
+    CALLSTACK
   }
 
   public enum BranchExportStrategy {
@@ -144,10 +151,15 @@ public class ARGToAutomatonConverter {
         return getGlobalConditionSplitAutomata(root, selectionStrategy);
       case LEAVES:
         return from(getLeaves(root)).transform(l -> getAutomatonForLeaf(root, l));
+      case CALLSTACK:
+        return from(getLeaves(root))
+            .filter(x -> AbstractStates.extractStateByType(x, CallstackState.class) != null)
+            .transform(l -> getCallstackAutomatonForLeaf(l));
       default:
         throw new AssertionError("unexpected strategy");
     }
   }
+
 
   /** generate an automaton that traverses the subgraph, but leaves out ignored states. */
   private static Automaton getAutomatonForStates(
@@ -728,6 +740,65 @@ public class ARGToAutomatonConverter {
     return getAutomatonForStates(pRoot, s -> !allStatesOnPaths.contains(s), true);
   }
 
+  private static Automaton getCallstackAutomatonForLeaf(ARGState pLeaf) {
+    // bring the information from the call stack in a form that eases further steps:
+    final CallstackState callstack = AbstractStates.extractStateByType(pLeaf, CallstackState.class);
+    final Integer targetNodeNumber =
+        AbstractStates.extractStateByType(pLeaf, LocationState.class)
+            .getLocationNode()
+            .getNodeNumber();
+    final int max = callstack.getDepth();
+    final CFANode[] nodeStack = new CFANode[max];
+    final String[] nameStack = new String[max];
+    CallstackState current = callstack;
+    for (int i = max - 1; i >= 0; i--) {
+      nodeStack[i] = current.getCallNode();
+      nameStack[i] = current.getCurrentFunction();
+      current = current.getPreviousState();
+    }
+
+    // build the parts of the automaton:
+    final List<AutomatonInternalState> states = new ArrayList<>();
+    states.add(AutomatonInternalState.ERROR);
+    final Function<Integer, String> idForIndex = x -> id(nodeStack[x], nameStack[x]);
+    for (int i = 0; i < max; i++) {
+      final List<AutomatonTransition> transitions = new ArrayList<>();
+      if (i < max - 1) {
+        // calling the next function on the stack corresponds to going to the next automaton state
+        transitions.add(makeLocationTransition(nodeStack[i + 1].getNodeNumber(), idForIndex.apply(i + 1)));
+      } else {
+        // the last transition to the target state needs to be treated differently:
+        transitions.add(makeLocationTransition(targetNodeNumber, AutomatonInternalState.ERROR.getName()));
+      }
+      // returning from the current function corresponds to returning to the previous automaton
+      // state (except for the main function, hence i > 0):
+      if (i > 0) {
+        transitions.add(
+            makeLocationTransition(
+                nodeStack[i].getLeavingSummaryEdge().getSuccessor().getNodeNumber(),
+                idForIndex.apply(i - 1)));
+      }
+      AutomatonInternalState a = new AutomatonInternalState(idForIndex.apply(i), transitions);
+      states.add(a);
+    }
+
+    // build the actual automaton:
+    try {
+      return new Automaton("ARG", Collections.emptyMap(), states, idForIndex.apply(0));
+    } catch (InvalidAutomatonException e) {
+      throw new AssertionError("unexpected exception", e);
+    }
+  }
+
+  private static AutomatonTransition makeLocationTransition(int nodeNumber, String followStateName) {
+    return new AutomatonTransition(
+        new AutomatonBoolExpr.CPAQuery("location", "nodenumber==" + nodeNumber),
+        ImmutableList.of(),
+        ImmutableList.of(),
+        ImmutableList.of(),
+        followStateName);
+  }
+
   /** the same as {@link ARGUtils#getAllStatesOnPathsTo}, but with coverage handling. */
   private static Collection<ARGState> getAllStatesOnPathsTo(ARGState pLeaf) {
     Collection<ARGState> finished = new LinkedHashSet<>();
@@ -739,10 +810,7 @@ public class ARGToAutomatonConverter {
         continue;
       }
       waitlist.addAll(s.getParents());
-      while (s.isCovered()) {
-        s = s.getCoveringState();
-        waitlist.addAll(s.getParents());
-      }
+      waitlist.addAll(s.getCoveredByThis());
     }
     return finished;
   }
@@ -795,6 +863,21 @@ public class ARGToAutomatonConverter {
         + Joiner.on(", ")
             .join(Iterables.transform(children.keys(), s -> id(s) + "->" + id(children.get(s))))
         + "}";
+  }
+
+  private static String id(CFANode pNode, String pFunctionName) {
+    CFAEdge edge = null;
+    String position = "L?";
+    // we set a position even if there is no FunctionCallEdge here on purpose!(this is needed for
+    // main, whose node from the CallstackState does not have a leaving FunctionCallEdge)
+    for (int i = 0; i < pNode.getNumLeavingEdges(); i++) {
+      edge = pNode.getLeavingEdge(i);
+      position = "L" + Integer.toString(edge.getLineNumber());
+      if (edge instanceof FunctionCallEdge) {
+        break;
+      }
+    }
+    return pFunctionName + "_" + position;
   }
 
   private static final class BranchingInfo {

@@ -984,7 +984,7 @@ cpa.arg.automaton.skipFirstNum = 10
 
 # which coarse strategy should be applied when analyzing the ARG?
 cpa.arg.automaton.strategy = GLOBAL_CONDITIONS
-  enum:     [NONE, GLOBAL_CONDITIONS, LEAVES]
+  enum:     [NONE, GLOBAL_CONDITIONS, LEAVES, CALLSTACK]
 
 # compress the produced correctness-witness automata using GZIP compression.
 cpa.arg.compressWitness = true
@@ -3815,7 +3815,7 @@ testcase.targets.optimization.strategy = NONE
   enum:     [NONE, COVERED_NEXT_EDGE, TESTCOMP]
 
 # Which CFA edges to use as test targets
-testcase.targets.type = STATEMENT
+testcase.targets.type = ASSUME
   enum:     [ASSUME, ERROR_CALL, STATEMENT]
 
 # export test values to file (line separated)

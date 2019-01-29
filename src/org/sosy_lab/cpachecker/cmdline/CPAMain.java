@@ -308,8 +308,8 @@ public class CPAMain {
     // from default values, config file, and command-line arguments
     ConfigurationBuilder configBuilder = Configuration.builder();
     configBuilder.setOptions(EXTERN_OPTION_DEFAULTS);
-    configBuilder.setOption(APPROACH_NAME_OPTION, extractApproachNameFromConfigName(configFile));
     if (configFile != null) {
+      configBuilder.setOption(APPROACH_NAME_OPTION, extractApproachNameFromConfigName(configFile));
       configBuilder.loadFromFile(configFile);
     }
     configBuilder.setOptions(cmdLineOptions);
