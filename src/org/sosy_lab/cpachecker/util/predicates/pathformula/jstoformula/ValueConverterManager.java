@@ -311,12 +311,33 @@ class ValueConverterManager {
    */
   @Nonnull
   BitvectorFormula toInt32(final FloatingPointFormula pNumber) {
-    // TODO values out of range, e.g. 2^32
     final BitvectorType bv32 = FormulaType.getBitvectorTypeWithSize(32);
+    final BitvectorType bv1026 = FormulaType.getBitvectorTypeWithSize(1026);
+    final BitvectorFormula i2Pow31 = bitVecMgr.makeBitvector(bv1026, 2147483648L); // 2^31
+    final BitvectorFormula i2Pow32 = bitVecMgr.makeBitvector(bv1026, 4294967296L); // 2^32
+
+    // 3. Let posInt be sign(number) * floor(abs(number)).
+    final BitvectorFormula posInt =
+        fpfmgr.castTo(pNumber, bv1026, FloatingPointRoundingMode.TOWARD_ZERO);
+
+    // 4. Let int32bit be posInt modulo 2^32; that is, a finite integer value k of Number type
+    // with positive sign and less than 2^32 in magnitude such that the mathematical difference of
+    // posInt and k is mathematically an integer multiple of 2^32.
+    final BitvectorFormula int32bit = bitVecMgr.modulo(posInt, i2Pow32, true);
+
+    // 5. If int32bit is greater than or equal to 2^31, return int32bit - 2^32, otherwise return
+    // int32bit.
+    final BitvectorFormula intResult =
+        bfmgr.ifThenElse(
+            bitVecMgr.greaterOrEquals(int32bit, i2Pow31, true),
+            bitVecMgr.subtract(int32bit, i2Pow32),
+            int32bit);
+    final BitvectorFormula bv32Result = bitVecMgr.extract(intResult, 31, 0, true);
+
     // 2. If number is NaN, +0, −0, +∞, or −∞, return +0.
     return bfmgr.ifThenElse(
         bfmgr.or(fpfmgr.isNaN(pNumber), fpfmgr.isInfinity(pNumber)),
         bitVecMgr.makeBitvector(bv32, 0),
-        fpfmgr.castTo(pNumber, bv32, FloatingPointRoundingMode.TOWARD_ZERO));
+        bv32Result);
   }
 }
