@@ -271,6 +271,9 @@ analysis.matchAssignedFunctionPointers.ignoreUnknownAssignments = false
 # analysis
 analysis.memorizeReachedAfterRestart = false
 
+# Name of the used analysis, defaults to the name of the used configuration
+analysis.name = no default value
+
 # Partition the initial states based on the type of location they were
 # created for (see 'initialStatesFor')
 analysis.partitionInitialStates = false
@@ -951,6 +954,11 @@ cpa.arg.CTranslation.file = "ARG.c"
 # minimum ratio of branch compared to whole program to be exported
 cpa.arg.automaton.branchRatio = 0.5
 
+# what data should be exported from the ARG nodes? A different strategy might
+# result in a smaller automaton.
+cpa.arg.automaton.dataStrategy = LOCATION
+  enum:     [LOCATION, CALLSTACK]
+
 # translate final ARG into an automaton
 cpa.arg.automaton.export = false
 
@@ -958,12 +966,16 @@ cpa.arg.automaton.export = false
 cpa.arg.automaton.exportCompressed = true
 
 # translate final ARG into an automaton, depends on 'automaton.export=true'
-cpa.arg.automaton.exportDotFile = "ARG_parts/ARG.%03d.spc.dot"
-cpa.arg.automaton.exportSpcFile = "ARG_parts/ARG.%03d.spc"
+cpa.arg.automaton.exportDotFile = "ARG_parts/ARG.%06d.spc.dot"
+cpa.arg.automaton.exportSpcFile = "ARG_parts/ARG.%06d.spc"
+cpa.arg.automaton.exportSpcZipFile = "ARG_parts.zip"
+
+# export all automata into one zip-file, depends on 'automaton.export=true'
+cpa.arg.automaton.exportZipped = true
 
 # after determining branches, which one of them should be exported?
-cpa.arg.automaton.selectionStrategy = LEAFS
-  enum:     [NONE, ALL, LEAFS, WEIGHTED, FIRST_BFS]
+cpa.arg.automaton.selectionStrategy = LEAVES
+  enum:     [NONE, ALL, LEAVES, WEIGHTED, FIRST_BFS]
 
 # minimum ratio of siblings such that one of them will be exported
 cpa.arg.automaton.siblingRatio = 0.4
@@ -973,8 +985,8 @@ cpa.arg.automaton.siblingRatio = 0.4
 cpa.arg.automaton.skipFirstNum = 10
 
 # which coarse strategy should be applied when analyzing the ARG?
-cpa.arg.automaton.strategy = GLOBAL_CONDITIONS
-  enum:     [NONE, GLOBAL_CONDITIONS]
+cpa.arg.automaton.splitStrategy = TARGETS
+  enum:     [NONE, GLOBAL_CONDITIONS, LEAVES, TARGETS]
 
 # compress the produced correctness-witness automata using GZIP compression.
 cpa.arg.compressWitness = true
@@ -1142,6 +1154,9 @@ cpa.bam.blockHeuristic.functionPartitioning.minFunctionCalls = 0
 # only consider function with a minimum number of CFA nodes. This approach is
 # similar to 'inlining' small functions, when using BAM.
 cpa.bam.blockHeuristic.functionPartitioning.minFunctionSize = 0
+
+# file for exporting detailed statistics about blocks
+cpa.bam.blockStatisticsFile = "block_statistics.txt"
 
 # abort current analysis when finding a missing block abstraction
 cpa.bam.breakForMissingBlock = true
@@ -2430,6 +2445,9 @@ cpa.slicing.weakeningStrategy = CEX
 # Enable GCC extension 'Arrays of Length Zero'.
 cpa.smg.GCCZeroLengthArray = false
 
+# Allocate memory on declaration of external variable
+cpa.smg.allocateExternalVariables = true
+
 # Array allocation functions
 cpa.smg.arrayAllocationFunctions = {"calloc"}
 
@@ -2465,9 +2483,9 @@ cpa.smg.guessSize = 2
 # Size of memory that cannot be calculated will be guessed.
 cpa.smg.guessSizeOfUnknownMemorySize = false
 
-# Handle extern variables with incomplete type (extern int array[]) as
+# Handle external variables with incomplete type (extern int array[]) as
 # external allocation
-cpa.smg.handleExternVariableAsExternalAllocation = false
+cpa.smg.handleIncompleteExternalVariableAsExternalAllocation = false
 
 # with this option enabled, memory that is not freed before the end of main
 # is reported as memleak even if it is reachable from local variables in main

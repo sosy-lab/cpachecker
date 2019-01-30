@@ -10,11 +10,11 @@
   <fileset name="regular" enabled="true" check-config-name="SoSy-Lab" local="true">
     <file-match-pattern match-pattern=".java$" include-pattern="true"/>
     <file-match-pattern match-pattern="/test/.*\.java$" include-pattern="false"/>
-    <file-match-pattern match-pattern="Test(Suite|0)?.java$" include-pattern="false"/>
+    <file-match-pattern match-pattern="Test(Base|Suite|0)?.java$" include-pattern="false"/>
     <file-match-pattern match-pattern=".apt-generated" include-pattern="false"/>
   </fileset>
   <fileset name="Test classes" enabled="true" check-config-name="Test-Code Configuration" local="true">
-    <file-match-pattern match-pattern="Test(Suite|0)?.java$" include-pattern="true"/>
+    <file-match-pattern match-pattern="Test(Base|Suite|0)?.java$" include-pattern="true"/>
     <file-match-pattern match-pattern="/test/.*\.java$" include-pattern="true"/>
     <file-match-pattern match-pattern=".apt-generated" include-pattern="false"/>
   </fileset>

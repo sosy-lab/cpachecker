@@ -24,12 +24,11 @@
 package org.sosy_lab.cpachecker.util;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -153,14 +152,13 @@ public final class ArithmeticOverflowAssumptionBuilder implements
   }
 
   /**
+   * Returns assumptions required for proving that none of the expressions contained in {@code
+   * pEdge} result in overflows.
    *
    * @param pEdge Input CFA edge.
-   * @return Assumptions required for proving that none of the expressions
-   * contained in {@code pEdge} result in overflows.
    */
   @Override
-  public List<CExpression> assumptionsForEdge(CFAEdge pEdge)
-      throws UnrecognizedCodeException {
+  public Set<CExpression> assumptionsForEdge(CFAEdge pEdge) throws UnrecognizedCodeException {
     Set<CExpression> result = new LinkedHashSet<>();
 
     // Node is used for liveness calculation, and predecessor will contain
@@ -208,7 +206,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
       default:
         throw new UnsupportedOperationException("Unexpected edge type");
     }
-    return ImmutableList.copyOf(result);
+    return ImmutableSet.copyOf(result);
   }
 
   private void trackType(CSimpleType type) {

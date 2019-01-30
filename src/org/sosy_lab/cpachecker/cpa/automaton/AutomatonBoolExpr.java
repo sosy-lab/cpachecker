@@ -1506,7 +1506,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public String toString() {
-      return String.format("(%s %s %s)", a, repr, b);
+      return "(" + a + " " + repr + " " + b + ")";
     }
 
     @Override

@@ -823,17 +823,19 @@ public class SMGTransferRelation
     }
 
     SMGObject newObject = pState.getHeap().getObjectForVisibleVariable(varName);
-      /*
+    boolean isExtern = pVarDecl.getCStorageClass().equals(CStorageClass.EXTERN);
+    /*
      *  The variable is not null if we seen the declaration already, for example in loops. Invalid
      *  occurrences (variable really declared twice) should be caught for us by the parser. If we
      *  already processed the declaration, we do nothing.
      */
-    if (newObject == null) {
+    if (newObject == null && (!isExtern || options.getAllocateExternalVariables())) {
       int typeSize = expressionEvaluator.getBitSizeof(pEdge, cType, pState);
 
       // Handle incomplete type of extern variables as externally allocated
-      if (options.isHandleExternVariableAsExternalAllocation() && cType.isIncomplete() &&
-          pVarDecl.getCStorageClass().equals(CStorageClass.EXTERN)) {
+      if (options.isHandleIncompleteExternalVariableAsExternalAllocation()
+          && cType.isIncomplete()
+          && isExtern) {
         typeSize = options.getExternalAllocationSize();
       }
       if (pVarDecl.isGlobal()) {
@@ -871,7 +873,7 @@ public class SMGTransferRelation
     } else if (pVarDecl.isGlobal()) {
       // Don't nullify extern variables
       if (pVarDecl.getCStorageClass().equals(CStorageClass.EXTERN)) {
-        if (options.isHandleExternVariableAsExternalAllocation()) {
+        if (options.isHandleIncompleteExternalVariableAsExternalAllocation()) {
           pState.setExternallyAllocatedFlag(pObject);
         }
       } else {

@@ -77,10 +77,8 @@ public class CExpressionInvariantExporter {
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
     prefix = pPrefix;
-    Solver solver = Solver.create(
-        pConfiguration,
-        pLogManager,
-        pShutdownNotifier);
+    @SuppressWarnings("resource")
+    Solver solver = Solver.create(pConfiguration, pLogManager, pShutdownNotifier);
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     formulaToCExpressionConverter = new FormulaToCExpressionConverter(fmgr);

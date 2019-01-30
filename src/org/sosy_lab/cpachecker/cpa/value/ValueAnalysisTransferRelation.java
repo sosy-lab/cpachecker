@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -111,8 +112,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
@@ -1271,18 +1272,13 @@ public class ValueAnalysisTransferRelation
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
-      } else if (ae instanceof AutomatonState) {
+      } else if (ae instanceof AbstractStateWithAssumptions) {
         result.clear();
         for (ValueAnalysisState stateToStrengthen : toStrengthen) {
           super.setInfo(pElement, pPrecision, pCfaEdge);
-          AutomatonState autoState = (AutomatonState) ae;
-          Collection<ValueAnalysisState> ret =
-              strengthenAutomatonAssume(autoState, stateToStrengthen, pCfaEdge);
-          if (ret == null) {
-            result.add(stateToStrengthen);
-          } else {
-            result.addAll(ret);
-          }
+          AbstractStateWithAssumptions stateWithAssumptions = (AbstractStateWithAssumptions) ae;
+          result.addAll(
+              strengthenWithAssumptions(stateWithAssumptions, stateToStrengthen, pCfaEdge));
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
@@ -1530,11 +1526,15 @@ public class ValueAnalysisTransferRelation
     return newState;
   }
 
-  private Collection<ValueAnalysisState> strengthenAutomatonAssume(AutomatonState pAutomatonState, ValueAnalysisState pState, CFAEdge pCfaEdge) throws CPATransferException {
+  private @NonNull Collection<ValueAnalysisState> strengthenWithAssumptions(
+      AbstractStateWithAssumptions pStateWithAssumptions,
+      ValueAnalysisState pState,
+      CFAEdge pCfaEdge)
+      throws CPATransferException {
 
     ValueAnalysisState newState = pState;
 
-    for (AExpression assumption : pAutomatonState.getAssumptions()) {
+    for (AExpression assumption : pStateWithAssumptions.getAssumptions()) {
       newState = handleAssumption(assumption, true);
 
       if (newState == null) {
