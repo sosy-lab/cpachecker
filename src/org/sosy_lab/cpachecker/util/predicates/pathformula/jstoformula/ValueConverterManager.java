@@ -286,14 +286,34 @@ class ValueConverterManager {
         pValue, fmgr.makeNumber(Types.NUMBER_TYPE, 1), fmgr.makeNumber(Types.NUMBER_TYPE, 0));
   }
 
+  /**
+   * <cite>The abstract operation ToInt32 converts its argument to one of 2<sup>32</sup> integer
+   * values in the range −2<sup>31</sup> through 2<sup>31</sup>−1, inclusive.</cite>
+   *
+   * @param pValue Value to convert to Int32.
+   * @return Converted value is Int32 encoded as 32 bitvector.
+   * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-9.5">9.5 ToInt32: (Signed 32
+   *     Bit Integer)</a>
+   */
   BitvectorFormula toInt32(final TypedValue pValue) {
+    // 1. Let number be the result of calling ToNumber on the input argument.
     return toInt32(toNumber(pValue));
   }
 
+  /**
+   * <cite>The abstract operation ToInt32 converts its argument to one of 2<sup>32</sup> integer
+   * values in the range −2<sup>31</sup> through 2<sup>31</sup>−1, inclusive.</cite>
+   *
+   * @param pNumber Value to convert to Int32.
+   * @return Converted value is Int32 encoded as 32 bitvector.
+   * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-9.5">9.5 ToInt32: (Signed 32
+   *     Bit Integer)</a>
+   */
   @Nonnull
   BitvectorFormula toInt32(final FloatingPointFormula pNumber) {
     // TODO values out of range, e.g. 2^32
     final BitvectorType bv32 = FormulaType.getBitvectorTypeWithSize(32);
+    // 2. If number is NaN, +0, −0, +∞, or −∞, return +0.
     return bfmgr.ifThenElse(
         bfmgr.or(fpfmgr.isNaN(pNumber), fpfmgr.isInfinity(pNumber)),
         bitVecMgr.makeBitvector(bv32, 0),
