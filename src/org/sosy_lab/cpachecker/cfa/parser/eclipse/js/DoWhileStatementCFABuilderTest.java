@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
@@ -93,7 +94,15 @@ public final class DoWhileStatementCFABuilderTest extends CFABuilderTestBase {
     final CFAEdge bodyStatementEdge = bodyStatementEdgeCaptor.getReturnValue(0);
     Truth.assertThat(bodyNode.getLeavingEdge(0)).isEqualTo(bodyStatementEdge);
 
-    final CFANode loopStartNode = bodyStatementEdge.getSuccessor();
+    final CFANode beforeLoopStartNode = bodyStatementEdge.getSuccessor();
+    Truth.assertThat(beforeLoopStartNode.getNumEnteringEdges()).isEqualTo(1);
+    Truth.assertThat(beforeLoopStartNode.getNumLeavingEdges()).isEqualTo(1);
+    Truth.assertThat(beforeLoopStartNode.getLeavingEdge(0)).isInstanceOf(BlankEdge.class);
+    final CFAEdge beforeLoopStartEdge = beforeLoopStartNode.getLeavingEdge(0);
+    Truth.assertThat(beforeLoopStartEdge.getDescription())
+        .isEqualTo("check do-while loop condition");
+
+    final CFANode loopStartNode = beforeLoopStartEdge.getSuccessor();
     Truth.assertThat(loopStartNode.isLoopStart()).isTrue();
     Truth.assertThat(loopBuilderScope.getLoopStartNode()).isEqualTo(loopStartNode);
     Truth.assertThat(loopStartNode.getNumLeavingEdges()).isEqualTo(1);
@@ -124,6 +133,7 @@ public final class DoWhileStatementCFABuilderTest extends CFABuilderTestBase {
     Truth.assertThat(loopBuilderScope.getLoopExitNode()).isEqualTo(loopExitNode);
 
     Truth.assertThat(getAllCFANodes())
-        .containsExactly(checkConditionNode, entryNode, loopExitNode, loopStartNode);
+        .containsExactly(
+            beforeLoopStartNode, checkConditionNode, entryNode, loopExitNode, loopStartNode);
   }
 }

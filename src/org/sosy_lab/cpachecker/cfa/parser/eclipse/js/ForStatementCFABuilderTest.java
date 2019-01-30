@@ -149,7 +149,13 @@ public final class ForStatementCFABuilderTest extends CFABuilderTestBase {
     final CFANode beforeUpdatersNode = bodyStatementEdge.getSuccessor();
     Truth.assertThat(beforeUpdatersNode.getNumEnteringEdges()).isEqualTo(1);
     Truth.assertThat(beforeUpdatersNode.getNumLeavingEdges()).isEqualTo(1);
-    Truth.assertThat(beforeUpdatersNode.getLeavingEdge(0)).isEqualTo(updatersEdge);
+    Truth.assertThat(beforeUpdatersNode.getLeavingEdge(0)).isInstanceOf(BlankEdge.class);
+    final CFAEdge updatersDescriptionEdge = beforeUpdatersNode.getLeavingEdge(0);
+    Truth.assertThat(updatersDescriptionEdge.getDescription()).isEqualTo("run for loop updaters");
+    final CFANode afterUpdatersDescriptionNode = updatersDescriptionEdge.getSuccessor();
+    Truth.assertThat(afterUpdatersDescriptionNode.getNumEnteringEdges()).isEqualTo(1);
+    Truth.assertThat(afterUpdatersDescriptionNode.getNumLeavingEdges()).isEqualTo(1);
+    Truth.assertThat(afterUpdatersDescriptionNode.getLeavingEdge(0)).isEqualTo(updatersEdge);
 
     final CFANode afterUpdatersNode = updatersEdge.getSuccessor();
     Truth.assertThat(afterUpdatersNode.getNumEnteringEdges()).isEqualTo(1);
@@ -162,6 +168,7 @@ public final class ForStatementCFABuilderTest extends CFABuilderTestBase {
     Truth.assertThat(getAllCFANodes())
         .containsExactly(
             afterUpdatersNode,
+            afterUpdatersDescriptionNode,
             beforeUpdatersNode,
             bodyNode,
             checkConditionNode,
