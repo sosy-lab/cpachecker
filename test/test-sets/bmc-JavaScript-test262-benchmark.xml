@@ -93,11 +93,6 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/bitwise-not/S9.5_A2.2_T2.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/bitwise-not/S9.5_A2.3_T2.yml</exclude>
 
-        <!-- TODO unknown -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/continue/12.7-1*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A4_T2*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A4_T4*.yml</exclude>
-
         <!-- TODO function name contains unicode -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S14_A5_T1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S14_A5_T2*.yml</exclude>

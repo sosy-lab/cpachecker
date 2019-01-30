@@ -34,6 +34,8 @@ interface LoopScope extends Scope, BreakExitScope {
   @Nonnull
   CFANode getLoopExitNode();
 
+  CFANode getLoopContinueNode();
+
   @Nonnull
   @Override
   default CFANode getBreakExitNode() {

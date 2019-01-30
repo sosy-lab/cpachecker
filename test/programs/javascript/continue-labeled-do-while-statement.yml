@@ -1,0 +1,5 @@
+format_version: "1.0"
+input_files: "./continue-labeled-do-while-statement.js"
+properties:
+  - property_file: ../../../test/config/specification/JavaScriptAssertion.spc
+    expected_verdict: true

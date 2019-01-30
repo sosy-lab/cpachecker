@@ -39,6 +39,7 @@ class WhileStatementCFABuilder implements WhileStatementAppendable {
     final CFANode entryNode = loopBuilder.getExitNode();
     entryNode.setLoopStart();
     loopScope.setLoopStartNode(entryNode);
+    loopScope.setLoopContinueNode(entryNode);
     final CFANode exitNode = loopBuilder.createNode();
     loopScope.setLoopExitNode(exitNode);
     final JSExpression condition = loopBuilder.append(pNode.getExpression());

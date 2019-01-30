@@ -39,10 +39,14 @@ class DoWhileStatementCFABuilder implements DoWhileStatementAppendable {
     final CFANode entryNode = loopBuilder.getExitNode();
     final CFANode exitNode = loopBuilder.createNode();
     loopScope.setLoopExitNode(exitNode);
-    loopBuilder.append(pNode.getBody());
-    final CFANode loopStartNode = loopBuilder.getExitNode();
+    // loop start node comes after first run
+    final CFANode loopStartNode = loopBuilder.createNode();
     loopStartNode.setLoopStart();
     loopScope.setLoopStartNode(loopStartNode);
+    loopScope.setLoopContinueNode(loopStartNode);
+    loopBuilder.append(pNode.getBody());
+    loopBuilder.appendEdge(
+        loopStartNode, DummyEdge.withDescription("check do-while loop condition"));
     final JSExpression condition = loopBuilder.append(pNode.getExpression());
     final JavaScriptCFABuilder loopEdgeBuilder = loopBuilder.copy();
     loopEdgeBuilder.appendEdge(entryNode, assume(condition, true));

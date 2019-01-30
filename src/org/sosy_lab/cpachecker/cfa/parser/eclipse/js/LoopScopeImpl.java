@@ -30,6 +30,7 @@ public class LoopScopeImpl implements LoopScope, UnnamedScope, NoLocalDeclaratio
   @Nonnull private final Scope parentScope;
   private CFANode loopStartNode;
   private CFANode loopExitNode;
+  private CFANode loopContinueNode;
 
   LoopScopeImpl(@Nonnull final Scope pParentScope) {
     parentScope = pParentScope;
@@ -62,6 +63,15 @@ public class LoopScopeImpl implements LoopScope, UnnamedScope, NoLocalDeclaratio
 
   void setLoopExitNode(@Nonnull final CFANode pLoopExitNode) {
     loopExitNode = pLoopExitNode;
+  }
+
+  @Override
+  public CFANode getLoopContinueNode() {
+    return loopContinueNode;
+  }
+
+  void setLoopContinueNode(final CFANode pLoopContinueNode) {
+    loopContinueNode = pLoopContinueNode;
   }
 
   @Override
