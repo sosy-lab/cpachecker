@@ -27,6 +27,7 @@
 
     <tasks>
         <include>../programs/javascript-test262-benchmark/test/language/statements/*/*.yml</include>
+        <include>../programs/javascript-test262-benchmark/test/language/expressions/bitwise-*/*.yml</include>
 
         <!-- default parameters are not supported yet -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/scope-paramsbody-var-open*.yml</exclude>
@@ -86,6 +87,11 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T3*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A1.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A1_false.yml</exclude>
+
+        <!-- TODO values to convert ToInt32 out of range are not handled correctly yet -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/bitwise-not/S9.5_A2.1_T2.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/bitwise-not/S9.5_A2.2_T2.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/bitwise-not/S9.5_A2.3_T2.yml</exclude>
 
         <!-- TODO unknown -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/continue/12.7-1*.yml</exclude>
