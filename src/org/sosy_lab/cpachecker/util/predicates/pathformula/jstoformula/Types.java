@@ -29,6 +29,7 @@ import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.ArrayFormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 
 /**
  * All formula types used in the formula encodings of JavaScript are defined here as (named)
@@ -44,13 +45,13 @@ public class Types {
   static final FormulaType<BooleanFormula> BOOLEAN_TYPE = FormulaType.BooleanType;
   static final FormulaType<IntegerFormula> FUNCTION_TYPE = FormulaType.IntegerType;
   static final FormulaType<IntegerFormula> FUNCTION_DECLARATION_TYPE = FormulaType.IntegerType;
-  static final FormulaType<IntegerFormula> STRING_TYPE = FormulaType.IntegerType;
+  static final FormulaType<RationalFormula> STRING_TYPE = FormulaType.RationalType;
   static final FormulaType<IntegerFormula> OBJECT_TYPE = FormulaType.IntegerType;
   static final FormulaType<IntegerFormula> OBJECT_ID_TYPE = FormulaType.IntegerType;
   /** Maps field name to field variable. */
-  static final ArrayFormulaType<IntegerFormula, IntegerFormula> OBJECT_FIELDS_TYPE =
+  static final ArrayFormulaType<RationalFormula, IntegerFormula> OBJECT_FIELDS_TYPE =
       FormulaType.getArrayType(STRING_TYPE, VARIABLE_TYPE);
   /** Maps object id to object fields. */
-  static final ArrayFormulaType<IntegerFormula, ArrayFormula<IntegerFormula, IntegerFormula>>
+  static final ArrayFormulaType<IntegerFormula, ArrayFormula<RationalFormula, IntegerFormula>>
       OBJECT_FIELDS_VARIABLE_TYPE = FormulaType.getArrayType(OBJECT_TYPE, OBJECT_FIELDS_TYPE);
 }

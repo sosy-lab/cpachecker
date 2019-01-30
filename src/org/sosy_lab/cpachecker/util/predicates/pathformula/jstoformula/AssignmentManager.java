@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSStringLiteralExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 
 /** Formula management of assignments to variables and object properties. */
 class AssignmentManager extends ManagerWithEdgeContext {
@@ -80,7 +81,7 @@ class AssignmentManager extends ManagerWithEdgeContext {
         typedVarValues.objectValue(ctx.scopeMgr.scopedVariable(objectDeclaration));
     final JSExpression propertyNameExpression = pPropertyAccess.getPropertyNameExpression();
     final IntegerFormula field;
-    final IntegerFormula propertyNameFormula;
+    final RationalFormula propertyNameFormula;
     if (propertyNameExpression instanceof JSStringLiteralExpression) {
       final String propertyName = ((JSStringLiteralExpression) propertyNameExpression).getValue();
       field = ctx.objMgr.makeFieldVariable(propertyName);

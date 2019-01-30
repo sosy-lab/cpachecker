@@ -60,6 +60,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 
 /** Management of formula encoding of JavaScript expressions. */
 @SuppressWarnings({"FieldCanBeLocal", "unused"})
@@ -165,7 +166,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
         bfmgr.or(
             fmgr.makeEqual(pLeftOperand.getType(), typeTags.STRING),
             fmgr.makeEqual(pRightOperand.getType(), typeTags.STRING));
-    final IntegerFormula concatResult =
+    final RationalFormula concatResult =
         strMgr.concat(
             valConv.toStringFormula(pLeftOperand), valConv.toStringFormula(pRightOperand));
     final FloatingPointFormula numericAdditionResult =
@@ -275,7 +276,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
   }
 
   @Nonnull
-  private IntegerFormula typeOf(final TypedValue pValue) {
+  private RationalFormula typeOf(final TypedValue pValue) {
     final IntegerFormula type = pValue.getType();
     if (type.equals(typeTags.BOOLEAN)) {
       return strMgr.getStringFormula("boolean");
@@ -382,7 +383,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
         ctx.propMgr.getObjectDeclarationOfFieldAccess(pFieldAccess);
     final IntegerFormula objectId =
         typedVarValues.objectValue(ctx.scopeMgr.scopedVariable(objectDeclaration));
-    final IntegerFormula fieldName = strMgr.getStringFormula(pFieldAccess.getFieldName());
+    final RationalFormula fieldName = strMgr.getStringFormula(pFieldAccess.getFieldName());
     return ctx.propMgr.accessField(objectId, fieldName);
   }
 
@@ -395,7 +396,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
         typedVarValues.objectValue(ctx.scopeMgr.scopedVariable(objectDeclaration));
     final JSExpression propertyNameExpression = pPropertyAccess.getPropertyNameExpression();
     final TypedValue propertyNameValue = visit(propertyNameExpression);
-    final IntegerFormula fieldName =
+    final RationalFormula fieldName =
         (propertyNameExpression instanceof JSStringLiteralExpression)
             ? strMgr.getStringFormula(
                 ((JSStringLiteralExpression) propertyNameExpression).getValue())

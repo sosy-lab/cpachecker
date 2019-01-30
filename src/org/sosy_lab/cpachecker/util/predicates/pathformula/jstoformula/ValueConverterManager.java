@@ -38,6 +38,7 @@ import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 
 /**
  * Converter of a {@link TypedValue} to the formula encoding of its value to a specific type (see
@@ -140,10 +141,10 @@ class ValueConverterManager {
    * @return The value converted to its string formula.
    * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-9.8">ToString</a>
    */
-  IntegerFormula toStringFormula(final TypedValue pValue) {
+  RationalFormula toStringFormula(final TypedValue pValue) {
     // TODO convert boolean, number, object, function and undefined to string (update comment)
     final IntegerFormula type = pValue.getType();
-    final IntegerFormula unknownStringValue = fmgr.makeNumber(Types.STRING_TYPE, 0);
+    final RationalFormula unknownStringValue = fmgr.makeNumber(Types.STRING_TYPE, 0);
     if (Lists.newArrayList(
             typeTags.BOOLEAN,
             typeTags.NUMBER,
@@ -153,7 +154,7 @@ class ValueConverterManager {
         .contains(type)) {
       return unknownStringValue;
     } else if (type.equals(typeTags.STRING)) {
-      return (IntegerFormula) pValue.getValue();
+      return (RationalFormula) pValue.getValue();
     }
     final IntegerFormula variable = (IntegerFormula) pValue.getValue();
     return bfmgr.ifThenElse(
@@ -178,7 +179,7 @@ class ValueConverterManager {
     } else if (type.equals(typeTags.NUMBER)) {
       return numberToBoolean((FloatingPointFormula) pValue.getValue());
     } else if (type.equals(typeTags.STRING)) {
-      return stringToBoolean((IntegerFormula) pValue.getValue());
+      return stringToBoolean((RationalFormula) pValue.getValue());
     } else if (type.equals(typeTags.UNDEFINED)) {
       return bfmgr.makeFalse();
     } else if (type.equals(typeTags.OBJECT)) {
@@ -256,7 +257,7 @@ class ValueConverterManager {
    * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-9.2">ToBoolean</a>
    */
   @Nonnull
-  private BooleanFormula stringToBoolean(final IntegerFormula pValue) {
+  private BooleanFormula stringToBoolean(final RationalFormula pValue) {
     return bfmgr.not(fmgr.makeEqual(pValue, strMgr.getStringFormula("")));
   }
 

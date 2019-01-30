@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerVi
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.RationalFormulaManagerView;
 
 /** State shared between all (formula) managers in this package. */
 class GlobalManagerContext {
@@ -58,6 +59,7 @@ class GlobalManagerContext {
   final FunctionFormulaManagerView ffmgr;
   final FloatingPointFormulaManagerView fpfmgr;
   final IntegerFormulaManagerView ifmgr;
+  final RationalFormulaManagerView rfmgr;
   final BitvectorFormulaManagerView bitVecMgr;
 
   GlobalManagerContext(
@@ -79,6 +81,7 @@ class GlobalManagerContext {
     ffmgr = fmgr.getFunctionFormulaManager();
     fpfmgr = fmgr.getFloatingPointFormulaManager();
     ifmgr = fmgr.getIntegerFormulaManager();
+    rfmgr = fmgr.getRationalFormulaManager();
     bitVecMgr = fmgr.getBitvectorFormulaManager();
 
     typedVarValues = new TypedVariableValues(ffmgr);

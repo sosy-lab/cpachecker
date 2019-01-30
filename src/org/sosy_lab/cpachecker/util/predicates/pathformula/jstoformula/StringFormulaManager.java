@@ -29,7 +29,7 @@ import java.util.stream.IntStream;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
-import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 
 /**
  * Management of formula encoding of <a
@@ -53,7 +53,7 @@ class StringFormulaManager {
   private final FormulaManagerView fmgr;
   private final int maxFieldNameCount;
   private final FunctionFormulaManagerView ffmgr;
-  private final FunctionDeclaration<IntegerFormula> concatStringsUF;
+  private final FunctionDeclaration<RationalFormula> concatStringsUF;
 
   /**
    * @param pFmgr Used to make string ID formulas.
@@ -76,7 +76,7 @@ class StringFormulaManager {
    * @param pValue The string value whose string ID formula should be returned.
    * @return The string ID of the passed string value.
    */
-  IntegerFormula getStringFormula(final String pValue) {
+  RationalFormula getStringFormula(final String pValue) {
     final int id = stringIds.get(pValue);
     if (id > maxFieldNameCount) {
       throw new RuntimeException(
@@ -105,7 +105,8 @@ class StringFormulaManager {
    * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-11.6.1">The Addition
    *     operator ( + )</a>
    */
-  IntegerFormula concat(final IntegerFormula pLeftStringId, final IntegerFormula pRightStringId) {
+  RationalFormula concat(
+      final RationalFormula pLeftStringId, final RationalFormula pRightStringId) {
     return ffmgr.callUF(concatStringsUF, pLeftStringId, pRightStringId);
   }
 }

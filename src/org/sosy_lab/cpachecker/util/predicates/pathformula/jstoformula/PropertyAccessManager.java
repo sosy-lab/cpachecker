@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 
 /** Management of formula encoding of access to a property of a JavaScript object. */
 class PropertyAccessManager extends ManagerWithEdgeContext {
@@ -47,7 +48,7 @@ class PropertyAccessManager extends ManagerWithEdgeContext {
    * href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/proto#Browser_compatibility">as
    * of 4. September 2018</a>).
    */
-  private final IntegerFormula prototypeField;
+  private final RationalFormula prototypeField;
 
   PropertyAccessManager(final EdgeManagerContext pCtx) {
     super(pCtx);
@@ -65,13 +66,13 @@ class PropertyAccessManager extends ManagerWithEdgeContext {
   private TypedValue lookUpOnPrototypeChain(
       final int prototypeChainDepth,
       final IntegerFormula pPrototypeField,
-      final IntegerFormula pFieldName) {
+      final RationalFormula pFieldName) {
     final TypedValue undefined = tvmgr.getUndefinedValue();
     if (prototypeChainDepth > jsOptions.maxPrototypeChainLength) {
       return undefined;
     }
     final IntegerFormula prototypeObjectId = typedVarValues.objectValue(pPrototypeField);
-    final ArrayFormula<IntegerFormula, IntegerFormula> prototypeFields =
+    final ArrayFormula<RationalFormula, IntegerFormula> prototypeFields =
         ctx.objMgr.getObjectFields(prototypeObjectId);
     final IntegerFormula fieldOnPrototype = afmgr.select(prototypeFields, pFieldName);
     final BooleanFormula hasNoParentPrototype = ctx.objMgr.markFieldAsNotSet(pPrototypeField);
@@ -102,8 +103,8 @@ class PropertyAccessManager extends ManagerWithEdgeContext {
    * @return Typed value of the field on the object or the field inherited by the prototype chain of
    *     the object.
    */
-  TypedValue accessField(final IntegerFormula pObjectId, final IntegerFormula pFieldName) {
-    final ArrayFormula<IntegerFormula, IntegerFormula> fields =
+  TypedValue accessField(final IntegerFormula pObjectId, final RationalFormula pFieldName) {
+    final ArrayFormula<RationalFormula, IntegerFormula> fields =
         ctx.objMgr.getObjectFields(pObjectId);
     final IntegerFormula field = afmgr.select(fields, pFieldName);
     final BooleanFormula isObjectFieldNotSet = ctx.objMgr.markFieldAsNotSet(field);

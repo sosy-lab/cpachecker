@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerVi
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.RationalFormulaManagerView;
 
 /**
  * Provides unpacked properties of the global context object for shorter access.
@@ -67,6 +68,7 @@ abstract class ManagerWithGlobalContext {
   final FunctionFormulaManagerView ffmgr;
   final FloatingPointFormulaManagerView fpfmgr;
   final IntegerFormulaManagerView ifmgr;
+  final RationalFormulaManagerView rfmgr;
   final BitvectorFormulaManagerView bitVecMgr;
 
   ManagerWithGlobalContext(final GlobalManagerContext pContext) {
@@ -93,6 +95,7 @@ abstract class ManagerWithGlobalContext {
     ffmgr = pContext.ffmgr;
     fpfmgr = pContext.fpfmgr;
     ifmgr = pContext.ifmgr;
+    rfmgr = pContext.rfmgr;
     bitVecMgr = pContext.bitVecMgr;
   }
 }
