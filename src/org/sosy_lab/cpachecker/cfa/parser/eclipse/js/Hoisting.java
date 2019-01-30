@@ -156,8 +156,7 @@ class Hoisting {
         pVariableDeclarationFragments) {
       final String variableIdentifier = variableDeclarationFragment.getName().getIdentifier();
       // Hoisted function declaration may not be overwritten, since it assigns a value
-      // contrary to
-      // a hoisted variable declaration
+      // contrary to a hoisted variable declaration
       declarationMap.putIfAbsent(
           variableIdentifier,
           new JSVariableDeclaration(
