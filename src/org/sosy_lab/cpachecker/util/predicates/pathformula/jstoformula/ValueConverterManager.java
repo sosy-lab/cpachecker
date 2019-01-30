@@ -287,12 +287,16 @@ class ValueConverterManager {
   }
 
   BitvectorFormula toInt32(final TypedValue pValue) {
+    return toInt32(toNumber(pValue));
+  }
+
+  @Nonnull
+  BitvectorFormula toInt32(final FloatingPointFormula pNumber) {
     // TODO values out of range, e.g. 2^32
-    final FloatingPointFormula number = toNumber(pValue);
     final BitvectorType bv32 = FormulaType.getBitvectorTypeWithSize(32);
     return bfmgr.ifThenElse(
-        bfmgr.or(fpfmgr.isNaN(number), fpfmgr.isInfinity(number)),
+        bfmgr.or(fpfmgr.isNaN(pNumber), fpfmgr.isInfinity(pNumber)),
         bitVecMgr.makeBitvector(bv32, 0),
-        fpfmgr.castTo(number, bv32, FloatingPointRoundingMode.TOWARD_ZERO));
+        fpfmgr.castTo(pNumber, bv32, FloatingPointRoundingMode.TOWARD_ZERO));
   }
 }
