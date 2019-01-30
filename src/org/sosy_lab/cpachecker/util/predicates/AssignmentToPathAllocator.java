@@ -46,6 +46,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ACastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -541,8 +542,15 @@ public class AssignmentToPathAllocator {
       final BigInteger innerArrayMaxLength = BigInteger.valueOf(1_000_000L);
       // Only static indices are supported yet.
       final BigInteger indexOfInnerArray = (BigInteger) pFunctionAssignment.getArgInterpretation(0);
-      final BigInteger indexOfInnerArrayElement =
-          (BigInteger) pFunctionAssignment.getArgInterpretation(1);
+      final Object argInt1 = pFunctionAssignment.getArgInterpretation(1);
+      final BigInteger indexOfInnerArrayElement;
+      if (argInt1 instanceof Rational) {
+        final Rational argIntRat1 = (Rational) argInt1;
+        // no exact index possible
+        indexOfInnerArrayElement = argIntRat1.getDen().divide(argIntRat1.getNum());
+      } else {
+        indexOfInnerArrayElement = (BigInteger) argInt1;
+      }
       // In case of function `a(x, y)` you get `x * maxLength + y`
       address =
           Address.valueOf(
