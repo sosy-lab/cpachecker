@@ -17,7 +17,7 @@
 
     <option name="-noout"/>
     <option name="-heap">300M</option>
-    <option name="-setprop">cpa.loopbound.maxLoopIterations=10</option>
+    <option name="-setprop">cpa.loopbound.maxLoopIterations=11</option>
     <option name="-setprop">cpa.predicate.js.maxFieldNameCount=20</option>
     <option name="-setprop">solver.solver=z3</option>
 
