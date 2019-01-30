@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Ty
 import java.util.stream.IntStream;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.RationalFormulaManagerView;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 
@@ -51,6 +52,7 @@ class StringFormulaManager {
 
   private final Ids<String> stringIds;
   private final FormulaManagerView fmgr;
+  private final RationalFormulaManagerView rfmgr;
   private final int maxFieldNameCount;
   private final FunctionFormulaManagerView ffmgr;
   private final FunctionDeclaration<RationalFormula> concatStringsUF;
@@ -62,6 +64,7 @@ class StringFormulaManager {
    */
   StringFormulaManager(final FormulaManagerView pFmgr, final int pMaxFieldNameCount) {
     fmgr = pFmgr;
+    rfmgr = fmgr.getRationalFormulaManager();
     ffmgr = fmgr.getFunctionFormulaManager();
     concatStringsUF = ffmgr.declareUF("concatStrings", STRING_TYPE, STRING_TYPE, STRING_TYPE);
     maxFieldNameCount = pMaxFieldNameCount;
@@ -92,8 +95,8 @@ class StringFormulaManager {
    *
    * @return Iterable of all string-IDs in ascending order.
    */
-  Iterable<Integer> getIdRange() {
-    return IntStream.rangeClosed(1, maxFieldNameCount)::iterator;
+  Iterable<RationalFormula> getIdRange() {
+    return IntStream.rangeClosed(1, maxFieldNameCount).mapToObj(rfmgr::makeNumber)::iterator;
   }
 
   /**

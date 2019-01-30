@@ -102,8 +102,7 @@ class ObjectFormulaManager extends ManagerWithEdgeContext {
             .collect(toMap(field -> strMgr.getStringFormula(field.getFieldName()), field -> field));
     ArrayFormula<RationalFormula, IntegerFormula> objectFields =
         afmgr.makeArray("emptyObjectFields", OBJECT_FIELDS_TYPE);
-    for (int stringId : strMgr.getIdRange()) {
-      final RationalFormula idFormula = rfmgr.makeNumber(stringId);
+    for (final RationalFormula idFormula : strMgr.getIdRange()) {
       final IntegerFormula fieldValue;
       if (fieldById.containsKey(idFormula)) {
         final JSObjectLiteralField field = fieldById.get(idFormula);
