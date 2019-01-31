@@ -75,6 +75,9 @@ import org.sosy_lab.cpachecker.cpa.lock.effects.SetLockEffect;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.IdentifierCreator;
+import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -212,8 +215,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
         return handleFunctionReturnEdge((CFunctionReturnEdge) cfaEdge);
 
       case StatementEdge:
-        CStatement statement = ((CStatementEdge) cfaEdge).getStatement();
-        return handleStatement(statement);
+        return handleStatement((CStatementEdge) cfaEdge);
       case AssumeEdge:
         return handleAssumption((CAssumeEdge) cfaEdge);
 
@@ -343,8 +345,9 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
     return result;
   }
 
-  private List<AbstractLockEffect> handleStatement(CStatement statement) {
+  private List<AbstractLockEffect> handleStatement(CStatementEdge statementEdge) {
 
+    CStatement statement = statementEdge.getStatement();
     if (statement instanceof CAssignment) {
       /*
        * level = intLock();
@@ -360,13 +363,18 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
          */
         CLeftHandSide leftSide = ((CAssignment) statement).getLeftHandSide();
         CRightHandSide rightSide = ((CAssignment) statement).getRightHandSide();
-        String varName = leftSide.toASTString();
-        if (lockDescription.getVariableEffectDescription().containsKey(varName)) {
-          if (rightSide instanceof CIntegerLiteralExpression) {
-            LockIdentifier id = lockDescription.getVariableEffectDescription().get(varName);
-            int level = ((CIntegerLiteralExpression) rightSide).getValue().intValue();
-            AbstractLockEffect e = SetLockEffect.createEffectForId(level, id);
-            return Collections.singletonList(e);
+        IdentifierCreator creator =
+            new IdentifierCreator(statementEdge.getSuccessor().getFunctionName());
+        AbstractIdentifier varId = creator.createIdentifier(leftSide, 0);
+        if (varId instanceof SingleIdentifier) {
+          String varName = ((SingleIdentifier) varId).getName();
+          if (lockDescription.getVariableEffectDescription().containsKey(varName)) {
+            if (rightSide instanceof CIntegerLiteralExpression) {
+              LockIdentifier id = lockDescription.getVariableEffectDescription().get(varName);
+              int level = ((CIntegerLiteralExpression) rightSide).getValue().intValue();
+              AbstractLockEffect e = SetLockEffect.createEffectForId(level, id);
+              return Collections.singletonList(e);
+            }
           }
         }
       }
