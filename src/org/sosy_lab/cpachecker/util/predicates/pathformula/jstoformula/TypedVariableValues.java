@@ -36,7 +36,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 
 /**
  * Provider of uninterpreted function formulas that associate a JavaScript variable with its value,
@@ -48,7 +47,7 @@ class TypedVariableValues {
   private final FunctionDeclaration<BooleanFormula> booleanValueDeclaration;
   private final FunctionDeclaration<FloatingPointFormula> numberValueDeclaration;
   private final FunctionDeclaration<IntegerFormula> functionValueDeclaration;
-  private final FunctionDeclaration<RationalFormula> stringValueDeclaration;
+  private final FunctionDeclaration<FloatingPointFormula> stringValueDeclaration;
   private final FunctionDeclaration<IntegerFormula> objectValueDeclaration;
 
   TypedVariableValues(final FunctionFormulaManagerView pFfmgr) {
@@ -114,9 +113,9 @@ class TypedVariableValues {
    * @param pVariable Formula of (scoped) variable.
    * @return String value associated with the passed variable.
    * @see TypeTags#STRING
-   * @see TypedValueManager#createStringValue(RationalFormula)
+   * @see TypedValueManager#createStringValue(FloatingPointFormula)
    */
-  RationalFormula stringValue(final IntegerFormula pVariable) {
+  FloatingPointFormula stringValue(final IntegerFormula pVariable) {
     return ffmgr.callUF(stringValueDeclaration, pVariable);
   }
 

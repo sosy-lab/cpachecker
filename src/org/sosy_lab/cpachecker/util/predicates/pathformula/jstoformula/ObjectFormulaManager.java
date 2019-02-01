@@ -35,8 +35,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 
 /**
  * Management of formula encoding of JavaScript objects and their properties. Note that property
@@ -91,18 +91,18 @@ class ObjectFormulaManager extends ManagerWithEdgeContext {
     return objectValue;
   }
 
-  ArrayFormula<RationalFormula, IntegerFormula> getObjectFields(final IntegerFormula pObjectId) {
+  ArrayFormula<FloatingPointFormula, IntegerFormula> getObjectFields(final IntegerFormula pObjectId) {
     return afmgr.select(makeObjectFieldsVariable(), pObjectId);
   }
 
-  private ArrayFormula<RationalFormula, IntegerFormula> getObjectFields(
+  private ArrayFormula<FloatingPointFormula, IntegerFormula> getObjectFields(
       final List<JSObjectLiteralField> pFields) throws UnrecognizedCodeException {
-    final Map<RationalFormula, JSObjectLiteralField> fieldById =
+    final Map<FloatingPointFormula, JSObjectLiteralField> fieldById =
         pFields.stream()
             .collect(toMap(field -> strMgr.getStringFormula(field.getFieldName()), field -> field));
-    ArrayFormula<RationalFormula, IntegerFormula> objectFields =
+    ArrayFormula<FloatingPointFormula, IntegerFormula> objectFields =
         afmgr.makeArray("emptyObjectFields", OBJECT_FIELDS_TYPE);
-    for (final RationalFormula idFormula : strMgr.getIdRange()) {
+    for (final FloatingPointFormula idFormula : strMgr.getIdRange()) {
       final IntegerFormula fieldValue;
       if (fieldById.containsKey(idFormula)) {
         final JSObjectLiteralField field = fieldById.get(idFormula);
@@ -127,7 +127,7 @@ class ObjectFormulaManager extends ManagerWithEdgeContext {
 
   void setObjectFields(
       final IntegerFormula pObjectId,
-      final ArrayFormula<RationalFormula, IntegerFormula> pObjectFields) {
+      final ArrayFormula<FloatingPointFormula, IntegerFormula> pObjectFields) {
     ctx.constraints.addConstraint(
         afmgr.equivalence(
             afmgr.store(makeObjectFieldsVariable(), pObjectId, pObjectFields),
@@ -139,7 +139,7 @@ class ObjectFormulaManager extends ManagerWithEdgeContext {
 
   @SuppressWarnings("ResultOfMethodCallIgnored")
   @Nonnull
-  private ArrayFormula<IntegerFormula, ArrayFormula<RationalFormula, IntegerFormula>>
+  private ArrayFormula<IntegerFormula, ArrayFormula<FloatingPointFormula, IntegerFormula>>
       makeObjectFieldsVariable() {
     if (!ctx.ssa.allVariables().contains(OBJECT_FIELDS_VARIABLE_NAME)) {
       ctx.varIdMgr.makeFreshIndex(OBJECT_FIELDS_VARIABLE_NAME);

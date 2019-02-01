@@ -39,7 +39,6 @@ import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 
 /**
  * Converter of a {@link TypedValue} to the formula encoding of its value to a specific type (see
@@ -141,7 +140,7 @@ class ValueConverterManager {
    * @return The value converted to its string formula.
    * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-9.8">ToString</a>
    */
-  RationalFormula toStringFormula(final TypedValue pValue) {
+  FloatingPointFormula toStringFormula(final TypedValue pValue) {
     final IntegerFormula type = pValue.getType();
     if (type.equals(typeTags.BOOLEAN)) {
       return booleanToStringFormula((BooleanFormula) pValue.getValue());
@@ -152,7 +151,7 @@ class ValueConverterManager {
     } else if (type.equals(typeTags.OBJECT)) {
       return objectToStringFormula((IntegerFormula) pValue.getValue());
     } else if (type.equals(typeTags.STRING)) {
-      return (RationalFormula) pValue.getValue();
+      return (FloatingPointFormula) pValue.getValue();
     } else if (type.equals(typeTags.UNDEFINED)) {
       return strMgr.getStringFormula("undefined");
     }
@@ -176,22 +175,22 @@ class ValueConverterManager {
   }
 
   @Nonnull
-  private RationalFormula booleanToStringFormula(final BooleanFormula pValue) {
+  private FloatingPointFormula booleanToStringFormula(final BooleanFormula pValue) {
     return bfmgr.ifThenElse(
         pValue, strMgr.getStringFormula("true"), strMgr.getStringFormula("false"));
   }
 
-  private RationalFormula functionToStringFormula(final IntegerFormula pFunctionObjectId) {
+  private FloatingPointFormula functionToStringFormula(final IntegerFormula pFunctionObjectId) {
     return strMgr.unknownString(pFunctionObjectId);
   }
 
-  private RationalFormula numberToStringFormula(final FloatingPointFormula pValue) {
+  private FloatingPointFormula numberToStringFormula(final FloatingPointFormula pValue) {
     final BooleanFormula isNegative =
         fpfmgr.lessThan(pValue, fmgr.makeNumber(Types.NUMBER_TYPE, 0));
     // TODO cast that does not cause issues
-    //    final RationalFormula regularNumber =
+    //    final FloatingPointFormula regularNumber =
     //        fpfmgr.castTo(pValue, Types.STRING_TYPE, FloatingPointRoundingMode.TOWARD_ZERO);
-    final RationalFormula regularNumber = fmgr.makeNumber(STRING_TYPE, -10);
+    final FloatingPointFormula regularNumber = fmgr.makeNumber(STRING_TYPE, -10);
     return bfmgr.ifThenElse(
         fpfmgr.isNaN(pValue),
         strMgr.getStringFormula("NaN"),
@@ -204,7 +203,7 @@ class ValueConverterManager {
             regularNumber));
   }
 
-  private RationalFormula objectToStringFormula(final IntegerFormula pObjectId) {
+  private FloatingPointFormula objectToStringFormula(final IntegerFormula pObjectId) {
     return strMgr.unknownString(pObjectId);
   }
 
@@ -224,7 +223,7 @@ class ValueConverterManager {
     } else if (type.equals(typeTags.NUMBER)) {
       return numberToBoolean((FloatingPointFormula) pValue.getValue());
     } else if (type.equals(typeTags.STRING)) {
-      return stringToBoolean((RationalFormula) pValue.getValue());
+      return stringToBoolean((FloatingPointFormula) pValue.getValue());
     } else if (type.equals(typeTags.UNDEFINED)) {
       return bfmgr.makeFalse();
     } else if (type.equals(typeTags.OBJECT)) {
@@ -302,7 +301,7 @@ class ValueConverterManager {
    * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-9.2">ToBoolean</a>
    */
   @Nonnull
-  private BooleanFormula stringToBoolean(final RationalFormula pValue) {
+  private BooleanFormula stringToBoolean(final FloatingPointFormula pValue) {
     return bfmgr.not(fmgr.makeEqual(pValue, strMgr.getStringFormula("")));
   }
 

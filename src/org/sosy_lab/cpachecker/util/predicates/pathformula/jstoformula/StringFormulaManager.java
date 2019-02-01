@@ -26,16 +26,16 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.STRING_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.VARIABLE_TYPE;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.stream.IntStream;
 import javax.annotation.Nonnull;
-import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.RationalFormulaManagerView;
+import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 
 /**
  * Management of formula encoding of <a
@@ -59,20 +59,20 @@ class StringFormulaManager {
    * representation of a ECMAScript number.
    *
    * <p>All string representations of ECMAScript numbers (except NaN and Infinity) are mapped to the
-   * string ID that is the rational number approximation of the (floating point) ECMAScript number.
-   * All other string IDs are mapped to a greater rational number than the maximum ECMAScript
+   * string ID that is the same floating point number.
+   * All other string IDs are mapped to a greater floating point numbers than the maximum ECMAScript
    * number, which is 2e1024.
    */
-  private static final Rational nonNumberStringIdOffset =
-      Rational.ofBigInteger(BigInteger.valueOf(2).pow(1024).add(BigInteger.ONE));
+  private static final BigDecimal nonNumberStringIdOffset =
+      new BigDecimal(BigInteger.valueOf(2).pow(1024).add(BigInteger.ONE));
 
   private final Ids<String> stringIds;
   private final FormulaManagerView fmgr;
-  private final RationalFormulaManagerView rfmgr;
+  private final FloatingPointFormulaManagerView fpfmgr;
   private final int maxFieldNameCount;
   private final FunctionFormulaManagerView ffmgr;
-  private final FunctionDeclaration<RationalFormula> concatStringsUF;
-  private final FunctionDeclaration<RationalFormula> unknownStringUF;
+  private final FunctionDeclaration<FloatingPointFormula> concatStringsUF;
+  private final FunctionDeclaration<FloatingPointFormula> unknownStringUF;
 
   /**
    * @param pFmgr Used to make string ID formulas.
@@ -81,7 +81,7 @@ class StringFormulaManager {
    */
   StringFormulaManager(final FormulaManagerView pFmgr, final int pMaxFieldNameCount) {
     fmgr = pFmgr;
-    rfmgr = fmgr.getRationalFormulaManager();
+    fpfmgr = fmgr.getFloatingPointFormulaManager();
     ffmgr = fmgr.getFunctionFormulaManager();
     concatStringsUF = ffmgr.declareUF("concatStrings", STRING_TYPE, STRING_TYPE, STRING_TYPE);
     unknownStringUF = ffmgr.declareUF("unknownString", STRING_TYPE, VARIABLE_TYPE);
@@ -97,7 +97,7 @@ class StringFormulaManager {
    * @param pValue The string value whose string ID formula should be returned.
    * @return The string ID of the passed string value.
    */
-  RationalFormula getStringFormula(final String pValue) {
+  FloatingPointFormula getStringFormula(final String pValue) {
     // TODO check if pValue is a string representation of a ECMAScript number
     final int id = stringIds.get(pValue);
     if (id > maxFieldNameCount) {
@@ -108,8 +108,9 @@ class StringFormulaManager {
   }
 
   @Nonnull
-  private RationalFormula getNonNumberStringIdFormula(final int pId) {
-    return rfmgr.makeNumber(nonNumberStringIdOffset.plus(Rational.of(pId)));
+  private FloatingPointFormula getNonNumberStringIdFormula(final int pId) {
+    final BigDecimal id = nonNumberStringIdOffset.add(BigDecimal.valueOf(pId));
+    return fpfmgr.makeNumber(id, Types.STRING_TYPE);
   }
 
   /**
@@ -119,7 +120,7 @@ class StringFormulaManager {
    *
    * @return Iterable of all string-IDs in ascending order.
    */
-  Iterable<RationalFormula> getIdRange() {
+  Iterable<FloatingPointFormula> getIdRange() {
     return IntStream.rangeClosed(1, maxFieldNameCount).mapToObj(this::getNonNumberStringIdFormula)
         ::iterator;
   }
@@ -133,8 +134,8 @@ class StringFormulaManager {
    * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-11.6.1">The Addition
    *     operator ( + )</a>
    */
-  RationalFormula concat(
-      final RationalFormula pLeftStringId, final RationalFormula pRightStringId) {
+  FloatingPointFormula concat(
+      final FloatingPointFormula pLeftStringId, final FloatingPointFormula pRightStringId) {
     return ffmgr.callUF(concatStringsUF, pLeftStringId, pRightStringId);
   }
 
@@ -146,7 +147,7 @@ class StringFormulaManager {
    *     variable or object ID.
    * @return String ID
    */
-  RationalFormula unknownString(final IntegerFormula pUnknownValueId) {
+  FloatingPointFormula unknownString(final IntegerFormula pUnknownValueId) {
     return ffmgr.callUF(unknownStringUF, pUnknownValueId);
   }
 }

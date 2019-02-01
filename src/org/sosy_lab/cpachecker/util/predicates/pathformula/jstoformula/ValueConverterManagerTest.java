@@ -39,7 +39,6 @@ import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.test.BooleanFormulaSubject;
 
@@ -318,7 +317,7 @@ public class ValueConverterManagerTest extends SolverViewBasedTest0 {
   private void assertStringToStringFormula(
       final String pInput, final String pOutput, final Satisfiability pSatisfiability)
       throws SolverException, InterruptedException {
-    final RationalFormula inputFormula = strMgr.getStringFormula(pInput);
+    final FloatingPointFormula inputFormula = strMgr.getStringFormula(pInput);
     final BooleanFormula valueFormula =
         mgrv.makeEqual(
             strMgr.getStringFormula(pOutput),

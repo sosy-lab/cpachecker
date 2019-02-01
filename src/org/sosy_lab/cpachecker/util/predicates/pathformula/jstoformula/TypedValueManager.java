@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 
 /** Manager to create {@link TypedValue} instances. */
 class TypedValueManager {
@@ -101,7 +100,7 @@ class TypedValueManager {
    * @return Typed formula encoding of the passed string ID.
    * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-4.3.16">String value</a>
    */
-  TypedValue createStringValue(final RationalFormula pStringId) {
+  TypedValue createStringValue(final FloatingPointFormula pStringId) {
     return new TypedValue(typeTags.STRING, pStringId);
   }
 
