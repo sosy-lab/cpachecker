@@ -149,6 +149,7 @@ class AssignmentManager extends ManagerWithEdgeContext {
           fmgr.makeEqual(typedVarValues.objectValue(pLeft), pRight.getValue()));
     }
     if (rType.equals(typeTags.NUMBER)) {
+      // TODO NaN has to be handled special (fp.isNaN value) instead of (= NaN value)
       return bfmgr.and(
           fmgr.assignment(typedVarValues.typeof(pLeft), typeTags.NUMBER),
           fmgr.makeEqual(typedVarValues.numberValue(pLeft), pRight.getValue()));
