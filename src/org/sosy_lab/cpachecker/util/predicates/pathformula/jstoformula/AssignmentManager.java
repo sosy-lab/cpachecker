@@ -185,9 +185,8 @@ class AssignmentManager extends ManagerWithEdgeContext {
   @Nonnull
   private BooleanFormula makeNumberAssignment(
       final IntegerFormula pLeft, final FloatingPointFormula pRightValue) {
-    // TODO NaN has to be handled special (fp.isNaN value) instead of (= NaN value)
     return bfmgr.and(
         fmgr.assignment(typedVarValues.typeof(pLeft), typeTags.NUMBER),
-        fmgr.makeEqual(typedVarValues.numberValue(pLeft), pRightValue));
+        fmgr.assignment(typedVarValues.numberValue(pLeft), pRightValue));
   }
 }
