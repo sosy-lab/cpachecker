@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicates;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -71,6 +73,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoWpConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.JSFormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.JSToFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
@@ -125,7 +128,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final CtoFormulaConverter converter;
-  private final JSToFormulaConverter jsConverter;
+
+  /** JavaScript converter that is created lazy (only if needed). */
+  private final Supplier<JSToFormulaConverter> jsConverter;
+
   private final @Nullable CtoWpConverter wpConverter;
   private final PathFormulaBuilderFactory pfbFactory;
   private final LogManager logger;
@@ -217,16 +223,21 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
       logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
     }
+    final org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.FormulaEncodingOptions
+        formulaEncodingOptions =
+            new org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula
+                .FormulaEncodingOptions(config);
+    final JSFormulaEncodingOptions jsFormulaEncodingOptions = new JSFormulaEncodingOptions(config);
     jsConverter =
-        new JSToFormulaConverter(
-            new org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula
-                .FormulaEncodingOptions(config),
-            new org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula
-                .JSFormulaEncodingOptions(config),
-            fmgr,
-            logger,
-            shutdownNotifier,
-            pDirection);
+        Suppliers.memoize(
+            () ->
+                new JSToFormulaConverter(
+                    formulaEncodingOptions,
+                    jsFormulaEncodingOptions,
+                    fmgr,
+                    logger,
+                    shutdownNotifier,
+                    pDirection));
 
     switch (pathFormulaBuilderVariant) {
       case DEFAULT:
@@ -262,7 +273,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     try {
       pf = converter.makeAnd(pOldFormula, pEdge, errorConditions);
     } catch (UnrecognizedCFAEdgeException | ClassCastException e) {
-      pf = jsConverter.makeAnd(pOldFormula, pEdge, errorConditions);
+      pf = jsConverter.get().makeAnd(pOldFormula, pEdge, errorConditions);
     }
 
     if (useNondetFlags) {

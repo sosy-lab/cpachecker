@@ -27,6 +27,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.MapsDifference.collectMapsDifferenceTo;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.NONDET_FLAG_VARIABLE;
 
+import com.google.common.base.Supplier;
+import java.util.ArrayList;
+import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -42,14 +45,14 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class SSAMapMerger {
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
-  private final JSToFormulaConverter jsConverter;
+
+  /** JavaScript converter that is created lazy (only if needed). */
+  private final Supplier<JSToFormulaConverter> jsConverter;
+
   private final ShutdownNotifier shutdownNotifier;
   private final CtoFormulaConverter converter;
   private final boolean useNondetFlags;
@@ -59,7 +62,7 @@ public class SSAMapMerger {
       boolean pUseNondetFlags,
       FormulaManagerView pFmgr,
       CtoFormulaConverter pConverter,
-      JSToFormulaConverter pJSToFormulaConverter,
+      Supplier<JSToFormulaConverter> pJSToFormulaConverter,
       ShutdownNotifier pShutdownNotifier,
       FormulaType<?> pNondetFormulaType) {
     useNondetFlags = pUseNondetFlags;
@@ -146,7 +149,7 @@ public class SSAMapMerger {
     if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
       return makeSsaNondetFlagMerger(oldIndex, newIndex);
     } else if (symbolType instanceof JSAnyType) {
-      return jsConverter.makeSsaUpdateTerm(symbolName, oldIndex, newIndex);
+      return jsConverter.get().makeSsaUpdateTerm(symbolName, oldIndex, newIndex);
     } else {
       return converter.makeSsaUpdateTerm(symbolName, (CType) symbolType, oldIndex, newIndex, oldPts);
     }
