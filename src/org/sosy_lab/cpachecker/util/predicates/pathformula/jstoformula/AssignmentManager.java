@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSStringLiteralExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 
@@ -149,10 +150,7 @@ class AssignmentManager extends ManagerWithEdgeContext {
           fmgr.makeEqual(typedVarValues.objectValue(pLeft), pRight.getValue()));
     }
     if (rType.equals(typeTags.NUMBER)) {
-      // TODO NaN has to be handled special (fp.isNaN value) instead of (= NaN value)
-      return bfmgr.and(
-          fmgr.assignment(typedVarValues.typeof(pLeft), typeTags.NUMBER),
-          fmgr.makeEqual(typedVarValues.numberValue(pLeft), pRight.getValue()));
+      return makeNumberAssignment(pLeft, (FloatingPointFormula) pRight.getValue());
     }
     if (rType.equals(typeTags.OBJECT)) {
       return bfmgr.and(
@@ -174,9 +172,7 @@ class AssignmentManager extends ManagerWithEdgeContext {
                 fmgr.makeEqual(typedVarValues.typeof(pLeft), typeTags.FUNCTION),
                 fmgr.makeEqual(typedVarValues.functionValue(pLeft), valConv.toFunction(pRight)),
                 fmgr.makeEqual(typedVarValues.objectValue(pLeft), valConv.toObject(pRight))),
-            fmgr.makeAnd(
-                fmgr.makeEqual(typedVarValues.typeof(pLeft), typeTags.NUMBER),
-                fmgr.makeEqual(typedVarValues.numberValue(pLeft), valConv.toNumber(pRight))),
+            makeNumberAssignment(pLeft, valConv.toNumber(pRight)),
             fmgr.makeAnd(
                 fmgr.makeEqual(typedVarValues.typeof(pLeft), typeTags.OBJECT),
                 fmgr.makeEqual(typedVarValues.objectValue(pLeft), valConv.toObject(pRight))),
@@ -184,5 +180,14 @@ class AssignmentManager extends ManagerWithEdgeContext {
                 fmgr.makeEqual(typedVarValues.typeof(pLeft), typeTags.STRING),
                 fmgr.makeEqual(typedVarValues.stringValue(pLeft), valConv.toStringFormula(pRight))),
             fmgr.makeEqual(typedVarValues.typeof(pLeft), typeTags.UNDEFINED)));
+  }
+
+  @Nonnull
+  private BooleanFormula makeNumberAssignment(
+      final IntegerFormula pLeft, final FloatingPointFormula pRightValue) {
+    // TODO NaN has to be handled special (fp.isNaN value) instead of (= NaN value)
+    return bfmgr.and(
+        fmgr.assignment(typedVarValues.typeof(pLeft), typeTags.NUMBER),
+        fmgr.makeEqual(typedVarValues.numberValue(pLeft), pRightValue));
   }
 }
