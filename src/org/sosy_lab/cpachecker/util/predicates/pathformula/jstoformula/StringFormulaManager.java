@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.STRING_TYPE;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.VARIABLE_TYPE;
 
 import java.math.BigInteger;
 import java.util.stream.IntStream;
@@ -33,6 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.RationalFormulaManagerView;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 
 /**
@@ -70,6 +72,7 @@ class StringFormulaManager {
   private final int maxFieldNameCount;
   private final FunctionFormulaManagerView ffmgr;
   private final FunctionDeclaration<RationalFormula> concatStringsUF;
+  private final FunctionDeclaration<RationalFormula> unknownStringUF;
 
   /**
    * @param pFmgr Used to make string ID formulas.
@@ -81,6 +84,7 @@ class StringFormulaManager {
     rfmgr = fmgr.getRationalFormulaManager();
     ffmgr = fmgr.getFunctionFormulaManager();
     concatStringsUF = ffmgr.declareUF("concatStrings", STRING_TYPE, STRING_TYPE, STRING_TYPE);
+    unknownStringUF = ffmgr.declareUF("unknownString", STRING_TYPE, VARIABLE_TYPE);
     maxFieldNameCount = pMaxFieldNameCount;
     stringIds = new Ids<>();
   }
@@ -132,5 +136,17 @@ class StringFormulaManager {
   RationalFormula concat(
       final RationalFormula pLeftStringId, final RationalFormula pRightStringId) {
     return ffmgr.callUF(concatStringsUF, pLeftStringId, pRightStringId);
+  }
+
+  /**
+   * String IDs of unknown strings (for example the string representation of an object) is supported
+   * as uninterpreted function.
+   *
+   * @param pUnknownValueId Identifier that is associated with the (unknown) string (for example a
+   *     variable or object ID.
+   * @return String ID
+   */
+  RationalFormula unknownString(final IntegerFormula pUnknownValueId) {
+    return ffmgr.callUF(unknownStringUF, pUnknownValueId);
   }
 }
