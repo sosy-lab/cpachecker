@@ -192,22 +192,16 @@ class ValueConverterManager {
     //    final RationalFormula regularNumber =
     //        fpfmgr.castTo(pValue, Types.STRING_TYPE, FloatingPointRoundingMode.TOWARD_ZERO);
     final RationalFormula regularNumber = fmgr.makeNumber(STRING_TYPE, -10);
-    // TODO handle NaN when it is assigned correctly
     return bfmgr.ifThenElse(
-        fpfmgr.isInfinity(pValue),
+        fpfmgr.isNaN(pValue),
+        strMgr.getStringFormula("NaN"),
         bfmgr.ifThenElse(
-            isNegative, strMgr.getStringFormula("-Infinity"), strMgr.getStringFormula("Infinity")),
-        regularNumber);
-    //    return bfmgr.ifThenElse(
-    //        fpfmgr.isNaN(pValue),
-    //        strMgr.getStringFormula("NaN"),
-    //        bfmgr.ifThenElse(
-    //            fpfmgr.isInfinity(pValue),
-    //            bfmgr.ifThenElse(
-    //                isNegative,
-    //                strMgr.getStringFormula("-Infinity"),
-    //                strMgr.getStringFormula("Infinity")),
-    //            regularNumber));
+            fpfmgr.isInfinity(pValue),
+            bfmgr.ifThenElse(
+                isNegative,
+                strMgr.getStringFormula("-Infinity"),
+                strMgr.getStringFormula("Infinity")),
+            regularNumber));
   }
 
   private RationalFormula objectToStringFormula(final IntegerFormula pObjectId) {

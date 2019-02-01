@@ -176,7 +176,7 @@ public class ValueConverterManagerTest extends SolverViewBasedTest0 {
     assertFunctionToStringFormula(f2, f1, satisfiable);
 
     // TODO number to string
-    //    assertNumberToStringFormula(fpmgr.makeNaN(Types.NUMBER_TYPE), "NaN", satisfiable);
+    assertNumberToStringFormula(fpmgr.makeNaN(Types.NUMBER_TYPE), "NaN", satisfiable);
     assertNumberToStringFormula(fpmgr.makePlusInfinity(Types.NUMBER_TYPE), "Infinity", satisfiable);
     assertNumberToStringFormula(
         fpmgr.makePlusInfinity(Types.NUMBER_TYPE), "-Infinity", unsatisfiable);
@@ -362,8 +362,8 @@ public class ValueConverterManagerTest extends SolverViewBasedTest0 {
     final IntegerFormula typeofVar = typedVarValues.typeof(variable);
     final Formula varValue = getvalueOfVar.apply(variable);
     return bmgr.and(
-        mgrv.makeEqual(typeofVar, pTypeTag),
-        mgrv.makeEqual(varValue, pInput),
+        mgrv.assignment(typeofVar, pTypeTag),
+        mgrv.assignment(varValue, pInput),
         mgrv.makeEqual(
             strMgr.getStringFormula(pOutput),
             valConvMgr.toStringFormula(new TypedValue(typeofVar, variable))));
