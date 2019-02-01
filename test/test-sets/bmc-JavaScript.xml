@@ -17,13 +17,13 @@
         <include>../programs/javascript/*/*.yml</include>
         <include>../programs/javascript/*/*/*.yml</include>
 
-        <exclude>../programs/javascript/binary-expressions.yml</exclude>
+        <exclude>../programs/javascript/expressions/binary-expressions/*.yml</exclude>
         <excludesfile>predicateAnalysis-JavaScript-encodeFloatAsRational.set</excludesfile>
         <propertyfile>../../test/config/specification/JavaScriptAssertion.spc</propertyfile>
     </tasks>
 
     <tasks>
-        <include>../programs/javascript/binary-expressions.yml</include>
+        <include>../programs/javascript/expressions/binary-expressions/*.yml</include>
         <propertyfile>../../test/config/specification/JavaScriptAssertion.spc</propertyfile>
     </tasks>
 
