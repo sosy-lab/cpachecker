@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
+import java.util.function.Function;
+import javax.annotation.Nonnull;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,11 +35,34 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.predicates.smt.SolverViewBasedTest0;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.test.BooleanFormulaSubject;
 
 @RunWith(Parameterized.class)
 public class ValueConverterManagerTest extends SolverViewBasedTest0 {
+  private enum Satisfiability {
+    SATISFIABLE,
+    UNSATISFIABLE,
+    SATISFIABLE_NON_TAUTOLOGICAL
+  }
+
+  private static final Satisfiability satisfiable = Satisfiability.SATISFIABLE;
+
+  @SuppressWarnings("unused")
+  private static final Satisfiability satisfiable_non_tautological =
+      Satisfiability.SATISFIABLE_NON_TAUTOLOGICAL;
+
+  private static final Satisfiability unsatisfiable = Satisfiability.UNSATISFIABLE;
+
+  private TypedValueManager tvmgr;
+  private StringFormulaManager strMgr;
+  private TypedVariableValues typedVarValues;
+  private TypeTags typeTags;
 
   @Parameters(name = "{0}")
   public static Object[] getAllSolvers() {
@@ -58,14 +83,11 @@ public class ValueConverterManagerTest extends SolverViewBasedTest0 {
     initSolver();
     initCPAcheckerSolver();
     final ObjectIdFormulaManager objIdMgr = new ObjectIdFormulaManager(mgrv);
-    final TypeTags typeTags = new TypeTags(imgrv);
-    valConvMgr =
-        new ValueConverterManager(
-            new TypedVariableValues(mgrv.getFunctionFormulaManager()),
-            typeTags,
-            new TypedValueManager(mgrv, typeTags, objIdMgr.getNullObjectId()),
-            new StringFormulaManager(mgrv, 15),
-            mgrv);
+    typeTags = new TypeTags(imgrv);
+    tvmgr = new TypedValueManager(mgrv, typeTags, objIdMgr.getNullObjectId());
+    strMgr = new StringFormulaManager(mgrv, 20);
+    typedVarValues = new TypedVariableValues(mgrv.getFunctionFormulaManager());
+    valConvMgr = new ValueConverterManager(typedVarValues, typeTags, tvmgr, strMgr, mgrv);
   }
 
   private void assertToInt32(final double pFrom, final int pTo, final boolean pEqual)
@@ -133,5 +155,235 @@ public class ValueConverterManagerTest extends SolverViewBasedTest0 {
     assertToInt32(Double.NEGATIVE_INFINITY, 0, true);
     assertToInt32(Double.NaN, 0, true);
     assertToInt32(-0.0, 0, true);
+  }
+
+  @SuppressWarnings("ConstantConditions")
+  @Test
+  public void toStringFormula() throws SolverException, InterruptedException {
+    assertBooleanToStringFormula(true, "true", satisfiable);
+    assertBooleanToStringFormula(true, "false", unsatisfiable);
+    assertBooleanToStringFormula(false, "false", satisfiable);
+    assertBooleanToStringFormula(false, "true", unsatisfiable);
+
+    final IntegerFormula f1 = imgr.makeNumber(1);
+    final IntegerFormula f2 = imgr.makeNumber(2);
+    assertFunctionToStringFormula(f1, f1, satisfiable);
+    // can not be distinguished yet
+    // TODO the following asserts should actually be satisfiable_non_tautological
+    assertFunctionToStringFormula(f1, "true", satisfiable);
+    assertFunctionToStringFormula(f1, "false", satisfiable);
+    assertFunctionToStringFormula(f1, f2, satisfiable);
+    assertFunctionToStringFormula(f2, f1, satisfiable);
+
+    // TODO number to string
+    //    assertNumberToStringFormula(fpmgr.makeNaN(Types.NUMBER_TYPE), "NaN", satisfiable);
+    assertNumberToStringFormula(fpmgr.makePlusInfinity(Types.NUMBER_TYPE), "Infinity", satisfiable);
+    assertNumberToStringFormula(
+        fpmgr.makePlusInfinity(Types.NUMBER_TYPE), "-Infinity", unsatisfiable);
+    assertNumberToStringFormula(
+        fpmgr.makeMinusInfinity(Types.NUMBER_TYPE), "-Infinity", satisfiable);
+    assertNumberToStringFormula(
+        fpmgr.makeMinusInfinity(Types.NUMBER_TYPE), "Infinity", unsatisfiable);
+    //    final FloatingPointFormula zero = fpmgr.makeNumber(0, Types.NUMBER_TYPE);
+    //    assertNumberToStringFormula(zero, "0", satisfiable);
+    //    assertNumberToStringFormula(zero, "0.0", unsatisfiable);
+
+    final IntegerFormula o1 = imgr.makeNumber(1);
+    final IntegerFormula o2 = imgr.makeNumber(2);
+    assertObjectToStringFormula(o1, o1, satisfiable);
+    // equality of two unknown strings is always satisfiable and non tautological
+    // TODO the following asserts should actually be satisfiable_non_tautological
+    assertObjectToStringFormula(o1, "[]", satisfiable);
+    assertObjectToStringFormula(o1, "{}", satisfiable);
+    assertObjectToStringFormula(o1, o2, satisfiable);
+    assertObjectToStringFormula(o2, o1, satisfiable);
+
+    assertStringToStringFormula("true", "true", satisfiable);
+    assertStringToStringFormula("true", "false", unsatisfiable);
+    assertStringToStringFormula("false", "false", satisfiable);
+    assertStringToStringFormula("false", "true", unsatisfiable);
+
+    assertUndefinedToStringFormula("undefined", satisfiable);
+    assertUndefinedToStringFormula("false", unsatisfiable);
+    assertUndefinedToStringFormula("", unsatisfiable);
+  }
+
+  @Nonnull
+  private void assertBooleanToStringFormula(
+      final boolean pInput, final String pOutput, final Satisfiability pSatisfiability)
+      throws SolverException, InterruptedException {
+    final BooleanFormula inputFormula = bmgr.makeBoolean(pInput);
+    final BooleanFormula valueFormula =
+        mgrv.makeEqual(
+            strMgr.getStringFormula(pOutput),
+            valConvMgr.toStringFormula(tvmgr.createBooleanValue(inputFormula)));
+    final BooleanFormula variableFormula =
+        getVariableToStringFormula(
+            typeTags.BOOLEAN, inputFormula, typedVarValues::booleanValue, pOutput);
+    assertSatisfiability(valueFormula, pSatisfiability);
+    assertSatisfiability(variableFormula, pSatisfiability);
+  }
+
+  @Nonnull
+  private void assertFunctionToStringFormula(
+      final IntegerFormula pFunctionObjectId,
+      final String pOutput,
+      @SuppressWarnings("SameParameterValue") final Satisfiability pSatisfiability)
+      throws SolverException, InterruptedException {
+    final BooleanFormula valueFormula =
+        mgrv.makeEqual(
+            strMgr.getStringFormula(pOutput),
+            valConvMgr.toStringFormula(tvmgr.createFunctionValue(pFunctionObjectId)));
+    final BooleanFormula variableFormula =
+        getVariableToStringFormula(
+            typeTags.FUNCTION, pFunctionObjectId, typedVarValues::functionValue, pOutput);
+    assertSatisfiability(valueFormula, pSatisfiability);
+    assertSatisfiability(variableFormula, pSatisfiability);
+  }
+
+  @Nonnull
+  private void assertFunctionToStringFormula(
+      final IntegerFormula pFunctionObjectId1,
+      final IntegerFormula pFunctionObjectId2,
+      @SuppressWarnings("SameParameterValue") final Satisfiability pSatisfiability)
+      throws SolverException, InterruptedException {
+    final IntegerFormula variable = imgrv.makeNumber(1);
+    final IntegerFormula typeofVar = typedVarValues.typeof(variable);
+    final Formula varValue = typedVarValues.functionValue(variable);
+    final BooleanFormula booleanFormula =
+        bmgr.and(
+            mgrv.makeEqual(typeofVar, typeTags.FUNCTION),
+            mgrv.makeEqual(varValue, pFunctionObjectId1),
+            mgrv.makeEqual(
+                valConvMgr.toStringFormula(tvmgr.createFunctionValue(pFunctionObjectId2)),
+                valConvMgr.toStringFormula(new TypedValue(typeofVar, variable))));
+    assertSatisfiability(booleanFormula, pSatisfiability);
+  }
+
+  @SuppressWarnings("unused")
+  @Nonnull
+  private void assertNumberToStringFormula(
+      final FloatingPointFormula pInputFormula,
+      final String pOutput,
+      final Satisfiability pSatisfiability)
+      throws SolverException, InterruptedException {
+    final BooleanFormula valueFormula =
+        mgrv.makeEqual(
+            strMgr.getStringFormula(pOutput),
+            valConvMgr.toStringFormula(tvmgr.createNumberValue(pInputFormula)));
+    final BooleanFormula variableFormula =
+        getVariableToStringFormula(
+            typeTags.NUMBER, pInputFormula, typedVarValues::numberValue, pOutput);
+    assertSatisfiability(valueFormula, pSatisfiability);
+    assertSatisfiability(variableFormula, pSatisfiability);
+  }
+
+  @Nonnull
+  private void assertObjectToStringFormula(
+      final IntegerFormula pObjectId,
+      final String pOutput,
+      @SuppressWarnings("SameParameterValue") final Satisfiability pSatisfiability)
+      throws SolverException, InterruptedException {
+    final BooleanFormula valueFormula =
+        mgrv.makeEqual(
+            strMgr.getStringFormula(pOutput),
+            valConvMgr.toStringFormula(tvmgr.createObjectValue(pObjectId)));
+    final BooleanFormula variableFormula =
+        getVariableToStringFormula(
+            typeTags.FUNCTION, pObjectId, typedVarValues::objectValue, pOutput);
+    assertSatisfiability(valueFormula, pSatisfiability);
+    assertSatisfiability(variableFormula, pSatisfiability);
+  }
+
+  @Nonnull
+  private void assertObjectToStringFormula(
+      final IntegerFormula pObjectId1,
+      final IntegerFormula pObjectId2,
+      @SuppressWarnings("SameParameterValue") final Satisfiability pSatisfiability)
+      throws SolverException, InterruptedException {
+    final IntegerFormula variable = imgrv.makeNumber(1);
+    final IntegerFormula typeofVar = typedVarValues.typeof(variable);
+    final Formula varValue = typedVarValues.objectValue(variable);
+    final BooleanFormula booleanFormula =
+        bmgr.and(
+            mgrv.makeEqual(typeofVar, typeTags.FUNCTION),
+            mgrv.makeEqual(varValue, pObjectId1),
+            mgrv.makeEqual(
+                valConvMgr.toStringFormula(tvmgr.createObjectValue(pObjectId2)),
+                valConvMgr.toStringFormula(new TypedValue(typeofVar, variable))));
+    assertSatisfiability(booleanFormula, pSatisfiability);
+  }
+
+  @Nonnull
+  private void assertStringToStringFormula(
+      final String pInput, final String pOutput, final Satisfiability pSatisfiability)
+      throws SolverException, InterruptedException {
+    final RationalFormula inputFormula = strMgr.getStringFormula(pInput);
+    final BooleanFormula valueFormula =
+        mgrv.makeEqual(
+            strMgr.getStringFormula(pOutput),
+            valConvMgr.toStringFormula(tvmgr.createStringValue(inputFormula)));
+    final BooleanFormula variableFormula =
+        getVariableToStringFormula(
+            typeTags.STRING, inputFormula, typedVarValues::stringValue, pOutput);
+    assertSatisfiability(valueFormula, pSatisfiability);
+    assertSatisfiability(variableFormula, pSatisfiability);
+  }
+
+  @Nonnull
+  private void assertUndefinedToStringFormula(
+      final String pOutput, final Satisfiability pSatisfiability)
+      throws SolverException, InterruptedException {
+    final BooleanFormula valueFormula =
+        mgrv.makeEqual(
+            strMgr.getStringFormula(pOutput),
+            valConvMgr.toStringFormula(tvmgr.getUndefinedValue()));
+
+    final IntegerFormula variable = imgrv.makeNumber(1);
+    final IntegerFormula typeofVar = typedVarValues.typeof(variable);
+    final BooleanFormula variableFormula =
+        bmgr.and(
+            mgrv.makeEqual(typeofVar, typeTags.UNDEFINED),
+            mgrv.makeEqual(
+                strMgr.getStringFormula(pOutput),
+                valConvMgr.toStringFormula(new TypedValue(typeofVar, variable))));
+
+    assertSatisfiability(valueFormula, pSatisfiability);
+    assertSatisfiability(variableFormula, pSatisfiability);
+  }
+
+  @Nonnull
+  private BooleanFormula getVariableToStringFormula(
+      final IntegerFormula pTypeTag,
+      final Formula pInput,
+      final Function<IntegerFormula, Formula> getvalueOfVar,
+      final String pOutput) {
+    final IntegerFormula variable = imgrv.makeNumber(1);
+    final IntegerFormula typeofVar = typedVarValues.typeof(variable);
+    final Formula varValue = getvalueOfVar.apply(variable);
+    return bmgr.and(
+        mgrv.makeEqual(typeofVar, pTypeTag),
+        mgrv.makeEqual(varValue, pInput),
+        mgrv.makeEqual(
+            strMgr.getStringFormula(pOutput),
+            valConvMgr.toStringFormula(new TypedValue(typeofVar, variable))));
+  }
+
+  private void assertSatisfiability(
+      final BooleanFormula pBooleanFormula, final Satisfiability pSatisfiability)
+      throws SolverException, InterruptedException {
+    final BooleanFormulaSubject booleanFormulaSubject = assertThatFormula(pBooleanFormula);
+    switch (pSatisfiability) {
+      case SATISFIABLE:
+        booleanFormulaSubject.isSatisfiable();
+        break;
+      case SATISFIABLE_NON_TAUTOLOGICAL:
+        booleanFormulaSubject.isSatisfiable();
+        assertThatFormula(bmgr.not(pBooleanFormula)).isSatisfiable();
+        break;
+      case UNSATISFIABLE:
+        booleanFormulaSubject.isUnsatisfiable();
+        break;
+    }
   }
 }

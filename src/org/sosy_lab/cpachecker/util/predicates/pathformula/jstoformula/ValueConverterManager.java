@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.OBJECT_TYPE;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.STRING_TYPE;
 
 import com.google.common.collect.Lists;
 import javax.annotation.Nonnull;
@@ -134,33 +135,83 @@ class ValueConverterManager {
   }
 
   /**
-   * Converts the type value to its string formula. Everything except strings is converted to an
-   * unknown string ID.
+   * Converts the type value to its string formula.
    *
    * @param pValue The typed value whose value should be converted to a string based on its type.
    * @return The value converted to its string formula.
    * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-9.8">ToString</a>
    */
   RationalFormula toStringFormula(final TypedValue pValue) {
-    // TODO convert boolean, number, object, function and undefined to string (update comment)
     final IntegerFormula type = pValue.getType();
-    final RationalFormula unknownStringValue = fmgr.makeNumber(Types.STRING_TYPE, 0);
-    if (Lists.newArrayList(
-            typeTags.BOOLEAN,
-            typeTags.NUMBER,
-            typeTags.OBJECT,
-            typeTags.FUNCTION,
-            typeTags.UNDEFINED)
-        .contains(type)) {
-      return unknownStringValue;
+    if (type.equals(typeTags.BOOLEAN)) {
+      return booleanToStringFormula((BooleanFormula) pValue.getValue());
+    } else if (type.equals(typeTags.FUNCTION)) {
+      return functionToStringFormula((IntegerFormula) pValue.getValue());
+    } else if (type.equals(typeTags.NUMBER)) {
+      return numberToStringFormula((FloatingPointFormula) pValue.getValue());
+    } else if (type.equals(typeTags.OBJECT)) {
+      return objectToStringFormula((IntegerFormula) pValue.getValue());
     } else if (type.equals(typeTags.STRING)) {
       return (RationalFormula) pValue.getValue();
+    } else if (type.equals(typeTags.UNDEFINED)) {
+      return strMgr.getStringFormula("undefined");
     }
     final IntegerFormula variable = (IntegerFormula) pValue.getValue();
     return bfmgr.ifThenElse(
-        fmgr.makeEqual(type, typeTags.STRING),
-        typedVarValues.stringValue(variable),
-        unknownStringValue);
+        fmgr.makeEqual(type, typeTags.BOOLEAN),
+        booleanToStringFormula(typedVarValues.booleanValue(variable)),
+        bfmgr.ifThenElse(
+            fmgr.makeEqual(type, typeTags.FUNCTION),
+            functionToStringFormula(typedVarValues.functionValue(variable)),
+            bfmgr.ifThenElse(
+                fmgr.makeEqual(type, typeTags.NUMBER),
+                numberToStringFormula(typedVarValues.numberValue(variable)),
+                bfmgr.ifThenElse(
+                    fmgr.makeEqual(type, typeTags.OBJECT),
+                    objectToStringFormula(typedVarValues.objectValue(variable)),
+                    bfmgr.ifThenElse(
+                        fmgr.makeEqual(type, typeTags.STRING),
+                        typedVarValues.stringValue(variable),
+                        strMgr.getStringFormula("undefined"))))));
+  }
+
+  @Nonnull
+  private RationalFormula booleanToStringFormula(final BooleanFormula pValue) {
+    return bfmgr.ifThenElse(
+        pValue, strMgr.getStringFormula("true"), strMgr.getStringFormula("false"));
+  }
+
+  private RationalFormula functionToStringFormula(final IntegerFormula pFunctionObjectId) {
+    return strMgr.unknownString(pFunctionObjectId);
+  }
+
+  private RationalFormula numberToStringFormula(final FloatingPointFormula pValue) {
+    final BooleanFormula isNegative =
+        fpfmgr.lessThan(pValue, fmgr.makeNumber(Types.NUMBER_TYPE, 0));
+    // TODO cast that does not cause issues
+    //    final RationalFormula regularNumber =
+    //        fpfmgr.castTo(pValue, Types.STRING_TYPE, FloatingPointRoundingMode.TOWARD_ZERO);
+    final RationalFormula regularNumber = fmgr.makeNumber(STRING_TYPE, -10);
+    // TODO handle NaN when it is assigned correctly
+    return bfmgr.ifThenElse(
+        fpfmgr.isInfinity(pValue),
+        bfmgr.ifThenElse(
+            isNegative, strMgr.getStringFormula("-Infinity"), strMgr.getStringFormula("Infinity")),
+        regularNumber);
+    //    return bfmgr.ifThenElse(
+    //        fpfmgr.isNaN(pValue),
+    //        strMgr.getStringFormula("NaN"),
+    //        bfmgr.ifThenElse(
+    //            fpfmgr.isInfinity(pValue),
+    //            bfmgr.ifThenElse(
+    //                isNegative,
+    //                strMgr.getStringFormula("-Infinity"),
+    //                strMgr.getStringFormula("Infinity")),
+    //            regularNumber));
+  }
+
+  private RationalFormula objectToStringFormula(final IntegerFormula pObjectId) {
+    return strMgr.unknownString(pObjectId);
   }
 
   /**
