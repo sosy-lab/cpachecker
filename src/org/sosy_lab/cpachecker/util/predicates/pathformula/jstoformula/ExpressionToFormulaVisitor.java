@@ -115,6 +115,11 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
         return tvmgr.createNumberValue(
             fpfmgr.divide(valConv.toNumber(leftOperand), valConv.toNumber(rightOperand)));
       case REMAINDER:
+        logger.logfOnce(
+            Level.WARNING,
+            "Formula encoding of remainder is not implemented yet for cases, where neither an infinity, nor a zero, nor NaN is involved (%s): %s",
+            pBinaryExpression.getFileLocation(),
+            pBinaryExpression);
         return tvmgr.createNumberValue(makeRemainder(leftOperand, rightOperand));
       case LESS:
         return tvmgr.createBooleanValue(
@@ -184,6 +189,34 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
     return new TypedValue(typedVarValues.typeof(resultVar), resultVar);
   }
 
+  /**
+   * Formula encode remainder operation. Operands are converted to number. <cite> The result of an
+   * ECMAScript floating-point remainder operation is determined by the rules of IEEE arithmetic:
+   *
+   * <ul>
+   *   <li>If either operand is NaN, the result is NaN.
+   *   <li>The sign of the result equals the sign of the dividend.
+   *   <li>If the dividend is an infinity, or the divisor is a zero, or both, the result is NaN.
+   *   <li>If the dividend is finite and the divisor is an infinity, the result equals the dividend.
+   *   <li>If the dividend is a zero and the divisor is nonzero and finite, the result is the same
+   *       as the dividend.
+   *   <li>In the remaining cases, where neither an infinity, nor a zero, nor NaN is involved, the
+   *       floating-point remainder r from a dividend n and a divisor d is defined by the
+   *       mathematical relation r = n − (d × q) where q is an integer that is negative only if n/d
+   *       is negative and positive only if n/d is positive, and whose magnitude is as large as
+   *       possible without exceeding the magnitude of the true mathematical quotient of n and d. r
+   *       is computed and rounded to the nearest representable value using IEEE 754
+   *       round-to-nearest mode.
+   * </ul>
+   *
+   * </cite>
+   *
+   * @param pLeftOperand Dividend
+   * @param pRightOperand Divisor
+   * @return Remainder
+   * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-11.5.3">11.5.3 Applying the
+   *     % Operator</a>
+   */
   @Nonnull
   private FloatingPointFormula makeRemainder(
       final TypedValue pLeftOperand, final TypedValue pRightOperand) {
@@ -192,6 +225,12 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
     final FloatingPointFormula divisor = valConv.toNumber(pRightOperand);
     final BooleanFormula nanCase =
         jsOptions.useNaN ? bfmgr.or(f.isNaN(dividend), f.isNaN(divisor)) : bfmgr.makeFalse();
+    // TODO In the remaining cases, where neither an infinity, nor a zero, nor NaN is involved, the
+    // floating-point remainder r from a dividend n and a divisor d is defined by the mathematical
+    // relation r = n − (d × q) where q is an integer that is negative only if n/d is negative and
+    // positive only if n/d is positive, and whose magnitude is as large as possible without
+    // exceeding the magnitude of the true mathematical quotient of n and d. r is computed and
+    // rounded to the nearest representable value using IEEE 754 round-to-nearest mode.
     return bfmgr.ifThenElse(
         bfmgr.or(nanCase, f.isInfinity(dividend), f.isZero(divisor)),
         f.makeNaN(Types.NUMBER_TYPE),
