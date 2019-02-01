@@ -25,7 +25,10 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.STRING_TYPE;
 
+import java.math.BigInteger;
 import java.util.stream.IntStream;
+import javax.annotation.Nonnull;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.RationalFormulaManagerView;
@@ -49,6 +52,17 @@ import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
  * increased to analyze the program.
  */
 class StringFormulaManager {
+  /**
+   * Offset that is used to calculate string IDs of strings that are not related to a string
+   * representation of a ECMAScript number.
+   *
+   * <p>All string representations of ECMAScript numbers (except NaN and Infinity) are mapped to the
+   * string ID that is the rational number approximation of the (floating point) ECMAScript number.
+   * All other string IDs are mapped to a greater rational number than the maximum ECMAScript
+   * number, which is 2e1024.
+   */
+  private static final Rational nonNumberStringIdOffset =
+      Rational.ofBigInteger(BigInteger.valueOf(2).pow(1024).add(BigInteger.ONE));
 
   private final Ids<String> stringIds;
   private final FormulaManagerView fmgr;
@@ -80,12 +94,18 @@ class StringFormulaManager {
    * @return The string ID of the passed string value.
    */
   RationalFormula getStringFormula(final String pValue) {
+    // TODO check if pValue is a string representation of a ECMAScript number
     final int id = stringIds.get(pValue);
     if (id > maxFieldNameCount) {
       throw new RuntimeException(
           "Reached cpa.predicate.js.maxFieldNameCount of " + maxFieldNameCount);
     }
-    return fmgr.makeNumber(STRING_TYPE, id);
+    return getNonNumberStringIdFormula(id);
+  }
+
+  @Nonnull
+  private RationalFormula getNonNumberStringIdFormula(final int pId) {
+    return rfmgr.makeNumber(nonNumberStringIdOffset.plus(Rational.of(pId)));
   }
 
   /**
@@ -96,7 +116,8 @@ class StringFormulaManager {
    * @return Iterable of all string-IDs in ascending order.
    */
   Iterable<RationalFormula> getIdRange() {
-    return IntStream.rangeClosed(1, maxFieldNameCount).mapToObj(rfmgr::makeNumber)::iterator;
+    return IntStream.rangeClosed(1, maxFieldNameCount).mapToObj(this::getNonNumberStringIdFormula)
+        ::iterator;
   }
 
   /**
