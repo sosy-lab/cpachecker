@@ -548,8 +548,12 @@ public class AssignmentToPathAllocator {
         final Rational argIntRat1 = (Rational) argInt1;
         // no exact index possible
         indexOfInnerArrayElement = argIntRat1.getDen().divide(argIntRat1.getNum());
-      } else {
+      } else if (argInt1 instanceof BigInteger) {
         indexOfInnerArrayElement = (BigInteger) argInt1;
+      } else if (argInt1 instanceof Double) {
+        indexOfInnerArrayElement = BigInteger.valueOf(((Double) argInt1).longValue());
+      } else {
+        throw new RuntimeException("Unknown type of index of inner array element");
       }
       // In case of function `a(x, y)` you get `x * maxLength + y`
       address =
