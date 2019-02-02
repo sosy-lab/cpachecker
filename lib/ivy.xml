@@ -76,7 +76,7 @@
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="2.23.4" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="2.24.0" conf="test->default"/>
 
         <!-- Antlr
              Parser generator. -->
