@@ -27,7 +27,6 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Ty
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.VARIABLE_TYPE;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.stream.IntStream;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
@@ -63,8 +62,7 @@ class StringFormulaManager {
    * All other string IDs are mapped to a greater floating point numbers than the maximum ECMAScript
    * number, which is 2e1024.
    */
-  private static final BigDecimal nonNumberStringIdOffset =
-      new BigDecimal(BigInteger.valueOf(2).pow(1024).add(BigInteger.ONE));
+  private static final BigDecimal nonNumberStringIdOffset = BigDecimal.TEN.pow(309); // TODO update comment
 
   private final Ids<String> stringIds;
   private final FormulaManagerView fmgr;
@@ -109,7 +107,8 @@ class StringFormulaManager {
 
   @Nonnull
   private FloatingPointFormula getNonNumberStringIdFormula(final int pId) {
-    final BigDecimal id = nonNumberStringIdOffset.add(BigDecimal.valueOf(pId));
+    // TODO describe index calculation
+    final BigDecimal id = nonNumberStringIdOffset.multiply(BigDecimal.valueOf(1 + 0.0001 * pId));
     return fpfmgr.makeNumber(id, Types.STRING_TYPE);
   }
 
