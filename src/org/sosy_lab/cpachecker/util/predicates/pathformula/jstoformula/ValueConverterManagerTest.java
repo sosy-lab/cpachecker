@@ -182,9 +182,8 @@ public class ValueConverterManagerTest extends SolverViewBasedTest0 {
         fpmgr.makeMinusInfinity(Types.NUMBER_TYPE), "-Infinity", satisfiable);
     assertNumberToStringFormula(
         fpmgr.makeMinusInfinity(Types.NUMBER_TYPE), "Infinity", unsatisfiable);
-    final FloatingPointFormula zero = fpmgr.makeNumber(0, Types.NUMBER_TYPE);
-    assertNumberToStringFormula(zero, "0", satisfiable);
-    assertNumberToStringFormula(zero, "0.0", unsatisfiable);
+    assertNumberToStringFormula(0, "0", satisfiable);
+    assertNumberToStringFormula(0, "0.0", unsatisfiable);
 
     final IntegerFormula o1 = imgr.makeNumber(1);
     final IntegerFormula o2 = imgr.makeNumber(2);
@@ -256,6 +255,15 @@ public class ValueConverterManagerTest extends SolverViewBasedTest0 {
                 valConvMgr.toStringFormula(tvmgr.createFunctionValue(pFunctionObjectId2)),
                 valConvMgr.toStringFormula(new TypedValue(typeofVar, variable))));
     assertSatisfiability(booleanFormula, pSatisfiability);
+  }
+
+  @SuppressWarnings("ConstantConditions")
+  @Nonnull
+  private void assertNumberToStringFormula(
+      final double pInput, final String pOutput, final Satisfiability pSatisfiability)
+      throws SolverException, InterruptedException {
+    assertNumberToStringFormula(
+        fpmgr.makeNumber(pInput, Types.NUMBER_TYPE), pOutput, pSatisfiability);
   }
 
   @SuppressWarnings("unused")
