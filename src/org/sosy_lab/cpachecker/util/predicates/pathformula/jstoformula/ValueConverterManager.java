@@ -186,8 +186,7 @@ class ValueConverterManager {
   private FloatingPointFormula numberToStringFormula(final FloatingPointFormula pValue) {
     final BooleanFormula isNegative =
         fpfmgr.lessThan(pValue, fmgr.makeNumber(Types.NUMBER_TYPE, 0));
-    final FloatingPointFormula regularNumber =
-        fpfmgr.castTo(pValue, Types.STRING_TYPE, FloatingPointRoundingMode.TOWARD_ZERO);
+    final FloatingPointFormula regularNumber = fpfmgr.castTo(pValue, Types.STRING_TYPE);
     return bfmgr.ifThenElse(
         fpfmgr.isNaN(pValue),
         strMgr.getStringFormula("NaN"),

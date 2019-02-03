@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.NUMBER_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.STRING_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.VARIABLE_TYPE;
 
@@ -33,7 +34,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerVi
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
-import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
@@ -98,7 +98,8 @@ class StringFormulaManager {
    */
   FloatingPointFormula getStringFormula(final String pValue) {
     if (isNumberString(pValue)) {
-      return fpfmgr.makeNumber(pValue, STRING_TYPE, FloatingPointRoundingMode.TOWARD_ZERO);
+      // cast from number type to string type like in conversion of number to string ID
+      return fpfmgr.castTo(fpfmgr.makeNumber(pValue, NUMBER_TYPE), STRING_TYPE);
     }
     final int id = stringIds.get(pValue);
     if (id > maxFieldNameCount) {

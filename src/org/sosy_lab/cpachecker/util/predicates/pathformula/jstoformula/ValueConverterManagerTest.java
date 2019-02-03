@@ -188,6 +188,9 @@ public class ValueConverterManagerTest extends SolverViewBasedTest0 {
     assertNumberToStringFormula(-0.0, "0", satisfiable);
     assertNumberToStringFormula(-0.0, "-0", unsatisfiable);
     assertNumberToStringFormula(-0.0, "-0.0", unsatisfiable);
+    assertNumberToStringFormula(0.1, "0.1", satisfiable);
+    assertNumberToStringFormula(0.1, "0.10", unsatisfiable);
+    assertNumberToStringFormula(0.01, "0.01", satisfiable);
 
     final IntegerFormula o1 = imgr.makeNumber(1);
     final IntegerFormula o2 = imgr.makeNumber(2);
