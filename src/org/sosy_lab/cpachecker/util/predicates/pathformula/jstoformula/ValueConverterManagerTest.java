@@ -174,7 +174,6 @@ public class ValueConverterManagerTest extends SolverViewBasedTest0 {
     assertFunctionToStringFormula(f1, f2, satisfiable);
     assertFunctionToStringFormula(f2, f1, satisfiable);
 
-    // TODO number to string
     assertNumberToStringFormula(fpmgr.makeNaN(Types.NUMBER_TYPE), "NaN", satisfiable);
     assertNumberToStringFormula(fpmgr.makePlusInfinity(Types.NUMBER_TYPE), "Infinity", satisfiable);
     assertNumberToStringFormula(
@@ -183,9 +182,9 @@ public class ValueConverterManagerTest extends SolverViewBasedTest0 {
         fpmgr.makeMinusInfinity(Types.NUMBER_TYPE), "-Infinity", satisfiable);
     assertNumberToStringFormula(
         fpmgr.makeMinusInfinity(Types.NUMBER_TYPE), "Infinity", unsatisfiable);
-    //    final FloatingPointFormula zero = fpmgr.makeNumber(0, Types.NUMBER_TYPE);
-    //    assertNumberToStringFormula(zero, "0", satisfiable);
-    //    assertNumberToStringFormula(zero, "0.0", unsatisfiable);
+    final FloatingPointFormula zero = fpmgr.makeNumber(0, Types.NUMBER_TYPE);
+    assertNumberToStringFormula(zero, "0", satisfiable);
+    assertNumberToStringFormula(zero, "0.0", unsatisfiable);
 
     final IntegerFormula o1 = imgr.makeNumber(1);
     final IntegerFormula o2 = imgr.makeNumber(2);

@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerVi
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
@@ -96,13 +97,31 @@ class StringFormulaManager {
    * @return The string ID of the passed string value.
    */
   FloatingPointFormula getStringFormula(final String pValue) {
-    // TODO check if pValue is a string representation of a ECMAScript number
+    if (isNumberString(pValue)) {
+      return fpfmgr.makeNumber(pValue, STRING_TYPE, FloatingPointRoundingMode.TOWARD_ZERO);
+    }
     final int id = stringIds.get(pValue);
     if (id > maxFieldNameCount) {
       throw new RuntimeException(
           "Reached cpa.predicate.js.maxFieldNameCount of " + maxFieldNameCount);
     }
     return getNonNumberStringIdFormula(id);
+  }
+
+  /**
+   * Check if passed string is number converted to a string. Such a "number string" may start with a
+   * <code>-</code>, but not with a <code>+</code> sign, which is not present in a number that is
+   * converted to a string. <code>NaN</code> and <code>Infinity</code> are not considered as "number
+   * strings" since they are handled as regular strings.
+   *
+   * @param pValue String to check.
+   * @return <code>True</code> only if string is number converted to a string.
+   * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-9.8.1">9.8.1 ToString
+   *     Applied to the Number Type</a>
+   */
+  static boolean isNumberString(final String pValue) {
+    // TODO handle cases like 8.98846567431158e+307
+    return !pValue.equals("-0") && pValue.matches("-?(0|[1-9]\\d*)(\\.\\d*[1-9])?");
   }
 
   @Nonnull
