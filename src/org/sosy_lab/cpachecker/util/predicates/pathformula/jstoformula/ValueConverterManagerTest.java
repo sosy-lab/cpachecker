@@ -183,7 +183,11 @@ public class ValueConverterManagerTest extends SolverViewBasedTest0 {
     assertNumberToStringFormula(
         fpmgr.makeMinusInfinity(Types.NUMBER_TYPE), "Infinity", unsatisfiable);
     assertNumberToStringFormula(0, "0", satisfiable);
+    assertNumberToStringFormula(0, "+0", unsatisfiable);
     assertNumberToStringFormula(0, "0.0", unsatisfiable);
+    assertNumberToStringFormula(-0.0, "0", satisfiable);
+    assertNumberToStringFormula(-0.0, "-0", unsatisfiable);
+    assertNumberToStringFormula(-0.0, "-0.0", unsatisfiable);
 
     final IntegerFormula o1 = imgr.makeNumber(1);
     final IntegerFormula o2 = imgr.makeNumber(2);
