@@ -340,7 +340,6 @@ public class ARGToDotWriter {
       }
       builder.append("\\n");
     }
-
     builder.append(
         DOTBuilder.escapeGraphvizLabel(currentElement.toDOTLabel(), "\\\\n"));
 

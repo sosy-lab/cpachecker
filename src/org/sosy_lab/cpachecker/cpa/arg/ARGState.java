@@ -34,6 +34,7 @@ import com.google.common.graph.Traverser;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -62,7 +63,6 @@ public class ARGState extends AbstractSingleWrapperState
   // To enforce set semantics, do not add elements except through addparent()!
   private final Collection<ARGState> children = new ArrayList<>(1);
   private final Collection<ARGState> parents = new ArrayList<>(1);
-
   private ARGState mCoveredBy = null;
   private Set<ARGState> mCoveredByThis = null; // lazy initialization because rarely needed
 
@@ -88,7 +88,6 @@ public class ARGState extends AbstractSingleWrapperState
       addParent(pParentElement);
     }
   }
-
   // parent & child relations
 
   /**

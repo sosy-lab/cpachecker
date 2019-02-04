@@ -62,7 +62,8 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
       final Function<AbstractState, AbstractState> projection,
       AbstractState fullState) throws CPAException, InterruptedException {
 
-    Preconditions.checkArgument(pElement instanceof ARGState);
+    Preconditions.checkArgument(pElement instanceof ARGState, "Element not " + ARGState.class
+        .getSimpleName() + ", but " + pElement.getClass().getSimpleName());
     //noinspection ConstantConditions
     ARGState element = (ARGState)pElement;
 
