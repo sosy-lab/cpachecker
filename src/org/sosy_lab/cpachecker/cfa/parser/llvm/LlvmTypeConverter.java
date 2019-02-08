@@ -70,10 +70,6 @@ public class LlvmTypeConverter {
   }
 
   public CType getCType(final TypeRef pLlvmType) {
-    return getCType(pLlvmType, true);
-  }
-
-  public CType getCType(final TypeRef pLlvmType, final boolean pIsSigned) {
     final boolean isConst = false;
     final boolean isVolatile = false;
     TypeKind typeKind = pLlvmType.getTypeKind();
