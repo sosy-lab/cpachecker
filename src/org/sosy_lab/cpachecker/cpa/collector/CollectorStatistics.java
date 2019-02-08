@@ -32,6 +32,7 @@ import com.google.common.io.Resources;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -42,6 +43,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -87,8 +89,8 @@ public class CollectorStatistics implements Statistics {
   private static final String HTML_TEMPLATE = "collectortable.html";
   private static final String CSS_TEMPLATE = "collectortable.css";
   private static final String JS_TEMPLATE = "collectortable.js";
-  Collection<AbstractState> reachedcollection = new ArrayList<AbstractState>();
-  Collection<ARGState> reachedcollectionARG = new ArrayList<ARGState>();
+  private Collection<ARGState> reachedcollectionARG = new ArrayList<ARGState>();
+
 
   public CollectorStatistics(CollectorCPA ccpa, Configuration config,LogManager pLogger) throws InvalidConfigurationException {
     this.cpa = ccpa;
@@ -113,53 +115,39 @@ public class CollectorStatistics implements Statistics {
     writer.put("Sonja reached", reached.toString()) ;
     }
 
-    //richtig ist die Übergabe von unmodifiableReachedSet, Collection nur zu Testzwecken
   private void makeFile(Result result, UnmodifiableReachedSet reached) {
-  //private void makeFile(Result result, Collection<AbstractState> reached) {
       try{
 
         for (AbstractState rootState: reached) {
-          //logger.log(Level.INFO, "sonja got them: " + rootState);
           CollectorState cstate = (CollectorState) rootState;
           ARGState argstate = cstate.getARGState();
 
 
           reachedcollectionARG.add(argstate);
-          logger.log(Level.INFO, "sonja got the Size: " + reachedcollectionARG.size());
-          ARGState first = sillyExample(reachedcollectionARG);
-          logger.log(Level.INFO, "sonja got the first: " + first);
-          logger.log(Level.INFO, "sonja got the ARGState: " + argstate);
-          logger.log(Level.INFO, "sonja got them ALL: " + reachedcollectionARG);
+          //logger.log(Level.INFO, "sonja got the Size: " + reachedcollectionARG.size());
+          //ARGState first = getFirst(reachedcollectionARG);
+          //logger.log(Level.INFO, "sonja got the first: " + first);
+          //logger.log(Level.INFO, "sonja got the ARGState: " + argstate);
+          //logger.log(Level.INFO, "sonja got them ALL: " + reachedcollectionARG);
 
 
           int i = 0;
-          String filenamepart1 = "./output/SonjasTestfiledaszweite";
-          String filenamefinal = filenamepart1 + ".txt";
+          String filenamepart1 = "./output/etape";
+          String filenamefinal = filenamepart1 + Integer.toString(i) + ".dot";
           File file = new File(filenamefinal);
           while (file.exists()) {
-            i++;
-            filenamefinal = filenamepart1 + Integer.toString(i) + ".txt";
+            filenamefinal = filenamepart1 + Integer.toString(i) + ".dot";
             file = new File(filenamefinal);
+            i++;
           }
           file.createNewFile();
           Writer writer = new FileWriter(file, false);
           BufferedWriter bw = new BufferedWriter(writer);
 
-          //???? schreibt vom ersten Knoten aufwärts alle ARGStates ins file..fortlaufend:
-          //bw.write(reachedcollectionARG.toString());
-          //??? dotWriter macht es aber rückwärts, bis zum Knoten mit der die collection gefüllt
-          // ist WARUM?????
-          //mit getParents auch nur "falschrum"
-          ARGToDotWriter.write(
-              bw,
-              argstate,
-              ARGState::getChildren,
-              Predicates.alwaysTrue(),
-              Predicates.alwaysFalse());
+          ARGToDotWriter.write(bw,reachedcollectionARG,"Test Sonja");
+
           bw.close();
         }
-
-
 
 
         BufferedReader reader =
@@ -198,7 +186,7 @@ public class CollectorStatistics implements Statistics {
   private void insertCss(BufferedWriter pWriter) {
   }
 
-  public ARGState sillyExample(Collection<ARGState> collection){
+  public ARGState getFirst(Collection<ARGState> collection){
       return collection.iterator().next();
     }
 }
