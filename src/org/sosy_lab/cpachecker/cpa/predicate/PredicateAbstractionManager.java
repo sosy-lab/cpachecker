@@ -583,6 +583,8 @@ public class PredicateAbstractionManager {
           this.abstractionReuseDisabledBecauseOfAmbiguity = true;
           tryReuseBasedOnPredecessors.clear();
           continue;
+        } else if (candidateAbstractions.isEmpty()) {
+          continue;
         }
 
         Set<Integer> reuseIds = Sets.newTreeSet();
