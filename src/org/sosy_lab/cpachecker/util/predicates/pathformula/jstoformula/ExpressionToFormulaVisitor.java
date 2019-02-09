@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BinaryOperator;
 import java.util.logging.Level;
@@ -376,14 +376,18 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
       throws UnrecognizedCodeException {
     final IntegerFormula objectId = objIdMgr.createObjectId();
     final TypedValue objectValue = tvmgr.createObjectValue(objectId);
-    // TODO assign elements to new array object
     final List<JSExpression> elements = pArrayLiteralExpression.getElements();
-    final JSObjectLiteralField lengthField =
+    // +1 due to additional property `length`
+    final List<JSObjectLiteralField> fields = new ArrayList<>(elements.size() + 1);
+    fields.add(
         new JSObjectLiteralField(
             "length",
             new JSIntegerLiteralExpression(
-                FileLocation.DUMMY, BigInteger.valueOf(elements.size())));
-    ctx.objMgr.setObjectFields(objectId, Collections.singletonList(lengthField));
+                FileLocation.DUMMY, BigInteger.valueOf(elements.size()))));
+    for (int i = 0; i < elements.size(); i++) {
+      fields.add(new JSObjectLiteralField(Integer.toString(i), elements.get(i)));
+    }
+    ctx.objMgr.setObjectFields(objectId, fields);
     return objectValue;
   }
 

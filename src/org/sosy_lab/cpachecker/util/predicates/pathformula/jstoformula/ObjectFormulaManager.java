@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
-import static java.util.stream.Collectors.toMap;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.OBJECT_FIELDS_TYPE;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nonnull;
@@ -97,27 +97,38 @@ class ObjectFormulaManager extends ManagerWithEdgeContext {
 
   private ArrayFormula<FloatingPointFormula, IntegerFormula> getObjectFields(
       final List<JSObjectLiteralField> pFields) throws UnrecognizedCodeException {
-    final Map<FloatingPointFormula, JSObjectLiteralField> fieldById =
-        pFields.stream()
-            .collect(toMap(field -> strMgr.getStringFormula(field.getFieldName()), field -> field));
     ArrayFormula<FloatingPointFormula, IntegerFormula> objectFields =
         afmgr.makeArray("emptyObjectFields", OBJECT_FIELDS_TYPE);
+    final Map<FloatingPointFormula, JSObjectLiteralField> fieldById = new HashMap<>();
+    for (final JSObjectLiteralField field : pFields) {
+      final FloatingPointFormula idFormula = strMgr.getStringFormula(field.getFieldName());
+      if (StringFormulaManager.isNumberString(field.getFieldName())) {
+        objectFields = afmgr.store(objectFields, idFormula, getFieldFormula(field));
+      } else {
+        fieldById.put(idFormula, field);
+      }
+    }
     for (final FloatingPointFormula idFormula : strMgr.getIdRange()) {
       final IntegerFormula fieldValue;
       if (fieldById.containsKey(idFormula)) {
-        final JSObjectLiteralField field = fieldById.get(idFormula);
-        final IntegerFormula fieldFormula = makeFieldVariable(field.getFieldName());
-        ctx.constraints.addConstraint(markFieldAsSet(fieldFormula));
-        ctx.constraints.addConstraint(
-            ctx.assignmentMgr.makeAssignment(
-                fieldFormula, ctx.exprMgr.makeExpression(field.getInitializer())));
-        fieldValue = fieldFormula;
+        fieldValue = getFieldFormula(fieldById.get(idFormula));
       } else {
         fieldValue = objectFieldNotSet;
       }
       objectFields = afmgr.store(objectFields, idFormula, fieldValue);
     }
     return objectFields;
+  }
+
+  @Nonnull
+  private IntegerFormula getFieldFormula(final JSObjectLiteralField pField)
+      throws UnrecognizedCodeException {
+    final IntegerFormula fieldFormula = makeFieldVariable(pField.getFieldName());
+    ctx.constraints.addConstraint(markFieldAsSet(fieldFormula));
+    ctx.constraints.addConstraint(
+        ctx.assignmentMgr.makeAssignment(
+            fieldFormula, ctx.exprMgr.makeExpression(pField.getInitializer())));
+    return fieldFormula;
   }
 
   void setObjectFields(final IntegerFormula pObjectId, final List<JSObjectLiteralField> pFields)
