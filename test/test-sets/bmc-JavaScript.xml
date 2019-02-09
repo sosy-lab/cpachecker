@@ -32,7 +32,7 @@
         <option name="-setprop">cpa.predicate.encodeFloatAs=rational</option>
         <!-- TODO this option should be removed as soon as NaN and float interpolation can be used together -->
         <option name="-setprop">cpa.predicate.js.useNaN=false</option>
-        <exclude>../programs/javascript/binary-expressions.yml</exclude>
+        <exclude>../programs/javascript/expressions/binary-expressions/*.yml</exclude>
         <includesfile>predicateAnalysis-JavaScript-encodeFloatAsRational.set</includesfile>
         <propertyfile>../../test/config/specification/JavaScriptAssertion.spc</propertyfile>
     </tasks>
