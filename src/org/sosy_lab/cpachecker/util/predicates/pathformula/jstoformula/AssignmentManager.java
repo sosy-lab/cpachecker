@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.NUMBER_TYPE;
+
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBracketPropertyAccess;
@@ -34,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSStringLiteralExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
@@ -79,6 +82,10 @@ class AssignmentManager extends ManagerWithEdgeContext {
         ctx.propMgr.getObjectDeclarationOfObjectExpression(pPropertyAccess.getObjectExpression());
     final IntegerFormula objectId =
         typedVarValues.objectValue(ctx.scopeMgr.scopedVariable(objectDeclaration));
+    // If the length property of an array is updated, it is stored in these fields and the resulting
+    // fields will be assigned to this variable.
+    ArrayFormula<FloatingPointFormula, IntegerFormula> objectFields =
+        ctx.objMgr.getObjectFields(objectId);
     final JSExpression propertyNameExpression = pPropertyAccess.getPropertyNameExpression();
     final IntegerFormula field;
     final FloatingPointFormula propertyNameFormula;
@@ -86,15 +93,71 @@ class AssignmentManager extends ManagerWithEdgeContext {
       final String propertyName = ((JSStringLiteralExpression) propertyNameExpression).getValue();
       field = ctx.objMgr.makeFieldVariable(propertyName);
       propertyNameFormula = strMgr.getStringFormula(propertyName);
+      // TODO check if integer string (otherwise do not set/update `length` property)
+      if (StringFormulaManager.isNumberString(propertyName)) {
+        objectFields =
+            updateArrayLengthProperty(
+                objectId, objectFields, fpfmgr.makeNumber(propertyName, NUMBER_TYPE));
+      }
     } else {
       field = ctx.objMgr.makeFieldVariable();
-      propertyNameFormula =
-          valConv.toStringFormula(ctx.exprMgr.makeExpression(propertyNameExpression));
+      final TypedValue typedPropertyNameValue = ctx.exprMgr.makeExpression(propertyNameExpression);
+      propertyNameFormula = valConv.toStringFormula(typedPropertyNameValue);
+      final IntegerFormula propertyNameType = typedPropertyNameValue.getType();
+      if (propertyNameType.equals(typeTags.NUMBER)) {
+        objectFields =
+            updateArrayLengthProperty(
+                objectId, objectFields, (FloatingPointFormula) typedPropertyNameValue.getValue());
+      } else if (propertyNameType.equals(typeTags.STRING)) {
+        objectFields =
+            updateArrayLengthProperty(
+                objectId,
+                objectFields,
+                valConv.stringToNumber((FloatingPointFormula) typedPropertyNameValue.getValue()));
+      } else {
+        // variable
+        final IntegerFormula variable = (IntegerFormula) typedPropertyNameValue.getValue();
+        objectFields =
+            bfmgr.ifThenElse(
+                fmgr.makeEqual(propertyNameType, typeTags.NUMBER),
+                updateArrayLengthProperty(
+                    objectId, objectFields, typedVarValues.numberValue(variable)),
+                bfmgr.ifThenElse(
+                    fmgr.makeEqual(propertyNameType, typeTags.STRING),
+                    updateArrayLengthProperty(
+                        objectId,
+                        objectFields,
+                        valConv.stringToNumber(typedVarValues.stringValue(variable))),
+                    objectFields));
+      }
     }
     ctx.constraints.addConstraint(ctx.objMgr.markFieldAsSet(field));
-    ctx.objMgr.setObjectFields(
-        objectId, afmgr.store(ctx.objMgr.getObjectFields(objectId), propertyNameFormula, field));
+    ctx.objMgr.setObjectFields(objectId, afmgr.store(objectFields, propertyNameFormula, field));
     return makeAssignment(field, pRhsValue);
+  }
+
+  private ArrayFormula<FloatingPointFormula, IntegerFormula> updateArrayLengthProperty(
+      final IntegerFormula pObjectId,
+      final ArrayFormula<FloatingPointFormula, IntegerFormula> pObjectFields,
+      final FloatingPointFormula pNumberIndexFormula) {
+    final FloatingPointFormula lengthPropertyNameFormula = strMgr.getStringFormula("length");
+    final IntegerFormula oldLengthVariable =
+        (IntegerFormula) ctx.propMgr.accessField(pObjectId, lengthPropertyNameFormula).getValue();
+    final IntegerFormula newLengthVariable = ctx.objMgr.makeFieldVariable("length");
+    final FloatingPointFormula newLength =
+        fpfmgr.add(pNumberIndexFormula, fpfmgr.makeNumber(1, NUMBER_TYPE));
+    ctx.constraints.addConstraint(ctx.objMgr.markFieldAsSet(newLengthVariable));
+    ctx.constraints.addConstraint(makeNumberAssignment(newLengthVariable, newLength));
+    // TODO check if object is an array (otherwise do not set/update `length` property)
+    // TODO check if index is positive int < 2^32
+    // TODO check NaN and Infinity
+    return afmgr.store(
+        pObjectFields,
+        lengthPropertyNameFormula,
+        bfmgr.ifThenElse(
+            fpfmgr.greaterOrEquals(typedVarValues.numberValue(oldLengthVariable), newLength),
+            oldLengthVariable,
+            newLengthVariable));
   }
 
   private BooleanFormula makeAssignment(final JSFieldAccess pLhs, final TypedValue pRhsValue)
