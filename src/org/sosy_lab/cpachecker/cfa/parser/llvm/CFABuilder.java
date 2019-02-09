@@ -721,7 +721,9 @@ public class CFABuilder {
       return null;
     } else if (pItem.isPHINode()) {
       // TODO!
-      throw new UnsupportedOperationException();
+      throw new LLVMException(
+          "Program contains PHI nodes, but they are not supported by CPAchecker, yet."
+              + "Please remove them with `opt -reg2mem $PROG`");
     } else if (pItem.isInvokeInst()) {
       throw new UnsupportedOperationException();
     } else {
