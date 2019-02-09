@@ -264,10 +264,7 @@ class ValueConverterManager {
     } else if (type.equals(typeTags.NUMBER)) {
       return (FloatingPointFormula) pValue.getValue();
     } else if (type.equals(typeTags.STRING)) {
-      // TODO string to number conversion of string constants should be possible
-      // For now, assume that every string is not a StringNumericLiteral, see
-      // https://www.ecma-international.org/ecma-262/5.1/#sec-9.3
-      return fpfmgr.makeNaN(Types.NUMBER_TYPE);
+      return stringToNumber((FloatingPointFormula) pValue.getValue());
     } else if (type.equals(typeTags.UNDEFINED)) {
       return fpfmgr.makeNaN(Types.NUMBER_TYPE);
     } else if (type.equals(typeTags.OBJECT)) {
@@ -282,10 +279,27 @@ class ValueConverterManager {
               fmgr.makeEqual(type, typeTags.NUMBER),
               typedVarValues.numberValue(variable),
               bfmgr.ifThenElse(
-                  fmgr.makeEqual(type, typeTags.OBJECT),
-                  fmgr.makeNumber(Types.NUMBER_TYPE, 0), // TODO handle non null objects
-                  fpfmgr.makeNaN(Types.NUMBER_TYPE))));
+                  fmgr.makeEqual(type, typeTags.STRING),
+                  stringToNumber(typedVarValues.stringValue(variable)),
+                  bfmgr.ifThenElse(
+                      fmgr.makeEqual(type, typeTags.OBJECT),
+                      fmgr.makeNumber(Types.NUMBER_TYPE, 0), // TODO handle non null objects
+                      fpfmgr.makeNaN(Types.NUMBER_TYPE)))));
     }
+  }
+
+  /**
+   * Convert string ID formula to number formula.
+   *
+   * @param pStringIdFormula String ID formula to convert to number formula.
+   * @return String ID formula converted to number formula.
+   * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-9.3">9.3.1 ToNumber Applied
+   *     to the String Type</a>
+   */
+  @Nonnull
+  FloatingPointFormula stringToNumber(final FloatingPointFormula pStringIdFormula) {
+    // TODO convert non number strings to NaN
+    return fpfmgr.castTo(pStringIdFormula, Types.NUMBER_TYPE);
   }
 
   /**
