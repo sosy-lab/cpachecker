@@ -391,29 +391,29 @@ public class CFABuilder {
         continue;
       } else if (terminatorInst.isBranchInst()) {
         // get the operands and add branching edges
-        CExpression condition = getBranchCondition(terminatorInst, pFileName);
+        CExpression conditionForElse = getBranchConditionForElse(terminatorInst, pFileName);
 
         BasicBlock succ = terminatorInst.getSuccessor(0);
         CLabelNode label = (CLabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
         addEdge(
             new CAssumeEdge(
-                condition.toASTString(),
-                condition.getFileLocation(),
+                conditionForElse.toASTString(),
+                conditionForElse.getFileLocation(),
                 brNode,
                 label,
-                condition,
-                true));
+                conditionForElse,
+                false));
 
         succ = terminatorInst.getSuccessor(1);
         label = (CLabelNode) pBasicBlocks.get(succ.hashCode()).getEntryNode();
         addEdge(
             new CAssumeEdge(
-                condition.toASTString(),
-                condition.getFileLocation(),
+                conditionForElse.toASTString(),
+                conditionForElse.getFileLocation(),
                 brNode,
                 label,
-                condition,
-                false));
+                conditionForElse,
+                true));
       } else {
         assert terminatorInst.isSwitchInst()
             : "Unhandled instruction type: " + terminatorInst.getOpCode();
@@ -522,7 +522,7 @@ public class CFABuilder {
 
         CType ifType = typeConverter.getCType(valueIf.typeOf());
         assert ifType.equals(typeConverter.getCType(valueElse.typeOf()));
-        CExpression conditionC = getBranchCondition(condition, pFileName);
+        CExpression conditionForElse = getBranchConditionForElse(condition, pFileName);
         CExpression trueValue = getExpression(valueIf, ifType, pFileName);
         CStatement trueAssignment =
             (CStatement) getAssignStatement(i, trueValue, funcName, pFileName).get(0);
@@ -535,21 +535,21 @@ public class CFABuilder {
         CFANode falseNode = newNode(funcName);
         CAssumeEdge trueBranch =
             new CAssumeEdge(
-                conditionC.toASTString(),
-                conditionC.getFileLocation(),
+                conditionForElse.toASTString(),
+                conditionForElse.getFileLocation(),
                 prevNode,
                 trueNode,
-                conditionC,
-                true);
+                conditionForElse,
+                false);
         addEdge(trueBranch);
         CAssumeEdge falseBranch =
             new CAssumeEdge(
-                conditionC.toASTString(),
-                conditionC.getFileLocation(),
+                conditionForElse.toASTString(),
+                conditionForElse.getFileLocation(),
                 prevNode,
                 falseNode,
-                conditionC,
-                false);
+                conditionForElse,
+                true);
         addEdge(falseBranch);
 
         prevNode = trueNode;
@@ -667,7 +667,7 @@ public class CFABuilder {
     return handleFunctionDefinition(pItem, pFileName);
   }
 
-  private CExpression getBranchCondition(final Value pItem, final String pFileName)
+  private CExpression getBranchConditionForElse(final Value pItem, final String pFileName)
       throws LLVMException {
     CExpression condition;
     if (pItem.isConditional()) {
@@ -678,10 +678,12 @@ public class CFABuilder {
       condition = getAssignedIdExpression(pItem, CNumericTypes.BOOL, pFileName);
     }
     try {
+      // To have the same structure for statements `if (b)` as the C parsing,
+      // use "if (b == 0) else-branch; else if-branch;".
       return binaryExpressionBuilder.buildBinaryExpression(
           condition,
           new CIntegerLiteralExpression(
-              getLocation(pItem, pFileName), CNumericTypes.BOOL, BigInteger.ONE),
+              getLocation(pItem, pFileName), CNumericTypes.BOOL, BigInteger.ZERO),
           BinaryOperator.EQUALS);
     } catch (UnrecognizedCodeException e) {
       throw new AssertionError(e.toString());
