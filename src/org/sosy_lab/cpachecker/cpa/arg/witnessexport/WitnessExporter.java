@@ -129,7 +129,7 @@ public class WitnessExporter {
         pIsRelevantEdge,
         Predicates.alwaysFalse(),
         Optional.empty(),
-        Optional.of(pCounterExample),
+        Optional.ofNullable(pCounterExample),
         GraphBuilder.ARG_PATH);
   }
 
