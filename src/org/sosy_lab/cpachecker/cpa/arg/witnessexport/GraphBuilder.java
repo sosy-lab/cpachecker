@@ -91,7 +91,10 @@ enum GraphBuilder {
           String prevStateId = sourceStateNodeId;
           CFAEdge edgeToNextState;
 
-          if (allEdgeToNextState.size() == 1) {
+          if (allEdgeToNextState.isEmpty()) {
+            edgeToNextState = null; // TODO no next state, what to do?
+
+          } else if (allEdgeToNextState.size() == 1) {
             edgeToNextState = Iterables.getOnlyElement(allEdgeToNextState);
 
             // this is a dynamic multi edge
