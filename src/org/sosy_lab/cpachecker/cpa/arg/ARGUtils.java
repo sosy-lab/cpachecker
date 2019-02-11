@@ -67,6 +67,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -805,7 +806,11 @@ public class ARGUtils {
           List<CFAEdge> allEdges = s.getEdgesToChild(child);
           CFAEdge edge;
 
-          if (allEdges.size() == 1) {
+          if (allEdges.isEmpty()) {
+            // this is a missing edge, e.g., caused by SSCCPA
+            edge = new DummyCFAEdge(extractLocation(s), extractLocation(child));
+
+          } else if (allEdges.size() == 1) {
             edge = Iterables.getOnlyElement(allEdges);
 
             // this is a dynamic multi edge
