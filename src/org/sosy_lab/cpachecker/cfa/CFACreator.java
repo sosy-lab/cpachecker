@@ -83,6 +83,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFADeclarationMover;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResolver;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ExpandFunctionPointerArrayAssignments;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.LabelAdder;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
@@ -261,6 +262,13 @@ public class CFACreator {
     description = "Whether to create dependence graph for the CFA of the program"
   )
   private boolean createDependenceGraph = false;
+
+  @Option(
+      secure = true,
+      name = "cfa.addBlockLabels",
+      description = "Add a unique label for each basic block"
+  )
+  private boolean addBlockLabels = false;
 
   @Option(secure=true, name="cfa.classifyNodes",
       description="This option enables the computation of a classification of CFA nodes.")
@@ -499,7 +507,7 @@ private boolean classifyNodes = false;
     // Mutating post-processings should be checked carefully for their effect
     // on the information collected above (such as loops and post-order ids).
 
-    // (currently no such post-processings exist)
+    instrumentCfa(cfa);
 
     // SIXTH, get information about the CFA,
     // the cfa should not be modified after this line.
@@ -566,6 +574,24 @@ private boolean classifyNodes = false;
     logger.log(Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created.");
 
     return immutableCFA;
+  }
+
+  private void instrumentCfa(MutableCFA pCfa) throws InvalidConfigurationException {
+    if (addBlockLabels) {
+      // add a block label at the beginning of each basic block.
+      // This may require the CFA's loop structure, and thus must be performed
+      // after computing and adding that.
+      if (!pCfa.getLoopStructure().isPresent()) {
+        throw new InvalidConfigurationException("Adding block labels requires loop structure");
+      }
+      new LabelAdder().addLabelsAtBlockEnds(pCfa, config);
+
+      // Re-compute postorder ids to include newly added label nodes
+      for (FunctionEntryNode function : pCfa.getAllFunctionHeads()) {
+        CFAReversePostorder sorter = new CFAReversePostorder();
+        sorter.assignSorting(function);
+      }
+    }
   }
 
   /**
