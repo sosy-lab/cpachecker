@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -237,6 +238,10 @@ public class ARGToCTranslator {
 
   @Option(secure=true, name="handleTargetStates", description="How to deal with target states during code generation")
   private TargetTreatment targetStrategy = TargetTreatment.NONE;
+
+  @Option(secure=true, name="writeLabels", description="Whether to write labels that occur in original code")
+  private boolean writeOriginalLabels = false;
+
 
   public ARGToCTranslator(LogManager pLogger, Configuration pConfig)
       throws InvalidConfigurationException {
@@ -535,7 +540,12 @@ public class ARGToCTranslator {
   }
 
   private void addLabel(final CompoundStatement pBlock, final ARGState pCurrentElement) {
-    pBlock.addStatement(new SimpleStatement("label_" + pCurrentElement.getStateId() + ":; "));
+    final String labelCode = getLabelCode("label_" + pCurrentElement.getStateId());
+    pBlock.addStatement(new SimpleStatement(labelCode));
+  }
+
+  private String getLabelCode(final String pLabelName) {
+      return pLabelName + ":; ";
   }
 
   private void addTmpAssignments(
@@ -724,8 +734,13 @@ public class ARGToCTranslator {
 
     switch (pCFAEdge.getEdgeType()) {
       case BlankEdge: {
-        //nothing to do
-        break;
+        CFANode succ = pCFAEdge.getSuccessor();
+        if (writeOriginalLabels && succ instanceof CLabelNode) {
+          return getLabelCode(((CLabelNode) succ).getLabel());
+        } else {
+          //nothing to do
+          break;
+        }
       }
 
       case AssumeEdge: {

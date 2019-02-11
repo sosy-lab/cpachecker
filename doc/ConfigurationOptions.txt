@@ -1015,6 +1015,9 @@ cpa.arg.export.code.handleTargetStates = NONE
 # write include directives
 cpa.arg.export.code.header = true
 
+# Whether to write labels that occur in original code
+cpa.arg.export.code.writeLabels = false
+
 # export final ARG as .dot file
 cpa.arg.file = "ARG.dot"
 
