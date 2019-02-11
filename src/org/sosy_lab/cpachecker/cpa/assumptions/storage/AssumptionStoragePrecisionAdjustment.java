@@ -26,10 +26,8 @@ package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 import com.google.common.base.Function;
 import java.util.List;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -75,57 +73,8 @@ public class AssumptionStoragePrecisionAdjustment implements PrecisionAdjustment
     } else {
       successor = new CFANode("__CPAchecker_dummy");
     }
-    CFANode predecessor = successor;
-    return new CFAEdge() {
-
-      private static final long serialVersionUID = 1L;
-
-      @Override
-      public CFANode getSuccessor() {
-        return successor;
-      }
-
-      @Override
-      public String getRawStatement() {
-        return "";
-      }
-
-      @Override
-      public com.google.common.base.Optional<? extends AAstNode> getRawAST() {
-        return com.google.common.base.Optional.absent();
-      }
-
-      @Override
-      public CFANode getPredecessor() {
-        return predecessor;
-      }
-
-      @Override
-      public int getLineNumber() {
-        return getFileLocation().getStartingLineNumber();
-      }
-
-      @Override
-      public FileLocation getFileLocation() {
-        // TODO Auto-generated method stub
-        return FileLocation.DUMMY;
-      }
-
-      @Override
-      public CFAEdgeType getEdgeType() {
-        return CFAEdgeType.BlankEdge;
-      }
-
-      @Override
-      public String getDescription() {
-        return "";
-      }
-
-      @Override
-      public String getCode() {
-        return "";
-      }
-    };
+    CFANode predecessor = successor; // TODO wtf?
+    return new DummyCFAEdge(predecessor, successor);
   }
 
 }
