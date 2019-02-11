@@ -70,13 +70,13 @@ abstract class FullPathIterator extends PathIterator {
 
   @Override
   public @Nullable CFAEdge getIncomingEdge() {
-    checkState(hasPrevious(), "First state in ARGPath has no incoming edge.");
+    checkState(overallOffset > 0, "First state in ARGPath has no incoming edge.");
     return fullPath.get(overallOffset - 1);
   }
 
   @Override
   public @Nullable CFAEdge getOutgoingEdge() {
-    checkState(hasNext(), "Last state in ARGPath has no outgoing edge.");
+    checkState(pos < path.size() - 1, "Last state in ARGPath has no outgoing edge.");
     return fullPath.get(overallOffset);
   }
 
