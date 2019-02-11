@@ -270,6 +270,7 @@ public class CounterexampleInfo extends AbstractAppender {
       Map<String, Object> elem = new HashMap<>();
       CFAEdge edge = iterator.getOutgoingEdge();
       if (edge == null) {
+        // TODO why not iterator.advance();
         continue; // in this case we do not need the edge
       }
 

@@ -78,7 +78,7 @@ class DefaultFullPathIterator extends FullPathIterator {
 
   @Override
   public boolean hasNext() {
-    return pos < path.size() - 1;
+    return overallOffset < fullPath.size() - 1;
   }
 
   @Override
