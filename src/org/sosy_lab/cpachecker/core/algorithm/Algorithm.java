@@ -149,7 +149,7 @@ public interface Algorithm {
       if (!propertyChecked) {
         return "AlgorithmStatus [no property checked]";
       }
-      return "AlgorithmStatus [isSound=" + isSound + ", isPrecise=\" + isPrecise]";
+      return "AlgorithmStatus [isSound=" + isSound + ", isPrecise=" + isPrecise + "]";
     }
   }
 
