@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2016  Dirk Beyer
+ *  Copyright (C) 2007-2019  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,12 +16,8 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.bam;
+package org.sosy_lab.cpachecker.core.reachedset;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -34,39 +30,40 @@ import java.util.function.BiConsumer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
-/** View on the set of states computed by {@link BAMSubgraphComputer}. */
-final class BAMReachedSetView implements UnmodifiableReachedSet {
+/**
+ * This class provides an unmodifiable view on a subgraph of states. The subgraph is computed lazily
+ * from the states reachable from the given first state. The view has an empty waitlist.
+ */
+public class UnmodifiableSubgraphReachedSetView implements UnmodifiableReachedSet {
 
-  private final ARGState rootOfSubgraph;
-  private final ARGState lastState;
-  private final Function<AbstractState, Precision> precisionGetter;
-  private final Collection<AbstractState> subgraph;
+  private final ARGPath path;
+  protected final Function<AbstractState, Precision> precisionGetter;
+  private Collection<AbstractState> subgraph; // lazy
 
-  BAMReachedSetView(ARGState pRootOfSubgraph, ARGState pLastState,
-      Function<AbstractState, Precision> pPrecisionGetter) {
-    rootOfSubgraph = pRootOfSubgraph;
-    lastState = pLastState;
+  public UnmodifiableSubgraphReachedSetView(
+      ARGPath pPath, Function<AbstractState, Precision> pPrecisionGetter) {
+    path = pPath;
     precisionGetter = pPrecisionGetter;
-    subgraph = Collections.unmodifiableCollection(pRootOfSubgraph.getSubgraph());
   }
-
 
   @Override
   public Collection<AbstractState> asCollection() {
+    if (subgraph == null) {
+      subgraph = Collections.unmodifiableCollection(path.getFirstState().getSubgraph());
+    }
     return subgraph;
   }
 
   @Override
   public Iterator<AbstractState> iterator() {
-    return subgraph.iterator();
+    return asCollection().iterator();
   }
 
   @Override
   public Collection<Precision> getPrecisions() {
-    return Collections2.transform(subgraph, precisionGetter);
+    return Collections2.transform(asCollection(), precisionGetter);
   }
 
   @Override
@@ -81,23 +78,21 @@ final class BAMReachedSetView implements UnmodifiableReachedSet {
 
   @Override
   public AbstractState getFirstState() {
-    return rootOfSubgraph;
+    return path.getFirstState();
   }
 
   @Override
   public AbstractState getLastState() {
-    return lastState;
+    return path.getLastState();
   }
 
   @Override
   public boolean hasWaitingState() {
-    // BAM-reached-set has no waiting states
     return false;
   }
 
   @Override
   public Collection<AbstractState> getWaitlist() {
-    // BAM-reached-set has no waiting states
     return Collections.emptySet();
   }
 
@@ -108,17 +103,17 @@ final class BAMReachedSetView implements UnmodifiableReachedSet {
 
   @Override
   public void forEach(BiConsumer<? super AbstractState, ? super Precision> pAction) {
-    subgraph.forEach(state -> pAction.accept(state, precisionGetter.apply(state)));
+    asCollection().forEach(state -> pAction.accept(state, precisionGetter.apply(state)));
   }
 
   @Override
   public boolean contains(AbstractState state) {
-    return subgraph.contains(state);
+    return asCollection().contains(state);
   }
 
   @Override
   public boolean isEmpty() {
-    return subgraph.isEmpty();
+    return asCollection().isEmpty();
   }
 
   @Override

@@ -27,6 +27,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableSubgraphReachedSetView;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -45,7 +46,8 @@ class SSCReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
   @Override
   public UnmodifiableReachedSet asReachedSet() {
-    return new SSCReachedSetView(path, super.asReachedSet());
+    return new UnmodifiableSubgraphReachedSetView(
+        path, s -> super.asReachedSet().getPrecision(((SSCARGState) s).getSSCState()));
   }
 
   @Override
