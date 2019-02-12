@@ -652,7 +652,7 @@ cfa.export = true
 cfa.exportPerFunction = true
 
 # export CFA as C file
-cfa.exportToC = true
+cfa.exportToC = false
 cfa.exportToC.file = "cfa.c"
 
 # export CFA as .dot file
