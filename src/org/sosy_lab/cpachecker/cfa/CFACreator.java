@@ -178,7 +178,7 @@ public class CFACreator {
   private boolean exportCfaPerFunction = true;
 
   @Option(secure = true, name = "cfa.exportToC", description = "export CFA as C file")
-  private boolean exportCfaToC = true;
+  private boolean exportCfaToC = false;
 
   @Option(secure = true, name = "cfa.exportToC.file", description = "export CFA as C file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
