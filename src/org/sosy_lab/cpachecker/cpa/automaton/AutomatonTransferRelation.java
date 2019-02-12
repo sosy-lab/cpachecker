@@ -37,7 +37,6 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -408,12 +407,12 @@ class AutomatonTransferRelation implements TransferRelation {
       CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException {
-    Set<List<AbstractState>> strengtheningCombinations = new HashSet<>();
+    Set<List<AbstractState>> strengtheningCombinations = new LinkedHashSet<>();
     strengtheningCombinations.add(pOtherElements);
     boolean changed = from(pOtherElements).anyMatch(instanceOf(AutomatonUnknownState.class));
     while (changed) {
       changed = false;
-      Set<List<AbstractState>> newCombinations = new HashSet<>();
+      Set<List<AbstractState>> newCombinations = new LinkedHashSet<>();
       for (List<AbstractState> otherStates : strengtheningCombinations) {
         Collection<List<AbstractState>> newPartialCombinations = new ArrayList<>();
         newPartialCombinations.add(new ArrayList<>());
@@ -459,7 +458,7 @@ class AutomatonTransferRelation implements TransferRelation {
     }
 
     // For each list of other states, do the strengthening
-    Collection<AbstractState> successors = new HashSet<>();
+    Collection<AbstractState> successors = new LinkedHashSet<>();
     for (List<AbstractState> otherStates : strengtheningCombinations) {
       successors.addAll(
           getFollowStates(
