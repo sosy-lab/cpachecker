@@ -496,6 +496,9 @@ private boolean classifyNodes = false;
       addLoopStructure(cfa);
     }
 
+    // instrument the cfa, if any configuration regarding that is set (needs loop structure)
+    instrumentCfa(cfa);
+
     // FOURTH, insert call and return edges and build the supergraph
     if (interprocedural) {
       logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
@@ -507,7 +510,7 @@ private boolean classifyNodes = false;
     // Mutating post-processings should be checked carefully for their effect
     // on the information collected above (such as loops and post-order ids).
 
-    instrumentCfa(cfa);
+    // (currently no such post-processings exist)
 
     // SIXTH, get information about the CFA,
     // the cfa should not be modified after this line.

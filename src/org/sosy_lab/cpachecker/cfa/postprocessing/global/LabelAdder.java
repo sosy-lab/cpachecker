@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.postprocessing.global;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -38,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
-import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
@@ -82,7 +82,7 @@ public class LabelAdder {
       throw new AssertionError(e);
     }
 
-    Set<CFANode> allNodes = CFATraversal.dfs().collectNodesReachableFrom(pCfa.getMainFunction());
+    Set<CFANode> allNodes = ImmutableSet.copyOf(pCfa.getAllNodes());
     if (addBlockLabels) {
       addLabelsAtBlockEnds(pCfa, allNodes, blk);
     }
