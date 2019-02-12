@@ -23,6 +23,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -64,7 +65,7 @@ class SSCReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
    * but sufficiently enough to remove the property violation.
    * We assume that the precision gets stronger along all paths. */
   @Override
-  @SuppressWarnings("unchecked")
+  @SuppressFBWarnings("BC_UNCONFIRMED_CAST")
   public void removeSubtree(
       ARGState cutState,
       List<Precision> newPrecisions,
