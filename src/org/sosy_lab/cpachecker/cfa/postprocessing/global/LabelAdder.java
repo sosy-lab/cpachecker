@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -135,10 +136,33 @@ public class LabelAdder {
     int num = 0;
     for (CFAEdge e : enteringEdges)  {
       final String labelName = pBlockSuffix + (pBlockNumberStart + num);
-      addLabelAfter(e, labelName, pCfa);
+      if (pNode instanceof FunctionExitNode) {
+        addLabelBefore(e, labelName, pCfa);
+      } else {
+        addLabelAfter(e, labelName, pCfa);
+      }
       num++;
     }
     return num;
+  }
+
+  private void addLabelBefore(CFAEdge pEdge, String pLabelName, MutableCFA pCfa) {
+    final CFANode start = pEdge.getPredecessor();
+    final CFANode end = pEdge.getSuccessor();
+    final String functionName = start.getFunctionName();
+    final FunctionCloner fc = new FunctionCloner(functionName, functionName, false);
+    final CFANode labelNode = new CLabelNode(functionName, pLabelName);
+    pCfa.addNode(labelNode);
+
+    final CFAEdge redirectedEdge = fc.cloneEdge(pEdge, labelNode, end);
+    start.removeLeavingEdge(pEdge);
+    labelNode.addLeavingEdge(redirectedEdge);
+    end.removeEnteringEdge(pEdge);
+    end.addEnteringEdge(redirectedEdge);
+
+    final CFAEdge labelEdge = new BlankEdge(pLabelName + ":; ", FileLocation.DUMMY, start, labelNode, "Label: " + pLabelName);
+    start.addLeavingEdge(labelEdge);
+    labelNode.addEnteringEdge(labelEdge);
   }
 
   private void addLabelAfter(CFAEdge pEdge, String pLabelName, MutableCFA pCfa) {
