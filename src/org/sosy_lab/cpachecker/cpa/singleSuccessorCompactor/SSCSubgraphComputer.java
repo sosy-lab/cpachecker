@@ -48,8 +48,8 @@ public class SSCSubgraphComputer {
     final ImmutableSet<ARGState> statesOnShortPaths = ARGUtils.getAllStatesOnPathsTo(pLastElement);
     for (final ARGState sscState : statesOnShortPaths) {
 
-      // recompute all inner states of a chain
-      // we actualkly ignore the successor states
+      // recompute all inner states of a chain.
+      // we actually ignore the new successor states and simply use the previously computed ones.
       final List<AbstractState> innerStates = new ArrayList<>();
       final Collection<? extends AbstractState> successors =
           transfer.getAbstractSuccessorsWithList(
@@ -91,6 +91,8 @@ public class SSCSubgraphComputer {
     // previously computed children might be covered or merged,
     // thus there should be equal or more successors.
     assert pChildren.size() <= pSuccessors.size();
+
+    // TODO check equality of children and successors, or at least both-sided coverage.
   }
 
   /** This SSC-ARGState is used to build the Pseudo-ARG for CEX-retrieval. */

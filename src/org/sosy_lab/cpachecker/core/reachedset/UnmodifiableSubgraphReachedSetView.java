@@ -38,8 +38,13 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
  */
 public class UnmodifiableSubgraphReachedSetView implements UnmodifiableReachedSet {
 
+  /** a path from first until last state. */
   private final ARGPath path;
+
+  /** a function to compute a precision for every state in this reached-set. */
   protected final Function<AbstractState, Precision> precisionGetter;
+
+  /** the full set of states in this reached-set. all states are reachable from the first state. */
   private Collection<AbstractState> subgraph; // lazy
 
   public UnmodifiableSubgraphReachedSetView(
@@ -52,6 +57,7 @@ public class UnmodifiableSubgraphReachedSetView implements UnmodifiableReachedSe
   public Collection<AbstractState> asCollection() {
     if (subgraph == null) {
       subgraph = Collections.unmodifiableCollection(path.getFirstState().getSubgraph());
+      assert subgraph.containsAll(path.asStatesList());
     }
     return subgraph;
   }
