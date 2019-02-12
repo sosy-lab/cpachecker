@@ -172,7 +172,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA
     return new ARGState(getWrappedCpa().getInitialState(pNode, pPartition), null);
   }
 
-  protected LogManager getLogger() {
+  public LogManager getLogger() {
     return logger;
   }
 

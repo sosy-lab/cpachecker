@@ -58,7 +58,7 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
   private int refinementNumber;
 
   private final ARGBasedRefiner refiner;
-  private final ARGCPA argCpa;
+  protected final ARGCPA argCpa;
   private final LogManager logger;
 
   protected AbstractARGBasedRefiner(AbstractARGBasedRefiner pAbstractARGBasedRefiner) {

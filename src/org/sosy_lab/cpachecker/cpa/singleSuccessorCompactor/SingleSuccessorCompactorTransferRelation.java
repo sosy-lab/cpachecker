@@ -67,7 +67,7 @@ public class SingleSuccessorCompactorTransferRelation implements TransferRelatio
    * includes the first state (given as parameter) until (exclusive) the last states that are
    * returned directly.
    */
-  private Collection<? extends AbstractState> getAbstractSuccessorsWithList(
+  Collection<? extends AbstractState> getAbstractSuccessorsWithList(
       AbstractState state, final Precision precision, final @Nullable List<AbstractState> lst)
       throws CPATransferException, InterruptedException {
 
