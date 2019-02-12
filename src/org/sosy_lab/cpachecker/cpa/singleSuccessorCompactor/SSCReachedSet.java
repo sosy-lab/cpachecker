@@ -64,6 +64,7 @@ class SSCReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
    * but sufficiently enough to remove the property violation.
    * We assume that the precision gets stronger along all paths. */
   @Override
+  @SuppressWarnings("unchecked")
   public void removeSubtree(
       ARGState cutState,
       List<Precision> newPrecisions,
