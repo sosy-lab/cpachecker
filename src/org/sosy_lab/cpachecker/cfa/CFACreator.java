@@ -265,10 +265,10 @@ public class CFACreator {
 
   @Option(
       secure = true,
-      name = "cfa.addBlockLabels",
-      description = "Add a unique label for each basic block"
+      name = "cfa.addLabels",
+      description = "Add custom labels to the CFA"
   )
-  private boolean addBlockLabels = false;
+  private boolean addLabels = false;
 
   @Option(secure=true, name="cfa.classifyNodes",
       description="This option enables the computation of a classification of CFA nodes.")
@@ -577,14 +577,11 @@ private boolean classifyNodes = false;
   }
 
   private void instrumentCfa(MutableCFA pCfa) throws InvalidConfigurationException {
-    if (addBlockLabels) {
+    if (addLabels) {
       // add a block label at the beginning of each basic block.
-      // This may require the CFA's loop structure, and thus must be performed
+      // This may require the CFA's loop structure, and thus should be done
       // after computing and adding that.
-      if (!pCfa.getLoopStructure().isPresent()) {
-        throw new InvalidConfigurationException("Adding block labels requires loop structure");
-      }
-      new LabelAdder().addLabelsAtBlockEnds(pCfa, config);
+      new LabelAdder(config).addLabels(pCfa);
 
       // Re-compute postorder ids to include newly added label nodes
       for (FunctionEntryNode function : pCfa.getAllFunctionHeads()) {
