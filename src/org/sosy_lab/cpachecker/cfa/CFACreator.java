@@ -1047,7 +1047,7 @@ v.addInitializer(initializer);
       }
     }
 
-    if (exportCfaToC) {
+    if (exportCfaToC && exportCfaToCFile != null) {
       try {
         String code = new CFAToCTranslator().translateCfa(cfa);
         try (Writer writer = IO.openOutputFile(exportCfaToCFile, Charset.defaultCharset())) {
