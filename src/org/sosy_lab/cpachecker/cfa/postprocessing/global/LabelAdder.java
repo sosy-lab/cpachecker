@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.global;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
@@ -85,7 +86,7 @@ public class LabelAdder {
 
     Set<CFANode> allNodes = ImmutableSet.copyOf(pCfa.getAllNodes());
     if (addBlockLabels) {
-      addLabelsAtBlockEnds(pCfa, allNodes, blk);
+      addLabelsAtBlockStarts(pCfa, allNodes, blk);
     }
     if (addProgramExitLabels) {
       addLabelsAtProgramExits(pCfa, allNodes);
@@ -93,27 +94,35 @@ public class LabelAdder {
   }
 
   /**
-   * Add a unique label at each block end in the given CFA.
-   * The configuration of {@link BlockOperator} is used to decide the size and structure
-   * of blocks.
+   * Add a unique label at each block start in the given CFA. The configuration of {@link
+   * BlockOperator} is used to decide the size and structure of blocks.
    *
    * @param pCfa the CFA to add labels to
    */
-  private void addLabelsAtBlockEnds(final MutableCFA pCfa, Collection<CFANode> pCandidates, final BlockOperator pBlk) {
-
+  private void addLabelsAtBlockStarts(
+      final MutableCFA pCfa, Collection<CFANode> pCandidates, final BlockOperator pBlk) {
+    Collection<CFANode> nodesToInstrument = new HashSet<>();
     int labelsAdded = 0;
+    // We do this in two steps: We first get all of the original nodes at which we want labels,
+    // and than we add them.
+    // Otherwise, we'd have to keep track of original and newly added nodes so that we don't add two
+    // labels
+    // after another.
     for (CFANode n : pCandidates) {
       if (pBlk.isBlockEnd(n, -1) && !n.equals(pCfa.getMainFunction())) {
-        // add labels before the block end, and not after,
+        // add labels before the block start, and not after,
         // so that we know that they are reachable.
-        // if we add labels after the block end,
+        // if we add labels after the block start,
         // they may be unreachable (e.g., "return 0; BLOCK_END_1:;")
-        // This means that we don't create labels at the beginning of a code block,
-        // but at it's end. This doesn't matter because, if the end is executed,
-        // the beginning must be executed, too.
-        int added = addLabelBefore(n, BLOCK_LABEL_NAME, labelsAdded, pCfa);
-        labelsAdded += added;
+        for (CFAEdge e : CFAUtils.leavingEdges(n).toList()) {
+          CFANode succ = e.getSuccessor();
+          nodesToInstrument.add(succ);
+        }
       }
+    }
+    for (CFANode n : nodesToInstrument) {
+      int added = addLabelBefore(n, BLOCK_LABEL_NAME, labelsAdded, pCfa);
+      labelsAdded += added;
     }
   }
 
