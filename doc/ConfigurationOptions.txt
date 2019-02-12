@@ -3237,6 +3237,9 @@ mpv.propertySeparator = FILE
 # instead of the current one.
 overflow.config = no default value
 
+# Simplify overflow assumptions.
+overflow.simplifyExpressions = true
+
 # Track overflows in additive(+/-) operations.
 overflow.trackAdditiveOperations = true
 
