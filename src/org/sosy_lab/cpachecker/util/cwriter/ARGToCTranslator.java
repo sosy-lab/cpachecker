@@ -85,14 +85,35 @@ public class ARGToCTranslator {
   private static String DEFAULTRETURN = "default return";
   private static String TMPVARPREFIX = "__tmp_";
 
-  private static abstract class Statement {
-    public abstract void translateToCode(StringBuilder buffer, int indent);
+  abstract static class Statement {
+    private static int gotoCounter = 0;
+
+    private boolean isGotoTarget = false;
+    private String gotoLabel = null;
+
+    public void translateToCode(StringBuilder buffer, int indent) {
+      if (isGotoTarget) {
+        buffer.append(gotoLabel).append(":;\n");
+      }
+      translateToCode0(buffer, indent);
+    }
+
+    abstract void translateToCode0(StringBuilder buffer, int indent);
 
     protected static void writeIndent(StringBuilder buffer, int indent) {
       for(int i = 0; i < indent; i++) {
         // buffer.append(" ");
       }
       buffer.append(" ");
+    }
+
+    public String getLabel() {
+      if (!isGotoTarget) {
+        gotoLabel = "label_" + gotoCounter;
+        gotoCounter++;
+        isGotoTarget = true;
+      }
+      return gotoLabel;
     }
   }
 
@@ -104,7 +125,7 @@ public class ARGToCTranslator {
 
   }
 
-  private static class CompoundStatement extends Statement {
+  static class CompoundStatement extends Statement {
     private final List<Statement> statements;
     private final CompoundStatement outerBlock;
 
@@ -122,7 +143,7 @@ public class ARGToCTranslator {
     }
 
     @Override
-    public void translateToCode(StringBuilder buffer, int indent) {
+    public void translateToCode0(StringBuilder buffer, int indent) {
       writeIndent(buffer, indent);
       buffer.append("{\n");
 
@@ -139,7 +160,7 @@ public class ARGToCTranslator {
     }
   }
 
-  private static class SimpleStatement extends Statement {
+  static class SimpleStatement extends Statement {
     private final String code;
 
     public SimpleStatement(String pCode) {
@@ -147,14 +168,14 @@ public class ARGToCTranslator {
     }
 
     @Override
-    public void translateToCode(StringBuilder buffer, int indent) {
+    public void translateToCode0(StringBuilder buffer, int indent) {
       writeIndent(buffer, indent);
       buffer.append(code);
       buffer.append("\n");
     }
   }
 
-  private static class FunctionBody extends Statement {
+  static class FunctionBody extends Statement {
     private final String functionHeader;
     private final CompoundStatement functionBody;
 
@@ -168,7 +189,7 @@ public class ARGToCTranslator {
     }
 
     @Override
-    public void translateToCode(StringBuilder buffer, int indent) {
+    public void translateToCode0(StringBuilder buffer, int indent) {
       writeIndent(buffer, indent);
       buffer.append(functionHeader);
       buffer.append("\n");

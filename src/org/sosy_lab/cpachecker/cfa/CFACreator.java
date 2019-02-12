@@ -83,11 +83,11 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFADeclarationMover;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResolver;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ExpandFunctionPointerArrayAssignments;
-import org.sosy_lab.cpachecker.cfa.postprocessing.global.LabelAdder;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.LabelAdder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
@@ -107,6 +107,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraphBuilder;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
@@ -175,6 +176,13 @@ public class CFACreator {
   @Option(secure=true, name="cfa.exportPerFunction",
       description="export individual CFAs for function as .dot files")
   private boolean exportCfaPerFunction = true;
+
+  @Option(secure = true, name = "cfa.exportToC", description = "export CFA as C file")
+  private boolean exportCfaToC = true;
+
+  @Option(secure = true, name = "cfa.exportToC.file", description = "export CFA as C file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path exportCfaToCFile = Paths.get("cfa.c");
 
   @Option(secure=true, name="cfa.callgraph.export",
       description="dump a simple call graph")
@@ -570,7 +578,8 @@ private boolean classifyNodes = false;
     if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
         || ((exportFunctionCallsFile != null) && exportFunctionCalls)
         || ((serializeCfaFile != null) && serializeCfa)
-        || (exportCfaPixelFile != null)) {
+        || (exportCfaPixelFile != null)
+        || exportCfaToC) {
       exportCFAAsync(immutableCFA);
     }
 
@@ -1035,6 +1044,17 @@ v.addInitializer(initializer);
         }
       } catch (IOException e) {
         logger.logException(Level.WARNING, e, "Could not serialize CFA to file.");
+      }
+    }
+
+    if (exportCfaToC) {
+      try {
+        String code = new CFAToCTranslator().translateCfa(cfa);
+        try (Writer writer = IO.openOutputFile(exportCfaToCFile, Charset.defaultCharset())) {
+          writer.write(code);
+        }
+      } catch (CPAException | IOException | InvalidConfigurationException e) {
+        logger.logException(Level.WARNING, e, "Could not write CFA to C file.");
       }
     }
 

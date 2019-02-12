@@ -651,6 +651,10 @@ cfa.export = true
 # export individual CFAs for function as .dot files
 cfa.exportPerFunction = true
 
+# export CFA as C file
+cfa.exportToC = true
+cfa.exportToC.file = "cfa.c"
+
 # export CFA as .dot file
 cfa.file = "cfa.dot"
 
