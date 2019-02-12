@@ -27,7 +27,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
@@ -57,7 +56,7 @@ public class StacktraceCounterexampleFilter
   protected Optional<ImmutableList<CFANode>> getCounterexampleRepresentation(
       CounterexampleInfo counterexample) {
     ARGState lastState = counterexample.getTargetPath().getLastState();
-    Builder<CFANode> stacktrace = ImmutableList.builder();
+    ImmutableList.Builder<CFANode> stacktrace = ImmutableList.builder();
     stacktrace.add(extractLocation(lastState));
     CallstackState callstack = extractStateByType(lastState, CallstackState.class);
     do {
