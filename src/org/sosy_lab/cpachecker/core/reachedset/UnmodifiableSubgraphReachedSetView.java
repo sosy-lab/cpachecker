@@ -49,8 +49,8 @@ public class UnmodifiableSubgraphReachedSetView implements UnmodifiableReachedSe
 
   public UnmodifiableSubgraphReachedSetView(
       ARGPath pPath, Function<AbstractState, Precision> pPrecisionGetter) {
-    path = pPath;
-    precisionGetter = pPrecisionGetter;
+    path = checkNotNull(pPath);
+    precisionGetter = checkNotNull(pPrecisionGetter);
   }
 
   @Override
@@ -104,7 +104,7 @@ public class UnmodifiableSubgraphReachedSetView implements UnmodifiableReachedSe
 
   @Override
   public Precision getPrecision(AbstractState state) {
-    return checkNotNull(precisionGetter.apply(state));
+    return checkNotNull(precisionGetter.apply(checkNotNull(state)));
   }
 
   @Override
@@ -114,7 +114,7 @@ public class UnmodifiableSubgraphReachedSetView implements UnmodifiableReachedSe
 
   @Override
   public boolean contains(AbstractState state) {
-    return asCollection().contains(state);
+    return asCollection().contains(checkNotNull(state));
   }
 
   @Override
