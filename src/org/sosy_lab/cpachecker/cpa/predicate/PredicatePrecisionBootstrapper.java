@@ -81,13 +81,13 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
       secure = true,
       description =
           "Provides additional candidate invariants from witness to the initial predicates.")
-  private Path invariantsAutomatonFile = null;
+  private Path correctnessWitnessFile = null;
 
   @Option(
       secure = true,
-      name = "correctnessWitness.validation",
-      description = "extract candidates witness from witness if correctness witness is validated")
-  private boolean correctnessWitnessValidation = false;
+      name = "correctnessWitness.reuseInvariants",
+      description = "extract invariants from witness and add them as predicates")
+  private boolean reuseInvariantsFromCorrectnessWitness = false;
 
   @Option(
       secure = true,
@@ -102,7 +102,6 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   private final LogManager logger;
   private final CFA cfa;
 
-  // new Klassenvariablen
   private final Specification specification;
   private final ShutdownNotifier shutdownNotifier;
   private final PathFormulaManager pathFormulaManager;
@@ -161,16 +160,22 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
       }
     }
 
-    if (correctnessWitnessValidation) {
+    if (reuseInvariantsFromCorrectnessWitness) {
       try {
         final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
         final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
         final Timer analyzeWitnessTimer = new Timer();
         AtomicInteger candidateInvariantCounter = new AtomicInteger();
-        if (invariantsAutomatonFile != null) {
+        if (correctnessWitnessFile != null) {
           ReachedSet reachedSet =
               CandidatesFromWitness.analyzeWitness(
-                  config, specification, logger, cfa, shutdownNotifier, invariantsAutomatonFile, analyzeWitnessTimer);
+                  config,
+                  specification,
+                  logger,
+                  cfa,
+                  shutdownNotifier,
+                  correctnessWitnessFile,
+                  analyzeWitnessTimer);
           CandidatesFromWitness.extractCandidatesFromReachedSet(
               shutdownNotifier,
               candidates,
@@ -206,14 +211,14 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
             if (candidate instanceof ExpressionTreeLocationInvariant) {
               ExpressionTreeLocationInvariant e = (ExpressionTreeLocationInvariant) candidate;
               localPredicates.put(e.getLocation(), predicate.iterator().next());
-              // result = result.addLocalPredicates(localPredicates.entries());
             }
           }
 
           // add all predicates
+          result = result.addLocalPredicates(localPredicates.entries());
+          // TODO improve statistics for invariants
           statistics.addKeyValueStatistic(
               "Number of witness candidate invariants", candidateInvariantCounter.get());
-          result = result.addLocalPredicates(localPredicates.entries());
           statistics.addKeyValueStatistic(
               "Time for witness analysis",
               analyzeWitnessTimer.getSumTime().formatAs(TimeUnit.SECONDS));

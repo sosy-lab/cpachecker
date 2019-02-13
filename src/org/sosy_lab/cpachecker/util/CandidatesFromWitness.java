@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -58,7 +59,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.automaton.WitnessInvariantsAutomaton;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.expressions.And;
@@ -72,6 +75,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /** Utility class to extract candidates from witness file */
 public class CandidatesFromWitness {
 
+  private static Optional<ReachedSet> reachedSetOfWitness = Optional.empty();
 
   private static Configuration generateLocalConfiguration(Configuration pConfig)
       throws InvalidConfigurationException {
@@ -93,6 +97,36 @@ public class CandidatesFromWitness {
     return configBuilder.build();
   }
 
+  public static Automaton buildInvariantsAutomatonFromWitness(
+      Configuration pConfig,
+      Specification pSpecification,
+      LogManager pLogger,
+      CFA pCFA,
+      final ShutdownNotifier shutdownNotifier,
+      Path correctnessWitnessFile)
+      throws InvalidConfigurationException, CPAException {
+    final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
+    final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
+    final Timer analyzeWitnessTimer = new Timer();
+    AtomicInteger candidateInvariantCounter = new AtomicInteger();
+    ReachedSet reachedSet =
+        analyzeWitness(
+            pConfig,
+            pSpecification,
+            pLogger,
+            pCFA,
+            shutdownNotifier,
+            correctnessWitnessFile,
+            analyzeWitnessTimer);
+    CandidatesFromWitness.extractCandidatesFromReachedSet(
+        shutdownNotifier,
+        candidates,
+        candidateGroupLocations,
+        reachedSet,
+        candidateInvariantCounter);
+    return WitnessInvariantsAutomaton.buildWitnessInvariantsAutomaton(candidates);
+  }
+
   public static ReachedSet analyzeWitness(
       Configuration pConfig,
       Specification pSpecification,
@@ -102,6 +136,9 @@ public class CandidatesFromWitness {
       Path pathToInvariantsAutomatonFile,
       Timer analyzeWitnessTime)
       throws InvalidConfigurationException, CPAException {
+    if (reachedSetOfWitness.isPresent()) {
+      return reachedSetOfWitness.get();
+    }
     analyzeWitnessTime.start();
     Configuration config = generateLocalConfiguration(pConfig);
     ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, pLogger);
@@ -130,7 +167,8 @@ public class CandidatesFromWitness {
       // let it be thrown by the invariant generator.
     }
     analyzeWitnessTime.stop();
-    return reachedSet;
+    reachedSetOfWitness = Optional.ofNullable(reachedSet);
+    return reachedSetOfWitness.get();
   }
 
   public static void extractCandidatesFromReachedSet(
