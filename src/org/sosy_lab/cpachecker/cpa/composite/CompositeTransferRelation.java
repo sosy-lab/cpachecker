@@ -333,29 +333,25 @@ final class CompositeTransferRelation implements TransferRelation {
       lStrengthenResults.add(lResultsList);
     }
 
-    // special case handling if we have predicate and assumption cpas
-    // TODO remove as soon as we call strengthen in a fixpoint loop
-    List<AbstractState> assumptionElements =
-        lStrengthenResults.stream()
-            .flatMap(Collection::stream)
-            .filter(x -> !reachedState.contains(x))
-            .filter(
-                x ->
-                    (x instanceof AbstractStateWithAssumptions
-                        || x instanceof AssumptionStorageState
-                        || x instanceof FormulaReportingState))
-            .collect(ImmutableList.toImmutableList());
-
-
     // create cartesian product
     Collection<List<AbstractState>> strengthenedStates =
         createCartesianProduct(lStrengthenResults, resultCount);
 
-    if (predicatesPresent && assumptionElements.size() > 0 && resultCount > 0) {
+    // special case handling if we have predicate and assumption cpas
+    // TODO remove as soon as we call strengthen in a fixpoint loop
+    if (predicatesPresent && resultCount > 0) {
       Iterator<List<AbstractState>> it = strengthenedStates.iterator();
-      for (List<AbstractState> strengthenedState = it.next();
-          it.hasNext();
-          strengthenedState = it.next()) {
+      while (it.hasNext()) {
+        final List<AbstractState> strengthenedState = it.next();
+        List<AbstractState> assumptionElements =
+            strengthenedState
+                .stream()
+                .filter(CompositeTransferRelation::hasAssumptions)
+                .collect(ImmutableList.toImmutableList());
+        if (assumptionElements.isEmpty()) {
+          continue;
+        }
+
         Optional<AbstractState> predElement =
             strengthenedState.stream().filter(x -> x instanceof PredicateAbstractState).findFirst();
         assert predElement.isPresent()
@@ -398,6 +394,12 @@ final class CompositeTransferRelation implements TransferRelation {
     } else {
       return strengthenedStates;
     }
+  }
+
+  private static boolean hasAssumptions(AbstractState x) {
+    return x instanceof AbstractStateWithAssumptions
+        || x instanceof AssumptionStorageState
+        || x instanceof FormulaReportingState;
   }
 
   protected static Collection<List<AbstractState>> createCartesianProduct(
