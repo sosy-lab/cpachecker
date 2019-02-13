@@ -579,7 +579,7 @@ private boolean classifyNodes = false;
         || ((exportFunctionCallsFile != null) && exportFunctionCalls)
         || ((serializeCfaFile != null) && serializeCfa)
         || (exportCfaPixelFile != null)
-        || exportCfaToC) {
+        || (exportCfaToCFile != null && exportCfaToC)) {
       exportCFAAsync(immutableCFA);
     }
 
