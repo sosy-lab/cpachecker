@@ -102,4 +102,21 @@ public class Block {
             "(Nodes: " + (nodes.size() < 10 ? nodes : "[#=" + nodes.size() + "]") + ") " +
             "(ReturnNodes: " + returnNodes + ")";
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (!(o instanceof Block)) {
+      return false;
+    }
+    Block other = (Block) o;
+    return nodes.equals(other.nodes)
+        && referencedVariables.equals(other.referencedVariables)
+        && callNodes.equals(other.callNodes)
+        && returnNodes.equals(other.returnNodes);
+  }
+
+  @Override
+  public int hashCode() {
+    return nodes.hashCode();
+  }
 }

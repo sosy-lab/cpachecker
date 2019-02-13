@@ -49,12 +49,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageTransferRelation;
+import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -64,7 +66,6 @@ final class CompositeTransferRelation implements TransferRelation {
   private final ImmutableList<TransferRelation> transferRelations;
   private final CFA cfa;
   private final int size;
-  private final int assumptionIndex;
   private final int predicatesIndex;
   private final boolean aggregateBasicBlocks;
 
@@ -78,8 +79,6 @@ final class CompositeTransferRelation implements TransferRelation {
     // prepare special case handling if both predicates and assumptions are used
     this.predicatesIndex =
         indexOf(pTransferRelations, Predicates.instanceOf(PredicateTransferRelation.class));
-    this.assumptionIndex =
-        indexOf(pTransferRelations, Predicates.instanceOf(AssumptionStorageTransferRelation.class));
   }
 
   @Override
@@ -333,13 +332,23 @@ final class CompositeTransferRelation implements TransferRelation {
 
     // special case handling if we have predicate and assumption cpas
     // TODO remove as soon as we call strengthen in a fixpoint loop
-    if (predicatesIndex >= 0 && assumptionIndex >= 0 && resultCount > 0) {
+    List<AbstractState> assumptionElements =
+        lStrengthenResults.stream()
+            .flatMap(Collection::stream)
+            .filter(x -> !reachedState.contains(x))
+            .filter(
+                x ->
+                    (x instanceof AbstractStateWithAssumptions
+                        || x instanceof AssumptionStorageState
+                        || x instanceof FormulaReportingState))
+            .collect(ImmutableList.toImmutableList());
+    if (predicatesIndex >= 0 && assumptionElements.size() > 0 && resultCount > 0) {
       AbstractState predElement = Iterables.getOnlyElement(lStrengthenResults.get(predicatesIndex));
-      AbstractState assumptionElement = Iterables.getOnlyElement(lStrengthenResults.get(assumptionIndex));
       Precision predPrecision = compositePrecision.get(predicatesIndex);
       TransferRelation predTransfer = transferRelations.get(predicatesIndex);
 
-      Collection<? extends AbstractState> predResult = predTransfer.strengthen(predElement, Collections.singletonList(assumptionElement), cfaEdge, predPrecision);
+      Collection<? extends AbstractState> predResult =
+          predTransfer.strengthen(predElement, assumptionElements, cfaEdge, predPrecision);
       resultCount *= predResult.size();
 
       lStrengthenResults.set(predicatesIndex, predResult);

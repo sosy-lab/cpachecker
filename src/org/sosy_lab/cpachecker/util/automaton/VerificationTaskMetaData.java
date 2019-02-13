@@ -39,6 +39,7 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
@@ -61,6 +62,7 @@ public class VerificationTaskMetaData {
     )
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private Path invariantsAutomatonFile = null;
+
   }
 
   private final VerificationTaskMetaData.HackyOptions hackyOptions = new HackyOptions();
@@ -71,10 +73,13 @@ public class VerificationTaskMetaData {
 
   private List<Path> witnessAutomatonFiles = null;
 
+  private final String producerString;
+
   public VerificationTaskMetaData(Configuration pConfig, Specification pSpecification)
       throws InvalidConfigurationException {
     pConfig.inject(hackyOptions);
     specification = checkNotNull(pSpecification);
+    producerString = CPAchecker.getVersion(pConfig);
   }
 
   public List<Path> getInputWitnessFiles() throws IOException {
@@ -109,6 +114,14 @@ public class VerificationTaskMetaData {
    */
   public Set<SpecificationProperty> getProperties() {
     return specification.getProperties();
+  }
+
+  /**
+   * Returns a string that describes the program that produced an output file.
+   * This is primarily intended for use in the producer field of verification witnesses.
+   */
+  public String getProducerString() {
+    return producerString;
   }
 
   private final void classifyAutomataFiles() throws IOException {
