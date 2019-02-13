@@ -1043,7 +1043,7 @@ v.addInitializer(initializer);
           oos.writeObject(cfa);
         }
       } catch (IOException e) {
-        logger.logException(Level.WARNING, e, "Could not serialize CFA to file.");
+        logger.logUserException(Level.WARNING, e, "Could not serialize CFA to file.");
       }
     }
 
@@ -1054,7 +1054,7 @@ v.addInitializer(initializer);
           writer.write(code);
         }
       } catch (CPAException | IOException | InvalidConfigurationException e) {
-        logger.logException(Level.WARNING, e, "Could not write CFA to C file.");
+        logger.logUserException(Level.WARNING, e, "Could not write CFA to C file.");
       }
     }
 
