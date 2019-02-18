@@ -59,6 +59,7 @@ class ValueConverterManager {
   private final TypedValueManager tvmgr;
   private final StringFormulaManager strMgr;
   private final FormulaManagerView fmgr;
+  private final JSNumberFormulaManager numMgr;
   private final BooleanFormulaManagerView bfmgr;
   private final FloatingPointFormulaManagerView fpfmgr;
   private final BitvectorFormulaManagerView bitVecMgr;
@@ -68,12 +69,14 @@ class ValueConverterManager {
       final TypeTags pTypeTags,
       final TypedValueManager pTvmgr,
       final StringFormulaManager pStrMgr,
-      final FormulaManagerView pFmgr) {
+      final FormulaManagerView pFmgr,
+      final JSNumberFormulaManager pNumMgr) {
     typedVarValues = pTypedVariableValues;
     typeTags = pTypeTags;
     tvmgr = pTvmgr;
     strMgr = pStrMgr;
     fmgr = pFmgr;
+    numMgr = pNumMgr;
     bfmgr = fmgr.getBooleanFormulaManager();
     fpfmgr = fmgr.getFloatingPointFormulaManager();
     bitVecMgr = fmgr.getBitvectorFormulaManager();
@@ -188,10 +191,10 @@ class ValueConverterManager {
         fpfmgr.lessThan(pValue, fmgr.makeNumber(Types.NUMBER_TYPE, 0));
     final FloatingPointFormula regularNumber = fpfmgr.castTo(pValue, Types.STRING_TYPE);
     return bfmgr.ifThenElse(
-        fpfmgr.isNaN(pValue),
+        numMgr.isNaN(pValue),
         strMgr.getStringFormula("NaN"),
         bfmgr.ifThenElse(
-            fpfmgr.isInfinity(pValue),
+            numMgr.isInfinity(pValue),
             bfmgr.ifThenElse(
                 isNegative,
                 strMgr.getStringFormula("-Infinity"),
@@ -325,7 +328,7 @@ class ValueConverterManager {
    */
   private BooleanFormula numberToBoolean(final FloatingPointFormula pValue) {
     return bfmgr.ifThenElse(
-        bfmgr.or(fpfmgr.isZero(pValue), fpfmgr.isNaN(pValue)), bfmgr.makeFalse(), bfmgr.makeTrue());
+        bfmgr.or(fpfmgr.isZero(pValue), numMgr.isNaN(pValue)), bfmgr.makeFalse(), bfmgr.makeTrue());
   }
 
   /**
@@ -391,7 +394,7 @@ class ValueConverterManager {
 
     // 2. If number is NaN, +0, −0, +∞, or −∞, return +0.
     return bfmgr.ifThenElse(
-        bfmgr.or(fpfmgr.isNaN(pNumber), fpfmgr.isInfinity(pNumber)),
+        bfmgr.or(numMgr.isNaN(pNumber), numMgr.isInfinity(pNumber)),
         bitVecMgr.makeBitvector(bv32, 0),
         bv32Result);
   }

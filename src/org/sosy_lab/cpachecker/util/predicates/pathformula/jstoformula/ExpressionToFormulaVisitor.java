@@ -222,8 +222,6 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
     final FloatingPointFormulaManagerView f = fpfmgr;
     final FloatingPointFormula dividend = valConv.toNumber(pLeftOperand);
     final FloatingPointFormula divisor = valConv.toNumber(pRightOperand);
-    final BooleanFormula nanCase =
-        jsOptions.useNaN ? bfmgr.or(f.isNaN(dividend), f.isNaN(divisor)) : bfmgr.makeFalse();
     // TODO In the remaining cases, where neither an infinity, nor a zero, nor NaN is involved, the
     // floating-point remainder r from a dividend n and a divisor d is defined by the mathematical
     // relation r = n − (d × q) where q is an integer that is negative only if n/d is negative and
@@ -231,9 +229,14 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
     // exceeding the magnitude of the true mathematical quotient of n and d. r is computed and
     // rounded to the nearest representable value using IEEE 754 round-to-nearest mode.
     return bfmgr.ifThenElse(
-        bfmgr.or(nanCase, f.isInfinity(dividend), f.isZero(divisor)),
+        bfmgr.or(
+            numMgr.isNaN(dividend),
+            numMgr.isNaN(divisor),
+            numMgr.isInfinity(dividend),
+            f.isZero(divisor)),
         f.makeNaN(Types.NUMBER_TYPE),
-        bfmgr.ifThenElse(bfmgr.or(f.isInfinity(divisor), f.isZero(dividend)), dividend, dividend));
+        bfmgr.ifThenElse(
+            bfmgr.or(numMgr.isInfinity(divisor), f.isZero(dividend)), dividend, dividend));
   }
 
   @Nonnull
@@ -243,8 +246,8 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
     final BooleanFormula nanCase =
         jsOptions.useNaN
             ? bfmgr.and(
-                fmgr.makeNot(fpfmgr.isNaN(valConv.toNumber(pLeftOperand))),
-                fmgr.makeNot(fpfmgr.isNaN(valConv.toNumber(pRightOperand))))
+                fmgr.makeNot(numMgr.isNaN(valConv.toNumber(pLeftOperand))),
+                fmgr.makeNot(numMgr.isNaN(valConv.toNumber(pRightOperand))))
             : bfmgr.makeTrue();
     return fmgr.makeAnd(
         fmgr.makeEqual(leftType, rightType),

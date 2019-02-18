@@ -52,6 +52,7 @@ class GlobalManagerContext {
   final StringFormulaManager strMgr;
   final ValueConverterManager valConv;
   final GlobalDeclarationManager globalDeclarationsMgr;
+  final JSNumberFormulaManager numMgr;
 
   final FormulaManagerView fmgr;
   final ArrayFormulaManagerView afmgr;
@@ -84,6 +85,7 @@ class GlobalManagerContext {
     rfmgr = fmgr.getRationalFormulaManager();
     bitVecMgr = fmgr.getBitvectorFormulaManager();
 
+    numMgr = new JSNumberFormulaManager(pJSOptions.useNaN, bfmgr, fpfmgr);
     typedVarValues = new TypedVariableValues(ffmgr);
     typeTags = new TypeTags(fmgr.getIntegerFormulaManager());
     objIdMgr = new ObjectIdFormulaManager(fmgr);
@@ -91,7 +93,7 @@ class GlobalManagerContext {
     functionDeclarationIds = new Ids<>();
     functionScopeManager = new FunctionScopeManager();
     strMgr = new StringFormulaManager(pFmgr, pJSOptions.maxFieldNameCount);
-    valConv = new ValueConverterManager(typedVarValues, typeTags, tvmgr, strMgr, fmgr);
+    valConv = new ValueConverterManager(typedVarValues, typeTags, tvmgr, strMgr, fmgr, numMgr);
     globalDeclarationsMgr = new GlobalDeclarationManager();
   }
 }

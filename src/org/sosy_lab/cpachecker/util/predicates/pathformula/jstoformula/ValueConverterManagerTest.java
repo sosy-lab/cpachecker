@@ -86,7 +86,9 @@ public class ValueConverterManagerTest extends SolverViewBasedTest0 {
     tvmgr = new TypedValueManager(mgrv, typeTags, objIdMgr.getNullObjectId());
     strMgr = new StringFormulaManager(mgrv, 20);
     typedVarValues = new TypedVariableValues(mgrv.getFunctionFormulaManager());
-    valConvMgr = new ValueConverterManager(typedVarValues, typeTags, tvmgr, strMgr, mgrv);
+    final JSNumberFormulaManager numMgr =
+        new JSNumberFormulaManager(true, bmgr, mgrv.getFloatingPointFormulaManager());
+    valConvMgr = new ValueConverterManager(typedVarValues, typeTags, tvmgr, strMgr, mgrv, numMgr);
   }
 
   private void assertToInt32(final double pFrom, final int pTo, final boolean pEqual)
