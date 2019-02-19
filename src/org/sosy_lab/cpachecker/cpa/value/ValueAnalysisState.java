@@ -92,6 +92,14 @@ public class ValueAnalysisState
    */
   private PersistentMap<MemoryLocation, ValueAndType> constantsMap;
 
+  /**
+   * hashCode needs to be updated with every change of {@link #constantsMap}.
+   *
+   * @see java.util.Map#hashCode()
+   * @see java.util.Map.Entry#hashCode()
+   */
+  private int hashCode = 0;
+
   private final @Nullable MachineModel machineModel;
 
   public ValueAnalysisState(MachineModel pMachineModel) {
@@ -111,6 +119,7 @@ public class ValueAnalysisState
       PersistentMap<MemoryLocation, ValueAndType> pConstantsMap) {
     machineModel = pMachineModel;
     constantsMap = checkNotNull(pConstantsMap);
+    hashCode = constantsMap.hashCode();
   }
 
   public static ValueAnalysisState copyOf(ValueAnalysisState state) {
@@ -139,8 +148,9 @@ public class ValueAnalysisState
       valueToAdd = ((SymbolicValue) valueToAdd).copyForLocation(pMemLoc);
     }
 
-    constantsMap =
-        constantsMap.putAndCopy(pMemLoc, new ValueAndType(checkNotNull(valueToAdd), pType));
+    ValueAndType valueAndType = new ValueAndType(checkNotNull(valueToAdd), pType);
+    constantsMap = constantsMap.putAndCopy(pMemLoc, valueAndType);
+    hashCode += (pMemLoc.hashCode() ^ valueAndType.hashCode());
   }
 
   /**
@@ -213,6 +223,7 @@ public class ValueAnalysisState
 
     ValueAndType value = constantsMap.get(pMemoryLocation);
     constantsMap = constantsMap.removeAndCopy(pMemoryLocation);
+    hashCode -= (pMemoryLocation.hashCode() ^ value.hashCode());
 
     PersistentMap<MemoryLocation, ValueAndType> valueAssignment = PathCopyingPersistentTreeMap.of();
     valueAssignment = valueAssignment.putAndCopy(pMemoryLocation, value);
@@ -407,12 +418,14 @@ public class ValueAnalysisState
     }
 
     ValueAnalysisState otherElement = (ValueAnalysisState) other;
-    return otherElement.constantsMap.equals(constantsMap);
+    // hashCode is used as optimization: about 20% speedup when using many SingletonSets
+    return otherElement.hashCode == hashCode && otherElement.constantsMap.equals(constantsMap);
   }
 
   @Override
   public int hashCode() {
-    return constantsMap.hashCode();
+    assert hashCode == constantsMap.hashCode();
+    return hashCode;
   }
 
   @Override
