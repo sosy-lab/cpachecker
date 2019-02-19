@@ -42,10 +42,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -236,16 +236,25 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
 
     if (assumption instanceof CBinaryExpression) {
       CBinaryExpression binExpression = (CBinaryExpression) assumption;
-      if (binExpression.getOperand1() instanceof CIdExpression) {
-        String varName = ((CIdExpression) ((CBinaryExpression) assumption).getOperand1()).getName();
+      IdentifierCreator creator =
+          new IdentifierCreator(cfaEdge.getSuccessor().getFunctionName());
+      AbstractIdentifier varId = creator.createIdentifier(binExpression.getOperand1(), 0);
+      if (varId instanceof SingleIdentifier) {
+        String varName = ((SingleIdentifier) varId).getName();
         if (lockDescription.getVariableEffectDescription().containsKey(varName)) {
           CExpression val = binExpression.getOperand2();
           if (val instanceof CIntegerLiteralExpression) {
-            LockIdentifier id = lockDescription.getVariableEffectDescription().get(varName);
-            int level = ((CIntegerLiteralExpression) val).getValue().intValue();
-            AbstractLockEffect e =
-                CheckLockEffect.createEffectForId(level, cfaEdge.getTruthAssumption(), id);
-            return Collections.singletonList(e);
+            if (binExpression.getOperator() == BinaryOperator.EQUALS) {
+              LockIdentifier id = lockDescription.getVariableEffectDescription().get(varName);
+              int level = ((CIntegerLiteralExpression) val).getValue().intValue();
+              AbstractLockEffect e =
+                  CheckLockEffect.createEffectForId(level, cfaEdge.getTruthAssumption(), id);
+              return Collections.singletonList(e);
+            } else {
+              logger.log(
+                  Level.WARNING,
+                  "Unknown binary operator " + binExpression.getOperator() + ", skip it");
+            }
           }
         }
       }
