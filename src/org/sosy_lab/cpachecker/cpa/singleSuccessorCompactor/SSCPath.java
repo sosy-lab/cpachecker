@@ -24,10 +24,12 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -36,6 +38,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class SSCPath extends ARGPath {
@@ -93,10 +96,10 @@ public class SSCPath extends ARGPath {
    */
   private void getInnerEdgesFromTo(List<CFAEdge> newFullPath, ARGState prev, ARGState succ) {
     final List<AbstractState> innerStates = new ArrayList<>();
-    @SuppressWarnings("unused")
-    Collection<? extends AbstractState> successors;
     try {
-      successors = transfer.getAbstractSuccessorsWithList(
+      @SuppressWarnings("unused") // only inner states are important
+      Collection<? extends AbstractState> successors =
+          transfer.getAbstractSuccessorsWithList(
               prev.getWrappedState(), reachedSet.asReachedSet().getPrecision(prev), innerStates);
     } catch (CPATransferException | InterruptedException e) {
       throw new AssertionError("should not happen");
@@ -146,5 +149,34 @@ public class SSCPath extends ARGPath {
       }
     }
     throw new AssertionError("unexpected CFA locations");
+  }
+
+  private List<CFANode> getLocations() {
+    return Lists.transform(asStatesList(), AbstractStates.EXTRACT_LOCATION);
+  }
+
+  @Override
+  public int hashCode() {
+    // We do not have edges for most SSCPaths, lets use locations from states.
+    return Objects.hash(reachedSet, getLocations());
+  }
+
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    if (!(pOther instanceof SSCPath)) {
+      return false;
+    }
+    // We do not compare the states because they are different from iteration to iteration!
+    // We do not have edges for most SSCPaths, lets use locations from states.
+    return super.equals(pOther)
+        && Objects.equals(getLocations(), ((SSCPath) pOther).getLocations());
+  }
+
+  @Override
+  public String toString() {
+    return "SCCPath {" + Joiner.on("\n").join(asStatesList()) + "}";
   }
 }
