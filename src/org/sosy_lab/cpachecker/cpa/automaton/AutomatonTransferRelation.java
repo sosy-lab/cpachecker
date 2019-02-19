@@ -337,7 +337,7 @@ class AutomatonTransferRelation implements TransferRelation {
     }
 
     AutomatonState state = (AutomatonState) pElement;
-    if ("WitnessAutomaton".equals(state.getOwningAutomatonName())) {
+    if (AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME.equals(state.getOwningAutomatonName())) {
       /* In case of concurrent tasks, we need to go two steps:
        * The first step is the createThread edge of the witness.
        * The second step is the enterFunction edge of the witness.
