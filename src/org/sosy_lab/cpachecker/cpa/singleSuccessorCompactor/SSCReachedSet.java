@@ -30,14 +30,14 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableSubgraphReachedSetView;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor.SSCSubgraphComputer.SSCARGState;
 
 class SSCReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
-  private final ARGPath path;
+  /** some states of the reached-set are part of the path, i.e., as sampling points. */
+  private final SSCPath path;
 
-  SSCReachedSet(ARGReachedSet pReached, ARGPath pPath) {
+  SSCReachedSet(ARGReachedSet pReached, SSCPath pPath) {
     super(pReached);
     path = pPath;
     assert path.getFirstState().getSubgraph().containsAll(path.asStatesList())

@@ -33,8 +33,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.bam.BAMReachedSet;
-import org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor.SSCSubgraphComputer.SSCARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -83,12 +81,13 @@ public class SSCBasedRefiner extends AbstractARGBasedRefiner {
   protected final CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
       throws CPAException, InterruptedException {
     checkArgument(
-        !(pReached instanceof BAMReachedSet),
-        "Wrapping of BAM-based refiners inside BAM-based refiners is not allowed.");
+        !(pReached instanceof SSCReachedSet),
+        "Wrapping of SSC-based refiners inside SSC-based refiners is not allowed.");
+    checkArgument(pPath instanceof SSCPath, "SSCPath required for SSCReachedSet.");
     assert pPath.size() > 0;
 
     // wrap the original reached-set to have a valid "view" on all reached states.
-    return super.performRefinementForPath(new SSCReachedSet(pReached, pPath), pPath);
+    return super.performRefinementForPath(new SSCReachedSet(pReached, (SSCPath)pPath), pPath);
   }
 
   @Override
@@ -97,11 +96,8 @@ public class SSCBasedRefiner extends AbstractARGBasedRefiner {
     assert pMainReachedSet.asReachedSet().contains(pLastElement)
         : "targetState must be in mainReachedSet.";
 
-    SSCSubgraphComputer cexSubgraphComputer = new SSCSubgraphComputer(sscCpa);
-    SSCARGState targetOfSubgraph =
-        cexSubgraphComputer.computeCounterexampleSubgraph(pLastElement, pMainReachedSet);
-
-    // search path to target, as in super-class
-    return ARGUtils.getOnePathTo(targetOfSubgraph);
+    ARGPath shortPath = ARGUtils.getOnePathTo(pLastElement);
+    // info: never access fullPath from shortPath
+    return new SSCPath(sscCpa, pMainReachedSet, shortPath.asStatesList());
   }
 }
