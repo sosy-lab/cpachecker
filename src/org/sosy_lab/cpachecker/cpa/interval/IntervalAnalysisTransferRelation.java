@@ -123,13 +123,13 @@ public class IntervalAnalysisTransferRelation
       CFunctionCallAssignmentStatement funcExp = (CFunctionCallAssignmentStatement) summaryExpr;
 
       // left hand side of the expression has to be a variable
+      Interval retVal;
       if (state.contains(retVar.get().getQualifiedName())) {
-        newState =
-            addInterval(
-                newState,
-                funcExp.getLeftHandSide(),
-                state.getInterval(retVar.get().getQualifiedName()));
+        retVal = state.getInterval(retVar.get().getQualifiedName());
+      } else {
+        retVal = Interval.UNBOUND;
       }
+      newState = addInterval(newState, funcExp.getLeftHandSide(), retVal);
 
     } else if (summaryExpr instanceof CFunctionCallStatement) {
       // nothing to do
