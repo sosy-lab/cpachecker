@@ -228,7 +228,11 @@ public class ARGToCTranslator {
   }
 
   public enum TargetTreatment {
-    NONE, RUNTIMEVERIFICATION, ASSERTFALSE, FRAMACPRAGMA
+    NONE,
+    RUNTIMEVERIFICATION,
+    ASSERTFALSE,
+    FRAMACPRAGMA,
+    VERIFIERERROR
   }
 
   public enum BlockTreatmentAtFunctionEnd {
@@ -301,6 +305,9 @@ public class ARGToCTranslator {
     }
     if (includeHeader || targetStrategy == TargetTreatment.ASSERTFALSE) {
       buffer.append("#include <assert.h>\n");
+    }
+    if (targetStrategy == TargetTreatment.VERIFIERERROR) {
+      buffer.append("extern void __VERIFIER_error();\n");
     }
     for(String globalDef : globalDefinitionsList) {
       buffer.append(globalDef + "\n");
@@ -936,6 +943,8 @@ public class ARGToCTranslator {
         } else {
           return null;
         }
+      case VERIFIERERROR:
+        return new SimpleStatement("__VERIFIER_error();");
       default:
         // case NONE
         return null;
