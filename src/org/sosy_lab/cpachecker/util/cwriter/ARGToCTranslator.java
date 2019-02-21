@@ -468,7 +468,10 @@ public class ARGToCTranslator {
       } else {
         pushToWaitlist(waitlist, currentElement, child, edgeToChild, currentBlock);
       }
-    } else if (childrenOfElement.size() == 2) {
+    } else if (childrenOfElement.size() == 2
+        && childrenOfElement
+            .stream()
+            .allMatch(x -> (currentElement.getEdgeToChild(x) instanceof CAssumeEdge))) {
 
       //collect edges of condition branch
       ArrayList<ARGEdge> result = new ArrayList<>(2);
