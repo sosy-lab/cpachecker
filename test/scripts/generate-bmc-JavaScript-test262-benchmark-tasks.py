@@ -85,18 +85,17 @@ def is_skip(file_content):
             or 'new Object(' in file_content)
 
 
-def create_task_file(yml_file, assert_lib_file, input_file_name, property_file, expected_verdict):
+def create_task_file(yml_file, input_files, property_file, expected_verdict):
+    input_files_formatted = "\n".join('  - "%s"' % (file_name) for file_name in input_files)
     yml_file.write_text(textwrap.dedent("""\
         format_version: "1.0"
         input_files:
-            - "{assert_lib_file}"
-            - "{input_file}"
+        {input_files_formatted}
         properties:
           - property_file: {property_file}
             expected_verdict: {expected_verdict}
         """).format(expected_verdict=expected_verdict,
-                    assert_lib_file=assert_lib_file,
-                    input_file='./' + input_file_name,
+                    input_files_formatted=input_files_formatted,
                     property_file=property_file))
 
 
@@ -144,8 +143,10 @@ for file_pattern in file_patterns:
         yml_file = file.parent / yml_file_name
         create_task_file(
             yml_file=yml_file,
-            assert_lib_file=os.path.relpath(str(assert_lib_file), str(file.parent)),
-            input_file_name=file.name,
+            input_files=[
+                os.path.relpath(str(assert_lib_file), str(file.parent)),
+                './' + file.name,
+            ],
             property_file=relative_path_to_property_file,
             expected_verdict='true')
         # negated test
@@ -156,12 +157,14 @@ for file_pattern in file_patterns:
             file = file.parent / (file.stem + '.js.negated')
             print('GENERATE NEGATED VERSION OF {}'.format(file))
             file.write_text(file_content_negated)
-        yml_file_name =\
+        yml_file_name = \
             '{}_false.yml'.format(file.stem) if i == 0 else '{}_{}_false.yml'.format(file.stem, i)
         yml_file = file.parent / yml_file_name.replace('.js', '')
         create_task_file(
             yml_file=yml_file,
-            assert_lib_file=os.path.relpath(str(assert_lib_negated_file), str(file.parent)),
-            input_file_name=file.name,
+            input_files=[
+                os.path.relpath(str(assert_lib_negated_file), str(file.parent)),
+                './' + file.name,
+            ],
             property_file=relative_path_to_property_file,
             expected_verdict='false')
