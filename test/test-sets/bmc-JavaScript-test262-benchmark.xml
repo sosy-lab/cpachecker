@@ -17,17 +17,66 @@
 
     <option name="-noout"/>
     <option name="-heap">300M</option>
-    <option name="-setprop">cpa.loopbound.maxLoopIterations=11</option>
-    <option name="-setprop">cpa.predicate.js.maxFieldNameCount=20</option>
-    <option name="-setprop">solver.solver=z3</option>
 
     <rundefinition>
         <option name="-bmc-JavaScript"/>
     </rundefinition>
 
     <tasks>
-        <include>../programs/javascript-test262-benchmark/test/language/statements/*/*.yml</include>
+        <!-- MathSAT runs much faster than Z3 in these cases -->
+        <option name="-setprop">cpa.loopbound.maxLoopIterations=1</option>
+        <option name="-setprop">cpa.predicate.js.maxFieldNameCount=30</option>
+
         <include>../programs/javascript-test262-benchmark/test/language/expressions/bitwise-*/*.yml</include>
+        <include>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A1.1_T1*.yml</include>
+        <include>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A1.1_T2*.yml</include>
+
+        <propertyfile>../config/specification/JavaScriptAssertion.spc</propertyfile>
+    </tasks>
+
+    <tasks>
+        <option name="-setprop">solver.solver=z3</option>
+        <option name="-setprop">cpa.loopbound.maxLoopIterations=1</option>
+        <option name="-setprop">cpa.predicate.js.maxFieldNameCount=15</option>
+
+        <!-- uses NaN => Number has to be encoded as float (not rational) -->
+        <!-- IllegalArgumentException: MathSAT returned null  =>  use Z3 -->
+        <!-- TODO runs really slow -->
+        <include>../programs/javascript-test262-benchmark/test/language/statements/for/12.6.3_2-3-a-ii-14*.yml</include>
+
+        <propertyfile>../config/specification/JavaScriptAssertion.spc</propertyfile>
+    </tasks>
+
+    <tasks>
+        <option name="-setprop">solver.solver=z3</option>
+        <option name="-setprop">cpa.loopbound.maxLoopIterations=11</option>
+        <option name="-setprop">cpa.predicate.js.maxFieldNameCount=30</option>
+        <!-- approximation of floats as rational runs faster and is sufficient precise -->
+        <option name="-setprop">cpa.predicate.encodeFloatAs=rational</option>
+        <!-- TODO this option should be removed as soon as NaN and float interpolation can be used together -->
+        <option name="-setprop">cpa.predicate.js.useNaN=false</option>
+
+
+        <include>../programs/javascript-test262-benchmark/test/language/statements/*/*.yml</include>
+
+        <!-- requires float semantic, since NaN is used => see other tasks tags (different configuration) -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A1.1_T1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A1.1_T2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/12.6.3_2-3-a-ii-14*.yml</exclude>
+
+        <!-- unreachable negated error -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A12_T1_0.1_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A12_T1_0.2_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A12_T1_0.3_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A12_T1_0.4_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A12_T2_0.1_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A12_T2_0.2_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A12_T2_0.3_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A12_T2_0.4_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A12_T3_0.1_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A12_T3_0.2_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A12_T4_0.2_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A12_T4_0.3_false.yml</exclude>
 
         <!-- default parameters are not supported yet -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/scope-paramsbody-var-open*.yml</exclude>
@@ -66,11 +115,11 @@
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T4*.yml</exclude>
 
         <!-- TODO $ERROR in else case -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A10_T1_false.yml</exclude>
+        <!--<exclude>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A10_T1_false.yml</exclude>-->
 
         <!-- TODO $ERROR not reached -->
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/do-while/S12.6.1_A4_T5_false.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A4_T5_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/do-while/S12.6.1_A4_T5_*false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A4_T5_*false.yml</exclude>
 
         <!-- TODO string concat -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/function/S13.2.2_A8_T2*.yml</exclude>
@@ -81,12 +130,12 @@
         <!-- TODO Timeout -->
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/return/12.9-1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/S12.6.3_A14*.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/S12.6.3_A15_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/S12.6.3_A15_*false.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/for/scope-body-lex-boundary*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T1*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/switch/S12.11_A1_T3*.yml</exclude>
         <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A1.yml</exclude>
-        <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A1_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/statements/while/S12.6.2_A1_*false.yml</exclude>
 
         <!-- TODO values to convert ToInt32 out of range are not handled correctly yet -->
         <exclude>../programs/javascript-test262-benchmark/test/language/expressions/bitwise-not/S9.5_A2.1_T2.yml</exclude>
