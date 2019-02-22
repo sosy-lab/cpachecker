@@ -391,6 +391,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
       fields.add(new JSObjectLiteralField(Integer.toString(i), elements.get(i)));
     }
     ctx.objMgr.setObjectFields(objectId, fields);
+    ctx.objMgr.markAsArray(objectId);
     return objectValue;
   }
 
@@ -449,9 +450,9 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
     final TypedValue propertyValue = ctx.propMgr.accessField(objectId, fieldName);
     final TypedValue lengthProperty =
         ctx.propMgr.accessField(objectId, strMgr.getStringFormula("length"));
-    // TODO check if object is an array (otherwise `length` is no indicator if property is defined)
     final BooleanFormula isUndefinedArrayElementIndex =
         bfmgr.and(
+            ctx.objMgr.isArray(objectId),
             fmgr.makeEqual(propertyNameValue.getType(), typeTags.NUMBER),
             fpfmgr.greaterOrEquals(
                 valConv.toNumber(propertyNameValue), valConv.toNumber(lengthProperty)));

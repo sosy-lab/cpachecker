@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.BOOLEAN_TYPE;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.OBJECT_FIELDS_TYPE;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula.Types.OBJECT_ID_TYPE;
 
 import java.util.HashMap;
 import java.util.List;
@@ -36,6 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 /**
@@ -74,6 +77,8 @@ class ObjectFormulaManager extends ManagerWithEdgeContext {
   /** Variable formula that represents an unset property. */
   private final IntegerFormula objectFieldNotSet;
 
+  private final FunctionDeclaration<BooleanFormula> isArrayUF;
+
   ObjectFormulaManager(final EdgeManagerContext pCtx) {
     super(pCtx);
     // Used as a special field value that represents unset fields of an object.
@@ -81,6 +86,7 @@ class ObjectFormulaManager extends ManagerWithEdgeContext {
     // name, any value (here 0) can be used to represent a special variable value (that is not used
     // as another special variable value somewhere else)
     objectFieldNotSet = ifmgr.makeNumber(0);
+    isArrayUF = ffmgr.declareUF("isArray", BOOLEAN_TYPE, OBJECT_ID_TYPE);
   }
 
   TypedValue createObject(final JSObjectLiteralExpression pObjectLiteralExpression)
@@ -88,6 +94,7 @@ class ObjectFormulaManager extends ManagerWithEdgeContext {
     final TypedValue objectValue = tvmgr.createObjectValue(objIdMgr.createObjectId());
     final IntegerFormula ovv = (IntegerFormula) objectValue.getValue();
     setObjectFields(ovv, pObjectLiteralExpression.getFields());
+    markAsNotArray(ovv);
     return objectValue;
   }
 
@@ -189,5 +196,18 @@ class ObjectFormulaManager extends ManagerWithEdgeContext {
   @Nonnull
   IntegerFormula makeFieldVariable() {
     return ctx.varMgr.makeFreshVariable("field");
+  }
+
+  BooleanFormula isArray(final IntegerFormula pObjectId) {
+    return ffmgr.callUF(isArrayUF, pObjectId);
+  }
+
+  void markAsArray(final IntegerFormula pObjectId) {
+    ctx.constraints.addConstraint(isArray(pObjectId));
+  }
+
+  @SuppressWarnings("WeakerAccess")
+  void markAsNotArray(final IntegerFormula pObjectId) {
+    ctx.constraints.addConstraint(bfmgr.not(isArray(pObjectId)));
   }
 }
