@@ -151,20 +151,45 @@ for file_pattern in file_patterns:
             expected_verdict='true')
         # negated test
         if '$ERROR(' in file_content:
-            # negate condition of if-statement directly before call of $ERROR
-            file_content_negated = re.sub(r'(\sif\s*\()(.*?)(\)\s*{?\s*\$ERROR\()', r'\1!(\2)\3',
-                                          file_content)
-            file = file.parent / (file.stem + '.js.negated')
-            print('GENERATE NEGATED VERSION OF {}'.format(file))
-            file.write_text(file_content_negated)
-        yml_file_name = \
-            '{}_false.yml'.format(file.stem) if i == 0 else '{}_{}_false.yml'.format(file.stem, i)
-        yml_file = file.parent / yml_file_name.replace('.js', '')
-        create_task_file(
-            yml_file=yml_file,
-            input_files=[
-                os.path.relpath(str(assert_lib_negated_file), str(file.parent)),
-                './' + file.name,
-            ],
-            property_file=relative_path_to_property_file,
-            expected_verdict='false')
+            # create negated task for each error case
+            error_cases = re.finditer(r'(\sif\s*\()(.*?)(\)\s*{?\s*\$ERROR\()', file_content)
+            for errorCaseIndex, m in enumerate(error_cases):
+                # negate condition of if-statement directly before call of $ERROR
+                file_content_negated = ''.join([
+                    file_content[0:m.start()],
+                    m.group(1),
+                    '!(',
+                    m.group(2),
+                    ')',
+                    m.group(3),
+                    file_content[m.end():],
+                ])
+                error_case_file = file.parent / ('%s.js.%d.negated' % (file.stem, errorCaseIndex))
+                print('GENERATE NEGATED JS  {}'.format(error_case_file))
+                error_case_file.write_text(file_content_negated)
+                yml_file_name = '{}_{}.{}_false.yml'.format(error_case_file.stem, i, errorCaseIndex)
+                yml_file = \
+                    error_case_file.parent / yml_file_name.replace('.js.%d' % errorCaseIndex, '')
+                print('GENERATE NEGATED YML {}'.format(yml_file))
+                create_task_file(
+                    yml_file=yml_file,
+                    input_files=[
+                        os.path.relpath(str(assert_lib_negated_file),
+                                        str(error_case_file.parent)),
+                        './' + error_case_file.name,
+                    ],
+                    property_file=relative_path_to_property_file,
+                    expected_verdict='false')
+        else:
+            yml_file_name = \
+                '{}_false.yml'.format(file.stem) if i == 0 else '{}_{}_false.yml'.format(file.stem,
+                                                                                         i)
+            yml_file = file.parent / yml_file_name.replace('.js', '')
+            create_task_file(
+                yml_file=yml_file,
+                input_files=[
+                    os.path.relpath(str(assert_lib_negated_file), str(file.parent)),
+                    './' + file.name,
+                ],
+                property_file=relative_path_to_property_file,
+                expected_verdict='false')
