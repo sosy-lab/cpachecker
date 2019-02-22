@@ -242,7 +242,7 @@ public class ARGStatistics implements Statistics {
     }
 
     argToCExporter = new ARGToCTranslator(logger, config, cfa.getMachineModel());
-    argToAutomatonSplitter = new ARGToAutomatonConverter(config);
+    argToAutomatonSplitter = new ARGToAutomatonConverter(config, cfa, logger);
 
     if (argCFile == null) {
       translateARG = false;
