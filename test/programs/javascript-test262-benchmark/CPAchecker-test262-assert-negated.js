@@ -1,11 +1,5 @@
 // TODO verify this library
 
-function __VERIFIER_error() {}
-
-function $ERROR(message) {
-  __VERIFIER_error();
-}
-
 function assert(condition, message) {
   if (condition) {
     __VERIFIER_error();

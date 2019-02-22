@@ -108,6 +108,11 @@ property_file = project_root_dir / 'test/config/specification/JavaScriptAssertio
 if not property_file.exists():
     print('Property file {} not found'.format(property_file))
     exit(1)
+error_lib_file = \
+    project_root_dir / 'test/programs/javascript-test262-benchmark/CPAchecker-test262-error.js'
+if not error_lib_file.exists():
+    print('Assertion library file {} not found'.format(error_lib_file))
+    exit(1)
 assert_lib_file = \
     project_root_dir / 'test/programs/javascript-test262-benchmark/CPAchecker-test262-assert.js'
 if not assert_lib_file.exists():
@@ -127,13 +132,14 @@ file_patterns = [
 
 for file_pattern in file_patterns:
     for file in project_root_dir.glob(file_pattern):
+        relpath = lambda f: os.path.relpath(str(f), str(file.parent))
         file_content = file.read_text()
         if is_skip_directory(file.parent) or is_skip(file_content) or 'bigint' in file.stem:
             print('SKIP {}'.format(file))
             continue
         else:
             print('GENERATE TASK FOR {}'.format(file))
-        relative_path_to_property_file = os.path.relpath(str(property_file), str(file.parent))
+        relative_path_to_property_file = relpath(property_file)
         yml_file_name = file.stem + '.yml'
         i = 0
         while yml_file_name in yml_file_names:
@@ -141,15 +147,18 @@ for file_pattern in file_patterns:
             i = i + 1
         yml_file_names.add(yml_file_name)
         yml_file = file.parent / yml_file_name
+        file_contains_assertion = contains_assertion(file_content)
+        assertion_files = [relpath(error_lib_file)]
+        if file_contains_assertion:
+            assertion_files.append(relpath(assert_lib_file))
         create_task_file(
             yml_file=yml_file,
-            input_files=[
-                os.path.relpath(str(assert_lib_file), str(file.parent)),
-                './' + file.name,
-            ],
+            input_files=assertion_files + ['./' + file.name],
             property_file=relative_path_to_property_file,
             expected_verdict='true')
-        assert_lib_negated_path = os.path.relpath(str(assert_lib_negated_file), str(file.parent))
+        negated_assertion_files = [relpath(error_lib_file)]
+        if file_contains_assertion:
+            negated_assertion_files.append(relpath(assert_lib_negated_file))
         # negated test
         if '$ERROR(' in file_content:
             # create negated task for each error case
@@ -174,10 +183,7 @@ for file_pattern in file_patterns:
                 print('GENERATE NEGATED YML {}'.format(yml_file))
                 create_task_file(
                     yml_file=yml_file,
-                    input_files=[
-                        assert_lib_negated_path,
-                        './' + error_case_file.name,
-                    ],
+                    input_files=negated_assertion_files + ['./' + error_case_file.name],
                     property_file=relative_path_to_property_file,
                     expected_verdict='false')
         else:
@@ -187,9 +193,6 @@ for file_pattern in file_patterns:
             yml_file = file.parent / yml_file_name.replace('.js', '')
             create_task_file(
                 yml_file=yml_file,
-                input_files=[
-                    assert_lib_negated_path,
-                    './' + file.name,
-                ],
+                input_files=negated_assertion_files + ['./' + file.name],
                 property_file=relative_path_to_property_file,
                 expected_verdict='false')
