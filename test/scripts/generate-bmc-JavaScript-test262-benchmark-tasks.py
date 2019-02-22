@@ -149,6 +149,7 @@ for file_pattern in file_patterns:
             ],
             property_file=relative_path_to_property_file,
             expected_verdict='true')
+        assert_lib_negated_path = os.path.relpath(str(assert_lib_negated_file), str(file.parent))
         # negated test
         if '$ERROR(' in file_content:
             # create negated task for each error case
@@ -174,8 +175,7 @@ for file_pattern in file_patterns:
                 create_task_file(
                     yml_file=yml_file,
                     input_files=[
-                        os.path.relpath(str(assert_lib_negated_file),
-                                        str(error_case_file.parent)),
+                        assert_lib_negated_path,
                         './' + error_case_file.name,
                     ],
                     property_file=relative_path_to_property_file,
@@ -188,7 +188,7 @@ for file_pattern in file_patterns:
             create_task_file(
                 yml_file=yml_file,
                 input_files=[
-                    os.path.relpath(str(assert_lib_negated_file), str(file.parent)),
+                    assert_lib_negated_path,
                     './' + file.name,
                 ],
                 property_file=relative_path_to_property_file,
