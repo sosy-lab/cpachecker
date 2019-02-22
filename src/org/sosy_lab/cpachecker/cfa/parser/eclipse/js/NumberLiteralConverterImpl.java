@@ -37,7 +37,7 @@ public class NumberLiteralConverterImpl implements NumberLiteralConverter {
       final FileLocationProvider pFileLocationProvider, final NumberLiteral pNumberLiteral) {
     final String numberToken = pNumberLiteral.getToken();
     final FileLocation fileLocation = pFileLocationProvider.getFileLocation(pNumberLiteral);
-    return numberToken.contains(".")
+    return numberToken.contains(".") || numberToken.contains("e")
         ? new JSFloatLiteralExpression(fileLocation, new BigDecimal(numberToken))
         : new JSIntegerLiteralExpression(fileLocation, new BigInteger(numberToken));
   }
