@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -55,10 +56,20 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
@@ -69,7 +80,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  * the state space.
  *
  * <p>The idea is based on the paper "Structurally Defined Conditional Data-Flow Static Analysis"
- * from Elena Sherman and Matthew B. Dwyer.
+ * from Elena Sherman and Matthew B. Dwyer (2018).
  */
 @Options(prefix = "cpa.arg.automaton")
 public class ARGToAutomatonConverter {
@@ -80,7 +91,9 @@ public class ARGToAutomatonConverter {
     /** split at non-nested conditions only */
     GLOBAL_CONDITIONS,
     /** split different leaf states */
-    LEAVES
+    LEAVES,
+    /** split at target states */
+    TARGETS,
   }
 
   public enum BranchExportStrategy {
@@ -99,15 +112,29 @@ public class ARGToAutomatonConverter {
     FIRST_BFS
   }
 
+  public enum DataExportStrategy {
+    /** export locations, i.e., most precise information. */
+    LOCATION,
+    /** export call-stack information, i.e., very abstract representation. */
+    CALLSTACK
+  }
+
   @Option(
       secure = true,
       description = "which coarse strategy should be applied when analyzing the ARG?")
-  private SplitterStrategy strategy = SplitterStrategy.GLOBAL_CONDITIONS;
+  private SplitterStrategy splitStrategy = SplitterStrategy.TARGETS;
 
   @Option(
       secure = true,
       description = "after determining branches, which one of them should be exported?")
   private BranchExportStrategy selectionStrategy = BranchExportStrategy.LEAVES;
+
+  @Option(
+      secure = true,
+      description =
+          "what data should be exported from the ARG nodes? "
+              + "A different strategy might result in a smaller automaton.")
+  private DataExportStrategy dataStrategy = DataExportStrategy.LOCATION;
 
   @Option(
       secure = true,
@@ -125,43 +152,63 @@ public class ARGToAutomatonConverter {
           "when using FIRST_BFS, how many nodes should be skipped? "
               + "ZERO will only export the root itself, MAX_INT will export only LEAFS.")
   private int skipFirstNum = 10;
+  private final CBinaryExpressionBuilder cBinaryExpressionBuilder;
 
-  public ARGToAutomatonConverter(@Nullable Configuration config)
+  public ARGToAutomatonConverter(@Nullable Configuration config, CFA cfa,LogManager logger)
       throws InvalidConfigurationException {
-    if (config == null) {
-      strategy = SplitterStrategy.NONE;
-      selectionStrategy = BranchExportStrategy.NONE;
-    } else {
-      config.inject(this);
+    config.inject(this);
+    cBinaryExpressionBuilder = new CBinaryExpressionBuilder(
+        cfa.getMachineModel(),
+        logger);
+  }
+
+  /**
+   * get a single (!) automaton for the whole program. If a splitting strategy is set, it is used to
+   * determine the leaves of this automaton.
+   *
+   * @param targetsOnly Export all possible paths or only paths leading to target states.
+   */
+  public Automaton getAutomaton(ARGState root, boolean targetsOnly) {
+    switch (dataStrategy) {
+      case LOCATION:
+        return getLocationAutomatonForStates(root, Predicates.alwaysFalse(), targetsOnly);
+      case CALLSTACK:
+        return getCallstackAutomatonForStates(root, getLeaves(root, targetsOnly), targetsOnly);
+      default:
+        throw new AssertionError("unexpected strategy");
     }
   }
 
+  /** get several automata according to the splitter strategy. */
   public Iterable<Automaton> getAutomata(ARGState root) {
-    switch (strategy) {
+    switch (splitStrategy) {
       case NONE:
-        return Collections.singleton(getAutomatonForStates(root, Predicates.alwaysFalse(), false));
+        return Collections.singleton(
+            getLocationAutomatonForStates(root, Predicates.alwaysFalse(), false));
       case GLOBAL_CONDITIONS:
         return getGlobalConditionSplitAutomata(root, selectionStrategy);
       case LEAVES:
-        return from(getLeaves(root)).transform(l -> getAutomatonForLeaf(root, l));
+        return from(getLeaves(root, false)).transform(l -> getAutomatonForLeaf(root, l));
+      case TARGETS:
+        return from(getLeaves(root, true)).transform(l -> getAutomatonForLeaf(root, l));
       default:
         throw new AssertionError("unexpected strategy");
     }
   }
 
   /** generate an automaton that traverses the subgraph, but leaves out ignored states. */
-  private static Automaton getAutomatonForStates(
-      ARGState pRoot, Predicate<ARGState> ignoreState, boolean withTargetState) {
+  private static Automaton getLocationAutomatonForStates(
+      ARGState pRoot, Predicate<ARGState> ignoreState, boolean withTargetStates) {
     try {
-      return getAutomatonForStates0(pRoot, ignoreState, withTargetState);
+      return getLocationAutomatonForStates0(pRoot, ignoreState, withTargetStates);
     } catch (InvalidAutomatonException e) {
       throw new AssertionError("unexpected exception", e);
     }
   }
 
   /** generate an automaton that traverses the subgraph, but leaves out ignored states. */
-  private static Automaton getAutomatonForStates0(
-      ARGState root, Predicate<ARGState> ignoreState, boolean withTargetState)
+  private static Automaton getLocationAutomatonForStates0(
+      ARGState root, Predicate<ARGState> ignoreState, boolean withTargetStates)
       throws InvalidAutomatonException {
 
     Preconditions.checkArgument(!ignoreState.apply(root));
@@ -174,7 +221,7 @@ public class ARGToAutomatonConverter {
     waitlist.add(root);
 
     List<AutomatonInternalState> states = new ArrayList<>();
-    if (withTargetState) {
+    if (withTargetStates) {
       states.add(AutomatonInternalState.ERROR);
     }
     while (!waitlist.isEmpty()) {
@@ -197,7 +244,7 @@ public class ARGToAutomatonConverter {
             new AutomatonBoolExpr.CPAQuery("location", "nodenumber==" + location.getNodeNumber());
         locationQueries.add(locationQuery);
         final String id;
-        if (withTargetState && child.isTarget()) {
+        if (withTargetStates && child.isTarget()) {
           id = AutomatonInternalState.ERROR.getName();
         } else {
           id = id(child);
@@ -208,7 +255,7 @@ public class ARGToAutomatonConverter {
         waitlist.add(child);
       }
 
-      if (withTargetState && s.isTarget()) {
+      if (withTargetStates && s.isTarget()) {
         assert transitions.isEmpty();
         assert states.contains(AutomatonInternalState.ERROR);
       } else {
@@ -255,6 +302,7 @@ public class ARGToAutomatonConverter {
     return new AutomatonBoolExpr.Negation(otherwise);
   }
 
+  @Deprecated // unmaintained?
   private Iterable<Automaton> getGlobalConditionSplitAutomata(
       ARGState root, BranchExportStrategy branchExportStrategy) {
     Map<ARGState, BranchingInfo> dependencies = getGlobalBranchingTree(root);
@@ -296,7 +344,8 @@ public class ARGToAutomatonConverter {
       case ALL: // export all nodes, mainly for debugging.
         return from(pDependencies.entrySet())
             .transformAndConcat(entry -> entry.getValue().getIgnoreStates())
-            .transform(ignores -> getAutomatonForStates(root, s -> ignores.contains(s), false));
+            .transform(
+                ignores -> getLocationAutomatonForStates(root, s -> ignores.contains(s), false));
 
       case LEAVES: // ALL_PATHS, export all leaf-nodes, sub-graphs cover the whole graph.
         // no redundant paths expected, if leafs are reached via different paths.
@@ -304,7 +353,8 @@ public class ARGToAutomatonConverter {
             // end-states do not have outgoing edges, and thus no next states.
             .filter(entry -> entry.getValue().getNextStates().isEmpty())
             .transformAndConcat(entry -> entry.getValue().getIgnoreStates())
-            .transform(ignores -> getAutomatonForStates(root, s -> ignores.contains(s), false));
+            .transform(
+                ignores -> getLocationAutomatonForStates(root, s -> ignores.contains(s), false));
 
       case WEIGHTED: // export all nodes, where children are heavier than a given limit
         return getWeightedAutomata(root, pDependencies);
@@ -336,7 +386,8 @@ public class ARGToAutomatonConverter {
     }
 
     return from(paths)
-        .transform(ignores -> getAutomatonForStates(pRoot, s -> ignores.contains(s), false));
+        .transform(
+            ignores -> getLocationAutomatonForStates(pRoot, s -> ignores.contains(s), false));
   }
 
   /**
@@ -434,7 +485,7 @@ public class ARGToAutomatonConverter {
         // Should we add a deeper analysis that also looks for (non-)exported grand-children?
         for (PersistentSet<ARGState> ignores : bi.getIgnoreStates()) {
           automata.add(
-              getAutomatonForStates(
+              getLocationAutomatonForStates(
                   root, as -> (ignores.contains(as) || finishedChildren.contains(as)), false));
         }
         completeExportOfState = true;
@@ -442,7 +493,7 @@ public class ARGToAutomatonConverter {
         // no children are exported -> export current node or skip and export parent
         if (shouldExportAutomatonFor(root, s, pDependencies)) {
           for (PersistentSet<ARGState> ignores : bi.getIgnoreStates()) {
-            automata.add(getAutomatonForStates(root, as -> ignores.contains(as), false));
+            automata.add(getLocationAutomatonForStates(root, as -> ignores.contains(as), false));
           }
           completeExportOfState = true;
         } else {
@@ -709,23 +760,223 @@ public class ARGToAutomatonConverter {
     return next;
   }
 
-  private Iterable<ARGState> getLeaves(ARGState pRoot) {
+  private static Iterable<ARGState> getLeaves(ARGState pRoot, boolean targetsOnly) {
     FluentIterable<ARGState> leaves =
         from(pRoot.getSubgraph()).filter(s -> s.getChildren().size() == 0);
-    boolean targetsOnly = true; // TODO add an option for this?
     return targetsOnly ? leaves.filter(ARGState::isTarget) : leaves;
   }
 
   /** generate an automaton that leads to the leaf state. */
-  private static Automaton getAutomatonForLeaf(ARGState pRoot, ARGState pLeaf) {
+  private Automaton getAutomatonForLeaf(ARGState pRoot, ARGState pLeaf) {
 
     Preconditions.checkArgument(pRoot != pLeaf);
     Preconditions.checkArgument(!pLeaf.isCovered());
-    Collection<ARGState> allStatesOnPaths = getAllStatesOnPathsTo(pLeaf);
-    Preconditions.checkArgument(allStatesOnPaths.contains(pRoot));
-    Preconditions.checkArgument(allStatesOnPaths.contains(pLeaf));
 
-    return getAutomatonForStates(pRoot, s -> !allStatesOnPaths.contains(s), true);
+    switch (dataStrategy) {
+      case LOCATION:
+        Collection<ARGState> allStatesOnPaths = getAllStatesOnPathsTo(pLeaf);
+        Preconditions.checkArgument(allStatesOnPaths.contains(pRoot));
+        Preconditions.checkArgument(allStatesOnPaths.contains(pLeaf));
+        return getLocationAutomatonForStates(pRoot, s -> !allStatesOnPaths.contains(s), true);
+      case CALLSTACK:
+        return getCallstackAutomatonForStates(pRoot, Collections.singleton(pLeaf), true);
+      default:
+        throw new AssertionError("unhandled case");
+    }
+  }
+
+  private Automaton getCallstackAutomatonForStates(
+      ARGState pRoot, Iterable<ARGState> pLeaves, boolean withTargetStates) {
+    try {
+      return getCallstackAutomatonForStates0(pRoot, pLeaves, withTargetStates);
+    } catch (InvalidAutomatonException e) {
+      throw new AssertionError("unexpected exception", e);
+    }
+  }
+
+  private Automaton getCallstackAutomatonForStates0(
+      ARGState pRoot, Iterable<ARGState> pLeaves, boolean withTargetStates)
+      throws InvalidAutomatonException {
+
+    // build the call graph, i.e., a directed tree starting at main-entry
+    final Multimap<CallstackState, CallstackState> callstacks = LinkedHashMultimap.create();
+    final Map<CallstackState, CallstackState> inverseCallstacks = new LinkedHashMap<>();
+    final Multimap<CallstackState, ARGState> callstackToLeaves = LinkedHashMultimap.create();
+    final Multimap<CallstackState, ARGState> callstackToLeafWithPreAssumptions = LinkedHashMultimap.create();
+    for (ARGState leaf : pLeaves) {
+      CallstackState callstack = AbstractStates.extractStateByType(leaf, CallstackState.class);
+      Preconditions.checkNotNull(callstack);
+      Preconditions.checkArgument(leaf.getParents().size() == 1);
+      Preconditions.checkArgument(leaf.getParents().iterator().next().getEdgeToChild(leaf) != null);
+      // if an error occurs when entering the function, we need to remove the last entry from the
+      // stack (at least for assumption handling, otherwise this probably does not happen any way):
+      if (leaf.getParents().iterator().next().getEdgeToChild(leaf) instanceof FunctionCallEdge) {
+        callstack = callstack.getPreviousState();
+      }
+      callstackToLeaves.put(callstack, leaf);
+      if (AbstractStates.projectToType(
+              AbstractStates.asIterable(leaf), AbstractStateWithAssumptions.class)
+          .anyMatch(x -> x.getPreconditionAssumptions().size() > 0)) {
+        callstackToLeafWithPreAssumptions.put(callstack, leaf);
+      }
+      CallstackState prev = callstack.getPreviousState();
+      while (prev != null) {
+        callstacks.put(prev, callstack);
+        inverseCallstacks.put(callstack, prev);
+        callstack = prev;
+        prev = callstack.getPreviousState();
+      }
+    }
+
+    final List<AutomatonInternalState> states = new ArrayList<>();
+    if (withTargetStates) {
+      states.add(AutomatonInternalState.ERROR);
+    }
+
+    // build automaton from call-graph
+    CallstackState root = AbstractStates.extractStateByType(pRoot, CallstackState.class);
+    Deque<CallstackState> waitlist = new ArrayDeque<>();
+    Set<CFANode> reached = new HashSet<>();
+    Set<CallstackState> stacksWithAssumptions = new HashSet<>();
+    waitlist.push(root);
+    reached.add(root.getCallNode());
+    while (!waitlist.isEmpty()) {
+      final CallstackState elem = waitlist.removeFirst();
+      boolean useAll = false;
+      Set<AExpression> assumptions = new HashSet<>();
+      for (ARGState leaf : callstackToLeafWithPreAssumptions.get(elem)) {
+        AbstractStates.projectToType(
+                AbstractStates.asIterable(leaf), AbstractStateWithAssumptions.class)
+            .stream()
+            .map(x -> x.getPreconditionAssumptions())
+            .flatMap(Collection::stream)
+            .forEach(assumptions::add);
+      }
+      final List<AutomatonTransition> transitions = new ArrayList<>();
+      for (ARGState leaf : callstackToLeaves.get(elem)) {
+        if (assumptions.size() == 0) {
+          // no assumptions, proceed normally:
+          transitions.add(
+              makeLocationTransition(
+                  AbstractStates.extractLocation(leaf).getNodeNumber(),
+                  withTargetStates ? AutomatonInternalState.ERROR.getName() : id(leaf)));
+        } else {
+          // assumptions present, bend transition to parent instead:
+          ARGState parent = leaf.getParents().iterator().next();
+          stacksWithAssumptions.add(elem);
+          transitions.add(
+              makeLocationTransition(
+                  AbstractStates.extractLocation(parent).getNodeNumber(), id(parent), assumptions));
+          try {
+          transitions.add(
+              makeLocationTransition(
+                  AbstractStates.extractLocation(parent).getNodeNumber(),
+                  id(elem),
+                  assumptions
+                      .stream()
+                      .map(x -> negateExpression((CExpression) x))
+                      .collect(ImmutableList.toImmutableList())));
+          } catch (ClassCastException e) {
+            throw new AssertionError(
+                "Currently there is only support for negating CExpressions", e);
+          }
+          useAll = true;
+        }
+      }
+      for (CallstackState called : callstacks.get(elem)) {
+        if (!reached.contains(called.getCallNode())) {
+          waitlist.add(called);
+          reached.add(called.getCallNode());
+        }
+        // calling the next function on the stack corresponds to going to the next automaton state
+        transitions.add(makeLocationTransition(called.getCallNode().getNodeNumber(), id(called)));
+      }
+      final CallstackState callee = inverseCallstacks.get(elem);
+      if (callee != null) {
+        // returning from the current function corresponds to returning to the previous automaton
+        // state (except for the main function):
+        transitions.add(
+            makeLocationTransition(
+                elem.getCallNode().getLeavingSummaryEdge().getSuccessor().getNodeNumber(),
+                id(callee)));
+      }
+      states.add(new AutomatonInternalState(id(elem), transitions, false, useAll, false));
+    }
+
+    finishAssumptionHandling(states, callstackToLeaves, stacksWithAssumptions);
+    return new Automaton("ARG", Collections.emptyMap(), states, id(root));
+  }
+
+  private static void finishAssumptionHandling(
+      List<AutomatonInternalState> pStates,
+      Multimap<CallstackState, ARGState> pCallstackToLeaves,
+      Set<CallstackState> pStacksWithAssumptions) {
+
+    for (CallstackState callstack : pStacksWithAssumptions) {
+      final Set<ARGState> parents = new HashSet<>();
+      final Map<ARGState,CFANode> parentsToLeafNode = new HashMap<>();
+      for (ARGState leaf : pCallstackToLeaves.get(callstack)) {
+        ARGState parent = leaf.getParents().iterator().next();
+        if (parents.add(parent)) {
+          CFANode leafNode = AbstractStates.extractLocation(leaf);
+          if (parentsToLeafNode.containsKey(parent)) {
+            assert parentsToLeafNode.get(parent) == leafNode
+                : "Expected to have only one CFANode for the children"
+                    + "(this holds at least when considering overflows with OverflowCPA)";
+          }
+          parentsToLeafNode.put(parent, AbstractStates.extractLocation(leaf));
+        }
+      }
+      for (ARGState parent : parents) {
+        final CFANode leafNode = parentsToLeafNode.get(parent);
+        final List<AutomatonTransition> transitions = new ArrayList<>();
+        transitions.add(
+            makeLocationTransition(
+                leafNode.getNodeNumber(), AutomatonInternalState.ERROR.getName()));
+        transitions.add(makeNegatedLocationTransition(leafNode.getNodeNumber(), id(callstack)));
+        // Following one matching transition when in the following state should be ok:
+        pStates.add(new AutomatonInternalState(id(parent), transitions));
+      }
+    }
+  }
+
+  private static AutomatonTransition makeLocationTransition(
+      int nodeNumber, String followStateName) {
+    return makeLocationTransition(nodeNumber, followStateName, ImmutableList.of());
+  }
+
+  private static AutomatonTransition makeLocationTransition(
+      int nodeNumber, String followStateName, Collection<AExpression> assumptions) {
+    return makeLocationTransition(nodeNumber, followStateName, assumptions, false);
+  }
+
+  private static AutomatonTransition makeNegatedLocationTransition(
+      int nodeNumber, String followStateName, Collection<AExpression> assumptions) {
+    return makeLocationTransition(nodeNumber, followStateName, assumptions, true);
+  }
+
+  private static AutomatonTransition makeNegatedLocationTransition(
+      int nodeNumber, String followStateName) {
+    return makeNegatedLocationTransition(nodeNumber, followStateName, ImmutableList.of());
+  }
+
+  private static AutomatonTransition makeLocationTransition(
+      int nodeNumber, String followStateName, Collection<AExpression> assumptions, boolean negate) {
+    AutomatonBoolExpr expr = new AutomatonBoolExpr.CPAQuery("location", "nodenumber==" + nodeNumber);
+    return new AutomatonTransition(
+        negate ? new AutomatonBoolExpr.Negation(expr) : expr,
+        ImmutableList.of(),
+        ImmutableList.copyOf(assumptions),
+        ImmutableList.of(),
+        followStateName);
+  }
+
+  private CExpression negateExpression(CExpression expr) {
+    try {
+      return cBinaryExpressionBuilder.negateExpressionAndSimplify(expr);
+    } catch (UnrecognizedCodeException e) {
+      throw new AssertionError(e);
+    }
   }
 
   /** the same as {@link ARGUtils#getAllStatesOnPathsTo}, but with coverage handling. */
@@ -739,10 +990,7 @@ public class ARGToAutomatonConverter {
         continue;
       }
       waitlist.addAll(s.getParents());
-      while (s.isCovered()) {
-        s = s.getCoveringState();
-        waitlist.addAll(s.getParents());
-      }
+      waitlist.addAll(s.getCoveredByThis());
     }
     return finished;
   }
@@ -795,6 +1043,44 @@ public class ARGToAutomatonConverter {
         + Joiner.on(", ")
             .join(Iterables.transform(children.keys(), s -> id(s) + "->" + id(children.get(s))))
         + "}";
+  }
+
+  private static String id(CallstackState s) {
+    return id(s, false);
+  }
+
+  private static String id(CallstackState s, boolean complete) {
+    StringBuilder strBuilder = new StringBuilder().append(currentCallDescription(s));
+    if (complete) {
+      while (s.getPreviousState() != null) {
+        s = s.getPreviousState();
+        strBuilder.insert(0, currentCallDescription(s) + "__");
+      }
+    }
+    return strBuilder.toString();
+  }
+
+  private static String currentCallDescription(final CallstackState s) {
+    return s.getCurrentFunction()
+        + "_N"
+        + s.getCallNode().getNodeNumber()
+        + "_L"
+        + getCallLineNumber(s);
+  }
+
+  private static int getCallLineNumber(final CallstackState s) {
+    final CFANode node = s.getCallNode();
+    int position = 0;
+    // we set a position even if there is no FunctionCallEdge here on purpose!(this is needed for
+    // main, whose node from the CallstackState does not have a leaving FunctionCallEdge)
+    for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+      final CFAEdge edge = node.getLeavingEdge(i);
+      position = edge.getLineNumber();
+      if (edge instanceof FunctionCallEdge) {
+        break;
+      }
+    }
+    return position;
   }
 
   private static final class BranchingInfo {

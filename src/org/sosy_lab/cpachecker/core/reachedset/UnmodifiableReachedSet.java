@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.reachedset;
 
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
+
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.BiConsumer;
@@ -31,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
 /**
  * Interface representing an unmodifiable reached set
@@ -126,7 +130,15 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
    *
    * @return Is any property violated
    */
-  boolean hasViolatedProperties();
+  default boolean hasViolatedProperties() {
+    return from(asCollection()).anyMatch(IS_TARGET_STATE);
+  }
 
-  Collection<Property> getViolatedProperties();
+  default Collection<Property> getViolatedProperties() {
+    return from(asCollection())
+        .filter(IS_TARGET_STATE)
+        .filter(Targetable.class)
+        .transformAndConcat(Targetable::getViolatedProperties)
+        .toSet();
+  }
 }

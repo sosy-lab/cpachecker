@@ -142,6 +142,26 @@ public class ExpressionSimplificationVisitor
         newExpr = expr;
       } else {
         final CBinaryExpressionBuilder binExprBuilder = new CBinaryExpressionBuilder(machineModel, logger);
+        switch (binaryOperator) {
+          case BINARY_AND:
+            if (value1 != null && value1.bigInteger().equals(BigInteger.ZERO)) {
+              return op1;
+            }
+            if (value2 != null && value2.bigInteger().equals(BigInteger.ZERO)) {
+              return op2;
+            }
+            break;
+          case BINARY_OR:
+            if (value1 != null && value1.bigInteger().equals(BigInteger.ZERO)) {
+              return op2;
+            }
+            if (value2 != null && value2.bigInteger().equals(BigInteger.ZERO)) {
+              return op1;
+            }
+            break;
+          default:
+            break;
+        }
         newExpr = binExprBuilder.buildBinaryExpressionUnchecked(
             op1, op2, binaryOperator);
       }
