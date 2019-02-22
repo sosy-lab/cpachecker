@@ -1,0 +1,12 @@
+../programs/javascript/isNaN.yml
+../programs/javascript/isNaN_false.yml
+../programs/javascript/unary-expressions.yml
+../programs/javascript/value-properties-of-the-global-object.yml
+../programs/javascript/expressions/bitwise-and.yml
+../programs/javascript/expressions/bitwise-complement.yml
+../programs/javascript/expressions/bitwise-left-shift.yml
+../programs/javascript/expressions/bitwise-or.yml
+../programs/javascript/expressions/bitwise-right-shift-signed.yml
+../programs/javascript/expressions/bitwise-right-shift-unsigned.yml
+../programs/javascript/expressions/bitwise-xor.yml
+../programs/javascript/objects/arrays/array-element-assignment.yml

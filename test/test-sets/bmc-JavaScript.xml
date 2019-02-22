@@ -13,12 +13,16 @@
 
     <tasks>
         <option name="-setprop">solver.solver=z3</option>
+        <!-- approximation of floats as rational runs faster and is sufficient precise -->
+        <option name="-setprop">cpa.predicate.encodeFloatAs=rational</option>
+        <!-- TODO this option should be removed as soon as NaN and float interpolation can be used together -->
+        <option name="-setprop">cpa.predicate.js.useNaN=false</option>
         <include>../programs/javascript/*.yml</include>
         <include>../programs/javascript/*/*.yml</include>
         <include>../programs/javascript/*/*/*.yml</include>
 
         <exclude>../programs/javascript/expressions/binary-expressions/*.yml</exclude>
-        <excludesfile>predicateAnalysis-JavaScript-encodeFloatAsRational.set</excludesfile>
+        <excludesfile>predicateAnalysis-JavaScript-encodeFloatAsFloat.set</excludesfile>
         <propertyfile>../../test/config/specification/JavaScriptAssertion.spc</propertyfile>
     </tasks>
 
@@ -29,11 +33,7 @@
 
     <tasks>
         <option name="-setprop">solver.solver=z3</option>
-        <option name="-setprop">cpa.predicate.encodeFloatAs=rational</option>
-        <!-- TODO this option should be removed as soon as NaN and float interpolation can be used together -->
-        <option name="-setprop">cpa.predicate.js.useNaN=false</option>
-        <exclude>../programs/javascript/expressions/binary-expressions/*.yml</exclude>
-        <includesfile>predicateAnalysis-JavaScript-encodeFloatAsRational.set</includesfile>
+        <includesfile>predicateAnalysis-JavaScript-encodeFloatAsFloat.set</includesfile>
         <propertyfile>../../test/config/specification/JavaScriptAssertion.spc</propertyfile>
     </tasks>
 </benchmark>
