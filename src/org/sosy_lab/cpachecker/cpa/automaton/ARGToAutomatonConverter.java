@@ -806,6 +806,13 @@ public class ARGToAutomatonConverter {
     for (ARGState leaf : pLeaves) {
       CallstackState callstack = AbstractStates.extractStateByType(leaf, CallstackState.class);
       Preconditions.checkNotNull(callstack);
+      Preconditions.checkArgument(leaf.getParents().size() == 1);
+      Preconditions.checkArgument(leaf.getParents().iterator().next().getEdgeToChild(leaf) != null);
+      // if an error occurs when entering the function, we need to remove the last entry from the
+      // stack (at least for assumption handling, otherwise this probably does not happen any way):
+      if (leaf.getParents().iterator().next().getEdgeToChild(leaf) instanceof FunctionCallEdge) {
+        callstack = callstack.getPreviousState();
+      }
       callstackToLeaves.put(callstack, leaf);
       if (AbstractStates.projectToType(
               AbstractStates.asIterable(leaf), AbstractStateWithAssumptions.class)
