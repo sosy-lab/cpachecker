@@ -23,10 +23,41 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
+import java.util.HashSet;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
+import org.sosy_lab.cpachecker.util.predicates.smt.SolverViewBasedTest0;
+import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
+import org.sosy_lab.java_smt.api.FloatingPointFormula;
 
-public class StringFormulaManagerTest {
+@RunWith(Parameterized.class)
+public class StringFormulaManagerTest extends SolverViewBasedTest0 {
+
+  @Parameters(name = "{0}")
+  public static Object[] getAllSolvers() {
+    return new Object[] {Solvers.MATHSAT5, Solvers.Z3};
+  }
+
+  @Parameter() public Solvers usedSolver;
+
+  @Override
+  protected Solvers solverToUse() {
+    return usedSolver;
+  }
+
+  @Test
+  public void testIdsAreUnique() {
+    final int maxFieldNameCount = 10000;
+    final StringFormulaManager strMgr = new StringFormulaManager(mgrv, maxFieldNameCount);
+    final HashSet<FloatingPointFormula> ids = new HashSet<>();
+    strMgr.getIdRange().forEach(ids::add);
+    Assert.assertEquals(ids.size(), maxFieldNameCount);
+  }
+
   @Test
   public void isNumberString() {
     Assert.assertTrue(StringFormulaManager.isNumberString("0"));
