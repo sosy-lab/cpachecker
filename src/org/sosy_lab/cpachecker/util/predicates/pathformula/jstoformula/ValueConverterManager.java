@@ -398,4 +398,52 @@ class ValueConverterManager {
         bitVecMgr.makeBitvector(bv32, 0),
         bv32Result);
   }
+
+  /**
+   * <cite>The abstract operation ToUint32 converts its argument to one of 2<sup>32</sup> integer
+   * values in the range 0 through 2<sup>32</sup>−1, inclusive.</cite>
+   *
+   * @param pValue Value to convert to Uint32.
+   * @return Converted value is Uint32 encoded as 32 bitvector.
+   * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-9.6">9.6 ToUint32: (Unsigned
+   *     32 Bit Integer)</a>
+   */
+  BitvectorFormula toUint32(final TypedValue pValue) {
+    // 1. Let number be the result of calling ToNumber on the input argument.
+    return toUint32(toNumber(pValue));
+  }
+
+  /**
+   * <cite>The abstract operation ToUint32 converts its argument to one of 2<sup>32</sup> integer
+   * values in the range 0 through 2<sup>32</sup>−1, inclusive.</cite>
+   *
+   * @param pNumber Value to convert to Uint32.
+   * @return Converted value is Uint32 encoded as 32 bitvector.
+   * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-9.6">9.6 ToUint32: (Unsigned
+   *     32 Bit Integer)</a>
+   */
+  @Nonnull
+  BitvectorFormula toUint32(final FloatingPointFormula pNumber) {
+    final BitvectorType bv32 = FormulaType.getBitvectorTypeWithSize(32);
+    final BitvectorType bv1026 = FormulaType.getBitvectorTypeWithSize(1026);
+    final BitvectorFormula i2Pow31 = bitVecMgr.makeBitvector(bv1026, 2147483648L); // 2^31
+    final BitvectorFormula i2Pow32 = bitVecMgr.makeBitvector(bv1026, 4294967296L); // 2^32
+
+    // 3. Let posInt be sign(number) * floor(abs(number)).
+    final BitvectorFormula posInt =
+        fpfmgr.castTo(pNumber, bv1026, FloatingPointRoundingMode.TOWARD_ZERO);
+
+    // 4. Let int32bit be posInt modulo 2^32; that is, a finite integer value k of Number type
+    // with positive sign and less than 2^32 in magnitude such that the mathematical difference of
+    // posInt and k is mathematically an integer multiple of 2^32.
+    final BitvectorFormula int32bit = bitVecMgr.modulo(posInt, i2Pow32, true);
+
+    final BitvectorFormula bv32Result = bitVecMgr.extract(int32bit, 31, 0, true);
+
+    // 2. If number is NaN, +0, −0, +∞, or −∞, return +0.
+    return bfmgr.ifThenElse(
+        bfmgr.or(numMgr.isNaN(pNumber), numMgr.isInfinity(pNumber)),
+        bitVecMgr.makeBitvector(bv32, 0),
+        bv32Result);
+  }
 }

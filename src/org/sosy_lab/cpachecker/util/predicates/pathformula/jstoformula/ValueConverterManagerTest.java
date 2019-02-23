@@ -158,6 +158,74 @@ public class ValueConverterManagerTest extends SolverViewBasedTest0 {
     assertToInt32(-0.0, 0, true);
   }
 
+  private void assertToUint32(final double pFrom, final long pTo, final boolean pEqual)
+      throws SolverException, InterruptedException {
+    assert pTo >= 0;
+    @SuppressWarnings("ConstantConditions")
+    final BooleanFormula formula =
+        bvmgr.equal(
+            valConvMgr.toUint32(
+                fpmgr.makeNumber(pFrom, FormulaType.getDoublePrecisionFloatingPointType())),
+            bvmgr.makeBitvector(32, pTo));
+    if (pEqual) {
+      assertThatFormula(formula).isSatisfiable();
+      assertThatFormula(bmgr.not(formula)).isUnsatisfiable();
+    } else {
+      assertThatFormula(formula).isUnsatisfiable();
+      assertThatFormula(bmgr.not(formula)).isSatisfiable();
+    }
+  }
+
+  @Test
+  public void toUint32() throws SolverException, InterruptedException {
+    // int32 to uint32
+    assertToUint32(-1, 4294967295L, true);
+    assertToUint32(0, 0, true);
+    assertToUint32(2147483647, 2147483647, true);
+    assertToUint32(-2147483648, 2147483648L, true);
+
+    assertToUint32(-1, 1, false);
+    assertToUint32(0, 1, false);
+    assertToUint32(2147483647, 2147483648L, false);
+    assertToUint32(-2147483648, 2147483647, false);
+
+    // double to uint32
+    assertToUint32(-1.9, 4294967295L, true);
+    assertToUint32(0.1, 0, true);
+    assertToUint32(2147483647.999, 2147483647, true);
+    assertToUint32(-2147483648.999, 2147483648L, true);
+
+    assertToUint32(-1.9, 4294967294L, false);
+    assertToUint32(0.1, 1, false);
+    assertToUint32(2147483647.999, 2147483648L, false);
+    assertToUint32(-2147483648.999, 2147483647, false);
+
+    // integer out of 32-bit range are converted with overflow
+    assertToUint32(2147483648.0, 2147483648L, true);
+    assertToUint32(6442450944.0, 2147483648L, true);
+    assertToUint32(2147483649.0, 2147483649L, true);
+    assertToUint32(-2147483649.0, 2147483647, true);
+    assertToUint32(-6442450945.0, 2147483647, true);
+    assertToUint32(-2147483650.0, 2147483646, true);
+    assertToUint32(Double.MAX_VALUE, 0, true);
+    assertToUint32(-Double.MAX_VALUE, 0, true);
+
+    assertToUint32(2147483648.0, 2147483647, false);
+    assertToUint32(6442450944.0, 2147483647, false);
+    assertToUint32(2147483649.0, 2147483647, false);
+    assertToUint32(-2147483649.0, 0, false);
+    assertToUint32(-6442450945.0, 0, false);
+    assertToUint32(-2147483650.0, 0, false);
+    assertToUint32(Double.MAX_VALUE, 2147483647, false);
+    assertToUint32(-Double.MAX_VALUE, 2147483648L, false);
+
+    // special values
+    assertToUint32(Double.POSITIVE_INFINITY, 0, true);
+    assertToUint32(Double.NEGATIVE_INFINITY, 0, true);
+    assertToUint32(Double.NaN, 0, true);
+    assertToUint32(-0.0, 0, true);
+  }
+
   @SuppressWarnings("ConstantConditions")
   @Test
   public void toStringFormula() throws SolverException, InterruptedException {
