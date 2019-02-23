@@ -137,19 +137,55 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
       case OR:
         return makeBitwiseOperator(bitVecMgr::or, leftOperand, rightOperand);
       case LEFT_SHIFT:
-        return makeBitwiseOperator(bitVecMgr::shiftLeft, leftOperand, rightOperand);
+        return shiftLeft(leftOperand, rightOperand);
       case RIGHT_SHIFT_UNSIGNED:
-        return makeBitwiseOperator(
-            (l, r) -> bitVecMgr.shiftRight(l, r, false), leftOperand, rightOperand);
+        return shiftRightUnsigned(leftOperand, rightOperand);
       case RIGHT_SHIFT_SIGNED:
-        return makeBitwiseOperator(
-            (l, r) -> bitVecMgr.shiftRight(l, r, true), leftOperand, rightOperand);
+        return shiftRightSigned(leftOperand, rightOperand);
       case XOR:
         return makeBitwiseOperator(bitVecMgr::xor, leftOperand, rightOperand);
       default:
         throw new UnrecognizedCodeException(
             "JSBinaryExpression not implemented yet", pBinaryExpression);
     }
+  }
+
+  @Nonnull
+  private TypedValue shiftLeft(final TypedValue pLeftOperand, final TypedValue pRightOperand) {
+    return tvmgr.createNumberValue(
+        fpfmgr.castFrom(
+            bitVecMgr.shiftLeft(
+                valConv.toInt32(pLeftOperand),
+                bitVecMgr.and(
+                    valConv.toUint32(pRightOperand), bitVecMgr.makeBitvector(32, 0x1f))),
+            true,
+            Types.NUMBER_TYPE));
+  }
+
+  @Nonnull
+  private TypedValue shiftRightSigned(final TypedValue pLeftOperand, final TypedValue pRightOperand) {
+    return tvmgr.createNumberValue(
+        fpfmgr.castFrom(
+            bitVecMgr.shiftRight(
+                valConv.toInt32(pLeftOperand),
+                bitVecMgr.and(
+                    valConv.toUint32(pRightOperand), bitVecMgr.makeBitvector(32, 0x1f)),
+                true),
+            true,
+            Types.NUMBER_TYPE));
+  }
+
+  @Nonnull
+  private TypedValue shiftRightUnsigned(final TypedValue pLeftOperand, final TypedValue pRightOperand) {
+    return tvmgr.createNumberValue(
+        fpfmgr.castFrom(
+            bitVecMgr.shiftRight(
+                valConv.toUint32(pLeftOperand),
+                bitVecMgr.and(
+                    valConv.toUint32(pRightOperand), bitVecMgr.makeBitvector(32, 0x1f)),
+                false),
+            true,
+            Types.NUMBER_TYPE));
   }
 
   @Nonnull
