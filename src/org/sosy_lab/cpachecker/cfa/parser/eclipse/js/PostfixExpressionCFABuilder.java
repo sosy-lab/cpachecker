@@ -34,6 +34,8 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
@@ -47,7 +49,7 @@ class PostfixExpressionCFABuilder implements PostfixExpressionAppendable {
     // postfix expression:
     //    x++
     // side effect:
-    //    var tmp = x
+    //    var tmp = +x // enforce conversion to number
     //    x = x + 1
     // result:
     //    tmp
@@ -56,7 +58,10 @@ class PostfixExpressionCFABuilder implements PostfixExpressionAppendable {
         (JSIdExpression) pBuilder.append(pPostfixExpression.getOperand());
     final JSVariableDeclaration oldValueVariableDeclaration =
         pBuilder.declareVariable(
-            new JSInitializerExpression(FileLocation.DUMMY, variableToIncrement));
+            new JSInitializerExpression(
+                FileLocation.DUMMY,
+                new JSUnaryExpression(
+                    FileLocation.DUMMY, variableToIncrement, UnaryOperator.PLUS)));
     pBuilder
         .appendEdge(JSDeclarationEdge.of(oldValueVariableDeclaration))
         .appendEdge(

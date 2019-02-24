@@ -33,9 +33,13 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
@@ -66,7 +70,7 @@ public class PostfixExpressionCFABuilderTest extends CFABuilderTestBase {
         });
 
     // expected side effect:
-    //    var tmp = x
+    //    var tmp = +x // enforce conversion to number
     //    x = x + 1
     // expected result:
     //    tmp
@@ -80,6 +84,10 @@ public class PostfixExpressionCFABuilderTest extends CFABuilderTestBase {
     final JSVariableDeclaration tmpVarDeclaration =
         (JSVariableDeclaration) tmpVarDeclarationEdge.getDeclaration();
     Truth.assertThat(tmpVarDeclaration.getName()).isEqualTo(result.getName());
+    final JSExpression tmpVarInitExpr =
+        ((JSInitializerExpression) tmpVarDeclaration.getInitializer()).getExpression();
+    Truth.assertThat(tmpVarInitExpr)
+        .isEqualTo(new JSUnaryExpression(FileLocation.DUMMY, variableId, UnaryOperator.PLUS));
     Truth.assertThat(tmpVarDeclarationEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(1);
     final JSStatementEdge incrementStatementEdge =
         (JSStatementEdge) tmpVarDeclarationEdge.getSuccessor().getLeavingEdge(0);
