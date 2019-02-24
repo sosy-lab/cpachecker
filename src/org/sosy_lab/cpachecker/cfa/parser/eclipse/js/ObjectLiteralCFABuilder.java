@@ -42,11 +42,19 @@ class ObjectLiteralCFABuilder implements ObjectLiteralAppendable {
     final List<ObjectLiteralField> fields = pObjectLiteral.fields();
     final List<JSObjectLiteralField> fieldInitializers =
         Streams.zip(
-                fields.stream().map(field -> ((SimpleName) field.getFieldName()).getIdentifier()),
+                fields.stream()
+                    .map(
+                        field ->
+                            // TODO identifier should to be parsed (JavaScript string literal)
+                            // In the meantime, quotes are simply removed (escape sequence, etc. are
+                            // not handled yet)
+                            ((SimpleName) field.getFieldName())
+                                .getIdentifier()
+                                .replace("\"", "")
+                                .replace("'", "")),
                 pBuilder
                     .append(
-                        fields
-                            .stream()
+                        fields.stream()
                             .map(ObjectLiteralField::getInitializer)
                             .collect(Collectors.toList()))
                     .stream(),
