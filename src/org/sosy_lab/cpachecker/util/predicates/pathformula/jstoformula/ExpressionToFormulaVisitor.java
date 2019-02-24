@@ -58,7 +58,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerVi
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 /** Management of formula encoding of JavaScript expressions. */
@@ -258,12 +260,26 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
     final FloatingPointFormulaManagerView f = fpfmgr;
     final FloatingPointFormula dividend = valConv.toNumber(pLeftOperand);
     final FloatingPointFormula divisor = valConv.toNumber(pRightOperand);
-    // TODO In the remaining cases, where neither an infinity, nor a zero, nor NaN is involved, the
+    // In the remaining cases, where neither an infinity, nor a zero, nor NaN is involved, the
     // floating-point remainder r from a dividend n and a divisor d is defined by the mathematical
     // relation r = n − (d × q) where q is an integer that is negative only if n/d is negative and
     // positive only if n/d is positive, and whose magnitude is as large as possible without
     // exceeding the magnitude of the true mathematical quotient of n and d. r is computed and
     // rounded to the nearest representable value using IEEE 754 round-to-nearest mode.
+    // TODO handle floats (the following approximation only works for integers)
+    final BitvectorType bv1026 = FormulaType.getBitvectorTypeWithSize(1026);
+    final FloatingPointFormula remainder =
+        fpfmgr.castFrom(
+            bitVecMgr.modulo(
+                fpfmgr.castTo(dividend, bv1026, FloatingPointRoundingMode.TOWARD_ZERO),
+                fpfmgr.castTo(divisor, bv1026, FloatingPointRoundingMode.TOWARD_ZERO),
+                true),
+            true,
+            Types.NUMBER_TYPE);
+    // The sign of the result equals the sign of the dividend.
+    final FloatingPointFormula remainderSignFixed =
+        bfmgr.ifThenElse(numMgr.isNegative(dividend), f.negate(remainder), remainder);
+    // Combine result above with special cases
     return bfmgr.ifThenElse(
         bfmgr.or(
             numMgr.isNaN(dividend),
@@ -272,7 +288,9 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
             f.isZero(divisor)),
         f.makeNaN(Types.NUMBER_TYPE),
         bfmgr.ifThenElse(
-            bfmgr.or(numMgr.isInfinity(divisor), f.isZero(dividend)), dividend, dividend));
+            bfmgr.or(numMgr.isInfinity(divisor), f.isZero(dividend)),
+            dividend,
+            remainderSignFixed));
   }
 
   @Nonnull
