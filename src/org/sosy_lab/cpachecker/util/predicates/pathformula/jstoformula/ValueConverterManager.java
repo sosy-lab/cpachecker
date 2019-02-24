@@ -318,7 +318,10 @@ class ValueConverterManager {
   @Nonnull
   FloatingPointFormula stringToNumber(final FloatingPointFormula pStringIdFormula) {
     // TODO convert non number strings to NaN
-    return fpfmgr.castTo(pStringIdFormula, Types.NUMBER_TYPE);
+    return bfmgr.ifThenElse(
+        fmgr.makeEqual(pStringIdFormula, strMgr.getStringFormula("")),
+        numMgr.ZERO,
+        fpfmgr.castTo(pStringIdFormula, Types.NUMBER_TYPE));
   }
 
   /**
