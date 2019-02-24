@@ -186,7 +186,7 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
                 bitVecMgr.and(
                     valConv.toUint32(pRightOperand), bitVecMgr.makeBitvector(32, 0x1f)),
                 false),
-            true,
+            false,
             Types.NUMBER_TYPE));
   }
 
