@@ -271,7 +271,7 @@ class ValueConverterManager {
     } else if (type.equals(typeTags.UNDEFINED)) {
       return fpfmgr.makeNaN(Types.NUMBER_TYPE);
     } else if (type.equals(typeTags.OBJECT)) {
-      return objectToNumber();
+      return objectToNumber((IntegerFormula) pValue.getValue());
     } else {
       // variable
       final IntegerFormula variable = (IntegerFormula) pValue.getValue();
@@ -286,14 +286,25 @@ class ValueConverterManager {
                   stringToNumber(typedVarValues.stringValue(variable)),
                   bfmgr.ifThenElse(
                       fmgr.makeEqual(type, typeTags.OBJECT),
-                      objectToNumber(),
+                      objectToNumber(typedVarValues.objectValue(variable)),
                       fpfmgr.makeNaN(Types.NUMBER_TYPE)))));
     }
   }
 
+  /**
+   * Convert object ID formula to number formula.
+   *
+   * @param pObjectId Object ID formula to convert to number formula.
+   * @return If object ID refers to null then zero else NaN formula.
+   * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-9.3">9.3 ToNumber</a>
+   */
   @Nonnull
-  private FloatingPointFormula objectToNumber() {
-    return fmgr.makeNumber(Types.NUMBER_TYPE, 0); // TODO handle non null objects
+  private FloatingPointFormula objectToNumber(final IntegerFormula pObjectId) {
+    // TODO call ToPrimitive should be done
+    return bfmgr.ifThenElse(
+        fmgr.makeEqual(tvmgr.getNullValue().getValue(), pObjectId),
+        fmgr.makeNumber(Types.NUMBER_TYPE, 0),
+        fpfmgr.makeNaN(Types.NUMBER_TYPE));
   }
 
   /**
