@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.jstoformula;
 
+import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -32,6 +33,11 @@ class JSNumberFormulaManager {
   private final boolean useNaN;
   private final BooleanFormulaManager bfmgr;
   private final FloatingPointFormulaManagerView fpfmgr;
+  final FloatingPointFormula NaN;
+  final FloatingPointFormula NEGATIVE_INFINITY;
+  final FloatingPointFormula ZERO;
+  final FloatingPointFormula NEGATIVE_ZERO;
+  final FloatingPointFormula ONE;
 
   JSNumberFormulaManager(
       final boolean pUseNaN,
@@ -40,6 +46,16 @@ class JSNumberFormulaManager {
     useNaN = pUseNaN;
     bfmgr = pBfmgr;
     fpfmgr = pFpfmgr;
+    NaN = fpfmgr.makeNaN(Types.NUMBER_TYPE);
+    NEGATIVE_INFINITY = fpfmgr.makeMinusInfinity(Types.NUMBER_TYPE);
+    ZERO = makeNumber(0);
+    NEGATIVE_ZERO = fpfmgr.negate(ZERO);
+    ONE = makeNumber(1);
+  }
+
+  @Nonnull
+  FloatingPointFormula makeNumber(final double pValue) {
+    return fpfmgr.makeNumber(pValue, Types.NUMBER_TYPE);
   }
 
   BooleanFormula isNaN(final FloatingPointFormula pNumber) {
@@ -49,5 +65,19 @@ class JSNumberFormulaManager {
   BooleanFormula isInfinity(final FloatingPointFormula pNumber) {
     // TODO use another option or rename useNaN to be not misleading
     return useNaN ? fpfmgr.isInfinity(pNumber) : bfmgr.makeFalse();
+  }
+
+  BooleanFormula isNegative(final FloatingPointFormula pNumber) {
+    // TODO use another option or rename useNaN to be not misleading
+    return bfmgr.or(isNegativeZero(pNumber), fpfmgr.lessThan(pNumber, ZERO));
+  }
+
+  BooleanFormula isNegativeZero(final FloatingPointFormula pNumber) {
+    // TODO use another option or rename useNaN to be not misleading
+    return useNaN
+        ? bfmgr.and(
+            fpfmgr.isZero(pNumber),
+            fpfmgr.equalWithFPSemantics(fpfmgr.divide(ONE, pNumber), NEGATIVE_INFINITY))
+        : bfmgr.makeFalse();
   }
 }
