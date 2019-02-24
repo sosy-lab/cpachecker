@@ -271,7 +271,7 @@ class ValueConverterManager {
     } else if (type.equals(typeTags.UNDEFINED)) {
       return fpfmgr.makeNaN(Types.NUMBER_TYPE);
     } else if (type.equals(typeTags.OBJECT)) {
-      return fmgr.makeNumber(Types.NUMBER_TYPE, 0); // TODO handle non null objects
+      return objectToNumber();
     } else {
       // variable
       final IntegerFormula variable = (IntegerFormula) pValue.getValue();
@@ -286,9 +286,14 @@ class ValueConverterManager {
                   stringToNumber(typedVarValues.stringValue(variable)),
                   bfmgr.ifThenElse(
                       fmgr.makeEqual(type, typeTags.OBJECT),
-                      fmgr.makeNumber(Types.NUMBER_TYPE, 0), // TODO handle non null objects
+                      objectToNumber(),
                       fpfmgr.makeNaN(Types.NUMBER_TYPE)))));
     }
+  }
+
+  @Nonnull
+  private FloatingPointFormula objectToNumber() {
+    return fmgr.makeNumber(Types.NUMBER_TYPE, 0); // TODO handle non null objects
   }
 
   /**
