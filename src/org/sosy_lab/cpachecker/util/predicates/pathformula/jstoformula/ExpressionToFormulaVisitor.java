@@ -278,7 +278,12 @@ public class ExpressionToFormulaVisitor extends ManagerWithEdgeContext
             Types.NUMBER_TYPE);
     // The sign of the result equals the sign of the dividend.
     final FloatingPointFormula remainderSignFixed =
-        bfmgr.ifThenElse(numMgr.isNegative(dividend), f.negate(remainder), remainder);
+        bfmgr.ifThenElse(
+            bfmgr.or(
+                numMgr.isNegativeZero(dividend),
+                bfmgr.and(f.isZero(remainder), numMgr.isNegative(dividend))),
+            f.negate(remainder),
+            remainder);
     // Combine result above with special cases
     return bfmgr.ifThenElse(
         bfmgr.or(
