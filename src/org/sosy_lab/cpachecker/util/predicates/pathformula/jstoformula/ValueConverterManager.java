@@ -312,8 +312,8 @@ class ValueConverterManager {
    *
    * @param pStringIdFormula String ID formula to convert to number formula.
    * @return String ID formula converted to number formula.
-   * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-9.3">9.3.1 ToNumber Applied
-   *     to the String Type</a>
+   * @see <a href="https://www.ecma-international.org/ecma-262/5.1/#sec-9.3.1">9.3.1 ToNumber
+   *     Applied to the String Type</a>
    */
   @Nonnull
   FloatingPointFormula stringToNumber(final FloatingPointFormula pStringIdFormula) {
