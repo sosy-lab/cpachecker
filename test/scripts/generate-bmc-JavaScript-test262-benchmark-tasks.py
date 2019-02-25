@@ -1,8 +1,21 @@
 import os
 import re
+import sys
 import textwrap
 from pathlib import Path
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+def eprint(*args, **kwargs):
+    print(bcolors.WARNING, *args, bcolors.ENDC, file=sys.stderr, **kwargs)
 
 def contains_eval(file_content):
     return 'eval(' in file_content
@@ -30,18 +43,31 @@ def is_skip_directory(dir):
     :type dir: Path
     :return:
     """
-    root = project_root_dir / 'test/programs/javascript-test262-benchmark/test/language/statements/'
+    root = project_root_dir / 'test/programs/javascript-test262-benchmark/test/language/'
     skipped_directories = [
-        'async-function',
-        'async-generator',
-        'class',
-        'for-await-of',
-        'for-in',
-        'for-of',
-        'generators',
-        'with',
+        'expressions/arrow-function',
+        'expressions/async-arrow-function',
+        'expressions/async-function',
+        'expressions/async-generator',
+        'expressions/await',
+        'expressions/class',
+        'expressions/concatenation',  # support of string concatenation to restricted yet
+        'expressions/dynamic-import',
+        'expressions/generators',
+        'expressions/exponentiation',
+        'expressions/in',  # TODO in operator
+        'expressions/instanceof',  # TODO instanceof operator
+        'expressions/template-literal',
+        'statements/async-function',
+        'statements/async-generator',
+        'statements/class',
+        'statements/for-await-of',
+        'statements/for-in',
+        'statements/for-of',
+        'statements/generators',
+        'statements/with',
     ]
-    return any(dir == (root / sub_dir) for sub_dir in skipped_directories)
+    return any(dir == (root / sub_dir) or (root / sub_dir) in dir.parents for sub_dir in skipped_directories)
 
 
 def contains_assertion(file_content):
@@ -62,27 +88,48 @@ def is_skip(file_content):
             or contains_try_statement(file_content)
             or contains_for_in_statement(file_content)
             or contains_with_statement(file_content)
-            or 'delete ' in file_content  # delete expression
-            or 'delete(' in file_content  # delete expression
+            or 'delete ' in file_content  # TODO delete expression
+            or 'delete(' in file_content  # TODO delete expression
             or '= eval;' in file_content  # code evaluation is not supported yet
+            or 'function *' in file_content  # generators not supported yet
+            or 'function*' in file_content  # generators not supported yet
+            or '=>' in file_content  # arrow functions are not supported yet
+            # TODO filters files without spread operator
+            or '...' in file_content  # spread operator is not supported yet
+
+            # TODO elided array elements are not parsed correctly by Eclipse parser
+            # https://bugs.eclipse.org/bugs/show_bug.cgi?id=544733
+            or ',]' in file_content
+            or '[,' in file_content
+            or ',,' in file_content
+
+            or 'Object.keys(' in file_content  # TODO Object.keys
             or 'Object.getOwnPropertyDescriptor(' in file_content
             or '.hasOwnProperty(' in file_content
             or '.isPrototypeOf(' in file_content
+            or '.setPrototypeOf(' in file_content
             or 'with(' in file_content
-            or 'arguments[' in file_content
+            or 'arguments[' in file_content  # TODO arguments
             or 'arguments.length' in file_content
+            or 'return arguments;' in file_content
             or 'Math.' in file_content
             or 'es6id:' in file_content
             or 'features: [default-parameters' in file_content
             or 'assert.throws(' in file_content
             or 'tail-call-optimization' in file_content
-            or 'new Array(' in file_content
-            or 'new Boolean(' in file_content
-            or 'new Function(' in file_content
+            or 'ReferenceError' in file_content
+            or 'Symbol' in file_content
+            or 'Promise' in file_content
+            or 'new Array(' in file_content  # TODO Array
+            or 'new Boolean(' in file_content  # TODO Boolean
+            or 'new Function(' in file_content  # TODO Function
             or 'Function(' in file_content
-            or 'new Number(' in file_content
-            or 'new String(' in file_content
-            or 'new Object(' in file_content)
+            or 'new Number(' in file_content  # TODO Number
+            or 'new String(' in file_content  # TODO String
+            or 'new Object(' in file_content  # TODO Object
+            or '.toString' in file_content
+            or 'toString:' in file_content
+            or '.valueOf' in file_content)
 
 
 def create_task_file(yml_file, input_files, property_file, expected_verdict):
@@ -106,28 +153,32 @@ project_root_dir = Path(__file__).parent.parent.parent
 property_file = project_root_dir / 'test/config/specification/JavaScriptAssertion.spc'
 # property_file = project_root_dir / 'config/specification/JavaScriptAssertion.spc'
 if not property_file.exists():
-    print('Property file {} not found'.format(property_file))
+    eprint('Property file {} not found'.format(property_file))
     exit(1)
 error_lib_file = \
     project_root_dir / 'test/programs/javascript-test262-benchmark/CPAchecker-test262-error.js'
 if not error_lib_file.exists():
-    print('Assertion library file {} not found'.format(error_lib_file))
+    eprint('Assertion library file {} not found'.format(error_lib_file))
     exit(1)
 assert_lib_file = \
     project_root_dir / 'test/programs/javascript-test262-benchmark/CPAchecker-test262-assert.js'
 if not assert_lib_file.exists():
-    print('Assertion library file {} not found'.format(assert_lib_file))
+    eprint('Assertion library file {} not found'.format(assert_lib_file))
     exit(1)
 assert_lib_negated_file = \
     project_root_dir / 'test/programs/javascript-test262-benchmark/CPAchecker-test262-assert-negated.js'
 if not assert_lib_negated_file.exists():
-    print('Negated assertion library file {} not found'.format(assert_lib_negated_file))
+    eprint('Negated assertion library file {} not found'.format(assert_lib_negated_file))
+    exit(1)
+std_lib_file = project_root_dir / 'contrib/javascript/std-lib.js'
+if not std_lib_file.exists():
+    eprint('Standard library file {} not found'.format(std_lib_file))
     exit(1)
 
 yml_file_names = set()
 file_patterns = [
     'test/programs/javascript-test262-benchmark/test/language/statements/*/*.js',
-    'test/programs/javascript-test262-benchmark/test/language/expressions/bitwise-*/*.js',
+    'test/programs/javascript-test262-benchmark/test/language/expressions/**/*.js',
 ]
 
 for file_pattern in file_patterns:
@@ -136,6 +187,11 @@ for file_pattern in file_patterns:
         file_content = file.read_text()
         if is_skip_directory(file.parent) or is_skip(file_content) or 'bigint' in file.stem:
             print('SKIP {}'.format(file))
+            continue
+        file_contains_error_assertion_call = '$ERROR(' in file_content
+        file_contains_assertion = contains_assertion(file_content)
+        if not(file_contains_error_assertion_call or file_contains_assertion):
+            eprint('file contains no assertion {}'.format(file))
             continue
         else:
             print('GENERATE TASK FOR {}'.format(file))
@@ -147,20 +203,20 @@ for file_pattern in file_patterns:
             i = i + 1
         yml_file_names.add(yml_file_name)
         yml_file = file.parent / yml_file_name
-        file_contains_assertion = contains_assertion(file_content)
         assertion_files = [relpath(error_lib_file)]
         if file_contains_assertion:
             assertion_files.append(relpath(assert_lib_file))
         create_task_file(
             yml_file=yml_file,
-            input_files=assertion_files + ['./' + file.name],
+            input_files=assertion_files + [relpath(std_lib_file), './' + file.name],
             property_file=relative_path_to_property_file,
             expected_verdict='true')
+        # continue
         negated_assertion_files = [relpath(error_lib_file)]
         if file_contains_assertion:
             negated_assertion_files.append(relpath(assert_lib_negated_file))
         # negated test
-        if '$ERROR(' in file_content:
+        if file_contains_error_assertion_call:
             # create negated task for each error case
             error_cases = re.finditer(r'(\sif\s*\()(.*?)(\)\s*{?\s*\$ERROR\()', file_content)
             for errorCaseIndex, m in enumerate(error_cases):
@@ -183,7 +239,7 @@ for file_pattern in file_patterns:
                 print('GENERATE NEGATED YML {}'.format(yml_file))
                 create_task_file(
                     yml_file=yml_file,
-                    input_files=negated_assertion_files + ['./' + error_case_file.name],
+                    input_files=negated_assertion_files + [relpath(std_lib_file), './' + error_case_file.name],
                     property_file=relative_path_to_property_file,
                     expected_verdict='false')
         else:
@@ -193,6 +249,6 @@ for file_pattern in file_patterns:
             yml_file = file.parent / yml_file_name.replace('.js', '')
             create_task_file(
                 yml_file=yml_file,
-                input_files=negated_assertion_files + ['./' + file.name],
+                input_files=negated_assertion_files + [relpath(std_lib_file), './' + file.name],
                 property_file=relative_path_to_property_file,
                 expected_verdict='false')

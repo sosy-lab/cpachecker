@@ -24,25 +24,158 @@
 
     <tasks>
         <!-- MathSAT runs much faster than Z3 in these cases -->
-        <option name="-setprop">cpa.loopbound.maxLoopIterations=1</option>
-        <option name="-setprop">cpa.predicate.js.maxFieldNameCount=30</option>
+        <option name="-setprop">cpa.loopbound.maxLoopIterations=11</option>
+        <option name="-setprop">cpa.predicate.js.maxFieldNameCount=80</option>
 
-        <include>../programs/javascript-test262-benchmark/test/language/expressions/bitwise-*/*.yml</include>
+        <include>../programs/javascript-test262-benchmark/test/language/statements/for/12.6.3_2-3-a-ii-14*.yml</include>
         <include>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A1.1_T1*.yml</include>
         <include>../programs/javascript-test262-benchmark/test/language/statements/if/S12.5_A1.1_T2*.yml</include>
 
-        <propertyfile>../config/specification/JavaScriptAssertion.spc</propertyfile>
-    </tasks>
+        <include>../programs/javascript-test262-benchmark/test/language/expressions/*/*.yml</include>
+        <include>../programs/javascript-test262-benchmark/test/language/expressions/*/*/*.yml</include>
 
-    <tasks>
-        <option name="-setprop">solver.solver=z3</option>
-        <option name="-setprop">cpa.loopbound.maxLoopIterations=1</option>
-        <option name="-setprop">cpa.predicate.js.maxFieldNameCount=15</option>
+        <!-- TODO access of this object outside of function -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/property-accessors/S11.2.1_A4_T1*.yml</exclude>
 
-        <!-- uses NaN => Number has to be encoded as float (not rational) -->
-        <!-- IllegalArgumentException: MathSAT returned null  =>  use Z3 -->
-        <!-- TODO runs really slow -->
-        <include>../programs/javascript-test262-benchmark/test/language/statements/for/12.6.3_2-3-a-ii-14*.yml</include>
+        <!-- TODO out of memory -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/S11.13.2_A2.1_T1.3.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/S11.13.2_A2.1_T1.3_0.0_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/S11.13.2_A2.1_T1.3_0.1_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A2.4_T1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A3_T1.5.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A3_T1.5_0.0_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A3_T1.5_0.1_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A3_T1.5_0.2_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A3_T1.5_0.3_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T1.1.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T1.1_0.0_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T1.1_0.1_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T1.1_0.2_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T1.1_0.3_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T1.1_0.4_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T1.1_0.5_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T1.1_0.6_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T1.1_0.7_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T1.2.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T1.2_0.0_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T1.2_0.1_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T1.2_0.2_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T1.2_0.3_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T1.2_0.4_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T1.2_0.5_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T1.2_0.6_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T1.2_0.7_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T3.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T3_0.0_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T3_0.10_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T3_0.11_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T3_0.1_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T3_0.2_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T3_0.3_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T3_0.4_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T3_0.5_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T3_0.6_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T3_0.7_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T3_0.8_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T3_0.9_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5_0.0_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5_0.10_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5_0.11_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5_0.12_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5_0.13_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5_0.14_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5_0.15_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5_0.16_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5_0.17_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5_0.18_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5_0.19_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5_0.1_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5_0.2_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5_0.3_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5_0.4_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5_0.5_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5_0.6_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5_0.7_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5_0.8_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/modulus/S11.5.3_A4_T5_0.9_false.yml</exclude>
+
+        <!-- generators are not supported yet -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/object/method-definition/gen-yield-identifier-non-strict*.yml</exclude>
+
+        <!-- string comparison not supported yet -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/greater-than-or-equal/S11.8.4_A4.10*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/greater-than-or-equal/S11.8.4_A4.11*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/greater-than-or-equal/S11.8.4_A4.12_T1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/greater-than-or-equal/S11.8.4_A4.12_T2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/greater-than/S11.8.2_A4.10*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/greater-than/S11.8.2_A4.11*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/greater-than/S11.8.2_A4.12_T1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/greater-than/S11.8.2_A4.12_T2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/less-than-or-equal/S11.8.3_A4.12_T2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/less-than/S11.8.1_A4.12_T2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/less-than/S11.8.1_A4.12_T1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/less-than/S11.8.1_A4.10*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/less-than-or-equal/S11.8.3_A4.10*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/less-than-or-equal/S11.8.3_A4.11*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/less-than-or-equal/S11.8.3_A4.12_T1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/less-than/S11.8.1_A4.11*.yml</exclude>
+
+        <!-- implicit call of valueOf -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/greater-than/11.8.2-1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/less-than-or-equal/11.8.3-1*.yml</exclude>
+
+        <!-- TODO non strict equal -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/does-not-equals/S11.9.2_A5.2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/does-not-equals/S11.9.2_A5.3*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/equals/S11.9.1_A3.3*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/equals/S11.9.1_A5.3*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/equals/S11.9.1_A3.2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/equals/S11.9.1_A5.2*.yml</exclude>
+
+        <!-- TODO timeout (properties set on another object (std-lib.js) might cause this?) -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/mod-whitespace.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/mod-whitespace_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/or-whitespace.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/or-whitespace_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/add-whitespace.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/add-whitespace_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/mult-whitespace.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/mult-whitespace_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/lshift-whitespace.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/lshift-whitespace_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/div-whitespace.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/div-whitespace_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/urshift-whitespace.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/urshift-whitespace_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/srshift-whitespace.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/srshift-whitespace_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/xor-whitespace.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/xor-whitespace_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/and-whitespace.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/and-whitespace_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/sub-whitespace.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/sub-whitespace_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/division/S11.5.2_A4_T1.2_0.7_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/postfix-decrement/whitespace_3_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/postfix-decrement/whitespace_2*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/postfix-increment/whitespace_1*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/postfix-increment/whitespace_2_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/prefix-decrement/whitespace_0*.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/prefix-decrement/whitespace_1_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/prefix-increment/whitespace*.yml</exclude>
+
+        <!-- TODO string concatenation compared with string constant or different concatenation order -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/addition/S11.6.1_A4_T9.yml</exclude>
+
+        <!-- TODO MathSAT returned null -->
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/assignment/S8.12.5_A2_0.0_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/compound-assignment/S11.13.2_A2.1_T1.4_0.1_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/division/S11.5.2_A4_T1.2_0.6_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/division/S11.5.2_A4_T1.1_0.7_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/division/S11.5.2_A4_T1.1_0.2_false.yml</exclude>
+        <exclude>../programs/javascript-test262-benchmark/test/language/expressions/division/S11.5.2_A4_T1.1_0.0_false.yml</exclude>
+
 
         <propertyfile>../config/specification/JavaScriptAssertion.spc</propertyfile>
     </tasks>
