@@ -1,0 +1,7 @@
+(java-main
+    "/home/yinboyu/workspace/cpachecker/out/production/cpachecker"
+    "org/nulist/plugin/CSurfPlugin"
+    "/usr/local/java/jdk1.8.0_121/jre/lib/amd64/server/libjvm.so"
+    "/home/yinboyu/workspace/CFAtest/"
+    "arg2")
+(quit)
