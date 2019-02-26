@@ -1736,7 +1736,7 @@ public class CFABuilder {
       } else if (currentType instanceof CCompositeType) {
         if (!(index instanceof CIntegerLiteralExpression)) {
           throw new UnsupportedOperationException(
-              "GEP index to struct only allows integer " + "constant, but is " + index);
+              "GEP index to struct only allows integer constant, but is " + index);
         }
         int memberIndex = ((CIntegerLiteralExpression) index).getValue().intValue();
         CCompositeTypeMemberDeclaration field =
