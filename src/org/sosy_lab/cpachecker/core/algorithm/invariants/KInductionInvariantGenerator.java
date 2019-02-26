@@ -114,8 +114,8 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.StaticCandidateProvider;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.EdgeFormulaNegation;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant.ManagerKey;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -150,8 +150,8 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     implements StatisticsProvider, ConditionAdjustmentEventSubscriber {
 
-  @Options(prefix="invariantGeneration.kInduction")
-  private static class KInductionInvariantGeneratorOptions {
+  @Options(prefix = "invariantGeneration.kInduction")
+  public static class KInductionInvariantGeneratorOptions {
 
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     @Option(
@@ -592,7 +592,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     return new StaticCandidateProvider(candidates);
   }
 
-  private static ReachedSet analyzeWitness(
+  public static ReachedSet analyzeWitness(
       Configuration pConfig,
       Specification pSpecification,
       LogManager pLogger,
@@ -645,9 +645,11 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     return reachedSet;
   }
 
-  private static void extractCandidatesFromReachedSet(final ShutdownManager pShutdownManager,
+  public static void extractCandidatesFromReachedSet(
+      final ShutdownManager pShutdownManager,
       final Set<CandidateInvariant> candidates,
-      final Multimap<String, CFANode> candidateGroupLocations, ReachedSet reachedSet) {
+      final Multimap<String, CFANode> candidateGroupLocations,
+      ReachedSet reachedSet) {
     Set<ExpressionTreeLocationInvariant> expressionTreeLocationInvariants = Sets.newHashSet();
     Map<String, ExpressionTree<AExpression>> expressionTrees = Maps.newHashMap();
     Set<CFANode> visited = Sets.newHashSet();
