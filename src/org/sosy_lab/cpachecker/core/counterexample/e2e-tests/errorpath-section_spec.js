@@ -236,37 +236,37 @@ describe('Error path section in Report.js', function () {
     function findTooltipWithText(text) {
        return $$('div.tooltip-inner').filter(function (elem) {
            return elem.getText().then(function (elementText) {
-               return elementText.includes(text), function(err) {
-                    browser.driver.sleep(100)
-                    findTooltipWithText(text)
-               }
+               return elementText.includes(text)
            });
        }).first();
     }
 
 
     describe('Button Group tooltip test', function () {
-        it('Prev button tooltip test', async function () {
+        it('Prev button tooltip test', async function (done) {
             browser.actions().mouseMove(element(by.xpath('//*[@id="errorpath_section"]/header/div[1]/button[1]'))).perform();
             tooltipText = findTooltipWithText('Previous Line')
             browser.wait(EC.presenceOf(tooltipText))
             expect(tooltipText.isDisplayed()).toBeTruthy();
+            done();
         });
         browser.driver.sleep(100);
 
-        it('help button tooltip test', async function () {
+        it('help button tooltip test', async function (done) {
             browser.actions().mouseMove(element(by.xpath('//*[@id="errorpath_section"]/header/div[2]'))).perform();
             tooltipText = findTooltipWithText('help')
             browser.wait(EC.presenceOf(tooltipText))
             expect(tooltipText.isDisplayed()).toBeTruthy();
+            done();
         });
         browser.driver.sleep(100);
 
-        it('Next button tooltip test', async function () {
+        it('Next button tooltip test', async function (done) {
             browser.actions().mouseMove(element(by.xpath('//*[@id="errorpath_section"]/header/div[1]/button[3]'))).perform();
             tooltipText = findTooltipWithText('Next Line')
             browser.wait(EC.presenceOf(tooltipText))
             expect(tooltipText.isDisplayed()).toBeTruthy();
+            done();
         });
         browser.driver.sleep(100);
     });

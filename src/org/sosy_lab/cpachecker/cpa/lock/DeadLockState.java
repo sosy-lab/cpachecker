@@ -171,10 +171,10 @@ public class DeadLockState extends AbstractLockState {
       }
     }
 
-    private int getTailNum(List<LockIdentifier> lockList, Set<LockIdentifier> exceptLocks) {
-      for (int i = lockList.size() - 1; i >= 0; i--) {
-        LockIdentifier id = lockList.get(i);
-        if (lockList.indexOf(id) == i || exceptLocks.contains(id)) {
+    private int getTailNum(List<LockIdentifier> pLockList, Set<LockIdentifier> exceptLocks) {
+      for (int i = pLockList.size() - 1; i >= 0; i--) {
+        LockIdentifier id = pLockList.get(i);
+        if (pLockList.indexOf(id) == i || exceptLocks.contains(id)) {
           return i;
         }
       }

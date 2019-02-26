@@ -720,6 +720,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   private void setExplicitAbstractionNodes(final ImmutableSet<CFANode> newAbsLocs) {
+    @SuppressWarnings("resource")
     PredicateCPA predCPA = CPAs.retrieveCPA(safetyCPA, PredicateCPA.class);
     if (predCPA != null) {
       predCPA.changeExplicitAbstractionNodes(newAbsLocs);

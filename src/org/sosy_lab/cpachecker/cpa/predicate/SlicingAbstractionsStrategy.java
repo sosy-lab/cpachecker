@@ -467,8 +467,15 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       }
 
       for (ARGState toRemove : segmentStateSet) {
-        toRemove.removeFromARG();
+        detachFromParentsInARG(toRemove);
       }
+    }
+  }
+
+  private void detachFromParentsInARG(final ARGState toRemove) {
+    // avoid concurrent modification by making a copy:
+    for (ARGState parent : ImmutableList.copyOf(toRemove.getParents())) {
+      toRemove.removeParent(parent);
     }
   }
 
