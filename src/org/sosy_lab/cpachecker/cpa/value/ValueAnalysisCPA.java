@@ -46,6 +46,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -64,6 +65,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentOptions;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisPrecisionAdjustment.PrecAdjustmentStatistics;
@@ -73,6 +75,8 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecisionAdjustment.SymbolicStatistics;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CandidatesFromWitness;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
@@ -100,6 +104,10 @@ public class ValueAnalysisCPA extends AbstractCPA
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPrecisionFile = null;
 
+  @Option(secure = true, description = "get candidates from witness for an initial precision")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path correctnessWitnessFile = null;
+
   @Option(secure=true,
       name="symbolic.useSymbolicValues",
       description="Use symbolic values. This allows tracking of non-deterministic values."
@@ -119,6 +127,7 @@ public class ValueAnalysisCPA extends AbstractCPA
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
+  private final Specification specification;
 
   private boolean refineablePrecisionSet = false;
   private ValueAnalysisConcreteErrorPathAllocator errorPathAllocator;
@@ -130,13 +139,19 @@ public class ValueAnalysisCPA extends AbstractCPA
   private final PrecAdjustmentStatistics precisionAdjustmentStatistics;
   private final SymbolicStatistics symbolicStats;
 
-  private ValueAnalysisCPA(Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
+  private ValueAnalysisCPA(
+      Configuration config,
+      LogManager logger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA cfa,
+      Specification specification)
+      throws InvalidConfigurationException {
     super(DelegateAbstractDomain.<ValueAnalysisState>getInstance(), null);
     this.config           = config;
     this.logger           = logger;
     this.shutdownNotifier = pShutdownNotifier;
     this.cfa              = cfa;
+    this.specification = specification;
 
     config.inject(this, ValueAnalysisCPA.class);
 
@@ -161,6 +176,28 @@ public class ValueAnalysisCPA extends AbstractCPA
   }
 
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa) throws InvalidConfigurationException {
+
+    // the witness is only taken when no initialPrecisionFile is given
+    if (correctnessWitnessFile != null && initialPrecisionFile == null) {
+      try {
+        final Multimap<CFANode, MemoryLocation> candidates = HashMultimap.create();
+        final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
+        ReachedSet reachedSet =
+            CandidatesFromWitness.analyzeWitness(
+                config, specification, logger, cfa, shutdownNotifier, correctnessWitnessFile);
+        CandidatesFromWitness.extractCandidateVariablesFromReachedSet(
+            shutdownNotifier, candidates, candidateGroupLocations, reachedSet);
+        VariableTrackingPrecision initialPrecision =
+            VariableTrackingPrecision.createRefineablePrecision(
+                pConfig,
+                VariableTrackingPrecision.createStaticPrecision(
+                    pConfig, pCfa.getVarClassification(), getClass()));
+        return initialPrecision.withIncrement(candidates);
+      } catch (CPAException e) {
+        logger.logUserException(
+            Level.WARNING, e, "Candidates from correctness witness file could not be computed");
+      }
+    }
 
     if (initialPrecisionFile == null) {
       return VariableTrackingPrecision.createStaticPrecision(pConfig, pCfa.getVarClassification(), getClass());
@@ -226,7 +263,7 @@ public class ValueAnalysisCPA extends AbstractCPA
   public void injectRefinablePrecision() throws InvalidConfigurationException {
 
     // replace the full precision with an empty, refinable precision
-    if (initialPrecisionFile == null && !refineablePrecisionSet) {
+    if (initialPrecisionFile == null && !refineablePrecisionSet && correctnessWitnessFile == null) {
       precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
       refineablePrecisionSet = true;
     }
