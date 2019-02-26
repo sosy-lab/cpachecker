@@ -84,7 +84,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
     @Override
     public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
 
-      out.println("Number of refinements:                " + countRefinements);
+      out.println("Number of CEGAR refinements:                " + countRefinements);
 
       if (countRefinements > 0) {
         out.println("Number of successful refinements:     " + countSuccessfulRefinements);
