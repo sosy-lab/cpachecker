@@ -34,6 +34,8 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -44,6 +46,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -80,6 +83,7 @@ import org.sosy_lab.cpachecker.util.CandidatesFromWitness;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
+import org.sosy_lab.cpachecker.util.statistics.KeyValueStatistics;
 
 @Options(prefix = "cpa.value")
 public class ValueAnalysisCPA extends AbstractCPA
@@ -138,6 +142,7 @@ public class ValueAnalysisCPA extends AbstractCPA
   private final PrecAdjustmentOptions precisionAdjustmentOptions;
   private final PrecAdjustmentStatistics precisionAdjustmentStatistics;
   private final SymbolicStatistics symbolicStats;
+  private final KeyValueStatistics keyValueStatistics;
 
   private ValueAnalysisCPA(
       Configuration config,
@@ -173,6 +178,7 @@ public class ValueAnalysisCPA extends AbstractCPA
     transferOptions = new ValueTransferOptions(config);
     precisionAdjustmentOptions = new PrecAdjustmentOptions(config, cfa);
     precisionAdjustmentStatistics = new PrecAdjustmentStatistics();
+    keyValueStatistics = new KeyValueStatistics();
   }
 
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa) throws InvalidConfigurationException {
@@ -182,16 +188,33 @@ public class ValueAnalysisCPA extends AbstractCPA
       try {
         final Multimap<CFANode, MemoryLocation> candidates = HashMultimap.create();
         final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
+        final Timer analyzeWitnessTimer = new Timer();
+        AtomicInteger candidateInvariantCounter = new AtomicInteger();
         ReachedSet reachedSet =
             CandidatesFromWitness.analyzeWitness(
-                config, specification, logger, cfa, shutdownNotifier, correctnessWitnessFile);
+                config,
+                specification,
+                logger,
+                cfa,
+                shutdownNotifier,
+                correctnessWitnessFile,
+                analyzeWitnessTimer);
         CandidatesFromWitness.extractCandidateVariablesFromReachedSet(
-            shutdownNotifier, candidates, candidateGroupLocations, reachedSet);
+            shutdownNotifier,
+            candidates,
+            candidateGroupLocations,
+            reachedSet,
+            candidateInvariantCounter);
         VariableTrackingPrecision initialPrecision =
             VariableTrackingPrecision.createRefineablePrecision(
                 pConfig,
                 VariableTrackingPrecision.createStaticPrecision(
                     pConfig, pCfa.getVarClassification(), getClass()));
+        keyValueStatistics.addKeyValueStatistic(
+            "Number of witness candidate invariants", candidateInvariantCounter.get());
+        keyValueStatistics.addKeyValueStatistic(
+            "Time for witness analysis",
+            analyzeWitnessTimer.getSumTime().formatAs(TimeUnit.SECONDS));
         return initialPrecision.withIncrement(candidates);
       } catch (CPAException e) {
         logger.logUserException(
@@ -345,6 +368,9 @@ public class ValueAnalysisCPA extends AbstractCPA
     }
     pStatsCollection.add(constraintsStrengthenOperator);
     writer.collectStatistics(pStatsCollection);
+    if (correctnessWitnessFile != null && initialPrecisionFile == null) {
+      pStatsCollection.add(keyValueStatistics);
+    }
   }
 
   @Override

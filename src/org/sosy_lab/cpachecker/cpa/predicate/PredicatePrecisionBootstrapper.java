@@ -35,6 +35,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -44,6 +46,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -162,12 +165,18 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
       try {
         final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
         final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
+        final Timer analyzeWitnessTimer = new Timer();
+        AtomicInteger candidateInvariantCounter = new AtomicInteger();
         if (invariantsAutomatonFile != null) {
           ReachedSet reachedSet =
               CandidatesFromWitness.analyzeWitness(
-                  config, specification, logger, cfa, shutdownNotifier, invariantsAutomatonFile);
+                  config, specification, logger, cfa, shutdownNotifier, invariantsAutomatonFile, analyzeWitnessTimer);
           CandidatesFromWitness.extractCandidatesFromReachedSet(
-              shutdownNotifier, candidates, candidateGroupLocations, reachedSet);
+              shutdownNotifier,
+              candidates,
+              candidateGroupLocations,
+              reachedSet,
+              candidateInvariantCounter);
         }
 
         for (CandidateInvariant candidate : candidates) {
@@ -202,7 +211,12 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
           }
 
           // add all predicates
+          statistics.addKeyValueStatistic(
+              "Number of witness candidate invariants", candidateInvariantCounter.get());
           result = result.addLocalPredicates(localPredicates.entries());
+          statistics.addKeyValueStatistic(
+              "Time for witness analysis",
+              analyzeWitnessTimer.getSumTime().formatAs(TimeUnit.SECONDS));
         }
       } catch (CPAException | InterruptedException e) {
         logger.logUserException(

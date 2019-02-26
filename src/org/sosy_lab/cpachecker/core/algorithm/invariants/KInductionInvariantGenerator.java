@@ -66,6 +66,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LazyFutureTask;
 import org.sosy_lab.common.ShutdownManager;
@@ -525,6 +526,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
 
     final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
     if (pOptions.invariantsAutomatonFile != null) {
+      Timer analyzeWitnessTimer = new Timer();
+      AtomicInteger candidateInvariantCounter = new AtomicInteger();
       ReachedSet reachedSet =
           CandidatesFromWitness.analyzeWitness(
               pConfig,
@@ -532,9 +535,14 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
               pLogger,
               pCFA,
               pShutdownManager.getNotifier(),
-              pOptions.invariantsAutomatonFile);
+              pOptions.invariantsAutomatonFile,
+              analyzeWitnessTimer);
       CandidatesFromWitness.extractCandidatesFromReachedSet(
-          pShutdownManager.getNotifier(), candidates, candidateGroupLocations, reachedSet);
+          pShutdownManager.getNotifier(),
+          candidates,
+          candidateGroupLocations,
+          reachedSet,
+          candidateInvariantCounter);
     }
 
     candidates.add(TargetLocationCandidateInvariant.INSTANCE);

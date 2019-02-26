@@ -33,11 +33,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -70,6 +72,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /** Utility class to extract candidates from witness file */
 public class CandidatesFromWitness {
 
+
   private static Configuration generateLocalConfiguration(Configuration pConfig)
       throws InvalidConfigurationException {
     ConfigurationBuilder configBuilder =
@@ -96,8 +99,10 @@ public class CandidatesFromWitness {
       LogManager pLogger,
       CFA pCFA,
       final ShutdownNotifier shutdownNotifier,
-      Path pathToInvariantsAutomatonFile)
+      Path pathToInvariantsAutomatonFile,
+      Timer analyzeWitnessTime)
       throws InvalidConfigurationException, CPAException {
+    analyzeWitnessTime.start();
     Configuration config = generateLocalConfiguration(pConfig);
     ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, pLogger);
     ReachedSet reachedSet = reachedSetFactory.create();
@@ -124,6 +129,7 @@ public class CandidatesFromWitness {
       // but instead of throwing the exception here,
       // let it be thrown by the invariant generator.
     }
+    analyzeWitnessTime.stop();
     return reachedSet;
   }
 
@@ -131,7 +137,8 @@ public class CandidatesFromWitness {
       final ShutdownNotifier pShutdownNotifier,
       final Set<CandidateInvariant> candidates,
       final Multimap<String, CFANode> candidateGroupLocations,
-      ReachedSet reachedSet) {
+      ReachedSet reachedSet,
+      AtomicInteger candidateInvariantCounter) {
     Set<ExpressionTreeLocationInvariant> expressionTreeLocationInvariants = Sets.newHashSet();
     Map<String, ExpressionTree<AExpression>> expressionTrees = Maps.newHashMap();
     Set<CFANode> visited = Sets.newHashSet();
@@ -150,6 +157,7 @@ public class CandidatesFromWitness {
         String groupId = automatonState.getInternalStateName();
         candidateGroupLocations.putAll(groupId, locations);
         if (!candidate.equals(ExpressionTrees.getTrue())) {
+          candidateInvariantCounter.incrementAndGet();
           ExpressionTree<AExpression> previous = expressionTrees.get(groupId);
           if (previous == null) {
             previous = ExpressionTrees.getTrue();
@@ -206,7 +214,8 @@ public class CandidatesFromWitness {
       final ShutdownNotifier pShutdownNotifier,
       final Multimap<CFANode, MemoryLocation> candidates,
       final Multimap<String, CFANode> candidateGroupLocations,
-      ReachedSet reachedSet) {
+      ReachedSet reachedSet,
+      AtomicInteger candidateInvariantCounter) {
     Set<CFANode> visited = Sets.newHashSet();
     Multimap<String, MemoryLocation> groupIDToMemoryLocation = HashMultimap.create();
     Map<String, ExpressionTree<AExpression>> expressionTrees = Maps.newHashMap();
@@ -223,6 +232,7 @@ public class CandidatesFromWitness {
         String groupId = automatonState.getInternalStateName();
         candidateGroupLocations.putAll(groupId, locations);
         if (!candidate.equals(ExpressionTrees.getTrue())) {
+          candidateInvariantCounter.incrementAndGet();
           ExpressionTree<AExpression> previous = expressionTrees.get(groupId);
           if (previous == null) {
             previous = ExpressionTrees.getTrue();
