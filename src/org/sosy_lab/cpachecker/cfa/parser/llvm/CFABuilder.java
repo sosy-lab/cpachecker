@@ -1759,6 +1759,7 @@ public class CFABuilder {
       throws LLVMException {
     // the only one supported now
     assert pItem.isICmpInst();
+    boolean isUnsignedCmp = false;
 
     BinaryOperator operator;
     switch (pItem.getICmpPredicate()) {
@@ -1769,21 +1770,25 @@ public class CFABuilder {
         operator = BinaryOperator.NOT_EQUALS;
         break;
       case IntUGT:
+        isUnsignedCmp = true;
         //$FALL-THROUGH$
       case IntSGT:
         operator = BinaryOperator.GREATER_THAN;
         break;
       case IntULT:
+        isUnsignedCmp = true;
         //$FALL-THROUGH$
       case IntSLT:
         operator = BinaryOperator.LESS_THAN;
         break;
       case IntULE:
+        isUnsignedCmp = true;
         //$FALL-THROUGH$
       case IntSLE:
         operator = BinaryOperator.LESS_EQUAL;
         break;
       case IntUGE:
+        isUnsignedCmp = true;
         //$FALL-THROUGH$
       case IntSGE:
         operator = BinaryOperator.GREATER_EQUAL;
@@ -1800,11 +1805,11 @@ public class CFABuilder {
     try {
       CCastExpression op1Cast = new CCastExpression(
           getLocation(pItem, pFileName),
-          typeConverter.getCType(operand1.typeOf()),
+          typeConverter.getCType(operand1.typeOf(), isUnsignedCmp),
           getExpression(operand1, op1type, pFileName));
       CCastExpression op2Cast = new CCastExpression(
           getLocation(pItem, pFileName),
-          typeConverter.getCType(operand2.typeOf()),
+          typeConverter.getCType(operand2.typeOf(), isUnsignedCmp),
           getExpression(operand2, op2type, pFileName));
 
       CBinaryExpression cmp =
