@@ -132,6 +132,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.CandidatesFromWitness;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution.SubstitutionException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -525,9 +526,15 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
     if (pOptions.invariantsAutomatonFile != null) {
       ReachedSet reachedSet =
-          analyzeWitness(pConfig, pSpecification, pLogger, pCFA, pShutdownManager, pOptions);
-      extractCandidatesFromReachedSet(pShutdownManager, candidates, candidateGroupLocations,
-          reachedSet);
+          CandidatesFromWitness.analyzeWitness(
+              pConfig,
+              pSpecification,
+              pLogger,
+              pCFA,
+              pShutdownManager.getNotifier(),
+              pOptions.invariantsAutomatonFile);
+      CandidatesFromWitness.extractCandidatesFromReachedSet(
+          pShutdownManager.getNotifier(), candidates, candidateGroupLocations, reachedSet);
     }
 
     candidates.add(TargetLocationCandidateInvariant.INSTANCE);
