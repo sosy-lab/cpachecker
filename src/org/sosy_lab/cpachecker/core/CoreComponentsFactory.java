@@ -42,6 +42,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
@@ -94,6 +95,7 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CandidatesFromWitness;
+import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
 /**
  * Factory class for the three core components of CPAchecker:
@@ -637,9 +639,18 @@ public class CoreComponentsFactory {
   private ConfigurableProgramAnalysis buildCPAsWithWitnessInvariantsAutomaton(
       final CFA cfa, final Specification specification)
       throws InvalidConfigurationException, CPAException {
+    ToCExpressionVisitor visitor = new ToCExpressionVisitor(cfa.getMachineModel(), logger);
+    CBinaryExpressionBuilder builder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
     Automaton automaton =
         CandidatesFromWitness.buildInvariantsAutomatonFromWitness(
-            config, specification, logger, cfa, shutdownNotifier, correctnessWitnessFile);
+            config,
+            specification,
+            logger,
+            cfa,
+            shutdownNotifier,
+            correctnessWitnessFile,
+            visitor,
+            builder);
       List<Automaton> automata = new ArrayList<>(1);
       automata.add(automaton);
       return cpaFactory.buildCPAs(cfa, specification, automata, aggregatedReachedSets);

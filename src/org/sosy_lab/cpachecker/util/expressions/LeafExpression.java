@@ -136,4 +136,21 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
     return new LeafExpression<>(leafExpression, assumeTruth, assumeTruth ? leafExpression.hashCode() : -leafExpression.hashCode());
   }
 
+  /**
+   * Creates a {@code LeafExpression} by taking a {@code CExpression}. The intention of creating
+   * this method was, that {@link #of(Object, boolean)} manipulates a CExpression like x != y to x
+   * == y and sets {@link #assumeTruth} on false.
+   *
+   * @param cExpression the CExpression
+   * @param pAssumeTruth assume boolean
+   * @return ExpressionTree of type LeafExpression
+   */
+  @SuppressWarnings("unchecked")
+  public static <LeafType> ExpressionTree<LeafType> fromCExpression(
+      CExpression cExpression, boolean pAssumeTruth) {
+    return new LeafExpression<>(
+        (LeafType) cExpression,
+        pAssumeTruth,
+        pAssumeTruth ? cExpression.hashCode() : -cExpression.hashCode());
+  }
 }

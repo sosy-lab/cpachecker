@@ -43,6 +43,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -69,6 +70,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
+import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -103,7 +105,9 @@ public class CandidatesFromWitness {
       LogManager pLogger,
       CFA pCFA,
       final ShutdownNotifier shutdownNotifier,
-      Path correctnessWitnessFile)
+      Path correctnessWitnessFile,
+      ToCExpressionVisitor visitor,
+      CBinaryExpressionBuilder builder)
       throws InvalidConfigurationException, CPAException {
     final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
     final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
@@ -124,7 +128,7 @@ public class CandidatesFromWitness {
         candidateGroupLocations,
         reachedSet,
         candidateInvariantCounter);
-    return WitnessInvariantsAutomaton.buildWitnessInvariantsAutomaton(candidates);
+    return WitnessInvariantsAutomaton.buildWitnessInvariantsAutomaton(candidates, visitor, builder);
   }
 
   public static ReachedSet analyzeWitness(
