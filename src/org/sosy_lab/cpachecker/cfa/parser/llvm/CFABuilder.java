@@ -1841,7 +1841,11 @@ public class CFABuilder {
     CInitializer initializer;
     if (!pItem.isExternallyInitialized()) {
       Value initializerRaw = pItem.getInitializer();
-      if (isConstantArrayOrVector(initializerRaw)) {
+      if (initializerRaw == null) {
+          assert pItem.getLinkage() == Value.Linkage.ExternalLinkage :
+                  "Non-external global variable with no initializer: " + pItem;
+          initializer = null;
+      } else if (isConstantArrayOrVector(initializerRaw)) {
         initializer = getConstantAggregateInitializer(initializerRaw, pFileName);
       } else if (initializerRaw.isConstantStruct()) {
         initializer = getConstantAggregateInitializer(initializerRaw, pFileName);
