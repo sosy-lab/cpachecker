@@ -1746,12 +1746,12 @@ public class CFABuilder {
         /* use "ptr_to_struct->elem" instead of "(*ptr_to_struct).elem" */
         if (currentExpression instanceof CPointerExpression) {
             currentExpression =
-                new CFieldReference(fileLocation, currentType, fieldName,
+                new CFieldReference(fileLocation, field.getType(), fieldName,
                                     ((CPointerExpression)currentExpression).getOperand(),
                                     true /* is ptr deref */);
         } else {
             currentExpression =
-                new CFieldReference(fileLocation, currentType, fieldName,
+                new CFieldReference(fileLocation, field.getType(), fieldName,
                                     currentExpression, false);
         }
       }
