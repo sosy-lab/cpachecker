@@ -2423,7 +2423,7 @@ public abstract class AbstractExpressionValueVisitor
   private static boolean isBooleanFalseRepresentation(final Number n) {
     return ((n instanceof Float || n instanceof Double) && 0 == n.doubleValue())
         || (n instanceof BigInteger && BigInteger.ZERO.equals(n))
-        || (n instanceof BigDecimal && BigDecimal.ZERO.equals(n))
+        || (n instanceof BigDecimal && ((BigDecimal) n).compareTo(BigDecimal.ZERO) == 0)
         || 0 == n.longValue();
   }
 
