@@ -831,8 +831,8 @@ public class CtoFormulaConverter {
 
       // Cf. C-Standard 6.3.1.2 (1)
       if (pToCType.getCanonicalType().equals(CNumericTypes.BOOL)
-          || pToCType instanceof CBitFieldType
-              && ((CBitFieldType) pToCType).getType().equals(CNumericTypes.BOOL)) {
+          || (pToCType instanceof CBitFieldType
+              && ((CBitFieldType) pToCType).getType().equals(CNumericTypes.BOOL))) {
         Formula zeroFromSize = efmgr.makeBitvector(fromSize, 0l);
         Formula zeroToSize = efmgr.makeBitvector(toSize, 0l);
         Formula oneToSize = efmgr.makeBitvector(toSize, 1l);
