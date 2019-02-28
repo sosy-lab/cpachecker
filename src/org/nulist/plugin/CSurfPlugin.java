@@ -1,6 +1,9 @@
 package org.nulist.plugin;
 
 import com.grammatech.cs.*;
+import org.sosy_lab.common.log.LoggingOptions;
+import org.sosy_lab.cpachecker.cmdline.CPAMain;
+
 import java.lang.*;
 
 import static org.nulist.plugin.util.CFGDumping.dumpCFG2Dot;
@@ -9,8 +12,14 @@ import static org.nulist.plugin.util.CFGDumping.dumpCFG2Dot;
 
 public class CSurfPlugin {
 
-    //
+    /**
+     * @Description //TODO
+     * @Param [args]
+     * @return void
+     **/
     public static void main(String args[]){
+        CPAMain.testPrint(args);
+
         if(args==null || args.length<1){
             System.out.println("No parent file path for dumping CFG dot");
             return;
@@ -24,16 +33,19 @@ public class CSurfPlugin {
                  !cu_it.at_end();
                  cu_it.advance() )
             {
-                compunit cu = cu_it.current();
+                compunit cu = cu_it.current();//each shall be a C file
+
                 // Iterate over all procedures in the compilation unit
+                // procedure = function
                 for( compunit_procedure_iterator proc_it = cu.procedures();
                      !proc_it.at_end();
                      proc_it.advance() )
                 {
                     procedure proc = proc_it.current();
 
-                    if(proc.get_kind().equals(procedure_kind.getUSER_DEFINED()))
+                    if(proc.get_kind().equals(procedure_kind.getUSER_DEFINED())){
                         dumpCFG2Dot(proc,args[0]);
+                    }
 
                     /*point_set points;
                     try{

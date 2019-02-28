@@ -92,8 +92,13 @@ public class CPAMain {
 
   static final int ERROR_EXIT_CODE = 1;
 
+  public static void testPrint(String[] args){
+    for(String arg: args)
+      System.out.println(arg);
+  }
+
   @SuppressWarnings("resource") // We don't close LogManager
-  public static void main(String[] args) {
+  public static void execute(String[] args) {
     // CPAchecker uses American English for output,
     // so make sure numbers are formatted appropriately.
     Locale.setDefault(Locale.US);

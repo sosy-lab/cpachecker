@@ -123,6 +123,7 @@ public class CFGDumping {
             String filePath = path+proc.name()+"-cfg.dot";
             System.out.println("Dump CFG of "+proc.name());
             StringBuilder stringBuilder = new StringBuilder();
+
             stringBuilder.append("subgraph cluster").append(proc.hashCode())
                     .append(" {\n");
             stringBuilder.append("label=\"Function Name: ").append(proc.name()).append("\";\n");
