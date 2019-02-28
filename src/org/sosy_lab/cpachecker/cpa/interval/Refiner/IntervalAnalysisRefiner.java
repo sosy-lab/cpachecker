@@ -213,10 +213,12 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
       IntervalAnalysisPrecision pPrecision, ARGPath pPath, Map<String, Interval> wideningBase)
       throws CPAException, InterruptedException {
     for (Entry<String, Interval> entries : wideningBase.entrySet()) {
-      long size = entries.getValue().getHigh() - entries.getValue().getLow();
-      long sizePrecision = pPrecision.getValue(entries.getKey());
-      if (size < sizePrecision) {
-        pPrecision.replace(entries.getKey(), size);
+      if(pPrecision.containsVariable(entries.getKey())){
+        long size = entries.getValue().getHigh() - entries.getValue().getLow();
+        long sizePrecision = pPrecision.getValue(entries.getKey());
+        if (size < sizePrecision) {
+          pPrecision.replace(entries.getKey(), size);
+        }
       }
     }
     while(checker.isFeasible(pPath, pPrecision, new HashSet<>())){

@@ -88,6 +88,7 @@ public class IntervalAnalysisPrecisionAdjustment implements PrecisionAdjustment 
     for (Entry<String, Interval> memoryLocation : state.getConstants()) {
       String memString = memoryLocation.getKey();
       MemoryLocation mem = MemoryLocation.valueOf(memString);
+
       if (location != null && !precision.isTracking(memString)) {
         state.forget(mem);
       } else if (!precision.getType().equals("IntervalAnalysisFullPrecison") ){ // precision is tracking that variable
