@@ -146,7 +146,7 @@ public class IntervalAnalysisState
     if (!intervals.containsKey(variableName) || !intervals.get(variableName).equals(interval)) {
       int referenceCount = getReferenceCount(variableName);
 
-      if (pThreshold == -1 || referenceCount < pThreshold) {
+      if (true) {
         return new IntervalAnalysisState(
             intervals.putAndCopy(variableName, interval),
             referenceCounts.putAndCopy(variableName, referenceCount + 1));

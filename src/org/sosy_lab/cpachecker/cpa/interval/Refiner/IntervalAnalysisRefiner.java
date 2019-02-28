@@ -91,7 +91,7 @@ public class IntervalAnalysisRefiner implements ARGBasedRefiner {
     CFA pCfa = intervalAnalysisCpa.getCFA();
 
     final StrongestPostOperator<IntervalAnalysisState> strongestPostOp =
-        new IntervalAnalysisStrongestPostOperator(logger, false, 2000);
+        new IntervalAnalysisStrongestPostOperator(logger, false, -1);
     checker =
         new IntervalAnalysisFeasibilityChecker(
             strongestPostOp,

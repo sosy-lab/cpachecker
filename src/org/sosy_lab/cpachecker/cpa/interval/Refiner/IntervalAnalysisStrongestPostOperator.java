@@ -50,7 +50,7 @@ public class IntervalAnalysisStrongestPostOperator
 
   public IntervalAnalysisStrongestPostOperator(
       final LogManager pLogger, boolean pSplitIntervals, int pThreshold) {
-    transfer = new IntervalAnalysisTransferRelation(pSplitIntervals, pThreshold, pLogger);
+    transfer = new IntervalAnalysisTransferRelation(pSplitIntervals, -1, pLogger);
   }
 
   @Override
