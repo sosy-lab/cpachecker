@@ -1363,6 +1363,17 @@ public class CFABuilder {
       throws LLVMException {
     long assigneeId = pAssignee.getAddress();
     CType expectedType = pAssignment.getExpressionType();
+
+    // the left hand side is not a variable but some constant expression
+    // (e.g. dereference of a pointer to a global variable)
+    if (pAssignee.isConstantExpr()) {
+        CExpression assigneeExpr = getExpression(pAssignee, expectedType, pFileName);
+        return ImmutableList.of(
+            new CExpressionAssignmentStatement(
+                getLocation(pAssignee, pFileName),
+                (CLeftHandSide) assigneeExpr, (CExpression) pAssignment));
+    }
+
     // Variable is already declared, so it must only be assigned the new value
     if (variableDeclarations.containsKey(assigneeId)) {
       CLeftHandSide assigneeIdExp =
