@@ -6,6 +6,8 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
+import static org.nulist.plugin.util.ClassTool.getUnsignedInt;
+
 /**
  * @ClassName CFGDumping
  * @Description TODO
@@ -124,7 +126,9 @@ public class CFGDumping {
             System.out.println("Dump CFG of "+proc.name());
             StringBuilder stringBuilder = new StringBuilder();
 
-            stringBuilder.append("subgraph cluster").append(proc.hashCode())
+
+
+            stringBuilder.append("subgraph cluster").append(getUnsignedInt(proc.hashCode()))
                     .append(" {\n");
             stringBuilder.append("label=\"Function Name: ").append(proc.name()).append("\";\n");
             stringBuilder.append("style=filled;\n");

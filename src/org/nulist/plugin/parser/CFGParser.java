@@ -1,19 +1,13 @@
-package org.nulist.plugin.translation;
+package org.nulist.plugin.parser;
 
-import com.google.common.collect.ImmutableList;
 import com.grammatech.cs.compunit;
 import com.grammatech.cs.project;
 import com.grammatech.cs.project_compunits_iterator;
 import com.grammatech.cs.result;
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.*;
-import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 import java.io.IOException;
