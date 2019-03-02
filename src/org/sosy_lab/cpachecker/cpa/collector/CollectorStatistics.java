@@ -27,24 +27,18 @@ import static com.google.common.collect.FluentIterable.from;
 import static java.util.logging.Level.WARNING;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Predicates;
 import com.google.common.io.Resources;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
-import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.atomic.LongAdder;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -54,19 +48,11 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
-import org.sosy_lab.cpachecker.cpa.collector.CollectorCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.statistics.StatCounter;
-import org.sosy_lab.cpachecker.util.statistics.StatInt;
-import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix="cpa.collector")
@@ -90,6 +76,9 @@ public class CollectorStatistics implements Statistics {
   private static final String CSS_TEMPLATE = "collectortable.css";
   private static final String JS_TEMPLATE = "collectortable.js";
   private Collection<ARGState> reachedcollectionARG = new ArrayList<ARGState>();
+  private CollectorARGStateGenerator argStateGenerator;
+  private CollectorARGStateGenerator test;
+  private Collection<ARGState> reconstructedCollection;
 
 
   public CollectorStatistics(CollectorCPA ccpa, Configuration config,LogManager pLogger) throws InvalidConfigurationException {
@@ -107,12 +96,20 @@ public class CollectorStatistics implements Statistics {
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
 
-  makeFile(result, reached);
+  //makeFile(result, reached);
+
+    if (!reached.isEmpty() && reached.getFirstState() instanceof CollectorState) {
+      argStateGenerator = new CollectorARGStateGenerator(logger,reached);
+      reconstructedCollection = argStateGenerator.getCollection();
+      makeFile2(reconstructedCollection);
+
+    }
 
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
     writer.put("Sonja", 42);//hier können statistics gedruckt werden, siehe andere Klassen
     writer.put("sonja result", result);
     writer.put("Sonja reached", reached.toString()) ;
+    writer.put("Sonja reconstructed", reconstructedCollection.toString());
     }
 
   private void makeFile(Result result, UnmodifiableReachedSet reached) {
@@ -144,7 +141,8 @@ public class CollectorStatistics implements Statistics {
           Writer writer = new FileWriter(file, false);
           BufferedWriter bw = new BufferedWriter(writer);
 
-          ARGToDotWriter.write(bw,reachedcollectionARG,"Test Sonja");
+          //ARGToDotWriter.write(bw,reachedcollectionARG,"Test Sonja");
+          ARGToDotWriter.write(bw,reconstructedCollection,"Test Reconstruction Sonja");
 
           bw.close();
         }
@@ -182,6 +180,38 @@ public class CollectorStatistics implements Statistics {
       WARNING, e, "Could not create Sonjas file.");
 }
   }
+
+  private void makeFile2(Collection<ARGState> reached) {
+    try{
+
+      for (ARGState rootState: reached) {
+        ARGState argstate = rootState;
+
+        reachedcollectionARG.add(argstate);
+
+        int i = 0;
+        String filenamepart1 = "./output/etape";
+        String filenamefinal = filenamepart1 + Integer.toString(i) + ".dot";
+        File file = new File(filenamefinal);
+        while (file.exists()) {
+          filenamefinal = filenamepart1 + Integer.toString(i) + ".dot";
+          file = new File(filenamefinal);
+          i++;
+        }
+        file.createNewFile();
+        Writer writer = new FileWriter(file, false);
+        BufferedWriter bw = new BufferedWriter(writer);
+
+        ARGToDotWriter.write(bw,reachedcollectionARG,"Test Reconstruction Sonja");
+
+        bw.close();
+      }
+    }catch (IOException e) {
+      logger.logUserException(
+          WARNING, e, "Could not create Sonjas file.");
+    }
+  }
+
 
   private void insertCss(BufferedWriter pWriter) {
   }

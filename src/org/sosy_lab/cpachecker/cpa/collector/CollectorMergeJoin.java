@@ -127,25 +127,4 @@ public class CollectorMergeJoin implements MergeOperator {
     return NEWstoredstatesAbstract;
   }
 
-  private void writeArg( // muss wieder raus
-      final ARGState rootStates)
-  {
-    try (
-        Writer writer = new FileWriter("./output/SonjasDot.dot", true);
-        //Writer writer = IO.openOutputFile(Paths.get("./output/SonjasFile2.txt"), Charsets.UTF_8);
-        BufferedWriter bw = new BufferedWriter(writer);
-        //Writer w = IO.openOutputFile(Paths.get("./output/SonjasARGDOTfile.txt"),Charset.defaultCharset())
-    ) {
-      ARGToDotWriter.write(
-          bw,
-          rootStates,
-          ARGState::getChildren,
-          Predicates.alwaysTrue(),
-          Predicates.alwaysFalse());
-    } catch (IOException e) {
-      logger.logUserException(
-          Level.WARNING, e, String.format("Could not write ARG to file: %s"));
-    }
-  }
-
 }

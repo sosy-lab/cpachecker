@@ -31,14 +31,18 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class CollectorState extends AbstractSingleWrapperState implements Graphable, Serializable {
   private final LogManager logger;
@@ -54,10 +58,17 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
   private final AbstractState current;
   private final Collection<AbstractState> test = new ArrayList<>(1);
   private final Collection<AbstractState> test2;
+  private final AbstractState wrappedWrapped;
   private ImmutableList<AbstractState> states;
   private final ARGState argstate;
-
   private final ImmutableList<ARGState> dieliste;
+  private final CFANode node;
+  private List <CFAEdge> edgelist;
+  private AbstractState first;
+  private int id;
+  private AbstractState second;
+  private Object firstParent;
+  private Object firstChildren;
 
   public CollectorState(AbstractState pWrappedState,
                         @Nullable Collection<AbstractState> pCollectorState,
@@ -83,10 +94,24 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
     test2 = Collections.unmodifiableCollection(test);
     //logger.log(Level.INFO, "sonja currentTEST2:\n" + current);
     dieliste = ImmutableList.copyOf(new ARGState[]{argstate});
+    //logger.log(Level.INFO, "sonja dieListe:\n" + dieliste);
     List_wrappedParent = ImmutableList.copyOf(StateID_wrappedParent);
     List_wrappedChildren = ImmutableList.copyOf(StateID_wrappedChildren);
     currentARGid = ((ARGState) pWrappedState).getStateId();
     stateId = idGenerator.getFreshId();
+    wrappedWrapped = argstate.getWrappedState();
+
+    //probably needed:
+    CFANode currentLoc = AbstractStates.extractLocation(this);
+    //logger.log(Level.INFO, "sonja CFANODE:\n" + currentLoc);
+    //CFANode childLoc = AbstractStates.extractLocation(pChild);
+    for (ARGState child: wrapped.getChildren()) {
+      List<CFAEdge> edges = wrapped.getEdgesToChild(child);
+      edgelist = edges;
+     //logger.log(Level.INFO, "sonja CFAEDGE:\n" + edges);
+    }
+    node = currentLoc;
+
 
  /**ARGState test1 = (ARGState) getWrappedState();
     ArrayList<ARGState> list = new ArrayList<>();
@@ -95,6 +120,8 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
     //ImmutableList<ARGState> immutable = ImmutableList.copyOf(list);
     dieliste = ImmutableList.copyOf(list);
       //logger.log(Level.INFO, "sonjas immutableList:\n" + dieliste);**/
+
+
   }
 
   @Override
@@ -102,18 +129,30 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
     StringBuilder sb = new StringBuilder();
     //sb.append("CollectorStateID:  ");
     //sb.append(stateId );
-    sb.append("Current:  ");
-    sb.append("Sucessors: ");
-    sb.append(List_wrappedChildren);
-    sb.append(" Ancestors: ");
-    sb.append(List_wrappedParent);
-    sb.append (" StateID: " + currentARGid);
-    //sb.append("\n"+ "ARGState: " + getWrappedState()+ "\n");
-    sb.append("\n"+ "ARGState: " + dieliste + "\n");
-    //sb.append("\n"+ "ARGState: " + test2 + "\n");
-   if (states != null) {
+    if (states != null) {
+     sb.append("Current:  ");
+     sb.append("Sucessors: ");
+     sb.append(List_wrappedChildren);
+     sb.append(" Ancestors: ");
+     sb.append(List_wrappedParent);
+     sb.append (" StateID: " + currentARGid);
+     sb.append("\n"+ "ARGState: " + dieliste + "\n");
      sb.append("\n" + "Storage:  ");
      sb.append(states);
+   }
+   else{
+     /**sb.append("NODE&EDGE ");
+     sb.append(node);
+     sb.append(edgelist);**/
+     sb.append("Current:  ");
+     sb.append("Sucessors: ");
+     sb.append(List_wrappedChildren);
+     sb.append(" Ancestors: ");
+     sb.append(List_wrappedParent);
+     sb.append (" StateID: " + currentARGid);
+     //sb.append("\n"+ "ARGState: " + getWrappedState()+ "\n");
+     sb.append("\n"+ "ARGState: " + dieliste + "\n");
+     //sb.append("\n"+ "ARGState: " + test2 + "\n");
    }
     sb.append ("\n");
     return sb.toString();
@@ -128,7 +167,9 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
   private Iterable<ARGState> mergedID(Iterable<ARGState> elements) {
     return from(elements).transform(ARGState::getMergedWith);
   }
-
+  private Iterable<Collection<ARGState>> children(Iterable<ARGState> elements) {
+    return from(elements).transform(ARGState::getChildren);
+  }
 
   @Override
   public String toDOTLabel() {
@@ -144,5 +185,44 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
   }
   public ARGState getARGState() {
     return argstate ;
+  }
+  public int getStateId() { return currentARGid; }
+  /**
+   * Get the child elements of this state.
+   * @return An unmodifiable collection of ARGStates without duplicates.
+   */
+  public Collection<ARGState> getChildren() {
+    return Collections.unmodifiableCollection(wrappedChildren);
+  }
+
+  public ImmutableList<AbstractState> getStorage() { return states; }
+
+  public int getfirstID() {
+    first =states.get(0);
+    id = ((CollectorState) first).getStateId();
+    return id;
+  }
+  public int getsecondID() {
+    second =states.get(1);
+    id = ((CollectorState) second).getStateId();
+    return id;
+  }
+
+  public Object getParentsID() {
+    firstParent = List_wrappedParent.get(0);
+    return firstParent;
+  }
+
+  public Object getChildrenID() {
+    if (List_wrappedChildren.size() >= 1) {
+      firstChildren = List_wrappedChildren.get(0);
+      return firstChildren;
+    } else {
+      return "";
+    }
+  }
+
+  public AbstractState getWrappedWrappedState() {
+    return wrappedWrapped;
   }
 }

@@ -111,7 +111,7 @@ public class CollectorTransferRelation implements TransferRelation, Graphable {
 
 
       rootStatestest.add(wrappedState2);
-      //writeArg(wrappedState2);
+
 
       return wrappedSuccessors;
 
@@ -157,31 +157,6 @@ public class CollectorTransferRelation implements TransferRelation, Graphable {
     }catch (IOException e) {
       logger.logUserException(
           WARNING, e, "Could not create Sonjas file.");
-    }
-  }
-
-  private void writeArg(// muss wieder raus, achtung dazugehöriges writeArg weiteroben nicht
-                        // vergessen
-      //final Path file,
-      //final Multimap<ARGState, ARGState> connections,
-      final ARGState rootStates)
-      {
-    try (
-        Writer writer = new FileWriter("./output/SonjasDot.dot", true);
-        //Writer writer = IO.openOutputFile(Paths.get("./output/SonjasFile2.txt"), Charsets.UTF_8);
-        BufferedWriter bw = new BufferedWriter(writer);
-
-        //Writer w = IO.openOutputFile(Paths.get("./output/SonjasARGDOTfile.txt"),Charset.defaultCharset())
-        ) {
-      ARGToDotWriter.write(
-          bw,
-          rootStates,
-          ARGState::getChildren,
-          Predicates.alwaysTrue(),
-          Predicates.alwaysFalse());
-    } catch (IOException e) {
-      logger.logUserException(
-          Level.WARNING, e, String.format("Could not write ARG to file: %s"));
     }
   }
 }
