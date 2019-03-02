@@ -32,7 +32,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -76,8 +75,6 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** Utility class to extract candidates from witness file */
 public class CandidatesFromWitness {
-
-  private static Optional<ReachedSet> reachedSetOfWitness = Optional.empty();
 
   private static Configuration generateLocalConfiguration(Configuration pConfig)
       throws InvalidConfigurationException {
@@ -140,9 +137,6 @@ public class CandidatesFromWitness {
       Path pathToInvariantsAutomatonFile,
       Timer analyzeWitnessTime)
       throws InvalidConfigurationException, CPAException {
-    if (reachedSetOfWitness.isPresent()) {
-      return reachedSetOfWitness.get();
-    }
     analyzeWitnessTime.start();
     Configuration config = generateLocalConfiguration(pConfig);
     ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, pLogger);
@@ -171,8 +165,7 @@ public class CandidatesFromWitness {
       // let it be thrown by the invariant generator.
     }
     analyzeWitnessTime.stop();
-    reachedSetOfWitness = Optional.ofNullable(reachedSet);
-    return reachedSetOfWitness.get();
+    return reachedSet;
   }
 
   public static void extractCandidatesFromReachedSet(
