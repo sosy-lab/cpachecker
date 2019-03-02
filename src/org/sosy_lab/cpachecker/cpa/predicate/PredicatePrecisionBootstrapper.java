@@ -30,13 +30,12 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -49,12 +48,14 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -64,6 +65,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.KeyValueStatistics;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix="cpa.predicate")
 public class PredicatePrecisionBootstrapper implements StatisticsProvider {
@@ -108,6 +110,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   private final PredicateAbstractionManager predicateAbstractionManager;
 
   private final KeyValueStatistics statistics = new KeyValueStatistics();
+  final WitnessInvariantsStatistics witnessStats = new WitnessInvariantsStatistics();
 
   public PredicatePrecisionBootstrapper(
       Configuration config,
@@ -161,27 +164,16 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     }
 
     if (reuseInvariantsFromCorrectnessWitness) {
+      witnessStats.invariantGeneration.start();
       try {
         final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
         final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
-        final Timer analyzeWitnessTimer = new Timer();
-        AtomicInteger candidateInvariantCounter = new AtomicInteger();
         if (correctnessWitnessFile != null) {
           ReachedSet reachedSet =
               CandidatesFromWitness.analyzeWitness(
-                  config,
-                  specification,
-                  logger,
-                  cfa,
-                  shutdownNotifier,
-                  correctnessWitnessFile,
-                  analyzeWitnessTimer);
+                  config, specification, logger, cfa, shutdownNotifier, correctnessWitnessFile);
           CandidatesFromWitness.extractCandidatesFromReachedSet(
-              shutdownNotifier,
-              candidates,
-              candidateGroupLocations,
-              reachedSet,
-              candidateInvariantCounter);
+              shutdownNotifier, candidates, candidateGroupLocations, reachedSet);
         }
 
         for (CandidateInvariant candidate : candidates) {
@@ -216,16 +208,14 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
           // add all predicates
           result = result.addLocalPredicates(localPredicates.entries());
-          // TODO improve statistics for invariants
-          statistics.addKeyValueStatistic(
-              "Number of witness candidate invariants", candidateInvariantCounter.get());
-          statistics.addKeyValueStatistic(
-              "Time for witness analysis",
-              analyzeWitnessTimer.getSumTime().formatAs(TimeUnit.SECONDS));
+          witnessStats.numberOfInitialPredicates += localPredicates.entries().size();
         }
+        witnessStats.numberOfInvariants += candidates.size();
       } catch (CPAException | InterruptedException e) {
         logger.logUserException(
             Level.WARNING, e, "Predicate from correctness witness file could not be computed");
+      } finally {
+        witnessStats.invariantGeneration.stop();
       }
     }
 
@@ -248,5 +238,28 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
+    if (reuseInvariantsFromCorrectnessWitness) {
+      pStatsCollection.add(witnessStats);
+    }
+  }
+
+  public static class WitnessInvariantsStatistics implements Statistics {
+
+    final Timer invariantGeneration = new Timer();
+    private int numberOfInvariants = 0;
+    private int numberOfInitialPredicates = 0;
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+      StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
+      writer.put("Time for invariant generation", invariantGeneration);
+      writer.put("Number of invariants", numberOfInvariants);
+      writer.put("Number of initial predicates", numberOfInitialPredicates);
+    }
+
+    @Override
+    public String getName() {
+      return "Witness Invariants Initial Predicate Precision";
+    }
   }
 }
