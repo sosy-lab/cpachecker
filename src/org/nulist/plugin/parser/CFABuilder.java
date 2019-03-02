@@ -196,11 +196,23 @@ public class CFABuilder {
             String assignedVar = nc_ast.children().get(0).as_ast().pretty_print();//the 1st child field store the variable
 
             final boolean isGlobal = true;
-            // TODO: Support static and other storage classes
-            CStorageClass storageClass = CStorageClass.AUTO;
-            if(un_ast.get(ast_ordinal.getBASE_STORAGE_CLASS()).as_enum_value_string().equals("static")){
-                storageClass = CStorageClass.STATIC;
+            // Support static and other storage classes
+            CStorageClass storageClass;
+            switch (un_ast.get(ast_ordinal.getBASE_STORAGE_CLASS()).as_enum_value_string()){
+                case "static":
+                    storageClass = CStorageClass.STATIC;
+                    break;
+                case "extern":
+                    storageClass = CStorageClass.EXTERN;
+                    break;
+                case "typedef":
+                    storageClass = CStorageClass.TYPEDEF;
+                    break;
+                default:
+                    storageClass = CStorageClass.AUTO;
+                    break;
             }
+
             CType varType = typeConverter.getCType(nc_ast.get(ast_ordinal.getNC_TYPE()).as_ast());
 
             // We handle alloca not like malloc, which returns a pointer, but as a general
@@ -235,15 +247,82 @@ public class CFABuilder {
     
 
     private CInitializer getConstantAggregateInitializer(
-            point point, final String pFileName) throws result {
+            procedure global_initialization, final String pFileName) throws result {
 
-        return  null;
+        /*int length = getLength(pAggregate);
+        List<CInitializer> elementInitializers = new ArrayList<>(length);
+
+        for (int i = 0; i < length; i++) {
+            Value element;
+            if (pAggregate.isConstantArray() || pAggregate.isConstantStruct()) {
+                element = pAggregate.getOperand(i);
+            } else {
+                element = pAggregate.getElementAsConstant(i);
+            }
+            assert element.isConstant() : "Value element is not a constant!";
+            CInitializer elementInitializer;
+            if (isConstantArrayOrVector(element) || element.isConstantStruct()) {
+                elementInitializer = getConstantAggregateInitializer(element, pFileName);
+            } else if (element.isConstantAggregateZero()) {
+                elementInitializer =
+                        getZeroInitializer(element, typeConverter.getCType(pAggregate.typeOf()), pFileName);
+            } else {
+                elementInitializer =
+                        new CInitializerExpression(
+                                getLocation(element, pFileName), (CExpression) getConstant(element, pFileName));
+            }
+            elementInitializers.add(elementInitializer);
+        }
+
+        CInitializerList aggregateInitializer =
+                new CInitializerList(getLocation(pAggregate, pFileName), elementInitializers);
+        return aggregateInitializer;*/
+        return null;
     }
 
 
     private CInitializer getZeroInitializer(
-            point point , final CType pExpectedType, final String pFileName) throws result {
+            final point point, final CType pExpectedType, final String pFileName) throws result {
+        /*FileLocation loc = getLocation(pForElement, pFileName);
+        CInitializer init;
+        CType canonicalType = pExpectedType.getCanonicalType();
+        if (canonicalType instanceof CArrayType) {
+            int length = ((CArrayType) canonicalType).getLengthAsInt().getAsInt();
+            CType elementType = ((CArrayType) canonicalType).getType().getCanonicalType();
+            CInitializer zeroInitializer = getZeroInitializer(pForElement, elementType, pFileName);
+            List<CInitializer> initializers = Collections.nCopies(length, zeroInitializer);
+            init = new CInitializerList(loc, initializers);
 
+        } else if (canonicalType instanceof CCompositeType) {
+
+            List<CCompositeType.CCompositeTypeMemberDeclaration> members = ((CCompositeType) canonicalType).getMembers();
+            List<CInitializer> initializers = new ArrayList<>(members.size());
+            for (CCompositeType.CCompositeTypeMemberDeclaration m : members) {
+                CType memberType = m.getType();
+                CInitializer memberInit = getZeroInitializer(pForElement, memberType, pFileName);
+                initializers.add(memberInit);
+            }
+
+            init = new CInitializerList(loc, initializers);
+
+        } else {
+            CExpression zeroExpression;
+            if (canonicalType instanceof CSimpleType) {
+                CBasicType basicType = ((CSimpleType) canonicalType).getType();
+                if (basicType == CBasicType.FLOAT || basicType == CBasicType.DOUBLE) {
+                    // use expected type for float, not canonical
+                    zeroExpression = new CFloatLiteralExpression(loc, pExpectedType, BigDecimal.ZERO);
+                } else {
+                    zeroExpression = CIntegerLiteralExpression.ZERO;
+                }
+            } else {
+                // use expected type for cast, not canonical
+                zeroExpression = new CCastExpression(loc, pExpectedType, CIntegerLiteralExpression.ZERO);
+            }
+            init = new CInitializerExpression(loc, zeroExpression);
+        }
+
+        return init;*/
         return null;
     }
 
@@ -262,7 +341,7 @@ public class CFABuilder {
         if(!formal_outs.empty()){
             //Note that it is impossible that there are more than one formal out
             point p = formal_outs.cbegin().current();
-            cFuncType = (CFunctionType) typeConverter.getCType(p.parameter_symbols().get(0));
+            cFuncType = (CFunctionType) typeConverter.getCType(p);
         }
 
         // Parameters
