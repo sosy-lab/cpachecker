@@ -129,6 +129,12 @@ public class CPAcheckerResult {
     } else {
       out.println("Verification result: " + getResultString());
     }
+    out.print("Witness Invariant Violation: ");
+    if (violatedPropertyDescription.contains("Invariant not valid")) {
+      out.println("1");
+    } else {
+      out.println("0");
+    }
   }
 
   public String getResultString() {
