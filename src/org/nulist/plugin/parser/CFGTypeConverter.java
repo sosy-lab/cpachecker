@@ -91,11 +91,10 @@ public class CFGTypeConverter {
 //        }
         //for struct example: struct test{int a, int b}
         //function example: test function(int c,int d)
-        //the point is formal out
         ast un_a = point.get_ast(ast_family.getC_UNNORMALIZED());
 
         //routine type: test (c,d)
-        un_a.get(ast_ordinal.getBASE_TYPE());
+        //un_a.get(ast_ordinal.getBASE_TYPE());
 
         String structName = un_a.get(ast_ordinal.getBASE_TYPE()).as_ast().
                 get(ast_ordinal.getBASE_RETURN_TYPE()).as_ast().pretty_print();

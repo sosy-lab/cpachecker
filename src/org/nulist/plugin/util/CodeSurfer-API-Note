@@ -1,0 +1,8 @@
+
+# an expression:
+a normalized ast of a variable initialization point has two children: variable and value
+                                                    has two attributes: is_initialization and type
+
+
+# check if a variable used in a function is a global
+a procedure (function) declared_symbols()==> symbol(variable).is_global();
