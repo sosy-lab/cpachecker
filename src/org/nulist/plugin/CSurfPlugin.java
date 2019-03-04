@@ -35,6 +35,8 @@ public class CSurfPlugin {
             {
                 compunit cu = cu_it.current();//each shall be a C file
 
+                if(!cu.is_user())
+                    continue;
                 // Iterate over all procedures in the compilation unit
                 // procedure = function
                 for( compunit_procedure_iterator proc_it = cu.procedures();

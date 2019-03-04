@@ -42,8 +42,6 @@ public class CFABuilder {
     // Function name -> Function declaration
     private Map<String, CFunctionDeclaration> functionDeclarations;
 
-    // unnamed basic blocks will be named as 1,2,3,...
-    private int basicBlockId;
     protected NavigableMap<String, FunctionEntryNode> functions;
 
     protected SortedSetMultimap<String, CFANode> cfaNodes;
@@ -67,18 +65,27 @@ public class CFABuilder {
         cfaNodes.put(funcName, nd);
     }
 
+    /**
+     *@Description input is a C file TODO
+     *@Param [cu]
+     *@return org.sosy_lab.cpachecker.cfa.ParseResult
+     **/
     public ParseResult build(compunit cu) throws  result {
-        boolean isUserDefinedFile = false;
         String pFileName = cu.normalized_name();
 
         // Iterate over all procedures in the compilation unit
         // procedure = function
+        // only focus on user-defined c files
+        if(!cu.is_user())
+            return null;
+        // extract global variables
+        declareGlobalVariables(cu, pFileName);
+
         for (compunit_procedure_iterator proc_it = cu.procedures();
              !proc_it.at_end(); proc_it.advance()) {
             procedure proc = proc_it.current();
             //only focus on the function defined by user
             if(proc.get_kind().equals(procedure_kind.getUSER_DEFINED())){
-                isUserDefinedFile = true;
                 point entryPoint = proc.entry_point();
 
                 // handle the function definition
@@ -86,9 +93,6 @@ public class CFABuilder {
 
                 FunctionEntryNode en = visitFunction(proc, pFileName);
             }
-        }
-        if(isUserDefinedFile){
-            declareGlobalVariables(cu, pFileName);
         }
 
         return  null;
@@ -129,7 +133,10 @@ public class CFABuilder {
     }
 
     /**
-     *@Description TODO
+     *@Description all global and file static variables are defined in File_Initialization-
+     *              Global_Initialization_0 (no initializer) and Global_Initialization_1 (static initializer)
+     *              all symbols of global and file static variables also can be obtained by compunit.global_symbols
+     *                 and figured out by symbol.is_gobal() or symbol.is_file_static() (or directly is_user())
      *@Param [compunit, pFileName]
      *@return void
      **/
@@ -138,7 +145,6 @@ public class CFABuilder {
         for (compunit_procedure_iterator proc_it = compunit.procedures();
              !proc_it.at_end(); proc_it.advance()) {
             procedure proc = proc_it.current();
-            //only focus on the function defined by user
             if(proc.get_kind().equals(procedure_kind.getFILE_INITIALIZATION())
                 && proc.name().contains("Global_Initialization")){
                 visitGlobalItem(proc, pFileName);
@@ -156,6 +162,13 @@ public class CFABuilder {
             !point_it.at_end();point_it.advance()){
             point p = point_it.current();
             CInitializer initializer = null;
+
+            //another way of checking the type of initializer
+            /*ast a = p.get_ast(ast_family.getC_UNNORMALIZED());
+            a.get(ast_ordinal.getUC_STATIC_INIT()).as_ast().get_class().equals(ast_class.getUC_NO_INITIALIZER());
+            a.get(ast_ordinal.getUC_STATIC_INIT()).as_ast().get_class().equals(ast_class.getUC_STATIC_INITIALIZER());
+            a.get(ast_ordinal.getUC_STATIC_INIT()).as_ast().get_class().equals(ast_class.getUC_ZERO_INITIALIZER());*/
+
             if(p.get_kind().equals(point_kind.getVARIABLE_INITIALIZATION()) ||
                     p.get_kind().equals(point_kind.getEXPRESSION())){
                 ast nc_ast = p.get_ast(ast_family.getC_NORMALIZED());
@@ -167,9 +180,6 @@ public class CFABuilder {
                     ast_field type = nc_ast.get(ast_ordinal.getNC_TYPE());
                     if(isConstantArrayOrVector(type) || isConstantStruct(type)){
                         initializer = getConstantAggregateInitializer(p,pFileName);
-                    }else if (initializerRaw.isConstantAggregateZero()) {
-                        CType expressionType = typeConverter.getCType(initializerRaw.typeOf());
-                        initializer = getZeroInitializer(initializerRaw, expressionType, pFileName);
                     } else {
                         initializer =
                                 new CInitializerExpression(
@@ -485,6 +495,11 @@ public class CFABuilder {
         }
     }
 
+    /**
+     *@Description TODO
+     *@Param [varInitPoint, pFileName]
+     *@return org.sosy_lab.cpachecker.cfa.ast.c.CExpression
+     **/
     private CExpression createGetElementDotExp(final point varInitPoint, final String pFileName)
             throws result {
         ast nc_ast = varInitPoint.get_ast(ast_family.getC_NORMALIZED());
@@ -492,80 +507,15 @@ public class CFABuilder {
 
         FileLocation fileLocation = getLocation(varInitPoint, pFileName);
 
-        if (pItem.canBeTransformedFromGetElementPtrToString()) {
-            String constant = pItem.getGetElementPtrAsString();
-            CType constCharType = new CSimpleType(
-                    true, false, CBasicType.CHAR, false, false, false,
-                    false, false, false, false);
-
-            CType stringType = new CPointerType(false, false, constCharType);
-
-            return new CStringLiteralExpression(fileLocation, stringType, constant);
-        }
-
-        CType currentType = typeConverter.getCType(startPointer.typeOf());
-        CExpression currentExpression = getExpression(startPointer, currentType, pFileName);
-        currentType = currentExpression.getExpressionType();
-        assert pItem.getNumOperands() >= 2
-                : "Too few operands in GEP operation : " + pItem.getNumOperands();
-
-        for (int i = 1; i < pItem.getNumOperands(); i++) {
-            /* get the value of the index */
-            Value indexValue = pItem.getOperand(i);
-            CExpression index = getExpression(indexValue, CNumericTypes.INT, pFileName);
-
-            if (currentType instanceof CPointerType) {
-                if (valueIsZero(indexValue)) {
-                    /* if we do not shift the pointer, just dereference the type (and expression) */
-                    currentExpression = getDereference(fileLocation, currentExpression);
-                } else {
-                    currentExpression =
-                            getDereference(fileLocation,
-                                    new CBinaryExpression(
-                                            fileLocation,
-                                            currentType,
-                                            currentType,
-                                            currentExpression,
-                                            index,
-                                            CBinaryExpression.BinaryOperator.PLUS));
-                }
-            } else if (currentType instanceof CArrayType) {
-                if (valueIsZero(indexValue)) {
-                    /* if we look into the first value, then use operator *
-                     * instead of [0], so that Ref can remove the * from
-                     * the expression where possible */
-                    currentExpression =
-                            new CPointerExpression(fileLocation,
-                                    currentType.getCanonicalType(),
-                                    currentExpression);
-                } else {
-                    currentExpression =
-                            new CArraySubscriptExpression(fileLocation, currentType,
-                                    currentExpression, index);
-                }
-            } else if (currentType instanceof CCompositeType) {
-                if (!(index instanceof CIntegerLiteralExpression)) {
-                    throw new UnsupportedOperationException(
-                            "GEP index to struct only allows integer " + "constant, but is " + index);
-                }
-                int memberIndex = ((CIntegerLiteralExpression) index).getValue().intValue();
-                CCompositeType.CCompositeTypeMemberDeclaration field =
-                        ((CCompositeType) currentType).getMembers().get(memberIndex);
-                String fieldName = field.getName();
-                currentExpression =
-                        new CFieldReference(fileLocation, currentType, fieldName,
-                                currentExpression, false);
-            }
-
-            /* update the expression type */
-            currentType = currentExpression.getExpressionType();
-        }
-
-        /* we want pointer to the element */
-        return getReference(fileLocation, currentExpression);
+        return null;
     }
 
 
+    /**
+     *@Description TODO
+     *@Param [varInitPoint, operand, pFileName]
+     *@return org.sosy_lab.cpachecker.cfa.ast.c.CExpression
+     **/
     private CExpression createFromArithmeticOp(
             final point varInitPoint, final ast_class operand, final String pFileName) throws result {
 

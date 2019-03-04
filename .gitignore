@@ -8,6 +8,8 @@ a.out
 /bin
 /build.properties
 /output
+/out
+/cpachecker.iml
 /Checkstyle.html
 /Checkstyle.xml
 /Checkstyle.Test.html
@@ -61,6 +63,7 @@ a.out
 /test/results/*
 
 # /.idea/
+.idea/*
 .idea/workspace.xml
 .idea/uiDesigner.xml
 .idea/dictionaries
