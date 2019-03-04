@@ -316,6 +316,25 @@ public class CPAMain {
       configBuilder.loadFromFile(configFile);
     }
     configBuilder.setOptions(cmdLineOptions);
+
+    // display the correct frontend based on the file ending to increase usability
+    String programNameOption = cmdLineOptions.get("analysis.programNames");
+    String extension = programNameOption.substring(programNameOption.lastIndexOf(".") + 1);
+
+    switch (extension) {
+      case ("c"):
+      case ("i"):
+        configBuilder.setOption("language", "C");
+        break;
+      case ("ll"):
+      case ("bc"):
+        configBuilder.setOption("language", "LLVM");
+        break;
+      case ("java"):
+        configBuilder.setOption("language", "JAVA");
+        break;
+    }
+
     Configuration config = configBuilder.build();
 
     // We want to be able to use options of type "File" with some additional

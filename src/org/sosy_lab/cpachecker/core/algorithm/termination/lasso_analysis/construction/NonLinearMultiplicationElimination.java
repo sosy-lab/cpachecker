@@ -41,6 +41,7 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaManager;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
+import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
@@ -125,6 +126,17 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
             @Override
             protected TraversalProcess visitDefault(Formula pFormula) {
               constant.set(false);
+              return TraversalProcess.ABORT;
+            }
+
+            @Override
+            public TraversalProcess visitFunction(
+                Formula pFormula,
+                List<Formula> pArgs,
+                FunctionDeclaration<?> pFunctionDeclaration) {
+              if (pFunctionDeclaration.getKind().equals(FunctionDeclarationKind.UMINUS)) {
+                return TraversalProcess.CONTINUE;
+              }
               return TraversalProcess.ABORT;
             }
 

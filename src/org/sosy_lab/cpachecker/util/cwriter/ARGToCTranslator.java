@@ -36,10 +36,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -47,6 +49,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -68,12 +72,15 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -84,14 +91,35 @@ public class ARGToCTranslator {
   private static String DEFAULTRETURN = "default return";
   private static String TMPVARPREFIX = "__tmp_";
 
-  private static abstract class Statement {
-    public abstract void translateToCode(StringBuilder buffer, int indent);
+  abstract static class Statement {
+    private static int gotoCounter = 0;
+
+    private boolean isGotoTarget = false;
+    private String gotoLabel = null;
+
+    public void translateToCode(StringBuilder buffer, int indent) {
+      if (isGotoTarget) {
+        buffer.append(gotoLabel).append(":;\n");
+      }
+      translateToCode0(buffer, indent);
+    }
+
+    abstract void translateToCode0(StringBuilder buffer, int indent);
 
     protected static void writeIndent(StringBuilder buffer, int indent) {
       for(int i = 0; i < indent; i++) {
         // buffer.append(" ");
       }
       buffer.append(" ");
+    }
+
+    public String getLabel() {
+      if (!isGotoTarget) {
+        gotoLabel = "label_" + gotoCounter;
+        gotoCounter++;
+        isGotoTarget = true;
+      }
+      return gotoLabel;
     }
   }
 
@@ -103,7 +131,7 @@ public class ARGToCTranslator {
 
   }
 
-  private static class CompoundStatement extends Statement {
+  static class CompoundStatement extends Statement {
     private final List<Statement> statements;
     private final CompoundStatement outerBlock;
 
@@ -121,7 +149,7 @@ public class ARGToCTranslator {
     }
 
     @Override
-    public void translateToCode(StringBuilder buffer, int indent) {
+    public void translateToCode0(StringBuilder buffer, int indent) {
       writeIndent(buffer, indent);
       buffer.append("{\n");
 
@@ -138,7 +166,7 @@ public class ARGToCTranslator {
     }
   }
 
-  private static class SimpleStatement extends Statement {
+  static class SimpleStatement extends Statement {
     private final String code;
 
     public SimpleStatement(String pCode) {
@@ -146,14 +174,14 @@ public class ARGToCTranslator {
     }
 
     @Override
-    public void translateToCode(StringBuilder buffer, int indent) {
+    public void translateToCode0(StringBuilder buffer, int indent) {
       writeIndent(buffer, indent);
       buffer.append(code);
       buffer.append("\n");
     }
   }
 
-  private static class FunctionBody extends Statement {
+  static class FunctionBody extends Statement {
     private final String functionHeader;
     private final CompoundStatement functionBody;
 
@@ -167,7 +195,7 @@ public class ARGToCTranslator {
     }
 
     @Override
-    public void translateToCode(StringBuilder buffer, int indent) {
+    public void translateToCode0(StringBuilder buffer, int indent) {
       writeIndent(buffer, indent);
       buffer.append(functionHeader);
       buffer.append("\n");
@@ -207,7 +235,11 @@ public class ARGToCTranslator {
   }
 
   public enum TargetTreatment {
-    NONE, RUNTIMEVERIFICATION, ASSERTFALSE, FRAMACPRAGMA
+    NONE,
+    RUNTIMEVERIFICATION,
+    ASSERTFALSE,
+    FRAMACPRAGMA,
+    VERIFIERERROR
   }
 
   public enum BlockTreatmentAtFunctionEnd {
@@ -217,6 +249,7 @@ public class ARGToCTranslator {
   }
 
   private final LogManager logger;
+  private final CBinaryExpressionBuilder cBinaryExpressionBuilder;
   private final List<String> globalDefinitionsList = new ArrayList<>();
   private final Set<ARGState> discoveredElements = new HashSet<>();
   private final Set<ARGState> mergeElements = new HashSet<>();
@@ -224,6 +257,8 @@ public class ARGToCTranslator {
   private String mainReturnVar;
   private boolean isVoidMain;
   private boolean deleteAssertFail;
+  private boolean verifierAssumeUsed;
+  private boolean verifierNondetBoolUsed;
   // private static Collection<AbstractState> reached;
 
   private @Nullable Set<ARGState> addPragmaAfter;
@@ -238,11 +273,14 @@ public class ARGToCTranslator {
   @Option(secure=true, name="handleTargetStates", description="How to deal with target states during code generation")
   private TargetTreatment targetStrategy = TargetTreatment.NONE;
 
-  public ARGToCTranslator(LogManager pLogger, Configuration pConfig)
+  public ARGToCTranslator(LogManager pLogger, Configuration pConfig, MachineModel pMachineModel)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
     deleteAssertFail = targetStrategy == TargetTreatment.FRAMACPRAGMA;
+    verifierAssumeUsed = false;
+    verifierNondetBoolUsed = false;
+    cBinaryExpressionBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
   }
 
   public boolean addsIncludeDirectives() {
@@ -280,6 +318,15 @@ public class ARGToCTranslator {
     }
     if (includeHeader || targetStrategy == TargetTreatment.ASSERTFALSE) {
       buffer.append("#include <assert.h>\n");
+    }
+    if (targetStrategy == TargetTreatment.VERIFIERERROR) {
+      buffer.append("extern void __VERIFIER_error();\n");
+    }
+    if (verifierAssumeUsed) {
+      buffer.append("extern void __VERIFIER_assume();\n");
+    }
+    if (verifierNondetBoolUsed) {
+      buffer.append("extern _Bool __VERIFIER_nondet_bool();\n");
     }
     for(String globalDef : globalDefinitionsList) {
       buffer.append(globalDef + "\n");
@@ -421,9 +468,10 @@ public class ARGToCTranslator {
       } else {
         pushToWaitlist(waitlist, currentElement, child, edgeToChild, currentBlock);
       }
-    } else if (childrenOfElement.size() > 1) {
-      // if there are more than one children, then this is a condition
-      assert childrenOfElement.size() == 2 : "branches with more than two options not supported yet (was the program prepocessed with CIL?)"; //TODO: why not btw?
+    } else if (childrenOfElement.size() == 2
+        && childrenOfElement
+            .stream()
+            .allMatch(x -> (currentElement.getEdgeToChild(x) instanceof CAssumeEdge))) {
 
       //collect edges of condition branch
       ArrayList<ARGEdge> result = new ArrayList<>(2);
@@ -484,6 +532,61 @@ public class ARGToCTranslator {
         ARGEdge e = result.get(i);
         pushToWaitlist(waitlist, e.getParentElement(), e.getChildElement(), e.getCfaEdge(), e.getCurrentBlock());
       }
+    } else {
+      handleMultiBranching(currentElement, waitlist, currentBlock, childrenOfElement);
+    }
+  }
+
+  private void handleMultiBranching(
+      ARGState currentElement,
+      Deque<ARGEdge> waitlist,
+      CompoundStatement currentBlock,
+      Collection<ARGState> childrenOfElement) {
+    int count = 0;
+    for (ARGState child : childrenOfElement) {
+      CFAEdge edgeToChild = currentElement.getEdgeToChild(child);
+
+      Set<AExpression> conditions = new LinkedHashSet<>();
+      if (edgeToChild instanceof CAssumeEdge) {
+        CAssumeEdge assumeEdge = (CAssumeEdge) edgeToChild;
+        if (assumeEdge.getTruthAssumption()) {
+          conditions.add(assumeEdge.getExpression());
+        } else {
+          try {
+            conditions.add(
+                cBinaryExpressionBuilder.negateExpressionAndSimplify(assumeEdge.getExpression()));
+          } catch (UnrecognizedCodeException e) {
+            throw new AssertionError("negating an expression should never throw an exception", e);
+          }
+        }
+      }
+      // precondition assumptions can be added here, since they shall be applied before the actual
+      // edge is taken, which is exactly here:
+      AbstractStates.asIterable(child)
+          .filter(AbstractStateWithAssumptions.class)
+          .transform(x -> x.getPreconditionAssumptions())
+          .forEach(x -> conditions.addAll(x));
+
+      String cond;
+      if (count == 0) {
+        cond = "if (__VERIFIER_nondet_bool())";
+        verifierNondetBoolUsed = true;
+      } else if (count != childrenOfElement.size()) {
+        cond = "else if (__VERIFIER_nondet_bool())";
+        verifierNondetBoolUsed = true;
+      } else {
+        cond = " else ";
+      }
+
+      CompoundStatement newBlock = addIfStatement(currentBlock, cond);
+      if (!conditions.isEmpty()) {
+        StringJoiner joiner = new StringJoiner(" && ", "__VERIFIER_assume(", ");");
+        conditions.stream().map(x -> x.toQualifiedASTString()).forEach(joiner::add);
+        newBlock.addStatement(new SimpleStatement(joiner.toString()));
+        verifierAssumeUsed = true;
+      }
+      pushToWaitlist(waitlist, currentElement, child, edgeToChild, newBlock);
+        count++;
     }
   }
 
@@ -652,6 +755,8 @@ public class ARGToCTranslator {
       }
     }
 
+    handleAssumptions(childElement, currentBlock);
+
     if (childElement.isTarget()) {
       Statement afterTarget = processTargetState(childElement, edge);
       if (afterTarget != null) {
@@ -660,6 +765,22 @@ public class ARGToCTranslator {
     }
 
     return currentBlock;
+  }
+
+  private void handleAssumptions(ARGState childElement, CompoundStatement currentBlock) {
+    List<AExpression> assumptions = new ArrayList<>();
+    AbstractStates.asIterable(childElement)
+        .filter(AbstractStateWithAssumptions.class)
+        .transform(x -> x.getAssumptions())
+        .forEach(x -> assumptions.addAll(x));
+
+    if (!assumptions.isEmpty()) {
+      StringJoiner joiner = new StringJoiner(" && ", "__VERIFIER_assume(", ");");
+      assumptions.stream().map(x -> x.toQualifiedASTString()).forEach(joiner::add);
+      String statement = joiner.toString();
+      currentBlock.addStatement(new SimpleStatement(statement));
+      verifierAssumeUsed = true;
+    }
   }
 
   private boolean mustHandleDefaultReturn(final CFAEdge pEdge) {
@@ -915,6 +1036,8 @@ public class ARGToCTranslator {
         } else {
           return null;
         }
+      case VERIFIERERROR:
+        return new SimpleStatement("__VERIFIER_error();");
       default:
         // case NONE
         return null;

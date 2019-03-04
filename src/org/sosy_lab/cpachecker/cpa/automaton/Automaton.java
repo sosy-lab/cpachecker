@@ -192,7 +192,10 @@ public class Automaton {
     str.append("INITIAL STATE ").append(initState).append(";\n\n");
 
     for (AutomatonInternalState s : states) {
-      str.append("STATE ").append(s.getName()).append(":\n");
+      str.append("STATE ")
+          .append(s.getDoesMatchAll() ? "USEALL " : "USEFIRST ")
+          .append(s.getName())
+          .append(":\n");
       for (AutomatonTransition t : s.getTransitions()) {
         str.append("    ").append(t);
         if (t.getFollowState() != AutomatonInternalState.BOTTOM

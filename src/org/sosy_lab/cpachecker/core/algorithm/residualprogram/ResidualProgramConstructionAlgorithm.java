@@ -179,7 +179,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     shutdown = pShutdown;
     spec = pSpec;
     configuration = pConfig;
-    translator = new ARGToCTranslator(logger, pConfig);
+    translator = new ARGToCTranslator(logger, pConfig, cfa.getMachineModel());
 
     checkConfiguration();
 
