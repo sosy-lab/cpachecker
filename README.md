@@ -7,4 +7,5 @@ CodeSurfer
 
 CPAchecker
 ----------------------------
-For information on how to run CPAchecker, see [`INSTALL.md`](INSTALL.md).
+
+For information on how to install CPAchecker, see [`INSTALL.md`](INSTALL.md), and how to run it, see [`RUN.md`](RUN.md).
