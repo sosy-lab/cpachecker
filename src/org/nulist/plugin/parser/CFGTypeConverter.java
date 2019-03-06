@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 
 public class CFGTypeConverter {
     private final MachineModel machineModel;
@@ -27,40 +26,34 @@ public class CFGTypeConverter {
     public CFGTypeConverter(final MachineModel pMachineModel, final LogManager pLogger) {
         machineModel = pMachineModel;
         logger = pLogger;
-        typeInitialization();
+        basicTypeInitialization();
     }
 
 
-    public CType getCType(symbol param_symbol) throws result {
-        return getCType(param_symbol.get_type());
-    }
-
-    public CType getCType(point point) throws result {
-        ast type = point.parameter_symbols().get(0).get_type();
-        String typeString = type.pretty_print();
-
-        CType cType = typeCache.getOrDefault(typeString.hashCode(),null);
-        if(cType!=null)
-            return cType;
-        else if(typeString.equals("struct")){
-            return createStructType(point);
-        }
-
-        return null;
-    }
-
-    public CType getCType(ast type) throws result {
-        String typeString = type.pretty_print();
-        CType cType = typeCache.getOrDefault(typeString.hashCode(),null);
-        if(cType!=null)
-            return cType;
-        else {
+    public CType getCType(CFGAST type){
+        try {
+            String typeString = type.pretty_print();
+            CType cType = typeCache.getOrDefault(typeString.hashCode(),null);
+            if(cType!=null)
+                return cType;
+            else if(type.isStructType()){
+                return createStructType(type);
+            }
+            return null;
+        }catch (result r){
             return null;
         }
+
     }
 
 
-    private void typeInitialization(){
+    /**
+     *@Description basic type initialization
+     *@Param []
+     *@return void
+     **/
+    private void basicTypeInitialization(){
+        typeCache.put("bool".hashCode(),CNumericTypes.BOOL);
         typeCache.put("void".hashCode(),CVoidType.VOID);
         typeCache.put("int".hashCode(),CNumericTypes.INT);
         typeCache.put("unsigned int".hashCode(),CNumericTypes.UNSIGNED_INT);
@@ -81,23 +74,23 @@ public class CFGTypeConverter {
         typeCache.put("long double".hashCode(),CNumericTypes.LONG_DOUBLE);
     }
 
-    //formal out struct point
-    private CType createStructType(point point) throws result{
+    /**
+     *@Description generate the struct type from an ast
+     *@Param [type]
+     *@return org.sosy_lab.cpachecker.cfa.types.c.CType
+     **/
+    //struct type
+    private CType createStructType(CFGAST type) throws result{
         final boolean isConst = false;
         final boolean isVolatile = false;
 
-//        if (pStructType.isOpaqueStruct()) {
-//            logger.log(Level.INFO, "Ignoring opaque struct");
-//        }
-        //for struct example: struct test{int a, int b}
-        //function example: test function(int c,int d)
-        ast un_a = point.get_ast(ast_family.getC_UNNORMALIZED());
+        //typedef struct: label
+        //normal struct: struct label
+        String structName = type.pretty_print();
+        if(structName.startsWith("const "))//normalize const struct and non-const struct
+            structName = structName.substring(6);
 
-        //routine type: test (c,d)
-        //un_a.get(ast_ordinal.getBASE_TYPE());
-
-        String structName = un_a.get(ast_ordinal.getBASE_TYPE()).as_ast().
-                get(ast_ordinal.getBASE_RETURN_TYPE()).as_ast().pretty_print();
+        CFGAST struct_type = type.getStructType();
 
         if(typeCache.containsKey(structName.hashCode())){
             return new CElaboratedType(
@@ -109,17 +102,12 @@ public class CFGTypeConverter {
                     (CComplexType) typeCache.get(structName.hashCode()));
         }
 
-//        ast no_a = point.get_ast(ast_family.getC_NORMALIZED());
-//        // type: struct <UNNAMED>
-//        no_a.get(ast_ordinal.getBASE_TYPE());
-
 
         CCompositeType cStructType =
                 new CCompositeType(isConst, isVolatile, CComplexType.ComplexTypeKind.STRUCT, structName, structName);
 
         //items
-        symbol symbol = point.parameter_symbols().get(0);
-        ast_field_vector items = symbol.get_type().children();
+        ast_field_vector items = struct_type.get(ast_ordinal.getUC_FIELDS()).as_ast().children();
 
         List<CCompositeType.CCompositeTypeMemberDeclaration> members =
                 new ArrayList<>((int)items.size());
@@ -127,7 +115,7 @@ public class CFGTypeConverter {
         for (int i = 0; i < items.size(); i++) {
             ast_field member = items.get(i);
             String memberName = member.as_ast().pretty_print();
-            CType cMemType = getCType(member.as_ast());
+            CType cMemType = getCType((CFGAST) member.as_ast());
             CCompositeType.CCompositeTypeMemberDeclaration memDecl =
                     new CCompositeType.CCompositeTypeMemberDeclaration(cMemType, memberName);
             members.add(memDecl);

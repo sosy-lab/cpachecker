@@ -18,7 +18,7 @@ import java.util.List;
 
 /**
  * @ClassName CFGParser
- * @Description TODO
+ * @Description CFG parse. Given a project, CFGParser extract its all user-defined compunits to construct cfa
  * @Author Yinbo Yu
  * @Date 2/27/19 3:42 PM
  * @Version 1.0
@@ -48,10 +48,15 @@ public class CFGParser implements Parser{
 
     public ParseResult parseProject(project project) throws ParserException, result {
         List<Path> input_file = new ArrayList<>();
+        parseTimer.start();
+
         for(project_compunits_iterator cu_it = project.compunits();
             !cu_it.at_end(); cu_it.advance() )
         {
             compunit cu = cu_it.current();
+            // only focus on user-defined c files
+            if(!cu.is_user())
+                continue;
             input_file.add(Paths.get(cu.normalized_name()));
             cfaBuilder.build(cu);
         }

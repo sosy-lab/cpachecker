@@ -189,7 +189,7 @@ public class CPABuilder {
       throw new InvalidConfigurationException(
           "Please specify a configuration with '-config CONFIG_FILE' or '-CONFIG' "
               + "(for example, '-default', '-predicateAnalysis', or '-valueAnalysis'). "
-              + "See README.md for more details.");
+              + "See CPAChecker-Start.md for more details.");
     }
 
     // finally call createInstance
