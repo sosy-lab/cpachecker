@@ -31,6 +31,9 @@ public class CFGParser implements Parser{
     private final Timer parseTimer = new Timer();
     private final Timer cfaCreationTimer = new Timer();
 
+
+
+
     public CFGParser(final LogManager pLogger, final MachineModel pMachineModel){
         logger = pLogger ;
         cfaBuilder = new CFABuilder(logger, pMachineModel);

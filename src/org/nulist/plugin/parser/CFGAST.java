@@ -8,6 +8,15 @@
 package org.nulist.plugin.parser;
 
 import com.grammatech.cs.*;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.*;
+import org.sosy_lab.cpachecker.cfa.types.c.*;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class CFGAST extends ast {
 
@@ -142,4 +151,28 @@ public class CFGAST extends ast {
     public boolean isUndef(){
         return false;
     }
+
+
+
+    public CStorageClass getStorageClass()throws result{
+        CStorageClass storageClass;
+        switch (this.get(ast_ordinal.getBASE_STORAGE_CLASS()).as_enum_value_string()){
+            case "static":
+                storageClass = CStorageClass.STATIC;
+                break;
+            case "extern":
+                storageClass = CStorageClass.EXTERN;
+                break;
+            case "typedef":
+                storageClass = CStorageClass.TYPEDEF;
+                break;
+            default:
+                storageClass = CStorageClass.AUTO;
+                break;
+        }
+
+        return storageClass;
+    }
+
+
 }

@@ -1,24 +1,32 @@
 package org.nulist.plugin.parser;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import com.grammatech.cs.*;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ImmutableCFA;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.*;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.*;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.logging.Level;
 
@@ -26,11 +34,13 @@ import static org.nulist.plugin.parser.CFGAST.isConstantAggregateZero;
 import static org.nulist.plugin.parser.CFGAST.isConstantArrayOrVector;
 import static org.nulist.plugin.parser.CFGNode.*;
 import static org.nulist.plugin.util.ClassTool.getUnsignedInt;
+import static org.nulist.plugin.util.FileOperations.*;
+import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
 import static org.sosy_lab.cpachecker.cfa.types.c.CFunctionType.NO_ARGS_VOID_FUNCTION;
 
 /**
  * @ClassName CFABuilder
- * @Description TODO
+ * @Description For a C file
  * @Author Yinbo Yu
  * @Date 2/27/19 4:18 PM
  * @Version 1.0
@@ -41,15 +51,18 @@ public class CFABuilder {
 
     private final CFGTypeConverter typeConverter;
 
-    // Variable hashCode(getUnsignedInt(point.hashCode());) -> Variable declaration
-    private final Map<Long, CSimpleDeclaration> variableDeclarations;
+
+    private final List<Path> parsedFiles = new ArrayList<>();
+
+    private GlobalScope fileScope = new GlobalScope();
+    private Scope artificialScope;
+
     // Function name -> Function declaration
     private Map<String, CFunctionDeclaration> functionDeclarations;
-
     protected NavigableMap<String, FunctionEntryNode> functions;
-
+    protected List<Pair<ADeclaration, String>> globalVariableDeclarations;
     protected SortedSetMultimap<String, CFANode> cfaNodes;
-    protected List<Pair<ADeclaration, String>> globalDeclarations;
+
 
     public CFABuilder(final LogManager pLogger, final MachineModel pMachineModel) {
         logger = pLogger;
@@ -57,12 +70,11 @@ public class CFABuilder {
 
         typeConverter = new CFGTypeConverter(machineModel,logger);
 
-        variableDeclarations = new HashMap<>();
         functionDeclarations = new HashMap<>();
 
         functions = new TreeMap<>();
         cfaNodes = TreeMultimap.create();
-        globalDeclarations = new ArrayList<>();
+        globalVariableDeclarations = new ArrayList<>();
     }
 
     protected void addNode(String funcName, CFANode nd) {
@@ -95,130 +107,30 @@ public class CFABuilder {
             //only focus on the function defined by user
             if(proc.get_kind().equals(procedure_kind.getUSER_DEFINED())){
 
-
                 String funcName = proc.name();
-
+                CFGFunctionBuilder cfgFunctionBuilder =
+                        new CFGFunctionBuilder(logger,machineModel, typeConverter, proc, pFileName);
                 // add function declaration
-                handleFunctionDeclaration(proc,funcName);
+                functionDeclarations.put(funcName,cfgFunctionBuilder.handleFunctionDeclaration())
 
                 // handle the function definition
-                FunctionEntryNode en = handleFunctionDefinition(proc, pFileName);
+                FunctionEntryNode en = cfgFunctionBuilder.handleFunctionDefinition();
                 addNode(funcName, en);
+                addNode(funcName, en.getExitNode());
+                //
 
-
-                visitFunction(proc,pFileName);
-
-                if (en.getExitNode().getNumEnteringEdges() == 0) {
-                    cfaNodes.remove(funcName, en.getExitNode());
-                }
-
-                functions.put(funcName, en);
+                cfgFunctionBuilder.visitFunction();
+                cfaNodes.put(pFileName, en);
+                functions.put(getQualifiedFunctionName(funcName, pFileName), en);
             }
         }
+
+        parsedFiles.add(Paths.get(pFileName));
 
         return  null;
     }
 
-    /**
-     *@Description function declaration, need to extract its return type and parameters
-     *@Param [function, pFileName]
-     *@return void
-     **/
-    private void handleFunctionDeclaration(procedure function, final String pFileName) throws result{
-        String functionName = function.name();
 
-        //for struct example: struct test{int a, int b}
-        //function example: test function(int c,int d)
-        //routine type: test (c,d)
-
-        // Function return type
-        point_set formal_outs = function.formal_outs();//get the formal out of function, if type is VOID, the set is empty
-
-        CFunctionType cFuncType = NO_ARGS_VOID_FUNCTION;
-        if(!formal_outs.empty()){
-            //Note that it is impossible that there are more than one formal out
-            point p = formal_outs.cbegin().current();
-            ast un_ast = p.get_ast(ast_family.getC_UNNORMALIZED());
-            ast type_ast = un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast();
-            //for example: int functionName(int param_1, long param_2){...}
-            //type_ast.pretty_print() == int (int, long)
-            cFuncType = (CFunctionType) typeConverter.
-                    getCType((CFGAST) type_ast.get(ast_ordinal.getBASE_RETURN_TYPE()).as_ast());
-            // ast_field_vector params = un_ast.get(ast_ordinal.getUC_PARAM_TYPES()).as_ast().children();
-            // param type: params.get(i).as_ast().get(ast_ordinal.getBASE_TYPE()).as_ast().pretty_print()
-        }
-
-        // Parameters
-        point_set formal_ins = function.formal_ins();// each point in formal_ins is an input parameter
-        List<CParameterDeclaration> parameters = new ArrayList<>((int)formal_ins.size());
-        if(!formal_ins.empty()){
-            for(point_set_iterator point_it= formal_ins.cbegin();
-                !point_it.at_end();point_it.advance())
-            {
-                CFGNode paramNode = (CFGNode) point_it.current();
-                ast un_ast = paramNode.get_ast(ast_family.getC_UNNORMALIZED());
-
-                String paramName = un_ast.pretty_print();//param_point.parameter_symbols().get(0).get_ast().pretty_print();
-
-                CType paramType = typeConverter.getCType((CFGAST) un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
-                CParameterDeclaration parameter =
-                        new CParameterDeclaration(getLocation(paramNode,pFileName),paramType,paramName);
-
-                parameter.setQualifiedName(getQualifiedName(paramName, functionName));
-                variableDeclarations.put(function.file_line().get_second(),parameter);
-                parameters.add(parameter);
-            }
-        }
-
-
-        // Function declaration, exit
-        CFunctionDeclaration functionDeclaration =
-                new CFunctionDeclaration(
-                        getLocation(function, pFileName), cFuncType, functionName, parameters);
-        functionDeclarations.put(functionName, functionDeclaration);
-    }
-
-    /**
-     *@Description function entry node
-     *             TODO return variable
-     *@Param [function, pFileName]
-     *@return org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode
-     **/
-    private FunctionEntryNode handleFunctionDefinition(procedure function, final String pFileName) throws result{
-
-        String functionName = function.name();
-        logger.log(Level.FINE, "Creating function: " + functionName);
-
-        FunctionExitNode functionExit = new FunctionExitNode(functionName);
-        addNode(functionName, functionExit);
-
-        // Function type
-        point_set formal_outs = function.formal_outs();//get the formal out of function, if type is VOID, the set is empty
-
-        CFunctionType cFuncType = NO_ARGS_VOID_FUNCTION;
-        if(!formal_outs.empty()){
-            point p = formal_outs.cbegin().current();
-            ast un_ast = p.get_ast(ast_family.getC_UNNORMALIZED());
-            ast type_ast = un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast();
-            cFuncType = (CFunctionType) typeConverter.
-                    getCType(type_ast.get(ast_ordinal.getBASE_RETURN_TYPE()).as_ast());
-        }
-
-        // Return variable : The return value is written to this
-        Optional<CVariableDeclaration> returnVar;
-        CType returnType = cFuncType.getReturnType();
-
-        // There may be not single return variable
-        returnVar = Optional.absent();
-
-        CFunctionDeclaration functionDeclaration = functionDeclarations.get(functionName);
-        FunctionEntryNode entry =
-                new CFunctionEntryNode(
-                        getLocation(function, pFileName), functionDeclaration, functionExit, returnVar);
-        functionExit.setEntryNode(entry);
-
-        return entry;
-    }
 
     /**
      *@Description all global and file static variables are defined in File_Initialization-
@@ -241,47 +153,6 @@ public class CFABuilder {
         
     }
 
-    /**
-     *@Description traverse CFG nodes and edges and transform them into CFA
-     *@Param [function, pFileName]
-     *@return void
-     **/
-    private void visitFunction(final procedure function, final String pFileName) throws result{
-        point_set pointSet = function.points();
-
-        for(point_set_iterator point_it=pointSet.cbegin();!point_it.at_end();point_it.advance()){
-            CFGNode node = (CFGNode) point_it.current();
-            cfg_edge_set cfgEdgeSet = node.cfg_targets();
-
-            switch (node.getKindName()){
-                case FORMAL_IN:
-                case FORMAL_OUT:
-                case GLOBAL_FORMAL_IN:
-                case GLOBAL_FORMAL_OUT:
-                    //these nodes have been parsed in function declaration and definition
-                    break;
-                case ENTRY:
-                    break;
-                case EXIT:
-                    break;
-                case CALL_SITE:
-                    break;
-                case CONTROL_POINT:
-                    break;
-                case JUMP:
-                    break;
-                case EXPRESSION:
-                    break;
-                case LABEL:
-                    break;
-                case DECLARATION:
-                    break;
-
-            }
-
-
-        }
-    }
 
 
     private void visitGlobalItem(procedure global_initialization, final String pFileName) throws result,CFGException {
@@ -323,216 +194,19 @@ public class CFABuilder {
                 }
                 CDeclaration declaration = (CDeclaration) getAssignedVarDeclaration(node, "", initializer, pFileName);
 
-                globalDeclarations.add(Pair.of(declaration, no_ast.children().get(0).as_ast().pretty_print()));
+                globalVariableDeclarations.add(Pair.of(declaration, no_ast.children().get(0).as_ast().pretty_print()));
             }
 
-        }
-    }
-
-
-    private CRightHandSide getConstant(final CFGNode exprNode, final FileLocation fileLoc, final String pFileName)
-            throws result, CFGException {
-        ast no_ast =exprNode.get_ast(ast_family.getC_NORMALIZED());
-        //ast value_ast = no_ast.children().get(1).as_ast();
-        CType expectedType = typeConverter.getCType((CFGAST) no_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
-        return getConstant(exprNode, expectedType, fileLoc, pFileName);
-    }
-
-    private CRightHandSide getConstant(final CFGNode exprNode, CType pExpectedType, final FileLocation fileLoc, final String pFileName)
-            throws result, CFGException {
-
-        CFGAST no_ast =(CFGAST) exprNode.get_ast(ast_family.getC_NORMALIZED());
-        CFGAST value_ast =(CFGAST) no_ast.children().get(1).as_ast();
-        ast_field type = no_ast.get(ast_ordinal.getBASE_TYPE());
-
-        if(type.as_ast().pretty_print().equals("int"))//const int
-        {
-            int constantValue = value_ast.get(ast_ordinal.getBASE_VALUE()).as_int32();
-            return new CIntegerLiteralExpression(fileLoc, pExpectedType, BigInteger.valueOf(constantValue));
-        }else if(value_ast.isNullPointer())//null pointer: e.g., p = 0; p= NULL;
-        {
-            return new CPointerExpression(fileLoc,pExpectedType,getNull(fileLoc,pExpectedType));
-        }else if(value_ast.isConstantExpression()){
-            return getExpression(exprNode,pExpectedType,pFileName);
-        }else if(value_ast.isUndef()){//TODO
-            CType constantType = typeConverter.getCType((CFGAST) type.as_ast());
-            String undefName = "__VERIFIER_undef_" + constantType.toString().replace(' ', '_');
-            CSimpleDeclaration undefDecl =
-                    new CVariableDeclaration(
-                            fileLoc,
-                            true,
-                            CStorageClass.AUTO,
-                            pExpectedType,
-                            undefName,
-                            undefName,
-                            undefName,
-                            null);
-            CExpression undefExpression = new CIdExpression(fileLoc, undefDecl);
-            return undefExpression;
-        } else if(isFunction(value_ast)){
-            String value = value_ast.get(ast_ordinal.getBASE_NAME()).as_str();
-            String functionName = value.substring(0,value.indexOf("$result"));
-            CFunctionDeclaration funcDecl = functionDeclarations.get(functionName);
-            CType functionType = funcDecl.getType();
-
-            CIdExpression funcId = new CIdExpression(fileLoc, funcDecl);
-            if (pointerOf(pExpectedType, functionType)) {
-                return new CUnaryExpression(fileLoc, pExpectedType, funcId, CUnaryExpression.UnaryOperator.AMPER);
-            } else {
-                return funcId;
-            }
-        }
-        else if (exprNode.isGlobalConstant() && exprNode.isGlobalVariable()) {
-            return getAssignedIdExpression(exprNode, pExpectedType, pFileName);
-        } else {
-            throw new UnsupportedOperationException("CFG parsing does not support constant " + exprNode.characters());
         }
     }
 
     /**
-     * Returns the id expression to an already declared variable. Returns it as a cast, if necessary
-     * to match the expected type.
-     */
-    private CExpression getAssignedIdExpression(
-            final CFGNode node, final CType pExpectedType, final String pFileName) throws result, CFGException{
-        logger.log(Level.FINE, "Getting var declaration for point");
-
-        if(!variableDeclarations.containsKey(getUnsignedInt(node.hashCode()))) {
-            throw new CFGException("ID expression has no declaration: " + node.declared_symbol().name());
-        }
-
-        CSimpleDeclaration assignedVarDeclaration = variableDeclarations.get(getUnsignedInt(node.hashCode()));
-        String assignedVarName = assignedVarDeclaration.getName();
-        CType expressionType = assignedVarDeclaration.getType().getCanonicalType();
-        CIdExpression idExpression =
-                new CIdExpression(
-                        getLocation(node, pFileName), expressionType, assignedVarName, assignedVarDeclaration);
-
-        if (expressionType.canBeAssignedFrom(pExpectedType)) {
-            return idExpression;
-
-        } else if (pointerOf(pExpectedType, expressionType)) {
-            CType typePointingTo = ((CPointerType) pExpectedType).getType().getCanonicalType();
-            if (expressionType.canBeAssignedFrom(typePointingTo)
-                    || expressionType.equals(typePointingTo)) {
-                return new CUnaryExpression(
-                        getLocation(node, pFileName), pExpectedType, idExpression, CUnaryExpression.UnaryOperator.AMPER);
-            } else {
-                throw new AssertionError("Unhandled type structure");
-            }
-        } else if (expressionType instanceof CPointerType) {
-            return new CPointerExpression(getLocation(node, pFileName), pExpectedType, idExpression);
-        } else {
-            throw new AssertionError("Unhandled types structure");
-        }
-    }
-
-    private boolean isFunction(ast value_ast) throws result{
-//        ast no_ast=point.get_ast(ast_family.getC_NORMALIZED());
-//        ast_field value_ast = no_ast.children().get(1);
-//        try {
-//
-//            String value = value_ast.get(ast_ordinal.getBASE_NAME()).as_str();
-//            if(value.contains("$result")){
-//                String functionName = value.substring(0,value.indexOf("$result"));
-//                if(functionDeclarations.containsKey(functionName))
-//                    return true;
-//            }
-//            return false;
-//        }catch (result r){
-//            return false;
-//        }
-        try {
-            symbol value_symbol = value_ast.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol();
-            if(value_symbol.get_kind().equals(symbol_kind.getRESULT())){
-                String value = value_ast.get(ast_ordinal.getBASE_NAME()).as_str();
-                String functionName = value.substring(0,value.indexOf("$result"));
-                if(functionDeclarations.containsKey(functionName))
-                    return true;
-            }
-            return false;
-        }catch (result r){
-            return false;
-        }
-    }
-
-
-    /**
-     *@Description TODO
-     *@Param [point, pFunctionName, pInitializer, pFileName]
-     *@return org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration
-     **/
-    private CSimpleDeclaration getAssignedVarDeclaration(
-            final CFGNode node,
-            final String pFunctionName,
-            final CInitializer pInitializer,
-            final String pFileName) throws result {
-
-
-        final long itemId = getUnsignedInt(node.hashCode());// point.get_address() is not implemented
-        if (!variableDeclarations.containsKey(itemId)) {
-            CFGAST nc_ast = (CFGAST) node.get_ast(ast_family.getC_NORMALIZED());
-            CFGAST un_ast = (CFGAST) node.get_ast(ast_family.getC_UNNORMALIZED());
-
-            String assignedVar = nc_ast.children().get(0).as_ast().pretty_print();//the 1st child field store the variable
-
-            final boolean isGlobal = node.declared_symbol().is_global();
-            // Support static and other storage classes
-            CStorageClass storageClass;
-            switch (un_ast.get(ast_ordinal.getBASE_STORAGE_CLASS()).as_enum_value_string()){
-                case "static":
-                    storageClass = CStorageClass.STATIC;
-                    break;
-                case "extern":
-                    storageClass = CStorageClass.EXTERN;
-                    break;
-                case "typedef":
-                    storageClass = CStorageClass.TYPEDEF;
-                    break;
-                default:
-                    storageClass = CStorageClass.AUTO;
-                    break;
-            }
-
-            CType varType = typeConverter.getCType((CFGAST) nc_ast.get(ast_ordinal.getNC_TYPE()).as_ast());
-
-            // We handle alloca not like malloc, which returns a pointer, but as a general
-            // variable declaration. Consider that here by using the allocated type, not the
-            // pointer of that type alloca returns.
-//            if (pItem.isAllocaInst()) {
-//                varType = typeConverter.getCType(pItem.getAllocatedType());
-//            }
-
-            if (isGlobal && varType instanceof CPointerType) {
-                varType = ((CPointerType) varType).getType();
-            }
-
-            CSimpleDeclaration newDecl =
-                    new CVariableDeclaration(
-                            getLocation(node, pFileName),
-                            isGlobal,
-                            storageClass,
-                            varType,
-                            assignedVar,
-                            assignedVar,
-                            getQualifiedName(assignedVar, pFunctionName),
-                            pInitializer);
-            assert !variableDeclarations.containsKey(itemId);
-            variableDeclarations.put(itemId, newDecl);
-        }
-
-        return variableDeclarations.get(itemId);
-    }
-    
-    
-    
-    /**
-     *@Description handle the aggregate initialization, e.g., int array[5]={1,2,3,4,5};
+     *@Description handle the aggregate initialization (normalized ast), e.g., int array[5]={1,2,3,4,5};
      *@Param [no_ast, pFileName]
      *@return org.sosy_lab.cpachecker.cfa.ast.c.CInitializer
      **/
-    private CInitializer getConstantAggregateInitializer(
-            ast no_ast, final FileLocation fileLoc, final String pFileName) throws result {
+    private CInitializer getConstantAggregateInitializer(ast no_ast,
+            final FileLocation fileLoc, final String pFileName) throws result {
 
         //ast no_ast = initialPoint.get_ast(ast_family.getC_NORMALIZED());
         ast_field value = no_ast.children().get(1);
@@ -605,6 +279,102 @@ public class CFABuilder {
 
         return init;
     }
+
+    private CRightHandSide getConstant(final CFGNode exprNode, final FileLocation fileLoc, final String pFileName, CFGTypeConverter typeConverter)
+            throws result, CFGException {
+        ast no_ast =exprNode.get_ast(ast_family.getC_NORMALIZED());
+        //ast value_ast = no_ast.children().get(1).as_ast();
+
+        CType expectedType = typeConverter.getCType((CFGAST) no_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
+        return getConstant(exprNode, expectedType, fileLoc, pFileName);
+    }
+
+    private CRightHandSide getConstant(final CFGNode exprNode, CType pExpectedType, final FileLocation fileLoc, final String pFileName)
+            throws result, CFGException {
+
+        CFGAST no_ast =(CFGAST) exprNode.get_ast(ast_family.getC_NORMALIZED());
+        CFGAST value_ast =(CFGAST) no_ast.children().get(1).as_ast();
+        ast_field type = no_ast.get(ast_ordinal.getBASE_TYPE());
+
+        if(type.as_ast().pretty_print().equals("int"))//const int
+        {
+            int constantValue = value_ast.get(ast_ordinal.getBASE_VALUE()).as_int32();
+            return new CIntegerLiteralExpression(fileLoc, pExpectedType, BigInteger.valueOf(constantValue));
+        }else if(value_ast.isNullPointer())//null pointer: e.g., p = 0; p= NULL;
+        {
+            return new CPointerExpression(fileLoc,pExpectedType,getNull(fileLoc,pExpectedType));
+        }else if(value_ast.isConstantExpression()){
+            return getExpression(exprNode,pExpectedType,pFileName);
+        }else if(value_ast.isUndef()){//TODO
+            CType constantType = typeConverter.getCType((CFGAST) type.as_ast());
+            String undefName = "__VERIFIER_undef_" + constantType.toString().replace(' ', '_');
+            CSimpleDeclaration undefDecl =
+                    new CVariableDeclaration(
+                            fileLoc,
+                            true,
+                            CStorageClass.AUTO,
+                            pExpectedType,
+                            undefName,
+                            undefName,
+                            undefName,
+                            null);
+            CExpression undefExpression = new CIdExpression(fileLoc, undefDecl);
+            return undefExpression;
+        } else if(isFunction(value_ast)){
+            String value = value_ast.get(ast_ordinal.getBASE_NAME()).as_str();
+            String functionName = value.substring(0,value.indexOf("$result"));
+            CFunctionDeclaration funcDecl = functionDeclarations.get(functionName);
+            CType functionType = funcDecl.getType();
+
+            CIdExpression funcId = new CIdExpression(fileLoc, funcDecl);
+            if (pointerOf(pExpectedType, functionType)) {
+                return new CUnaryExpression(fileLoc, pExpectedType, funcId, CUnaryExpression.UnaryOperator.AMPER);
+            } else {
+                return funcId;
+            }
+        }
+        else if (exprNode.isGlobalConstant() && exprNode.isGlobalVariable()) {
+            return getAssignedIdExpression(exprNode, pExpectedType, pFileName);
+        } else {
+            throw new UnsupportedOperationException("CFG parsing does not support constant " + exprNode.characters());
+        }
+    }
+
+
+
+    private boolean isFunction(ast value_ast) throws result{
+//        ast no_ast=point.get_ast(ast_family.getC_NORMALIZED());
+//        ast_field value_ast = no_ast.children().get(1);
+//        try {
+//
+//            String value = value_ast.get(ast_ordinal.getBASE_NAME()).as_str();
+//            if(value.contains("$result")){
+//                String functionName = value.substring(0,value.indexOf("$result"));
+//                if(functionDeclarations.containsKey(functionName))
+//                    return true;
+//            }
+//            return false;
+//        }catch (result r){
+//            return false;
+//        }
+        try {
+            symbol value_symbol = value_ast.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol();
+            if(value_symbol.get_kind().equals(symbol_kind.getRESULT())){
+                String value = value_ast.get(ast_ordinal.getBASE_NAME()).as_str();
+                String functionName = value.substring(0,value.indexOf("$result"));
+                if(functionDeclarations.containsKey(functionName))
+                    return true;
+            }
+            return false;
+        }catch (result r){
+            return false;
+        }
+    }
+
+
+
+    
+
 
     private CExpression getExpression(
             final CFGNode exprNode, final CType pExpectedType, final String pFileName)
@@ -730,7 +500,7 @@ public class CFABuilder {
      *   <li>pointerOf(int, int) -> false
      * </ul>
      */
-    private boolean pointerOf(CType pPotentialPointer, CType pPotentialPointee) {
+    public static boolean pointerOf(CType pPotentialPointer, CType pPotentialPointee) {
         if (pPotentialPointer instanceof CPointerType) {
             return ((CPointerType) pPotentialPointer)
                     .getType()
@@ -740,37 +510,6 @@ public class CFABuilder {
             return false;
         }
     }
-
-    /**
-     *@Description TODO
-     *@Param [point, pFileName]
-     *@return org.sosy_lab.cpachecker.cfa.ast.FileLocation
-     **/
-    private FileLocation getLocation(CFGNode node, final String pFileName) throws result{
-        assert node != null;
-        return new FileLocation(pFileName, 0, 1, node.getFileLineNumber(), node.getFileLineNumber());
-    }
-
-
-
-    private FileLocation getLocation(int startLine, final String pFileName) {
-        return new FileLocation(pFileName, 0, 1, startLine, 0);
-    }
-
-    private FileLocation getLocation(int startLine, int endLine, final String pFileName) {
-        return new FileLocation(pFileName, 0, endLine-startLine+1, startLine, endLine);
-    }
-
-    private FileLocation getLocation(procedure function, final String pFileName) throws result{
-        assert function!=null;
-        return getLocation((int)function.entry_point().file_line().get_second(),
-                (int)function.exit_point().file_line().get_second(), pFileName);
-    }
-
-    private String getQualifiedName(String pVarName, String pFuncName) {
-        return pFuncName + "::" + pVarName;
-    }
-
 
 
     /**

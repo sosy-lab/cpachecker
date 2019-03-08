@@ -223,4 +223,109 @@ public class CFGNode extends point {
             return false;
         }
     }
+
+    public boolean isGoToLabel(){
+        try {
+            return this.get_syntax_kind().equals(point_syntax_kind.getLABEL());
+        }catch (result r){
+            return false;
+        }
+    }
+
+    public boolean isElseLabel(){
+        try {
+            return this.get_syntax_kind().equals(point_syntax_kind.getELSE());
+        }catch (result r){
+            return false;
+        }
+    }
+
+    public boolean isDoLabel(){
+        try {
+            return this.get_syntax_kind().equals(point_syntax_kind.getNONE())
+                    && this.characters().equals("do");
+        }catch (result r){
+            return false;
+        }
+    }
+
+    public boolean isGotoNode(){
+        try {
+            if(this.isJump() && this.get_syntax_kind().equals(point_syntax_kind.getGOTO()))
+                return true;
+            return false;
+        }catch (result r){
+            return false;
+        }
+    }
+
+    public boolean isBreakNode(){
+        try {
+            if(this.isJump() && this.get_syntax_kind().equals(point_syntax_kind.getBREAK()))
+                return true;
+            return false;
+        }catch (result r){
+            return false;
+        }
+    }
+
+    public boolean isIfControlPointNode(){
+        try {
+            if(this.isControl_Point() && this.get_syntax_kind().equals(point_syntax_kind.getIF()))
+                return true;
+            return false;
+        }catch (result r){
+            return false;
+        }
+    }
+
+    public boolean isWhileControlPointNode(){
+        try {
+            if(this.isControl_Point() && this.get_syntax_kind().equals(point_syntax_kind.getWHILE()))
+                return true;
+            return false;
+        }catch (result r){
+            return false;
+        }
+    }
+
+
+
+    /**
+     *@Description codesurfer stores do, else and other labels as label nodes
+     *@Param []
+     *@return java.lang.String
+     **/
+    public String getLabelName() throws result{
+
+        String labelName = this.characters();
+
+        if(this.get_syntax_kind().equals(point_syntax_kind.getLABEL())){
+            labelName = this.get_ast(ast_family.getC_UNNORMALIZED()).get(ast_ordinal.getUC_LABEL()).as_ast().pretty_print();
+        }else if(this.get_syntax_kind().equals(point_syntax_kind.getELSE())){
+            labelName = this.get_syntax_kind().name();
+        }else if(this.get_syntax_kind().equals(point_syntax_kind.getNONE())){
+            labelName = this.characters();
+        }
+
+        return labelName;
+    }
+
+    public String getGoToLabelName(){
+        try {
+            return this.get_ast(ast_family.getC_UNNORMALIZED())
+                    .get(ast_ordinal.getUC_LABEL()).as_ast().pretty_print();
+        }catch (result r){
+            return "";
+        }
+    }
+
+    public String getRawSignature(){
+        try {
+            return this.get_procedure().get_compunit().name()+":"+this.getFileLineNumber();
+        }catch (result r){
+            return "";
+        }
+
+    }
 }
