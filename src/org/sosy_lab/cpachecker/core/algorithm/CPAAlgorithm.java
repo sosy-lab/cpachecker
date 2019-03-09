@@ -238,7 +238,9 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           } else {
             AbstractStatValue newVal = stats.reachedSetStatistics.get(key);
 
-            if (newVal instanceof StatCounter) {
+            if (val == newVal) {
+              // ignore, otherwise counters would double
+            } else if (newVal instanceof StatCounter) {
               assert val instanceof StatCounter;
               ((StatCounter) newVal).mergeWith((StatCounter) val);
             } else if (newVal instanceof StatInt) {
