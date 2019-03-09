@@ -192,6 +192,12 @@ public class ReachedSetFactory {
   )
   private ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 
+  @Option(
+      secure = true,
+      name = "reachedSet.withStatistics",
+      description = "track more statistics about the reachedset")
+  private boolean withStatistics = false;
+
   private final Configuration config;
   private @Nullable BlockConfiguration blockConfig;
   private final LogManager logger;
@@ -261,22 +267,29 @@ public class ReachedSetFactory {
       waitlistFactory = BlockWaitlist.factory(waitlistFactory, blockConfig, logger);
     }
 
+    ReachedSet reached;
     switch (reachedSet) {
     case PARTITIONED:
-      return new PartitionedReachedSet(waitlistFactory);
-
+        reached = new PartitionedReachedSet(waitlistFactory);
+        break;
     case PSEUDOPARTITIONED:
-      return new PseudoPartitionedReachedSet(waitlistFactory);
-
+        reached = new PseudoPartitionedReachedSet(waitlistFactory);
+        break;
     case LOCATIONMAPPED:
-      return new LocationMappedReachedSet(waitlistFactory);
-
+        reached = new LocationMappedReachedSet(waitlistFactory);
+        break;
     case USAGE:
-      return new UsageReachedSet(waitlistFactory, config, logger);
-
+        reached = new UsageReachedSet(waitlistFactory, config, logger);
+        break;
     case NORMAL:
     default:
-      return new DefaultReachedSet(waitlistFactory);
+        reached = new DefaultReachedSet(waitlistFactory);
     }
+
+    if (withStatistics) {
+      reached = new StatisticsReachedSet(reached);
+    }
+
+    return reached;
   }
 }
