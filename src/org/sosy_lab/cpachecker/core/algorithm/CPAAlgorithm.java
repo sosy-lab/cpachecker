@@ -58,8 +58,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.PseudoPartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGMergeJoinCPAEnabledAnalysis;
@@ -231,17 +229,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       stats.addTimer.stopIfRunning();
       stats.forcedCoveringTimer.stopIfRunning();
 
-      Map<String, ? extends AbstractStatValue> reachedSetStats;
-      if (reachedSet instanceof PartitionedReachedSet) {
-        reachedSetStats = ((PartitionedReachedSet) reachedSet).getStatistics();
-      } else if (reachedSet instanceof PseudoPartitionedReachedSet) {
-        reachedSetStats = ((PseudoPartitionedReachedSet) reachedSet).getStatistics();
-      } else {
-        reachedSetStats = null;
-      }
-
-      if (reachedSetStats != null) {
-        for (Entry<String, ? extends AbstractStatValue> e : reachedSetStats.entrySet()) {
+      for (Entry<String, ? extends AbstractStatValue> e : reachedSet.getStatistics().entrySet()) {
           String key = e.getKey();
           AbstractStatValue val = e.getValue();
           if (!stats.reachedSetStatistics.containsKey(key)) {
@@ -260,10 +248,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
             } else {
               assert false : "Can't handle " + val.getClass().getSimpleName();
             }
-          }
         }
       }
-
     }
   }
 
