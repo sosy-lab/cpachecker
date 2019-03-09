@@ -226,7 +226,7 @@ public class CFGNode extends point {
 
     public boolean isGoToLabel(){
         try {
-            return this.get_syntax_kind().equals(point_syntax_kind.getLABEL());
+            return this.isLabel() && this.get_syntax_kind().equals(point_syntax_kind.getLABEL());
         }catch (result r){
             return false;
         }
@@ -234,7 +234,7 @@ public class CFGNode extends point {
 
     public boolean isElseLabel(){
         try {
-            return this.get_syntax_kind().equals(point_syntax_kind.getELSE());
+            return this.isLabel() && this.get_syntax_kind().equals(point_syntax_kind.getELSE());
         }catch (result r){
             return false;
         }
@@ -242,7 +242,7 @@ public class CFGNode extends point {
 
     public boolean isDoLabel(){
         try {
-            return this.get_syntax_kind().equals(point_syntax_kind.getNONE())
+            return this.isLabel() && this.get_syntax_kind().equals(point_syntax_kind.getNONE())
                     && this.characters().equals("do");
         }catch (result r){
             return false;
@@ -322,10 +322,27 @@ public class CFGNode extends point {
 
     public String getRawSignature(){
         try {
-            return this.get_procedure().get_compunit().name()+":"+this.getFileLineNumber();
+            return this.characters();
         }catch (result r){
             return "";
         }
+    }
 
+    /**
+     *@Description Check if an IF node has an else node
+     *@Param []
+     *@return boolean
+     **/
+    public boolean hasElseNode() throws  result{
+        //  the first edge is the true edge
+        // the second edge is the false edge
+        cfg_edge_set cfgEdgeSet = this.cfg_targets();
+        CFGNode falseNode = (CFGNode) cfgEdgeSet.cend().current().get_first();
+        return falseNode.isElseLabel();
+
+    }
+    public String getVariableNameInNode() throws  result{
+        CFGAST variable_ast = (CFGAST) this.get_ast(ast_family.getC_NORMALIZED());
+        return variable_ast.normalizingVariableName();
     }
 }

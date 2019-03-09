@@ -174,5 +174,32 @@ public class CFGAST extends ast {
         return storageClass;
     }
 
+    /**
+     *@Description normalize variables to avoid same name
+     *@Param [varAST]
+     *@return void
+     **/
+    public String normalizingVariableName()throws result{
+        assert this!=null;
+        return this.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol().name().replace("-","_");
+    }
+
+    public CBinaryExpression.BinaryOperator getBinaryOperator()throws result{
+        if(this.get_class().equals(ast_class.getNC_EQUALEXPR()))
+            return CBinaryExpression.BinaryOperator.EQUALS;
+        else if(this.get_class().equals(ast_class.getNC_NOTEQUALEXPR()))
+            return CBinaryExpression.BinaryOperator.NOT_EQUALS;
+        else if(this.get_class().equals(ast_class.getNC_GREATEXPR()))
+            return CBinaryExpression.BinaryOperator.GREATER_THAN;
+        else if(this.get_class().equals(ast_class.getNC_GREATEQUALEXPR()))
+            return CBinaryExpression.BinaryOperator.GREATER_EQUAL;
+        else if(this.get_class().equals(ast_class.getNC_LESSEXPR()))
+            return CBinaryExpression.BinaryOperator.LESS_THAN;
+        else if(this.get_class().equals(ast_class.getNC_LESSEQUALEXPR()))
+            return CBinaryExpression.BinaryOperator.LESS_EQUAL;
+        else
+            throw new UnsupportedOperationException("Unsupported predicate");
+    }
+
 
 }

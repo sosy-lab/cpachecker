@@ -66,7 +66,7 @@ public class CFGParser implements Parser{
 
         return new ParseResult(cfaBuilder.functions,
                 cfaBuilder.cfaNodes,
-                cfaBuilder.globalDeclarations,
+                cfaBuilder.globalVariableDeclarations,
                 input_file);
 
     }

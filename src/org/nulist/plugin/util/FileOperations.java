@@ -30,7 +30,7 @@ public class FileOperations {
     }
 
     public static FileLocation getLocation(int startLine, int endLine, final String pFileName) {
-        return new FileLocation(pFileName, 0, endLine-startLine+1, startLine, endLine);
+        return new FileLocation(pFileName, 0, 1, startLine, endLine);
     }
 
     public static FileLocation getLocation(procedure function, final String pFileName) throws result{
