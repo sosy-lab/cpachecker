@@ -299,7 +299,25 @@ public class CFGNode extends point {
         }
     }
 
+    public boolean isForControlPointNode(){
+        try {
+            if(this.isControl_Point() && this.get_syntax_kind().equals(point_syntax_kind.getFOR()))
+                return true;
+            return false;
+        }catch (result r){
+            return false;
+        }
+    }
 
+    public boolean isSwitchControlPointNode(){
+        try {
+            if(this.isControl_Point() && this.get_syntax_kind().equals(point_syntax_kind.getSWITCH()))
+                return true;
+            return false;
+        }catch (result r){
+            return false;
+        }
+    }
 
     /**
      *@Description codesurfer stores do, else and other labels as label nodes

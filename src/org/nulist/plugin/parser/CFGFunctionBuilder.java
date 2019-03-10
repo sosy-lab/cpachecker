@@ -36,6 +36,7 @@ import static org.nulist.plugin.parser.CFGAST.isConstantAggregateZero;
 import static org.nulist.plugin.parser.CFGAST.isConstantArrayOrVector;
 import static org.nulist.plugin.parser.CFGNode.*;
 import static org.nulist.plugin.parser.CFGNode.DECLARATION;
+import static org.nulist.plugin.parser.CFGOperations.sortVectorByLineNo;
 import static org.nulist.plugin.util.ClassTool.getUnsignedInt;
 import static org.nulist.plugin.util.FileOperations.getLocation;
 import static org.nulist.plugin.util.FileOperations.getQualifiedName;
@@ -200,7 +201,10 @@ public class CFGFunctionBuilder  {
                         handleWhilePoint(cfgNode, fileLocation);
                     else if(cfgNode.isDoControlPointNode())
                         handleDoWhilePoint(cfgNode,fileLocation);
-                    else
+                    else if(cfgNode.isForControlPointNode())
+                        handleForPoint(cfgNode,fileLocation);
+                    else if(cfgNode.isSwitchControlPointNode())
+                        handleSwitchPoint(cfgNode,fileLocation);
                         throw new RuntimeException("other control point");
                     break;
                 case JUMP:
@@ -229,6 +233,8 @@ public class CFGFunctionBuilder  {
                     }else if(cfgNode.isDoLabel())
                         handleDoLabelPoint(cfgNode, fileLocation);
 
+                    break;
+                case SWITCH_CASE:
                     break;
                 case RETURN:
                     break;
@@ -805,6 +811,38 @@ public class CFGFunctionBuilder  {
         CFGNode falseCFGNode = (CFGNode) cfgEdgeSet.to_vector().get(1).get_first();
         CFANode falseCFANode = cfaNodeMap.get(falseCFGNode.id());
 
+        CFANode whileCFANode = newCFANode();
+        BlankEdge blankEdge = new BlankEdge(whileNode.getRawSignature(), fileLocation,
+                prevNode, whileCFANode, "while");
+        addToCFA(blankEdge);
+        whileCFANode.setLoopStart();
+        cfaNodeMap.replace(whileNode.id(), whileCFANode);
+
+        CFGAST condition = (CFGAST) whileNode.get_ast(ast_family.getC_NORMALIZED());
+        CExpression conditionExpr=null;
+        if(condition.get_class().equals(ast_class.getNC_VARIABLE())){
+            String variableName = condition.normalizingVariableName();
+            CSimpleDeclaration varDec = variableDeclarations.get(variableName.hashCode());
+            conditionExpr = new CIdExpression(fileLocation, varDec.getType(),variableName, varDec);
+        }else {
+            conditionExpr = getBinaryExpression(condition,fileLocation);
+        }
+        createConditionEdges(whileCFANode, trueCFANode, trueCFGNode, falseCFANode, falseCFGNode, conditionExpr, fileLocation);
+    }
+
+    private void handleDoWhilePoint(CFGNode whileNode, FileLocation fileLocation)throws result{
+        assert whileNode.isDoControlPointNode();
+        CFANode prevNode = cfaNodeMap.get(whileNode.id());
+
+        cfg_edge_set cfgEdgeSet = whileNode.cfg_targets();
+
+        CFGNode trueCFGNode = (CFGNode) cfgEdgeSet.to_vector().get(0).get_first();
+        CFANode trueCFANode = cfaNodeMap.get(trueCFGNode.id());
+
+        CFGNode falseCFGNode = (CFGNode) cfgEdgeSet.to_vector().get(1).get_first();
+        CFANode falseCFANode = cfaNodeMap.get(falseCFGNode.id());
+
+
         CFGAST condition = (CFGAST) whileNode.get_ast(ast_family.getC_NORMALIZED());
         CExpression conditionExpr=null;
         if(condition.get_class().equals(ast_class.getNC_VARIABLE())){
@@ -817,18 +855,46 @@ public class CFGFunctionBuilder  {
         createConditionEdges(prevNode, trueCFANode, trueCFGNode, falseCFANode, falseCFGNode, conditionExpr, fileLocation);
     }
 
+    private void handleForPoint(CFGNode forNode, FileLocation fileLocation)throws result{
+        assert forNode.isForControlPointNode();
+
+    }
+
+    private void handleSwitchPoint(CFGNode switchNode, FileLocation fileLocation)throws result{
+        assert  switchNode.isSwitchControlPointNode();
+
+        CFANode prevNode = cfaNodeMap.get(switchNode.id());
+
+        cfg_edge_vector cfgEdgeVector = sortVectorByLineNo(switchNode.cfg_targets().to_vector());
+        CVariableDeclaration switchVar = getAssignedVarDeclaration()
+        CExpression switchExpression = null;
+        String rawSignature = "switch (" + switchNode.getRawSignature() + ")";
+        String description = "switch (" + switchNode.getRawSignature() + ")";
+
+        // firstSwitchNode is first Node of switch-Statement.
+        CFGNode firstSwitchCFGNode = (CFGNode) cfgEdgeVector.get(0).get_first();
+        CFANode firstSwitchNode = cfaNodeMap.get(firstSwitchCFGNode.id());
+        addToCFA(new BlankEdge(rawSignature, fileLocation, prevNode, firstSwitchNode, description));
+
+    }
+
+    private void handleSwitchCasePoint(CFGNode caseNode, CFANode prevNode)throws result{
+
+    }
+
     private void handleDoLabelPoint(CFGNode doWhileNode, FileLocation fileLocation)throws result{
         assert doWhileNode.isDoControlPointNode();
         CFANode prevNode = cfaNodeMap.get(doWhileNode.id());
-        prevNode.setLoopStart();
 
         CFGNode nextCFGNode = (CFGNode) doWhileNode.cfg_targets().cbegin().current().get_first();
 
         CFANode nextCFANode = cfaNodeMap.get(nextCFGNode.id());
+        nextCFANode.setLoopStart();
 
         BlankEdge gotoEdge = new BlankEdge("",
                 fileLocation, prevNode, nextCFANode, "do");
         addToCFA(gotoEdge);
+
         traverseCFGNode(nextCFGNode);
     }
 
