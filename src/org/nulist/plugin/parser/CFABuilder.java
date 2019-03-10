@@ -58,10 +58,11 @@ public class CFABuilder {
 
     // Function name -> Function declaration
     protected Map<String, CFunctionDeclaration> functionDeclarations;
-    protected NavigableMap<String, CFunctionEntryNode> functions;
+    protected NavigableMap<String, FunctionEntryNode> functions;
     //protected List<Pair<ADeclaration, String>> globalVariableDeclarations;
-    protected final Map<Integer, CSimpleDeclaration> globalVariableDeclarations = new HashMap<>();
+    protected final Map<Integer, ADeclaration> globalVariableDeclarations = new HashMap<>();
     protected SortedSetMultimap<String, CFANode> cfaNodes;
+    protected Map<String, CFGFunctionBuilder> cfgFunctionBuilderMap = new HashMap<>();
 
 
     public CFABuilder(final LogManager pLogger, final MachineModel pMachineModel) {
@@ -76,16 +77,20 @@ public class CFABuilder {
         cfaNodes = TreeMultimap.create();
     }
 
+
+    public List<Pair<ADeclaration, String>> getGlobalVariableDeclarations(){
+        List<Pair<ADeclaration, String>> gvars = new ArrayList<>();
+        for(ADeclaration gvar:globalVariableDeclarations.values())
+            gvars.add(Pair.of(gvar,gvar.getName()));
+        return gvars;
+    }
+
+
     protected void addNode(String funcName, CFANode nd) {
         cfaNodes.put(funcName, nd);
     }
 
-    /**
-     *@Description input is a C file TODO
-     *@Param [cu]
-     *@return org.sosy_lab.cpachecker.cfa.ParseResult
-     **/
-    public ParseResult build(compunit cu) throws result {
+    public void basicBuild(compunit cu)throws result{
         String pFileName = cu.normalized_name();
 
         // Iterate over all procedures in the compilation unit
@@ -114,15 +119,33 @@ public class CFABuilder {
                 addNode(funcName, en.getExitNode());
                 //
 
-                cfgFunctionBuilder.visitFunction();
-                cfaNodes.put(pFileName, en);
+                cfaNodes.put(funcName, en);
                 functions.put(funcName, en);
+                cfgFunctionBuilderMap.put(funcName,cfgFunctionBuilder);
             }
         }
 
         parsedFiles.add(Paths.get(pFileName));
+    }
 
-        return  null;
+    /**
+     *@Description input is a C file TODO
+     *@Param [cu]
+     *@return org.sosy_lab.cpachecker.cfa.ParseResult
+     **/
+    public void build(compunit cu) throws result {
+        String pFileName = cu.normalized_name();
+        for (compunit_procedure_iterator proc_it = cu.procedures();
+             !proc_it.at_end(); proc_it.advance()) {
+            procedure proc = proc_it.current();
+            if(proc.get_kind().equals(procedure_kind.getUSER_DEFINED())){
+
+                String funcName = proc.name();
+                CFGFunctionBuilder cfgFunctionBuilder = cfgFunctionBuilderMap.get(funcName);
+                cfgFunctionBuilder.visitFunction();
+            }
+
+        }
     }
 
 
@@ -212,7 +235,6 @@ public class CFABuilder {
                     varType = ((CPointerType) varType).getType();
                 }
 
-
                 CSimpleDeclaration newDecl =
                         new CVariableDeclaration(
                                 fileLocation,
@@ -224,7 +246,7 @@ public class CFABuilder {
                                 getQualifiedName(assignedVar, fileLocation.getFileName()),
                                 initializer);
 
-                globalVariableDeclarations.put(assignedVar.hashCode(),newDecl);
+                globalVariableDeclarations.put(assignedVar.hashCode(),(ADeclaration) newDecl);
             }
 
         }

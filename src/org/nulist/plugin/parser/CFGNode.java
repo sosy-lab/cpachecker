@@ -289,6 +289,16 @@ public class CFGNode extends point {
         }
     }
 
+    public boolean isDoControlPointNode(){
+        try {
+            if(this.isControl_Point() && this.get_syntax_kind().equals(point_syntax_kind.getDO()))
+                return true;
+            return false;
+        }catch (result r){
+            return false;
+        }
+    }
+
 
 
     /**

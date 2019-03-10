@@ -53,6 +53,7 @@ public class CFGParser implements Parser{
         List<Path> input_file = new ArrayList<>();
         parseTimer.start();
 
+        //the first traverse for building all functionEntry node
         for(project_compunits_iterator cu_it = project.compunits();
             !cu_it.at_end(); cu_it.advance() )
         {
@@ -61,12 +62,25 @@ public class CFGParser implements Parser{
             if(!cu.is_user())
                 continue;
             input_file.add(Paths.get(cu.normalized_name()));
+            cfaBuilder.basicBuild(cu);
+        }
+
+        //the second traverse for building intra and inter CFA
+        for(project_compunits_iterator cu_it = project.compunits();
+            !cu_it.at_end(); cu_it.advance() )
+        {
+            compunit cu = cu_it.current();
+            // only focus on user-defined c files
+            if(!cu.is_user())
+                continue;
+            //input_file.add(Paths.get(cu.normalized_name()));
             cfaBuilder.build(cu);
         }
 
+
         return new ParseResult(cfaBuilder.functions,
                 cfaBuilder.cfaNodes,
-                cfaBuilder.globalVariableDeclarations,
+                cfaBuilder.getGlobalVariableDeclarations(),
                 input_file);
 
     }
