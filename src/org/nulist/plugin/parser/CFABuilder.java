@@ -53,9 +53,6 @@ public class CFABuilder {
 
     private final List<Path> parsedFiles = new ArrayList<>();
 
-    private GlobalScope fileScope = new GlobalScope();
-    private Scope artificialScope;
-
     // Function name -> Function declaration
     protected Map<String, CFunctionDeclaration> functionDeclarations;
     protected NavigableMap<String, FunctionEntryNode> functions;
@@ -622,7 +619,7 @@ public class CFABuilder {
 
 
 
-    private boolean isFunction(ast value_ast) throws result{
+    public boolean isFunction(ast value_ast) throws result{
 //        ast no_ast=point.get_ast(ast_family.getC_NORMALIZED());
 //        ast_field value_ast = no_ast.children().get(1);
 //        try {

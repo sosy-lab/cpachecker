@@ -204,7 +204,8 @@ public class CFGNode extends point {
     public boolean isGlobalConstant(){
         try {
             CFGAST ast = (CFGAST) this.get_ast(ast_family.getC_NORMALIZED());
-            return ast.isGlobalConstant();
+            CFGAST value_ast = (CFGAST) ast.children().get(1).as_ast();
+            return value_ast.isGlobalConstant();
         }catch (result r){
             return false;
         }

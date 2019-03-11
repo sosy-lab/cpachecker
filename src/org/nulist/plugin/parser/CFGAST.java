@@ -111,19 +111,31 @@ public class CFGAST extends ast {
      *@Param []
      *@return boolean
      **/
+
     public boolean isGlobalConstant(){
         try {
-            ast value_ast = this.children().get(1).as_ast();
-            if(value_ast.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol().is_global()){//global value
-                if(value_ast.get(ast_ordinal.getBASE_TYPE()).as_ast().pretty_print().startsWith("const"))//const value
+            if(this.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol().is_global()){//global value
+                if(this.get(ast_ordinal.getBASE_TYPE()).as_ast().pretty_print().startsWith("const"))//const value
                     return true;
             }
             return false;
         }catch (result r){
             return false;
         }
-
     }
+
+    public boolean isGlobalVariable(){
+        try {
+            if(this.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol().is_global()){//global value
+                    return true;
+            }
+            return false;
+        }catch (result r){
+            return false;
+        }
+    }
+
+
 
     /**
      *@Description check if a value is a constant, include local and global

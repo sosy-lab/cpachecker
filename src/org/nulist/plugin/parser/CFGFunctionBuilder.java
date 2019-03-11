@@ -1238,12 +1238,6 @@ public class CFGFunctionBuilder  {
         return (CDeclaration) variableDeclarations.get(itemId);
     }
 
-    private CDeclaration getAssignedVarDeclaration(
-            final CFGNode node, final FileLocation fileLocation) throws result {
-
-    }
-
-
     private CRightHandSide getConstant(final CFGNode exprNode, final FileLocation fileLoc)
             throws result {
         ast no_ast =exprNode.get_ast(ast_family.getC_NORMALIZED());
@@ -1253,12 +1247,10 @@ public class CFGFunctionBuilder  {
         return getConstant(exprNode, expectedType, fileLoc);
     }
 
-    private CRightHandSide getConstant(final CFGNode exprNode, CType pExpectedType, final FileLocation fileLoc)
-            throws result {
+    private CRightHandSide getConstant(CFGAST value_ast, CType pExpectedType, FileLocation fileLoc)
+            throws result{
 
-        CFGAST no_ast =(CFGAST) exprNode.get_ast(ast_family.getC_NORMALIZED());
-        CFGAST value_ast =(CFGAST) no_ast.children().get(1).as_ast();
-        ast_field type = no_ast.get(ast_ordinal.getBASE_TYPE());
+        ast_field type = value_ast.get(ast_ordinal.getBASE_TYPE());
 
         if(type.as_ast().pretty_print().equals("int"))//const int
         {
@@ -1268,7 +1260,7 @@ public class CFGFunctionBuilder  {
         {
             return new CPointerExpression(fileLoc,pExpectedType,getNull(fileLoc,pExpectedType));
         }else if(value_ast.isConstantExpression()){
-            return getExpression(exprNode,pExpectedType);
+            return getExpression(value_ast,pExpectedType, fileLoc);
         }else if(value_ast.isUndef()){//TODO
             CType constantType = typeConverter.getCType((CFGAST) type.as_ast());
             String undefName = "__VERIFIER_undef_" + constantType.toString().replace(' ', '_');
@@ -1284,10 +1276,10 @@ public class CFGFunctionBuilder  {
                             null);
             CExpression undefExpression = new CIdExpression(fileLoc, undefDecl);
             return undefExpression;
-        } else if(isFunction(value_ast)){
+        } else if(cfaBuilder.isFunction(value_ast)){
             String value = value_ast.get(ast_ordinal.getBASE_NAME()).as_str();
             String functionName = value.substring(0,value.indexOf("$result"));
-            CFunctionDeclaration funcDecl = functionDeclarations.get(functionName);
+            CFunctionDeclaration funcDecl = cfaBuilder.functionDeclarations.get(functionName);
             CType functionType = funcDecl.getType();
 
             CIdExpression funcId = new CIdExpression(fileLoc, funcDecl);
@@ -1297,11 +1289,21 @@ public class CFGFunctionBuilder  {
                 return funcId;
             }
         }
-        else if (exprNode.isGlobalConstant() && exprNode.isGlobalVariable()) {
-            return getAssignedIdExpression(exprNode, pExpectedType, pFileName);
+        else if (value_ast.isGlobalConstant() && value_ast.isGlobalVariable()) {
+            return getAssignedIdExpression(value_ast, pExpectedType, fileLoc);
         } else {
-            throw new UnsupportedOperationException("CFG parsing does not support constant " + exprNode.characters());
+            throw new UnsupportedOperationException("CFG parsing does not support constant " + value_ast.as_string());
         }
+    }
+
+    private CRightHandSide getConstant(final CFGNode exprNode, CType pExpectedType, final FileLocation fileLoc)
+            throws result {
+
+        CFGAST no_ast =(CFGAST) exprNode.get_ast(ast_family.getC_NORMALIZED());
+        CFGAST value_ast =(CFGAST) no_ast.children().get(1).as_ast();
+
+        return getConstant(value_ast,pExpectedType,fileLoc);
+
     }
 
 //    private CExpression getExpression(
@@ -1315,7 +1317,7 @@ public class CFGFunctionBuilder  {
 
     private CExpression getExpression(final CFGAST ast, CType pExpectedType, FileLocation fileLocation) throws result{
         if(ast.isConstantExpression()){
-            return createFromOpCode(ast, fileLocation);
+            return createFromArithmeticOp(ast, fileLocation);
         }else if(ast.isConstant()){
             return (CExpression) getConstant(ast, pExpectedType, fileLocation);
         }else
@@ -1323,6 +1325,9 @@ public class CFGFunctionBuilder  {
     }
 
 
+    private CExpression getNull(final FileLocation pLocation, final CType pType) {
+        return new CIntegerLiteralExpression(pLocation, pType, BigInteger.ZERO);
+    }
 
     private CExpression createFromArithmeticOp(
             final CFGAST no_ast, final FileLocation fileLocation) throws result {
