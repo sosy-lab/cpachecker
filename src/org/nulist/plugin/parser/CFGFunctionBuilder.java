@@ -1383,20 +1383,4 @@ public class CFGFunctionBuilder  {
                 operation);
     }
 
-    // Keeping only first line of FileLocation. Temporary workaround to avoid considering
-    // switch-case blocks and while blocks as covered when the BlankEdge entering these
-    // blocks is traversed.
-    private FileLocation onlyFirstLine(FileLocation f) {
-        return new FileLocation(
-                f.getFileName(),
-                f.getNiceFileName(),
-                f.getNodeOffset(),
-                f.getNodeLength(),
-                f.getStartingLineNumber(),
-                f.getStartingLineNumber(),
-                f.getStartingLineInOrigin(),
-                f.getStartingLineInOrigin());
-    }
-
-
 }

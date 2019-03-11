@@ -1,8 +1,13 @@
 
 # an expression:
-a normalized ast of a variable initialization point has two children: variable and value
+a normalized ast (expr ast) of a variable expression point (a=c+1;) has two children: variable and value
                                                     has two attributes: is_initialization and type
-
+the ast_class of the normalized ast is the operand class (e.g., =)
+# the variable child (a) has the following fields: name, type, storage-class, unnormalized, abs-loc (cs.symbol)
+# if there still exist operand in the value (e.g., c+1), the value child has the children similar to expr ast,
+        and also the ast_class is the operand class (e.g., +);
+# the subchildren of the value are the value (1) ast or variable (c) ast
+# a value ast has fields: value, type, is-decimal-literal, unnormalized
 
 # check if a variable used in a function is a global
 a procedure (function) declared_symbols()==> symbol(variable).is_global();

@@ -48,6 +48,23 @@ public class CFGAST extends ast {
         }
     }
 
+    //ast type
+    public boolean isArrayType(){
+        try {
+            return this.get_class().equals(ast_class.getNC_ARRAY());
+        }catch (result r){
+            return false;
+        }
+    }
+
+    public boolean isPointerType(){
+        try {
+            return this.get_class().equals(ast_class.getNC_POINTER());
+        }catch (result r){
+            return false;
+        }
+    }
+
     public boolean isStructType(){
         try {
             return this.get_class().equals(ast_class.getUC_STRUCT()) ||
