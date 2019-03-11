@@ -48,28 +48,11 @@ public class CFGFunctionBuilder  {
     // Data structure for maintaining our scope stack in a function
     private final Deque<CFANode> locStack = new ArrayDeque<>();
 
-    // Data structures for handling loops & else conditions
-    private final Deque<CFANode> loopStartStack = new ArrayDeque<>();
-    private final Deque<CFANode> loopNextStack  = new ArrayDeque<>(); // For the node following the current if / while block
-    private final Deque<CFANode> elseStack      = new ArrayDeque<>();
-
-    // Data structure for handling switch-statements
-    private final Deque<CExpression> switchExprStack = new ArrayDeque<>();
-    private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
-
-    @SuppressWarnings("JdkObsolete") // ArrayDeque not possible because it does not allow null
-    private final Deque<CFANode> switchDefaultStack = new LinkedList<>();
-
-    @SuppressWarnings("JdkObsolete") // ArrayDeque not possible because it does not allow null
-    private final Deque<FileLocation> switchDefaultFileLocationStack = new LinkedList<>();
 
     private final CBinaryExpressionBuilder binExprBuilder;
 
     // Data structures for handling goto
     private final Map<String, CLabelNode> labelMap = new HashMap<>();
-    private final Map<String, Long> nodeIDMap = new HashMap<>();//<node.toString, id>
-    private final Multimap<String, Pair<CFANode, FileLocation>> gotoLabelNeeded = ArrayListMultimap.create();
-
 
     // Data structures for handling function declarations
     private FunctionEntryNode cfa = null;
@@ -92,7 +75,7 @@ public class CFGFunctionBuilder  {
     private CFunctionDeclaration functionDeclaration;
     private final String fileName;
     private final CFABuilder cfaBuilder;
-    private CBinaryExpressionBuilder binaryExpressionBuilder;
+    private boolean isSwitchBranch = false;
 
     public CFGFunctionBuilder(
             LogManager pLogger,
@@ -110,7 +93,6 @@ public class CFGFunctionBuilder  {
         binExprBuilder = new CBinaryExpressionBuilder(pMachine, pLogger);
         fileName = pFileName;
         this.cfaBuilder = cfaBuilder;
-        binaryExpressionBuilder = new CBinaryExpressionBuilder(pMachine, logger);
     }
 
 
@@ -205,6 +187,7 @@ public class CFGFunctionBuilder  {
                         handleForPoint(cfgNode,fileLocation);
                     else if(cfgNode.isSwitchControlPointNode())
                         handleSwitchPoint(cfgNode,fileLocation);
+                    else
                         throw new RuntimeException("other control point");
                     break;
                 case JUMP:
@@ -336,7 +319,9 @@ public class CFGFunctionBuilder  {
                     rawCharacters=sb.toString().replace(", ",")");
                 }
             }
-            nextNode = cfaNodeMap.get(nextCFGNode.id());
+
+            nextNode = handleSwitchCasePoint(nextCFGNode);
+            //nextNode = cfaNodeMap.get(nextCFGNode.id());
 
             CFunctionType cFuncType = NO_ARGS_VOID_FUNCTION;
             if(!functionCallNode.get_procedure().formal_outs().empty()){
@@ -375,6 +360,8 @@ public class CFGFunctionBuilder  {
             addToCFA(edge);
             addToCFA(callEdge);
             addToCFA(returnEdge);
+
+
             /*pFunctionEntry.addEnteringEdge(callEdge);
             pFunctionEntry.getExitNode().addLeavingEdge(returnEdge);
             prevNode.addLeavingSummaryEdge(edge);
@@ -463,7 +450,8 @@ public class CFGFunctionBuilder  {
                 // e.g., if(function(p))--> temporary_var = function(p), if(temporary_var)
                 variable_ast = (CFGAST) actualoutCFGNode.get_ast(ast_family.getC_NORMALIZED());
             }
-            nextNode = cfaNodeMap.get(nextCFGNode.id());
+            //nextNode = cfaNodeMap.get(nextCFGNode.id());
+            nextNode = handleSwitchCasePoint(nextCFGNode);
             CType variable_type = typeConverter.getCType((CFGAST) variable_ast
                     .get(ast_ordinal.getBASE_TYPE()).as_ast());
             assignedVarExp = (CLeftHandSide) getAssignedIdExpression(variable_ast, variable_type, fileLocation);
@@ -576,7 +564,6 @@ public class CFGFunctionBuilder  {
     public CFunctionEntryNode handleFunctionDefinition() throws result{
 
         assert labelMap.isEmpty();
-        assert gotoLabelNeeded.isEmpty();
         assert cfa == null;
 
         String functionName = function.name();
@@ -718,7 +705,7 @@ public class CFGFunctionBuilder  {
         CLabelNode prevNode = (CLabelNode) cfaNodeMap.get(labelNode.id());
 
         CFGNode nextCFGNode = (CFGNode) labelNode.cfg_targets().cbegin().current().get_first();
-        CFANode nextNode = cfaNodeMap.get(nextCFGNode.id());
+        CFANode nextNode = handleSwitchCasePoint(nextCFGNode);// cfaNodeMap.get(nextCFGNode.id());
         BlankEdge blankEdge =
                 new BlankEdge(
                         labelNode.getRawSignature(),
@@ -764,7 +751,7 @@ public class CFGFunctionBuilder  {
 
         CFGNode nextCFGNode = (CFGNode) node.cfg_targets().cbegin().current().get_first();
 
-        CFANode nextCFANode = cfaNodeMap.get(nextCFGNode.id());
+        CFANode nextCFANode = handleSwitchCasePoint(nextCFGNode);//cfaNodeMap.get(nextCFGNode.id());
 
         if(edgeType.equals(CFAEdgeType.StatementEdge)){
             CFGAST no_ast = (CFGAST) node.get_ast(ast_family.getC_NORMALIZED());
@@ -857,6 +844,21 @@ public class CFGFunctionBuilder  {
 
     private void handleForPoint(CFGNode forNode, FileLocation fileLocation)throws result{
         assert forNode.isForControlPointNode();
+        CFANode prevNode = cfaNodeMap.get(forNode.id());
+        prevNode.setLoopStart();
+        cfg_edge_set cfgEdgeSet = forNode.cfg_targets();
+
+        CFGNode trueCFGNode = (CFGNode) cfgEdgeSet.to_vector().get(0).get_first();
+        CFGNode falseCFGNode = (CFGNode) cfgEdgeSet.to_vector().get(1).get_first();
+
+        CFANode trueNode = cfaNodeMap.get(trueCFGNode.id());
+
+        CFANode falseNode = cfaNodeMap.get(falseCFGNode.id());
+
+        CFGAST condition = (CFGAST) forNode.get_ast(ast_family.getC_NORMALIZED());
+        CBinaryExpression conditionExpr = getBinaryExpression(condition,fileLocation);
+
+        createConditionEdges(prevNode,trueNode,trueCFGNode,falseNode,falseCFGNode, conditionExpr,fileLocation);
 
     }
 
@@ -866,8 +868,13 @@ public class CFGFunctionBuilder  {
         CFANode prevNode = cfaNodeMap.get(switchNode.id());
 
         cfg_edge_vector cfgEdgeVector = sortVectorByLineNo(switchNode.cfg_targets().to_vector());
-        CVariableDeclaration switchVar = getAssignedVarDeclaration()
-        CExpression switchExpression = null;
+
+        CFGAST variableAST = (CFGAST) switchNode.get_ast(ast_family.getC_NORMALIZED());
+        CType variableType = typeConverter.getCType((CFGAST) variableAST
+                .get(ast_ordinal.getBASE_TYPE()).as_ast());
+
+        CExpression switchExpr = getAssignedIdExpression(variableAST, variableType, fileLocation);
+
         String rawSignature = "switch (" + switchNode.getRawSignature() + ")";
         String description = "switch (" + switchNode.getRawSignature() + ")";
 
@@ -876,10 +883,126 @@ public class CFGFunctionBuilder  {
         CFANode firstSwitchNode = cfaNodeMap.get(firstSwitchCFGNode.id());
         addToCFA(new BlankEdge(rawSignature, fileLocation, prevNode, firstSwitchNode, description));
 
+        if(cfgEdgeVector.size()>2){
+            for(int i=0;i<cfgEdgeVector.size()-1;i++){
+                CExpression conditionExpr = handleSwitchCase((CFGNode) cfgEdgeVector.get(i).get_first(), switchExpr);
+                String conditionString = conditionExpr.toASTString();
+                CFANode case1 = cfaNodeMap.get(cfgEdgeVector.get(i).get_first().id());
+                CFANode case2 = cfaNodeMap.get(cfgEdgeVector.get(i+1).get_first().id());
+                FileLocation fileLoc = getLocation((CFGNode)cfgEdgeVector.get(i).get_first(),fileName);
+                if(!cfgEdgeVector.get(i+1).get_second().name().equals("implicit default")){
+                    CAssumeEdge falseEdge =
+                            new CAssumeEdge(
+                                    "!(" + conditionString + ")",
+                                    fileLoc,
+                                    case1,
+                                    case2,
+                                    conditionExpr,
+                                    false,
+                                    false,
+                                    false);
+                    addToCFA(falseEdge);
+                }else {
+                    //no default branch
+                    CFANode emptyNode = newCFANode();
+                    FileLocation fileLoc2 = getLocation((CFGNode)cfgEdgeVector.get(i+1).get_first(),fileName);
+                    CAssumeEdge falseEdge =
+                            new CAssumeEdge(
+                                    "!(" + conditionString + ")",
+                                    fileLoc,
+                                    case1,
+                                    emptyNode,
+                                    conditionExpr,
+                                    false,
+                                    false,
+                                    false);
+                    addToCFA(falseEdge);
+                    BlankEdge blankEdge = new BlankEdge("",fileLoc2, emptyNode,case2,"");
+                    addToCFA(blankEdge);
+                    traverseCFGNode((CFGNode)cfgEdgeVector.get(i+1).get_first());
+                }
+            }
+        }
+
+        CFGNode defaultCFGNode = (CFGNode) cfgEdgeVector.get((int)(cfgEdgeVector.size()-1)).get_first();
+
+        if(cfgEdgeVector.get((int)(cfgEdgeVector.size()-1)).get_second().name().equals("default")){
+            CFANode defaultNode = cfaNodeMap.get(defaultCFGNode.id());
+            CFGNode nextCFGNode = (CFGNode) defaultCFGNode.cfg_targets().cbegin().current().get_first();
+            FileLocation fileLocation1 = getLocation(defaultCFGNode,fileName);
+            CFANode nextNode = cfaNodeMap.get(nextCFGNode.id());
+            BlankEdge blankEdge = new BlankEdge("default", fileLocation1,
+                    defaultNode, nextNode,"default");
+            addToCFA(blankEdge);
+            traverseCFGNode(nextCFGNode);
+        }
+
     }
 
-    private void handleSwitchCasePoint(CFGNode caseNode, CFANode prevNode)throws result{
+    private CExpression handleSwitchCase(CFGNode caseNode, CExpression switchExpr)throws result{
+        CFANode caseCFANode = cfaNodeMap.get(caseNode.id());
 
+        CFGNode nextCFGNode = (CFGNode) caseNode.cfg_targets().cbegin().current().get_first();
+        CFANode nextCFANode = handleSwitchCasePoint(nextCFGNode);
+        FileLocation fileLocation = getLocation(caseNode,fileName);
+        //case node: no normalized ast
+        CFGAST condition = (CFGAST) caseNode.get_ast(ast_family.getC_UNNORMALIZED());
+        CFGAST valueAST = (CFGAST) condition.get(ast_ordinal.getBASE_VALUE()).as_ast()
+                    .get(ast_ordinal.getUC_CONSTANT()).as_ast()
+                    .get(ast_ordinal.getBASE_VALUE()).as_ast();
+
+        //in c, the case type can only be Integer or Char
+        CType valueType = typeConverter.getCType((CFGAST) valueAST.get(ast_ordinal.getBASE_TYPE()).as_ast());
+
+        CExpression caseExpr = null;
+        if(valueAST.get(ast_ordinal.getBASE_TYPE()).as_ast().pretty_print().equals("int") && !valueAST.hasRadixField()){
+                char value = valueAST.get(ast_ordinal.getUC_TEXT()).as_str().charAt(1);
+                valueType = CNumericTypes.CHAR;
+                caseExpr = new CCharLiteralExpression(fileLocation,valueType,value);
+        }else {
+            BigInteger value = BigInteger.valueOf(valueAST.get(ast_ordinal.getBASE_VALUE()).as_int32());
+            caseExpr = new CIntegerLiteralExpression(fileLocation,valueType, value);
+        }
+
+        CBinaryExpression conditionExpr = buildBinaryExpression(
+                switchExpr, caseExpr, CBinaryExpression.BinaryOperator.EQUALS);
+
+        String conditionString = conditionExpr.toASTString();
+        final CAssumeEdge trueEdge =
+                new CAssumeEdge(
+                        conditionString,
+                        fileLocation,
+                        caseCFANode,
+                        nextCFANode,
+                        conditionExpr,
+                        true,
+                        false,
+                        false);
+        addToCFA(trueEdge);
+        traverseCFGNode(nextCFGNode);
+
+        return conditionExpr;
+    }
+
+    private CFANode handleSwitchCasePoint(CFGNode caseNode)throws result{
+        //if a non-switch control point has a inter edge to a switch case point, this means
+        //in the case of the non-switch control point, there is no break point, thus, shall have
+        //a fall through edge to the new switch case
+        //fall through
+
+        if(!caseNode.isSwitchCase()){
+           return cfaNodeMap.get(caseNode.id());
+        }
+        FileLocation fileLocation = getLocation(caseNode,fileName);
+
+        CFANode caseCFANode = cfaNodeMap.get(caseNode.id());
+        CFANode fallNode = newCFANode();
+
+        final BlankEdge blankEdge =
+                new BlankEdge("", fileLocation, fallNode, caseCFANode, "fall through");
+        addToCFA(blankEdge);
+
+        return fallNode;
     }
 
     private void handleDoLabelPoint(CFGNode doWhileNode, FileLocation fileLocation)throws result{
@@ -927,6 +1050,7 @@ public class CFGFunctionBuilder  {
 
     }
 
+
     private void createConditionEdges(CFANode rootNode, CFANode thenNode, CFGNode thenCFGNode, CFANode elseNode,
                                       CFGNode elseCFGNode, CExpression conditionExp, FileLocation fileLocation) throws result {
 
@@ -973,18 +1097,23 @@ public class CFGFunctionBuilder  {
         CFGAST value_ast = (CFGAST) condition.children().get(1).as_ast();
         CType op2Type = typeConverter.getCType((CFGAST) value_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
 
-        try {
-            CCastExpression op1Cast = new CCastExpression(
-                    fileLocation,
-                    op1Type,
-                    getExpression(variable_ast, op1Type, fileLocation));
-            CCastExpression op2Cast = new CCastExpression(
-                    fileLocation,
-                    op2Type,
-                    getExpression(value_ast, op2Type, fileLocation));
+        CCastExpression op1Cast = new CCastExpression(
+                fileLocation,
+                op1Type,
+                getExpression(variable_ast, op1Type, fileLocation));
+        CCastExpression op2Cast = new CCastExpression(
+                fileLocation,
+                op2Type,
+                getExpression(value_ast, op2Type, fileLocation));
 
-            return binaryExpressionBuilder.buildBinaryExpression(op1Cast, op2Cast, operator);
-        }catch (UnrecognizedCodeException e){
+        return buildBinaryExpression(op1Cast, op2Cast, operator);
+    }
+
+    private CBinaryExpression buildBinaryExpression(
+            CExpression operand1, CExpression operand2, CBinaryExpression.BinaryOperator op) {
+        try {
+            return binExprBuilder.buildBinaryExpression(operand1, operand2, op);
+        } catch (UnrecognizedCodeException e) {
             e.getParentState();
         }
         return null;
@@ -1193,9 +1322,10 @@ public class CFGFunctionBuilder  {
             return getAssignedIdExpression(ast,pExpectedType,fileLocation);
     }
 
-    private CExpression createFromArithmeticOp(
-            final CFGAST no_ast, final ast_class operand, final FileLocation fileLocation) throws result {
 
+
+    private CExpression createFromArithmeticOp(
+            final CFGAST no_ast, final FileLocation fileLocation) throws result {
 
         final CType expressionType = typeConverter.getCType((CFGAST) no_ast.children().get(0).as_ast());
 
@@ -1204,38 +1334,39 @@ public class CFGFunctionBuilder  {
 
         ast_class operand1 = no_ast.get_class(); // First operand
         logger.log(Level.FINE, "Getting id expression for operand 1");
-        //CType op1type = typeConverter.getCType();
-        CExpression operand1Exp = null;//getExpression(operand1, op1type, pFileName);
+        CType op1type = typeConverter.getCType((CFGAST) no_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
+        CExpression operand1Exp = getAssignedIdExpression((CFGAST) no_ast.children().get(0).as_ast()
+                                ,op1type,fileLocation);
 
-        ast_class operand2 = operand; // Second operand
-        //CType op2type = typeConverter.getCType();
+        ast_class operand2 = no_ast.children().get(1).as_ast().get_class(); // Second operand
+        CType op2type = op1type;
         logger.log(Level.FINE, "Getting id expression for operand 2");
-        CExpression operand2Exp = null;//getExpression(operand2, op2type, pFileName);
+        CExpression operand2Exp = getExpression((CFGAST) no_ast.children().get(1).as_ast(), op2type, fileLocation);
 
         CBinaryExpression.BinaryOperator operation;
 
-        if(operand.equals(ast_class.getNC_ADDEXPR()))
+        if(operand2.equals(ast_class.getNC_ADDEXPR()))
             operation = CBinaryExpression.BinaryOperator.PLUS;
-        else if(operand.equals(ast_class.getNC_SUBEXPR()))
+        else if(operand2.equals(ast_class.getNC_SUBEXPR()))
             operation = CBinaryExpression.BinaryOperator.MINUS;
-        else if(operand.equals(ast_class.getNC_MULEXPR()))
+        else if(operand2.equals(ast_class.getNC_MULEXPR()))
             operation = CBinaryExpression.BinaryOperator.MULTIPLY;
-        else if(operand.equals(ast_class.getNC_DIVEXPR()))
+        else if(operand2.equals(ast_class.getNC_DIVEXPR()))
             operation = CBinaryExpression.BinaryOperator.DIVIDE;
-        else if(operand.equals(ast_class.getNC_MODEXPR()))
+        else if(operand2.equals(ast_class.getNC_MODEXPR()))
             operation = CBinaryExpression.BinaryOperator.MODULO;
-        else if(operand.equals(ast_class.getNC_RIGHTASSIGN()))
+        else if(operand2.equals(ast_class.getNC_RIGHTASSIGN()))
             operation = CBinaryExpression.BinaryOperator.SHIFT_RIGHT;
-        else if(operand.equals(ast_class.getNC_LEFTASSIGN()))
+        else if(operand2.equals(ast_class.getNC_LEFTASSIGN()))
             operation = CBinaryExpression.BinaryOperator.SHIFT_LEFT;
-        else if(operand.equals(ast_class.getNC_ANDASSIGN()))
+        else if(operand2.equals(ast_class.getNC_ANDASSIGN()))
             operation = CBinaryExpression.BinaryOperator.BINARY_AND;
-        else if(operand.equals(ast_class.getNC_ORASSIGN()))
+        else if(operand2.equals(ast_class.getNC_ORASSIGN()))
             operation = CBinaryExpression.BinaryOperator.BINARY_OR;
-        else if(operand.equals(ast_class.getNC_XORASSIGN()))
+        else if(operand2.equals(ast_class.getNC_XORASSIGN()))
             operation = CBinaryExpression.BinaryOperator.BINARY_XOR;
         else
-            throw new AssertionError("Unhandled operation " + operand.name());
+            throw new AssertionError("Unhandled operation " + operand2.name());
 
 
         return new CBinaryExpression(

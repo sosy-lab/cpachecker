@@ -201,5 +201,14 @@ public class CFGAST extends ast {
             throw new UnsupportedOperationException("Unsupported predicate");
     }
 
+    public boolean hasRadixField()throws result{
+        try {
+            this.get(ast_ordinal.getUC_RADIX());
+            return true;
+        }catch (result r){
+            return false;
+        }
+    }
+
 
 }
