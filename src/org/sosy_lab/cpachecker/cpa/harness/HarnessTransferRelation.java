@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -322,6 +323,18 @@ public class HarnessTransferRelation
     }
     if (statement instanceof CAssignment) {
       CAssignment assignment = (CAssignment) statement;
+      if (statement instanceof CExpressionAssignmentStatement) {
+        CExpressionAssignmentStatement expressionAssignmentStatement =
+            (CExpressionAssignmentStatement) statement;
+        CLeftHandSide lhs = expressionAssignmentStatement.getLeftHandSide();
+        CType assignmentType = lhs.getExpressionType();
+        boolean assignmentHasRelevantType =
+            assignmentType instanceof CPointerType || assignmentType instanceof CArrayType;
+        if (assignmentHasRelevantType) {
+          return pState
+              .addPointerVariableAssignment(lhs, ((CAssignment) statement).getRightHandSide());
+        }
+      }
       if (statement instanceof CFunctionCallAssignmentStatement) {
         CFunctionCallAssignmentStatement functionCallAssignment =
             (CFunctionCallAssignmentStatement) assignment;

@@ -176,14 +176,6 @@ public class HarnessState implements AbstractState {
     String rhsString = getNameFromExpression(pRightHandSide);
     MemoryLocation rhsValue;
 
-    // Get String representations of both sides of the assignment
-
-
-
-    // Get a MemoryLocation representing the value of the RightHandSideExpression
-    // TODO: properly handle cases where either of the sides is not an Id Expression. By
-    // strengthening with pointerAnalysis.
-
     if (pRightHandSide instanceof CFunctionCallExpression) {
       rhsValue = MemoryLocation.valueOf(rhsString);
     } else {
