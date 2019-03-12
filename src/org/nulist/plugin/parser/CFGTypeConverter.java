@@ -9,9 +9,13 @@ package org.nulist.plugin.parser;
 
 import com.grammatech.cs.*;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.*;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -20,7 +24,7 @@ import java.util.Map;
 public class CFGTypeConverter {
     private final MachineModel machineModel;
     private final LogManager logger;
-
+    private static final CSimpleType ARRAY_LENGTH_TYPE = CNumericTypes.LONG_LONG_INT;
     private final Map<Integer, CType> typeCache = new HashMap<>();
 
     public CFGTypeConverter(final MachineModel pMachineModel, final LogManager pLogger) {
@@ -32,13 +36,33 @@ public class CFGTypeConverter {
 
     public CType getCType(CFGAST type){
         try {
-            String typeString = type.pretty_print();
+            String typeString = type.pretty_print().replace("const ","");
             CType cType = typeCache.getOrDefault(typeString.hashCode(),null);
             if(cType!=null)
                 return cType;
-            else if(type.isStructType()){
+            else if(type.isStructType()){//struct
                 return createStructType(type);
+            }else if(type.isPointerType()){
+                String pointerType=typeString.replace("*","");
+                cType = typeCache.get(pointerType.hashCode());
+                CPointerType cPointerType = new CPointerType(type.isConstantType(), false, cType);
+                typeCache.put(typeString.hashCode(),cPointerType);
+                return cPointerType;
+            }else if(type.isArrayType()){
+                String arrayType=typeString.substring(0,typeString.indexOf("["));
+                cType = typeCache.get(arrayType.hashCode());
+                int length = Integer.valueOf(typeString.substring(typeString.indexOf("[")+1, typeString.length()-1));
+                CIntegerLiteralExpression arrayLength =
+                        new CIntegerLiteralExpression(
+                                FileLocation.DUMMY,
+                                ARRAY_LENGTH_TYPE,
+                                BigInteger.valueOf(length));
+                CArrayType cArrayType =  new CArrayType(
+                        type.isConstantType(), false, cType, arrayLength);
+                typeCache.put(typeString.hashCode(),cArrayType);
+                return cArrayType;
             }
+
             return null;
         }catch (result r){
             return null;
@@ -73,6 +97,8 @@ public class CFGTypeConverter {
         typeCache.put("double".hashCode(),CNumericTypes.DOUBLE);
         typeCache.put("long double".hashCode(),CNumericTypes.LONG_DOUBLE);
     }
+
+
 
     /**
      *@Description generate the struct type from an ast

@@ -40,16 +40,16 @@ public class CFGParser implements Parser{
     }
 
     @Override
-    public ParseResult parseFile(String filename) throws ParserException, IOException, InterruptedException {
+    public ParseResult parseFile(String filename) {
         return null;
     }
 
     @Override
-    public ParseResult parseString(String filename, String code) throws ParserException {
+    public ParseResult parseString(String filename, String code) {
         return null;
     }
 
-    public ParseResult parseProject(project project) throws ParserException, result {
+    public ParseResult parseProject(project project) throws result {
         List<Path> input_file = new ArrayList<>();
         parseTimer.start();
 

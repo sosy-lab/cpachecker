@@ -96,7 +96,6 @@ public class CFABuilder {
         /* create global variable declaration*/
         declareGlobalVariables(cu, pFileName);
 
-
         for (compunit_procedure_iterator proc_it = cu.procedures();
              !proc_it.at_end(); proc_it.advance()) {
             procedure proc = proc_it.current();
@@ -131,17 +130,14 @@ public class CFABuilder {
      *@return org.sosy_lab.cpachecker.cfa.ParseResult
      **/
     public void build(compunit cu) throws result {
-        String pFileName = cu.normalized_name();
         for (compunit_procedure_iterator proc_it = cu.procedures();
              !proc_it.at_end(); proc_it.advance()) {
             procedure proc = proc_it.current();
             if(proc.get_kind().equals(procedure_kind.getUSER_DEFINED())){
-
                 String funcName = proc.name();
                 CFGFunctionBuilder cfgFunctionBuilder = cfgFunctionBuilderMap.get(funcName);
                 cfgFunctionBuilder.visitFunction();
             }
-
         }
     }
 

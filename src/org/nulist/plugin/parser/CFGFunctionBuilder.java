@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.model.*;
 import org.sosy_lab.cpachecker.cfa.model.c.*;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.*;
+import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.usage.storage.TemporaryUsageStorage;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -212,14 +213,14 @@ public class CFGFunctionBuilder  {
                                 fileLocation, "Label: "+cfgNode.getLabelName());
                         //handleLabelPoint(cfgNode, fileLocation);
                     else if(cfgNode.isElseLabel()){
-
+                        handleNormalPoint(cfgNode, CFAEdgeType.BlankEdge,
+                                fileLocation, "else");
                     }else if(cfgNode.isDoLabel())
                         handleDoLabelPoint(cfgNode, fileLocation);
 
                     break;
-                case SWITCH_CASE:
-                    break;
                 case RETURN:
+                    handleReturnPoint(cfgNode,fileLocation);
                     break;
                 case EXIT:
                     break;
@@ -756,17 +757,7 @@ public class CFGFunctionBuilder  {
         if(edgeType.equals(CFAEdgeType.StatementEdge)){
             CFGAST no_ast = (CFGAST) node.get_ast(ast_family.getC_NORMALIZED());
 
-            CType leftType = typeConverter.getCType((CFGAST) no_ast.children().get(0).as_ast());
-            CLeftHandSide leftHandSide = (CLeftHandSide) getExpression((CFGAST) no_ast.children().get(0).as_ast(),
-                    leftType, fileLocation);
-
-            CType rightType = typeConverter.getCType((CFGAST) no_ast.children().get(1).as_ast());
-            CExpression rightHandSide = getExpression((CFGAST) no_ast.children().get(1).as_ast(),
-                    rightType, fileLocation);
-
-
-            CStatement statement = new CExpressionAssignmentStatement(fileLocation,
-                    leftHandSide, rightHandSide);
+            CStatement statement = getAssignStatement(no_ast,fileLocation);
 
             CStatementEdge edge = new CStatementEdge(node.getRawSignature(), statement,
                     fileLocation, prevNode, nextCFANode);
@@ -781,8 +772,50 @@ public class CFGFunctionBuilder  {
     }
 
     private void handleReturnPoint(CFGNode returnNode,
-                                       FileLocation fileloc) {
+                                       FileLocation fileloc)throws result {
+        //only have unnormalized ast
+        CFGAST un_ast = (CFGAST) returnNode.get_ast(ast_family.getC_UNNORMALIZED());
+        Optional<CExpression> returnExpression;
+        Optional<CAssignment> returnAssignment;
+        try {
+            CType expectedType = functionDeclaration.getType().getReturnType();
+            CFGAST returnValue = (CFGAST) un_ast.get(ast_ordinal.getUC_RETURN_VALUE()).as_ast();
+            CExpression returnExpr = null;
+            if(returnValue.get_class().equals(ast_class.getUC_EXPR_CONSTANT())){
 
+            }else if(returnValue.get_class().equals(ast_class.getUC_EXPR_VARIABLE())){
+
+            }else if(returnValue.get_class().equals(ast_class.getUC_FUNCTION_CALL())){
+
+            }else if(returnValue.get_class().equals(ast_class.getUC_SUBSCRIPT())){
+
+            }else {
+                System.out.println(returnValue.get_class().name());
+            }
+//            CType expectedType = typeConverter.getCType(returnVal.typeOf());
+//            CExpression returnExp = getExpression(returnVal, expectedType, pFileName);
+//            maybeExpression = Optional.of(returnExp);
+//
+//            CSimpleDeclaration returnVarDecl =
+//                    getReturnVar(pFuncName, returnExp.getExpressionType(), returnExp.getFileLocation());
+//
+//            CIdExpression returnVar = new CIdExpression(getLocation(returnVal, pFileName), returnVarDecl);
+//
+//            CAssignment returnVarAssignment =
+//                    new CExpressionAssignmentStatement(
+//                            getLocation(returnVal, pFileName), returnVar, returnExp);
+//            maybeAssignment = Optional.of(returnVarAssignment);
+
+
+        }catch (result r){
+            returnExpression = Optional.absent();
+            returnAssignment = Optional.absent();
+        }
+
+
+        CReturnStatement(getLocation(pItem, pFileName), maybeExpression, maybeAssignment));
+
+        CReturnStatementEdge returnStatementEdge = new CReturnStatementEdge()
     }
 
 
@@ -1086,6 +1119,7 @@ public class CFGFunctionBuilder  {
         traverseCFGNode(elseCFGNode);
     }
 
+
     private CBinaryExpression getBinaryExpression(final CFGAST condition,FileLocation fileLocation) throws result {
         // the only one supported now
 
@@ -1133,7 +1167,7 @@ public class CFGFunctionBuilder  {
     }
 
 
-    /**  TODO not complete
+    /**
      * Returns the id expression to an already declared variable. Returns it as a cast, if necessary
      * to match the expected type.
      */
@@ -1165,6 +1199,9 @@ public class CFGFunctionBuilder  {
     }
 
 
+    /**
+     * Returns the id expression to an already declared variable.
+     */
     private CExpression getAssignedIdExpression(
             final CFGAST variable_ast, final CType pExpectedType, final FileLocation fileLocation) throws result{
         logger.log(Level.FINE, "Getting var declaration for point");
@@ -1315,64 +1352,70 @@ public class CFGFunctionBuilder  {
 //    }
 
 
-    private CExpression getExpression(final CFGAST ast, CType pExpectedType, FileLocation fileLocation) throws result{
-        if(ast.isConstantExpression()){
-            return createFromArithmeticOp(ast, fileLocation);
-        }else if(ast.isConstant()){
-            return (CExpression) getConstant(ast, pExpectedType, fileLocation);
-        }else
-            return getAssignedIdExpression(ast,pExpectedType,fileLocation);
-    }
+
 
 
     private CExpression getNull(final FileLocation pLocation, final CType pType) {
         return new CIntegerLiteralExpression(pLocation, pType, BigInteger.ZERO);
     }
 
+
+
+    //functionassignstatement has been handled in function call
+    private CStatement getAssignStatement(CFGAST no_ast, FileLocation fileLocation)throws result{
+        assert no_ast.get_class().equals(ast_class.getNC_NORMALASSIGN());
+
+        CFGAST left_ast = (CFGAST) no_ast.children().get(0).as_ast();
+        CType leftType = typeConverter.getCType(left_ast);
+        CLeftHandSide leftHandSide  = (CLeftHandSide) getAssignedIdExpression(left_ast, leftType, fileLocation);
+
+        CFGAST value_ast = (CFGAST) no_ast.children().get(1).as_ast();
+
+        CType rightType = typeConverter.getCType(value_ast);
+        CExpression rightHandSide = getExpression(value_ast, rightType, fileLocation);
+
+        return new CExpressionAssignmentStatement(fileLocation, leftHandSide, rightHandSide);
+    }
+
+
+    private CExpression getExpression(CFGAST value_ast, CType valueType, FileLocation fileLoc)throws result{
+        if(value_ast.isVariable()){//e.g., int a = b;
+            return getAssignedIdExpression(value_ast, valueType, fileLoc);
+        }else if(value_ast.isValue()){
+
+        }else if(value_ast.get_class().is_subclass_of(ast_class.getNC_ABSTRACT_ARITHMETIC()) ||//e.g., int i = a+1;
+            value_ast.get_class().is_subclass_of(ast_class.getNC_ABSTRACT_BITWISE())){// int i =a&1;
+            return createFromArithmeticOp(value_ast, fileLoc);
+        }else if(value_ast.isNormalExpression()){//const expression, e.g.,
+
+        }else if(value_ast.isStructElementExpr()){//struct element, e.g., int p = astruct.a;
+
+        }else if(value_ast.isPointerAddressExpr()){//pointer address, e.g., char p[30]="say hello", *p1 = &r;
+
+        }else if(value_ast.isZeroInitExpr()){//zero initialization, e.g., char *p=NULL, p1[30]={};
+
+        }else if(value_ast.isPointerExpr()){//pointer, e.g., int i = *(p+1);
+
+        }
+
+    }
+
     private CExpression createFromArithmeticOp(
-            final CFGAST no_ast, final FileLocation fileLocation) throws result {
+            final CFGAST value_ast, final FileLocation fileLocation) throws result {
 
-        final CType expressionType = typeConverter.getCType((CFGAST) no_ast.children().get(0).as_ast());
+        CBinaryExpression.BinaryOperator operator = value_ast.getBinaryOperator();
 
-        // TODO: Currently we only support flat expressions, no nested ones. Make this work
-        // in the future.
+        final CType expressionType = typeConverter.getCType((CFGAST) value_ast.children().get(0).as_ast());
 
-        ast_class operand1 = no_ast.get_class(); // First operand
+        CFGAST operand1 = (CFGAST) value_ast.children().get(0).as_ast(); // First operand
         logger.log(Level.FINE, "Getting id expression for operand 1");
-        CType op1type = typeConverter.getCType((CFGAST) no_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
-        CExpression operand1Exp = getAssignedIdExpression((CFGAST) no_ast.children().get(0).as_ast()
-                                ,op1type,fileLocation);
+        CType op1type = typeConverter.getCType((CFGAST) operand1.get(ast_ordinal.getBASE_TYPE()).as_ast());
+        CExpression operand1Exp = getExpression(operand1,op1type,fileLocation);
 
-        ast_class operand2 = no_ast.children().get(1).as_ast().get_class(); // Second operand
-        CType op2type = op1type;
+        CFGAST operand2 =  (CFGAST) value_ast.children().get(1).as_ast(); // Second operand
+        CType op2type = typeConverter.getCType((CFGAST) operand2.get(ast_ordinal.getBASE_TYPE()).as_ast());
         logger.log(Level.FINE, "Getting id expression for operand 2");
-        CExpression operand2Exp = getExpression((CFGAST) no_ast.children().get(1).as_ast(), op2type, fileLocation);
-
-        CBinaryExpression.BinaryOperator operation;
-
-        if(operand2.equals(ast_class.getNC_ADDEXPR()))
-            operation = CBinaryExpression.BinaryOperator.PLUS;
-        else if(operand2.equals(ast_class.getNC_SUBEXPR()))
-            operation = CBinaryExpression.BinaryOperator.MINUS;
-        else if(operand2.equals(ast_class.getNC_MULEXPR()))
-            operation = CBinaryExpression.BinaryOperator.MULTIPLY;
-        else if(operand2.equals(ast_class.getNC_DIVEXPR()))
-            operation = CBinaryExpression.BinaryOperator.DIVIDE;
-        else if(operand2.equals(ast_class.getNC_MODEXPR()))
-            operation = CBinaryExpression.BinaryOperator.MODULO;
-        else if(operand2.equals(ast_class.getNC_RIGHTASSIGN()))
-            operation = CBinaryExpression.BinaryOperator.SHIFT_RIGHT;
-        else if(operand2.equals(ast_class.getNC_LEFTASSIGN()))
-            operation = CBinaryExpression.BinaryOperator.SHIFT_LEFT;
-        else if(operand2.equals(ast_class.getNC_ANDASSIGN()))
-            operation = CBinaryExpression.BinaryOperator.BINARY_AND;
-        else if(operand2.equals(ast_class.getNC_ORASSIGN()))
-            operation = CBinaryExpression.BinaryOperator.BINARY_OR;
-        else if(operand2.equals(ast_class.getNC_XORASSIGN()))
-            operation = CBinaryExpression.BinaryOperator.BINARY_XOR;
-        else
-            throw new AssertionError("Unhandled operation " + operand2.name());
-
+        CExpression operand2Exp = getExpression(operand2, op2type, fileLocation);
 
         return new CBinaryExpression(
                 fileLocation,
@@ -1380,7 +1423,9 @@ public class CFGFunctionBuilder  {
                 expressionType,
                 operand1Exp,
                 operand2Exp,
-                operation);
+                operator);
     }
+
+
 
 }

@@ -114,20 +114,52 @@ public class CFGAST extends ast {
      *@Param []
      *@return boolean
      **/
-    public boolean isConstantExpression(){
+    public boolean isNormalExpression(){
         try {
             //normalizedVarInitAST.children().get(1).as_ast().name() = c:exprs
-            return this.children().get(1).as_ast().equals(ast_class.getUC_EXPR_CONSTANT());
+            return this.get_class().equals(ast_class.getNC_EXPRS());
         }catch (result r){
             return false;
         }
     }
 
-    /**
-     *@Description check if a value is a global constant, using NORMALIZED ast
-     *@Param []
-     *@return boolean
-     **/
+    public boolean isStructElementExpr(){
+        try {
+            return this.get_class().equals(ast_class.getNC_STRUCTORUNIONREF());
+        }catch (result r){
+            return false;
+        }
+    }
+
+    public boolean isPointerExpr(){
+        try {
+            return this.get_class().equals(ast_class.getNC_POINTEREXPR());
+        }catch (result r){
+            return false;
+        }
+    }
+
+    public boolean isPointerAddressExpr(){
+        try {
+            return this.get_class().equals(ast_class.getNC_ADDREXPR());
+        }catch (result r){
+            return false;
+        }
+    }
+
+    public boolean isZeroInitExpr(){
+        try {
+            return this.get_class().equals(ast_class.getNC_CASTEXPR());
+        }catch (result r){
+            return false;
+        }
+    }
+
+/**
+ *@Description check if a value is a global constant, using NORMALIZED ast
+ *@Param []
+ *@return boolean
+ **/
 
     public boolean isGlobalConstant(){
         try {
@@ -152,6 +184,13 @@ public class CFGAST extends ast {
         }
     }
 
+    public boolean isConstantType(){
+        try {
+            return this.get(ast_ordinal.getBASE_TYPE()).as_ast().pretty_print().startsWith("const");
+        }catch (result r){
+            return false;
+        }
+    }
 
 
     /**
@@ -214,7 +253,27 @@ public class CFGAST extends ast {
     }
 
     public CBinaryExpression.BinaryOperator getBinaryOperator()throws result{
-        if(this.get_class().equals(ast_class.getNC_EQUALEXPR()))
+        if(this.get_class().equals(ast_class.getNC_ADDEXPR()))
+            return CBinaryExpression.BinaryOperator.PLUS;
+        else if(this.get_class().equals(ast_class.getNC_SUBEXPR()))
+            return CBinaryExpression.BinaryOperator.MINUS;
+        else if(this.get_class().equals(ast_class.getNC_MULEXPR()))
+            return CBinaryExpression.BinaryOperator.MULTIPLY;
+        else if(this.get_class().equals(ast_class.getNC_DIVEXPR()))
+            return CBinaryExpression.BinaryOperator.DIVIDE;
+        else if(this.get_class().equals(ast_class.getNC_MODEXPR()))
+            return CBinaryExpression.BinaryOperator.MODULO;
+        else if(this.get_class().equals(ast_class.getNC_RIGHTASSIGN()))
+            return CBinaryExpression.BinaryOperator.SHIFT_RIGHT;
+        else if(this.get_class().equals(ast_class.getNC_LEFTASSIGN()))
+            return CBinaryExpression.BinaryOperator.SHIFT_LEFT;
+        else if(this.get_class().equals(ast_class.getNC_ANDASSIGN()))
+            return CBinaryExpression.BinaryOperator.BINARY_AND;
+        else if(this.get_class().equals(ast_class.getNC_ORASSIGN()))
+            return CBinaryExpression.BinaryOperator.BINARY_OR;
+        else if(this.get_class().equals(ast_class.getNC_XORASSIGN()))
+            return CBinaryExpression.BinaryOperator.BINARY_XOR;
+        else if(this.get_class().equals(ast_class.getNC_EQUALEXPR()))
             return CBinaryExpression.BinaryOperator.EQUALS;
         else if(this.get_class().equals(ast_class.getNC_NOTEQUALEXPR()))
             return CBinaryExpression.BinaryOperator.NOT_EQUALS;
@@ -234,6 +293,22 @@ public class CFGAST extends ast {
         try {
             this.get(ast_ordinal.getUC_RADIX());
             return true;
+        }catch (result r){
+            return false;
+        }
+    }
+
+    public boolean isVariable(){
+        try {
+            return this.get_class().equals(ast_class.getNC_VARIABLE());
+        }catch (result r){
+            return false;
+        }
+    }
+
+    public boolean isValue(){
+        try {
+            return this.get_class().is_subclass_of(ast_class.getUC_IS_VALUE_CLASS());
         }catch (result r){
             return false;
         }
