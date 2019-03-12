@@ -9,77 +9,77 @@
 
   <tasks name="ArraysReach">
     <includesfile>../programs/benchmarks/ReachSafety-Arrays.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="ArraysMemSafety">
     <includesfile>../programs/benchmarks/MemSafety-Arrays.set</includesfile>
-    <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
   <tasks name="BitVectorsReach">
     <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="BitVectorsOverflows">
     <includesfile>../programs/benchmarks/Overflows-BitVectors.set</includesfile>
-    <propertyfile>../programs/benchmarks/Overflows.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     <option name="-64"/>
   </tasks>
   <tasks name="HeapReach">
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="HeapMemSafety">
     <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
-    <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
   <tasks name="Floats">
     <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
 <!--    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>-->
   </tasks>
   <tasks name="ControlFlow">
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="ECA">
     <includesfile>../programs/benchmarks/ReachSafety-ECA.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="Loops">
     <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="Recursive">
     <includesfile>../programs/benchmarks/ReachSafety-Recursive.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="ProductLines">
     <includesfile>../programs/benchmarks/ReachSafety-ProductLines.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="Sequentialized">
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="Termination">
     <includesfile>../programs/benchmarks/Termination-MainControlFlow.set</includesfile>
-    <propertyfile>../programs/benchmarks/Termination.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
 <!--    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>-->
     <option name="-64" />
   </tasks>
   <tasks name="Concurrency">
     <includesfile>../programs/benchmarks/ConcurrencySafety-Main.set</includesfile>
-    <propertyfile>../programs/benchmarks/ConcurrencySafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="DeviceDriversLinux64">
     <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
 <!--    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>-->
     <option name="-64"/>
   </tasks>
   <tasks name="BusyBox">
     <includesfile>../programs/benchmarks/Systems_BusyBox_MemSafety.set</includesfile>
-    <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
     <option name="-64"/>
   </tasks>
 

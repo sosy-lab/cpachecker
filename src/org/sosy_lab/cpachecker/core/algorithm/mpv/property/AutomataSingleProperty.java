@@ -29,9 +29,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 
-/*
- * This property is represented by one or several automata.
- */
+/** The property is represented by one or several specification automata. */
 public final class AutomataSingleProperty extends AbstractSingleProperty {
 
   private final List<Automaton> automata;
@@ -55,7 +53,7 @@ public final class AutomataSingleProperty extends AbstractSingleProperty {
     }
   }
 
-  /*
+  /**
    * Get all AutomatonPrecision, which correspond to the given property. Note, that
    * AutomatonPrecision must present in a given precision.
    */

@@ -284,12 +284,14 @@ public class UndefinedFunctionCollectorAlgorithm
     } else if (rt instanceof CCompositeType) {
       buf.append(indent + "// Composite type\n");
       prepend.append(odmFunctionDecl);
+      // We can not use rt.toASTString(), as it produces full definition with all fields
       buf.append(
           indent
-              + rt.toASTString("tmp")
+              + rt.toString()
+              + " *tmp"
               + " = ("
-              + rt.toASTString("")
-              + ")"
+              + rt.toString()
+              + "*)"
               + externAllocFunction
               + "();\n");
       prepend.append(ASSUME_FUNCTION_DECL);

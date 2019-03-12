@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpv.property.MultipleProperties;
 
 abstract class AbstractPartitioningOperator implements PartitioningOperator {
 
-  private final MultipleProperties properties; // initial properties
+  private final MultipleProperties properties; // multiple properties
   private final TimeSpan timeLimitPerProperty; // resource limitations per each property
   private int phase;
 

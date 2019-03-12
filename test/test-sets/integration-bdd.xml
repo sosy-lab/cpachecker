@@ -13,7 +13,7 @@
 
   <rundefinition/>
 
-  <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+  <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
 
   <tasks name="va-bdd-bool">
     <option name="-valueAnalysis-BDD-bool"/>

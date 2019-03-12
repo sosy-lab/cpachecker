@@ -9,7 +9,7 @@
 
     <tasks name="DeviceDriversHard">
         <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
-        <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
+        <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     </tasks>
 
     <rundefinition name="intervals">

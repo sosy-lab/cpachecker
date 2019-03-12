@@ -22,7 +22,7 @@
 
   <rundefinition/> <!-- BuildBot does not like names! -->
 
-  <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+  <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
 
   <!-- analysis of recursive programs -->
   <tasks name="value">
@@ -141,7 +141,7 @@
   </tasks>
   <tasks>
     <option name="-predicateAnalysis-bam"/>
-    <propertyfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-skipRecursion"/>
     <option name="-64"/>
     <option name="-setprop">analysis.checkCounterexamples=true</option>

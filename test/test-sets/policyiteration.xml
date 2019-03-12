@@ -6,7 +6,7 @@
     <rundefinition name="lpi-svcomp-loops">
         <tasks name="loops">
             <includesfile>../programs/benchmarks/Loops.set</includesfile>
-            <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <option name="-lpi-svcomp16"/>
         <option name="-heap">10000m</option>
@@ -16,7 +16,7 @@
     <rundefinition name="lpi-svcomp-loops-annotated">
         <tasks name="loops">
             <includesfile>../programs/benchmarks/LoopsFrama.set</includesfile>
-            <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <option name="-lpi-svcomp16"/>
         <option name="-heap">10000m</option>
@@ -29,14 +29,14 @@
         <option name="-disable-java-assertions"/>
         <tasks name="loops">
             <include>../programs/benchmarks/loop-invgen/heapsort_true-unreach-call.i</include>
-            <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
     </rundefinition>
 
     <rundefinition name="lpi-loops">
         <tasks name="loops">
             <includesfile>../programs/benchmarks/Loops.set</includesfile>
-            <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <option name="-policy-refinement"/>
         <option name="-heap">10000m</option>
@@ -47,7 +47,7 @@
     <rundefinition name="lpi-old">
         <tasks name="loops">
             <includesfile>../programs/benchmarks/Loops.set</includesfile>
-            <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <option name="-policy-refinement"/>
 
@@ -64,7 +64,7 @@
     <rundefinition name="lpi-old-no-join">
         <tasks name="loops">
             <includesfile>../programs/benchmarks/Loops.set</includesfile>
-            <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <option name="-policy-refinement"/>
 
@@ -87,30 +87,30 @@
         <option name="-policy-k-induction"/>
         <tasks name="ECA">
             <includesfile>../programs/benchmarks/ECA.set</includesfile>
-            <propertyfile>../programs/benchmarks/ECA.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <tasks name="ControlFlowInteger">
             <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
-            <propertyfile>../programs/benchmarks/ControlFlowInteger.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <tasks name="ProductLines">
             <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
-            <propertyfile>../programs/benchmarks/ProductLines.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <tasks name="Recursive">
             <includesfile>../programs/benchmarks/Recursive.set</includesfile>
-            <propertyfile>../programs/benchmarks/Recursive.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <tasks name="Sequentialized">
             <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-            <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
     </rundefinition>
 
     <rundefinition name="standard-k-induction">
         <tasks name="DeviceDrivers64">
             <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
-            <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <option name="-bmc-induction" />
     </rundefinition>
@@ -119,7 +119,7 @@
         <option name="-lpi-svcomp16"/>
         <tasks name="DeviceDrivers64">
             <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
-            <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <option name="-heap">10000m</option>
     </rundefinition>
@@ -134,7 +134,7 @@
         <!--<option name="-setprop">cpa.stator.policy.unguidedTemplateRefinement=true</option>-->
         <tasks name="DeviceDrivers64">
             <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
-            <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <option name="-heap">16000m</option>
     </rundefinition>
@@ -144,7 +144,7 @@
         <option name="-disable-java-assertions"/>
         <tasks name="DeviceDrivers64">
             <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
-            <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <option name="-heap">16000m</option>
         <option name="-64"/>
@@ -155,7 +155,7 @@
         <option name="-disable-java-assertions"/>
         <tasks name="DeviceDrivers64">
             <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
-            <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <option name="-heap">16000m</option>
         <option name="-64"/>
@@ -166,7 +166,7 @@
         <option name="-disable-java-assertions"/>
         <tasks name="ProductLines">
             <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
-            <propertyfile>../programs/benchmarks/ProductLines.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <option name="-heap">16000m</option>
     </rundefinition>
@@ -176,7 +176,7 @@
         <option name="-disable-java-assertions"/>
         <tasks name="ProductLines">
             <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
-            <propertyfile>../programs/benchmarks/ProductLines.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <option name="-heap">16000m</option>
     </rundefinition>
@@ -185,7 +185,7 @@
         <option name="-policy-intervals"/>
         <tasks name="DeviceDrivers64">
             <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
-            <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <option name="-heap">10000m</option>
     </rundefinition>
@@ -194,7 +194,7 @@
         <option name="-setprop">cpa.stator.policy.unguidedTemplateRefinement=false</option>
         <tasks name="BusyBox">
             <includesfile>../programs/benchmarks/BusyBox.set</includesfile>
-            <propertyfile>../programs/benchmarks/BusyBox.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
     </rundefinition>
 
@@ -203,7 +203,7 @@
         <option name="-policy-k-induction"/>
         <tasks name="ProductLines">
             <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
-            <propertyfile>../programs/benchmarks/ProductLines.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
     </rundefinition>
 
@@ -213,27 +213,27 @@
         <option name="-disable-java-assertions"/>
         <tasks name="ECA">
             <includesfile>../programs/benchmarks/ECA.set</includesfile>
-            <propertyfile>../programs/benchmarks/ECA.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <tasks name="ControlFlow">
             <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
-            <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <tasks name="ProductLines">
             <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
-            <propertyfile>../programs/benchmarks/ProductLines.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <tasks name="Recursive">
             <includesfile>../programs/benchmarks/Recursive.set</includesfile>
-            <propertyfile>../programs/benchmarks/Recursive.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <tasks name="Sequentialized">
             <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-            <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
         <tasks name="Loops">
             <includesfile>../programs/benchmarks/Loops.set</includesfile>
-            <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
+            <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
     </rundefinition>
 </benchmark>

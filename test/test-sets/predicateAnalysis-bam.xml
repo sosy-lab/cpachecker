@@ -6,23 +6,23 @@
 
   <tasks name="ControlFlowInteger">
     <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
-    <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
   <tasks name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-    <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
   <tasks name="Nested">
     <includesfile>nested.set</includesfile>
-    <propertyfile>../programs/benchmarks/PropertyUnreachCall.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="Linux-Kernel">
     <include>../programs/linux-kernel/*.cil.c</include>
-    <propertyfile>../programs/benchmarks/PropertyUnreachCall.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 
   <rundefinition name="bam">

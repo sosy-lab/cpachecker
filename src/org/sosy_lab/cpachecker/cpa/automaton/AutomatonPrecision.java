@@ -24,32 +24,32 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 public class AutomatonPrecision implements Precision {
 
   private final Automaton automaton;
-  private boolean disable;
+  private boolean enabled;
 
   public AutomatonPrecision(Automaton pAutomaton) {
     automaton = pAutomaton;
-    disable = false;
+    enabled = true;
   }
 
-  public boolean isDisable() {
-    return disable;
+  public boolean isEnabled() {
+    return enabled;
   }
 
   public void disable() {
-    disable = true;
+    enabled = false;
   }
 
   public void enable() {
-    disable = false;
+    enabled = true;
   }
 
   @Override
   public String toString() {
     String result = automaton.getName();
-    if (disable) {
-      result += " (disabled)";
-    } else {
+    if (enabled) {
       result += " (enabled)";
+    } else {
+      result += " (disabled)";
     }
     return result;
   }

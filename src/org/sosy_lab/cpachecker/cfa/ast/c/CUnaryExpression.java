@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class CUnaryExpression extends AUnaryExpression implements CExpression {
@@ -37,7 +38,8 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
                              final CType pType, final CExpression pOperand,
                              final UnaryOperator pOperator) {
     super(pFileLocation, pType, pOperand, pOperator);
-
+    assert pOperator != UnaryOperator.AMPER || pType.getCanonicalType() instanceof CPointerType
+        : "Expression " + this + " has unexpected non-pointer type " + pType;
   }
 
   @Override

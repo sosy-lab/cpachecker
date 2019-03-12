@@ -79,25 +79,25 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
+/**
+ * This is an implementation of multi-property verification algorithm, which was presented in the
+ * paper "On-the-Fly Decomposition of Specifications in Software Model Checking". This algorithm
+ * aims at efficient checking of multiple properties in a single verification run.
+ */
 @Options(prefix = "mpv")
 public class MPVAlgorithm implements Algorithm, StatisticsProvider {
 
-  public static class MPVStatistics implements Statistics {
+  private class MPVStatistics implements Statistics {
 
     private final Timer totalTimer = new Timer();
     private final Timer createPartitionsTimer = new Timer();
 
     private int iterationNumber;
     private final List<Partition> partitions;
-    private final MultipleProperties multipleProperties;
 
-    private Collection<Statistics> statistics;
-
-    private MPVStatistics(final MultipleProperties pMultipleProperties) {
-      multipleProperties = pMultipleProperties;
+    private MPVStatistics() {
       iterationNumber = 0;
       partitions = Lists.newArrayList();
-      statistics = Lists.newArrayList();
     }
 
     @Override
@@ -230,9 +230,10 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(
       secure = true,
-      name = "collectAllStatistics",
-      description = "Collect statistics for all inner algorithms on each iteration.")
-  private boolean collectAllStatistics = false;
+      name = "ignoreInnerExceptions",
+      description =
+          "Ignore exceptions, which may be caused by checking of some properties, to successfully check the others.")
+  private boolean ignoreInnerExceptions = false;
 
   private final MPVStatistics stats;
   private final ConfigurableProgramAnalysis cpa;
@@ -242,6 +243,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
   private final Specification specification;
   private final CFA cfa;
   private final PartitioningOperator partitioningOperator;
+  private final MultipleProperties multipleProperties;
 
   public MPVAlgorithm(
       ConfigurableProgramAnalysis pCpa,
@@ -258,16 +260,16 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
     specification = pSpecification;
     cfa = pCfa;
     config.inject(this);
-    MultipleProperties multipleProperties =
+    multipleProperties =
         new MultipleProperties(
-            specification.getSpecification(), propertySeparator, findAllViolations);
+            specification.getPathToSpecificationAutomata(), propertySeparator, findAllViolations);
     multipleProperties.determineRelevance(pCfa);
 
-    stats = new MPVStatistics(multipleProperties);
+    stats = new MPVStatistics();
     propertyDistribution = initializePropertyDistribution();
     partitioningOperator =
         partitioningOperatorFactory.create(
-            config, logger, shutdownNotifier, stats.multipleProperties, cpuTimePerProperty);
+            config, logger, shutdownNotifier, multipleProperties, cpuTimePerProperty);
   }
 
   private Map<AbstractSingleProperty, Double> initializePropertyDistribution() {
@@ -291,7 +293,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
           String ratioStr = matcher.group(2);
           AbstractSingleProperty targetProperty = null;
           // attempt to find property with this name
-          for (AbstractSingleProperty property : stats.multipleProperties.getProperties()) {
+          for (AbstractSingleProperty property : multipleProperties.getProperties()) {
             if (property.getName().equals(propertyName)) {
               targetProperty = property;
               break;
@@ -300,9 +302,9 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
           if (targetProperty == null) {
             logger.log(
                 Level.WARNING,
-                "Property with name '"
-                    + propertyName
-                    + "', specified in property distribution file, does not exist");
+                "Property with name '",
+                propertyName,
+                "', specified in property distribution file, does not exist");
             continue;
           }
           // attempt to parse ratio
@@ -312,23 +314,27 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
           } catch (NumberFormatException e) {
             logger.log(
                 Level.WARNING,
-                "Could not parse ratio '" + ratioStr + "' for property " + propertyName);
+                "Could not parse ratio '",
+                ratioStr,
+                "' for property",
+                propertyName,
+                e);
           }
         } else {
           logger.log(
               Level.WARNING,
-              "Could not parse line '"
-                  + line
-                  + "' in property distribution file. "
-                  + "Correct format is '<property name>':<ratio>");
+              "Could not parse line '",
+              line,
+              "' in property distribution file. Correct format is '<property name>':<ratio>");
         }
       }
       return propertyDistributionBuilder.build();
     } catch (IOException e) {
       logger.log(
           Level.WARNING,
-          e,
-          "Could not read properties distribution from file " + propertyDistributionFile);
+          "Could not read properties distribution from file",
+          propertyDistributionFile,
+          e);
     }
     return ImmutableMap.of();
   }
@@ -337,7 +343,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
   public AlgorithmStatus run(ReachedSet reached) throws CPAException, InterruptedException {
 
     assert reached instanceof MPVReachedSet;
-    ((MPVReachedSet) reached).setMultipleProperties(stats.multipleProperties);
+    ((MPVReachedSet) reached).setMultipleProperties(multipleProperties);
 
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
@@ -348,63 +354,67 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
 
     try {
       do {
-        ImmutableList<Partition> partitions = partitioningOperator.createPartition();
+        // Distribute all checking properties into several partitions
+        ImmutableList<Partition> partitions = partitioningOperator.createPartitions();
         int partitionNumber = 0;
+        logger.log(Level.FINER, "Using the following partitions of properties:", partitions);
+        // Check each partition of properties
         for (Partition partition : partitions) {
           int numberOfProperties = partition.getNumberOfProperties();
           if (numberOfProperties <= 0) {
-            // shortcut
+            // Shortcut - empty partition
             continue;
           }
           stats.partitions.add(partition);
           adjustTimeLimit(partition, partitions.size(), partitionNumber);
           partitionNumber++;
           ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
+          // Limit resources for partition
           ResourceLimitChecker limits =
               ResourceLimitChecker.createCpuTimeLimitChecker(
                   logger, shutdownManager, partition.getTimeLimit());
           limits.start();
 
-          // inner algorithm
+          // Create inner algorithm, that will check the partition
           Algorithm algorithm = createInnerAlgorithm(reached, mainFunction, shutdownManager);
-          stats.multipleProperties.setTargetProperties(partition.getProperties(), reached);
-          collectStatistics(algorithm);
+          multipleProperties.setTargetProperties(partition.getProperties(), reached);
           try {
             partition.startAnalysis();
             logger.log(
                 Level.INFO,
-                "Iteration "
-                    + stats.iterationNumber
-                    + ": checking partition "
-                    + partition
-                    + " with "
-                    + numberOfProperties
-                    + " properties");
+                "Iteration",
+                stats.iterationNumber,
+                ": checking partition",
+                partition,
+                "with",
+                numberOfProperties,
+                "properties");
             do {
               status = status.update(algorithm.run(reached));
             } while (!partition.isChecked(reached));
-            logger.log(Level.INFO, "Stopping iteration " + stats.iterationNumber);
           } catch (InterruptedException e) {
             if (shutdownNotifier.shouldShutdown()) {
-              // Interrupted by outer limit checker or by user
-              logger.logUserException(Level.WARNING, e, "Analysis interrupted from the outside");
+              // If interrupted by outer limit checker or by the user, then stop algorithm
               partition.stopAnalysisOnFailure(reached, "Interrupted");
               throw e;
             } else {
-              // Interrupted by inner limit checker
-              logger.log(Level.INFO, e, "Partition has exhausted resource limitations");
+              // If interrupted by inner limit checker, then continue the algorithm
+              logger.log(Level.INFO, "Partition has exhausted resource limitations:", e);
               partition.stopAnalysisOnFailure(reached, "Inner time limit");
             }
           } catch (Exception e) {
-            // Try to intercept any exception, which may be related to checking of specific
-            // property, so it would be possible to successfully check other properties.
-            logger.log(Level.WARNING, e, ": Exception during partition checking");
             partition.stopAnalysisOnFailure(reached, e.getClass().getSimpleName());
+            if (ignoreInnerExceptions) {
+              logger.log(Level.INFO, "Exception occured during partition checking:", e);
+            } else {
+              throw e;
+            }
           } finally {
             limits.cancel();
           }
         }
-      } while (!stats.multipleProperties.isChecked());
+        // Continue the algorithm, until all properties are not checked
+      } while (!multipleProperties.isChecked());
     } finally {
       stats.totalTimer.stop();
     }
@@ -414,19 +424,19 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
   private void adjustTimeLimit(
       Partition partition, int overallPartitions, int currentPartitionNumber) {
     if (limitsAdjustmentStrategy.equals(LimitAdjustmentStrategy.NONE)) {
-      // do not change the specified time limit
+      // Do not change the specified time limit
       return;
     }
     if (!partition.isIntermediateStep()) {
-      // ignore intermediate steps
+      // Ignore intermediate steps
       return;
     }
     TimeSpan overallSpentCpuTime = stats.getCurrentCpuTime();
     TimeSpan overallCpuTimeLimit =
-        cpuTimePerProperty.multiply(stats.multipleProperties.getNumberOfProperties());
+        cpuTimePerProperty.multiply(multipleProperties.getNumberOfProperties());
     if (overallCpuTimeLimit.compareTo(overallSpentCpuTime) <= 0
         || overallPartitions <= currentPartitionNumber) {
-      // do nothing in case of bad args - should be unreachable
+      // Do nothing in case of bad args - should be unreachable
       return;
     }
     TimeSpan adjustedTimeLimit = cpuTimePerProperty;
@@ -457,14 +467,6 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
     partition.updateTimeLimit(adjustedTimeLimit);
   }
 
-  private void collectStatistics(Algorithm pAlgorithm) {
-    if (collectAllStatistics) {
-      if (pAlgorithm instanceof StatisticsProvider) {
-        ((StatisticsProvider) pAlgorithm).collectStatistics(stats.statistics);
-      }
-    }
-  }
-
   private Algorithm createInnerAlgorithm(
       ReachedSet reached, CFANode mainFunction, ShutdownManager shutdownManager)
       throws InterruptedException, CPAException {
@@ -491,8 +493,8 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
 
       return coreComponents.createAlgorithm(cpa, cfa, specification);
     } catch (InvalidConfigurationException e) {
-      // should be unreachable, since configuration is already checked
-      throw new CPAException("Cannot create configuration for inner algorithm: " + e);
+      // Should be unreachable, since configuration is already checked
+      throw new CPAException("Cannot create configuration for inner algorithm", e);
     } finally {
       stats.createPartitionsTimer.stop();
     }
@@ -501,6 +503,5 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
-    stats.statistics = pStatsCollection;
   }
 }

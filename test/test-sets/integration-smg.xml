@@ -19,13 +19,13 @@
   <tasks name="HeapMemSafety">
     <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
     <option name="-smg"/>
-    <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
   <tasks name="ArraysMemSafety">
     <includesfile>../programs/benchmarks/MemSafety-Arrays.set</includesfile>
     <option name="-smg"/>
-    <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
   <tasks name="ExtAllocMemSafety">

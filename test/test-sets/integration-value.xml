@@ -15,13 +15,13 @@
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <exclude>../programs/benchmarks/floats-cbmc-regression/float4_true-unreach-call.i</exclude> <!-- flapping timeout -->
@@ -29,7 +29,7 @@
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <exclude>../programs/benchmarks/ntdrivers/cdaudio_false-unreach-call.i.cil.c</exclude> <!-- flapping timeout -->
@@ -38,13 +38,13 @@
   </tasks>
   <tasks>https://buildbot.sosy.ifi.lmu.de/cpachecker/results/programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--media--rc--keymaps--rc-adstech-dvb-t-pci.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- only timeouts -->
@@ -52,7 +52,7 @@
   </tasks>
   <tasks>
     <includesfile>integration-DeviceDriversLinux64.set</includesfile>
-    <propertyfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-skipRecursion"/>
     <option name="-64"/>
     <!-- SV-Comp files assume that malloc always succeeds -->
