@@ -36,7 +36,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -291,9 +290,10 @@ class DefaultReachedSet implements ReachedSet, Serializable {
     return reached.keySet().toString();
   }
 
-  public Map<String, ? extends AbstractStatValue> getStatistics() {
+  @Override
+  public ImmutableMap<String, ? extends AbstractStatValue> getStatistics() {
     if (waitlist instanceof AbstractSortedWaitlist) {
-      return ((AbstractSortedWaitlist<?>) waitlist).getDelegationCounts();
+      return ImmutableMap.copyOf(((AbstractSortedWaitlist<?>) waitlist).getDelegationCounts());
 
     } else {
       return ImmutableMap.of();
