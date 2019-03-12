@@ -161,15 +161,8 @@ public class HarnessTransferRelation
     CBinaryExpression binaryExpression = (CBinaryExpression) pEdge.getExpression();
     CExpression operand1 = binaryExpression.getOperand1();
     CExpression operand2 = binaryExpression.getOperand2();
-    if (operand1 instanceof CIdExpression && operand2 instanceof CIdExpression) {
-      CIdExpression operand1IdExpression = (CIdExpression) operand1;
-      String operand1Name = operand1IdExpression.getName();
-      CIdExpression operand2IdExpression = (CIdExpression) operand2;
-      String operand2Name = operand2IdExpression.getName();
-      HarnessState newState = pState.merge(operand1Name, operand2Name);
-      return newState;
-    }
-    return pState;
+    HarnessState newState = pState.merge(operand1, operand2);
+    return newState;
   }
 
   private HarnessState handleInequalityAssumeEdge(HarnessState pState, CAssumeEdge pEdge) {
