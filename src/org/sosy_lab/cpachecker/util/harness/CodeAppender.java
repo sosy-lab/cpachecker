@@ -280,7 +280,7 @@ class CodeAppender implements Appendable {
       append("  ++");
       append(functionCounterName);
       appendln(";");
-      appendln("    return retval;");
+      appendln("  return retval;");
       appendln("}");
     }
     for (AFunctionDeclaration inputFunction : unimplementedPointerTypeParameterFunctions) {
