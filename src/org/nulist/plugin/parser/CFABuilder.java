@@ -353,7 +353,7 @@ public class CFABuilder {
         }else if(value_ast.isNullPointer())//null pointer: e.g., p = 0; p= NULL;
         {
             return new CPointerExpression(fileLoc,pExpectedType,getNull(fileLoc,pExpectedType));
-        }else if(value_ast.isConstantExpression()){
+        }else if(value_ast.isConstantType()){
             return getExpression(value_ast,pExpectedType,fileLoc);
         }else if(value_ast.isUndef()){//TODO
             CType constantType = typeConverter.getCType((CFGAST) type.as_ast());
@@ -657,10 +657,8 @@ public class CFABuilder {
 
 
 
-
-
     private CExpression getExpression(final CFGAST ast, CType pExpectedType, FileLocation fileLocation) throws result{
-        if(ast.isConstantExpression()){
+        if(ast.isConstantType()){
             return createFromArithmeticOp(ast, fileLocation);
         }else if(ast.isConstant()){
             return (CExpression) getConstant(ast, pExpectedType, fileLocation);

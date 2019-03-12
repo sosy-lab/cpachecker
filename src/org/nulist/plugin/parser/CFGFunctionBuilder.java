@@ -455,7 +455,7 @@ public class CFGFunctionBuilder  {
             nextNode = handleSwitchCasePoint(nextCFGNode);
             CType variable_type = typeConverter.getCType((CFGAST) variable_ast
                     .get(ast_ordinal.getBASE_TYPE()).as_ast());
-            assignedVarExp = (CLeftHandSide) getAssignedIdExpression(variable_ast, variable_type, fileLocation);
+            assignedVarExp = (CLeftHandSide) getExpression(variable_ast, variable_type, fileLocation);
 
             CIdExpression funcNameExpr =
                     new CIdExpression(
@@ -1368,7 +1368,7 @@ public class CFGFunctionBuilder  {
 
         CFGAST left_ast = (CFGAST) no_ast.children().get(0).as_ast();
         CType leftType = typeConverter.getCType(left_ast);
-        CLeftHandSide leftHandSide  = (CLeftHandSide) getAssignedIdExpression(left_ast, leftType, fileLocation);
+        CLeftHandSide leftHandSide  = (CLeftHandSide) getExpression(left_ast, leftType, fileLocation);
 
         CFGAST value_ast = (CFGAST) no_ast.children().get(1).as_ast();
 
@@ -1388,7 +1388,7 @@ public class CFGFunctionBuilder  {
             CFGAST init = (CFGAST) un_ast.get(ast_ordinal.getUC_DYNAMIC_INIT()).as_ast();
             CFGAST variable = (CFGAST) init.get(ast_ordinal.getUC_VARIABLE()).as_ast();
             cType = typeConverter.getCType((CFGAST) variable.get(ast_ordinal.getBASE_TYPE()).as_ast());
-            leftHandSide = (CLeftHandSide) getAssignedIdExpression(variable, cType, fileLocation);
+            leftHandSide = (CLeftHandSide) getExpression(variable, cType, fileLocation);
             if(init.equalClass(ast_class.getUC_DYNAMIC_INIT_CONSTANT())){
                 CFGAST constant = (CFGAST) init.get(ast_ordinal.getUC_CONSTANT()).as_ast();
             }else if(init.equalClass(ast_class.getUC_DYNAMIC_INIT_EXPRESSION())){
@@ -1424,11 +1424,13 @@ public class CFGFunctionBuilder  {
         if(ast.equalClass(ast_class.getUC_DYNAMIC_INIT_CONSTANT())){
             CFGAST constant = (CFGAST) ast.get(ast_ordinal.getUC_CONSTANT()).as_ast();
             return getExpressionFromUNNormalizedAST(constant, expectedType, fileLocation);
-        }else if(ast.equalClass(ast_class.getUC_DYNAMIC_INIT_EXPRESSION())){//=
-
-        }else if(ast.equalClass(ast_class.getUC_DYNAMIC_INIT_BITWISE_COPY())){
-
-        }else if(ast.equalClass(ast_class.getUC_EXPR_CONSTANT())){//=1,true
+        }
+//        else if(ast.equalClass(ast_class.getUC_DYNAMIC_INIT_EXPRESSION())){//=
+//
+//        }else if(ast.equalClass(ast_class.getUC_DYNAMIC_INIT_BITWISE_COPY())){
+//
+//        }
+        else if(ast.equalClass(ast_class.getUC_EXPR_CONSTANT())){//=1,true
             CFGAST constant =(CFGAST) ast.get(ast_ordinal.getUC_CONSTANT()).as_ast();
             if(expectedType.equals(CNumericTypes.BOOL)){
                 long value = constant.get(ast_ordinal.getBASE_VALUE()).as_uint32();
@@ -1499,10 +1501,10 @@ public class CFGFunctionBuilder  {
 
     }
 
-    private CExpression getExpression(CFGAST value_ast, CType valueType, FileLocation fileLoc)throws result{
-        if(value_ast.isVariable()){//e.g., int a = b;
+    public CExpression getExpression(CFGAST value_ast, CType valueType, FileLocation fileLoc)throws result{
+        if(value_ast.isVariable()){//e.g., a = b;
             return getAssignedIdExpression(value_ast, valueType, fileLoc);
-        }else if(value_ast.isValue()){
+        }else if(value_ast.isValue()){//a=2;
             if(valueType.equals(CNumericTypes.BOOL)){
                 long value = value_ast.get(ast_ordinal.getBASE_VALUE()).as_uint32();
                 assert value==0||value==1;
@@ -1512,13 +1514,13 @@ public class CFGFunctionBuilder  {
                 else
                     return new CIntegerLiteralExpression(
                             fileLoc, CNumericTypes.BOOL, BigInteger.ONE);//true
-            }else if(valueType.getCanonicalType().equals(CNumericTypes.CHAR)){
+            }else if(valueType.equals(CNumericTypes.CHAR)){
                 char value = (char)value_ast.get(ast_ordinal.getBASE_VALUE()).as_int8();
                 return new CCharLiteralExpression(fileLoc, valueType, value);
-            }else if(valueType.getCanonicalType().equals(CNumericTypes.INT)){
+            }else if(valueType.equals(CNumericTypes.INT)){
                 BigInteger value = BigInteger.valueOf(value_ast.get(ast_ordinal.getBASE_VALUE()).as_int32());
                 return new CIntegerLiteralExpression(fileLoc,valueType,value);
-            }else if(valueType.getCanonicalType().equals(CNumericTypes.FLOAT)){
+            }else if(valueType.equals(CNumericTypes.FLOAT)||valueType.equals(CNumericTypes.DOUBLE)){
                 BigDecimal value = BigDecimal.valueOf(value_ast.get(ast_ordinal.getBASE_VALUE()).as_flt32());
                 return new CFloatLiteralExpression(fileLoc, valueType,value);
             } else {
@@ -1531,13 +1533,29 @@ public class CFGFunctionBuilder  {
 
         }else if(value_ast.isStructElementExpr()){//struct element, e.g., int p = astruct.a;
 
+            CFGAST variable = (CFGAST) value_ast.children().get(0).as_ast();
+            CType varType = typeConverter.getCType((CFGAST)variable.get(ast_ordinal.getBASE_TYPE()).as_ast());
+            CExpression variableExpr = getAssignedIdExpression(variable,varType,fileLoc);
+            String fieldName = value_ast.children().get(1).get(ast_ordinal.getBASE_NAME()).as_str();
+
+            return new CFieldReference(fileLoc, valueType, fieldName, variableExpr,
+                        valueType instanceof CPointerType);
+
         }else if(value_ast.isPointerAddressExpr()){//pointer address, e.g., char p[30]="say hello", *p1 = &r;
             return getPointerAddrExpr(value_ast, fileLoc);
         }else if(value_ast.isZeroInitExpr()){//zero initialization, e.g., char *p=NULL(), p1[30]={} (aggreate);
 
         }else if(value_ast.isPointerExpr()){//pointer, e.g., int i = *(p+1);
 
-        }else
+        }else if(value_ast.equalClass(ast_class.getNC_CASTEXPR())){
+            CType castType = typeConverter.getCType((CFGAST)value_ast.get(ast_ordinal.getNC_TYPE()).as_ast());
+            CFGAST operandAST = (CFGAST)value_ast.children().get(1).as_ast();
+            CType operandType = typeConverter.getCType((CFGAST)operandAST.get(ast_ordinal.getBASE_TYPE()).as_ast());
+            CExpression operand = getExpression(operandAST,operandType,fileLoc);
+            return new CCastExpression(fileLoc, castType, operand);
+        }else if(value_ast.equalClass(ast_class.getNC_ARRAY())){
+
+        }
             throw new RuntimeException("");
     }
 
@@ -1558,6 +1576,7 @@ public class CFGFunctionBuilder  {
 
         }
 
+        return null;
     }
 
     private CExpression createFromArithmeticOp(
