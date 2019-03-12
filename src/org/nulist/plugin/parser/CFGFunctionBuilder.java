@@ -778,33 +778,53 @@ public class CFGFunctionBuilder  {
         Optional<CExpression> returnExpression;
         Optional<CAssignment> returnAssignment;
         try {
-            CType expectedType = functionDeclaration.getType().getReturnType();
+
             CFGAST returnValue = (CFGAST) un_ast.get(ast_ordinal.getUC_RETURN_VALUE()).as_ast();
-            CExpression returnExpr = null;
-            if(returnValue.get_class().equals(ast_class.getUC_EXPR_CONSTANT())){
 
-            }else if(returnValue.get_class().equals(ast_class.getUC_EXPR_VARIABLE())){
+            CType expectedType = typeConverter.getCType((CFGAST)
+                        returnValue.get(ast_ordinal.getBASE_TYPE()).as_ast());
+            CExpression returnExp = null;
 
-            }else if(returnValue.get_class().equals(ast_class.getUC_FUNCTION_CALL())){
+            CFGAST value_ast;
+            if(returnValue.get_class().equals(ast_class.getUC_EXPR_CONSTANT())){//return 0; return true;
+                value_ast = (CFGAST) returnValue.get(ast_ordinal.getUC_CONSTANT()).as_ast();
+                if(expectedType.getCanonicalType().equals(CNumericTypes.CHAR)){
+                    char value = (char)value_ast.get(ast_ordinal.getBASE_VALUE()).as_int8();
+                    returnExp = new CCharLiteralExpression(fileloc, expectedType, value);
+                }else if(expectedType.getCanonicalType().equals(CNumericTypes.INT)){
+                    BigInteger value = BigInteger.valueOf(value_ast.get(ast_ordinal.getBASE_VALUE()).as_int32());
+                    returnExp = new CIntegerLiteralExpression(fileloc,expectedType,value);
+                }else if(expectedType.getCanonicalType().equals(CNumericTypes.FLOAT)){
+                    BigDecimal value = BigDecimal.valueOf(value_ast.get(ast_ordinal.getBASE_VALUE()).as_flt32());
+                    returnExp = new CFloatLiteralExpression(fileloc, expectedType,value);
+                }
 
-            }else if(returnValue.get_class().equals(ast_class.getUC_SUBSCRIPT())){
+            }else if(returnValue.get_class().equals(ast_class.getUC_EXPR_VARIABLE())){//return a;
+                value_ast = (CFGAST) returnValue.get(ast_ordinal.getUC_VARIABLE()).as_ast();
+                returnExp = getAssignedIdExpression(value_ast,expectedType,fileloc);
+            }else if(returnValue.get_class().equals(ast_class.getUC_FUNCTION_CALL())){//return function();
+                value_ast = (CFGAST) returnValue.get(ast_ordinal.getUC_OPERANDS()).as_ast();
 
+            }else if(returnValue.get_class().equals(ast_class.getUC_SUBSCRIPT())){//return p[2]
+                value_ast = (CFGAST) returnValue.get(ast_ordinal.getUC_OPERANDS()).as_ast();
+                CExpression arrayExpr =;
+                CExpression subscriptExpr = ;
+                returnExp = new CArraySubscriptExpression(fileloc, expectedType,)
             }else {
                 System.out.println(returnValue.get_class().name());
             }
-//            CType expectedType = typeConverter.getCType(returnVal.typeOf());
-//            CExpression returnExp = getExpression(returnVal, expectedType, pFileName);
-//            maybeExpression = Optional.of(returnExp);
-//
-//            CSimpleDeclaration returnVarDecl =
-//                    getReturnVar(pFuncName, returnExp.getExpressionType(), returnExp.getFileLocation());
-//
-//            CIdExpression returnVar = new CIdExpression(getLocation(returnVal, pFileName), returnVarDecl);
-//
-//            CAssignment returnVarAssignment =
-//                    new CExpressionAssignmentStatement(
-//                            getLocation(returnVal, pFileName), returnVar, returnExp);
-//            maybeAssignment = Optional.of(returnVarAssignment);
+
+
+            returnExpression = Optional.of(returnExp);
+
+            CSimpleDeclaration returnVarDecl = (CSimpleDeclaration) cfa.getReturnVariable();
+
+            CIdExpression returnVar = new CIdExpression(fileloc, returnVarDecl);
+
+            CAssignment returnVarAssignment =
+                    new CExpressionAssignmentStatement(
+                            fileloc, returnVar, returnExp);
+            returnAssignment = Optional.of(returnVarAssignment);
 
 
         }catch (result r){
@@ -812,10 +832,13 @@ public class CFGFunctionBuilder  {
             returnAssignment = Optional.absent();
         }
 
+        CFANode prevNode = cfaNodeMap.get(returnNode.id());
 
-        CReturnStatement(getLocation(pItem, pFileName), maybeExpression, maybeAssignment));
+        CReturnStatement returnStatement = new CReturnStatement(fileloc, returnExpression, returnAssignment);
 
-        CReturnStatementEdge returnStatementEdge = new CReturnStatementEdge()
+        CReturnStatementEdge returnStatementEdge = new CReturnStatementEdge(returnNode.getRawSignature(),
+                returnStatement, fileloc, prevNode, cfa.getExitNode());
+        addToCFA(returnStatementEdge);
     }
 
 
