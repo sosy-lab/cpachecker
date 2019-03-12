@@ -91,7 +91,6 @@ public class ARGToCTranslatorTest {
     reConfig =
         TestDataTools.configurationForTest()
             .loadFromResource(ARGToCTranslatorTest.class, "predicateAnalysis.properties")
-            .setOption("parser.usePreprocessor", "true")
             .build();
     StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
     stringLogHandler.setLevel(Level.ALL);
