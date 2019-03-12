@@ -139,28 +139,10 @@ public class HarnessTransferRelation
     boolean modifier = pEdge.getTruthAssumption();
     if (expression instanceof CBinaryExpression) {
       CBinaryExpression binaryExpression = (CBinaryExpression) expression;
-      CExpression operand1 = binaryExpression.getOperand1();
-      CExpression operand2 = binaryExpression.getOperand2();
-
-      boolean op1IsPointerExpression = operand1 instanceof CPointerExpression;
-      boolean op2IsPointerExpression = operand2 instanceof CPointerExpression;
-
-      boolean op1IsIdExpression = operand1 instanceof CIdExpression;
-      boolean op2IsIdExpression = operand2 instanceof CIdExpression;
-
-      if (op1IsPointerExpression) {
-        CPointerExpression op1PExp = (CPointerExpression) operand1;
-        CType op1ExpType = operand1.getExpressionType();
-        CType canonType = op1ExpType.getCanonicalType();
-      } ;
-
-      if (op1IsPointerExpression) {
-        CPointerExpression op1PointerExpression = (CPointerExpression) operand1;
-        CExpression op1PointerExpressionOperand = op1PointerExpression.getOperand();
-      }
-
-      CType operand1Type = operand1.getExpressionType();
-      if (operand1Type instanceof CPointerType) {
+      CExpression firstOperand = binaryExpression.getOperand1();
+      CType firstOperandExpressionType = firstOperand.getExpressionType();
+      boolean isPointerComparison = firstOperandExpressionType instanceof CPointerExpression;
+      if (isPointerComparison) {
         BinaryOperator binaryOperator = binaryExpression.getOperator();
         if ((binaryOperator == BinaryOperator.EQUALS && modifier)
             || (binaryOperator == BinaryOperator.NOT_EQUALS && !modifier)) {
