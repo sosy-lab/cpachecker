@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -47,7 +48,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
  */
 
 @Options(prefix = "cpa.harness")
-public class HarnessCPA extends AbstractCPA {
+public class HarnessCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM {
 
 
   @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
