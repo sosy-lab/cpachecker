@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.harness;
 
-import com.google.common.collect.ImmutableSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -33,19 +32,16 @@ import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.harness.ComparableFunctionDeclaration;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -98,72 +94,85 @@ public class HarnessState implements AbstractState {
     return this;
   }
 
-  private MemoryLocation getLocationFromIdExpression(CIdExpression pExpression) {
-    return memoryLocations.stream()
-        .filter(m -> m.getIdentifier() == pExpression.getName())
-        .findFirst()
-        .orElse(new MemoryLocation(pExpression));
-  }
-
-  public HarnessState
-      addPointerVariableAssignment(CLeftHandSide pLeftHandSide, CRightHandSide pRightHandSide) {
+  public HarnessState addPointerVariableToUndefinedFunctionCallAssignment(
+      HarnessState pState,
+      CLeftHandSide pLeftHandSide,
+      CFunctionCallExpression pFunctionCallExpression) {
+    String lhsString;
     if (pLeftHandSide instanceof CIdExpression) {
       CIdExpression lhsIdExpression = (CIdExpression) pLeftHandSide;
       CSimpleDeclaration lhsDeclaration = lhsIdExpression.getDeclaration();
-      String lhsIdentifier = lhsDeclaration.getQualifiedName();
+      lhsString = lhsDeclaration.getQualifiedName();
     } else {
-      CLeftHandSideVisitor visitor = newLeftHandSideVisitor() {
+      lhsString = pLeftHandSide.toQualifiedASTString();
     }
+    CFunctionDeclaration functionDeclaration = pFunctionCallExpression.getDeclaration();
+    String functionName = functionDeclaration.getQualifiedName();
+    PersistentList<MemoryLocation> currentCalls = externFunctionCalls.get(functionName);
+    MemoryLocation returnedValue = MemoryLocation.valueOf(functionName + currentCalls.size());
+    PersistentList<MemoryLocation> newCalls = currentCalls.with(returnedValue);
+    PersistentMap<String, PersistentList<MemoryLocation>> newExternFunctionCalls =
+        externFunctionCalls.putAndCopy(functionName, newCalls);
+    PersistentMap<String, MemoryLocation> newPointerVariableAssignments =
+        pointerVariableAssignments.putAndCopy(lhsString, returnedValue);
+    PartitionElement<MemoryLocation> newLocationEqualityAssumptions =
+        locationEqualityAssumptions.makeSet(returnedValue);
     return new HarnessState(
-        newLocations,
-        pointers,
-        externallyKnownLocations,
-        externFunctionCalls).addPointsToInformation(pAssigneeLocation, assignedLocation);
-  }
-
-
-  public HarnessState addMemoryLocation(CVariableDeclaration pDeclaration) {
-    String variableName = pDeclaration.getName();
-    MemoryLocation newLocation = new MemoryLocation(variableName);
-    ImmutableSet.Builder<MemoryLocation> memoryLocationsBuilder = ImmutableSet.builder();
-    memoryLocationsBuilder.addAll(memoryLocations);
-    memoryLocationsBuilder.add(newLocation);
-    ImmutableSet<MemoryLocation> newLocations = memoryLocationsBuilder.build();
-    return new HarnessState(
-        newLocations,
-        pointers,
-        externallyKnownLocations,
-        externFunctionCalls);
-  }
-
-  public HarnessState addMemoryLocation(MemoryLocation pMemoryLocation) {
-    ImmutableSet.Builder<MemoryLocation> memoryLocationsBuilder = ImmutableSet.builder();
-    memoryLocationsBuilder.addAll(memoryLocations);
-    memoryLocationsBuilder.add(pMemoryLocation);
-    ImmutableSet<MemoryLocation> newLocations = memoryLocationsBuilder.build();
-    return new HarnessState(
-        newLocations,
-        pointers,
-        externallyKnownLocations,
-        externFunctionCalls);
+        newPointerVariableAssignments,
+        newLocationEqualityAssumptions,
+        orderedExternallyKnownLocations,
+        newExternFunctionCalls);
   }
 
   public HarnessState
-      addPointsToInformation(MemoryLocation pAssigneeLocation, MemoryLocation pAssignedLocation) {
-    PointerState newPointers = pointers.addPointer(pAssigneeLocation, pAssignedLocation);
+      addPointerVariableAssignment(
+          HarnessState pState,
+          CLeftHandSide pLeftHandSide,
+          CRightHandSide pRightHandSide) {
+
+    String lhsString, rhsString;
+    MemoryLocation rhsValue;
+
+    // Get String representations of both sides of the assignment
+    if (pLeftHandSide instanceof CIdExpression) {
+      CIdExpression lhsIdExpression = (CIdExpression) pLeftHandSide;
+      CSimpleDeclaration lhsDeclaration = lhsIdExpression.getDeclaration();
+      lhsString = lhsDeclaration.getQualifiedName();
+    } else {
+      lhsString = pLeftHandSide.toQualifiedASTString();
+    }
+    if (pRightHandSide instanceof CIdExpression) {
+      CIdExpression rhsIdExpression = (CIdExpression) pRightHandSide;
+      CSimpleDeclaration rhsSimpleDeclaration = rhsIdExpression.getDeclaration();
+      rhsString = rhsSimpleDeclaration.getQualifiedName();
+    } else {
+      rhsString = pRightHandSide.toQualifiedASTString();
+    }
+
+    // Get a MemoryLocation representing the value of the RightHandSideExpression
+    // TODO: properly handle cases where either of the sides is not an Id Expression. By
+    // strengthening with pointerAnalysis.
+
+    if (pRightHandSide instanceof CFunctionCallExpression) {
+      rhsValue = MemoryLocation.valueOf(rhsString);
+    } else {
+      rhsValue = pointerVariableAssignments.getOrDefault(rhsString, MemoryLocation.valueOf("null"));
+    }
+    PersistentMap<String, MemoryLocation> newPointerVariableAssignments =
+        pointerVariableAssignments.putAndCopy(lhsString, rhsValue);
     return new HarnessState(
-        memoryLocations,
-        newPointers,
-        externallyKnownLocations,
+        newPointerVariableAssignments,
+        locationEqualityAssumptions,
+        orderedExternallyKnownLocations,
         externFunctionCalls);
   }
 
-  public HarnessState addExternallyKnownPointer(MemoryLocation pPointerLocation) {
+  private HarnessState addExternallyKnownPointer(MemoryLocation pPointerLocation) {
     PersistentList<MemoryLocation> newExternallyKnownPointers =
-        externallyKnownLocations.with(pPointerLocation);
+        orderedExternallyKnownLocations.with(pPointerLocation);
     return new HarnessState(
-        memoryLocations,
-        pointers,
+        pointerVariableAssignments,
+        locationEqualityAssumptions,
         newExternallyKnownPointers,
         externFunctionCalls);
   }
@@ -175,32 +184,6 @@ public class HarnessState implements AbstractState {
       return operator.getOperator() == "&";
     }
     return false;
-  }
-
-
-
-  public HarnessState addPointerDeclaration(CVariableDeclaration pVariableDeclaration) {
-    String identifier = pVariableDeclaration.getName();
-    MemoryLocation pointerLocation = new MemoryLocation(identifier);
-    MemoryLocation pointerTarget = new MemoryLocation();
-    PointerState newPointers =
-        pointers.addPointer(pointerLocation, pointerTarget);
-    return new HarnessState(
-        memoryLocations,
-        newPointers,
-        externallyKnownLocations,
-        externFunctionCalls);
-  }
-
-  public HarnessState
-      addExternFunctionCallNoPointerParam(ComparableFunctionDeclaration pFunctionDeclaration) {
-    ExternFunctionCallsState newExternFunctionCallsState =
-        externFunctionCalls.addExternFunctionCall(pFunctionDeclaration);
-    return new HarnessState(
-        memoryLocations,
-        pointers,
-        externallyKnownLocations,
-        newExternFunctionCallsState);
   }
 
   public HarnessState addExternFunctionCallWithPointerParams(CFunctionCallExpression pExpression) {
@@ -221,23 +204,7 @@ public class HarnessState implements AbstractState {
     return this;
   }
 
-  public HarnessState
-      addPointsToInformation(CExpression pLeftHandSide, MemoryLocation pLocation) {
-    // TODO: handle cases where leftHandSide is not an IdExpression, e.g. a[3] = malloc()
-    CIdExpression idExpression = (CIdExpression) pLeftHandSide;
-    String lhsName = idExpression.getName();
-    MemoryLocation lhsLocation = pointers.fromIdentifier(lhsName);
-    PointerState newPointers = pointers.addPointerIfNotExists(lhsLocation, pLocation);
-    HarnessState newState =
-        new HarnessState(
-            memoryLocations,
-            newPointers,
-            externallyKnownLocations,
-            externFunctionCalls);
-    return newState;
-  }
-
-  public HarnessState merge(CExpression pOperand1, CExpression pOperand2) {
+  private HarnessState merge(CExpression pOperand1, CExpression pOperand2) {
     final MemoryLocation firstPointerValue = pointers.getValue(pOperand1);
     final MemoryLocation secondPointerValue = pointers.getValue(pOperand2);
 
@@ -312,8 +279,4 @@ public class HarnessState implements AbstractState {
     return newState;
   }
 
-  public HarnessState addMemoryLocations(List<CDeclaration> pPointerMembers) {
-    // TODO Auto-generated method stub
-    return null;
-  }
 }
