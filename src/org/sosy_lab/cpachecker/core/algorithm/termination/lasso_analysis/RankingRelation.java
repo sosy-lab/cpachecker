@@ -34,7 +34,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
-import javax.annotation.CheckReturnValue;
+import com.google.errorprone.annotations.CheckReturnValue;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;

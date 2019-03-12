@@ -77,46 +77,36 @@ You can get test reports in the folder `src/org/sosy_lab/cpachecker/core/counter
 
 ## End-to-End testing
 
-Protractor e2e-tests are located in the `src/org/sosy_lab/cpachecker/core/counterexample/e2e-tests` folder. Their filenames must end in `_spec.js`.
+### Setup
 
-The above directory is a root for End-to-end testing JavaScript for AngularJS report application.
+First we generate our AngularJS report application for an example program and then we use this report for end-to-end testing.
+We are using Chromium browser and Selenium web driver for end-to-end testing application.
 
-Look for the example `src/org/sosy_lab/cpachecker/core/counterexample/e2e-tests/test_spec.js`.
+The tests are written for Protractor and are located in the `src/org/sosy_lab/cpachecker/core/counterexample/e2e-tests` folder.
+Their filenames must end in `_spec.js`.
+An example test is in `src/org/sosy_lab/cpachecker/core/counterexample/e2e-tests/test_spec.js`.
 Add more `_spec.js` files as you wish in the above folder; we have configured Protractor to find them.
 
-### Installation
-
-**1. e2e-conf.js:**
-
-This is the configuration file for your `Protractor` and it houses information such as the file format that `Protractor` should look for when running test cases.
-
-**2. 'e2e-test' directory:**
-
-There is a directory titled `e2e-test` in the testing directory. 
-
-It houses all `test case` files for End-to-end testing.
-
-### Configuration
-
-First we have to generate our AngularJS report application for a program and then we use this application for End-to-end testing. 
-
-We are using Chromium browser and Selenium web driver for End-to-end testing application.
-
-For more information regarding configuration you can browse `e2e-conf.js`.
-
+The configuration for Protractor is present in `e2e-conf.js`.
 
 ### Running tests
 
 Run the below commands in your terminal for End-to-end testing:
 
-1. Check if you have `JAVA` and Chrome or Chromium Browser installed in your OS. If not install it for running tests.
+1. Check if you have Java >= 8, Node >= 8, NPM, and Chrome or Chromium Browser installed.
+   If not install it for running tests.
+   On Ubuntu 18.04, these can be installed from the package repository.
+   Alternatively, use our docker image:
+   `docker run -it -v $(pwd):$(pwd) -w $(pwd) registry.gitlab.com/sosy-lab/software/cpachecker/test:java-node /bin/bash`
 
-2. Generate Counterexample report for the a specific program (test/programs/simple/SSAMap-bug_false-unreach-label.c) in the root of this application using command `scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug_false-unreach-label.c` (for Unix based OS) and `scripts\cpa.bat -predicateAnalysis-linear -setprop analysis.checkCounterexamples=false -setprop solver.solver=smtinterpol test\programs\simple\SSAMap-bug_false-unreach-label.c` (for Windows based OS). 
+2. Generate Counterexample report for a specific program (`test/programs/simple/SSAMap-bug_false-unreach-label.c`) in the root of this application using
+  `scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug_false-unreach-label.c` (for Unix based OS) and
+  `scripts\cpa.bat -predicateAnalysis-linear -setprop analysis.checkCounterexamples=false -setprop solver.solver=smtinterpol test\programs\simple\SSAMap-bug_false-unreach-label.c` (for Windows based OS).
 
 3. Navigate to `src/org/sosy_lab/cpachecker/core/counterexample` and run
-`npm install`<br>
-At first you have to install all dependencies and third party libraries to run the test cases.
-This command is not needed everytime you run the tests, it is required for the first time.
+  `npm install` and `./node_modules/protractor/node_modules/webdriver-manager/bin/webdriver-manager update`
+  to install all dependencies and third party libraries.
+  This is not needed only once.
 
 4.  `npm run e2e-test`<br>
 This command first compiles the application, then simultaneously re-compiles and runs the Protractor test-runner. 

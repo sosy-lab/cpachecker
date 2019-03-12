@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import org.sosy_lab.common.annotations.FieldsAreNonnullByDefault;
 import org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault;
@@ -367,6 +367,14 @@ final class VariableAndFieldRelevancyComputer {
       return ImmutableMultimap.copyOf(squashed.addressedFields);
     }
 
+    /**
+     * This methods performs a forward search on the graph formed by the previously collected
+     * dependencies. We start at the variables and fields that are already found to be relevant and
+     * flag everything as relevant that is reachable from there.
+     *
+     * @return a pair consisting of 1. all the found relevant variables and 2. a mapping of
+     *     composite types to all the found relevant-field names
+     */
     public Pair<ImmutableSet<String>, ImmutableMultimap<CCompositeType, String>>
         computeRelevantVariablesAndFields() {
       ensureSquashed();

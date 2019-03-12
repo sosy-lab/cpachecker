@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.smg.util;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Iterables;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -33,6 +33,7 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 
 /** A Multimap-implementation based on the {@link PathCopyingPersistentTreeMap}. */
+@Immutable(containerOf = {"K", "V"})
 public class PersistentMultimap<K, V> {
 
   private final PersistentMap<K, ImmutableSet<V>> delegate;
@@ -50,7 +51,7 @@ public class PersistentMultimap<K, V> {
   }
 
   public PersistentMultimap<K, V> putAllAndCopy(K key, Iterable<V> values) {
-    Builder<V> builder = ImmutableSet.builder();
+    ImmutableSet.Builder<V> builder = ImmutableSet.builder();
     Set<V> old = delegate.get(key);
     if (old != null) {
       builder.addAll(old);
@@ -75,7 +76,7 @@ public class PersistentMultimap<K, V> {
     if (old == null || !old.contains(value)) {
       return this;
     }
-    Builder<V> builder = ImmutableSet.builder();
+    ImmutableSet.Builder<V> builder = ImmutableSet.builder();
     builder.addAll(Iterables.filter(old, e -> !e.equals(value)));
     ImmutableSet<V> fresh = builder.build();
     if (fresh.isEmpty()) {

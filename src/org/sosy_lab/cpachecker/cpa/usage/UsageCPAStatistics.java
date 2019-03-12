@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.usage;
 
 import java.io.PrintStream;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -58,6 +58,12 @@ public class UsageCPAStatistics implements Statistics {
   )
   private OutputFileType outputFileType = OutputFileType.KLEVER;
 
+  @Option(
+    name = "printUnsafesIfUnknown",
+    description = "print found unsafes in case of unknown verdict",
+    secure = true)
+  private boolean printUnsafesInCaseOfUnknown = true;
+
   /* Previous container is used when internal time limit occurs
    * and we need to store statistics. In current one the information can be not
    * relevant (for example not all ARG was built).
@@ -71,13 +77,15 @@ public class UsageCPAStatistics implements Statistics {
   private ErrorTracePrinter errPrinter;
   private final CFA cfa;
 
-  private BAMCPA bamCpa;
+  private BAMMultipleCEXSubgraphComputer computer;
 
-  public final StatTimer transferRelationTimer = new StatTimer("Time for transfer relation");
-  public final StatTimer usagePreparationTimer = new StatTimer("Time for usage handling");
-  public final StatTimer innerAnalysisTimer = new StatTimer("Time for inner analyses");
-  public final StatTimer printStatisticsTimer = new StatTimer("Time for printing statistics");
-  public final StatTimer printUnsafesTimer = new StatTimer("Time for unsafes printing");
+  final StatTimer transferRelationTimer = new StatTimer("Time for transfer relation");
+  final StatTimer usagePreparationTimer = new StatTimer("Time for usage transfer");
+  final StatTimer innerAnalysisTimer = new StatTimer("Time for inner analyses");
+  final StatTimer extractStatesTimer = new StatTimer("Time for state extraction");
+  private final StatTimer printStatisticsTimer = new StatTimer("Time for printing statistics");
+  private final StatTimer printUnsafesTimer = new StatTimer("Time for unsafes printing");
+  // public final StatCounter numberOfStatesCounter = new StatCounter("Number of states");
 
   public UsageCPAStatistics(
       Configuration pConfig, LogManager pLogger, CFA pCfa, LockTransferRelation lTransfer)
@@ -87,44 +95,53 @@ public class UsageCPAStatistics implements Statistics {
     lockTransfer = lTransfer;
     config = pConfig;
     cfa = pCfa;
+    computer = null;
   }
 
   @Override
   public void printStatistics(
       final PrintStream out, final Result result, final UnmodifiableReachedSet reached) {
-    try {
-      printUnsafesTimer.start();
-      BAMMultipleCEXSubgraphComputer computer = null;
-      if (bamCpa != null) {
-        computer = bamCpa.createBAMMultipleSubgraphComputer(ARGState::getStateId);
-      }
-      if (outputFileType == OutputFileType.KLEVER) {
-        errPrinter = new KleverErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
-      } else if (outputFileType == OutputFileType.KLEVER_OLD) {
-        errPrinter = new KleverErrorTracePrinterOld(config, computer, cfa, logger, lockTransfer);
-      } else if (outputFileType == OutputFileType.ETV) {
-        errPrinter = new ETVErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
-      }
-      errPrinter.printErrorTraces(reached);
-      printUnsafesTimer.stop();
 
-      printStatisticsTimer.start();
-      StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
-      writer.put(transferRelationTimer);
-      writer.put(usagePreparationTimer);
-      writer.put(innerAnalysisTimer);
-      writer.put(printStatisticsTimer);
-      errPrinter.printStatistics(writer);
-      UsageState.get(reached.getFirstState()).getStatistics().printStatistics(writer);
-      // out.
-      printStatisticsTimer.stop();
-    } catch (InvalidConfigurationException e) {
-      logger.log(Level.SEVERE, "Cannot create error trace printer: " + e.getMessage());
+    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
+    writer.put(transferRelationTimer)
+          .put(usagePreparationTimer)
+          .put(innerAnalysisTimer)
+        .put(extractStatesTimer);
+
+    if (printUnsafesInCaseOfUnknown || result != Result.UNKNOWN) {
+      printUnsafesTimer.start();
+      try {
+        switch (outputFileType) {
+          case KLEVER:
+            errPrinter = new KleverErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
+            break;
+          case KLEVER_OLD:
+            errPrinter =
+                new KleverErrorTracePrinterOld(config, computer, cfa, logger, lockTransfer);
+            break;
+          case ETV:
+            errPrinter = new ETVErrorTracePrinter(config, computer, cfa, logger, lockTransfer);
+            break;
+          default:
+            throw new UnsupportedOperationException("Unknown type " + outputFileType);
+        }
+        errPrinter.printErrorTraces(reached);
+        errPrinter.printStatistics(writer);
+      } catch (InvalidConfigurationException e) {
+        logger.log(Level.SEVERE, "Cannot create error trace printer: " + e.getMessage());
+      }
+      printUnsafesTimer.stop();
     }
+
+    printStatisticsTimer.start();
+    UsageState.get(reached.getFirstState()).getStatistics().printStatistics(writer);
+    writer.put(printUnsafesTimer);
+    printStatisticsTimer.stop();
+    writer.put(printStatisticsTimer);
   }
 
   public void setBAMCPA(BAMCPA pBamCpa) {
-    bamCpa = pBamCpa;
+    computer = pBamCpa.createBAMMultipleSubgraphComputer(ARGState::getStateId);
   }
 
   @Override

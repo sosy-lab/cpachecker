@@ -32,7 +32,7 @@ import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -441,7 +441,7 @@ public enum MachineModel {
      * These are called the integer promotions.
      * All smaller integer types actually fit in an int, even (n-1)-bit bitfields.
      */
-    if (getSizeof(pType) < getSizeofInt()) {
+    if (getSizeof(pType).compareTo(BigInteger.valueOf(getSizeofInt())) < 0) {
       return CNumericTypes.SIGNED_INT;
     } else {
       return pType;
@@ -492,7 +492,8 @@ public enum MachineModel {
   private final BaseSizeofVisitor sizeofVisitor =
       new BaseSizeofVisitor(this);
 
-  public static class BaseSizeofVisitor implements CTypeVisitor<Integer, IllegalArgumentException> {
+  public static class BaseSizeofVisitor
+      implements CTypeVisitor<BigInteger, IllegalArgumentException> {
     private final MachineModel model;
 
     protected BaseSizeofVisitor(MachineModel model) {
@@ -500,24 +501,25 @@ public enum MachineModel {
     }
 
     @Override
-    public Integer visit(CArrayType pArrayType) throws IllegalArgumentException {
+    public BigInteger visit(CArrayType pArrayType) throws IllegalArgumentException {
       // TODO: Take possible padding into account
 
       CExpression arrayLength = pArrayType.getLength();
 
       if (arrayLength instanceof CIntegerLiteralExpression) {
-        int length = ((CIntegerLiteralExpression) arrayLength).getValue().intValue();
+        BigInteger length =
+            ((CIntegerLiteralExpression) arrayLength).getValue();
 
-        int sizeOfType = model.getSizeof(pArrayType.getType());
-        return length * sizeOfType;
+        BigInteger sizeOfType = model.getSizeof(pArrayType.getType());
+        return length.multiply(sizeOfType);
       }
 
       // Treat arrays with variable length as pointer.
-      return model.getSizeofPtr();
+      return BigInteger.valueOf(model.getSizeofPtr());
     }
 
     @Override
-    public Integer visit(CCompositeType pCompositeType) throws IllegalArgumentException {
+    public BigInteger visit(CCompositeType pCompositeType) throws IllegalArgumentException {
 
       switch (pCompositeType.getKind()) {
         case STRUCT:
@@ -530,44 +532,44 @@ public enum MachineModel {
       }
     }
 
-    private int calculateByteSize(int pBitFieldsSize) {
-      if (pBitFieldsSize == 0) {
-        return 0;
+    private BigInteger calculateByteSize(BigInteger pBitFieldsSize) {
+      if (pBitFieldsSize.compareTo(BigInteger.ZERO) == 0) {
+        return BigInteger.ZERO;
       }
 
-      int result = pBitFieldsSize / model.getSizeofCharInBits();
-      if (pBitFieldsSize % model.getSizeofCharInBits() > 0) {
-        result++;
+      BigInteger charSizeInBits = BigInteger.valueOf(model.getSizeofCharInBits());
+      BigInteger result = pBitFieldsSize.divide(charSizeInBits);
+      if (pBitFieldsSize.mod(charSizeInBits).compareTo(BigInteger.ZERO) > 0) {
+        result = result.add(BigInteger.ONE);
       }
       return result;
     }
 
-    private Integer handleSizeOfStruct(CCompositeType pCompositeType) {
-      long size = model.getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pCompositeType, null, null);
-
-      return Math.toIntExact(size);
+    private BigInteger handleSizeOfStruct(CCompositeType pCompositeType) {
+      return model.getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
+          pCompositeType, null, null);
     }
 
-    private Integer handleSizeOfUnion(CCompositeType pCompositeType) {
-      int size = 0;
-      int sizeOfType = 0;
+    private BigInteger handleSizeOfUnion(CCompositeType pCompositeType) {
+      BigInteger size = BigInteger.ZERO;
+      BigInteger sizeOfType = BigInteger.ZERO;
       // TODO: Take possible padding into account
       for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
         sizeOfType = decl.getType().accept(this);
-        size = Math.max(size, sizeOfType);
+        size = size.max(sizeOfType);
       }
       return size;
     }
 
     @Override
-    public Integer visit(CElaboratedType pElaboratedType) throws IllegalArgumentException {
+    public BigInteger visit(CElaboratedType pElaboratedType) throws IllegalArgumentException {
       CType def = pElaboratedType.getRealType();
       if (def != null) {
         return def.accept(this);
       }
 
       if (pElaboratedType.getKind() == ComplexTypeKind.ENUM) {
-        return model.getSizeofInt();
+        return BigInteger.valueOf(model.getSizeofInt());
       }
 
       throw new IllegalArgumentException(
@@ -575,49 +577,49 @@ public enum MachineModel {
     }
 
     @Override
-    public Integer visit(CEnumType pEnumType) throws IllegalArgumentException {
-      return model.getSizeofInt();
+    public BigInteger visit(CEnumType pEnumType) throws IllegalArgumentException {
+      return BigInteger.valueOf(model.getSizeofInt());
     }
 
     @Override
-    public Integer visit(CFunctionType pFunctionType) throws IllegalArgumentException {
+    public BigInteger visit(CFunctionType pFunctionType) throws IllegalArgumentException {
       // A function does not really have a size,
       // but references to functions can be used as pointers.
-      return model.getSizeofPtr();
+      return BigInteger.valueOf(model.getSizeofPtr());
     }
 
     @Override
-    public Integer visit(CPointerType pPointerType) throws IllegalArgumentException {
-      return model.getSizeofPtr();
+    public BigInteger visit(CPointerType pPointerType) throws IllegalArgumentException {
+      return BigInteger.valueOf(model.getSizeofPtr());
     }
 
     @Override
-    public Integer visit(CProblemType pProblemType) throws IllegalArgumentException {
+    public BigInteger visit(CProblemType pProblemType) throws IllegalArgumentException {
       throw new IllegalArgumentException("Unknown C-Type: " + pProblemType.getClass().toString());
     }
 
     @Override
-    public Integer visit(CSimpleType pSimpleType) throws IllegalArgumentException {
-      return model.getSizeof(pSimpleType);
+    public BigInteger visit(CSimpleType pSimpleType) throws IllegalArgumentException {
+      return BigInteger.valueOf(model.getSizeof(pSimpleType));
     }
 
     @Override
-    public Integer visit(CTypedefType pTypedefType) throws IllegalArgumentException {
+    public BigInteger visit(CTypedefType pTypedefType) throws IllegalArgumentException {
       return pTypedefType.getRealType().accept(this);
     }
 
     @Override
-    public Integer visit(CVoidType pVoidType) throws IllegalArgumentException {
-      return model.getSizeofVoid();
+    public BigInteger visit(CVoidType pVoidType) throws IllegalArgumentException {
+      return BigInteger.valueOf(model.getSizeofVoid());
     }
 
     @Override
-    public Integer visit(CBitFieldType pCBitFieldType) throws IllegalArgumentException {
-      return calculateByteSize(pCBitFieldType.getBitFieldSize());
+    public BigInteger visit(CBitFieldType pCBitFieldType) throws IllegalArgumentException {
+      return calculateByteSize(BigInteger.valueOf(pCBitFieldType.getBitFieldSize()));
     }
   }
 
-  public int getSizeof(CType pType) {
+  public BigInteger getSizeof(CType pType) {
     checkArgument(
         pType instanceof CVoidType || !pType.isIncomplete(),
         "Cannot compute size of incomplete type %s",
@@ -625,7 +627,7 @@ public enum MachineModel {
     return getSizeof(pType, sizeofVisitor);
   }
 
-  public int getSizeof(CType pType, BaseSizeofVisitor pSizeofVisitor) {
+  public BigInteger getSizeof(CType pType, BaseSizeofVisitor pSizeofVisitor) {
     checkNotNull(pSizeofVisitor);
     return pType.accept(pSizeofVisitor);
   }
@@ -634,16 +636,19 @@ public enum MachineModel {
     return getSizeofPtr() * getSizeofCharInBits();
   }
 
-  public int getSizeofInBits(CType pType) {
+  public BigInteger getSizeofInBits(CType pType) {
     return getSizeofInBits(pType, sizeofVisitor);
   }
 
-  public int getSizeofInBits(CType pType, BaseSizeofVisitor pSizeofVisitor) {
+  public BigInteger getSizeofInBits(CType pType, BaseSizeofVisitor pSizeofVisitor) {
     checkNotNull(pSizeofVisitor);
     if (pType instanceof CBitFieldType) {
-      return ((CBitFieldType) pType).getBitFieldSize();
+      return BigInteger.valueOf(((CBitFieldType) pType).getBitFieldSize());
     } else {
-      return getSizeof(pType, pSizeofVisitor) * getSizeofCharInBits();
+      return getSizeof(pType, pSizeofVisitor)
+          .multiply(
+              BigInteger.valueOf(
+                  getSizeofCharInBits()));
     }
   }
 
@@ -784,9 +789,9 @@ public enum MachineModel {
    * @param pOwnerType a {@link CCompositeType} to calculate its fields offsets
    * @return a mapping of typeMemberDeclarations to there corresponding offsets in pOwnerType
    */
-  public Map<CCompositeTypeMemberDeclaration, Long> getAllFieldOffsetsInBits(
+  public Map<CCompositeTypeMemberDeclaration, BigInteger> getAllFieldOffsetsInBits(
       CCompositeType pOwnerType) {
-    ImmutableMap.Builder<CCompositeTypeMemberDeclaration, Long> outParameterMap =
+    ImmutableMap.Builder<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap =
         ImmutableMap.builder();
 
     getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pOwnerType, null, outParameterMap);
@@ -801,7 +806,7 @@ public enum MachineModel {
    * @param pFieldName the name of the field to calculate its offset
    * @return the offset of the given field
    */
-  public long getFieldOffsetInBits(CCompositeType pOwnerType, String pFieldName) {
+  public BigInteger getFieldOffsetInBits(CCompositeType pOwnerType, String pFieldName) {
     checkNotNull(pFieldName);
     return getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pOwnerType, pFieldName, null);
   }
@@ -818,10 +823,10 @@ public enum MachineModel {
    *     fields to offsets in; may be <code>null</code> if not required
    * @return a long that is either the offset of the given field or the size of the whole type
    */
-  private long getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
+  private BigInteger getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
       CCompositeType pOwnerType,
       @Nullable String pFieldName,
-      @Nullable ImmutableMap.Builder<CCompositeTypeMemberDeclaration, Long> outParameterMap) {
+      ImmutableMap.@Nullable Builder<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap) {
     checkArgument(
         (pFieldName == null) || (outParameterMap == null),
         "Call of this method does only make sense if either pFieldName or outParameterMap "
@@ -830,8 +835,8 @@ public enum MachineModel {
     final ComplexTypeKind ownerTypeKind = pOwnerType.getKind();
     List<CCompositeTypeMemberDeclaration> typeMembers = pOwnerType.getMembers();
 
-    long bitOffset = 0L;
-    long sizeOfConsecutiveBitFields = 0;
+    BigInteger bitOffset = BigInteger.ZERO;
+    BigInteger sizeOfConsecutiveBitFields = BigInteger.ZERO;
 
     long sizeOfByte = getSizeofCharInBits();
 
@@ -846,7 +851,7 @@ public enum MachineModel {
         }
       } else {
         for (CCompositeTypeMemberDeclaration typeMember : typeMembers) {
-          outParameterMap.put(typeMember, 0L);
+          outParameterMap.put(typeMember, BigInteger.ZERO);
         }
       }
     } else if (ownerTypeKind == ComplexTypeKind.STRUCT) {
@@ -855,7 +860,7 @@ public enum MachineModel {
         CCompositeTypeMemberDeclaration typeMember = iterator.next();
         CType type = typeMember.getType();
 
-        long fieldSizeInBits = -1;
+        BigInteger fieldSizeInBits = BigInteger.valueOf(-1);
         // If incomplete type at end of struct, just assume 0 for its size
         // and compute its offset as usual, since it isn't affected.
         //
@@ -876,7 +881,7 @@ public enum MachineModel {
             // safe to say, that this case will not occur
             // and if it does due to an error we already crash
             // in the getPadding-step below?
-            fieldSizeInBits = 0;
+            fieldSizeInBits = BigInteger.ZERO;
           }
         } else {
           fieldSizeInBits = getSizeofInBits(type);
@@ -885,13 +890,13 @@ public enum MachineModel {
         if (type instanceof CBitFieldType) {
           if (typeMember.getName().equals(pFieldName)) {
             // just escape the loop and return the current offset
-            bitOffset += sizeOfConsecutiveBitFields;
+            bitOffset = bitOffset.add(sizeOfConsecutiveBitFields);
             return bitOffset;
           }
 
           CType innerType = ((CBitFieldType) type).getType();
 
-          if (fieldSizeInBits == 0) {
+          if (fieldSizeInBits.compareTo(BigInteger.ZERO) == 0) {
             // Bitfields with length 0 guarantee that
             // the next bitfield starts at the beginning of the
             // next address an object of the declaring
@@ -919,27 +924,29 @@ public enum MachineModel {
             // in memory, while the same struct without the
             // 'char : 0;' member would just occupy 1 Byte.
             bitOffset =
-                calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, innerType, sizeOfByte);
-            sizeOfConsecutiveBitFields = 0L;
+                calculatePaddedBitsize(
+                    bitOffset, sizeOfConsecutiveBitFields, innerType, sizeOfByte);
+            sizeOfConsecutiveBitFields = BigInteger.ZERO;
           } else {
             sizeOfConsecutiveBitFields =
                 calculateNecessaryBitfieldOffset(
-                        sizeOfConsecutiveBitFields + bitOffset,
+                        sizeOfConsecutiveBitFields.add(bitOffset),
                         innerType,
                         sizeOfByte,
                         fieldSizeInBits)
-                    - bitOffset;
-            sizeOfConsecutiveBitFields += fieldSizeInBits;
+                    .subtract(bitOffset);
+            sizeOfConsecutiveBitFields = sizeOfConsecutiveBitFields.add(fieldSizeInBits);
           }
 
           // Put start offset of bitField to outParameterMap
           if (outParameterMap != null) {
-            outParameterMap.put(typeMember, bitOffset + sizeOfConsecutiveBitFields - fieldSizeInBits);
+            outParameterMap.put(
+                typeMember, bitOffset.add(sizeOfConsecutiveBitFields).subtract(fieldSizeInBits));
           }
         } else {
           bitOffset =
               calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, type, sizeOfByte);
-          sizeOfConsecutiveBitFields = 0L;
+          sizeOfConsecutiveBitFields = BigInteger.ZERO;
 
           if (typeMember.getName().equals(pFieldName)) {
             // just escape the loop and return the current offset
@@ -949,7 +956,7 @@ public enum MachineModel {
           if (outParameterMap != null) {
             outParameterMap.put(typeMember, bitOffset);
           }
-          bitOffset += fieldSizeInBits;
+          bitOffset = bitOffset.add(fieldSizeInBits);
         }
       }
     }
@@ -964,8 +971,8 @@ public enum MachineModel {
   }
 
   @Deprecated
-  public long calculateNecessaryBitfieldOffset(
-      long pBitFieldOffset, CType pType, long pSizeOfByte, long pBitFieldLength) {
+  public BigInteger calculateNecessaryBitfieldOffset(
+      BigInteger pBitFieldOffset, CType pType, long pSizeOfByte, BigInteger pBitFieldLength) {
     // gcc -std=c11 implements bitfields such, that it only positions a bitfield 'B'
     // directly adjacent to its preceding bitfield 'A', if 'B' fits into the
     // remainder of its own alignment unit that is already partially occupied by
@@ -976,36 +983,39 @@ public enum MachineModel {
     // On the other hand, in 'struct s { char a: 7; int b: 26; };', the 25 remaining
     // bits int the first integer alignment of 'struct s' are padded and 'b' is pushed
     // to the next integer-aligned unit, resulting in 'struct s' having 8 bytes size.
-    long paddingBitSpace = getPaddingInBits(pBitFieldOffset, pType, pSizeOfByte);
+    BigInteger paddingBitSpace = getPaddingInBits(pBitFieldOffset, pType, pSizeOfByte);
 
-    if (paddingBitSpace < pBitFieldLength) {
-      pBitFieldOffset += paddingBitSpace;
+    if (paddingBitSpace.compareTo(pBitFieldLength) < 0) {
+      pBitFieldOffset = pBitFieldOffset.add(paddingBitSpace);
     }
     return pBitFieldOffset;
   }
 
   @Deprecated
-  public long calculatePaddedBitsize(
-      long pBitOffset, long pSizeOfConsecutiveBitFields, CType pType, long pSizeOfByte) {
-    pBitOffset += pSizeOfConsecutiveBitFields;
+  public BigInteger calculatePaddedBitsize(
+      BigInteger pBitOffset,
+      BigInteger pSizeOfConsecutiveBitFields,
+      CType pType,
+      long pSizeOfByte) {
+    pBitOffset = pBitOffset.add(pSizeOfConsecutiveBitFields);
     // once pad the bits to full bytes, then pad bytes to the
     // alignment of the current type
-    pBitOffset = sizeofVisitor.calculateByteSize(Math.toIntExact(pBitOffset));
+    pBitOffset = sizeofVisitor.calculateByteSize(pBitOffset);
 
-    return (pBitOffset + getPadding(pBitOffset, pType)) * pSizeOfByte;
+    return pBitOffset.add(getPadding(pBitOffset, pType)).multiply(BigInteger.valueOf(pSizeOfByte));
   }
 
   @Deprecated
-  public long getPadding(long pOffset, CType pType) {
+  public BigInteger getPadding(BigInteger pOffset, CType pType) {
     return getPaddingInBits(pOffset, pType, 1L);
   }
 
-  private long getPaddingInBits(long pOffset, CType pType, long pSizeOfByte) {
-    long alignof = getAlignof(pType) * pSizeOfByte;
-    long padding = alignof - (pOffset % alignof);
-    if (padding < alignof) {
+  private BigInteger getPaddingInBits(BigInteger pOffset, CType pType, long pSizeOfByte) {
+    BigInteger alignof = BigInteger.valueOf(getAlignof(pType) * pSizeOfByte);
+    BigInteger padding = alignof.subtract(pOffset.mod(alignof));
+    if (padding.compareTo(alignof) < 0) {
       return padding;
     }
-    return 0;
+    return BigInteger.ZERO;
   }
 }

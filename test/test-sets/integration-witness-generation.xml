@@ -4,7 +4,7 @@
 
   <!--
   Generate the test-set definition file to validate the witnesses
-  produced by this test-set definition using ../../scripts/generate_validation_testdef.py
+  produced by this test-set definition using ../util/generate_witness_validation_testdef.py
   -->
 
   <option name="-heap">6000M</option>

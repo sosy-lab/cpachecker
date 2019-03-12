@@ -43,6 +43,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableAndFieldRelevancyComputer.VarFieldDependencies;
 
@@ -82,10 +84,9 @@ final class CollectingRHSVisitor
     VarFieldDependencies result = e.getFieldOwner().accept(this);
 
     if (ownerType.getKind() == ComplexTypeKind.UNION) {
-      // For unions, we add a dependency on all fields, because writes to all of them are relevant
-      for (CCompositeTypeMemberDeclaration member : ownerType.getMembers()) {
-        result = result.withDependency(lhs, VariableOrField.newField(ownerType, member.getName()));
-      }
+      // For unions, we add a dependency on all fields, because writes to all of them are relevant.
+      // Also, all (nested) members of CCompositeType members of a union are relevant
+      result = addNestedDependenciesAsNecessary(result, ownerType);
     } else {
       result = result.withDependency(lhs, field);
     }
@@ -95,6 +96,22 @@ final class CollectingRHSVisitor
     } else {
       return result;
     }
+  }
+
+  private VarFieldDependencies addNestedDependenciesAsNecessary(
+      VarFieldDependencies pResult, CCompositeType pType) {
+    VarFieldDependencies result = pResult;
+    for (CCompositeTypeMemberDeclaration member : pType.getMembers()) {
+      result = result.withDependency(lhs, VariableOrField.newField(pType, member.getName()));
+      // Inner composite members might be CElaboratedType and have to be unboxed to be handle them
+      // well
+      CType memberType = TypeUtils.getRealExpressionType(member.getType());
+      if (memberType instanceof CCompositeType) {
+        result = addNestedDependenciesAsNecessary(result, (CCompositeType) memberType);
+      }
+    }
+
+    return result;
   }
 
   @Override

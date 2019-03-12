@@ -39,8 +39,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.NavigableSet;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -292,8 +293,7 @@ public interface PointerTargetSetBuilder {
 
       final int typeSize =
           type.isIncomplete() ? options.defaultAllocationSize() : typeHandler.getSizeof(type);
-      final Formula typeSizeF =
-          formulaManager.makeNumber(pointerType, typeSize * typeHandler.getBitsPerByte());
+      final Formula typeSizeF = formulaManager.makeNumber(pointerType, typeSize);
       final Formula newBasePlusTypeSize = formulaManager.makePlus(newBaseFormula, typeSizeF);
 
       // Prepare highestAllocatedAddresses which we will use for the constraints of the next base.
@@ -315,11 +315,7 @@ public interface PointerTargetSetBuilder {
 
       if (allocationSize != null
           && !allocationSize.equals(formulaManager.makeNumber(pointerType, typeSize))) {
-        final Formula allocationSizeF =
-            formulaManager.makeMultiply(
-                allocationSize,
-                formulaManager.makeNumber(pointerType, typeHandler.getBitsPerByte()));
-        Formula basePlusAllocationSize = formulaManager.makePlus(newBaseFormula, allocationSizeF);
+        Formula basePlusAllocationSize = formulaManager.makePlus(newBaseFormula, allocationSize);
         constraints.addConstraint(makeGreaterZero(basePlusAllocationSize));
 
         highestAllocatedAddresses = highestAllocatedAddresses.with(basePlusAllocationSize);
@@ -369,21 +365,37 @@ public interface PointerTargetSetBuilder {
         int offset = 0;
         for (int i = 0; i < length; ++i) {
           addTargets(base, arrayType.getType(), offset, containerOffset + properOffset, field);
-          offset += typeHandler.getBitSizeof(arrayType.getType());
+          offset += typeHandler.getSizeof(arrayType.getType());
         }
       } else if (cType instanceof CCompositeType) {
         final CCompositeType compositeType = (CCompositeType) cType;
         assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
         final boolean isTargetComposite = compositeType.equals(field.getOwnerType());
         for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-          final long offset = typeHandler.getBitOffset(compositeType, memberDeclaration);
+          final OptionalLong offset = typeHandler.getOffset(compositeType, memberDeclaration);
+          if (!offset.isPresent()) {
+            continue; // TODO this looses values of bit fields
+          }
           if (tracksField(CompositeField.of(compositeType, memberDeclaration))) {
             addTargets(
-                base, memberDeclaration.getType(), offset, containerOffset + properOffset, field);
+                base,
+                memberDeclaration.getType(),
+                offset.getAsLong(),
+                containerOffset + properOffset,
+                field);
           }
           if (isTargetComposite && memberDeclaration.equals(field.getFieldDeclaration())) {
             MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
-            targets = ptsMgr.addToTargets(base, newRegion, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);
+            targets =
+                ptsMgr.addToTargets(
+                    base,
+                    newRegion,
+                    memberDeclaration.getType(),
+                    compositeType,
+                    offset.getAsLong(),
+                    containerOffset + properOffset,
+                    targets,
+                    fields);
           }
         }
       }

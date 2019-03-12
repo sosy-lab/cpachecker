@@ -28,7 +28,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Objects;
 import java.util.Set;
-import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -80,7 +80,7 @@ public class PowerSetState implements AbstractWrapperState, Targetable {
   }
 
   @Override
-  public @Nonnull Set<Property> getViolatedProperties() throws IllegalStateException {
+  public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
     return FluentIterable.from(setOfStates)
         .filter(AbstractStates.IS_TARGET_STATE)
         .transformAndConcat(s -> ((Targetable) s).getViolatedProperties())

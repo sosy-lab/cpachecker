@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
 
 import java.math.BigInteger;
 
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Instances of implementations of this interface are operators that can

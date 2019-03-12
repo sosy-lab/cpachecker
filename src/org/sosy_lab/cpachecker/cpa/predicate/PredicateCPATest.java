@@ -31,7 +31,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.reflect.Invokable;
 import java.lang.reflect.Field;
 import java.net.URLClassLoader;
-import java.util.Vector;
+import java.util.List;
 import java.util.regex.Pattern;
 import org.junit.Test;
 import org.sosy_lab.common.Classes;
@@ -112,7 +112,7 @@ public class PredicateCPATest {
       Field classesField = ClassLoader.class.getDeclaredField("classes");
       classesField.setAccessible(true);
       @SuppressWarnings("unchecked")
-      Vector<Class<?>> classes = (Vector<Class<?>>) classesField.get(cl);
+      List<Class<?>> classes = (List<Class<?>>) classesField.get(cl);
       return FluentIterable.from(classes).transform(Class::getName);
     }
   }

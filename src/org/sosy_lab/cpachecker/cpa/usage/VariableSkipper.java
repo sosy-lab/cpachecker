@@ -58,7 +58,7 @@ public class VariableSkipper {
     pConfig.inject(this);
   }
 
-  public boolean shouldBeSkipped(AbstractIdentifier id, UsageInfo usage) {
+  public boolean shouldBeSkipped(AbstractIdentifier id, String functionName) {
 
     if (id instanceof SingleIdentifier) {
       SingleIdentifier singleId = (SingleIdentifier) id;
@@ -76,7 +76,6 @@ public class VariableSkipper {
     }
 
     // Check special functions like INIT_LIST_HEAD, in which we should skip all usages
-    String functionName = usage.getLine().getNode().getFunctionName();
     if (byFunction.contains(functionName)) {
       return true;
     }

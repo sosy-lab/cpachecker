@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.smg.refiner;
 import com.google.common.base.Objects;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
@@ -72,8 +71,8 @@ public class SMGInterpolant implements Interpolant<Collection<SMGState>, SMGInte
     smgStates = ImmutableSet.copyOf(pStates);
     abstractionBlock = ImmutableSet.copyOf(pAbstractionBlock);
 
-    Builder<SMGMemoryPath> memoryPaths = ImmutableSet.builder();
-    Builder<MemoryLocation> stackVariables = ImmutableSet.builder();
+    ImmutableSet.Builder<SMGMemoryPath> memoryPaths = ImmutableSet.builder();
+    ImmutableSet.Builder<MemoryLocation> stackVariables = ImmutableSet.builder();
     for (UnmodifiableSMGState state : smgStates) {
       memoryPaths.addAll(state.getHeap().getMemoryPaths());
       stackVariables.addAll(state.getStackVariables().keySet());

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.ci;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -151,7 +150,7 @@ public class CustomInstructionRequirementsExtractor {
       final CustomInstructionApplications pCustomIA)
       throws InterruptedException, CPAException {
 
-    Builder<ARGState> set = new ImmutableSet.Builder<>();
+    ImmutableSet.Builder<ARGState> set = new ImmutableSet.Builder<>();
     Set<ARGState> visitedNodes = new HashSet<>();
     Queue<ARGState> queue = new ArrayDeque<>();
 

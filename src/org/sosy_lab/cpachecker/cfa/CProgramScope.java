@@ -50,7 +50,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -333,7 +333,9 @@ public class CProgramScope implements Scope {
 
     Iterable<Supplier<Iterable<CSimpleDeclaration>>> filteredAndUnfiltered =
         Iterables.concat(
-            Iterables.transform(lookups, s -> (() -> FluentIterable.from(s.get()).filter(d -> getLocationFilter().test(d)))),
+            Iterables.transform(
+                lookups,
+                s -> () -> FluentIterable.from(s.get()).filter(d -> getLocationFilter().test(d))),
             lookups);
 
     Iterator<Supplier<Iterable<CSimpleDeclaration>>> lookupSupplierIterator = filteredAndUnfiltered.iterator();
@@ -635,7 +637,7 @@ public class CProgramScope implements Scope {
         .transformAndConcat(CFAUtils::leavingEdges)
         .transformAndConcat(CProgramScope::getAstNodesFromCfaEdge)
         .filter(CAstNode.class)
-        .filter((astNode -> astNode instanceof CIdExpression || astNode instanceof CSimpleDeclaration))
+        .filter(astNode -> astNode instanceof CIdExpression || astNode instanceof CSimpleDeclaration)
         .filter(astNode -> {
           if (astNode instanceof CIdExpression) {
             return ((CIdExpression) astNode).getDeclaration() != null;

@@ -30,7 +30,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval.greaterOrEqual;
 import static org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval.lessOrEqual;
-import static org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval.of;
 import static org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval.singleton;
 
 import java.math.BigInteger;
@@ -52,19 +51,20 @@ public class SimpleIntervalTest {
     assertNotNull(greaterOrEqual(BigInteger.valueOf(Long.MAX_VALUE)));
     assertNotNull(greaterOrEqual(BigInteger.valueOf(Long.MIN_VALUE)));
 
-    assertNotNull(of(BigInteger.ZERO, BigInteger.ZERO));
-    assertNotNull(of(BigInteger.ZERO, BigInteger.ONE));
-    assertNotNull(of(BigInteger.valueOf(Long.MIN_VALUE), BigInteger.valueOf(Long.MAX_VALUE)));
+    assertNotNull(SimpleInterval.of(BigInteger.ZERO, BigInteger.ZERO));
+    assertNotNull(SimpleInterval.of(BigInteger.ZERO, BigInteger.ONE));
+    assertNotNull(
+        SimpleInterval.of(BigInteger.valueOf(Long.MIN_VALUE), BigInteger.valueOf(Long.MAX_VALUE)));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testInvalidConstruction1() {
-    of(BigInteger.ONE, BigInteger.ZERO);
+    SimpleInterval.of(BigInteger.ONE, BigInteger.ZERO);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testInvalidConstruction2() {
-    of(BigInteger.valueOf(Long.MAX_VALUE), BigInteger.valueOf(Long.MIN_VALUE));
+    SimpleInterval.of(BigInteger.valueOf(Long.MAX_VALUE), BigInteger.valueOf(Long.MIN_VALUE));
   }
 
   @Test
@@ -73,12 +73,13 @@ public class SimpleIntervalTest {
     assertTrue(singleton(BigInteger.TEN).contains(BigInteger.TEN));
     assertFalse(singleton(BigInteger.ZERO).contains(BigInteger.TEN));
     assertFalse(singleton(BigInteger.TEN).contains(BigInteger.ZERO));
-    assertTrue(of(BigInteger.ONE, BigInteger.TEN).contains(BigInteger.ONE));
-    assertTrue(of(BigInteger.ONE, BigInteger.TEN).contains(BigInteger.TEN));
-    assertTrue(of(BigInteger.ONE, BigInteger.TEN).contains(BigInteger.valueOf(5)));
-    assertFalse(of(BigInteger.ONE, BigInteger.TEN).contains(BigInteger.ZERO));
-    assertFalse(of(BigInteger.ONE, BigInteger.TEN).contains(BigInteger.valueOf(-5)));
-    assertFalse(of(BigInteger.ONE, BigInteger.TEN).contains(BigInteger.valueOf(-10)));
+    assertTrue(SimpleInterval.of(BigInteger.ONE, BigInteger.TEN).contains(BigInteger.ONE));
+    assertTrue(SimpleInterval.of(BigInteger.ONE, BigInteger.TEN).contains(BigInteger.TEN));
+    assertTrue(SimpleInterval.of(BigInteger.ONE, BigInteger.TEN).contains(BigInteger.valueOf(5)));
+    assertFalse(SimpleInterval.of(BigInteger.ONE, BigInteger.TEN).contains(BigInteger.ZERO));
+    assertFalse(SimpleInterval.of(BigInteger.ONE, BigInteger.TEN).contains(BigInteger.valueOf(-5)));
+    assertFalse(
+        SimpleInterval.of(BigInteger.ONE, BigInteger.TEN).contains(BigInteger.valueOf(-10)));
   }
 
   @Test
@@ -95,9 +96,11 @@ public class SimpleIntervalTest {
     assertFalse(greaterOrEqual(BigInteger.valueOf(Long.MAX_VALUE)).isSingleton());
     assertFalse(greaterOrEqual(BigInteger.valueOf(Long.MIN_VALUE)).isSingleton());
 
-    assertTrue(of(BigInteger.ZERO, BigInteger.ZERO).isSingleton());
-    assertFalse(of(BigInteger.ZERO, BigInteger.ONE).isSingleton());
-    assertFalse(of(BigInteger.valueOf(Long.MIN_VALUE), BigInteger.valueOf(Long.MAX_VALUE)).isSingleton());
+    assertTrue(SimpleInterval.of(BigInteger.ZERO, BigInteger.ZERO).isSingleton());
+    assertFalse(SimpleInterval.of(BigInteger.ZERO, BigInteger.ONE).isSingleton());
+    assertFalse(
+        SimpleInterval.of(BigInteger.valueOf(Long.MIN_VALUE), BigInteger.valueOf(Long.MAX_VALUE))
+            .isSingleton());
   }
 
   @Test
@@ -114,16 +117,20 @@ public class SimpleIntervalTest {
     assertNull(greaterOrEqual(BigInteger.valueOf(Long.MAX_VALUE)).size());
     assertNull(greaterOrEqual(BigInteger.valueOf(Long.MIN_VALUE)).size());
 
-    assertEquals(BigInteger.ONE, of(BigInteger.ZERO, BigInteger.ZERO).size());
-    assertEquals(BigInteger.valueOf(2L), of(BigInteger.ZERO, BigInteger.ONE).size());
-    assertEquals(BigInteger.TEN, of(BigInteger.ONE, BigInteger.TEN).size());
+    assertEquals(BigInteger.ONE, SimpleInterval.of(BigInteger.ZERO, BigInteger.ZERO).size());
+    assertEquals(BigInteger.valueOf(2L), SimpleInterval.of(BigInteger.ZERO, BigInteger.ONE).size());
+    assertEquals(BigInteger.TEN, SimpleInterval.of(BigInteger.ONE, BigInteger.TEN).size());
 
-    assertEquals(BigInteger.valueOf(201L),
-        of(BigInteger.valueOf(-100L), BigInteger.valueOf(100L)).size());
+    assertEquals(
+        BigInteger.valueOf(201L),
+        SimpleInterval.of(BigInteger.valueOf(-100L), BigInteger.valueOf(100L)).size());
 
-    assertEquals(BigInteger.valueOf(Long.MAX_VALUE).subtract(BigInteger.valueOf(Long.MIN_VALUE)).add(BigInteger.ONE),
-        of(BigInteger.valueOf(Long.MIN_VALUE), BigInteger.valueOf(Long.MAX_VALUE)).size());
-
+    assertEquals(
+        BigInteger.valueOf(Long.MAX_VALUE)
+            .subtract(BigInteger.valueOf(Long.MIN_VALUE))
+            .add(BigInteger.ONE),
+        SimpleInterval.of(BigInteger.valueOf(Long.MIN_VALUE), BigInteger.valueOf(Long.MAX_VALUE))
+            .size());
   }
 
   @Test

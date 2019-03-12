@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-
 public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableSelection<ConstantType> {
 
   private final CollectVarsVisitor<ConstantType> collectVarsVisitor = new CollectVarsVisitor<>();
@@ -43,7 +42,7 @@ public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableS
   private final ImmutableSet<MemoryLocation> specifiedVariables;
 
   public AcceptSpecifiedVariableSelection(Iterable<? extends MemoryLocation> pIterable) {
-    this.specifiedVariables = ImmutableSet.copyOf((pIterable));
+    this.specifiedVariables = ImmutableSet.copyOf(pIterable);
   }
 
   @Override

@@ -80,7 +80,7 @@ public class SMGEdgeHasValueFilter {
     if (value != null) {
       if (valueComplement && pEdge.getValue().equals(value)) {
         return false;
-      } else if ((!valueComplement) && !pEdge.getValue().equals(value)) {
+      } else if (!valueComplement && !pEdge.getValue().equals(value)) {
         return false;
       }
     }

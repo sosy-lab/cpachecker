@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Ordering;
@@ -91,6 +92,13 @@ public class PathChecker {
       description="where to dump the counterexample model in case a specification violation is found")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate dumpCounterexampleModel = PathTemplate.ofFormatString("Counterexample.%d.assignment.txt");
+
+  @Option(
+      secure = true,
+      description =
+          "An imprecise counterexample of the Predicate CPA is usually a bug,"
+              + " but expected in some configurations. Should it be treated as a bug or accepted?")
+  private boolean allowImpreciseCounterexamples = true;
 
   private final LogManager logger;
   private final PathFormulaManager pmgr;
@@ -206,6 +214,14 @@ public class PathChecker {
    */
   private CounterexampleInfo createImpreciseCounterexample(
       final ARGPath imprecisePath, final CounterexampleTraceInfo pInfo) {
+    if (!allowImpreciseCounterexamples) {
+      throw new AssertionError(
+          "Found imprecise counterexample in PredicateCPA. "
+              + "If this is expected for this configuration "
+              + "(e.g., because of UF-based heap encoding), "
+              + "set counterexample.export.allowImpreciseCounterexamples=true. "
+              + "Otherwise please report this as a bug.");
+    }
     CounterexampleInfo cex =
         CounterexampleInfo.feasibleImprecise(imprecisePath);
     addCounterexampleFormula(pInfo, cex);
@@ -315,13 +331,15 @@ public class PathChecker {
   private PathFormula handlePreconditionAssumptions(PathFormula pathFormula, ARGState nextState)
       throws CPATransferException, InterruptedException {
     if (nextState != null) {
-      AbstractStateWithAssumptions assumptionState =
-          AbstractStates.extractStateByType(nextState, AbstractStateWithAssumptions.class);
-      if (assumptionState != null) {
-        for (AExpression expr : assumptionState.getPreconditionAssumptions()) {
-          assert expr instanceof CExpression : "Expected a CExpression as precondition assumption!";
-          pathFormula = pmgr.makeAnd(pathFormula, (CExpression) expr);
-        }
+      // there could be more than one state that has assumptions:
+      FluentIterable<AbstractStateWithAssumptions> assumptionStates =
+          AbstractStates.projectToType(
+              AbstractStates.asIterable(nextState), AbstractStateWithAssumptions.class);
+      for (AbstractStateWithAssumptions assumptionState : assumptionStates) {
+          for (AExpression expr : assumptionState.getPreconditionAssumptions()) {
+            assert expr instanceof CExpression : "Expected a CExpression as precondition assumption!";
+            pathFormula = pmgr.makeAnd(pathFormula, (CExpression) expr);
+          }
       }
     }
     return pathFormula;

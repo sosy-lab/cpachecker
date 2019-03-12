@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
 import static java.util.Collections.singletonList;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -145,7 +146,10 @@ public class SMGExpressionEvaluator {
     CSizeOfVisitor v = getSizeOfVisitor(edge, pState, pExpression);
 
     try {
-      return pType.accept(v) * machineModel.getSizeofCharInBits();
+      return pType
+          .accept(v)
+          .multiply(BigInteger.valueOf(machineModel.getSizeofCharInBits()))
+          .intValueExact();
     } catch (IllegalArgumentException e) {
       logger.logDebugException(e);
       throw new UnrecognizedCodeException("Could not resolve type.", edge);
@@ -253,7 +257,7 @@ public class SMGExpressionEvaluator {
   private SMGField getField(CCompositeType pOwnerType, String pFieldName) {
     CType resultType = pOwnerType;
 
-    long offset = machineModel.getFieldOffsetInBits(pOwnerType, pFieldName);
+    BigInteger offset = machineModel.getFieldOffsetInBits(pOwnerType, pFieldName);
 
     for (CCompositeTypeMemberDeclaration typeMember : pOwnerType.getMembers()) {
       if (typeMember.getName().equals(pFieldName)) {

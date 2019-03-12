@@ -49,6 +49,13 @@ public class TestTargetCPA extends AbstractCPA {
   )
   private boolean runParallel = false;
 
+  @Option(
+    secure = true,
+    name = "targets.type", // adapt CPAMain.java if adjust name
+    description = "Which CFA edges to use as test targets"
+  )
+  private TestTargetType targetType = TestTargetType.ASSUME;
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(TestTargetCPA.class);
   }
@@ -61,7 +68,8 @@ public class TestTargetCPA extends AbstractCPA {
 
     precisionAdjustment = new TestTargetPrecisionAdjustment();
     transferRelation =
-        new TestTargetTransferRelation(TestTargetProvider.getTestTargets(pCfa, runParallel));
+        new TestTargetTransferRelation(
+            TestTargetProvider.getTestTargets(pCfa, runParallel, targetType));
   }
 
   @Override

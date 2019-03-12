@@ -33,7 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.logging.Level;
-import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -234,8 +234,8 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
    * {x} is covered by {(x or y),z}
    * {(x and y),z} is covered by {x,z}
    */
-  private Collection<AbstractState> getStatesNotCoveredBy(@Nonnull final Collection<AbstractState> baseStates,
-      @Nonnull final Collection<AbstractState> coveringStates)
+  private Collection<AbstractState> getStatesNotCoveredBy(@NonNull final Collection<AbstractState> baseStates,
+      @NonNull final Collection<AbstractState> coveringStates)
       throws CPAException, InterruptedException {
     final Collection<AbstractState> notCoveredStates = new ArrayList<>();
     for (final AbstractState baseState : baseStates) {
@@ -247,8 +247,8 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   }
 
   /** is there any covering-state, that covers the base-state? */
-  private boolean isCoveredByAny(@Nonnull final AbstractState baseState,
-                                 @Nonnull final Collection<AbstractState> coveringStates)
+  private boolean isCoveredByAny(@NonNull final AbstractState baseState,
+                                 @NonNull final Collection<AbstractState> coveringStates)
           throws CPAException, InterruptedException {
     if (coveringStates.contains(baseState)) {
       return true;

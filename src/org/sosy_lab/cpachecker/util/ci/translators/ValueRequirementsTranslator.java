@@ -29,7 +29,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
@@ -62,9 +62,9 @@ public class ValueRequirementsTranslator extends CartesianRequirementsTranslator
       MemoryLocation memLoc = e.getKey();
       Value integerValue = e.getValue().getValue();
       if (!integerValue.isNumericValue()
-          || !((integerValue.asNumericValue().getNumber() instanceof Integer
+          || !(integerValue.asNumericValue().getNumber() instanceof Integer
               || integerValue.asNumericValue().getNumber() instanceof Long
-              || integerValue.asNumericValue().getNumber() instanceof BigInteger))) {
+              || integerValue.asNumericValue().getNumber() instanceof BigInteger)) {
         logger.log(
             Level.SEVERE,
             "The value "

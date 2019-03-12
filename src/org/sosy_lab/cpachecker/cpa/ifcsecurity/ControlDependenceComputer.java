@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
  * Algorithm for Computing the Control Dependencies given a Flow Graph and its DominanceFrontier
@@ -80,7 +79,7 @@ public class ControlDependenceComputer {
         for(CFANode m: new TreeSet<>(rcdsetn)){
           TreeSet<CFANode> rcdsetm=rcd.get(m);
           for(CFANode l: rcdsetm){
-            if(!(rcdsetn.contains(l))){
+            if (!rcdsetn.contains(l)) {
               changed=true;
               rcdsetn.add(l);
             }

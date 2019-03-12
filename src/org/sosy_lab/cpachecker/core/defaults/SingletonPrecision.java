@@ -58,4 +58,9 @@ public class SingletonPrecision implements AdjustablePrecision, Serializable {
   protected Object readResolve() {
     return getInstance();
   }
+
+  @Override
+  public boolean isEmpty() {
+    return true;
+  }
 }

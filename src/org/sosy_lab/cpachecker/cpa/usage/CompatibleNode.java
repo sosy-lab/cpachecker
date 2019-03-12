@@ -32,7 +32,7 @@ public interface CompatibleNode extends CompatibleState {
   }
 
   @Override
-  public default CompatibleNode getTreeNode() {
+  public default CompatibleNode getCompatibleNode() {
     return this;
   }
 }

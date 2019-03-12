@@ -28,8 +28,8 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.graph.Traverser;
 import java.util.logging.Level;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -69,7 +69,7 @@ public class CPAs {
    * @param callee Used for the message of the exception if needed.
    * @return The found CPA, or InvalidConfigurationException if no matching CPA was found.
    */
-  @Nonnull
+  @NonNull
   public static <T extends ConfigurableProgramAnalysis, C> T retrieveCPAOrFail(
       ConfigurableProgramAnalysis cpa, Class<T> cls, Class<C> callee)
       throws InvalidConfigurationException {

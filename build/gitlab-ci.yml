@@ -5,7 +5,6 @@
 stages:
   - dependencies
   - build
-  - generate
   - checks
   - deploy
 
@@ -51,6 +50,11 @@ build:jdk-10:
   <<: *build
   image: ${CI_REGISTRY_IMAGE}/test:jdk-10
 
+build:jdk-11:
+  <<: *build
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+
+
 # For checks that need the binaries
 .binary_check: &binary_check
   stage: checks
@@ -62,9 +66,26 @@ build:jdk-10:
     - build-dependencies
 
 
-build-project-ecj:
+.build-project-ecj: &build-project-ecj
   <<: *source_check
   script: "ant $ANT_PROPS_BUILD build-project-ecj"
+
+build-project-ecj:jdk-8:
+  <<: *build-project-ecj
+
+build-project-ecj:jdk-9:
+  <<: *build-project-ecj
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-9
+
+build-project-ecj:jdk-10:
+  <<: *build-project-ecj
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-10
+
+build-project-ecj:jdk-11:
+  <<: *build-project-ecj
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+  allow_failure: true # ECJ disables annotation processing on Java 11 because it fails to detect the version correctly
+
 
 check-format:
   <<: *source_check
@@ -112,6 +133,8 @@ spotbugs:
       - "JUnit-coverage/"
       - "junit/coverage.xml"
     when: always
+    reports:
+      junit: "junit/TESTS-TestSuites.xml"
 
 unit-tests:jdk-8:
   <<: *unit-tests
@@ -132,6 +155,14 @@ unit-tests:jdk-10:
     - build-dependencies
     - build:jdk-10
   image: ${CI_REGISTRY_IMAGE}/test:jdk-10
+
+unit-tests:jdk-11:
+  <<: *unit-tests
+  dependencies:
+    - build-dependencies
+    - build:jdk-11
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
+
 
 deploy-coverage:
   stage: deploy
@@ -165,4 +196,3 @@ deploy-gh-pages:
   except:
     variables:
       - $GH_TOKEN == null # required for job
-

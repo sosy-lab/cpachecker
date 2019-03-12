@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Objects;
 import java.util.OptionalInt;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.AArrayType;
@@ -62,6 +62,15 @@ public final class CArrayType extends AArrayType implements CType {
     return length instanceof CIntegerLiteralExpression
         ? OptionalInt.of(((CIntegerLiteralExpression) length).getValue().intValueExact())
         : OptionalInt.empty();
+  }
+
+  /**
+   * Convert this array type to a pointer type with the same target type. Note that in most cases
+   * the method {@link CTypes#adjustFunctionOrArrayType(CType)} should be used instead, which
+   * implements this conversion properly and also the similar conversion for function types.
+   */
+  public CPointerType asPointerType() {
+    return new CPointerType(isConst, isVolatile, getType());
   }
 
   @Override

@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assume.assumeNoException;
 
 import apron.Abstract1;
 import apron.Environment;
@@ -29,7 +30,12 @@ public class PolyhedraWideningManagerTest {
   @Before
   public void setUp() {
     PolicyIterationStatistics stats = Mockito.mock(PolicyIterationStatistics.class);
-    pwm = new PolyhedraWideningManager(stats, LogManager.createTestLogManager());
+    try {
+      pwm = new PolyhedraWideningManager(stats, LogManager.createTestLogManager());
+    } catch (UnsatisfiedLinkError e) {
+      assumeNoException("missing binary dependency for old apron binary", e);
+      throw new AssertionError(e);
+    }
   }
 
   @Test public void test_polyhedra() {

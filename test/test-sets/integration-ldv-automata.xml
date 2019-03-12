@@ -1,0 +1,53 @@
+<?xml version="1.0" ?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.17//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.17.dtd">
+<benchmark tool="cpachecker" memlimit="1 GB" timelimit="60 s" hardtimelimit="90 s" cpuCores="1">
+
+  <option name="-noout"/>
+  <option name="-heap">500M</option>
+
+  <rundefinition>
+    <option name="-ldv"/>
+    <option name="-setprop">cpa.predicate.ignoreIrrelevantVariables=false</option>
+  </rundefinition>
+
+  <tasks name="rwlock">
+    <propertyfile>../config/automata/ldv/rwlock.spc</propertyfile>
+    <include>../programs/ldv-automata/rwlock/*.yml</include>
+  </tasks>
+
+  <tasks name="usblock">
+    <propertyfile>../config/automata/ldv/usblock.spc</propertyfile>
+    <include>../programs/ldv-automata/usblock/*.yml</include>
+  </tasks>
+
+  <tasks name="class">
+    <propertyfile>../config/automata/ldv/class.spc</propertyfile>
+    <include>../programs/ldv-automata/class/*.yml</include>
+  </tasks>
+
+  <tasks name="mutex">
+    <propertyfile>../config/automata/ldv/mutex.spc</propertyfile>
+    <include>../programs/ldv-automata/mutex/*.yml</include>
+  </tasks>
+
+  <tasks name="module">
+    <propertyfile>../config/automata/ldv/module.spc</propertyfile>
+    <include>../programs/ldv-automata/module/*.yml</include>
+  </tasks>
+
+  <tasks name="spinlock">
+    <propertyfile>../config/automata/ldv/spinlock.spc</propertyfile>
+    <include>../programs/ldv-automata/spinlock/*.yml</include>
+  </tasks>
+
+  <tasks name="alloc_spinlock">
+    <propertyfile>../config/automata/ldv/alloc_spinlock.spc</propertyfile>
+    <include>../programs/ldv-automata/alloc_spinlock/*.yml</include>
+  </tasks>
+
+  <tasks name="bitops">
+    <propertyfile>../config/automata/ldv/bitops.spc</propertyfile>
+    <include>../programs/ldv-automata/bitops/*.yml</include>
+  </tasks>
+
+</benchmark>

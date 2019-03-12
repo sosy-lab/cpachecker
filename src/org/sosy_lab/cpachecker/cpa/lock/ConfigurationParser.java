@@ -155,7 +155,7 @@ public class ConfigurationParser {
       LockIdentifier parsedId;
       for (String fullName : lockNames) {
         if (fullName.matches(".*\\(.*")) {
-          List<String> stringArray = Splitter.on("\\(").splitToList(fullName);
+          List<String> stringArray = Splitter.on("(").splitToList(fullName);
           assert stringArray.size() == 2;
           parsedId = LockIdentifier.of(stringArray.get(0), stringArray.get(1));
         } else {

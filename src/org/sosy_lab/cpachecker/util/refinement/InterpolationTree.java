@@ -231,7 +231,16 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
 
         sb.append("itp is " + interpolants.get(current.getKey()));
 
-        result.append(current.getKey().getStateId() + " [label=\"" + (current.getKey().getStateId() + " / " + AbstractStates.extractLocation(current.getKey())) + " has itp " + (sb.toString()) + "\"]" + "\n");
+        result.append(
+            current.getKey().getStateId()
+                + " [label=\""
+                + (current.getKey().getStateId()
+                    + " / "
+                    + AbstractStates.extractLocation(current.getKey()))
+                + " has itp "
+                + sb.toString()
+                + "\"]"
+                + "\n");
         result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
 
       } else {

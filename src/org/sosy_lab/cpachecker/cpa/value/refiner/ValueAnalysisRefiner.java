@@ -29,7 +29,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
@@ -379,7 +378,6 @@ public class ValueAnalysisRefiner
       return pRefinementRoot;
     }
 
-    Map<ARGState, ARGState> predecessorRelation = Maps.newHashMap();
     SetMultimap<ARGState, ARGState> successorRelation = LinkedHashMultimap.create();
 
     Deque<ARGState> todo = new ArrayDeque<>(coveredStates);
@@ -393,7 +391,6 @@ public class ValueAnalysisRefiner
       if (currentState.getParents().iterator().hasNext()) {
         ARGState parentState = currentState.getParents().iterator().next();
         todo.add(parentState);
-        predecessorRelation.put(currentState, parentState);
         successorRelation.put(parentState, currentState);
 
       } else if (coverageTreeRoot == null) {

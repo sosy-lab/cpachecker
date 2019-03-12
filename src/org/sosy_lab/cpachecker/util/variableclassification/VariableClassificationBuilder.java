@@ -49,7 +49,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -791,7 +791,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
 
   static String scopeVar(@Nullable final String function, final String var) {
     checkNotNull(var);
-    return (function == null) ? (var) : (function + SCOPE_SEPARATOR + var);
+    return (function == null) ? var : (function + SCOPE_SEPARATOR + var);
   }
 
   static boolean isGlobal(CExpression exp) {

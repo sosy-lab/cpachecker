@@ -124,8 +124,8 @@ public class PolicyEnforcementRelation<E extends Comparable<? super E>> extends 
       Variable var=new Variable(left);
       //Treat global Variables different from lokal Variables
       if(pDecl.isGlobal()){
-        //Add if not in allowedsecurityclassmapping
-        if(!(result.getAllowedsecurityclassmapping().containsKey(var))){
+        // Add if not in allowedsecurityclassmapping
+        if (!result.getAllowedsecurityclassmapping().containsKey(var)) {
           result.getAllowedsecurityclassmapping().put(var,result.getDefaultlevel());
           SortedSet<E> his=new TreeSet<>();
           his.add(result.getDefaultlevel());
@@ -151,8 +151,8 @@ public class PolicyEnforcementRelation<E extends Comparable<? super E>> extends 
       for(CParameterDeclaration par:param){
         String name=par.getQualifiedName();
         Variable var=new Variable(name);
-        //Add if not in allowedsecurityclassmapping
-        if(!(result.getAllowedsecurityclassmapping().containsKey(var))){
+        // Add if not in allowedsecurityclassmapping
+        if (!result.getAllowedsecurityclassmapping().containsKey(var)) {
           result.getAllowedsecurityclassmapping().put(var,result.getDefaultlevel());
           SortedSet<E> his=new TreeSet<>();
           his.add(result.getDefaultlevel());
@@ -163,8 +163,8 @@ public class PolicyEnforcementRelation<E extends Comparable<? super E>> extends 
       //Add Functionname
       String fname=dec.getQualifiedName();
       Variable fvar=new Variable(fname);
-      //Add if not in allowedsecurityclassmapping
-      if(!(result.getAllowedsecurityclassmapping().containsKey(fvar))){
+      // Add if not in allowedsecurityclassmapping
+      if (!result.getAllowedsecurityclassmapping().containsKey(fvar)) {
         result.getAllowedsecurityclassmapping().put(fvar,result.getDefaultlevel());
         SortedSet<E> his=new TreeSet<>();
         his.add(result.getDefaultlevel());

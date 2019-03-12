@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.simplification;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -189,9 +189,9 @@ public class ExpressionSimplificationVisitor
 
     switch (idOperator) {
     case SIZEOF:
-      int size = machineModel.getSizeof(innerType);
-      return new CIntegerLiteralExpression(expr.getFileLocation(),
-              expr.getExpressionType(), BigInteger.valueOf(size));
+        BigInteger size = machineModel.getSizeof(innerType);
+        return new CIntegerLiteralExpression(
+            expr.getFileLocation(), expr.getExpressionType(), size);
 
       case ALIGNOF:
         int alignment = machineModel.getAlignof(innerType);
@@ -214,7 +214,7 @@ public class ExpressionSimplificationVisitor
     // in case of a SIZEOF we do not need to know the explicit value of the variable,
     // it is enough to know its type
     if (unaryOperator == UnaryOperator.SIZEOF) {
-      return new CIntegerLiteralExpression(loc, exprType, BigInteger.valueOf(machineModel.getSizeof(operandType)));
+      return new CIntegerLiteralExpression(loc, exprType, machineModel.getSizeof(operandType));
     } else if (unaryOperator == UnaryOperator.ALIGNOF) {
       return new CIntegerLiteralExpression(loc, exprType, BigInteger.valueOf(machineModel.getAlignof(operandType)));
     }

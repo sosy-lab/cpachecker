@@ -6,7 +6,7 @@
   <option name="-heap">2000M</option>
 
   <rundefinition>
-    <option name="-config">config/components/kInduction/pdr.properties</option>
+    <option name="-config">config/unmaintained/components/kInduction/pdr.properties</option>
     <option name="-setprop">pdr.abstractionStrategy=ALLSAT_BASED_PREDICATE_ABSTRACTION</option>
     <option name="-setprop">pdr.liftingStrategy=ABSTRACTION_BASED_LIFTING</option>
     <option name="-setprop">pdr.invariantRefinementStrategy=UNSAT_CORE_BASED_STRENGTHENING</option>

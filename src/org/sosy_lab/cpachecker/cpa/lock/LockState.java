@@ -227,11 +227,14 @@ public class LockState extends AbstractLockState {
     }
 
     @Override
-    public void expandLockCounters(LockState pRootState, Set<LockIdentifier> pRestrictedLocks) {
-      for (LockIdentifier lock : pRootState.locks.keySet()) {
+    public void
+        expandLockCounters(AbstractLockState pRootState, Set<LockIdentifier> pRestrictedLocks) {
+      SortedMap<LockIdentifier, Integer> rootLocks = ((LockState) pRootState).locks;
+      for (Entry<LockIdentifier, Integer> entry : rootLocks.entrySet()) {
+        LockIdentifier lock = entry.getKey();
         if (!pRestrictedLocks.contains(lock)) {
           Integer size = mutableLocks.get(lock);
-          Integer rootSize = pRootState.locks.get(lock);
+          Integer rootSize = entry.getValue();
           // null is also correct (it shows, that we've found new lock)
 
           Integer newSize;
@@ -392,7 +395,7 @@ public class LockState extends AbstractLockState {
   }
 
   @Override
-  public CompatibleNode getTreeNode() {
+  public CompatibleNode getCompatibleNode() {
     return new LockTreeNode(locks.keySet());
   }
 

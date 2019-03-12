@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 import com.google.common.base.Preconditions;
 
@@ -48,7 +48,7 @@ public class StateSpacePartition implements Partitionable {
     return new StateSpacePartition(pPartitionKey);
   }
 
-  private final @Nonnull Object partitionKey;
+  private final @NonNull Object partitionKey;
 
   private StateSpacePartition(Object pPartitionKey) {
     Preconditions.checkNotNull(pPartitionKey);

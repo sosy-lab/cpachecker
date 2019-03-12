@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 
 public interface CandidateGenerator extends Iterable<CandidateInvariant> {
 

@@ -12,13 +12,17 @@
     <property name="skeleton.source" value="skeleton.nested"/>
     <property name="parser.source" value="parser.cup"/>
 
+    <path id="parser.generator.path">
+        <fileset dir="${dir.lib}" includes="jflex.jar java-cup.jar"/>
+    </path>
+
     <taskdef name="jflex"
         classname="jflex.anttask.JFlexTask"
-        classpath="${dir.lib}/jflex.jar"
+        classpathref="parser.generator.path"
     />
     <taskdef name="cup"
         classname="java_cup.anttask.CUPTask"
-        classpath="${dir.lib}/java-cup.jar"
+        classpathref="parser.generator.path"
     />
 
     <target name="echos">
@@ -58,7 +62,7 @@
         />
 
         <!-- place a more general suppressWarnings-tag in front of the generated class -->
-        <property name="annotation" value="@javax.annotation.Generated(&quot;JFlex&quot;)${line.separator}@SuppressWarnings(value = {&quot;all&quot;, &quot;cast&quot;, &quot;rawtypes&quot;, &quot;unchecked&quot;} )${line.separator}@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {&quot;EI_EXPOSE_REP&quot;, &quot;MS_PKGPROTECT&quot;, &quot;SIC_INNER_SHOULD_BE_STATIC&quot;})"/>
+        <property name="annotation" value="@javax.annotation.Generated(&quot;CUP&quot;)${line.separator}@SuppressWarnings(value = {&quot;all&quot;, &quot;cast&quot;, &quot;rawtypes&quot;, &quot;unchecked&quot;} )${line.separator}@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {&quot;EI_EXPOSE_REP&quot;, &quot;MS_PKGPROTECT&quot;, &quot;SIC_INNER_SHOULD_BE_STATIC&quot;})"/>
         <replace file="${dir.parser}/${parser.target}.java" token="@SuppressWarnings({&quot;rawtypes&quot;})" value="${annotation}"/>
     </target>
 </project>

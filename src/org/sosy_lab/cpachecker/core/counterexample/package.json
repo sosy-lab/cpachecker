@@ -4,14 +4,14 @@
   "description": "Report gererated by the CPAchecker",
   "main": "report.js",
   "scripts": {
-    "test": "karma start karma.conf.js --no-auto-watch --single-run",
+    "test": "karma start karma.conf.js",
     "e2e-test": "protractor e2e-conf.js"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "babel-polyfill": "^6.26.0",
-    "jasmine-core": "^3.1.0",
+    "jasmine-core": "^2.99.1",
     "karma": "^2.0.4",
     "karma-chrome-launcher": "^2.2.0",
     "karma-cli": "^1.0.1",

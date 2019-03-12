@@ -84,7 +84,7 @@ public abstract class AbstractLockState
   }
 
   @Override
-  public abstract CompatibleNode getTreeNode();
+  public abstract CompatibleNode getCompatibleNode();
 
   @Override
   public AbstractLockState join(AbstractLockState pOther) {

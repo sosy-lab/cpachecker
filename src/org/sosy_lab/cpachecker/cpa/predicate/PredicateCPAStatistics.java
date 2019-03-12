@@ -233,9 +233,13 @@ class PredicateCPAStatistics implements Statistics {
               Precisions.extractPrecisionByType(precision, PredicatePrecision.class);
           if (preds != null && seenPrecisions.add(preds)) {
             predicates.locationInstance.putAll(preds.getLocationInstancePredicates());
+            out.println("Location Instance Predicates: " + preds.getLocationInstancePredicates());
             predicates.location.putAll(preds.getLocalPredicates());
+            out.println("Local Predicates: " + preds.getLocalPredicates());
             predicates.function.putAll(preds.getFunctionPredicates());
+            out.println("Function Predicates: " + preds.getFunctionPredicates());
             predicates.global.addAll(preds.getGlobalPredicates());
+            out.println("Global Predicates: " + preds.getGlobalPredicates());
           }
         }
       }

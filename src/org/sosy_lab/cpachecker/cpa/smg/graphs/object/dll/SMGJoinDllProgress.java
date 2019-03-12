@@ -45,15 +45,14 @@ class SMGJoinDllProgress
       SMGJoinStatus pStatus,
       boolean pHasToBeLastInSequence) {
 
+    pPrevCandidate.updateLastObject(pCandidate.getLastObject());
+
     if (pHasToBeLastInSequence) {
       /*Due to the nature of the algorithm, this is always the second segment to be joined from the start*/
       assert candidateLength.get(pPrevCandidate, SMGJoinStatus.EQUAL) == 1;
       candidateLength.put(pPrevCandidate, pStatus, 2);
-      pPrevCandidate.updateLastObject(pCandidate.getStartObject());
       return;
     }
-
-    pPrevCandidate.updateLastObject(pCandidate.getLastObject());
 
     super.updateProgress(pPrevCandidate, pCandidate, pStatus, pHasToBeLastInSequence);
   }

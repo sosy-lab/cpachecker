@@ -35,7 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -140,7 +140,7 @@ public class ProgramSplitAlgorithm implements Algorithm, StatisticsProvider, Sta
 
     // Algorithm is never meant to prove or falsify a property, only does splitting for later
     // (parallel) conditional model checking
-    return AlgorithmStatus.SOUND_AND_PRECISE.withPrecise(false);
+    return AlgorithmStatus.SOUND_AND_IMPRECISE;
   }
 
   private void extractSplitConditions(final ReachedSet pReached) throws InterruptedException {
@@ -154,8 +154,8 @@ public class ProgramSplitAlgorithm implements Algorithm, StatisticsProvider, Sta
               FluentIterable.from(pReached)
                   .filter(
                       state ->
-                          (AbstractStates.extractStateByType(state, SplitInfoState.class)
-                              .isInSplit(index)))
+                          AbstractStates.extractStateByType(state, SplitInfoState.class)
+                              .isInSplit(index))
                   .filter(ARGState.class)
                   .toSet()));
     }

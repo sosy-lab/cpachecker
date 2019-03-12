@@ -34,14 +34,15 @@ import com.google.common.base.Equivalence;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
+import com.google.errorprone.annotations.CheckReturnValue;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.Set;
-import javax.annotation.CheckReturnValue;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.CopyOnWriteSortedMap;
 import org.sosy_lab.common.collect.MapsDifference;
@@ -66,7 +67,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -254,15 +254,11 @@ class PointerTargetSetManager {
    * @param pts1 The first {@code PointerTargetSet}.
    * @param pts2 The second {@code PointerTargetSet}.
    * @param ssa The map of SSA indices.
-   * @param pConv The converter for C code to SMT formulae.
    * @return The merged {@code PointerTargetSet}s.
    * @throws InterruptedException If the algorithms gets interrupted by an external shutdown.
    */
   MergeResult<PointerTargetSet> mergePointerTargetSets(
-      final PointerTargetSet pts1,
-      final PointerTargetSet pts2,
-      final SSAMap ssa,
-      final CtoFormulaConverter pConv)
+      final PointerTargetSet pts1, final PointerTargetSet pts2, final SSAMap ssa)
       throws InterruptedException {
 
     if (pts1.isEmpty() && pts2.isEmpty()) {
@@ -564,16 +560,28 @@ class PointerTargetSetManager {
       for (int i = 0; i < length; ++i) {
         //TODO: create region with arrayType.getType()
         targets = addToTargets(base, null, arrayType.getType(), arrayType, offset, containerOffset + properOffset, targets, fields);
-        offset += typeHandler.getBitSizeof(arrayType.getType());
+        offset += typeHandler.getSizeof(arrayType.getType());
       }
     } else if (cType instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) cType;
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        final long offset = typeHandler.getBitOffset(compositeType, memberDeclaration);
+        final OptionalLong offset = typeHandler.getOffset(compositeType, memberDeclaration);
+        if (!offset.isPresent()) {
+          continue; // TODO this looses values of bit fields
+        }
         if (fields.containsKey(CompositeField.of(compositeType, memberDeclaration))) {
           MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
-          targets = addToTargets(base, newRegion, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);
+          targets =
+              addToTargets(
+                  base,
+                  newRegion,
+                  memberDeclaration.getType(),
+                  compositeType,
+                  offset.getAsLong(),
+                  containerOffset + properOffset,
+                  targets,
+                  fields);
         }
       }
     } else {

@@ -5,3 +5,6 @@ benchexec
 # https://github.com/btubbs/sseclient/issues/8
 # https://github.com/btubbs/sseclient/issues/9
 sseclient==0.0.15
+
+# Optional dependency of benchexec
+coloredlogs

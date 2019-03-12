@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.collect.FluentIterable.from;
-import static com.google.common.collect.ImmutableList.of;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -49,7 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -135,7 +135,7 @@ public class ARGToAutomatonConverter {
   public Iterable<Automaton> getAutomata(ARGState root) {
     switch (strategy) {
       case NONE:
-        return Collections.singleton(getAutomatonForStates(root, of()));
+        return Collections.singleton(getAutomatonForStates(root, ImmutableList.of()));
       case GLOBAL_CONDITIONS:
         return getGlobalConditionSplitAutomata(root, selectionStrategy);
       default:
@@ -187,13 +187,22 @@ public class ARGToAutomatonConverter {
         AutomatonBoolExpr locationQuery =
             new AutomatonBoolExpr.CPAQuery("location", "nodenumber==" + location.getNodeNumber());
         locationQueries.add(locationQuery);
-        transitions.add(new AutomatonTransition(locationQuery, of(), of(), of(), id(child)));
+        transitions.add(
+            new AutomatonTransition(
+                locationQuery,
+                ImmutableList.of(),
+                ImmutableList.of(),
+                ImmutableList.of(),
+                id(child)));
         waitlist.add(child);
       }
 
       transitions.add(
           new AutomatonTransition(
-              buildOtherwise(locationQueries), of(), of(), AutomatonInternalState.BOTTOM));
+              buildOtherwise(locationQueries),
+              ImmutableList.of(),
+              ImmutableList.of(),
+              AutomatonInternalState.BOTTOM));
 
       boolean hasSeveralChildren = s.getChildren().size() > 1;
       states.add(new AutomatonInternalState(id(s), transitions, false, hasSeveralChildren, false));

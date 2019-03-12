@@ -36,6 +36,11 @@ enum EmptyAbstractionCandidate implements SMGAbstractionCandidate {
   }
 
   @Override
+  public int getLength() {
+    return 0;
+  }
+
+  @Override
   public int getScore() {
     return 0;
   }

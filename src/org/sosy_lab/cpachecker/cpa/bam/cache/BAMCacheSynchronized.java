@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.bam.cache;
 
 import java.io.PrintStream;
 import java.util.Collection;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;

@@ -36,7 +36,7 @@ import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
-import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -55,7 +55,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
   private Set<ArrayDeque<Integer>> remainingStates = new HashSet<>();
   private final Function<ARGState, Integer> getStateId;
 
-  BAMMultipleCEXSubgraphComputer(BAMCPA bamCPA, @Nonnull Function<ARGState, Integer> idExtractor) {
+  BAMMultipleCEXSubgraphComputer(BAMCPA bamCPA, @NonNull Function<ARGState, Integer> idExtractor) {
     super(bamCPA);
     getStateId = idExtractor;
   }

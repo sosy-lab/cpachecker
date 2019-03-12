@@ -36,17 +36,15 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
-
+import java.util.Collection;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-
-import java.util.Collection;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 
 /**
  * This class represents the precision of the PredicateCPA.
@@ -416,6 +414,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
     return difference;
   }
 
+  @Override
   public boolean isEmpty() {
     return getGlobalPredicates().isEmpty()
         && getFunctionPredicates().isEmpty()
@@ -437,7 +436,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
       return true;
     } else if (pObj == null) {
       return false;
-    } else if (!(pObj.getClass().equals(this.getClass()))) {
+    } else if (!pObj.getClass().equals(this.getClass())) {
       return false;
     } else {
       PredicatePrecision other = (PredicatePrecision)pObj;

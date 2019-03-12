@@ -45,7 +45,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -287,9 +287,9 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
         case Texpr0BinNode.OP_SUB:
           sb.append("-");
           break;
-        case Texpr0BinNode.OP_MUL:
-          sb.append("*");
-          break;
+          case Texpr0BinNode.OP_MUL:
+            sb.append("*");
+            break;
         case Texpr0BinNode.OP_DIV:
           sb.append("/");
           break;
@@ -300,8 +300,9 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
           throw new AssertionError("Unsupported binary operator.");
         }
 
+        stack.push(
+            Pair.of(((Texpr0BinNode) current).getRightArgument(), currentPair.getSecond() + 1));
         stack.push(Pair.of(((Texpr0BinNode) current).getLeftArgument(), 0));
-        stack.push(Pair.of(((Texpr0BinNode) current).getRightArgument(), currentPair.getSecond() + 1));
       } else if (current instanceof Texpr0UnNode) {
 
         switch (((Texpr0UnNode) current).getOperation()) {

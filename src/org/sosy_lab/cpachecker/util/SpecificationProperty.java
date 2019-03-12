@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util;
 
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
 
 public class SpecificationProperty {
 
@@ -70,7 +71,10 @@ public class SpecificationProperty {
 
   @Override
   public String toString() {
-    return String.format(
-        "CHECK( init(%s()), LTL(%s) )", getEntryFunction(), getProperty().toString());
+    return (property instanceof CommonCoverageType)
+        ? String.format(
+            "COVER( init(%s()), FQL(%s) )", getEntryFunction(), getProperty().toString())
+        : String.format(
+            "CHECK( init(%s()), LTL(%s) )", getEntryFunction(), getProperty().toString());
   }
 }

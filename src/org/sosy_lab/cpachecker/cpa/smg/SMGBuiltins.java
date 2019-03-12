@@ -784,7 +784,7 @@ public class SMGBuiltins {
         throw new CPATransferException(
             "Unknown function '"
                 + calledFunctionName
-                + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
+                + "' may be unsafe. See the cpa.smg.handleUnknownFunctions option.");
       case ASSUME_SAFE:
         return ImmutableList.of(SMGAddressValueAndState.of(pState));
       case ASSUME_EXTERNAL_ALLOCATED:

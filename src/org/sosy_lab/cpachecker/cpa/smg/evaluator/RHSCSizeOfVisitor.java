@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
+import java.math.BigInteger;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -45,9 +46,9 @@ class RHSCSizeOfVisitor extends CSizeOfVisitor {
   }
 
   @Override
-  protected int handleUnkownArrayLengthValue(CArrayType pArrayType) {
+  protected BigInteger handleUnkownArrayLengthValue(CArrayType pArrayType) {
     if (kind == SMGTransferRelationKind.REFINEMENT) {
-      return 0;
+      return BigInteger.ZERO;
     } else {
       return super.handleUnkownArrayLengthValue(pArrayType);
     }

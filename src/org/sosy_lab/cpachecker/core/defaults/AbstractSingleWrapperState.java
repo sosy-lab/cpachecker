@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import java.io.Serializable;
 import java.util.Set;
 
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Base class for AbstractStates which wrap the abstract state of exactly

@@ -48,9 +48,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
 import javax.management.JMException;
 import javax.xml.transform.TransformerException;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
@@ -300,6 +300,13 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(
     secure = true,
+    name = "propertyChecked",
+    description = "Enable when interleaved algorithm is used to check a specification"
+  )
+  private boolean isPropertyChecked = true;
+
+  @Option(
+    secure = true,
     name = "condition.file",
     description = "where to store initial condition, when generated"
   )
@@ -390,7 +397,12 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
         algorithmContexts.add(new AlgorithmContext(singleConfigFile, timer));
       }
 
-      AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE;
+      AlgorithmStatus status;
+      if (isPropertyChecked) {
+        status = AlgorithmStatus.UNSOUND_AND_PRECISE;
+      } else {
+        status = AlgorithmStatus.NO_PROPERTY_CHECKED;
+      }
 
       Iterator<AlgorithmContext> algorithmContextCycle =
           Iterables.cycle(algorithmContexts).iterator();
@@ -444,11 +456,19 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
           logger.logf(Level.INFO, "Starting analysis %d ...", stats.noOfCurrentAlgorithm);
           status = currentContext.algorithm.run(currentContext.reached);
 
+          if (status.wasPropertyChecked() != isPropertyChecked) {
+            logger.logf(
+                Level.WARNING,
+                "Component algorithm and interleaved algorithm do not agree on property checking (%b, %b).",
+                status.wasPropertyChecked(),
+                isPropertyChecked);
+          }
+
           if (from(currentContext.reached).anyMatch(IS_TARGET_STATE) && status.isPrecise()) {
             analysisFinishedWithResult = true;
             return status;
           }
-          if (!status.isSound()) {
+          if (status.wasPropertyChecked() && !status.isSound()) {
             logger.logf(
                 Level.FINE,
                 "Analysis %d terminated, but result is unsound.",
@@ -540,7 +560,11 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
       if (e2.getCause() instanceof TransformerException || e2 instanceof IllegalStateException) {
         logger.logUserException(
             Level.FINE, e2, "Problem with one one the analysis, try to save result");
-        return AlgorithmStatus.UNSOUND_AND_PRECISE.withPrecise(false);
+        if (isPropertyChecked) {
+          return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+        } else {
+          return AlgorithmStatus.NO_PROPERTY_CHECKED;
+        }
       } else {
         throw e2;
       }
@@ -665,7 +689,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
       final CoreComponentsFactory pFactory,
       final @Nullable ReachedSet previousReachedSet)
       throws InterruptedException {
-
+    // TODO integrate reuse of predicate precision for value precision
     logger.log(Level.FINE, "Creating initial reached set");
 
     AbstractState initialState =

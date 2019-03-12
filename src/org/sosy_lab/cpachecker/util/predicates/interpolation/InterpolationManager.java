@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -65,6 +66,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.DomainSpecificAbstraction;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.ITPStrategy;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.NestedInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolation;
@@ -95,13 +97,71 @@ public final class InterpolationManager {
   private final Timer getInterpolantTimer = new Timer();
   private final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
   private final Timer interpolantVerificationTimer = new Timer();
+  private final Timer dsaAnalysisTimer = new Timer();
+  private final Timer feasiblityCheckTimer = new Timer();
+  private final Timer maximisationTimer = new Timer();
   private int reusedFormulasOnSolverStack = 0;
+  protected final Timer findingCommonVariablesTimer = new Timer();
+  protected final Timer buildingLatticeNamesAndLatticeTypesTimer = new Timer();
+  protected final Timer renamingTimer = new Timer();
+  protected final Timer buildingAbstractionsTimer = new Timer();
+  protected final Timer initialVariableExtractionTimer = new Timer();
+  final Timer interpolationTimer = new Timer();
 
   public void printStatistics(StatisticsWriter w0) {
     w0.put("Counterexample analysis", cexAnalysisTimer + " (Max: " + cexAnalysisTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
     StatisticsWriter w1 = w0.beginLevel();
     if (cexAnalysisGetUsefulBlocksTimer.getNumberOfIntervals() > 0) {
       w1.put("Cex.focusing", cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ")");
+    }
+    if (dsaAnalysisTimer.getNumberOfIntervals() > 0) {
+      w1.put("Domain Specific Abstractions Part: ", dsaAnalysisTimer + " (Max: " +
+          dsaAnalysisTimer
+          .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + dsaAnalysisTimer
+          .getAvgTime() + ")" + "Number of Intervals: " + dsaAnalysisTimer.getNumberOfIntervals());
+    }
+    if (initialVariableExtractionTimer.getNumberOfIntervals() > 0){
+      w1.put("Extracting Initial Variables: ", initialVariableExtractionTimer + " (Max: " +
+          initialVariableExtractionTimer
+              .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + initialVariableExtractionTimer
+          .getAvgTime() + ")" + "Number of Intervals: " + initialVariableExtractionTimer.getNumberOfIntervals());
+    }
+    if (findingCommonVariablesTimer.getNumberOfIntervals() > 0){
+      w1.put("Finding Common Variables: ", findingCommonVariablesTimer + " (Max: " +
+          findingCommonVariablesTimer
+              .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + findingCommonVariablesTimer
+          .getAvgTime() + ")" + "Number of Intervals: " + findingCommonVariablesTimer.getNumberOfIntervals());
+    }
+    if (buildingLatticeNamesAndLatticeTypesTimer.getNumberOfIntervals() > 0){
+      w1.put("Building Lattice Names and Lattice Types: ",
+          buildingLatticeNamesAndLatticeTypesTimer + " (Max: " +
+          buildingLatticeNamesAndLatticeTypesTimer
+              .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + buildingLatticeNamesAndLatticeTypesTimer
+          .getAvgTime() + ")" + "Number of Intervals: " + buildingLatticeNamesAndLatticeTypesTimer.getNumberOfIntervals());
+    }
+    if (renamingTimer.getNumberOfIntervals() > 0){
+      w1.put("Renaming: ", renamingTimer + " (Max: " +
+          renamingTimer
+              .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + renamingTimer
+          .getAvgTime() + ")" + "Number of Intervals: " + renamingTimer.getNumberOfIntervals());
+    }
+    if (feasiblityCheckTimer.getNumberOfIntervals() > 0){
+      w1.put("Feasibility Check: ", feasiblityCheckTimer + " (Max: " +
+          feasiblityCheckTimer
+              .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + feasiblityCheckTimer
+          .getAvgTime() + ")" + "Number of Intervals: " + feasiblityCheckTimer.getNumberOfIntervals());
+    }
+    if (maximisationTimer.getNumberOfIntervals() > 0){
+      w1.put("Maximisation: ", maximisationTimer + " (Max: " +
+          maximisationTimer
+              .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + maximisationTimer
+          .getAvgTime() + ")" + "Number of Intervals: " + maximisationTimer.getNumberOfIntervals());
+    }
+    if (interpolationTimer.getNumberOfIntervals() > 0){
+      w1.put("Interpolation: ", interpolationTimer + " (Max: " +
+          interpolationTimer
+              .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + interpolationTimer
+          .getAvgTime() + ")" + "Number of Intervals: " + interpolationTimer.getNumberOfIntervals());
     }
     w1.put("Refinement sat check", satCheckTimer);
     if (reuseInterpolationEnvironment && satCheckTimer.getNumberOfIntervals() > 0) {
@@ -120,6 +180,7 @@ public final class InterpolationManager {
   private final BooleanFormulaManagerView bfmgr;
   private final PathFormulaManager pmgr;
   private final Solver solver;
+  private Configuration myConfig;
 
   private final Interpolator<?> interpolator;
 
@@ -131,6 +192,16 @@ public final class InterpolationManager {
       description="use incremental search in counterexample analysis, "
         + "to find the minimal infeasible prefix")
   private boolean incrementalCheck = false;
+
+  @Option(secure=true, name="domainSpecificAbstractions",
+      description="use variant described in the Guiding Craig Interpolation Paper "
+          + "leading to a different routine")
+  private boolean domainSpecificAbstractions = false;
+
+  @Option(secure=true, name="inequalityInterpolationAbstractions",
+      description="additional variation to domainSpecificAbstractions "
+          + "using inequalities instead of equalities")
+  private boolean inequalityInterpolationAbstractions = false;
 
   @Option(secure=true, name="cexTraceCheckDirection",
       description="Direction for doing counterexample analysis: from start of trace, from end of trace, or alternatingly from start and end of the trace towards the middle")
@@ -205,6 +276,7 @@ public final class InterpolationManager {
     solver = pSolver;
     loopStructure = pLoopStructure.orElse(null);
     variableClassification = pVarClassification.orElse(null);
+    myConfig = config;
 
     if (itpTimeLimit.isEmpty()) {
       executor = null;
@@ -282,7 +354,7 @@ public final class InterpolationManager {
   private CounterexampleTraceInfo buildCounterexampleTrace0(
       final BlockFormulas pFormulas,
       final List<AbstractState> pAbstractionStates)
-      throws CPAException, InterruptedException {
+      throws CPAException, InterruptedException, InvalidConfigurationException {
 
     cexAnalysisTimer.start();
     try {
@@ -610,41 +682,53 @@ public final class InterpolationManager {
    */
   private <T> List<BooleanFormula> getInterpolants(Interpolator<T> pInterpolator,
       List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
-          throws SolverException, InterruptedException {
+      throws SolverException, InterruptedException, InvalidConfigurationException {
+
     // TODO replace with Config-Class-Constructor-Injection?
-    final  ITPStrategy<T> itpStrategy;
-    switch (strategy) {
-      case SEQ_CPACHECKER:
-        itpStrategy = new SequentialInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr, sequentialStrategy);
-        break;
-      case SEQ:
-        itpStrategy = new SequentialInterpolationWithSolver<>(logger, shutdownNotifier, fmgr, bfmgr);
-        break;
-      case TREE_WELLSCOPED:
-        itpStrategy = new WellScopedInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
-        break;
-      case TREE_NESTED:
-        itpStrategy = new NestedInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
-        break;
-      case TREE_CPACHECKER:
-        itpStrategy = new TreeInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
-        break;
-      case TREE:
-        itpStrategy = new TreeInterpolationWithSolver<>(logger, shutdownNotifier, fmgr, bfmgr);
-        break;
-      default:
-        throw new AssertionError("unknown interpolation strategy");
+
+
+    if (domainSpecificAbstractions) {
+      List <BooleanFormula> interpolants = createDSAInterpolants(formulasWithStatesAndGroupdIds);
+      return interpolants;
+
+    } else {
+      final ITPStrategy<T> itpStrategy;
+      switch (strategy) {
+        case SEQ_CPACHECKER:
+          itpStrategy = new SequentialInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr,
+              sequentialStrategy);
+          break;
+        case SEQ:
+          itpStrategy =
+              new SequentialInterpolationWithSolver<>(logger, shutdownNotifier, fmgr, bfmgr);
+          break;
+        case TREE_WELLSCOPED:
+          itpStrategy = new WellScopedInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
+          break;
+        case TREE_NESTED:
+          itpStrategy = new NestedInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
+          break;
+        case TREE_CPACHECKER:
+          itpStrategy = new TreeInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
+          break;
+        case TREE:
+          itpStrategy = new TreeInterpolationWithSolver<>(logger, shutdownNotifier, fmgr, bfmgr);
+          break;
+        default:
+          throw new AssertionError("unknown interpolation strategy");
+      }
+
+      final List<BooleanFormula> interpolants =
+          itpStrategy.getInterpolants(pInterpolator, formulasWithStatesAndGroupdIds);
+
+      assert formulasWithStatesAndGroupdIds.size() - 1 == interpolants.size()
+          : "we should return N-1 interpolants for N formulas.";
+
+      if (verifyInterpolants) {
+        itpStrategy.checkInterpolants(solver, formulasWithStatesAndGroupdIds, interpolants);
+      }
+      return interpolants;
     }
-
-    final List<BooleanFormula> interpolants = itpStrategy.getInterpolants(pInterpolator, formulasWithStatesAndGroupdIds);
-
-    assert formulasWithStatesAndGroupdIds.size() - 1 == interpolants.size() : "we should return N-1 interpolants for N formulas.";
-
-    if (verifyInterpolants) {
-      itpStrategy.checkInterpolants(solver, formulasWithStatesAndGroupdIds, interpolants);
-    }
-
-    return interpolants;
   }
 
   /**
@@ -751,7 +835,7 @@ public final class InterpolationManager {
     private CounterexampleTraceInfo buildCounterexampleTrace(
         BlockFormulas formulas,
         List<AbstractState> pAbstractionStates)
-        throws SolverException, InterruptedException {
+        throws SolverException, InterruptedException, InvalidConfigurationException {
 
       // Check feasibility of counterexample
       shutdownNotifier.shutdownIfNecessary();
@@ -996,6 +1080,72 @@ public final class InterpolationManager {
       itpProver.close();
       itpProver = null;
       currentlyAssertedFormulas.clear();
+    }
+  }
+
+  private <T> List<BooleanFormula> createDSAInterpolants(List<Triple<BooleanFormula, AbstractState,
+      T>> formulasWithStatesAndGroupdIds)
+      throws InvalidConfigurationException, SolverException, InterruptedException {
+    List<BooleanFormula> myInterpolants;
+    dsaAnalysisTimer.start();
+    try {
+
+      //Solver mySolver = null;
+        /*try {
+          mySolver = Solver.create(
+              myConfig, logger,
+              shutdownNotifier);
+        } catch (InvalidConfigurationException pE) {
+          logger.log(Level.WARNING, "Invalid Configuration!");
+        } */
+      try (Solver mySolver =Solver.create(
+          myConfig,logger,
+          shutdownNotifier)){
+        FormulaManagerView newFmgr = mySolver.getFormulaManager();
+        DomainSpecificAbstraction<T> dsa =
+            new DomainSpecificAbstraction<>(
+                newFmgr,
+                fmgr,
+                logger,
+                findingCommonVariablesTimer,
+                buildingLatticeNamesAndLatticeTypesTimer,
+                renamingTimer,
+                buildingAbstractionsTimer,
+                interpolationTimer,
+                initialVariableExtractionTimer,
+                feasiblityCheckTimer,
+                maximisationTimer,
+                inequalityInterpolationAbstractions);
+        List<BooleanFormula> tocheck =
+            Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst);
+        if (tocheck != null) {
+          myInterpolants = dsa.domainSpecificAbstractionsCheck(mySolver, tocheck);
+        } else {
+          myInterpolants = null;
+        }
+        if (myInterpolants != null && !myInterpolants.isEmpty()) {
+          List<BooleanFormula> interpolantList = new ArrayList<>(myInterpolants.size());
+          for (BooleanFormula f : myInterpolants) {
+            BooleanFormula interpolant = fmgr.translateFrom(f, newFmgr);
+            interpolantList.add(interpolant);
+          }
+
+          // mySolver.close();
+          if (!interpolantList.isEmpty()) {
+            return interpolantList;
+          } else {
+            // mySolver.close();
+            logger.log(Level.WARNING, "Returning empty list");
+
+            return Collections.emptyList();
+          }
+        } else {
+          // mySolver.close();
+          return Collections.emptyList();
+        }
+      }
+    } finally {
+      dsaAnalysisTimer.stop();
     }
   }
 }

@@ -27,7 +27,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
-import javax.annotation.Nullable;
+import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -76,7 +77,7 @@ public interface BAMCache extends Statistics {
 
   class BAMCacheEntry {
     private final ReachedSet rs;
-    private Collection<AbstractState> exitStates;
+    private List<AbstractState> exitStates;
     private ARGState rootOfBlock;
 
     protected BAMCacheEntry(ReachedSet pRs) {
@@ -87,13 +88,13 @@ public interface BAMCache extends Statistics {
       return rs;
     }
 
-    public void setExitStates(Collection<AbstractState> pExitStates) {
+    public void setExitStates(List<AbstractState> pExitStates) {
       exitStates = Preconditions.checkNotNull(pExitStates);
       check();
     }
 
     @Nullable
-    public Collection<AbstractState> getExitStates() {
+    public List<AbstractState> getExitStates() {
       return exitStates;
     }
 

@@ -777,6 +777,10 @@ counterexample.concrete.timelimit = 0ms
 # second check
 counterexample.continueAfterInfeasibleError = true
 
+# An imprecise counterexample of the Predicate CPA is usually a bug, but
+# expected in some configurations. Should it be treated as a bug or accepted?
+counterexample.export.allowImpreciseCounterexamples = true
+
 # If the option assumeLinearArithmetics is set, this option can be used to
 # allow division and modulo by constants.
 counterexample.export.assumptions.allowDivisionAndModuloByConstants = false
@@ -2065,6 +2069,10 @@ cpa.predicate.refinement.cexTraceCheckDirection = FORWARDS
 # BDDs as they are.
 cpa.predicate.refinement.doAbstractionComputation = false
 
+# use variant described in the Guiding Craig Interpolation Paper leading to a
+# different routine
+cpa.predicate.refinement.domainSpecificAbstractions = false
+
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
 
@@ -2096,6 +2104,10 @@ cpa.predicate.refinement.includePartialInvariants = true
 # infeasible prefix
 cpa.predicate.refinement.incrementalCexTraceCheck = false
 
+# additional variation to domainSpecificAbstractions using inequalities
+# instead of equalities
+cpa.predicate.refinement.inequalityInterpolationAbstractions = false
+
 # Max. number of prefixes to extract
 cpa.predicate.refinement.maxPrefixCount = 64
 
@@ -2110,7 +2122,7 @@ cpa.predicate.refinement.maxRefinementSize = 0
 # sets the level of the pathformulas to use for abstraction. 
 #   EDGE : Based on Pathformulas of every edge in ARGPath
 #   BLOCK: Based on Pathformulas at Abstractionstates
-cpa.predicate.refinement.newtonrefinement.abstractionLevel = BLOCK
+cpa.predicate.refinement.newtonrefinement.abstractionLevel = EDGE
   enum:     [BLOCK, EDGE]
 
 # Activate fallback to interpolation. Typically in case of a repeated
@@ -2644,6 +2656,9 @@ cpa.usage.falseUnsafesOutput = "FalseUnsafes"
 # if a file do not exist, do not include the corresponding edge
 cpa.usage.filterMissedFiles = true
 
+# filtered unsafes, which can not be removed using precision, may be hidden
+cpa.usage.hideFilteredUnsafes = false
+
 # The functions, which cannot be executed in parallel with themselves
 cpa.usage.notSelfParallelFunctions = new HashSet<>()
 
@@ -2666,6 +2681,9 @@ cpa.usage.printFalseUnsafes = false
 
 # output only true unsafes
 cpa.usage.printOnlyTrueUnsafes = false
+
+# print found unsafes in case of unknown verdict
+cpa.usage.printUnsafesIfUnknown = true
 
 # The order of refinement blocks
 cpa.usage.refinementChain = no default value
@@ -3002,9 +3020,6 @@ heuristicSelection.preAnalysisAlgorithmConfig = no default value
 # Configuration for programs containing recursion.
 heuristicSelection.recursionConfig = no default value
 
-# Usage of an preliminary algorithm analysis.
-heuristicSelection.usePreAnalysisAlgorithm = false
-
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
 
@@ -3030,6 +3045,9 @@ interleavedAlgorithm.initCondition = false
 # directly after the component's computation is finished
 interleavedAlgorithm.intermediateStatistics = NONE
   enum:     [EXECUTE, NONE, PRINT]
+
+# Enable when interleaved algorithm is used to check a specification
+interleavedAlgorithm.propertyChecked = true
 
 # let each analysis part of the interleaved algorithm write output files and
 # not only the last one that is executed
@@ -3754,6 +3772,9 @@ termination.violation.witness = "nontermination_witness.graphml"
 testHarnessExport.useModel = true
 testHarnessTestExport.useModel = true
 
+# zip all exported test cases into a single file
+testcase.compress = false
+
 # export test harness to file as code
 testcase.file = no default value
 
@@ -3763,17 +3784,32 @@ testcase.generate.parallel = false
 # display all test targets and non-covered test targets in statistics
 testcase.inStats = false
 
+# when generating tests covering error call stop as soon as generated one
+# test case and report false (only possible in combination with error call
+# property specification
+testcase.reportCoveredErrorCallAsError = false
+
+# Which CFA edges to use as test targets
+testcase.targets.type = ASSUME
+  enum:     [ASSUME, ERROR_CALL, STATEMENT]
+
 # export test values to file (line separated)
 testcase.values = no default value
 
-# zip all exported test values into a single file
-testcase.values.compress = false
+# export test cases to xm file (Test-Comp format)
+testcase.xml = no default value
 
-# Zip file into which all test values files are bundled
-testcase.values.zip = no default value
+# Zip file into which all test case files are bundled
+testcase.zip.file = no default value
 
 # Ignore functions that are defined by C11
 undefinedFunctionsCollector.allowC11Functions = true
+
+# Ignore functions that are defined by GNU C and not by C11/POSIX
+undefinedFunctionsCollector.allowGnuCFunctions = true
+
+# Ignore functions that are defined by POSIX
+undefinedFunctionsCollector.allowPosixFunctions = true
 
 # Set of functions that should be ignored
 undefinedFunctionsCollector.allowedFunctions = ImmutableSet.of(

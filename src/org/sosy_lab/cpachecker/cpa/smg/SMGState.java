@@ -43,7 +43,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -975,7 +975,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
           int level = reachedObjectSubSmg.getLevel();
           SMGTargetSpecifier tg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
 
-          if ((!reached.contains(reachedObjectSubSmg))
+          if (!reached.contains(reachedObjectSubSmg)
               && (level != 0 || tg == SMGTargetSpecifier.ALL)
               && !subDlsValue.isZero()) {
             assert level > 0;
@@ -1018,7 +1018,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         int level = reachedObjectSubSmg.getLevel();
         SMGTargetSpecifier tg = reachedObjectSubSmgPTEdge.getTargetSpecifier();
 
-        if ((!reached.contains(reachedObjectSubSmg))
+        if (!reached.contains(reachedObjectSubSmg)
             && (level != 0 || tg == SMGTargetSpecifier.ALL)
             && !subDlsValue.isZero()) {
           assert level > 0;

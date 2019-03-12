@@ -29,7 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
@@ -616,7 +616,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       int M = partition.getVars().size();
       return (int) Math.ceil(Math.log(N + M) / Math.log(2));
     } else {
-      return machineModel.getSizeof(type) * machineModel.getSizeofCharInBits();
+      return machineModel.getSizeofInBits(type).intValueExact();
     }
   }
 
@@ -711,7 +711,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     for (AbstractState otherState : states) {
       if (otherState instanceof PointerState) {
         super.setInfo(bddState, pPrecision, cfaEdge);
-        bddState = strengthenWithPointerInformation(bddState, (PointerState) otherState, cfaEdge);
+        bddState = strengthenWithPointerInformation((PointerState) otherState, cfaEdge);
         super.resetInfo();
         if (bddState == null) {
           return Collections.emptyList();
@@ -721,8 +721,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     return Collections.singleton(bddState);
   }
 
-  private BDDState strengthenWithPointerInformation(
-      BDDState bddState, PointerState pPointerInfo, CFAEdge cfaEdge)
+  private BDDState strengthenWithPointerInformation(PointerState pPointerInfo, CFAEdge cfaEdge)
       throws UnrecognizedCodeException {
 
     if (cfaEdge instanceof CAssumeEdge) {
@@ -748,7 +747,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     // without a target, nothing can be done.
     if (target == null) {
-      return bddState;
+      return state;
     }
 
     // get value for RHS
@@ -767,7 +766,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     // without a value, nothing can be done.
     if (value == null) {
-      return bddState;
+      return state;
     }
 
     final Partition partition = varClass.getPartitionForEdge(cfaEdge);
@@ -780,7 +779,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     final Region[] evaluation =
         predmgr.createPredicate(
             value.getAsSimpleString(), valueType, cfaEdge.getSuccessor(), size, precision);
-    BDDState newState = bddState.forget(rhs);
+    BDDState newState = state.forget(rhs);
     return newState.addAssignment(rhs, evaluation);
   }
 

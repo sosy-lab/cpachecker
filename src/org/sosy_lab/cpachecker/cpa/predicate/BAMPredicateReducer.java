@@ -28,7 +28,6 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ImmutableSetMultimap.Builder;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Set;
@@ -149,6 +148,7 @@ public class BAMPredicateReducer implements Reducer {
     SSAMapBuilder builder = oldSSA.builder();
     SSAMap rootSSA = rootState.getPathFormula().getSsa();
     PointerTargetSet rootPts = rootState.getPathFormula().getPointerTargetSet();
+    PointerTargetSet reducedPts = reducedState.getPathFormula().getPointerTargetSet();
 
     if (useAbstractionReduction) {
 
@@ -169,7 +169,8 @@ public class BAMPredicateReducer implements Reducer {
         }
       }
       SSAMap newSSA = builder.build();
-      PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, newSSA, rootPts);
+      PointerTargetSet newPts = pmgr.mergePts(rootPts, reducedPts, newSSA);
+      PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, newSSA, newPts);
 
       AbstractionFormula newAbstractionFormula =
           pamgr.expand(reducedAbstraction.asRegion(), rootAbstraction.asRegion(),
@@ -180,7 +181,8 @@ public class BAMPredicateReducer implements Reducer {
       return PredicateAbstractState.mkAbstractionState(newPathFormula,
           newAbstractionFormula, abstractionLocations);
     } else {
-      PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, oldSSA, rootPts);
+      PointerTargetSet newPts = pmgr.mergePts(rootPts, reducedPts, oldSSA);
+      PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, oldSSA, newPts);
       return PredicateAbstractState.mkAbstractionState(newPathFormula,
           reducedState.getAbstractionFormula(), reducedState.getAbstractionLocationsOnPath());
     }
@@ -242,14 +244,16 @@ public class BAMPredicateReducer implements Reducer {
           getRelevantPredicates(context, expandedPredicatePrecision.getGlobalPredicates());
 
       // we only need function predicates with used variables
-      final Builder<String, AbstractionPredicate> functionPredicates = ImmutableSetMultimap.builder();
+      final ImmutableSetMultimap.Builder<String, AbstractionPredicate> functionPredicates =
+          ImmutableSetMultimap.builder();
       for (String functionname : expandedPredicatePrecision.getFunctionPredicates().keySet()) {
         functionPredicates.putAll(functionname, getRelevantPredicates(
             context, expandedPredicatePrecision.getFunctionPredicates().get(functionname)));
       }
 
       // we only need local predicates with used variables and with nodes from the block
-      final Builder<CFANode, AbstractionPredicate> localPredicates = ImmutableSetMultimap.builder();
+      final ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> localPredicates =
+          ImmutableSetMultimap.builder();
       for (CFANode node : expandedPredicatePrecision.getLocalPredicates().keySet()) {
         if (context.getNodes().contains(node)) {
           // TODO handle location-instance-specific predicates

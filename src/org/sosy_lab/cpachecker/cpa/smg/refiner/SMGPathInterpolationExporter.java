@@ -107,7 +107,7 @@ public class SMGPathInterpolationExporter {
 
     int counter = 1;
     for (SMGState state : states) {
-      String fileName = "smgInterpolant-1-smg-" + (counter++) + ".dot";
+      String fileName = "smgInterpolant-1-smg-" + counter++ + ".dot";
       Path path = exportPath.getPath(pInterpolationId, fileName);
       String name = "First interpolant";
       SMGUtils.dumpSMGPlot(logger, state, name, path);
@@ -129,7 +129,7 @@ public class SMGPathInterpolationExporter {
 
     int counter = 1;
     for (SMGState state : states) {
-      String fileName = "smgInterpolant-" + pPathIndex + "-smg-" + (counter++) + ".dot";
+      String fileName = "smgInterpolant-" + pPathIndex + "-smg-" + counter++ + ".dot";
       Path path = exportPath.getPath(pInterpolationId, fileName);
       String location = pIncomingEdge + " on N" + pCurrentLocation.getNodeNumber();
       SMGUtils.dumpSMGPlot(logger, state, location, path);

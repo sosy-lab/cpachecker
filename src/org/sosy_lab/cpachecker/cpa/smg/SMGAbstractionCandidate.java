@@ -32,6 +32,8 @@ public interface SMGAbstractionCandidate {
 
   UnmodifiableCLangSMG execute(CLangSMG pSMG, SMGState pSmgState) throws SMGInconsistentException;
 
+  int getLength();
+
   int getScore();
 
   SMGAbstractionBlock createAbstractionBlock(UnmodifiableSMGState pSmgState);

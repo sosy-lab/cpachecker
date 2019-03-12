@@ -202,6 +202,7 @@ with considerably less effort */
 					if (d3.select("#arg-toolbar").style("visibility") !== "hidden") {
 						d3.select("#arg-toolbar").style("visibility", "hidden");
 						d3.selectAll(".arg-graph").style("visibility", "hidden");
+						d3.selectAll(".arg-simplified-graph").style("visibility", "hidden");
 						d3.selectAll(".arg-error-graph").style("visibility", "hidden");
 						if (d3.select("#arg-container").classed("arg-content")) {
 							d3.select("#arg-container").classed("arg-content", false);
@@ -225,6 +226,7 @@ with considerably less effort */
 					if (!d3.select("#arg-container").classed("arg-content")) {
 						d3.select("#arg-container").classed("arg-content", true);
 					}
+					d3.selectAll(".arg-simplified-graph").style("display", "none");
 					if ($rootScope.displayedARG.indexOf("error") !== -1) {
 						d3.selectAll(".arg-error-graph").style("visibility", "visible");
 						if ($("#arg-container").scrollTop() === 0) {
@@ -248,6 +250,7 @@ with considerably less effort */
 					if (d3.select("#arg-toolbar").style("visibility") !== "hidden") {
 						d3.select("#arg-toolbar").style("visibility", "hidden");
 						d3.selectAll(".arg-graph").style("visibility", "hidden");
+						d3.selectAll(".arg-simplified-graph").style("visibility", "hidden");
 						d3.selectAll(".arg-error-graph").style("visibility", "hidden");
 						if (d3.select("#arg-container").classed("arg-content")) {
 							d3.select("#arg-container").classed("arg-content", false);
@@ -285,6 +288,7 @@ with considerably less effort */
 			}
 			return values;
 		};
+
 		// initialize array that stores the important edges. Index counts only, when edges appear in the report.
                 var importantEdges = [];
                 var importantIndex = -1;
@@ -335,10 +339,10 @@ with considerably less effort */
 			    }
                         };
 
-                        // timeout is needed for the color to appear on the report.
-			setTimeout(function() {
+                        angular.element(document).ready(function(){
                             highlightEdges(importantEdges);
-                        }, 2000);
+                        });
+
 
 		}
 
@@ -773,10 +777,10 @@ with considerably less effort */
 				if ($scope.argSelections.length > 1) {
 					if ($rootScope.displayedARG.indexOf("error") !== -1) {
 						d3.selectAll(".arg-graph").style("display", "none");
-						$("#arg-container").scrollTop(0).scrollLeft(0);
 						if (!d3.select(".arg-simplified-graph").empty()) {
-                                                        d3.selectAll(".arg-simplified-graph").style("display", "none");
+                                                         d3.selectAll(".arg-simplified-graph").style("display", "none");
                                                 }
+						$("#arg-container").scrollTop(0).scrollLeft(0);
 						if (d3.select(".arg-error-graph").empty()) {
 							argWorker.postMessage({
 								"errorGraph": true
@@ -790,7 +794,7 @@ with considerably less effort */
 					        if (!d3.select(".arg-error-graph").empty()) {
                                                 	d3.selectAll(".arg-error-graph").style("display", "none");
                                                 }
-                                                if (d3.select(".arg-error-graph").empty()) {
+                                                if (d3.select(".arg-simplified-graph").empty()) {
                                                 	argWorker.postMessage({
                                                 	      "simplifiedGraph": true
                                                 	});
@@ -921,8 +925,12 @@ function init() {
 		$("#arg-modal").text("0/" + argTotalGraphCount);
 	} else { // No ARG data -> happens if the AbstractStates are not ARGStates
 		$("#arg-modal").text("0/0");
-		$("#set-tab-2").parent().addClass("disabled");
+		$("#set-tab-2").addClass("disabled-btn");
 		argTabDisabled = true;
+		angular.element(document).ready(function(){
+                  $("#set-tab-2").parent().attr("data-original-title", "ARG not available for this configuration of CPAchecker");
+                  $("#set-tab-2").attr("data-toggle", "");
+                });
 	}
 	var cfaTotalGraphCount = 0;
 	cfaJson.functionNames.forEach(function (f) {

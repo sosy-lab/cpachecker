@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector;
 import com.google.common.base.Preconditions;
 import java.math.BigInteger;
 import java.util.List;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.OverflowEventHandler;

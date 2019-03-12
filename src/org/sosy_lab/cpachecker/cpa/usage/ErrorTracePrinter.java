@@ -115,7 +115,7 @@ public abstract class ErrorTracePrinter {
       FILTER_EMPTY_FILE_LOCATIONS =
           Predicates.and(
               FILTER_EMPTY_FILE_LOCATIONS,
-              e -> (Files.exists(Paths.get(e.getFileLocation().getFileName()))));
+              e -> Files.exists(Paths.get(e.getFileLocation().getFileName())));
     }
     subgraphComputer = t;
     cfa = pCfa;

@@ -94,7 +94,7 @@ public abstract class AbstractSingleProperty {
     return relevant;
   }
 
-  protected void setRelevant() {
+  public void setRelevant() {
     relevant = true;
   }
 

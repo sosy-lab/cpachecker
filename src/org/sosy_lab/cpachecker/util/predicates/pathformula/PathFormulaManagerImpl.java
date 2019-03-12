@@ -38,7 +38,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -338,6 +338,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       out = out.updateFormula(fmgr.simplify(out.getFormula()));
     }
     return out;
+  }
+
+  @Override
+  public PointerTargetSet mergePts(PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMap pSSA)
+      throws InterruptedException {
+    return converter.mergePointerTargetSets(pPts1, pPts2, pSSA).getResult();
   }
 
   @Override

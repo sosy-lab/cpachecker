@@ -110,12 +110,12 @@ import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ConditionAdjustm
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithmForInvariantGeneration;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.EdgeFormulaNegation;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.ExpressionTreeLocationInvariant;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.ExpressionTreeLocationInvariant.ManagerKey;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.StaticCandidateProvider;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.TargetLocationCandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.EdgeFormulaNegation;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant.ManagerKey;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;

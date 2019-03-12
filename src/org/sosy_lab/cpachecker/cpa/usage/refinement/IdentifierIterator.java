@@ -26,11 +26,14 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicates;
+import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -98,6 +101,12 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
   )
   private boolean totalARGCleaning = true;
 
+  @Option(
+      name = "hideFilteredUnsafes",
+      description = "filtered unsafes, which can not be removed using precision, may be hidden",
+      secure = true)
+  private boolean hideFilteredUnsafes = false;
+
   private final BAMTransferRelation transfer;
 
   int i = 0;
@@ -135,9 +144,10 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
 
     UsageReachedSet uReached = (UsageReachedSet) pReached;
     UsageContainer container = uReached.getUsageContainer();
+    Set<SingleIdentifier> processedUnsafes = new HashSet<>();
 
     logger.log(Level.INFO, ("Perform US refinement: " + i++));
-    int originUnsafeSize = container.getUnsafeSize();
+    int originUnsafeSize = container.getTotalUnsafeSize();
     if (lastFalseUnsafeSize == -1) {
       lastFalseUnsafeSize = originUnsafeSize;
     }
@@ -145,7 +155,6 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
     boolean newPrecisionFound = false;
 
     sendUpdateSignal(PredicateRefinerAdapter.class, pReached);
-    sendUpdateSignal(UsagePairIterator.class, container);
     sendUpdateSignal(PointIterator.class, container);
 
     Iterator<SingleIdentifier> iterator = container.getUnrefinedUnsafeIterator();
@@ -161,7 +170,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
 
       AdjustablePrecision info = result.getPrecision();
 
-      if (info != null) {
+      if (!info.isEmpty()) {
         AdjustablePrecision updatedPrecision;
         if (precisionMap.containsKey(currentId)) {
           updatedPrecision = precisionMap.get(currentId).add(info);
@@ -175,11 +184,13 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
 
       if (result.isTrue()) {
         container.setAsRefined(currentId, result);
-      } else if (result.isFalse() && !isPrecisionChanged) {
+        processedUnsafes.add(currentId);
+      } else if (hideFilteredUnsafes && result.isFalse() && !isPrecisionChanged) {
         //We do not add a precision, but consider the unsafe as false
         //set it as false now, because it will occur again, as precision is not changed
         //We can not look at precision size here - the result can be false due to heuristics
         container.setAsFalseUnsafe(currentId);
+        processedUnsafes.add(currentId);
       }
     }
     int newTrueUnsafeSize = container.getProcessedUnsafeSize();
@@ -207,8 +218,10 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
       }
       pReached.clear();
 
+      processedUnsafes.addAll(
+          Sets.intersection(precisionMap.keySet(), container.getFalseUnsafes()));
       for (AdjustablePrecision prec :
-              from(container.getProcessedUnsafes())
+              from(processedUnsafes)
               .transform(precisionMap::remove)
               .filter(Predicates.notNull())) {
         finalPrecision = finalPrecision.subtract(prec);

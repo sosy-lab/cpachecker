@@ -148,9 +148,9 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
       return isTracking(pVariable);
     } else {
       return !((pType instanceof CSimpleType
-                  && (((CSimpleType) pType).getType().isFloatingPointType()))
+                  && ((CSimpleType) pType).getType().isFloatingPointType())
               || (pType instanceof JSimpleType
-                  && (((JSimpleType) pType).getType().isFloatingPointType())))
+                  && ((JSimpleType) pType).getType().isFloatingPointType()))
           && isTracking(pVariable);
     }
   }

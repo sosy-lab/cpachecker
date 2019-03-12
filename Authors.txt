@@ -11,9 +11,11 @@ Developers/Contributors:
   Thomas Bunk (since 2018), LMU Munich, Germany
   Johannes Bürdek (since 2014), University of Darmstadt, Germany
   Rodrigo Castaño (since 2017), University of Buenos Aires, Argentina
+  Marek Chalupa (since 2018), Masaryk University, Czech Republic
   Matthias Dangl (since 2012), LMU Munich, Germany
   Karlheinz Friedberger (since 2011), LMU Munich, Germany
   Matthias Gerlach (since 2017), LMU Munich, Germany
+  Raphael Hagl (since 2018), LMU Munich, Germany
   Marie-Christine Jakobs (since 2012), LMU Munich, Germany
   Johannes Knaut (since 2018), LMU Munich, Germany
   Alexander Koos (since 2017), LMU Munich, Germany
@@ -21,16 +23,15 @@ Developers/Contributors:
   Thomas Lemberger (since 2014), LMU Munich, Germany
   Michael Maier (since 2017), LMU Munich, Germany
   Mikhail Mandrykin (since 2013), ISP RAS, Russia
-  Grigory Markin (since 2017), University of Lübeck, Germany
   Vitaly Mordan (since 2014), ISP RAS, Russia
   Vadim Mutilin (since 2012), ISP RAS, Russia
-  Lokesh Nandanwar (since 2018), National Institute of Technology Durgapur, India
+  Jakob Selberg (since 2018), LMU Munich, Germany
   Martin Spießl (since 2017), LMU Munich, Germany
-  Manuel Töws (since 2016), University of Paderborn, Germany
   Mirjam Trapp (since 2018), LMU Munich, Germany
   Anton Vasilyev (since 2015), ISP RAS, Russia
   Anton Volkov (since 2015), ISP RAS, Russia
-  Ilja Zakharov (since 2016), ISP RAS, Russia
+  Max Wiesholler (since 2018), LMU Munich, Germany
+  Katharina Winter (since 2018), LMU Munich, Germany
 
 Former Developers/Contributors:
   Emanuele De Angelis (2013 - 2014), University of Chieti and Pescara, Italy
@@ -44,7 +45,7 @@ Former Developers/Contributors:
   Peter Dahlberg (2013 - 2016), University of Passau, Germany
   Matthias Dittrich (2013), University of Passau, Germany
   Andreas Donig (2010 - 2013), University of Passau, Germany
-  Georg Dresler (2013-2014), University of Passau, Germany
+  Georg Dresler (2013 - 2014), University of Passau, Germany
   Alexander Driemeyer (2012 - 2016), University of Passau, Germany
   Barbara Eckl (2016), University of Passau, Germany
   Gregor Endler (2009 - 2010), University of Passau, Germany
@@ -67,8 +68,10 @@ Former Developers/Contributors:
   Stefan Löwe (2010 - 2016), University of Passau, Germany
   Stephan Lukasczyk (2015 - 2016), University of Passau, Germany
   Alexander Maringer (2010), University of Passau, Germany
+  Grigory Markin (2017), University of Lübeck, Germany
   Petr Muller (2012 - 2014), Brno University of Technology, Czech Republic
   Magdalena Murr (2015), University of Passau, Germany
+  Lokesh Nandanwar (2018), National Institute of Technology Durgapur, India
   Christian Olbrich (2014), University of Passau, Germany
   Sebastian Ott (2013 - 2016), University of Passau, Germany
   Stefan Peters (2011 - 2012), University of Passau, Germany
@@ -84,11 +87,13 @@ Former Developers/Contributors:
   Maximilian Syri (2015 - 2016), University of Passau, Germany
   Michael Tautschnig (2008 - 2009), University of Darmstadt, Germany
   Gregory Theoduloz (2009 - 2010), EPFL, Switzerland
+  Manuel Töws (2016), University of Paderborn, Germany
   Tanja Tornede (2014 - 2016), University of Paderborn, Germany
   Christoph Woller (2014 - 2015), University of Passau, Germany
   Daniel Wonisch (2011 - 2012), University of Paderborn, Germany
   Geoff Zenger (2007), Simon Fraser University, Canada
-  Gernot Zorneck (2016-2017), University of Passau, Germany
+  Gernot Zorneck (2016 - 2017), University of Passau, Germany
+  Ilja Zakharov (2016), ISP RAS, Russia
 
 Questions and bug reports:
   Dirk Beyer: CPAchecker-Users@googlegroups.com (cf. doc/Mailing.md)

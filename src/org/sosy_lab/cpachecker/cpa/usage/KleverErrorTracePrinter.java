@@ -243,10 +243,10 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       Element edge = printEdge(builder, pEdge);
 
       if (!warningIsPrinted
-          && pEdge.getPredecessor() == usage.getLine().getNode()
+          && pEdge.getSuccessor() == usage.getCFANode()
           && containsId(pEdge, pIdName)) {
         warningIsPrinted = true;
-        builder.addDataElementChild(edge, KeyDef.WARNING, usage.getWarningMessage());
+        builder.addDataElementChild(edge, KeyDef.WARNING, usage.toString());
       } else if (!warningIsPrinted && !iterator.hasNext()) {
         logger.log(Level.WARNING, "Can not determine an unsafe edge");
         builder.addDataElementChild(edge, KeyDef.WARNING, WARNING_MESSAGE);

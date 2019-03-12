@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
@@ -165,5 +167,11 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision, Seria
       newPrecisions.add(newPrecision);
     }
     return new CompositePrecision(newPrecisions.build());
+  }
+
+  @Override
+  public boolean isEmpty() {
+    return from(precisions).transform(p -> (AdjustablePrecision) p)
+        .allMatch(AdjustablePrecision::isEmpty);
   }
 }

@@ -40,7 +40,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
@@ -217,8 +217,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
       name = "partitionOperator",
       description = "Partitioning operator for multi-property verification.")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.mpv.partition")
-  @Nonnull
-  private PartitioningOperator.Factory partitioningOperatorFactory =
+  private PartitioningOperator.@NonNull Factory partitioningOperatorFactory =
       (pConfig, pLogger, pShutdownNotifier, pProperties, pCpuTimePerProperty) ->
           new SeparatePartitioningOperator(pProperties, pCpuTimePerProperty);
 

@@ -38,7 +38,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -313,7 +313,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
     return pNode
         .getFunctionParameters()
         .stream()
-        .map((x -> MemoryLocation.valueOf(x.getQualifiedName())))
+        .map(x -> MemoryLocation.valueOf(x.getQualifiedName()))
         .collect(Collectors.toSet());
   }
 

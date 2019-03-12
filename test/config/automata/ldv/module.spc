@@ -24,12 +24,12 @@ STATE USEALL Init :
 
   // Fail on this call.
   MATCH {module_put_and_exit($?)} -> ERROR("linux:module::less initial decrement");
-  
+
   // Cut paths, on which function return value is not 0.
   MATCH {$1 = module_refcount($?)} -> ASSUME {((int)$1)!=0} STOP;
   // Allow paths, on which function return value is 0.
   MATCH {$1 = module_refcount($?)} -> ASSUME {((int)$1)==0} GOTO Init;
- 
+
 
 STATE USEALL Inc :
   // Increase reference counter if parameter is a valid pointer.

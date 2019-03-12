@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import com.google.common.base.Function;
 import java.util.Optional;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;

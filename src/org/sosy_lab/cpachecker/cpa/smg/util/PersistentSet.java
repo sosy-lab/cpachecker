@@ -23,14 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.util;
 
+import com.google.errorprone.annotations.Immutable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Iterator;
 import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 
-/** A Set-implementation based on the {@link PathCopyingPersistentTreeMap}.
- * We use {@code null} as internal value for the map. */
+/**
+ * A Set-implementation based on the {@link PathCopyingPersistentTreeMap}. We use {@code null} as
+ * internal value for the map.
+ */
+@Immutable(containerOf = "K")
 public class PersistentSet<K> implements Iterable<K> {
 
   private final PersistentMap<K, Void> delegate;

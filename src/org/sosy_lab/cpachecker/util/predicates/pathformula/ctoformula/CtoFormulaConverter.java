@@ -41,7 +41,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.logging.Level;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -789,8 +789,7 @@ public class CtoFormulaConverter {
   private static CExpression makeCastFromArrayToPointer(CExpression arrayExpression) {
     // array-to-pointer conversion
     CArrayType arrayType = (CArrayType)arrayExpression.getExpressionType().getCanonicalType();
-    CPointerType pointerType = new CPointerType(arrayType.isConst(),
-        arrayType.isVolatile(), arrayType.getType());
+    CPointerType pointerType = arrayType.asPointerType();
 
     return new CUnaryExpression(arrayExpression.getFileLocation(), pointerType,
         arrayExpression, UnaryOperator.AMPER);
@@ -1213,7 +1212,7 @@ public class CtoFormulaConverter {
       // If there is an initializer, all fields/elements not mentioned
       // in the initializer are set to 0 (C standard § 6.7.9 (21)
 
-      int size = machineModel.getSizeof(decl.getType());
+      long size = machineModel.getSizeof(decl.getType()).longValueExact();
       if (size > 0) {
         Formula var = makeVariable(varName, decl.getType(), ssa);
         CType elementCType = decl.getType();
@@ -1697,7 +1696,7 @@ public class CtoFormulaConverter {
       offset = 0;
       break;
     case STRUCT:
-      offset = getFieldOffset(structType, fExp.getFieldName());
+        offset = getBitFieldOffset(structType, fExp.getFieldName());
       break;
     default:
         throw new UnrecognizedCodeException("Unexpected field access", fExp);
@@ -1727,9 +1726,9 @@ public class CtoFormulaConverter {
   /**
    * Returns the offset of the given field in the given struct in bits.
    *
-   * This function does not handle UNIONs or ENUMs!
+   * <p>This function does not handle UNIONs or ENUMs!
    */
-  private int getFieldOffset(CCompositeType structType, String fieldName) {
+  private int getBitFieldOffset(CCompositeType structType, String fieldName) {
     int off = 0;
     for (CCompositeTypeMemberDeclaration member : structType.getMembers()) {
       if (member.getName().equals(fieldName)) {

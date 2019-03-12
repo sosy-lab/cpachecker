@@ -136,14 +136,11 @@ public class BitVectorInfo implements TypeInfo {
       if (isBitField) {
         size = bitFieldSize;
       } else {
-        int sizeInChars = 0;
         if (!(cType instanceof CProblemType) && !cType.isIncomplete()) {
-          sizeInChars = pMachineModel.getSizeof(cType);
+          size = pMachineModel.getSizeofInBits(cType).intValueExact();
+        } else {
+          size = pMachineModel.getSizeofPtr() * pMachineModel.getSizeofCharInBits();
         }
-        if (sizeInChars == 0) {
-          sizeInChars = pMachineModel.getSizeofPtr();
-        }
-        size = sizeInChars * pMachineModel.getSizeofCharInBits();
       }
       assert size >= 0;
       signed = (type instanceof CSimpleType) && pMachineModel.isSigned((CSimpleType) type);

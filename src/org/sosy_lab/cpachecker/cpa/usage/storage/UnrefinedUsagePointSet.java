@@ -72,7 +72,6 @@ public class UnrefinedUsagePointSet implements AbstractUsagePointSet {
     }
   }
 
-  @Override
   public UsageInfoSet getUsageInfo(UsagePoint point) {
     return usageInfoSets.get(point);
   }
@@ -93,7 +92,6 @@ public class UnrefinedUsagePointSet implements AbstractUsagePointSet {
     usageInfoSets.clear();
   }
 
-  @Override
   public void remove(UsageState pUstate) {
     //Attention! Use carefully. May not work
     for (UsagePoint point : new TreeSet<>(usageInfoSets.keySet())) {
@@ -117,7 +115,6 @@ public class UnrefinedUsagePointSet implements AbstractUsagePointSet {
     return new TreeSet<>(topUsages.tailSet(p)).iterator();
   }
 
-  @Override
   public int getNumberOfTopUsagePoints() {
     return topUsages.size();
   }
