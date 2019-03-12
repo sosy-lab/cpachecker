@@ -3146,6 +3146,10 @@ java.version = JavaCore.VERSION_1_7
 # C, Java, or LLVM IR?
 language = C
   enum:     [C, JAVA, LLVM]
+language = no default value
+  enum:     [C, JAVA, LLVM]
+language = C
+  enum:     [C, JAVA, LLVM]
 
 # Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
