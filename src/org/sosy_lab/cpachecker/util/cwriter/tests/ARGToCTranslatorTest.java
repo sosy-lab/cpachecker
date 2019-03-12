@@ -115,12 +115,13 @@ public class ARGToCTranslatorTest {
     b.add(simpleTestWithGotoDecProblem("main2.c", false));
     b.add(simpleTestWithGotoDecProblem("functionreturn.c", false));
 
-    // Test whether more than 2 outgoing edges are handled properly, i.e., whether the verdicts of
+    // Test whether two or more outgoing edges are handled properly, i.e., whether the verdicts of
     // the original program+spec is the same as the verdict for the generated program with default
     // reachability spec:
     b.add(specCausedMultiBranchingTest("main.c", false, "main_additional_spec.spc"));
     b.add(specCausedMultiBranchingTest("simple.c", false, "simple_additional_spec.spc"));
     b.add(specCausedMultiBranchingTest("simple.c", true, "simple_additional_spec2.spc"));
+    b.add(specCausedMultiBranchingTest("simple2.c", false, "simple2_additional_spec.spc"));
 
     // Test whether we can encode overflows correctly:
     b.add(overflowToCTest("simple.c", false));
