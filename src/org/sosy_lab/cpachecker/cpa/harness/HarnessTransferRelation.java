@@ -162,8 +162,6 @@ public class HarnessTransferRelation
     CExpression operand1 = binaryExpression.getOperand1();
     CExpression operand2 = binaryExpression.getOperand2();
     if (operand1 instanceof CIdExpression && operand2 instanceof CIdExpression) {
-      // TODO: handle cases where operands are not id expressions, such as *p == *q, p.i == q.i, so
-      // field references or ref/deref operation expressions
       CIdExpression operand1IdExpression = (CIdExpression) operand1;
       String operand1Name = operand1IdExpression.getName();
       CIdExpression operand2IdExpression = (CIdExpression) operand2;
