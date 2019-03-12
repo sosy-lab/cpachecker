@@ -35,6 +35,9 @@ import javax.annotation.concurrent.Immutable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 
 @Immutable
 public class PointerState {
@@ -155,6 +158,37 @@ public class PointerState {
     // case &*p: case p
 
     return null;
+  }
+
+  public MemoryLocation getLocationFromInitializer(CInitializer pInitializer) {
+    // Assumptions: Initializer refers to an existing MemoryLocation through an arbitrarily deep
+    // nesting of operators, e.g. a->b.c->d.e
+
+    if (pInitializer instanceof CInitializerExpression) {
+      CInitializerExpression initializerExpression = (CInitializerExpression) pInitializer;
+      CExpression expression = initializerExpression.getExpression();
+      getLocationFromExpression(expression);
+
+    }
+
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  private MemoryLocation getLocationFromExpression(CExpression pExpression) {
+    boolean isNestedFurther = true;
+    CExpression curExpression = pExpression;
+    MemoryLocation value;
+    while (isNestedFurther) {
+      if (curExpression instanceof CIdExpression) {
+        CIdExpression idExpression = (CIdExpression) curExpression;
+        String identifier = idExpression.getName();
+        return getTargetFromIdentifier(identifier);
+      } else {
+        isNestedFurther = false;
+      }
+    }
+    return new MemoryLocation();
   }
 
 }

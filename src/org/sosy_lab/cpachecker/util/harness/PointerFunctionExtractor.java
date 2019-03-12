@@ -54,6 +54,7 @@ public class PointerFunctionExtractor {
 
       @Override
       public TraversalProcess visitEdge(CFAEdge pEdge) {
+        HeaderFileManager headerFileManager = new HeaderFileManager();
         if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
           ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
           ADeclaration declaration = declarationEdge.getDeclaration();
@@ -63,7 +64,9 @@ public class PointerFunctionExtractor {
               boolean headIsEmpty = (cfa.getFunctionHead(declaration.getQualifiedName()) == null);
               boolean hasPointerReturnType =
                   (functionDeclaration.getType().getReturnType() instanceof CPointerType);
-              if (hasPointerReturnType && headIsEmpty) {
+              boolean isInHeaderFiles =
+                  headerFileManager.headersContainName(functionDeclaration.getName());
+              if (hasPointerReturnType && headIsEmpty && !isInHeaderFiles) {
                 relevantPointerFunctionsState.add(functionDeclaration);
               }
             }

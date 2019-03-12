@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -61,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -71,9 +73,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundMathematicalInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundMathematicalIntervalManagerFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.MemoryLocationExtractor;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.harness.PointerFunctionExtractor;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "cpa.harness")
 public class HarnessTransferRelation
@@ -81,6 +87,7 @@ public class HarnessTransferRelation
 
   private final LogManager logger;
   private final Set<AFunctionDeclaration> unimplementedPointerReturnTypeFunctions;
+  CFA cfa;
 
   public HarnessTransferRelation(
       Configuration pConfig,
@@ -91,6 +98,7 @@ public class HarnessTransferRelation
     logger = new LogManagerWithoutDuplicates(pLogger);
     unimplementedPointerReturnTypeFunctions =
         PointerFunctionExtractor.getExternUnimplementedPointerReturnTypeFunctions(pCFA);
+    cfa = pCFA;
   }
 
   @Override
@@ -211,18 +219,48 @@ public class HarnessTransferRelation
     } else if (declarationHasArrayType(pEdge)) {
       return handleArrayDeclaration(pState, pEdge);
     } else if (hasStructTypeWithPointerField(pEdge)) {
-      return handleStructDeclarationWithPointerField(pState, pEdge);
+      return handleRelevantTypeStructDeclaration(pState, pEdge);
     } else {
       return handleSimpleDeclaration(pState, pEdge);
     }
   }
 
   private HarnessState
-      handleStructDeclarationWithPointerField(HarnessState pState, CDeclarationEdge pEdge) {
+      handleRelevantTypeStructDeclaration(HarnessState pState, CDeclarationEdge pEdge) {
     CVariableDeclaration variableDeclaration = (CVariableDeclaration) pEdge.getDeclaration();
-    MemoryLocation structVariableLocation =
-        new MemoryLocation(variableDeclaration.getQualifiedName());
-    HarnessState stateWithStructVariable = pState.addMemoryLocation(structVariableLocation);
+
+    CInitializerVisitor initializerVisitor = new CInitializerVisitor() {
+
+      String accessPath = "";
+
+      @Override
+      public String visit(CInitializerExpression pInitializerExpression) throws Exception {
+        CExpression expression = pInitializerExpression.getExpression();
+        if (expression instanceof CIdExpression) {
+          CIdExpression idExpression = (CIdExpression) expression;
+          String id = idExpression.getName();
+          accessPath += "." + id;
+        }
+        return accessPath;
+      }
+
+      @Override
+      public String visit(CInitializerList pInitializerList) throws Exception {
+        pInitializerList.getInitializers()
+        return null;
+      }
+
+      @Override
+      public Object visit(CDesignatedInitializer pCStructInitializerPart) throws Exception {
+        // TODO Auto-generated method stub
+        return null;
+      }
+
+
+
+
+    }
+
     CInitializer initializer = variableDeclaration.getInitializer();
     if (initializer != null) {
       return handleStructDeclarationWithPointerFieldWithInitializer(stateWithStructVariable, pEdge);
@@ -233,11 +271,27 @@ public class HarnessTransferRelation
   private HarnessState handleStructDeclarationWithPointerFieldWithInitializer(
       HarnessState pState,
       CDeclarationEdge pEdge) {
-    // need to implement method on harnessState to add multiple locations, as there is an arbitrary
-    // number of pointer
-    // members, or declare variable to hold new state and update it within an iteration
 
-    CElaboratedType elaboratedDeclarationType = (CElaboratedType) pEdge.getDeclaration().getType();
+
+    //then visit the rhs and create an entry in the structMap for each nesting level, and an entry in the pointermap for each actualy variable/member that was initialized to a pointer value
+
+
+
+    //Create a MemoryLocation for the Struct
+    CVariableDeclaration declaration = (CVariableDeclaration) pEdge.getDeclaration();
+
+    String identifier = declaration.getName();
+    String function = pEdge.getPredecessor().getFunctionName();
+
+    MemoryLocation structLocation = MemoryLocation.valueOf(function, identifier);
+
+    CType type = pEdge.getDeclaration().getType();
+
+
+
+
+
+    CElaboratedType elaboratedDeclarationType = (CElaboratedType) type;
     CCompositeType realDeclarationType = (CCompositeType) elaboratedDeclarationType.getRealType();
     List<CCompositeTypeMemberDeclaration> memberDeclarations = realDeclarationType.getMembers();
     List<CCompositeTypeMemberDeclaration> memberDeclarationsRelevantType =
@@ -247,8 +301,15 @@ public class HarnessTransferRelation
                     || memberDec.getType() instanceof CArrayType)
             .collect(Collectors.toList());
 
-    CVariableDeclaration declaration = (CVariableDeclaration) pEdge.getDeclaration();
     CInitializer initializer = declaration.getInitializer();
+
+    CInitializerVisitor initializerVisitor = new CInitializerVisitor<LocationSet,UnrecognizedCodeException>() {
+      @Override
+      public LocationSet visit()
+
+
+    };
+
     if (initializer instanceof CInitializerList) {
       CInitializerList initializerList = (CInitializerList) initializer;
       List<CInitializer> initializersList = initializerList.getInitializers();
@@ -264,24 +325,23 @@ public class HarnessTransferRelation
 
 
     // CElaborated types get here and cannot be cast to composite type
-    // List<CCompositeTypeMemberDeclaration> structMembers =
-    // ((CCompositeType)pEdge.getDeclaration().getType()).getMembers();
-    /*
-     * List<CCompositeTypeMemberDeclaration> pointerTypeMembers = structMembers.stream() .filter(
-     * member -> member.getType() instanceof CArrayType || member.getType() instanceof CPointerType)
-     * .collect(Collectors.toList());
-     */
-    // how to cast to struct declaration
-    /*
-     * error: cInitializerList cannot be cast to CDesignatedInitializer CDesignatedInitializer
-     * designatedInitializer = ((CDesignatedInitializer) ((CVariableDeclaration)
-     * pEdge.getDeclaration()).getInitializer()); List<CDesignator> initializedMembers =
-     * designatedInitializer.getDesignators();
-     */
+     List<CCompositeTypeMemberDeclaration> structMembers =
+     ((CCompositeType)pEdge.getDeclaration().getType()).getMembers();
 
-    // Set<CIdExpression> pointerTypeStructFields = (CCompositeTyopEdge.getDeclaration().getType().g
-    // CExpression pointerMembers = (CExpression) ((CVariableDeclaration) pEdge).getInitializer()
-    // HarnessState stateWithPointerFieldLocations = pState.addMemoryLocations(pointerMembers);
+      List<CCompositeTypeMemberDeclaration> pointerTypeMembers = structMembers.stream() .filter(
+      member -> member.getType() instanceof CArrayType || member.getType() instanceof CPointerType)
+      .collect(Collectors.toList());
+
+    // how to cast to struct declaration
+    // error: cInitializerList cannot be cast to CDesignatedInitializer CDesignatedInitializer
+     designatedInitializer = ((CDesignatedInitializer) ((CVariableDeclaration)
+     pEdge.getDeclaration()).getInitializer()); List<CDesignator> initializedMembers =
+     designatedInitializer.getDesignators();
+
+
+    Set<CIdExpression> pointerTypeStructFields = (CCompositeTyopEdge.getDeclaration().getType().g
+    CExpression pointerMembers = (CExpression) ((CVariableDeclaration) pEdge).getInitializer()
+    HarnessState stateWithPointerFieldLocations = pState.addMemoryLocations(pointerMembers);
     return pState;
   }
 
@@ -352,7 +412,18 @@ public class HarnessTransferRelation
       HarnessState pState,
       MemoryLocation pSourceLocation,
       CInitializer pInitializer) {
-    return handlePointerAssignment(pSourceLocation, pState, pInitializer);
+
+    MemoryLocation rhsLocation;
+
+    if (isSystemMemoryAllocationCall(pInitializer)) {
+      rhsLocation = new MemoryLocation(true);
+    } else {
+      rhsLocation = pState.getLocationFromInitializer(pInitializer);
+    }
+    HarnessState newState = pState.addPointsToInformation(pSourceLocation, rhsLocation);
+    // newState.addMemoryLocation(rhsLocation);
+
+    return newState;
   }
 
   private HarnessState handleArrayDeclarationWithInitializer(
@@ -420,6 +491,19 @@ public class HarnessTransferRelation
       }
     }
     return pState;
+  }
+
+  private boolean isSystemMemoryAllocationCall(CInitializer pInitializer) {
+    if (pInitializer instanceof CInitializerExpression) {
+      CInitializerExpression initializerExpression = (CInitializerExpression) pInitializer;
+      CExpression expression = initializerExpression.getExpression();
+      if (expression instanceof CFunctionCallExpression) {
+        CFunctionCallExpression functionCallExpression = (CFunctionCallExpression) expression;
+        CExpression functionNameExpression = functionCallExpression.getFunctionNameExpression();
+        return isSystemMemoryAllocation(functionNameExpression);
+      }
+    }
+    return false;
   }
 
   private boolean isSystemMemoryAllocation(CExpression pFunctionNameExpression) {
