@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
 import javax.annotation.concurrent.Immutable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
 @Immutable
 public class PointerState {
@@ -144,5 +145,16 @@ public class PointerState {
     return result;
   }
 
+  public MemoryLocation getValue(CExpression pOperand1) {
+    // case p: CIdExpression map.get(p)
+    // case *p: map.get(map.get(p)) -- assumption: p points to another pointer
+    // case q->p: map.get(q).getChild(p)
+    // case &q: map.keys.get(q)
+    // case q.p: q.getChild(p)
+    // case *&p: case p
+    // case &*p: case p
+
+    return null;
+  }
 
 }
