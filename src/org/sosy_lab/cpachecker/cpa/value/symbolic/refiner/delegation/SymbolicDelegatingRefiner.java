@@ -193,7 +193,7 @@ public class SymbolicDelegatingRefiner implements ARGBasedRefiner, StatisticsPro
         logger);
   }
 
-  public SymbolicDelegatingRefiner(
+  private SymbolicDelegatingRefiner(
       final SymbolicFeasibilityChecker pSymbolicFeasibilityChecker,
       final CFA pCfa,
       final SymbolicPathInterpolator pSymbolicInterpolator,
