@@ -32,7 +32,6 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -219,26 +218,31 @@ public class HarnessState implements AbstractState {
   }
 
   public HarnessState addExternFunctionCallWithPointerParams(CFunctionCallExpression pExpression) {
-   /* List<MemoryLocation> pointerParams =
+    List<MemoryLocation> pointerParams =
         pExpression.getParameterExpressions()
             .stream()
             .filter(param -> param.getExpressionType().getCanonicalType() instanceof CPointerType)
+            .filter(expression -> expression instanceof CIdExpression)
             .map(param -> (CIdExpression) param)
             .map(param -> param.getName())
-            .map(param -> pointers.fromIdentifier(param).get())
+            .map(
+                param -> pointerVariableAssignments
+                    .getOrDefault(param, new IndeterminateMemoryLocation("", 0L)))
             .filter(param -> (param != null))
-            .collect(Collectors.toList());*/
-    /*
-     * PersistentList<MemoryLocation> newExternallyKnownPointers =
-     * externallyKnownPointers.withAll(pExpression.getParameterExpressions()); return new
-     * HarnessState( pointers, newExternallyKnownPointers, externFunctionCalls);
-     */
-    return this;
+            .collect(Collectors.toList());
+
+    PersistentList<MemoryLocation> newExternallyKnownPointers =
+        orderedExternallyKnownLocations.withAll(pointerParams);
+
+    return new HarnessState(
+        pointerVariableAssignments,
+        locationEqualityAssumptions,
+        newExternallyKnownPointers,
+        externFunctionCalls);
+
   }
 
   public List<Integer> getIndices(ComparableFunctionDeclaration pFunctionDeclaration) {
-    AFunctionDeclaration declaration = pFunctionDeclaration.getDeclaration();
-    String qualifiedName = declaration.getQualifiedName();
     List<MemoryLocation> locations = externFunctionCalls.get(pFunctionDeclaration);
     List<Integer> result =
         locations.stream().map(location -> getIndex(location)).collect(Collectors.toList());
@@ -247,10 +251,7 @@ public class HarnessState implements AbstractState {
 
   public Set<ComparableFunctionDeclaration> getFunctionsWithIndices() {
     Set<ComparableFunctionDeclaration> functionCallsKeys = externFunctionCalls.keySet();
-    Set<AFunctionDeclaration> functionCallSet =
-        functionCallsKeys.stream()
-            .map(comparableDeclaration -> comparableDeclaration.getDeclaration())
-            .collect(Collectors.toSet());
+
     return functionCallsKeys;
   }
 
@@ -335,45 +336,6 @@ public class HarnessState implements AbstractState {
   public HarnessState handleStructDeclarationWithPointerFieldWithInitializer(
       HarnessState pState,
       CDeclarationEdge pEdge) {
-    // TODO Auto-generated method stub
-    /*
-     * CVariableDeclaration declaration = (CVariableDeclaration) pEdge.getDeclaration();
-     *
-     * String identifier = declaration.getName(); String function =
-     * pEdge.getPredecessor().getFunctionName();
-     *
-     * MemoryLocation structLocation = MemoryLocation.valueOf(function, identifier);
-     *
-     * CType type = pEdge.getDeclaration().getType();
-     *
-     * CElaboratedType elaboratedDeclarationType = (CElaboratedType) type; CCompositeType
-     * realDeclarationType = (CCompositeType) elaboratedDeclarationType.getRealType();
-     * List<CCompositeTypeMemberDeclaration> memberDeclarations = realDeclarationType.getMembers();
-     * List<CCompositeTypeMemberDeclaration> memberDeclarationsRelevantType =
-     * memberDeclarations.stream() .filter( memberDec -> memberDec.getType() instanceof CPointerType
-     * || memberDec.getType() instanceof CArrayType) .collect(Collectors.toList());
-     *
-     * CInitializer initializer = declaration.getInitializer();
-     *
-     * if (initializer instanceof CInitializerList) { CInitializerList initializerList =
-     * (CInitializerList) initializer; List<CInitializer> initializersList =
-     * initializerList.getInitializers(); initializersList.forEach(cInitializer -> { if
-     * (cInitializer instanceof CDesignatedInitializer) { CDesignatedInitializer
-     * designatedInitializer = (CDesignatedInitializer) cInitializer; CInitializer rightHandSide =
-     * designatedInitializer.getRightHandSide(); // if(rightHandSide)
-     *
-     * } }); }
-     *
-     *
-     * // CElaborated types get here and cannot be cast to composite type
-     * List<CCompositeTypeMemberDeclaration> structMembers =
-     * ((CCompositeType)pEdge.getDeclaration().getType()).getMembers();
-     *
-     * List<CCompositeTypeMemberDeclaration> pointerTypeMembers = structMembers.stream() .filter(
-     * member -> member.getType() instanceof CArrayType || member.getType() instanceof CPointerType)
-     * .collect(Collectors.toList());
-     */
-
     return pState;
   }
 
