@@ -33,12 +33,14 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.TempFile;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.ConsoleLogFormatter;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.StringBuildingLogHandler;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
@@ -57,19 +59,35 @@ public class ARGToCTranslatorTest {
   private final Path residualProgramPath;
   private final String verdict;
   private final String program;
+  private final boolean hasGotoDecProblem;
+  private final String spec;
 
-  public ARGToCTranslatorTest(String pProgram, String pVerdict, boolean header)
+  public ARGToCTranslatorTest(
+      @SuppressWarnings("unused") String pTestLabel,
+      String pProgram,
+      boolean pVerdict,
+      boolean pHasGotoDecProblem,
+      String pSpec,
+      boolean useOverflows)
       throws InvalidConfigurationException, IOException {
     program = pProgram;
-    verdict = pVerdict;
+    verdict = Boolean.toString(pVerdict).toLowerCase();
+    hasGotoDecProblem = pHasGotoDecProblem;
+    spec = pSpec;
     residualProgramPath =
         TempFile.builder().prefix("residual").suffix(".c").create().toAbsolutePath();
-    config =
+    String propfile = useOverflows ? "inline-overflow.properties" : "inline-errorlabel.properties";
+    ConfigurationBuilder configBuilder =
         TestDataTools.configurationForTest()
-            .loadFromResource(ARGToCTranslatorTest.class, "inline-errorlabel.properties")
+            .loadFromResource(ARGToCTranslatorTest.class, propfile)
             .setOption("cpa.arg.export.code.handleTargetStates", "VERIFIERERROR")
-            .setOption("cpa.arg.export.code.header", Boolean.toString(header).toLowerCase())
-            .build();
+            .setOption("cpa.arg.export.code.header", "false");
+    if (spec != null) {
+      String specPath = Paths.get(TEST_DIR_PATH, spec).toString();
+      configBuilder.setOption("specification", specPath.toString());
+    }
+    config = configBuilder.build();
+
     reConfig =
         TestDataTools.configurationForTest()
             .loadFromResource(ARGToCTranslatorTest.class, "predicateAnalysis.properties")
@@ -79,23 +97,64 @@ public class ARGToCTranslatorTest {
     stringLogHandler.setLevel(Level.ALL);
     stringLogHandler.setFormatter(ConsoleLogFormatter.withoutColors());
     LogManager logger = BasicLogManager.createWithHandler(stringLogHandler);
-    translator = new ARGToCTranslator(logger, config);
+    translator = new ARGToCTranslator(logger, config, MachineModel.LINUX32);
   }
 
-  @Parameters(name = "{0}:{1}:{2}")
+  @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> b = ImmutableList.builder();
-    b.add(new Object[] {"main.c", "true", false});
-    b.add(new Object[] {"main2.c", "false", false});
-    b.add(new Object[] {"functionreturn.c", "false", false});
-    b.add(new Object[] {"main.c", "true", true});
-    b.add(new Object[] {"main2.c", "false", true});
-    b.add(new Object[] {"functionreturn.c", "false", true});
+
+    // test whether writing essentially the same program will yield the same verdict
+    b.add(simpleTask("main.c", true));
+    b.add(simpleTask("main2.c", false));
+    b.add(simpleTask("functionreturn.c", false));
+
+    // test program generation with hasGotoDecProblem enabled.
+    // I do not know good cases for when to use this flag => TODO: add better tests
+    b.add(simpleTestWithGotoDecProblem("main.c", true));
+    b.add(simpleTestWithGotoDecProblem("main2.c", false));
+    b.add(simpleTestWithGotoDecProblem("functionreturn.c", false));
+
+    // Test whether more than 2 outgoing edges are handled properly, i.e., whether the verdicts of
+    // the original program+spec is the same as the verdict for the generated program with default
+    // reachability spec:
+    b.add(specCausedMultiBranchingTest("main.c", false, "main_additional_spec.spc"));
+    b.add(specCausedMultiBranchingTest("simple.c", false, "simple_additional_spec.spc"));
+    b.add(specCausedMultiBranchingTest("simple.c", true, "simple_additional_spec2.spc"));
+
+    // Test whether we can encode overflows correctly:
+    b.add(overflowToCTest("simple.c", false));
+
     return b.build();
   }
 
+  private static Object[] simpleTask(String program, boolean verdict) {
+    String label = String.format("SimpleTest(%s is %s)", program, Boolean.toString(verdict));
+    return new Object[] {label, program, verdict, false, null, false};
+  }
+
+  private static Object[] simpleTestWithGotoDecProblem(String program, boolean verdict) {
+    String label =
+        String.format("SimpleTestWithGotoDecProblem(%s is %s)", program, Boolean.toString(verdict));
+    return new Object[] {label, program, verdict, true, null, false};
+  }
+
+  private static Object[] specCausedMultiBranchingTest(
+      String program, boolean verdict, String spec) {
+    String label =
+        String.format(
+            "specCausedMultiBranchingTest(%s with %s is %s)",
+            program, spec, Boolean.toString(verdict));
+    return new Object[] {label, program, verdict, false, spec, false};
+  }
+
+  private static Object[] overflowToCTest(String program, boolean verdict) {
+    String label = String.format("overflowToCTest(%s is %s)", program, Boolean.toString(verdict));
+    return new Object[] {label, program, verdict, true, null, true};
+  }
+
   @Test
-  public void testSimple() throws Exception {
+  public void test() throws Exception {
     String fullPath = Paths.get(TEST_DIR_PATH, program).toString();
 
     // generate C program:
@@ -108,7 +167,7 @@ public class ARGToCTranslatorTest {
     assertNotNull(results);
     UnmodifiableReachedSet reached = results.getCheckerResult().getReached();
     assertNotNull(reached.getFirstState());
-    String res = translator.translateARG((ARGState) reached.getFirstState(), false);
+    String res = translator.translateARG((ARGState) reached.getFirstState(), hasGotoDecProblem);
     Files.write(residualProgramPath, res.getBytes("utf-8"));
 
     // test whether C program still gives correct verdict:

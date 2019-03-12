@@ -241,7 +241,7 @@ public class ARGStatistics implements Statistics {
               extendedWitnessExporter);
     }
 
-    argToCExporter = new ARGToCTranslator(logger, config);
+    argToCExporter = new ARGToCTranslator(logger, config, cfa.getMachineModel());
     argToAutomatonSplitter = new ARGToAutomatonConverter(config);
 
     if (argCFile == null) {
