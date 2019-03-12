@@ -314,5 +314,13 @@ public class CFGAST extends ast {
         }
     }
 
+    public boolean equalClass(ast_class astClass){
+        try {
+            return this.get_class().equals(astClass);
+        }catch (result r){
+            return false;
+        }
+    }
+
 
 }
