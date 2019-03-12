@@ -285,7 +285,6 @@ public class ARGUtils {
     states.add(currentARGState);
     seenElements.add(currentARGState);
     Deque<ARGState> backTrackPoints = new ArrayDeque<>();
-    Deque<Set<ARGState>> backTrackSeenElements = new ArrayDeque<>();
     Deque<List<ARGState>> backTrackOptions = new ArrayDeque<>();
 
     while (!pIsStart.apply(currentARGState)) {
@@ -307,7 +306,6 @@ public class ARGUtils {
         while (stateIterator.hasPrevious() && !stateIterator.previous().equals(backTrackPoint)) {
           stateIterator.remove();
         }
-        seenElements = backTrackSeenElements.pop();
         List<ARGState> options = backTrackOptions.pop();
         for (ARGState parent : backTrackPoint.getParents()) {
           if (!options.contains(parent)) {
@@ -328,7 +326,6 @@ public class ARGUtils {
           if (!options.isEmpty()) {
             backTrackPoints.push(currentARGState);
             backTrackOptions.push(options);
-            backTrackSeenElements.push(new HashSet<>(seenElements));
           }
         }
 
