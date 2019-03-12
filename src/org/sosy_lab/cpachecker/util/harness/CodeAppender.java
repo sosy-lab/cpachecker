@@ -308,7 +308,7 @@ class CodeAppender implements Appendable {
           && unimplementedPointerTypeParameterFunctions.contains(inputFunction)) {
         for (AParameterDeclaration pointerParameterDeclaration : pointerParameterDeclarations) {
           String varName = pointerParameterDeclaration.getName();
-          append("        " + externPointersArrayName);
+          append("    " + externPointersArrayName);
           append("[");
           append(arrayPushCounterName);
           append("++] = ");
