@@ -69,7 +69,6 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
-import org.sosy_lab.cpachecker.util.harness.HarnessTestExporter;
 
 @Options(prefix="counterexample.export", deprecatedPrefix="cpa.arg.errorPath")
 public class CEXExporter {
@@ -79,34 +78,9 @@ public class CEXExporter {
   }
 
   @Option(
-    secure = true,
-    description = "Extended witness with specific analysis information file"
-  )
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate extendedWitnessFile =
-      PathTemplate.ofFormatString("extendedWitness.%d.graphml");
-
-  @Option(secure = true, name = "exportHarness", description = "export test harness")
-  private boolean exportHarness = false;
-
-  @Option(secure = true, name = "exportTestHarness", description = "export test harness test file")
-  private boolean exportHarnessTest = false;
-
-  @Option(secure = true, name = "harness", description = "export test harness to file as code")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate testHarnessFile = PathTemplate.ofFormatString("Counterexample.%d.harness.c");
-
-  @Option(
-    secure = true,
-    name = "harnessTest",
-    description = "export test harness test to file as csv")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate testHarnessTestFile = PathTemplate.ofFormatString("HarnessTest.%d.csv");
-
-  @Option(
-    secure = true,
-    name = "compressWitness",
-    description = "compress the produced error-witness automata using GZIP compression."
+      secure = true,
+      name = "compressWitness",
+      description = "compress the produced error-witness automata using GZIP compression."
   )
   private boolean compressWitness = true;
 
@@ -133,7 +107,6 @@ public class CEXExporter {
   private final WitnessExporter witnessExporter;
   private final ExtendedWitnessExporter extendedWitnessExporter;
   private final HarnessExporter harnessExporter;
-  private final HarnessTestExporter harnessTestExporter;
 
   public CEXExporter(
       Configuration config,
@@ -149,8 +122,6 @@ public class CEXExporter {
     logger = pLogger;
     witnessExporter = checkNotNull(pWitnessExporter);
     extendedWitnessExporter = checkNotNull(pExtendedWitnessExporter);
-    harnessExporter = new HarnessExporter(config, pLogger, cfa);
-    harnessTestExporter = new HarnessTestExporter(config, pLogger, cfa);
 
     if (!options.disabledCompletely()) {
       cexFilter =
@@ -340,35 +311,18 @@ public class CEXExporter {
                     counterexample),
         compressWitness);
 
-    if (exportHarness) {
-      writeErrorPathFile(
-          testHarnessFile,
-          uniqueId,
-          (Appender)
-              pAppendable ->
-                  harnessExporter.writeHarness(
-                      pAppendable,
-                      rootState,
-                      Predicates.in(pathElements),
-                      isTargetPathEdge,
-                      counterexample));
-    }
-
-    if (exportHarnessTest) {
-      writeErrorPathFile(
-          testHarnessTestFile,
-          uniqueId,
-          (Appender) pAppendable -> harnessTestExporter.writeTest(
-              pAppendable,
-              rootState,
-              Predicates.in(pathElements),
-              isTargetPathEdge,
-              counterexample));
-    }
-
+    writeErrorPathFile(
+        options.getTestHarnessFile(),
+        uniqueId,
+        (Appender)
+            pAppendable ->
+                harnessExporter.writeHarness(
+                    pAppendable,
+                    rootState,
+                    Predicates.in(pathElements),
+                    isTargetPathEdge,
+                    counterexample));
   }
-
-
 
   // Copied from org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation.addVisitedLine(int)
   public void addVisitedLine(Map<Integer,Integer> visitedLines, int pLine) {
