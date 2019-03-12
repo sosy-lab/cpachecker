@@ -133,7 +133,7 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
 
     argStats = new BAMARGStatistics(pConfig, pLogger, this, pCpa, pSpecification, pCfa);
     exporter = new BAMReachedSetExporter(pConfig, pLogger, this);
-    stats = new BAMCPAStatistics(this);
+    stats = new BAMCPAStatistics(pConfig, pLogger, this);
 
     reducerStatistics = new TimedReducer.ReducerStatistics();
 

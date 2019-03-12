@@ -267,4 +267,9 @@ public class CachingPathFormulaManager implements PathFormulaManager {
           throws InterruptedException {
     return delegate.mergePts(pPts1, pPts2, pSSA);
   }
+
+  @Override
+  public PathFormulaBuilder createNewPathFormulaBuilder() {
+    return delegate.createNewPathFormulaBuilder();
+  }
 }

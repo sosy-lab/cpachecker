@@ -287,13 +287,6 @@ public class CompositeState
 
     for (AbstractState state : wrappedStates) {
       int targetSize = newWrappedStates.size()+1;
-      // will state be replaced?
-      for (AbstractState replacement : pReplacementStates) {
-        if (!newWrappedStates.contains(replacement) && replacement.getClass().isInstance(state)) {
-          newWrappedStates.add(replacement);
-          break;
-        }
-      }
       // if state was not replaced, add it:
       if (targetSize>newWrappedStates.size()) {
         //recursion might end here if state is not splitable:

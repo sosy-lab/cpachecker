@@ -79,6 +79,14 @@ public class PointerFunctionExtractor {
     return relevantPointerFunctionsState;
   }
 
+  public static Set<AFunctionDeclaration> getRelevantFunctions(CFA pCFA) {
+    Set<AFunctionDeclaration> results =
+        PointerFunctionExtractor.getExternUnimplementedPointerReturnTypeFunctions(pCFA);
+    results
+        .addAll(PointerFunctionExtractor.getExternUnimplementedPointerTypeParameterFunctions(pCFA));
+    return results;
+  }
+
   public static Set<AFunctionDeclaration>
       getExternUnimplementedPointerTypeParameterFunctions(CFA pCFA) {
     Set<AFunctionDeclaration> relevantFunctions = new HashSet<>();

@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.harness;
 import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.getCanonicalType;
 import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.isPredefinedFunction;
 import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.isPredefinedFunctionWithoutVerifierError;
-import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.isPredefinedType;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -229,8 +228,10 @@ public class HarnessExporter {
                   ? FluentIterable.from(externalFunctions)
                       .filter(Predicates.not(Predicates.equalTo(errorFunction.get())))
                   : externalFunctions);
+
       // copyTypeDeclarations(codeAppender);
       // codeAppender.append(predefinedTypes);
+
       codeAppender.append(vector);
 
     } else {
@@ -284,6 +285,11 @@ public class HarnessExporter {
         };
     CFATraversal.dfs().traverseOnce(cfa.getMainFunction(), externalFunctionCollector);
     return externalFunctions;
+  }
+
+  private boolean isPredefinedType(CTypeDeclaration pDeclaration) {
+    // this function was lost somewhere in git history, check github for file history
+    return false;
   }
 
   private void copyTypeDeclarations(CodeAppender pTarget) throws IOException {
@@ -341,6 +347,7 @@ public class HarnessExporter {
       pTarget.appendln(declaration.toASTString());
     }
   }
+
 
   /**
    * Create a test vector that contains dummy values for the given external functions that are not

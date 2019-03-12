@@ -42,6 +42,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -139,10 +140,17 @@ public class PredicateAbstractionsWriter {
           stateSuccessorsSb.append(getAbstractionId(successor));
         }
 
-        writer.append(String.format("%d (%s) @%d:",
-            getAbstractionId(state),
-            stateSuccessorsSb.toString(),
-            AbstractStates.extractLocation(state).getNodeNumber()));
+        String locationString;
+        CFANode locationNode = AbstractStates.extractLocation(state);
+        if (locationNode != null) {
+          locationString = Integer.toString(locationNode.getNodeNumber());
+        } else {
+          locationString = AbstractStates.extractLocations(state).toString();
+        }
+        writer.append(
+            String.format(
+                "%d (%s) @%s:",
+                getAbstractionId(state), stateSuccessorsSb.toString(), locationString));
         writer.append("\n");
         writer.append(entry.getValue());
         writer.append("\n\n");

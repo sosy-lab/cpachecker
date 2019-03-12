@@ -25,15 +25,17 @@ package org.sosy_lab.cpachecker.cpa.overflow;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import java.util.List;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 /**
  * Abstract state for tracking overflows.
@@ -42,27 +44,26 @@ class OverflowState implements AbstractStateWithAssumptions,
     Graphable,
     AbstractQueryableState {
 
-  private final ImmutableList<? extends AExpression> assumptions;
+  private final ImmutableSet<? extends AExpression> assumptions;
   private final boolean hasOverflow;
   private static final String PROPERTY_OVERFLOW = "overflow";
-  private PathFormula previousPathFormula;
-  private PathFormula currentPathFormula;
+  private ImmutableSet<AbstractState> previousStates;
+  private ImmutableSet<AbstractState> currentStates;
   private boolean alreadyStrengthened;
 
-  public OverflowState(List<? extends AExpression> pAssumptions, boolean pHasOverflow) {
+  public OverflowState(Set<? extends AExpression> pAssumptions, boolean pHasOverflow) {
     this(pAssumptions, pHasOverflow, null);
   }
 
-  public OverflowState(List<? extends AExpression> pAssumptions, boolean pHasOverflow, OverflowState parent) {
-    assumptions = ImmutableList.copyOf(pAssumptions);
+  public OverflowState(
+      Set<? extends AExpression> pAssumptions, boolean pHasOverflow, OverflowState parent) {
+    assumptions = ImmutableSet.copyOf(pAssumptions);
     hasOverflow = pHasOverflow;
-    alreadyStrengthened = false;
+    previousStates = null;
     if (parent != null) {
-      previousPathFormula = parent.previousPathFormula;
-      currentPathFormula = parent.currentPathFormula;
+      currentStates = parent.currentStates;
     } else {
-      previousPathFormula = null;
-      currentPathFormula = null;
+      currentStates = ImmutableSet.of();
     }
   }
 
@@ -122,35 +123,39 @@ class OverflowState implements AbstractStateWithAssumptions,
 
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
-    if (pProperty.equals(PROPERTY_OVERFLOW)) { return hasOverflow; }
+    if (pProperty.equals(PROPERTY_OVERFLOW)) {
+      return hasOverflow;
+    }
     throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
   }
 
   @Override
-  public PathFormula getPreviousPathFormula(PathFormula pPathFormula) {
-    // TODO: The following assertions are needed because this is a hack and needs refactoring.
-    // For now we need to get the previous path formula somehow,
-    // and communicating it via strengthening operators allows to do this
-    // locally here where it is needed, separating concerns
-    assert alreadyStrengthened
-        : "previous path formula is not availabe before the method OverflowState.updatePathFormulas is called"
-            + " (preferably through strengthening in the transfer relation)!"
-            + " Maybe you are using PredicateCPA before OverflowCPA? (order is important here)";
-    assert pPathFormula.getSsa()
-        .equals(currentPathFormula.getSsa()) : "supplied path formula does not match!" +
-            " Most likely this means strengthen of the PredicateCPA is called before strengthen of the OverflowCPA!";
-    return previousPathFormula;
+  public Set<AbstractState> getStatesForPreconditions() {
+    if (alreadyStrengthened) {
+      assert (previousStates != null)
+          : "Expected state information to be not null after strengthening!";
+      return previousStates;
+    } else {
+      return currentStates;
+    }
   }
 
   @Override
-  public List<? extends AExpression> getPreconditionAssumptions() {
+  public Set<? extends AExpression> getPreconditionAssumptions() {
     return assumptions;
   }
 
-  public void updatePathFormulas(PathFormula newPathFormula) {
+  protected void updateStatesForPreconditions(List<AbstractState> pCurrentStates) {
     if (!alreadyStrengthened) {
-      previousPathFormula = currentPathFormula;
-      currentPathFormula = newPathFormula;
+      previousStates = currentStates;
+      // update current states while deliberately removing "this".
+      // Other states may get hold of this set via getStatesForPreconditions().
+      // We want to prevent infinite recursion and accelerate garbage collection.
+      currentStates =
+          pCurrentStates
+              .stream()
+              .filter(x -> !x.equals(this))
+              .collect(ImmutableSet.toImmutableSet());
       alreadyStrengthened = true;
     }
   }

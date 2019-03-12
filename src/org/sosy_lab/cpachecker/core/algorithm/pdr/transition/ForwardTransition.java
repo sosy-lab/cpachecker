@@ -90,6 +90,7 @@ public class ForwardTransition {
 
     cpa = pCPA;
 
+    @SuppressWarnings("resource")
     PredicateCPA predicateCPA =
         CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, ForwardTransition.class);
     pathFormulaManager = predicateCPA.getPathFormulaManager();

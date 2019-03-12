@@ -25,12 +25,14 @@ package org.sosy_lab.cpachecker.cpa.harness;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -38,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -116,7 +119,8 @@ public class HarnessState implements AbstractState {
         externFunctionCalls);
   }
 
-  private String getNameFromExpression(CExpression pExpression) {
+  private String getNameFromExpression(CRightHandSide pExpression) {
+    // TODO: Check if cast + getQualifiedName even does anything more than toQualifiedASTString
     String name;
     if (pExpression instanceof CIdExpression) {
       CIdExpression idExpression = (CIdExpression) pExpression;
@@ -138,23 +142,18 @@ public class HarnessState implements AbstractState {
   }
 
   public HarnessState addPointerVariableToUndefinedFunctionCallAssignment(
-      HarnessState pState,
       CLeftHandSide pLeftHandSide,
       CFunctionCallExpression pFunctionCallExpression) {
-    String lhsString;
-    if (pLeftHandSide instanceof CIdExpression) {
-      CIdExpression lhsIdExpression = (CIdExpression) pLeftHandSide;
-      CSimpleDeclaration lhsDeclaration = lhsIdExpression.getDeclaration();
-      lhsString = lhsDeclaration.getQualifiedName();
-    } else {
-      lhsString = pLeftHandSide.toQualifiedASTString();
-    }
+    String lhsString = getNameFromExpression(pLeftHandSide);
     CFunctionDeclaration functionDeclaration = pFunctionCallExpression.getDeclaration();
     ComparableFunctionDeclaration comparableDeclaration =
         new ComparableFunctionDeclaration(functionDeclaration);
     String functionName = functionDeclaration.getQualifiedName();
-    PersistentList<MemoryLocation> currentCalls = externFunctionCalls.get(comparableDeclaration);
-    MemoryLocation returnedValue = MemoryLocation.valueOf(functionName + currentCalls.size());
+    PersistentList<MemoryLocation> defaultCalls = PersistentLinkedList.of();
+    PersistentList<MemoryLocation> currentCalls =
+        externFunctionCalls.getOrDefault(comparableDeclaration, defaultCalls);
+    MemoryLocation returnedValue =
+        new IndeterminateMemoryLocation(functionName + currentCalls.size(), 0L);
     PersistentList<MemoryLocation> newCalls = currentCalls.with(returnedValue);
     PersistentMap<ComparableFunctionDeclaration, PersistentList<MemoryLocation>> newExternFunctionCalls =
         externFunctionCalls.putAndCopy(comparableDeclaration, newCalls);
@@ -174,24 +173,13 @@ public class HarnessState implements AbstractState {
           CLeftHandSide pLeftHandSide,
           CRightHandSide pRightHandSide) {
 
-    String lhsString, rhsString;
+    String lhsString = getNameFromExpression(pLeftHandSide);
+    String rhsString = getNameFromExpression(pRightHandSide);
     MemoryLocation rhsValue;
 
     // Get String representations of both sides of the assignment
-    if (pLeftHandSide instanceof CIdExpression) {
-      CIdExpression lhsIdExpression = (CIdExpression) pLeftHandSide;
-      CSimpleDeclaration lhsDeclaration = lhsIdExpression.getDeclaration();
-      lhsString = lhsDeclaration.getQualifiedName();
-    } else {
-      lhsString = pLeftHandSide.toQualifiedASTString();
-    }
-    if (pRightHandSide instanceof CIdExpression) {
-      CIdExpression rhsIdExpression = (CIdExpression) pRightHandSide;
-      CSimpleDeclaration rhsSimpleDeclaration = rhsIdExpression.getDeclaration();
-      rhsString = rhsSimpleDeclaration.getQualifiedName();
-    } else {
-      rhsString = pRightHandSide.toQualifiedASTString();
-    }
+
+
 
     // Get a MemoryLocation representing the value of the RightHandSideExpression
     // TODO: properly handle cases where either of the sides is not an Id Expression. By
@@ -200,7 +188,7 @@ public class HarnessState implements AbstractState {
     if (pRightHandSide instanceof CFunctionCallExpression) {
       rhsValue = MemoryLocation.valueOf(rhsString);
     } else {
-      rhsValue = pointerVariableAssignments.getOrDefault(rhsString, MemoryLocation.valueOf("null"));
+      rhsValue = pointerVariableAssignments.getOrDefault(rhsString, MemoryLocation.valueOf(""));
     }
     PersistentMap<String, MemoryLocation> newPointerVariableAssignments =
         pointerVariableAssignments.putAndCopy(lhsString, rhsValue);
@@ -249,7 +237,7 @@ public class HarnessState implements AbstractState {
   }
 
   public List<Integer> getIndices(ComparableFunctionDeclaration pFunctionDeclaration) {
-    CFunctionDeclaration declaration = pFunctionDeclaration.getDeclaration();
+    AFunctionDeclaration declaration = pFunctionDeclaration.getDeclaration();
     String qualifiedName = declaration.getQualifiedName();
     List<MemoryLocation> locations = externFunctionCalls.get(pFunctionDeclaration);
     List<Integer> result =
@@ -259,7 +247,7 @@ public class HarnessState implements AbstractState {
 
   public Set<ComparableFunctionDeclaration> getFunctionsWithIndices() {
     Set<ComparableFunctionDeclaration> functionCallsKeys = externFunctionCalls.keySet();
-    Set<CFunctionDeclaration> functionCallSet =
+    Set<AFunctionDeclaration> functionCallSet =
         functionCallsKeys.stream()
             .map(comparableDeclaration -> comparableDeclaration.getDeclaration())
             .collect(Collectors.toSet());
@@ -267,15 +255,20 @@ public class HarnessState implements AbstractState {
   }
 
   private int getIndex(MemoryLocation pLocation) {
-    int result = orderedExternallyKnownLocations.indexOf(pLocation);
-    if (result == -1) {
-      result = 0;
+    MemoryLocation root = locationEqualityAssumptions.findRoot(pLocation);
+    ListIterator<MemoryLocation> listIterator = orderedExternallyKnownLocations.listIterator();
+    while (listIterator.hasNext()) {
+      MemoryLocation element = listIterator.next();
+      if (element == root) {
+        int index = listIterator.previousIndex();
+        return index;
+      }
     }
-    return result;
+    return 0;
   }
 
   public int getExternPointersArrayLength() {
-    return orderedExternallyKnownLocations.size() + 1;
+    return orderedExternallyKnownLocations.size();
   }
 
   public HarnessState updatePointerTarget(CAssignment pAssignment) {
@@ -331,10 +324,12 @@ public class HarnessState implements AbstractState {
   }
 
   public HarnessState handleArrayDeclarationWithInitializer(
-      MemoryLocation pSourceLocation,
+      String pLhs,
       CInitializer pInitializer) {
-    // TODO Auto-generated method stub
-    return null;
+    if (pInitializer instanceof CInitializerList) {
+      return this;
+    }
+    return this;
   }
 
   public HarnessState handleStructDeclarationWithPointerFieldWithInitializer(

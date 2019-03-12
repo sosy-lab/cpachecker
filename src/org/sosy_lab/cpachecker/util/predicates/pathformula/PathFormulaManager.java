@@ -198,6 +198,8 @@ public interface PathFormulaManager {
       BooleanFormula pMainFormula,
       BooleanFormula pEsxtractionFormula);
 
+  PathFormulaBuilder createNewPathFormulaBuilder();
+
   /**
    * Builds a weakest precondition for the given edge and the postcondition
    *

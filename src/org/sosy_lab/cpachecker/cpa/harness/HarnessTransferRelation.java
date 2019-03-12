@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -75,7 +74,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.harness.PointerFunctionExtractor;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "cpa.harness")
 public class HarnessTransferRelation
@@ -83,6 +81,7 @@ public class HarnessTransferRelation
 
   private final LogManager logger;
   private final Set<AFunctionDeclaration> unimplementedPointerReturnTypeFunctions;
+  private final Set<AFunctionDeclaration> relevantFunctions;
   CFA cfa;
 
   public HarnessTransferRelation(
@@ -94,6 +93,7 @@ public class HarnessTransferRelation
     logger = new LogManagerWithoutDuplicates(pLogger);
     unimplementedPointerReturnTypeFunctions =
         PointerFunctionExtractor.getExternUnimplementedPointerReturnTypeFunctions(pCFA);
+    relevantFunctions = PointerFunctionExtractor.getRelevantFunctions(pCFA);
     cfa = pCFA;
   }
 
@@ -145,7 +145,7 @@ public class HarnessTransferRelation
       CBinaryExpression binaryExpression = (CBinaryExpression) expression;
       CExpression firstOperand = binaryExpression.getOperand1();
       CType firstOperandExpressionType = firstOperand.getExpressionType();
-      boolean isPointerComparison = firstOperandExpressionType instanceof CPointerExpression;
+      boolean isPointerComparison = firstOperandExpressionType instanceof CPointerType;
       if (isPointerComparison) {
         BinaryOperator binaryOperator = binaryExpression.getOperator();
         if ((binaryOperator == BinaryOperator.EQUALS && modifier)
@@ -294,11 +294,11 @@ public class HarnessTransferRelation
 
   private HarnessState handleArrayDeclaration(HarnessState pState, CDeclarationEdge pEdge) {
     CVariableDeclaration declaration = (CVariableDeclaration) pEdge.getDeclaration();
-    MemoryLocation sourceLocation = MemoryLocation.valueOf(declaration.getName());
+    String lhs = declaration.getQualifiedName();
     CInitializer initializer = declaration.getInitializer();
     if (initializer != null) {
       return pState.handleArrayDeclarationWithInitializer(
-          sourceLocation,
+          lhs,
           initializer);
     }
     return pState;
@@ -329,17 +329,16 @@ public class HarnessTransferRelation
             functionCallAssignment.getFunctionCallExpression();
         CExpression functionNameExpression = functionCallExpression.getFunctionNameExpression();
         if (isSystemMemoryAllocation(functionNameExpression)) {
-          MemoryLocation newMemoryLocation = MemoryLocation.valueOf(null);
           CLeftHandSide lhs = functionCallAssignment.getLeftHandSide();
           CRightHandSide rhs = functionCallAssignment.getRightHandSide();
           HarnessState newState = pState.addPointerVariableAssignment(lhs, rhs);
           return newState;
         }
         if (isExternFunction(functionCallExpression)) {
-          MemoryLocation newMemoryLocation = MemoryLocation.valueOf(null);
           CLeftHandSide lhs = functionCallAssignment.getLeftHandSide();
-          CRightHandSide rhs = functionCallAssignment.getRightHandSide();
-          HarnessState newState = pState.addPointerVariableAssignment(lhs, rhs);
+          HarnessState newState =
+              pState
+                  .addPointerVariableToUndefinedFunctionCallAssignment(lhs, functionCallExpression);
           return newState;
         }
       }
@@ -374,7 +373,7 @@ public class HarnessTransferRelation
 
   private boolean isExternFunction(CFunctionCallExpression pFunctionCallExpression) {
     AFunctionDeclaration functionDeclaration = pFunctionCallExpression.getDeclaration();
-    return unimplementedPointerReturnTypeFunctions.contains(functionDeclaration);
+    return relevantFunctions.contains(functionDeclaration);
 
   }
 

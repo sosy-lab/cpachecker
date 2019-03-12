@@ -24,11 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.overflow;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.ArithmeticOverflowAssumptionBuilder;
@@ -65,18 +64,16 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
       return Collections.emptyList();
     }
 
-    List<CExpression> assumptions = noOverflowAssumptionBuilder.assumptionsForEdge(cfaEdge);
+    Set<CExpression> assumptions = noOverflowAssumptionBuilder.assumptionsForEdge(cfaEdge);
     if (assumptions.isEmpty()) {
-      return ImmutableList.of(new OverflowState(ImmutableList.of(), false, prev));
+      return ImmutableList.of(new OverflowState(ImmutableSet.of(), false, prev));
     }
 
     ImmutableList.Builder<OverflowState> outStates = ImmutableList.builder();
 
-    outStates.addAll(
-        Lists.transform(
-            assumptions,
-            // Overflow <=> there exists a violating assumption.
-            a -> new OverflowState(ImmutableList.of(mkNot(a)), true, prev)));
+    for (CExpression assumption : assumptions) {
+      outStates.add(new OverflowState(ImmutableSet.of(mkNot(assumption)), true, prev));
+    }
 
     // No overflows <=> all assumptions hold.
     outStates.add(new OverflowState(assumptions, false, prev));
@@ -99,15 +96,8 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
       @Nullable CFAEdge cfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {
-    Optional<AbstractState> optionalPredicateState =
-        otherStates.stream().filter(x -> x instanceof PredicateAbstractState).findFirst();
-    if (optionalPredicateState.isPresent()) {
-      PredicateAbstractState predicateState = (PredicateAbstractState) optionalPredicateState.get();
       OverflowState overflowState = (OverflowState) state;
-      overflowState.updatePathFormulas(predicateState.getPathFormula());
+      overflowState.updateStatesForPreconditions(otherStates);
       return Collections.singleton(overflowState);
-    } else {
-      return Collections.singleton(state);
-    }
   }
 }

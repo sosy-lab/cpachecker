@@ -120,6 +120,7 @@ public class StateToFormulaWriter implements StatisticsProvider {
     logger = pLogger;
     cfa = pCfa;
     if (exportFile != null) {
+      @SuppressWarnings("resource")
       Solver solver = Solver.create(config, pLogger, shutdownNotifier);
       fmgr = solver.getFormulaManager();
     } else {

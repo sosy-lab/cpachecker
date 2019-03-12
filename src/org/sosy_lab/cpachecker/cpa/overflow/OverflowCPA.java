@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.overflow;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -66,6 +66,6 @@ public class OverflowCPA extends AbstractCPA implements ConfigurableProgramAnaly
   @Override
   public AbstractState getInitialState(
       CFANode node, StateSpacePartition partition) throws InterruptedException {
-    return new OverflowState(ImmutableList.of(), false);
+    return new OverflowState(ImmutableSet.of(), false);
   }
 }

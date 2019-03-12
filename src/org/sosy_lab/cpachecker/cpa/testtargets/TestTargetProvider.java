@@ -49,18 +49,19 @@ public class TestTargetProvider implements Statistics {
   private final Set<CFAEdge> uncoveredTargets;
   private boolean printTargets = false;
   private boolean runParallel;
+  private TestTargetAdaption optimization;
 
   private TestTargetProvider(
       final CFA pCfa,
       final boolean pRunParallel,
       final TestTargetType pType,
-      final boolean pRemoveUnnecessaryGoals) {
+      final TestTargetAdaption pGoalAdaption) {
     cfa = pCfa;
     runParallel = pRunParallel;
     type = pType;
+    optimization = pGoalAdaption;
 
-    Set<CFAEdge> targets =
-        extractEdgesByCriterion(type.getEdgeCriterion(), pRemoveUnnecessaryGoals);
+    Set<CFAEdge> targets = extractEdgesByCriterion(type.getEdgeCriterion(), pGoalAdaption);
 
     if (runParallel) {
       uncoveredTargets = Collections.synchronizedSet(targets);
@@ -71,37 +72,13 @@ public class TestTargetProvider implements Statistics {
   }
 
   private Set<CFAEdge> extractEdgesByCriterion(
-      final Predicate<CFAEdge> criterion, final boolean pRemoveUnnecessaryGoals) {
+      final Predicate<CFAEdge> criterion, final TestTargetAdaption pAdaption) {
     Set<CFAEdge> edges = new HashSet<>();
     for (CFANode node : cfa.getAllNodes()) {
       edges.addAll(CFAUtils.allLeavingEdges(node).filter(criterion).toSet());
     }
-    if (pRemoveUnnecessaryGoals) {
-      deleteIfCoveredByDifferentGoal(edges);
-    }
+    edges = pAdaption.adaptTestTargets(edges);
     return edges;
-  }
-
-  private void deleteIfCoveredByDifferentGoal(final Set<CFAEdge> goals) {
-    // currently only simple heuristic
-    Set<CFAEdge> keptGoals = new HashSet<>(goals);
-    boolean allSuccessorsGoals;
-    for (CFAEdge target : goals) {
-      if (target.getSuccessor().getNumEnteringEdges() == 1) {
-        allSuccessorsGoals = true;
-        for (CFAEdge leaving : CFAUtils.leavingEdges(target.getSuccessor())) {
-          if (!goals.contains(leaving)) {
-            allSuccessorsGoals = false;
-            break;
-          }
-        }
-        if (allSuccessorsGoals) {
-          keptGoals.remove(target);
-        }
-      }
-    }
-    goals.clear();
-    goals.addAll(keptGoals);
   }
 
   public static int getCurrentNumOfTestTargets() {
@@ -112,9 +89,15 @@ public class TestTargetProvider implements Statistics {
   }
 
   public static Set<CFAEdge> getTestTargets(
-      final CFA pCfa, final boolean pRunParallel, final TestTargetType pType) {
-    if (instance == null || pCfa != instance.cfa || instance.type != pType) {
-      instance = new TestTargetProvider(pCfa, pRunParallel, pType, true); // TODO
+      final CFA pCfa,
+      final boolean pRunParallel,
+      final TestTargetType pType,
+      TestTargetAdaption pTargetOptimization) {
+    if (instance == null
+        || pCfa != instance.cfa
+        || instance.type != pType
+        || instance.optimization != pTargetOptimization) {
+      instance = new TestTargetProvider(pCfa, pRunParallel, pType, pTargetOptimization);
     }
     Preconditions.checkState(instance.runParallel || !pRunParallel);
     return instance.uncoveredTargets;

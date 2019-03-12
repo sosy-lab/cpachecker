@@ -147,6 +147,7 @@ public class PredicateProvider {
       PredicateAbstractState oldPredicateState =
           AbstractStates.extractStateByType(innerState, PredicateAbstractState.class);
       if (oldPredicateState != null && oldPredicateState.isAbstractionState()) {
+        @SuppressWarnings("resource")
         PredicateCPA oldPredicateCPA = CPAs.retrieveCPA(state.getCPA(), PredicateCPA.class);
         result.addAll(getPredicatesFromAbstractionState(oldPredicateState, oldPredicateCPA));
         // we can either break here, or we use all available matching states.

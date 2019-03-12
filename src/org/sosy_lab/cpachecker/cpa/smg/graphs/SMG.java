@@ -579,7 +579,8 @@ public class SMG implements UnmodifiableSMG {
     if (pt_edges.containsEdgeWithValue(old)) {
       SMGEdgePointsTo pt_edge = pt_edges.getEdgeWithValue(old);
       pt_edges = pt_edges.removeAndCopy(pt_edge);
-      Preconditions.checkArgument(!pt_edges.containsEdgeWithValue(fresh));
+      Preconditions.checkArgument(
+          !pt_edges.containsEdgeWithValue(fresh) || fresh.equals(SMGZeroValue.INSTANCE));
       pt_edges =
           pt_edges.addAndCopy(
               new SMGEdgePointsTo(
