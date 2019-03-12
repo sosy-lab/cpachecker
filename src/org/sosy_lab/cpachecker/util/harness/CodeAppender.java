@@ -234,7 +234,7 @@ class CodeAppender implements Appendable {
       appendln(internalDeclaration.toASTString());
     }
     int externPointersArrayLength = pVector.getExternPointersArrayLength();
-    append("int* ");
+    append("void* ");
     append(externPointersArrayName);
     append(" [");
     append(Integer.toString(externPointersArrayLength));
@@ -255,7 +255,8 @@ class CodeAppender implements Appendable {
       appendln("{");
 
       append("  ");
-      append("int* retval");
+      append(functionDeclaration.getType().getReturnType().toASTString(""));
+      append(" retval");
       appendln(";");
       int switchCaseCounter = 0;
       append("  switch(");
@@ -263,8 +264,12 @@ class CodeAppender implements Appendable {
       appendln(") {");
       for (int arrayIndex : arrayIndices) {
         append("        case ");
-        append(Integer.toString(switchCaseCounter));
+        append(Integer.toString(switchCaseCounter++));
         append(": retval = ");
+        append(
+            "("
+                + functionDeclaration.getType().getReturnType().toASTString("")
+                + ") ");
         append(externPointersArrayName);
         append("[");
         append(Integer.toString(arrayIndex));
@@ -303,11 +308,11 @@ class CodeAppender implements Appendable {
           && unimplementedPointerTypeParameterFunctions.contains(inputFunction)) {
         for (AParameterDeclaration pointerParameterDeclaration : pointerParameterDeclarations) {
           String varName = pointerParameterDeclaration.getName();
-          append(externPointersArrayName);
+          append("        " + externPointersArrayName);
           append("[");
           append(arrayPushCounterName);
           append("++] = ");
-          append("(int*) ");
+          append("(void*) ");
           append(varName);
           appendln(";");
         }
