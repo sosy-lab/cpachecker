@@ -27,6 +27,7 @@ import static java.util.stream.Collectors.toList;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -70,6 +71,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LoggingOptions;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -138,6 +140,9 @@ public class CPAMain {
         throw new InvalidConfigurationException("Please specify a program to analyze on the command line.");
       }
       dumpConfiguration(options, cpaConfig, logManager);
+
+      // generate correct frontend based on file language
+      cpaConfig = extractFrontendfromFileending(options, cpaConfig, logManager);
 
       limits = ResourceLimitChecker.fromConfiguration(cpaConfig, logManager, shutdownManager);
       limits.start();
@@ -317,24 +322,6 @@ public class CPAMain {
     }
     configBuilder.setOptions(cmdLineOptions);
 
-    // display the correct frontend based on the file ending to increase usability
-    String programNameOption = cmdLineOptions.get("analysis.programNames");
-    String extension = programNameOption.substring(programNameOption.lastIndexOf(".") + 1);
-
-    switch (extension) {
-      case ("c"):
-      case ("i"):
-        configBuilder.setOption("language", "C");
-        break;
-      case ("ll"):
-      case ("bc"):
-        configBuilder.setOption("language", "LLVM");
-        break;
-      case ("java"):
-        configBuilder.setOption("language", "JAVA");
-        break;
-    }
-
     Configuration config = configBuilder.build();
 
     // We want to be able to use options of type "File" with some additional
@@ -375,6 +362,60 @@ public class CPAMain {
     String filename = Paths.get(configFilename).getFileName().toString();
     // remove the extension (most likely ".properties")
     return filename.contains(".") ? filename.substring(0, filename.lastIndexOf(".")) : filename;
+  }
+
+  // display the correct frontend based on the file ending to increase usability
+  private static Configuration extractFrontendfromFileending(
+      MainOptions pOptions,
+      Configuration pConfig,
+      LogManager pLogManager) throws InvalidConfigurationException{
+
+    if (!pConfig.hasProperty("language")) {
+      Language frontendLanguage = null;
+
+      for(String program : pOptions.programs) {
+
+        String suffix = program.substring(program.lastIndexOf(".") + 1);
+
+        switch (suffix) {
+          case ("c"):
+          case ("i"):
+          case ("h"):
+            if (frontendLanguage == Language.JAVA) {
+              throw new InvalidConfigurationException("Differing file formats detected: Java and C files are declared for analysis");
+            }
+            frontendLanguage = Language.C;
+            break;
+          case ("ll"):
+          case ("bc"):
+            frontendLanguage = Language.LLVM;
+            break;
+          case ("java"):
+            if(frontendLanguage == Language.C) {
+              throw new InvalidConfigurationException("Differing file formats detected: Java and C files are declared for analysis");
+            }
+            frontendLanguage = Language.JAVA;
+            break;
+          default:
+            throw new InvalidConfigurationException(
+                "Unsupported file format for file " + program + " with suffix \"." + suffix + "\"");
+        }
+      }
+      try {
+          ConfigurationBuilder configBuilder = Configuration.builder();
+          configBuilder.copyFrom(pConfig);
+          Preconditions.checkNotNull(frontendLanguage);
+          configBuilder.setOption("language", frontendLanguage.toString());
+          pConfig = configBuilder.build();
+          pLogManager.logf(Level.INFO, "Language %s detected and set for analysis", frontendLanguage);
+
+      } catch (InvalidConfigurationException pE) {
+          pLogManager.logUserException(Level.SEVERE, pE, "Invalid configuration");
+          System.exit(ERROR_EXIT_CODE);
+      }
+
+    }
+    return pConfig;
   }
 
   private static final ImmutableMap<Property, TestTargetType> TARGET_TYPES =
