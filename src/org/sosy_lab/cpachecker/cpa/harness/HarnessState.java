@@ -37,38 +37,43 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.harness.ComparableFunctionDeclaration;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class HarnessState implements AbstractState {
 
   private final PersistentMap<String, MemoryLocation> pointerVariableAssignments;
-  private final Partition<MemoryLocation> locationEqualityAssumptions;
+  private final MemoryLocationPartition locationEqualityAssumptions;
   private final PersistentList<MemoryLocation> orderedExternallyKnownLocations;
-  private final PersistentMap<String, PersistentList<MemoryLocation>> externFunctionCalls;
+  private final PersistentMap<ComparableFunctionDeclaration, PersistentList<MemoryLocation>> externFunctionCalls;
 
   public HarnessState() {
     pointerVariableAssignments = PathCopyingPersistentTreeMap.of();
-    locationEqualityAssumptions = new Partition<>();
+    locationEqualityAssumptions = new MemoryLocationPartition();
     orderedExternallyKnownLocations = PersistentLinkedList.of();
     externFunctionCalls = PathCopyingPersistentTreeMap.of();
   }
 
   public HarnessState(
       PersistentMap<String, MemoryLocation> pPointerVariableAssignments,
-      Partition<MemoryLocation> pLocationEqualityAssumptions,
+      MemoryLocationPartition pLocationEqualityAssumptions,
       PersistentList<MemoryLocation> pOrderedExternallyKnownLocations,
-      PersistentMap<String, PersistentList<MemoryLocation>> pExternFunctionCalls) {
+      PersistentMap<ComparableFunctionDeclaration, PersistentList<MemoryLocation>> pExternFunctionCalls) {
     pointerVariableAssignments = pPointerVariableAssignments;
     locationEqualityAssumptions = pLocationEqualityAssumptions;
     orderedExternallyKnownLocations = pOrderedExternallyKnownLocations;
     externFunctionCalls = pExternFunctionCalls;
   }
+
+
 
   public HarnessState
       addFunctionCall(CExpression pFunctionNameExpression, MemoryLocation pLocation) {
@@ -76,13 +81,14 @@ public class HarnessState implements AbstractState {
       CIdExpression functionIdExpression = (CIdExpression) pFunctionNameExpression;
       CFunctionDeclaration functionDeclaration =
           (CFunctionDeclaration) functionIdExpression.getDeclaration();
-      String functionIdentifier = functionDeclaration.getQualifiedName();
+      ComparableFunctionDeclaration comparableDeclaration =
+          new ComparableFunctionDeclaration(functionDeclaration);
       PersistentList<MemoryLocation> currentFunctionCallsList =
-          externFunctionCalls.get(functionIdentifier);
+          externFunctionCalls.get(comparableDeclaration);
       PersistentList<MemoryLocation> newFunctionCallsList =
           currentFunctionCallsList.with(pLocation);
-      PersistentMap<String, PersistentList<MemoryLocation>> newExternFunctionCalls =
-          externFunctionCalls.putAndCopy(functionIdentifier, newFunctionCallsList);
+      PersistentMap<ComparableFunctionDeclaration, PersistentList<MemoryLocation>> newExternFunctionCalls =
+          externFunctionCalls.putAndCopy(comparableDeclaration, newFunctionCallsList);
       HarnessState newState =
           new HarnessState(
               pointerVariableAssignments,
@@ -92,6 +98,43 @@ public class HarnessState implements AbstractState {
       return newState;
     }
     return this;
+  }
+
+  public HarnessState addPointerTypeEqualityAssumption(
+      CExpression firstOperand,
+      CExpression secondOperand) {
+    MemoryLocation firstLocation = getLocationValueFromPointerTypeExpression(firstOperand);
+    MemoryLocation secondLocation = getLocationValueFromPointerTypeExpression(secondOperand);
+
+    MemoryLocationPartition newLocationEqualityAssumptions =
+        locationEqualityAssumptions.mergeAndCopy(firstLocation, secondLocation);
+
+    return new HarnessState(
+        pointerVariableAssignments,
+        newLocationEqualityAssumptions,
+        orderedExternallyKnownLocations,
+        externFunctionCalls);
+  }
+
+  private String getNameFromExpression(CExpression pExpression) {
+    String name;
+    if (pExpression instanceof CIdExpression) {
+      CIdExpression idExpression = (CIdExpression) pExpression;
+      CSimpleDeclaration declaration = idExpression.getDeclaration();
+      name = declaration.getQualifiedName();
+    } else {
+      name = pExpression.toQualifiedASTString();
+    }
+    return name;
+  }
+
+  private MemoryLocation getLocationValueFromPointerTypeExpression(CExpression pExpression) {
+    String name = getNameFromExpression(pExpression);
+    MemoryLocation value = pointerVariableAssignments.get(name);
+    if (value == null) {
+      value = MemoryLocation.valueOf(name);
+    }
+    return value;
   }
 
   public HarnessState addPointerVariableToUndefinedFunctionCallAssignment(
@@ -107,16 +150,18 @@ public class HarnessState implements AbstractState {
       lhsString = pLeftHandSide.toQualifiedASTString();
     }
     CFunctionDeclaration functionDeclaration = pFunctionCallExpression.getDeclaration();
+    ComparableFunctionDeclaration comparableDeclaration =
+        new ComparableFunctionDeclaration(functionDeclaration);
     String functionName = functionDeclaration.getQualifiedName();
-    PersistentList<MemoryLocation> currentCalls = externFunctionCalls.get(functionName);
+    PersistentList<MemoryLocation> currentCalls = externFunctionCalls.get(comparableDeclaration);
     MemoryLocation returnedValue = MemoryLocation.valueOf(functionName + currentCalls.size());
     PersistentList<MemoryLocation> newCalls = currentCalls.with(returnedValue);
-    PersistentMap<String, PersistentList<MemoryLocation>> newExternFunctionCalls =
-        externFunctionCalls.putAndCopy(functionName, newCalls);
+    PersistentMap<ComparableFunctionDeclaration, PersistentList<MemoryLocation>> newExternFunctionCalls =
+        externFunctionCalls.putAndCopy(comparableDeclaration, newCalls);
     PersistentMap<String, MemoryLocation> newPointerVariableAssignments =
         pointerVariableAssignments.putAndCopy(lhsString, returnedValue);
-    PartitionElement<MemoryLocation> newLocationEqualityAssumptions =
-        locationEqualityAssumptions.makeSet(returnedValue);
+    MemoryLocationPartition newLocationEqualityAssumptions =
+        locationEqualityAssumptions.addAndCopy(returnedValue);
     return new HarnessState(
         newPointerVariableAssignments,
         newLocationEqualityAssumptions,
@@ -126,7 +171,6 @@ public class HarnessState implements AbstractState {
 
   public HarnessState
       addPointerVariableAssignment(
-          HarnessState pState,
           CLeftHandSide pLeftHandSide,
           CRightHandSide pRightHandSide) {
 
@@ -204,48 +248,34 @@ public class HarnessState implements AbstractState {
     return this;
   }
 
-  private HarnessState merge(CExpression pOperand1, CExpression pOperand2) {
-    final MemoryLocation firstPointerValue = pointers.getValue(pOperand1);
-    final MemoryLocation secondPointerValue = pointers.getValue(pOperand2);
-
-    final PointerState newPointers = pointers.merge(firstPointerValue, secondPointerValue);
-    final ExternFunctionCallsState newExternFunctionCallsState =
-        externFunctionCalls.merge(firstPointerValue, secondPointerValue);
-
-    return new HarnessState(
-        memoryLocations,
-        newPointers,
-        externallyKnownLocations,
-        newExternFunctionCallsState);
-  }
-
-  public List<Integer> getIndices(ComparableFunctionDeclaration pFunctionName) {
-    List<MemoryLocation> locations = externFunctionCalls.getCalls(pFunctionName);
+  public List<Integer> getIndices(ComparableFunctionDeclaration pFunctionDeclaration) {
+    CFunctionDeclaration declaration = pFunctionDeclaration.getDeclaration();
+    String qualifiedName = declaration.getQualifiedName();
+    List<MemoryLocation> locations = externFunctionCalls.get(pFunctionDeclaration);
     List<Integer> result =
         locations.stream().map(location -> getIndex(location)).collect(Collectors.toList());
     return result;
   }
 
   public Set<ComparableFunctionDeclaration> getFunctionsWithIndices() {
-    Set<ComparableFunctionDeclaration> functionCallsKeys = externFunctionCalls.getKeys();
+    Set<ComparableFunctionDeclaration> functionCallsKeys = externFunctionCalls.keySet();
+    Set<CFunctionDeclaration> functionCallSet =
+        functionCallsKeys.stream()
+            .map(comparableDeclaration -> comparableDeclaration.getDeclaration())
+            .collect(Collectors.toSet());
     return functionCallsKeys;
   }
 
   private int getIndex(MemoryLocation pLocation) {
-    int result = externallyKnownLocations.indexOf(pLocation);
+    int result = orderedExternallyKnownLocations.indexOf(pLocation);
     if (result == -1) {
       result = 0;
     }
     return result;
   }
 
-  public MemoryLocation getLocationFromInitializer(CInitializer pInitializer) {
-    return pointers.getLocationFromInitializer(pInitializer);
-  }
-
   public int getExternPointersArrayLength() {
-    // off by one for case "alloc_complexexpression"
-    return externallyKnownLocations.size() + 1;
+    return orderedExternallyKnownLocations.size() + 1;
   }
 
   public HarnessState updatePointerTarget(CAssignment pAssignment) {
@@ -254,29 +284,102 @@ public class HarnessState implements AbstractState {
 
   public HarnessState
       addExternallyKnownLocations(List<CExpression> pFunctionParameters) {
-    // TODO: handle case that arguments are not given by id expressions, like foo(&i);
     List<String> locationIdentifiers =
         pFunctionParameters.stream()
+            .filter(cExpression -> cExpression.getExpressionType() instanceof CPointerType)
             .map(cExpression -> (CIdExpression) cExpression)
-            .map(idExpression -> idExpression.getName())
+            .map(idExpression -> idExpression.getDeclaration().getQualifiedName())
             .collect(Collectors.toList());
-    List<MemoryLocation> pointerArgumentKeys =
-        locationIdentifiers.stream().map(identifier -> pointers.fromIdentifier(identifier)).collect(
-            Collectors.toList());
     List<MemoryLocation> pointerArgumentValues =
-        pointerArgumentKeys.stream().map(location -> pointers.getTarget(location)).collect(
+        locationIdentifiers.stream()
+            .map(identifier -> pointerVariableAssignments.get(identifier))
+            .collect(
             Collectors.toList());
-    List<MemoryLocation> newExternallyKnownPointers = new LinkedList<>(externallyKnownLocations);
+    List<MemoryLocation> newExternallyKnownPointers =
+        new LinkedList<>(orderedExternallyKnownLocations);
     newExternallyKnownPointers.addAll(pointerArgumentValues);
     PersistentList<MemoryLocation> persistentNewExternallyKnownPointers =
         PersistentLinkedList.copyOf(newExternallyKnownPointers);
     HarnessState newState =
         new HarnessState(
-            memoryLocations,
-            pointers,
+            pointerVariableAssignments,
+            locationEqualityAssumptions,
             persistentNewExternallyKnownPointers,
             externFunctionCalls);
     return newState;
+  }
+
+  private MemoryLocation getLocationValueFromPointerTypeInitializer(CInitializer pInitializer) {
+    if (pInitializer instanceof CInitializerExpression) {
+      CInitializerExpression initializerExpression = (CInitializerExpression) pInitializer;
+      return getLocationValueFromPointerTypeExpression(initializerExpression.getExpression());
+    } else {
+      return MemoryLocation.valueOf(pInitializer.toQualifiedASTString());
+    }
+  }
+
+  public HarnessState addPointerVariableInitialization(String pName, CInitializer pInitializer) {
+
+    MemoryLocation initializerValue = getLocationValueFromPointerTypeInitializer(pInitializer);
+    PersistentMap<String, MemoryLocation> newPointerVariableAssignments =
+        pointerVariableAssignments.putAndCopy(pName, initializerValue);
+    return new HarnessState(
+        newPointerVariableAssignments,
+        locationEqualityAssumptions,
+        orderedExternallyKnownLocations,
+        externFunctionCalls);
+  }
+
+  public HarnessState handleArrayDeclarationWithInitializer(
+      MemoryLocation pSourceLocation,
+      CInitializer pInitializer) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  public HarnessState handleStructDeclarationWithPointerFieldWithInitializer(
+      HarnessState pState,
+      CDeclarationEdge pEdge) {
+    // TODO Auto-generated method stub
+    /*
+     * CVariableDeclaration declaration = (CVariableDeclaration) pEdge.getDeclaration();
+     *
+     * String identifier = declaration.getName(); String function =
+     * pEdge.getPredecessor().getFunctionName();
+     *
+     * MemoryLocation structLocation = MemoryLocation.valueOf(function, identifier);
+     *
+     * CType type = pEdge.getDeclaration().getType();
+     *
+     * CElaboratedType elaboratedDeclarationType = (CElaboratedType) type; CCompositeType
+     * realDeclarationType = (CCompositeType) elaboratedDeclarationType.getRealType();
+     * List<CCompositeTypeMemberDeclaration> memberDeclarations = realDeclarationType.getMembers();
+     * List<CCompositeTypeMemberDeclaration> memberDeclarationsRelevantType =
+     * memberDeclarations.stream() .filter( memberDec -> memberDec.getType() instanceof CPointerType
+     * || memberDec.getType() instanceof CArrayType) .collect(Collectors.toList());
+     *
+     * CInitializer initializer = declaration.getInitializer();
+     *
+     * if (initializer instanceof CInitializerList) { CInitializerList initializerList =
+     * (CInitializerList) initializer; List<CInitializer> initializersList =
+     * initializerList.getInitializers(); initializersList.forEach(cInitializer -> { if
+     * (cInitializer instanceof CDesignatedInitializer) { CDesignatedInitializer
+     * designatedInitializer = (CDesignatedInitializer) cInitializer; CInitializer rightHandSide =
+     * designatedInitializer.getRightHandSide(); // if(rightHandSide)
+     *
+     * } }); }
+     *
+     *
+     * // CElaborated types get here and cannot be cast to composite type
+     * List<CCompositeTypeMemberDeclaration> structMembers =
+     * ((CCompositeType)pEdge.getDeclaration().getType()).getMembers();
+     *
+     * List<CCompositeTypeMemberDeclaration> pointerTypeMembers = structMembers.stream() .filter(
+     * member -> member.getType() instanceof CArrayType || member.getType() instanceof CPointerType)
+     * .collect(Collectors.toList());
+     */
+
+    return pState;
   }
 
 }
