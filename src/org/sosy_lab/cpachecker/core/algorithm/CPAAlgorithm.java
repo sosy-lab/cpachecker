@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatHist;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -239,12 +240,13 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
             if (newVal instanceof StatCounter) {
               assert val instanceof StatCounter;
-              for (int i = 0; i < ((StatCounter) val).getValue(); i++) {
-                ((StatCounter) newVal).inc();
-              }
+              ((StatCounter) newVal).mergeWith((StatCounter) val);
             } else if (newVal instanceof StatInt) {
               assert val instanceof StatInt;
               ((StatInt) newVal).add((StatInt) val);
+            } else if (newVal instanceof StatHist) {
+              assert val instanceof StatHist;
+              ((StatHist) newVal).mergeWith((StatHist) val);
             } else {
               assert false : "Can't handle " + val.getClass().getSimpleName();
             }
