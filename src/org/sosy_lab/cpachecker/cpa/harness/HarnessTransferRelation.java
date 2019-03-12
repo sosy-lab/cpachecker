@@ -147,7 +147,8 @@ public class HarnessTransferRelation
       CExpression firstOperand = binaryExpression.getOperand1();
       CType firstOperandExpressionType = firstOperand.getExpressionType();
       boolean isPointerComparison = firstOperandExpressionType instanceof CPointerType;
-      if (isPointerComparison) {
+      boolean isArrayComparison = firstOperandExpressionType instanceof CArrayType;
+      if (isPointerComparison || isArrayComparison) {
         BinaryOperator binaryOperator = binaryExpression.getOperator();
         if ((binaryOperator == BinaryOperator.EQUALS && modifier)
             || (binaryOperator == BinaryOperator.NOT_EQUALS && !modifier)) {
@@ -315,7 +316,9 @@ public class HarnessTransferRelation
         List<CExpression> functionParameters = functionCallExpression.getParameterExpressions();
         List<CExpression> functionParametersOfPointerType =
             functionParameters.stream()
-                .filter(cExpression -> (cExpression.getExpressionType() instanceof CPointerType))
+                .filter(
+                    cExpression -> (cExpression.getExpressionType() instanceof CPointerType)
+                        || cExpression.getExpressionType() instanceof CArrayType)
                 .collect(Collectors.toList());
         HarnessState newState = pState.addExternallyKnownLocations(functionParametersOfPointerType);
         return newState;

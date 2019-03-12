@@ -272,13 +272,14 @@ public class HarnessState implements AbstractState {
       addExternallyKnownLocations(List<CExpression> pFunctionParameters) {
     List<String> locationIdentifiers =
         pFunctionParameters.stream()
-            .filter(cExpression -> cExpression.getExpressionType() instanceof CPointerType)
             .map(cExpression -> (CIdExpression) cExpression)
             .map(idExpression -> idExpression.getDeclaration().getQualifiedName())
             .collect(Collectors.toList());
     List<MemoryLocation> pointerArgumentValues =
         locationIdentifiers.stream()
-            .map(identifier -> pointerVariableAssignments.get(identifier))
+            .map(
+                identifier -> pointerVariableAssignments
+                    .getOrDefault(identifier, MemoryLocation.valueOf(identifier)))
             .collect(
             Collectors.toList());
     List<MemoryLocation> newExternallyKnownPointers =
@@ -320,7 +321,13 @@ public class HarnessState implements AbstractState {
       String pLhs,
       CInitializer pInitializer) {
     if (pInitializer instanceof CInitializerList) {
-      return this;
+      PersistentMap<String, MemoryLocation> newPointerVariableAssignments =
+          pointerVariableAssignments.putAndCopy(pLhs, MemoryLocation.valueOf(pLhs));
+      return new HarnessState(
+          newPointerVariableAssignments,
+          locationEqualityAssumptions,
+          orderedExternallyKnownLocations,
+          externFunctionCalls);
     }
     return this;
   }
