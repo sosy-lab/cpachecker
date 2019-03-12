@@ -246,25 +246,13 @@ public class HarnessState implements AbstractState {
     return newState;
   }
 
-  public HarnessState merge(String pIdentifier1, String pIdentifier2) {
-    final MemoryLocation firstPointerTarget = pointers.getTargetFromIdentifier(pIdentifier1);
-    final MemoryLocation secondPointerTarget = pointers.getTargetFromIdentifier(pIdentifier2);
-    if (firstPointerTarget == null) {
-      return new HarnessState(
-          memoryLocations,
-          pointers.addPointer(pointers.fromIdentifier(pIdentifier1), secondPointerTarget),
-          externallyKnownLocations,
-          externFunctionCalls);
-    } else if (secondPointerTarget == null) {
-      return new HarnessState(
-          memoryLocations,
-          pointers.addPointer(pointers.fromIdentifier(pIdentifier2), firstPointerTarget),
-          externallyKnownLocations,
-          externFunctionCalls);
-    }
-    final PointerState newPointers = pointers.merge(firstPointerTarget, secondPointerTarget);
+  public HarnessState merge(CExpression pOperand1, CExpression pOperand2) {
+    final MemoryLocation firstPointerValue = pointers.getValue(pOperand1);
+    final MemoryLocation secondPointerValue = pointers.getValue(pOperand2);
+
+    final PointerState newPointers = pointers.merge(firstPointerValue, secondPointerValue);
     final ExternFunctionCallsState newExternFunctionCallsState =
-        externFunctionCalls.merge(firstPointerTarget, secondPointerTarget);
+        externFunctionCalls.merge(firstPointerValue, secondPointerValue);
 
     return new HarnessState(
         memoryLocations,
