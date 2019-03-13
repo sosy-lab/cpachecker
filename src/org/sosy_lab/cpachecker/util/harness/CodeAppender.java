@@ -27,6 +27,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -180,6 +181,15 @@ class CodeAppender implements Appendable {
     append("long int ");
     append(arrayPushCounterName);
     appendln(" = 0;");
+
+    for (AFunctionDeclaration functionDeclaration : pVector.getFunctionDeclarations()) {
+      IAFunctionType functionType = functionDeclaration.getType();
+      append("extern ");
+      append(functionType.toASTString(functionDeclaration.getName()));
+      append(";");
+      appendln();
+
+    }
 
     for (AVariableDeclaration inputVariable : pVector.getInputVariables()) {
       InitializerTestValue inputValue = pVector.getInputValue(inputVariable);

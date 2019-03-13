@@ -150,6 +150,8 @@ public class HarnessExporter {
 
   private final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
+  private ArrayList<CTypeDeclaration> predefinedTypes = new ArrayList<>();
+
 
   @Option(secure = true, description = "Use the counterexample model to provide test-vector values")
   private boolean useModel = true;
@@ -183,7 +185,6 @@ public class HarnessExporter {
               .map(f -> f.getName())
               .sorted(String::compareToIgnoreCase)
               .collect(Collectors.toList());
-
 
       CodeAppender codeAppender = new CodeAppender(pTarget, cfa);
 
@@ -224,8 +225,8 @@ public class HarnessExporter {
                   ? FluentIterable.from(externalFunctions)
                       .filter(Predicates.not(Predicates.equalTo(errorFunction.get())))
                   : externalFunctions);
-      // copyTypeDeclarations(codeAppender);
-      // codeAppender.append(predefinedTypes);
+      copyTypeDeclarations(codeAppender);
+      codeAppender.append(predefinedTypes);
       codeAppender.append(vector);
 
     } else {
