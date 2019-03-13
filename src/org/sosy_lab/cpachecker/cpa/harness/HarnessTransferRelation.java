@@ -72,7 +72,7 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.harness.PointerFunctionExtractor;
 
 @Options(prefix = "cpa.harness")
@@ -128,7 +128,7 @@ public class HarnessTransferRelation
         result = handleStatementEdge(state, (CStatementEdge) pEdge);
         break;
       default: {
-        throw new UnrecognizedCCodeException("Unrecognized CFA edge.", pEdge);
+        throw new UnrecognizedCodeException("Unrecognized CFA edge.", pEdge);
       }
     }
     return Collections.singleton(result);
