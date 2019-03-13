@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.postprocessing.global;
 
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.HashSet;
@@ -35,10 +37,12 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -101,7 +105,7 @@ public class LabelAdder {
    */
   private void addLabelsAtBlockStarts(
       final MutableCFA pCfa, Collection<CFANode> pCandidates, final BlockOperator pBlk) {
-    Collection<CFANode> nodesToInstrument = new HashSet<>();
+    Collection<CFAEdge> edgesToLabel = new HashSet<>();
     int labelsAdded = 0;
     // We do this in two steps: We first get all of the original nodes at which we want labels,
     // and than we add them.
@@ -114,15 +118,21 @@ public class LabelAdder {
         // so that we know that they are reachable.
         // if we add labels after the block start,
         // they may be unreachable (e.g., "return 0; BLOCK_END_1:;")
-        for (CFAEdge e : CFAUtils.leavingEdges(n).toList()) {
-          CFANode succ = e.getSuccessor();
-          nodesToInstrument.add(succ);
+        FluentIterable<CFAEdge> edges = CFAUtils.leavingEdges(n);
+        for (CFAEdge e : edges) {
+          edgesToLabel.add(e);
         }
       }
     }
-    for (CFANode n : nodesToInstrument) {
-      int added = addLabelBefore(n, BLOCK_LABEL_NAME, labelsAdded, pCfa);
-      labelsAdded += added;
+
+    for (CFAEdge e : edgesToLabel) {
+      String labelName = BLOCK_LABEL_NAME + labelsAdded;
+      if (e.getSuccessor() instanceof FunctionExitNode) {
+          addLabelBefore(e, labelName, pCfa);
+      } else {
+        addLabelAfter(e, labelName, pCfa);
+      }
+      labelsAdded++;
     }
   }
 
