@@ -23,13 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.harness;
 
-import com.google.common.collect.ArrayListMultimap;
-import java.util.ArrayDeque;
-import java.util.HashMap;
+import com.google.common.collect.FluentIterable;
+import java.util.List;
 import java.util.Optional;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.common.collect.PersistentSortedMap;
+import java.util.stream.Collectors;
+import org.sosy_lab.common.collect.PersistentLinkedList;
+import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -37,106 +36,175 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 public class HarnessState implements AbstractState {
 
-  private final PersistentMap<HarnessMemoryLocation, HarnessMemoryLocation> pointers;
-  private final ArrayDeque<HarnessMemoryLocation> externallyKnownPointers;
-  private final ArrayListMultimap<HarnessMemoryLocation, ArrayDeque<ExternFunctionCall>> locationReturnedBy;
-  private final HashMap<String, ArrayDeque<ExternFunctionCall>> externFunctionCalls;
+  private final PointerState pointers;
+  private final PersistentList<HarnessMemoryLocation> externallyKnownPointers;
+  private final LocationFromCallsState locationFromCalls;
+  private final ExternFunctionCallsState externFunctionCalls;
+
 
   public HarnessState() {
-    pointers = PathCopyingPersistentTreeMap.of();
-    externallyKnownPointers = new ArrayDeque<>();
-    locationReturnedBy = ArrayListMultimap.create();
-    externFunctionCalls = new HashMap<>();
+    pointers = new PointerState();
+    externallyKnownPointers = PersistentLinkedList.of();
+    locationFromCalls = new LocationFromCallsState();
+    externFunctionCalls = new ExternFunctionCallsState();
   }
 
   public HarnessState(
-      PersistentSortedMap<HarnessMemoryLocation, HarnessMemoryLocation> pNewPointerMap) {
-    pointers = pNewPointerMap;
-    externallyKnownPointers = new ArrayDeque<>();
-    locationReturnedBy = ArrayListMultimap.create();
-    externFunctionCalls = new HashMap<>();
+      PointerState pPointers,
+      List<HarnessMemoryLocation> pExternallyKnownPointers,
+      LocationFromCallsState pLocationFromCallsState,
+      ExternFunctionCallsState pExternFunctionCallsState) {
+    pointers = pPointers;
+    externallyKnownPointers = PersistentLinkedList.copyOf(pExternallyKnownPointers);
+    locationFromCalls = pLocationFromCallsState;
+    externFunctionCalls = pExternFunctionCallsState;
   }
 
-  private void addExternallyKnownPointer(HarnessMemoryLocation pExternallyKnownPointer) {
-    externallyKnownPointers.push(pExternallyKnownPointer);
+  public HarnessState addExternallyKnownPointer(HarnessMemoryLocation pPointerLocation) {
+    PersistentList<HarnessMemoryLocation> newExternallyKnownPointers =
+        externallyKnownPointers.with(pPointerLocation);
+    return new HarnessState(
+        pointers,
+        newExternallyKnownPointers,
+        locationFromCalls,
+        externFunctionCalls);
   }
 
-  public PersistentMap<HarnessMemoryLocation,HarnessMemoryLocation>
-    newPointerDeclaration(CVariableDeclaration pVariableDeclaration) {
+  public HarnessState addPointerDeclaration(CVariableDeclaration pVariableDeclaration) {
     String identifier = pVariableDeclaration.getName();
-    HarnessMemoryLocation pointerLocation =
-        new DefinedMemoryLocation(Optional.of(identifier));
-    return pointers.putAndCopy(pointerLocation, UndefinedMemoryLocation.getInstance());
+    HarnessMemoryLocation pointerLocation = new DefinedMemoryLocation(identifier);
+    PointerState newPointers =
+        pointers.addPointer(pointerLocation, UndefinedMemoryLocation.getInstance());
+    return new HarnessState(
+        newPointers,
+        externallyKnownPointers,
+        locationFromCalls,
+        externFunctionCalls);
   }
-// RStudio
-  public void assignPointer(AAssignment pAssignment) {
-    String identifier = ((CIdExpression) pAssignment.getLeftHandSide()).getName();
-    Optional<HarnessMemoryLocation> pointerLocation =
-        getPointerFromIdentifier(identifier);
-    if (pointerLocation.isPresent()) {
-      if ( pAssignment instanceof CExpressionAssignmentStatement ) {
+
+  public HarnessState assignPointer(AAssignment pAssignment) {
+    String assignedToIdentifier = ((CIdExpression) pAssignment.getLeftHandSide()).getName();
+    Optional<HarnessMemoryLocation> assignedToLocation = pointers.fromIdentifier(assignedToIdentifier);
+    if (assignedToLocation.isPresent()) {
+      if (pAssignment instanceof CFunctionCallAssignmentStatement) {
+        HarnessMemoryLocation newTargetLocation = new DefinedMemoryLocation();
+        CFunctionCallAssignmentStatement statement = (CFunctionCallAssignmentStatement) pAssignment;
+        CFunctionCallExpression functionCallExpression = statement.getFunctionCallExpression();
+        CExpression functionName = functionCallExpression.getFunctionNameExpression();
+        String functionNameString = functionName.toString();
+        if (isSystemAllocationFunction(functionNameString)) {
+          PointerState newPointers = pointers.addPointer(assignedToLocation.get(), newTargetLocation);
+          return new HarnessState(
+              newPointers,
+              externallyKnownPointers,
+              locationFromCalls,
+              externFunctionCalls);
+        } else {
+          ExternFunctionCall newExternFunctionCall = new ExternFunctionCall();
+          ExternFunctionCallsState newExternFunctionCalls = externFunctionCalls.addCall(newExternFunctionCall);
+          LocationFromCallsState newLocationFromCalls =
+              locationFromCalls.replace(assignedToLocation, newExternFunctionCall);
+          PointerState newPointers = pointers.addPointer(assignedToLocation.get(), newTargetLocation);
+          return new HarnessState(
+              newPointers,
+              externallyKnownPointers,
+              newLocationFromCalls,
+              newExternFunctionCalls
+              );
+        }
+      }
+      if (pAssignment instanceof CExpressionAssignmentStatement) {
         CExpressionAssignmentStatement assignment = (CExpressionAssignmentStatement) pAssignment;
         CExpression rightHandSide = assignment.getRightHandSide();
-        HarnessMemoryLocation assignedLocation = getPointerFromIdentifier( rightHandSide.toString()).get();
-        if (rightHandSide instanceof CIdExpression) {
-          PersistentMap<HarnessMemoryLocation, HarnessMemoryLocation> newPointers =
-              pointers.removeAndCopy(pointers.get(pointerLocation)).putAndCopy(pointerLocation.get(), assignedLocation);
-        }
-      } else if ( pAssignment instanceof CFunctionCallAssignmentStatement) {
-        CFunctionCallAssignmentStatement assignment = (CFunctionCallAssignmentStatement) pAssignment;
-        CFunctionCallExpression functionCallExpression = assignment.getRightHandSide();
-        CExpression functionNameExpression = functionCallExpression.getFunctionNameExpression();
-        String functionName = functionNameExpression.toString();
-        if(isSystemFunction(functionName)) {
-          HarnessMemoryLocation newTargetLocation = new DefinedMemoryLocation();
-          PersistentMap<HarnessMemoryLocation, HarnessMemoryLocation> newPointers =
-              pointers.removeAndCopy(pointers.get(pointerLocation)).putAndCopy(pointerLocation.get(), newTargetLocation);
-        } else {
-          HarnessMemoryLocation newTargetLocation = new DefinedMemoryLocation();
-          addExternFunctionCall(functionName, newTargetLocation);
-          PersistentMap<HarnessMemoryLocation, HarnessMemoryLocation> newPointers =
-              pointers.removeAndCopy(pointers.get(pointerLocation))
-                  .putAndCopy(pointerLocation.get(), newTargetLocation);
-        }
+        HarnessMemoryLocation assignedLocation =
+            pointers.fromIdentifier(rightHandSide.toString()).get();
+        PointerState newPointers =
+            pointers.addPointer(assignedToLocation.get(), assignedLocation);
+        return new HarnessState(newPointers, externallyKnownPointers,locationFromCalls, externFunctionCalls);
       }
     }
   }
 
-  // python dictionary, rna central
+
+
+
+  public HarnessState addExternFunctionCallNoPointerParam(String pFunctionName) {
+    ExternFunctionCallsState newExternFunctionCallsState =
+        externFunctionCalls.addExternFunctionCall(pFunctionName);
+    return new HarnessState(
+        pointers,
+        externallyKnownPointers,
+        locationFromCalls,
+        newExternFunctionCallsState);
+  }
+
+  public HarnessState addExternFunctionCallWithPointerParams(CFunctionCallExpression pExpression) {
+    List<HarnessMemoryLocation> pointerParams =
+        pExpression.getParameterExpressions()
+            .stream()
+            .filter(param -> param.getExpressionType().getCanonicalType() instanceof CPointerType)
+            .map(param -> (CIdExpression) param)
+            .map(param -> param.getName())
+            .map(param -> pointers.fromIdentifier(param).get())
+            .filter(param -> (param != null))
+            .collect(Collectors.toList());
+    PersistentList<HarnessMemoryLocation> newExternallyKnownPointers =
+        externallyKnownPointers.withAll(pointerParams);
+    return new HarnessState(
+        pointers,
+        newExternallyKnownPointers,
+        locationFromCalls,
+        externFunctionCalls);
+  }
+
+  public HarnessState assumePointerEquals(CAssumeEdge pAssumeEdge) {
+    FluentIterable<String> identifiers =
+        CFAUtils.getVariableNamesOfExpression(pAssumeEdge.getExpression());
+    if (identifiers.size() == 2) {
+      HarnessMemoryLocation leftPointer = pointers.fromIdentifier(identifiers.get(0)).get();
+      HarnessMemoryLocation rightPointer = pointers.fromIdentifier(identifiers.get(1)).get();
+      boolean leftIsFromExtern = locationFromCalls.isFromExternCall(leftPointer);
+      boolean rightIsFromExtern = locationFromCalls.isFromExternCall(rightPointer);
+
+      if (leftIsFromExtern && rightIsFromExtern) {
+        LocationFromCallsState newLocationFromCalls =
+            locationFromCalls
+                .merge(pointers.getTarget(leftPointer), pointers.getTarget(rightPointer));
+        PointerState newPointers =
+            pointers.merge(leftPointer, pointers.getTarget(rightPointer));
+      } else if (leftIsFromExtern && !rightIsFromExtern) {
+        LocationFromCallsState newLocationFromCalls =
+            locationFromCalls
+                .merge(pointers.getTarget(leftPointer), pointers.getTarget(rightPointer));
+        PointerState newPointers =
+            pointers.addPointer(leftPointer, pointers.getTarget(rightPointer));
+      } else if (!leftIsFromExtern && rightIsFromExtern) {
+        LocationFromCallsState newLocationFromCalls =
+            locationFromCalls
+                .merge(pointers.getTarget(rightPointer), pointers.getTarget(leftPointer));
+        PointerState newPointers =
+            pointers.addPointer(rightPointer, pointers.getTarget(leftPointer));
+      }
+
+    }
+    return new HarnessState(
+        newPointers,
+        externallyKnownPointers,
+        newLocationFromCalls,
+        externFunctionCalls);
+
+  }
+
 
   private boolean isSystemAllocationFunction(String functionName) {
     return false;
   }
-
-  private HashMap<String, ArrayDeque<ExternFunctionCall>>
-      addExternFunctionCall(String pFunctionName, HarnessMemoryLocation pLocation) {
-    ArrayDeque<ExternFunctionCall> functionCallInstances = externFunctionCalls.get(pFunctionName);
-    ExternFunctionCall newExternFunctionCall = new ExternFunctionCall(pLocation);
-    functionCallInstances.push(newExternFunctionCall);
-    return externFunctionCalls;
-  }
-
-  private void assignPointerAlias(
-      HarnessMemoryLocation pPointerLocation,
-      HarnessMemoryLocation pAliasTarget) {
-  }
-
-  public void assumePointerEquals(String pIdentifier1, String pIdentifier2) {
-    Optional<HarnessMemoryLocation> firstPointer = getPointerFromIdentifier(pIdentifier1);
-    Optional<HarnessMemoryLocation> secondPointer = getPointerFromIdentifier(pIdentifier2);
-
-  }
-
-  private Optional<HarnessMemoryLocation> getPointerFromIdentifier(String pIdentifier) {
-    return pointers.keySet()
-        .stream()
-        .filter(key -> key.getIdentifier().get().equals(pIdentifier))
-        .findFirst();
-  }
-
 
 
 

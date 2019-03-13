@@ -23,9 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.harness;
 
+import java.util.Optional;
+
 public class UndefinedMemoryLocation implements HarnessMemoryLocation {
 
   private UndefinedMemoryLocation() {};
+
+  @Override
+  public Optional<String> getIdentifier() {
+    return Optional.of("");
+  };
 
   private static UndefinedMemoryLocation instance;
 
@@ -34,6 +41,12 @@ public class UndefinedMemoryLocation implements HarnessMemoryLocation {
       UndefinedMemoryLocation.instance = new UndefinedMemoryLocation();
     }
     return UndefinedMemoryLocation.instance;
+  }
+
+  @Override
+  public int compareTo(HarnessMemoryLocation pO) {
+    // TODO Auto-generated method stub
+    return 0;
   }
 
 }
