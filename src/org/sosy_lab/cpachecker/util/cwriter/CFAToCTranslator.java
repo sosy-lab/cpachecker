@@ -28,8 +28,10 @@ import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.FunctionCallEdge;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -41,9 +43,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -150,23 +150,30 @@ public class CFAToCTranslator {
   private Collection<CFAEdge> getEdgesReachingLabels(CFA pCfa, Path pWhitelistLabelFile)
       throws IOException {
 
+    // TODO: At the moment, this is function-agnostic; all labels with the given name are considered
+    // Instead, it would be better to make this more precise and only state the labels that are
+    // actually necessary
     final List<String> labels = Files.readAllLines(pWhitelistLabelFile, Charset.defaultCharset());
-    final Map<String, CFANode> labelNodes =
-        pCfa.getAllNodes()
-            .parallelStream()
-            .filter(n -> n instanceof CLabelNode)
-            .collect(Collectors.toMap(n -> ((CLabelNode) n).getLabel(), n -> n));
+    final Multimap<String, CFANode> labelNodes = HashMultimap.create();
+
+    pCfa.getAllNodes()
+        .parallelStream()
+        .filter(n -> n instanceof CLabelNode)
+        .forEach(n -> labelNodes.put(((CLabelNode) n).getLabel(), n));
 
     final Set<CFAEdge> reachableNodes = new HashSet<>();
     for (String l : labels) {
-      CFANode labelNode = checkNotNull(labelNodes.get(l), "No label node for label %s", l);
-      // a backwards traversal through the CFA, starting at the node of interest,
-      // will give us all edges that can reach the node of interest.
-      reachableNodes.addAll(
-          CFATraversal.dfs()
-              .backwards()
-              .ignoreEdges(reachableNodes)
-              .collectEdgesReachableFrom(labelNode));
+      Collection<CFANode> nodesWithLabel =
+          checkNotNull(labelNodes.get(l), "No label node for label %s", l);
+      for (CFANode labelNode : labelNodes.get(l)) {
+        // a backwards traversal through the CFA, starting at the node of interest,
+        // will give us all edges that can reach the node of interest.
+        reachableNodes.addAll(
+            CFATraversal.dfs()
+                .backwards()
+                .ignoreEdges(reachableNodes)
+                .collectEdgesReachableFrom(labelNode));
+      }
     }
 
     return reachableNodes;
