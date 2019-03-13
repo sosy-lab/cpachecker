@@ -84,6 +84,14 @@ class CodeAppender implements Appendable {
     return appendable.toString();
   }
 
+  public CodeAppender appendIncludes() throws IOException {
+    appendable.append("#include <stdlib.h>");
+    appendln();
+    appendable.append("#include <stdio.h>");
+    appendln();
+    return this;
+  }
+
   private CodeAppender appendVectorIndexDeclaration(String pInputFunctionVectorIndexName) throws IOException {
     appendable.append("  static unsigned int ");
     appendable.append(pInputFunctionVectorIndexName);
@@ -270,7 +278,7 @@ class CodeAppender implements Appendable {
       appendln("    return retval;");
       appendln("}");
     }
-    for (AFunctionDeclaration inputFunction : pVector.getInputFunctions()) {
+    for (AFunctionDeclaration inputFunction : unimplementedPointerTypeParameterFunctions) {
       if (isImplemented.contains(inputFunction)) {
         continue;
       }
