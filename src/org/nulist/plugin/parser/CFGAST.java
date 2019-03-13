@@ -86,9 +86,17 @@ public class CFGAST extends ast {
 
 
 
-    public static boolean isConstantAggregateZero(ast_field type){
-
-        return false;
+    public boolean isConstantAggregateZero(){
+        try {
+            if(this.equalClass(ast_class.getNC_CASTEXPR())){
+                CFGAST type = (CFGAST) this.get(ast_ordinal.getBASE_TYPE()).as_ast();
+                return (type.isArrayType()||type.isPointerType()) &&
+                        this.children().get(1).get(ast_ordinal.getBASE_VALUE()).as_int32()==0;
+            }
+            return false;
+        }catch (result r){
+            return false;
+        }
     }
     /**
      *@Description check if a pointer is null, using its normalized ast

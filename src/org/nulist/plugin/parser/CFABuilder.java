@@ -27,15 +27,8 @@ import java.math.BigInteger;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.logging.Level;
 
-import static org.nulist.plugin.parser.CFGAST.isConstantAggregateZero;
-import static org.nulist.plugin.parser.CFGAST.isConstantArrayOrVector;
-import static org.nulist.plugin.parser.CFGNode.*;
-import static org.nulist.plugin.util.ClassTool.getUnsignedInt;
 import static org.nulist.plugin.util.FileOperations.*;
-import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
-import static org.sosy_lab.cpachecker.cfa.types.c.CFunctionType.NO_ARGS_VOID_FUNCTION;
 
 /**
  * @ClassName CFABuilder
@@ -60,7 +53,7 @@ public class CFABuilder {
     protected final Map<Integer, ADeclaration> globalVariableDeclarations = new HashMap<>();
     protected SortedSetMultimap<String, CFANode> cfaNodes;
     protected Map<String, CFGFunctionBuilder> cfgFunctionBuilderMap = new HashMap<>();
-    private CFGHandleExpression expressionHandler;
+    public CFGHandleExpression expressionHandler;
 
     public CFABuilder(final LogManager pLogger, final MachineModel pMachineModel) {
         logger = pLogger;
@@ -78,7 +71,7 @@ public class CFABuilder {
 
     public List<Pair<ADeclaration, String>> getGlobalVariableDeclarations(){
         List<Pair<ADeclaration, String>> gvars = new ArrayList<>();
-        for(ADeclaration gvar:globalVariableDeclarations.values())
+        for(ADeclaration gvar:expressionHandler.globalVariableDeclarations.values())
             gvars.add(Pair.of(gvar,gvar.getName()));
         return gvars;
     }
@@ -96,7 +89,7 @@ public class CFABuilder {
 
         /* create global variable declaration*/
         declareGlobalVariables(cu, pFileName);
-        expressionHandler.setGlobalVariableDeclarations(globalVariableDeclarations);
+        //expressionHandler.setGlobalVariableDeclarations(globalVariableDeclarations);
 
         for (compunit_procedure_iterator proc_it = cu.procedures();
              !proc_it.at_end(); proc_it.advance()) {
@@ -188,30 +181,12 @@ public class CFABuilder {
                 FileLocation fileLocation = getLocation(node,pFileName);
                 CFGAST no_ast = (CFGAST) node.get_ast(ast_family.getC_NORMALIZED());
                 CType varType = typeConverter.getCType((CFGAST) no_ast.get(ast_ordinal.getNC_TYPE()).as_ast());
-                CFGAST variable_ast = (CFGAST) no_ast.children().get(0).as_ast();
-                CFGAST value_ast = (CFGAST) no_ast.children().get(1).as_ast();
+
                 // for example: int i=0;
                 // in nc_ast: children {i, 0}
                 //            attributes {is_initialization: true, type: int}
                 // has initialization
-                if(no_ast.isInitializationExpression()){
-                    ast_field type = no_ast.get(ast_ordinal.getNC_TYPE());
-
-                    CFGAST type_ast = (CFGAST)type.as_ast();
-
-                    if(type_ast.isArrayType() || type_ast.isStructType() || type_ast.isEnumType()){
-                        initializer = expressionHandler.getConstantAggregateInitializer(value_ast, fileLocation);
-                    } else if (isConstantAggregateZero(type)) {
-                        CType expressionType = typeConverter.getCType(type_ast);
-                        initializer = expressionHandler.getZeroInitializer(expressionType, fileLocation);
-                    } else {
-                        initializer =  new CInitializerExpression(
-                                fileLocation, expressionHandler.getExpression(value_ast, varType, fileLocation));
-                    }
-                }else {// Declaration without initialization
-                    initializer = null;
-                }
-
+                initializer = expressionHandler.getInitializer(no_ast,fileLocation);
 
                 String assignedVar = no_ast.children().get(0).as_ast().pretty_print();//the 1st child field store the variable
 
@@ -235,7 +210,7 @@ public class CFABuilder {
                                 assignedVar,
                                 initializer);
 
-                globalVariableDeclarations.put(assignedVar.hashCode(),(ADeclaration) newDecl);
+                expressionHandler.globalVariableDeclarations.put(assignedVar.hashCode(),(ADeclaration) newDecl);
             }
 
         }

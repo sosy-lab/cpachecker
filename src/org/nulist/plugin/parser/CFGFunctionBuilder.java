@@ -33,7 +33,6 @@ import java.util.*;
 import java.util.logging.Level;
 
 import static org.nulist.plugin.parser.CFABuilder.pointerOf;
-import static org.nulist.plugin.parser.CFGAST.isConstantAggregateZero;
 import static org.nulist.plugin.parser.CFGAST.isConstantArrayOrVector;
 import static org.nulist.plugin.parser.CFGNode.*;
 import static org.nulist.plugin.parser.CFGNode.DECLARATION;
@@ -96,7 +95,7 @@ public class CFGFunctionBuilder  {
         fileName = pFileName;
         this.cfaBuilder = cfaBuilder;
         expressionHandler = new CFGHandleExpression(pLogger,typeConverter);
-        expressionHandler.setGlobalVariableDeclarations(cfaBuilder.globalVariableDeclarations);
+        expressionHandler.setGlobalVariableDeclarations(cfaBuilder.expressionHandler.globalVariableDeclarations);
     }
 
 
@@ -115,7 +114,7 @@ public class CFGFunctionBuilder  {
         //handle all variable declarations and get the last declared symbol;
         symbol lastDecSymbol = handleVariableDeclaration();
 
-        expressionHandler.setVariableDeclarations(variableDeclarations);
+        //expressionHandler.setVariableDeclarations(variableDeclarations);
         //first visit: build nodes before traversing CFGs
         point_set pointSet = function.points();
         for(point_set_iterator point_it=pointSet.cbegin();!point_it.at_end();point_it.advance()){
@@ -144,7 +143,7 @@ public class CFGFunctionBuilder  {
         if(prevCFAnode.equals(cfaNodeMap.get(prevCFGNode.id()))){
             CDeclarationEdge edge = new CDeclarationEdge(prevCFGNode.getRawSignature(),
                     fileLocation,prevCFAnode,nextCFANode,
-                    (CDeclaration) variableDeclarations.get(prevCFGNode.getVariableNameInNode().hashCode()));
+                    (CDeclaration) expressionHandler.variableDeclarations.get(prevCFGNode.getVariableNameInNode().hashCode()));
             addToCFA(edge);
             traverseCFGNode(entryNextNode);
         }else {
@@ -440,6 +439,7 @@ public class CFGFunctionBuilder  {
 
                 point_vector pv = actuals_in.to_vector();
                 StringBuilder sb = new StringBuilder(cfgNode.characters().replace(")",""));
+                //default param order is right to left
                 for(int i=((int)pv.size())-1;i>=0;i--){
                     CFGNode actual_in = (CFGNode) pv.get(i);
                     CFGAST inAST  = (CFGAST) actual_in.get_ast(ast_family.getC_NORMALIZED());
@@ -613,7 +613,7 @@ public class CFGFunctionBuilder  {
                         new CParameterDeclaration(getLocation(paramNode,fileName),paramType,paramName);
 
                 parameter.setQualifiedName(getQualifiedName(paramName, functionName));
-                variableDeclarations.put(paramName.hashCode(),parameter);
+                expressionHandler.variableDeclarations.put(paramName.hashCode(),parameter);
                 parameters.add(parameter);
             }
         }
@@ -680,8 +680,8 @@ public class CFGFunctionBuilder  {
     private CVariableDeclaration getVariableDeclaration(symbol variable, CInitializer initializer)throws result{
         String assignedVar = variable.name().replace("-","_");//name-id-->name_id
 
-        if(variableDeclarations.containsKey(assignedVar.hashCode()))
-            return (CVariableDeclaration) variableDeclarations.get(assignedVar.hashCode());
+        if(expressionHandler.variableDeclarations.containsKey(assignedVar.hashCode()))
+            return (CVariableDeclaration) expressionHandler.variableDeclarations.get(assignedVar.hashCode());
 
         if(variable.get_kind().equals(symbol_kind.getRETURN()) ||
                 variable.get_kind().equals(symbol_kind.getUSER()) ||
@@ -701,7 +701,7 @@ public class CFGFunctionBuilder  {
                             assignedVar,
                             assignedVar,
                             initializer);
-            variableDeclarations.put(assignedVar.hashCode(),newVarDecl);
+            expressionHandler.variableDeclarations.put(assignedVar.hashCode(),newVarDecl);
             return newVarDecl;
         }
 
@@ -851,7 +851,7 @@ public class CFGFunctionBuilder  {
         CExpression conditionExpr=null;
         if(condition.get_class().equals(ast_class.getNC_VARIABLE())){
             String variableName = condition.normalizingVariableName();
-            CSimpleDeclaration varDec = variableDeclarations.get(variableName.hashCode());
+            CSimpleDeclaration varDec = expressionHandler.variableDeclarations.get(variableName.hashCode());
             conditionExpr = new CIdExpression(fileLocation, varDec.getType(),variableName, varDec);
         }else {
             conditionExpr = expressionHandler.getBinaryExpression(condition,fileLocation);
@@ -876,7 +876,7 @@ public class CFGFunctionBuilder  {
         CExpression conditionExpr=null;
         if(condition.get_class().equals(ast_class.getNC_VARIABLE())){
             String variableName = condition.normalizingVariableName();
-            CSimpleDeclaration varDec = variableDeclarations.get(variableName.hashCode());
+            CSimpleDeclaration varDec = expressionHandler.variableDeclarations.get(variableName.hashCode());
             conditionExpr = new CIdExpression(fileLocation, varDec.getType(),variableName, varDec);
         }else {
             conditionExpr = expressionHandler.getBinaryExpression(condition,fileLocation);
@@ -1086,7 +1086,7 @@ public class CFGFunctionBuilder  {
         CExpression conditionExpr=null;
         if(condition.get_class().equals(ast_class.getNC_VARIABLE())){
             String variableName = condition.normalizingVariableName();
-            CSimpleDeclaration varDec = variableDeclarations.get(variableName.hashCode());
+            CSimpleDeclaration varDec = expressionHandler.variableDeclarations.get(variableName.hashCode());
             conditionExpr = new CIdExpression(fileLocation, varDec.getType(),variableName, varDec);
         }else {
             conditionExpr = expressionHandler.getBinaryExpression(condition,fileLocation);
@@ -1155,7 +1155,7 @@ public class CFGFunctionBuilder  {
 
         FileLocation fileLocation = getLocation(node,fileName);
         final int itemId = node.getVariableNameInNode().hashCode();
-        if (!variableDeclarations.containsKey(itemId)) {
+        if (!expressionHandler.variableDeclarations.containsKey(itemId)) {
             CFGAST nc_ast = (CFGAST) node.get_ast(ast_family.getC_NORMALIZED());
             CFGAST un_ast = (CFGAST) node.get_ast(ast_family.getC_UNNORMALIZED());
 
@@ -1186,11 +1186,11 @@ public class CFGFunctionBuilder  {
                             assignedVar,
                             getQualifiedName(assignedVar, functionName),
                             null);
-            assert !variableDeclarations.containsKey(itemId);
-            variableDeclarations.put(itemId, newDecl);
+            assert !expressionHandler.variableDeclarations.containsKey(itemId);
+            expressionHandler.variableDeclarations.put(itemId, newDecl);
         }
 
-        return (CDeclaration) variableDeclarations.get(itemId);
+        return (CDeclaration) expressionHandler.variableDeclarations.get(itemId);
     }
 
     private CRightHandSide getConstant(final CFGNode exprNode, final FileLocation fileLoc)
