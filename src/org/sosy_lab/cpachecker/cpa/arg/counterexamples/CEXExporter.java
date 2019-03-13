@@ -78,21 +78,9 @@ public class CEXExporter {
   }
 
   @Option(
-    secure = true,
-    description = "Extended witness with specific analysis information file"
-  )
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate extendedWitnessFile =
-      PathTemplate.ofFormatString("extendedWitness.%d.graphml");
-
-  @Option(secure = true, name = "harness", description = "export test harness to file as code")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate testHarnessFile = PathTemplate.ofFormatString("Counterexample.%d.harness.c");
-
-  @Option(
-    secure = true,
-    name = "compressWitness",
-    description = "compress the produced error-witness automata using GZIP compression."
+      secure = true,
+      name = "compressWitness",
+      description = "compress the produced error-witness automata using GZIP compression."
   )
   private boolean compressWitness = true;
 

@@ -27,13 +27,9 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
@@ -43,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
@@ -52,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -61,35 +55,17 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 class CodeAppender implements Appendable {
 
-  private Set<AFunctionDeclaration> isImplemented = new HashSet<>();
-
   private static final String RETVAL_NAME = "retval";
 
   private final Appendable appendable;
-  private final Set<AFunctionDeclaration> unimplementedPointerTypeParameterFunctions;
-
-  public CodeAppender(Appendable pAppendable, CFA pCFA) {
-    appendable = Objects.requireNonNull(pAppendable);
-    unimplementedPointerTypeParameterFunctions =
-        PointerFunctionExtractor.getExternUnimplementedPointerTypeParameterFunctions(pCFA);
-  }
 
   public CodeAppender(Appendable pAppendable) {
     appendable = Objects.requireNonNull(pAppendable);
-    unimplementedPointerTypeParameterFunctions = new HashSet<>();
   }
 
   @Override
   public String toString() {
     return appendable.toString();
-  }
-
-  public CodeAppender appendIncludes() throws IOException {
-    appendable.append("#include <stdlib.h>");
-    appendln();
-    appendable.append("#include <stdio.h>");
-    appendln();
-    return this;
   }
 
   private CodeAppender appendVectorIndexDeclaration(String pInputFunctionVectorIndexName) throws IOException {
@@ -173,23 +149,7 @@ class CodeAppender implements Appendable {
     return this;
   }
 
-
   public CodeAppender append(TestVector pVector) throws IOException {
-    String externPointersArrayName = "HARNESS_externPointersArray";
-    String arrayPushCounterName = "HARNESS_externPointersArrayCounter";
-    append("long int ");
-    append(arrayPushCounterName);
-    appendln(" = 0;");
-
-    for (AFunctionDeclaration functionDeclaration : pVector.getFunctionDeclarations()) {
-      IAFunctionType functionType = functionDeclaration.getType();
-      append("extern ");
-      append(functionType.toASTString(functionDeclaration.getName()));
-      append(";");
-      appendln();
-
-    }
-
     for (AVariableDeclaration inputVariable : pVector.getInputVariables()) {
       InitializerTestValue inputValue = pVector.getInputValue(inputVariable);
       List<AAstNode> auxiliaryStatmenets = inputValue.getAuxiliaryStatements();
@@ -233,88 +193,11 @@ class CodeAppender implements Appendable {
       }
       appendln(internalDeclaration.toASTString());
     }
-    int externPointersArrayLength = pVector.getExternPointersArrayLength();
-    append("int* ");
-    append(externPointersArrayName);
-    append(" [");
-    append(Integer.toString(externPointersArrayLength));
-    appendln("];");
-    for (ComparableFunctionDeclaration pointerFunction : pVector.getPointerFunctions()) {
-      AFunctionDeclaration functionDeclaration = pointerFunction.getDeclaration();
-      isImplemented.add(functionDeclaration);
-      List<Integer> arrayIndices = pVector.getIndices(pointerFunction);
-      String functionCounterName = functionDeclaration.getOrigName().concat("_ret_counter");
-
-      append("unsigned long int ");
-      append(functionCounterName);
-      append(" = 0");
-      appendln(";");
-
-      append(functionDeclaration);
-
-      appendln("{");
-
-      append("  ");
-      append("int* retval");
-      appendln(";");
-      int switchCaseCounter = 0;
-      append("  switch(");
-      append(functionCounterName);
-      appendln(") {");
-      for (int arrayIndex : arrayIndices) {
-        append("        case ");
-        append(Integer.toString(switchCaseCounter));
-        append(": retval = ");
-        append(externPointersArrayName);
-        append("[");
-        append(Integer.toString(arrayIndex));
-        append("]; ");
-        appendln("break;");
-      }
-      appendln("  }");
-      append("  ++");
-      append(functionCounterName);
-      appendln(";");
-      appendln("    return retval;");
-      appendln("}");
-    }
-    for (AFunctionDeclaration inputFunction : unimplementedPointerTypeParameterFunctions) {
-      if (isImplemented.contains(inputFunction)) {
-        continue;
-      }
-
-      Iterable<AParameterDeclaration> parameterDeclarations =
-          TestVector.upcast(
-              FluentIterable.from(inputFunction.getParameters()),
-              AParameterDeclaration.class);
-      List<AParameterDeclaration> pointerParameterDeclarations = new LinkedList<>();
-      for (AParameterDeclaration parameterDeclaration : parameterDeclarations) {
-        if (parameterDeclaration.getType() instanceof CPointerType) {
-          pointerParameterDeclarations.add(parameterDeclaration);
-        }
-      }
-
+    for (AFunctionDeclaration inputFunction : pVector.getInputFunctions()) {
       List<ExpressionTestValue> inputValues = pVector.getInputValues(inputFunction);
       Type returnType = inputFunction.getType().getReturnType();
       append(inputFunction);
       appendln(" {");
-
-      if (pointerParameterDeclarations.size() > 0
-          && unimplementedPointerTypeParameterFunctions.contains(inputFunction)) {
-        for (AParameterDeclaration pointerParameterDeclaration : pointerParameterDeclarations) {
-          String varName = pointerParameterDeclaration.getName();
-          append(externPointersArrayName);
-          append("[");
-          append(arrayPushCounterName);
-          append("++] = ");
-          append("(int*) ");
-          append(varName);
-          appendln(";");
-        }
-
-      }
-
-
       if (!returnType.equals(CVoidType.VOID)) {
         String inputFunctionVectorIndexName = "test_vector_index";
         if (inputValues.size() > 1) {
@@ -414,13 +297,6 @@ class CodeAppender implements Appendable {
       result.add(declaration);
     }
     return result;
-  }
-
-  public void append(ArrayList<CTypeDeclaration> pPredefinedTypes) throws IOException {
-    for (CTypeDeclaration typeDeclaration : pPredefinedTypes) {
-      appendable.append(typeDeclaration.toASTString());
-
-    }
   }
 
 }

@@ -38,21 +38,16 @@ import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -127,7 +122,6 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.harness.HarnessState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
@@ -150,8 +144,6 @@ public class HarnessExporter {
 
   private final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
-  private ArrayList<CTypeDeclaration> predefinedTypes = new ArrayList<>();
-
   @Option(secure = true, description = "Use the counterexample model to provide test-vector values")
   private boolean useModel = true;
 
@@ -171,7 +163,6 @@ public class HarnessExporter {
       CounterexampleInfo pCounterexampleInfo)
       throws IOException {
 
-
     // Find a path with sufficient test vector info
     Optional<TargetTestVector> testVector =
         extractTestVector(
@@ -179,16 +170,8 @@ public class HarnessExporter {
     if (testVector.isPresent()) {
 
       Set<AFunctionDeclaration> externalFunctions = getExternalFunctions();
-      List<String> sortedExternalFunctionNames =
-          externalFunctions.stream()
-              .map(f -> f.getName())
-              .sorted(String::compareToIgnoreCase)
-              .collect(Collectors.toList());
 
-
-      CodeAppender codeAppender = new CodeAppender(pTarget, cfa);
-
-      codeAppender.appendIncludes();
+      CodeAppender codeAppender = new CodeAppender(pTarget);
 
       codeAppender.appendln("struct _IO_FILE;");
       codeAppender.appendln("typedef struct _IO_FILE FILE;");
@@ -217,18 +200,14 @@ public class HarnessExporter {
       }
 
       // implement actual harness
-      TestVector vector = testVector.get().testVector;
-      // TestVector vector =
+      TestVector vector =
           completeExternalFunctions(
               testVector.get().testVector,
               errorFunction.isPresent()
                   ? FluentIterable.from(externalFunctions)
                       .filter(Predicates.not(Predicates.equalTo(errorFunction.get())))
                   : externalFunctions);
-      // copyTypeDeclarations(codeAppender);
-      // codeAppender.append(predefinedTypes);
       codeAppender.append(vector);
-
     } else {
       logger.log(
           Level.WARNING, "Could not export a test harness, some test-vector values are missing.");
@@ -282,63 +261,6 @@ public class HarnessExporter {
     return externalFunctions;
   }
 
-  private void copyTypeDeclarations(CodeAppender pTarget) throws IOException {
-    Set<ADeclaration> declarations = new LinkedHashSet<>();
-    CFATraversal.dfs()
-        .traverseOnce(
-            cfa.getMainFunction(),
-            new CFAVisitor() {
-
-              @Override
-              public TraversalProcess visitNode(CFANode pNode) {
-                return TraversalProcess.CONTINUE;
-              }
-
-              @Override
-              public TraversalProcess visitEdge(CFAEdge pEdge) {
-                if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-                  ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
-                  ADeclaration declaration = declarationEdge.getDeclaration();
-                  if (declaration instanceof CTypeDeclaration) {
-                    CTypeDeclaration typeDeclaration = (CTypeDeclaration) declaration;
-                    if (!isPredefinedType((CTypeDeclaration) declaration)) {
-                      CType declaredType = typeDeclaration.getType().getCanonicalType();
-                      if (declaredType instanceof CElaboratedType && declaredType.isIncomplete()) {
-                        CElaboratedType elaboratedType = (CElaboratedType) declaredType;
-                        final CComplexType dummyType;
-                        switch (elaboratedType.getKind()) {
-                          case ENUM:
-                            dummyType = new CEnumType(elaboratedType.isConst(), elaboratedType.isVolatile(), Collections.emptyList(), elaboratedType.getName(), elaboratedType.getOrigName());
-                            break;
-                          case STRUCT:
-                          case UNION:
-                            dummyType = new CCompositeType(elaboratedType.isConst(), elaboratedType.isVolatile(), elaboratedType.getKind(), Collections.emptyList(), elaboratedType.getName(), elaboratedType.getOrigName());
-                            break;
-                          default:
-                            throw new AssertionError("Unsupported kind of elaborated type: " + elaboratedType.getKind());
-                        }
-                        declarations.add(new CComplexTypeDeclaration(FileLocation.DUMMY, typeDeclaration.isGlobal(), dummyType));
-                      } else {
-                        declarations.add(declaration);
-                      }
-                    }
-            else {
-                      predefinedTypes.add((CTypeDeclaration) declaration);
-                    }
-                  }
-                } else if (pEdge.getEdgeType() == CFAEdgeType.BlankEdge
-                    && !pEdge.getPredecessor().equals(cfa.getMainFunction())) {
-                  return TraversalProcess.ABORT;
-                }
-                return TraversalProcess.CONTINUE;
-              }
-            });
-    for (ADeclaration declaration : declarations) {
-      pTarget.appendln(declaration.toASTString());
-    }
-  }
-
-  private TestVector completeExternalFunctions(TestVector pVector, Iterable<AFunctionDeclaration> pExternalFunctions) {
   /**
    * Create a test vector that contains dummy values for the given external functions that are not
    * yet part of the provided test vector.
@@ -348,22 +270,16 @@ public class HarnessExporter {
    * @return a test vector that contains the values of the given vector and the newly created dummy
    *     values.
    */
+  private TestVector completeExternalFunctions(
+      TestVector pVector, Iterable<AFunctionDeclaration> pExternalFunctions) {
     TestVector result = pVector;
     for (AFunctionDeclaration functionDeclaration : pExternalFunctions) {
       if (!isPredefinedFunctionWithoutVerifierError(functionDeclaration)
           && !pVector.contains(functionDeclaration)) {
         result = addDummyValue(result, functionDeclaration);
-      } else if (isPredefinedFunction(functionDeclaration)) {
-        result = addFunctionDeclaration(result, functionDeclaration);
       }
     }
     return result;
-  }
-
-  private TestVector
-      addFunctionDeclaration(TestVector pResult, AFunctionDeclaration pFunctionDeclaration) {
-    // TODO Auto-generated method stub
-    return pResult.addFunctionDeclaration(pFunctionDeclaration);
   }
 
   private Multimap<ARGState, CFAEdgeWithAssumptions> getValueMap(
@@ -372,22 +288,6 @@ public class HarnessExporter {
       return pCounterexampleInfo.getExactVariableValues();
     }
     return ImmutableMultimap.of();
-  }
-
-  private TestVector addIndicesFromCPA(TestVector pTestVector, ARGState pArgState) {
-    TestVector newTestVector = pTestVector;
-    FluentIterable<HarnessState> harnessStates =
-        AbstractStates.asIterable(pArgState).filter(HarnessState.class);
-    for (HarnessState harnessState : harnessStates) {
-      newTestVector =
-          newTestVector.setExternPointersArrayLength(harnessState.getExternPointersArrayLength());
-      for (ComparableFunctionDeclaration functionName : harnessState.getFunctionsWithIndices()) {
-        for (int index : harnessState.getIndices(functionName)) {
-          newTestVector = newTestVector.addPointerFunctionIndex(functionName, index);
-        }
-      }
-    }
-    return newTestVector;
   }
 
   private Optional<TargetTestVector> extractTestVector(
@@ -409,9 +309,7 @@ public class HarnessExporter {
       if (AbstractStates.isTargetState(previous.argState)) {
         assert lastEdge != null
             : "Expected target state to be different from root state, but was not";
-        TestVector testVectorWithPointerIndices =
-            addIndicesFromCPA(previous.testVector, previous.argState);
-        return Optional.of(new TargetTestVector(lastEdge, testVectorWithPointerIndices));
+        return Optional.of(new TargetTestVector(lastEdge, previous.testVector));
       }
       ARGState parent = previous.argState;
       Iterable<CFANode> parentLocs = AbstractStates.extractLocations(parent);
@@ -492,8 +390,7 @@ public class HarnessExporter {
               }
               if (!isSupported(functionDeclaration)) {
                 if (returnsPointer(functionDeclaration)) {
-                  return Optional.of(State.of(pChild, pPrevious.testVector));
-                  // return handlePointerCall(pPrevious, pChild, functionCallExpression);
+                  return handlePointerCall(pPrevious, pChild, functionCallExpression);
                 }
                 if (returnsComposite(functionDeclaration)) {
                   return handleCompositeCall(pPrevious, pChild, functionCallExpression);
@@ -988,11 +885,11 @@ public class HarnessExporter {
     return Optional.empty();
   }
 
-  public static class State {
+  private static class State {
 
-    final ARGState argState;
+    private final ARGState argState;
 
-    final TestVector testVector;
+    private final TestVector testVector;
 
     private State(ARGState pARGState, TestVector pTestVector) {
       this.argState = Objects.requireNonNull(pARGState);
@@ -1026,15 +923,11 @@ public class HarnessExporter {
     }
   }
 
-  public static class TargetTestVector {
+  private static class TargetTestVector {
 
     private final CFAEdge edgeToTarget;
 
     private final TestVector testVector;
-
-    public TestVector getTestVector() {
-      return testVector;
-    }
 
     public TargetTestVector(CFAEdge pEdgeToTarget, TestVector pTestVector) {
       edgeToTarget = Objects.requireNonNull(pEdgeToTarget);
