@@ -148,6 +148,10 @@ public class HarnessTransferRelation
             || (binaryOperator == BinaryOperator.NOT_EQUALS && !modifier)) {
           return handleEqualityAssumeEdge(pState, pEdge);
         }
+        else if ((binaryOperator == BinaryOperator.NOT_EQUALS && modifier)
+            || (binaryOperator == BinaryOperator.EQUALS && !modifier)) {
+          return handleInequalityAssumeEdge(pState, pEdge);
+        }
       }
     }
     return pState;
