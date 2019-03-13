@@ -26,8 +26,10 @@ package org.sosy_lab.cpachecker.util;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -168,6 +170,12 @@ public class CFATraversal {
         Predicates.or(ignoreEdge, edge -> edge.getEdgeType() == ignoreType));
   }
 
+  public CFATraversal ignoreEdges(final Collection<CFAEdge> pEdges) {
+    Set<CFAEdge> edgesToIgnore = ImmutableSet.copyOf(pEdges);
+    return new CFATraversal(
+        edgeSupplier, successorSupplier, Predicates.or(ignoreEdge, edgesToIgnore::contains));
+  }
+
   /**
    * Traverse through the CFA according to the strategy represented by the current instance,
    * starting at a given node and passing each encountered node and edge to a given visitor.
@@ -251,6 +259,19 @@ public class CFATraversal {
     visitor.stopVisitingNode = endingNode;
     this.traverse(startingNode, visitor);
     return visitor.getVisitedNodes();
+  }
+
+  /**
+   * Traverse through the CFA according to the strategy represented by the current instance,
+   * starting at a given node and collecting all encountered edges.
+   *
+   * @param startingNode The starting node.
+   * @return A modifiable reference to the list of visited edges.
+   */
+  public List<CFAEdge> collectEdgesReachableFrom(final CFANode startingNode) {
+    EdgeCollectingCFAVisitor visitor = new EdgeCollectingCFAVisitor();
+    traverse(startingNode, visitor);
+    return visitor.getVisitedEdges();
   }
 
   // --- Useful visitor implementations ---
