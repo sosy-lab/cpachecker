@@ -69,7 +69,6 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
-import org.sosy_lab.cpachecker.util.harness.HarnessTestExporter;
 
 @Options(prefix="counterexample.export", deprecatedPrefix="cpa.arg.errorPath")
 public class CEXExporter {
@@ -120,7 +119,6 @@ public class CEXExporter {
   private final WitnessExporter witnessExporter;
   private final ExtendedWitnessExporter extendedWitnessExporter;
   private final HarnessExporter harnessExporter;
-  private final HarnessTestExporter harnessTestExporter;
 
   public CEXExporter(
       Configuration config,
@@ -337,8 +335,6 @@ public class CEXExporter {
                     isTargetPathEdge,
                     counterexample));
   }
-
-
 
   // Copied from org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation.addVisitedLine(int)
   public void addVisitedLine(Map<Integer,Integer> visitedLines, int pLine) {
