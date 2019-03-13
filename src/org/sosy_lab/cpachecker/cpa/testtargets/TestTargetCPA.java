@@ -36,32 +36,10 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-@Options(prefix="testcase")
 public class TestTargetCPA extends AbstractCPA {
 
   private final TestTargetPrecisionAdjustment precisionAdjustment;
   private final TransferRelation transferRelation;
-
-  @Option(
-    secure = true,
-    name = "generate.parallel",
-    description = "set to true if run multiple test case generation instances in parallel"
-  )
-  private boolean runParallel = false;
-
-  @Option(
-    secure = true,
-    name = "targets.type", // adapt CPAMain.java if adjust name
-    description = "Which CFA edges to use as test targets"
-  )
-  private TestTargetType targetType = TestTargetType.ASSUME;
-
-  @Option(
-    secure = true,
-    name = "targets.optimization.strategy",
-    description = "Which strategy to use to optimize set of test target edges"
-  )
-  private TestTargetAdaption targetOptimization = TestTargetAdaption.NONE;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(TestTargetCPA.class);
@@ -71,12 +49,12 @@ public class TestTargetCPA extends AbstractCPA {
       throws InvalidConfigurationException {
     super("sep", "sep", null);
 
-    pConfig.inject(this);
-
     precisionAdjustment = new TestTargetPrecisionAdjustment();
+
+    TestTargetProvider.initialize(pConfig);
     transferRelation =
         new TestTargetTransferRelation(
-            TestTargetProvider.getTestTargets(pCfa, runParallel, targetType, targetOptimization));
+            TestTargetProvider.getTestTargets(pCfa));
   }
 
   @Override

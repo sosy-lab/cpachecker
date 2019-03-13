@@ -31,6 +31,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -39,36 +43,43 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
+@Options(prefix="testcase")
 public class TestTargetProvider implements Statistics {
 
   private static TestTargetProvider instance = null;
 
-  private final CFA cfa;
-  private final TestTargetType type;
-  private final ImmutableSet<CFAEdge> initialTestTargets;
-  private final Set<CFAEdge> uncoveredTargets;
+  @Option(
+      secure = true,
+      name = "generate.parallel",
+      description = "set to true if run multiple test case generation instances in parallel"
+  )
+  private boolean runParallel = false;
+
+  @Option(
+      secure = true,
+      name = "targets.type", // adapt CPAMain.java if adjust name
+      description = "Which CFA edges to use as test targets"
+  )
+  private TestTargetType type = TestTargetType.ASSUME;
+
+  @Option(
+      secure = true,
+      name = "targets.optimization.strategy",
+      description = "Which strategy to use to optimize set of test target edges"
+  )
+  private TestTargetAdaption optimization = TestTargetAdaption.NONE;
+
+  private CFA cfa = null;
+  private ImmutableSet<CFAEdge> initialTestTargets;
+  private Set<CFAEdge> uncoveredTargets;
   private boolean printTargets = false;
-  private boolean runParallel;
-  private TestTargetAdaption optimization;
 
-  private TestTargetProvider(
-      final CFA pCfa,
-      final boolean pRunParallel,
-      final TestTargetType pType,
-      final TestTargetAdaption pGoalAdaption) {
-    cfa = pCfa;
-    runParallel = pRunParallel;
-    type = pType;
-    optimization = pGoalAdaption;
+  public TestTargetProvider(final Configuration pConfig) throws InvalidConfigurationException {
+    pConfig.inject(this);
+  }
 
-    Set<CFAEdge> targets = extractEdgesByCriterion(type.getEdgeCriterion(), pGoalAdaption);
-
-    if (runParallel) {
-      uncoveredTargets = Collections.synchronizedSet(targets);
-    } else {
-      uncoveredTargets = targets;
-    }
-    initialTestTargets = ImmutableSet.copyOf(uncoveredTargets);
+  private Set<CFAEdge> extractEdges() {
+    return extractEdgesByCriterion(type.getEdgeCriterion(), optimization);
   }
 
   private Set<CFAEdge> extractEdgesByCriterion(
@@ -88,19 +99,26 @@ public class TestTargetProvider implements Statistics {
     return instance.initialTestTargets.size();
   }
 
-  public static Set<CFAEdge> getTestTargets(
-      final CFA pCfa,
-      final boolean pRunParallel,
-      final TestTargetType pType,
-      TestTargetAdaption pTargetOptimization) {
-    if (instance == null
-        || pCfa != instance.cfa
-        || instance.type != pType
-        || instance.optimization != pTargetOptimization) {
-      instance = new TestTargetProvider(pCfa, pRunParallel, pType, pTargetOptimization);
+  public static void initialize(final Configuration pConfig) throws InvalidConfigurationException {
+    instance = new TestTargetProvider(pConfig);
+  }
+
+  public static Set<CFAEdge> getTestTargets(final CFA pCfa) {
+    if (pCfa != instance.cfa) {
+      updateTargetsOfInstance(pCfa);
     }
-    Preconditions.checkState(instance.runParallel || !pRunParallel);
     return instance.uncoveredTargets;
+  }
+
+  private static void updateTargetsOfInstance(final CFA pCfa) {
+    instance.cfa = pCfa;
+    Set<CFAEdge> targets = instance.extractEdges();
+    if (instance.runParallel) {
+      instance.uncoveredTargets = Collections.synchronizedSet(targets);
+    } else {
+      instance.uncoveredTargets = targets;
+    }
+    instance.initialTestTargets = ImmutableSet.copyOf(instance.uncoveredTargets);
   }
 
   public static String getCoverageInfo() {
