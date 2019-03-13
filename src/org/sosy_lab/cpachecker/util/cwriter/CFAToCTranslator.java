@@ -39,6 +39,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -52,7 +53,9 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -402,8 +405,23 @@ public class CFAToCTranslator {
       // this element was not already processed; find children of it
       getRelevantEdgesOfElement(childElement, waitlist, currentBlock, relevantEdges);
     } else {
-      String gotoStatement = "goto " + createdStatements.get(childElement).get(0).getLabel() + ";";
+      String label = getLabel(childElement, edge);
+      String gotoStatement = "goto " + label + ";";
       currentBlock.addStatement(createSimpleStatement(childElement, gotoStatement));
+    }
+  }
+
+  private String getLabel(CFANode pNode, CFAEdge pEdgeToIgnore) {
+    if (pNode instanceof CLabelNode) {
+      return ((CLabelNode) pNode).getLabel();
+    } else {
+      com.google.common.base.Optional<CFAEdge> maybeBlankPredecessor = CFAUtils.enteringEdges(pNode)
+          .firstMatch(x -> !x.equals(pEdgeToIgnore) && x.getEdgeType() == CFAEdgeType.BlankEdge);
+      if (maybeBlankPredecessor.isPresent()) {
+        return getLabel(maybeBlankPredecessor.get().getPredecessor(), pEdgeToIgnore);
+      } else {
+        return createdStatements.get(pNode).get(0).getLabel();
+      }
     }
   }
 
