@@ -122,6 +122,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.harness.HarnessState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
@@ -143,6 +144,7 @@ public class HarnessExporter {
   private final CBinaryExpressionBuilder binExpBuilder;
 
   private final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+
 
   @Option(secure = true, description = "Use the counterexample model to provide test-vector values")
   private boolean useModel = true;
@@ -290,6 +292,22 @@ public class HarnessExporter {
     return ImmutableMultimap.of();
   }
 
+  private TestVector addIndicesFromCPA(TestVector pTestVector, ARGState pArgState) {
+    TestVector newTestVector = pTestVector;
+    FluentIterable<HarnessState> harnessStates =
+        AbstractStates.asIterable(pArgState).filter(HarnessState.class);
+    for (HarnessState harnessState : harnessStates) {
+      newTestVector =
+          newTestVector.setExternPointersArrayLength(harnessState.getExternPointersArrayLength());
+      for (ComparableFunctionDeclaration functionName : harnessState.getFunctionsWithIndices()) {
+        for (int index : harnessState.getIndices(functionName)) {
+          newTestVector = newTestVector.addPointerFunctionIndex(functionName, index);
+        }
+      }
+    }
+    return newTestVector;
+  }
+
   private Optional<TargetTestVector> extractTestVector(
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
@@ -309,7 +327,9 @@ public class HarnessExporter {
       if (AbstractStates.isTargetState(previous.argState)) {
         assert lastEdge != null
             : "Expected target state to be different from root state, but was not";
-        return Optional.of(new TargetTestVector(lastEdge, previous.testVector));
+        TestVector testVectorWithPointerIndices =
+            addIndicesFromCPA(previous.testVector, previous.argState);
+        return Optional.of(new TargetTestVector(lastEdge, testVectorWithPointerIndices));
       }
       ARGState parent = previous.argState;
       Iterable<CFANode> parentLocs = AbstractStates.extractLocations(parent);
@@ -390,7 +410,8 @@ public class HarnessExporter {
               }
               if (!isSupported(functionDeclaration)) {
                 if (returnsPointer(functionDeclaration)) {
-                  return handlePointerCall(pPrevious, pChild, functionCallExpression);
+                  return Optional.of(State.of(pChild, pPrevious.testVector));
+                  // return handlePointerCall(pPrevious, pChild, functionCallExpression);
                 }
                 if (returnsComposite(functionDeclaration)) {
                   return handleCompositeCall(pPrevious, pChild, functionCallExpression);
@@ -885,11 +906,11 @@ public class HarnessExporter {
     return Optional.empty();
   }
 
-  private static class State {
+  public static class State {
 
-    private final ARGState argState;
+    final ARGState argState;
 
-    private final TestVector testVector;
+    final TestVector testVector;
 
     private State(ARGState pARGState, TestVector pTestVector) {
       this.argState = Objects.requireNonNull(pARGState);
@@ -923,11 +944,15 @@ public class HarnessExporter {
     }
   }
 
-  private static class TargetTestVector {
+  public static class TargetTestVector {
 
     private final CFAEdge edgeToTarget;
 
     private final TestVector testVector;
+
+    public TestVector getTestVector() {
+      return testVector;
+    }
 
     public TargetTestVector(CFAEdge pEdgeToTarget, TestVector pTestVector) {
       edgeToTarget = Objects.requireNonNull(pEdgeToTarget);

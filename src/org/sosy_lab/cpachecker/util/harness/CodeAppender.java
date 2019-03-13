@@ -27,6 +27,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -47,11 +48,13 @@ import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.cpa.harness.HarnessState;
 
 class CodeAppender implements Appendable {
 
@@ -149,7 +152,14 @@ class CodeAppender implements Appendable {
     return this;
   }
 
+
   public CodeAppender append(TestVector pVector) throws IOException {
+    String externPointersArrayName = "HARNESS_externPointersArray";
+    String arrayPushCounterName = "HARNESS_externPointersArrayCurrentLoc";
+    append("long int ");
+    append(arrayPushCounterName);
+    appendln(" = 0;");
+
     for (AVariableDeclaration inputVariable : pVector.getInputVariables()) {
       InitializerTestValue inputValue = pVector.getInputValue(inputVariable);
       List<AAstNode> auxiliaryStatmenets = inputValue.getAuxiliaryStatements();
@@ -193,11 +203,82 @@ class CodeAppender implements Appendable {
       }
       appendln(internalDeclaration.toASTString());
     }
+    int externPointersArrayLength = pVector.getExternPointersArrayLength();
+    append("int* ");
+    append(externPointersArrayName);
+    append(" [");
+    append(Integer.toString(externPointersArrayLength));
+    appendln("];");
+    for (ComparableFunctionDeclaration pointerFunction : pVector.getPointerFunctions()) {
+      AFunctionDeclaration functionDeclaration = pointerFunction.getDeclaration();
+      List<Integer> arrayIndices = pVector.getIndices(pointerFunction);
+      String functionCounterName = functionDeclaration.getOrigName().concat("_ret_counter");
+
+      append("unsigned long int ");
+      append(functionCounterName);
+      appendln(";");
+
+      append(functionDeclaration);
+
+      appendln("{");
+
+      append("  ");
+      append("int* retval");
+      appendln(";");
+      int switchCaseCounter = 0;
+      append("  switch(");
+      append(functionCounterName);
+      appendln(") {");
+      for (int arrayIndex : arrayIndices) {
+        append("        case ");
+        append(Integer.toString(switchCaseCounter));
+        append(": retval = ");
+        append(externPointersArrayName);
+        append("[");
+        append(Integer.toString(arrayIndex));
+        append("]; ");
+        appendln("break;");
+      }
+      appendln("  }");
+      append("  ++");
+      append(functionCounterName);
+      appendln(";");
+      appendln("    return retval;");
+      appendln("}");
+    }
     for (AFunctionDeclaration inputFunction : pVector.getInputFunctions()) {
+      Iterable<AParameterDeclaration> parameterDeclarations =
+          TestVector.upcast(
+              FluentIterable.from(inputFunction.getParameters()),
+              AParameterDeclaration.class);
+      List<AParameterDeclaration> pointerParameterDeclarations = new LinkedList<>();
+      for (AParameterDeclaration parameterDeclaration : parameterDeclarations) {
+        if (parameterDeclaration.getType() instanceof CPointerType) {
+          pointerParameterDeclarations.add(parameterDeclaration);
+        }
+      }
+
       List<ExpressionTestValue> inputValues = pVector.getInputValues(inputFunction);
       Type returnType = inputFunction.getType().getReturnType();
       append(inputFunction);
       appendln(" {");
+
+      if (pointerParameterDeclarations.size() > 0
+          && HarnessState.relevantFunctions.contains(inputFunction)) {
+        for (AParameterDeclaration pointerParameterDeclaration : pointerParameterDeclarations) {
+          String varName = pointerParameterDeclaration.getName();
+          append(externPointersArrayName);
+          append("[");
+          append(arrayPushCounterName);
+          append("++] = ");
+          append("(int*) ");
+          append(varName);
+          appendln(";");
+        }
+
+      }
+
+
       if (!returnType.equals(CVoidType.VOID)) {
         String inputFunctionVectorIndexName = "test_vector_index";
         if (inputValues.size() > 1) {
