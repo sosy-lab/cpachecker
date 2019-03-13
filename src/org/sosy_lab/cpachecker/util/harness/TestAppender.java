@@ -86,8 +86,6 @@ public class TestAppender {
         throw new AssertionError();
       }
 
-    }
-
 
   }
 
