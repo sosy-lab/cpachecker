@@ -3853,7 +3853,7 @@ testcase.targets.type = ASSUME
 # export test values to file (line separated)
 testcase.values = no default value
 
-# export test cases to xm file (Test-Comp format)
+# export test cases to xml file (Test-Comp format)
 testcase.xml = no default value
 
 # Zip file into which all test case files are bundled
