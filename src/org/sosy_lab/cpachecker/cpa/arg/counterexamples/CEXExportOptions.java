@@ -120,6 +120,14 @@ public final class CEXExportOptions {
 
   @Option(
       secure = true,
+      name = "exportTestCase",
+      description = "export test case that represents the counterexample. Further options can be"
+          + " set with options 'testcase.*'"
+  )
+  private boolean exportTest = false;
+
+  @Option(
+      secure = true,
       name = "exportAllFoundErrorPaths",
       description =
           "export error paths to files immediately after they were found, "
@@ -148,7 +156,8 @@ public final class CEXExportOptions {
         && getSourceFile() == null
         && getTestHarnessFile() == null
         && getWitnessFile() == null
-        && getExtendedWitnessFile() == null;
+        && getExtendedWitnessFile() == null
+        && !exportTest;
   }
 
   @Nullable
@@ -221,6 +230,10 @@ public final class CEXExportOptions {
       return null;
     }
     return exportExtendedWitness ? extendedWitnessFile : null;
+  }
+
+  boolean exportToTest() {
+    return exportTest;
   }
 
   public boolean dumpAllFoundErrorPaths() {

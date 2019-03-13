@@ -866,6 +866,10 @@ counterexample.export.exportHarness = false
 # export error paths to files immediately after they were found
 counterexample.export.exportImmediately = false
 
+# export test case that represents the counterexample. Further options can be
+# set with options 'testcase.*'
+counterexample.export.exportTestCase = false
+
 # export counterexample as witness/graphml file
 counterexample.export.exportWitness = true
 

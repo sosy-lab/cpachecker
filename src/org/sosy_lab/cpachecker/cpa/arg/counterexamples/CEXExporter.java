@@ -30,6 +30,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -38,6 +39,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -69,6 +71,7 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
+import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 
 @Options(prefix="counterexample.export", deprecatedPrefix="cpa.arg.errorPath")
 public class CEXExporter {
@@ -107,6 +110,7 @@ public class CEXExporter {
   private final WitnessExporter witnessExporter;
   private final ExtendedWitnessExporter extendedWitnessExporter;
   private final HarnessExporter harnessExporter;
+  private TestCaseExporter testExporter;
 
   public CEXExporter(
       Configuration config,
@@ -127,9 +131,11 @@ public class CEXExporter {
       cexFilter =
           CounterexampleFilter.createCounterexampleFilter(config, pLogger, cpa, cexFilterClasses);
       harnessExporter = new HarnessExporter(config, pLogger, cfa);
+      testExporter = new TestCaseExporter(cfa, logger, config);
     } else {
       cexFilter = null;
       harnessExporter = null;
+      testExporter = null;
     }
   }
 
@@ -322,6 +328,14 @@ public class CEXExporter {
                     Predicates.in(pathElements),
                     isTargetPathEdge,
                     counterexample));
+
+    if (options.exportToTest() && testExporter != null) {
+      try {
+        testExporter.writeTestCaseFiles(counterexample, Optional.empty());
+      } catch (IOException pE) {
+        logger.logUserException(Level.INFO, pE, "Error path could not be written to test case.");
+      }
+    }
   }
 
   // Copied from org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation.addVisitedLine(int)
