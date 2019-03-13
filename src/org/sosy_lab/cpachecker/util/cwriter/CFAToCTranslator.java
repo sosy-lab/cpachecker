@@ -28,14 +28,26 @@ import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.FunctionCallEdge;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -52,12 +64,14 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator.CompoundStatement;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator.FunctionBody;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator.SimpleStatement;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator.Statement;
 
+@Options(prefix = "cfa.exportToC")
 public class CFAToCTranslator {
 
   // Use original, unqualified names for variables
@@ -93,23 +107,68 @@ public class CFAToCTranslator {
     }
   }
 
+  @Option(
+      secure = true,
+      name = "reduceToLabels",
+      description =
+          "Only write CFA parts syntactically reaching the labels listed in the given file."
+              + " The file is expected to contain one label name per line.")
+  @FileOption(Type.OPTIONAL_INPUT_FILE)
+  private Path whitelistLabelFile = null;
+
   private final List<String> globalDefinitionsList = new ArrayList<>();
   private final Set<CFANode> discoveredElements = new HashSet<>();
   private final ListMultimap<CFANode, Statement> createdStatements = ArrayListMultimap.create();
   private Collection<FunctionBody> functions;
 
-  public String translateCfa(CFA pCfa) throws CPAException, InvalidConfigurationException {
+  public CFAToCTranslator(final Configuration pConfig) throws InvalidConfigurationException {
+    pConfig.inject(this);
+  }
+
+  public String translateCfa(CFA pCfa)
+      throws CPAException, InvalidConfigurationException, IOException {
     functions = new ArrayList<>(pCfa.getNumberOfFunctions());
 
     if (pCfa.getLanguage() != Language.C) {
       throw new InvalidConfigurationException(
           "CFA can only be written to C for C programs, at the moment");
     }
+
+    Collection<CFAEdge> relevantEdges = null;
+    if (whitelistLabelFile != null) {
+      relevantEdges = getEdgesReachingLabels(pCfa, whitelistLabelFile);
+    }
+
     for (FunctionEntryNode func : pCfa.getAllFunctionHeads()) {
-      translate((CFunctionEntryNode) func);
+      translate((CFunctionEntryNode) func, relevantEdges);
     }
 
     return generateCCode();
+  }
+
+  private Collection<CFAEdge> getEdgesReachingLabels(CFA pCfa, Path pWhitelistLabelFile)
+      throws IOException {
+
+    final List<String> labels = Files.readAllLines(pWhitelistLabelFile, Charset.defaultCharset());
+    final Map<String, CFANode> labelNodes =
+        pCfa.getAllNodes()
+            .parallelStream()
+            .filter(n -> n instanceof CLabelNode)
+            .collect(Collectors.toMap(n -> ((CLabelNode) n).getLabel(), n -> n));
+
+    final Set<CFAEdge> reachableNodes = new HashSet<>();
+    for (String l : labels) {
+      CFANode labelNode = labelNodes.get(l);
+      // a backwards traversal through the CFA, starting at the node of interest,
+      // will give us all edges that can reach the node of interest.
+      reachableNodes.addAll(
+          CFATraversal.dfs()
+              .backwards()
+              .ignoreEdges(reachableNodes)
+              .collectEdgesReachableFrom(labelNode));
+    }
+
+    return reachableNodes;
   }
 
   private String generateCCode() {
@@ -128,18 +187,19 @@ public class CFAToCTranslator {
     return buffer.toString();
   }
 
-  private void translate(CFunctionEntryNode pEntry) throws CPAException {
+  private void translate(CFunctionEntryNode pEntry, @Nullable Collection<CFAEdge> pRelevantEdges)
+      throws CPAException {
     // waitlist for the edges to be processed
     Deque<EdgeAndBlock> waitlist = new ArrayDeque<>();
 
     FunctionBody f = startFunction(pEntry);
     functions.add(f);
 
-    getRelevantEdgesOfElement(pEntry, waitlist, f.getFunctionBody());
+    getRelevantEdgesOfElement(pEntry, waitlist, f.getFunctionBody(), pRelevantEdges);
 
     while (!waitlist.isEmpty()) {
       EdgeAndBlock nextEdge = waitlist.pop();
-      handleEdge(nextEdge, waitlist);
+      handleEdge(nextEdge, waitlist, pRelevantEdges);
     }
   }
 
@@ -150,7 +210,10 @@ public class CFAToCTranslator {
   }
 
   private void getRelevantEdgesOfElement(
-      CFANode currentElement, Deque<EdgeAndBlock> waitlist, CompoundStatement currentBlock) {
+      CFANode currentElement,
+      Deque<EdgeAndBlock> waitlist,
+      CompoundStatement currentBlock,
+      @Nullable Collection<CFAEdge> pRelevantEdges) {
     discoveredElements.add(currentElement);
     if (!createdStatements.containsKey(currentElement)) {
       Statement placeholder = new EmptyStatement();
@@ -162,6 +225,7 @@ public class CFAToCTranslator {
     Collection<CFAEdge> outgoingEdges =
         CFAUtils.leavingEdges(currentElement)
             .filter(e -> !(e instanceof FunctionReturnEdge))
+            .filter(e -> pRelevantEdges == null || pRelevantEdges.contains(e))
             .toList();
 
     if (outgoingEdges.size() == 1) {
@@ -313,7 +377,9 @@ public class CFAToCTranslator {
     return pLabelName + ":; ";
   }
 
-  private void handleEdge(EdgeAndBlock nextEdge, Deque<EdgeAndBlock> waitlist) throws CPAException {
+  private void handleEdge(
+      EdgeAndBlock nextEdge, Deque<EdgeAndBlock> waitlist, Collection<CFAEdge> relevantEdges)
+      throws CPAException {
     CFAEdge edge = nextEdge.getCfaEdge();
     CompoundStatement currentBlock = nextEdge.getCurrentBlock();
 
@@ -334,7 +400,7 @@ public class CFAToCTranslator {
         currentBlock.addStatement(createSimpleStatement(childElement, "abort();"));
       }
       // this element was not already processed; find children of it
-      getRelevantEdgesOfElement(childElement, waitlist, currentBlock);
+      getRelevantEdgesOfElement(childElement, waitlist, currentBlock, relevantEdges);
     } else {
       String gotoStatement = "goto " + createdStatements.get(childElement).get(0).getLabel() + ";";
       currentBlock.addStatement(createSimpleStatement(childElement, gotoStatement));

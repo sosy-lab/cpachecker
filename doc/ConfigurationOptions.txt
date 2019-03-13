@@ -661,6 +661,10 @@ cfa.exportPerFunction = true
 cfa.exportToC = false
 cfa.exportToC.file = "cfa.c"
 
+# Only write CFA parts syntactically reaching the labels listed in the given
+# file. The file is expected to contain one label name per line.
+cfa.exportToC.reduceToLabels = no default value
+
 # export CFA as .dot file
 cfa.file = "cfa.dot"
 
