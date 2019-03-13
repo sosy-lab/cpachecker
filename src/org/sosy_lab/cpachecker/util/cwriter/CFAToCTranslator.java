@@ -28,7 +28,6 @@ import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.FunctionCallEdge;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import java.io.IOException;
@@ -89,17 +88,17 @@ public class CFAToCTranslator {
     }
   }
 
-  private static class EdgeAndBlock {
-    private final CFAEdge cfaEdge;
+  private static class NodeAndBlock {
+    private final CFANode cfaNode;
     private final CompoundStatement currentBlock;
 
-    public EdgeAndBlock(CFAEdge pCfaEdge, CompoundStatement pCurrentBlock) {
-      cfaEdge = pCfaEdge;
+    public NodeAndBlock(CFANode pCfaNode, CompoundStatement pCurrentBlock) {
+      cfaNode = pCfaNode;
       currentBlock = pCurrentBlock;
     }
 
-    public CFAEdge getCfaEdge() {
-      return cfaEdge;
+    public CFANode getCfaNode() {
+      return cfaNode;
     }
 
     public CompoundStatement getCurrentBlock() {
@@ -121,7 +120,7 @@ public class CFAToCTranslator {
   private final ListMultimap<CFANode, Statement> createdStatements = ArrayListMultimap.create();
   private Collection<FunctionBody> functions;
 
-  private CFAEdge noProgressSince = null;
+  private CFANode noProgressSince = null;
 
   public CFAToCTranslator(final Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -160,7 +159,7 @@ public class CFAToCTranslator {
 
     final Set<CFAEdge> reachableNodes = new HashSet<>();
     for (String l : labels) {
-      CFANode labelNode = checkNotNull(labelNodes.get(l));
+      CFANode labelNode = checkNotNull(labelNodes.get(l), "No label node for label %s", l);
       // a backwards traversal through the CFA, starting at the node of interest,
       // will give us all edges that can reach the node of interest.
       reachableNodes.addAll(
@@ -192,16 +191,87 @@ public class CFAToCTranslator {
   private void translate(CFunctionEntryNode pEntry, @Nullable Collection<CFAEdge> pRelevantEdges)
       throws CPAException {
     // waitlist for the edges to be processed
-    Deque<EdgeAndBlock> waitlist = new ArrayDeque<>();
+    Deque<NodeAndBlock> waitlist = new ArrayDeque<>();
 
     FunctionBody f = startFunction(pEntry);
     functions.add(f);
 
-    getRelevantEdgesOfElement(pEntry, waitlist, f.getFunctionBody(), pRelevantEdges);
+    pushToWaitlist(waitlist, pEntry, f.getFunctionBody());
 
     while (!waitlist.isEmpty()) {
-      EdgeAndBlock nextEdge = waitlist.poll();
-      handleEdge(nextEdge, waitlist, pRelevantEdges);
+      NodeAndBlock nextNode = waitlist.poll();
+      handleNode(nextNode, waitlist, pRelevantEdges);
+    }
+  }
+
+  private void handleNode(
+      NodeAndBlock pNode,
+      Deque<NodeAndBlock> pWaitlist,
+      @Nullable Collection<CFAEdge> pRelevantEdges)
+      throws CPAException {
+    CFANode node = pNode.getCfaNode();
+    CompoundStatement currentBlock = pNode.getCurrentBlock();
+
+    if (!areAllEnteringEdgesHandled(node, pRelevantEdges)) {
+      if (noProgressSince == null) {
+        noProgressSince = node;
+      } else if (noProgressSince.equals(node)) {
+        throw new CPAException("No progress in C translation at node " + node);
+      }
+      pushToWaitlist(pWaitlist, node, currentBlock);
+      return;
+
+    } else {
+      noProgressSince = null;
+    }
+
+    if (createdStatements.containsKey(node)) {
+      String label = getLabel(node, Collections.emptySet());
+      String gotoStatement = "goto " + label + ";";
+      addStatement(currentBlock, createSimpleStatement(node, gotoStatement));
+      return;
+    }
+
+    if (getRelevant(CFAUtils.allEnteringEdges(node), pRelevantEdges).size() > 1) {
+      CompoundStatement joinBlock = getJoinBlock(node, pRelevantEdges);
+      if (joinBlock != null) {
+        currentBlock = joinBlock;
+      }
+    }
+
+    if (node instanceof CLabelNode) {
+      String labelStmt = getLabelCode(getLabel(node, Collections.emptySet()));
+      currentBlock.addStatement(createSimpleStatement(node, labelStmt));
+    }
+    if (node instanceof CFATerminationNode) {
+      addStatement(currentBlock, createSimpleStatement(node, "abort();"));
+    }
+
+    // find the next elements to add to the waitlist
+    Collection<CFAEdge> outgoingEdges =
+        getRelevant(CFAUtils.allLeavingEdges(node), pRelevantEdges).toList();
+
+    assert !(node instanceof CFATerminationNode) || outgoingEdges.isEmpty()
+        : "Termination node has outgoing edges: " + outgoingEdges;
+
+    List<NodeAndBlock> nextNodes;
+    if (outgoingEdges.size() >= 2) {
+      nextNodes = handleBranching(outgoingEdges, currentBlock);
+    } else if (outgoingEdges.size() == 1) {
+      assert !(Iterables.getOnlyElement(outgoingEdges) instanceof CAssumeEdge)
+          : "The worst case happened: A single assume edge!";
+
+      nextNodes =
+          Collections.singletonList(
+              handleEdge(Iterables.getOnlyElement(outgoingEdges), currentBlock));
+    } else {
+      nextNodes = Collections.emptyList();
+    }
+
+    for (NodeAndBlock next : nextNodes) {
+      if (!discoveredElements.contains(next.getCfaNode())) {
+        pushToWaitlist(pWaitlist, next.getCfaNode(), next.getCurrentBlock());
+      }
     }
   }
 
@@ -211,92 +281,68 @@ public class CFAToCTranslator {
     return new FunctionBody(lFunctionHeader, createCompoundStatement(null));
   }
 
-  private void getRelevantEdgesOfElement(
-      CFANode currentElement,
-      Deque<EdgeAndBlock> waitlist,
-      CompoundStatement currentBlock,
-      @Nullable Collection<CFAEdge> pRelevantEdges) {
-    discoveredElements.add(currentElement);
+  private List<NodeAndBlock> handleBranching(
+      Collection<CFAEdge> branchingEdges, CompoundStatement currentBlock) {
 
-    // find the next elements to add to the waitlist
-    Collection<CFAEdge> outgoingEdges =
-        getRelevant(CFAUtils.allLeavingEdges(currentElement), pRelevantEdges).toList();
+    assert branchingEdges.size() == 2
+        : "branches with more than two options not supported yet (was the program prepocessed with CIL?)"; // TODO: why not btw?
 
-    if (currentElement instanceof CLabelNode) {
-      String labelStmt = getLabelCode(getLabel(currentElement, Collections.emptySet()));
-      currentBlock.addStatement(createSimpleStatement(currentElement, labelStmt));
-    }
+    // collect edges of condition branch
+    List<NodeAndBlock> result = new ArrayList<>(2);
+    int ind = 0;
+    boolean previousTruthAssumption = false;
+    String elseCond = null;
+    for (CFAEdge edgeToChild : branchingEdges) {
+      assert edgeToChild instanceof CAssumeEdge
+          : "something wrong: branch without condition: " + edgeToChild;
+      CAssumeEdge assumeEdge = (CAssumeEdge) edgeToChild;
+      boolean truthAssumption = getRealTruthAssumption(assumeEdge);
 
-    if (outgoingEdges.size() == 1) {
-      assert !(Iterables.getOnlyElement(outgoingEdges) instanceof CAssumeEdge)
-          : "The worst case happened: A single assume edge!";
-      pushToWaitlist(waitlist, Iterables.getLast(outgoingEdges), currentBlock);
+      String cond = "";
 
-    } else if (outgoingEdges.size() > 1) {
-      // if there are more than one children, then this is a condition
-      assert outgoingEdges.size() == 2
-          : "branches with more than two options not supported yet (was the program prepocessed with CIL?)"; // TODO: why not btw?
-
-      // collect edges of condition branch
-      ArrayList<EdgeAndBlock> result = new ArrayList<>(2);
-      int ind = 0;
-      boolean previousTruthAssumption = false;
-      String elseCond = null;
-      for (CFAEdge edgeToChild : outgoingEdges) {
-        assert edgeToChild instanceof CAssumeEdge
-            : "something wrong: branch in ARG without condition: " + edgeToChild;
-        CAssumeEdge assumeEdge = (CAssumeEdge) edgeToChild;
-        boolean truthAssumption = getRealTruthAssumption(assumeEdge);
-
-        String cond = "";
-
-        if (truthAssumption) {
-          if (assumeEdge.getTruthAssumption()) {
-            cond = "if (" + assumeEdge.getExpression().toASTString(NAMES_QUALIFIED) + ")";
-          } else {
-            cond = "if (!(" + assumeEdge.getExpression().toASTString(NAMES_QUALIFIED) + "))";
-          }
+      if (truthAssumption) {
+        if (assumeEdge.getTruthAssumption()) {
+          cond = "if (" + assumeEdge.getExpression().toASTString(NAMES_QUALIFIED) + ")";
         } else {
-          cond = "else ";
+          cond = "if (!(" + assumeEdge.getExpression().toASTString(NAMES_QUALIFIED) + "))";
         }
-
-        if (ind > 0 && truthAssumption == previousTruthAssumption) {
-          throw new AssertionError(
-              "Two assume edges with same truth value, thus, cannot generate C program from ARG.");
-        }
-
-        ind++;
-
-        // create a new block starting with this condition
-        CompoundStatement newBlock;
-        if (ind == 1 && !truthAssumption) {
-          newBlock = createCompoundStatement(currentBlock);
-          elseCond = cond;
-        } else {
-          newBlock = addIfStatement(assumeEdge, currentBlock, cond);
-        }
-
-        if (truthAssumption && elseCond != null) {
-          addStatement(currentBlock, createSimpleStatement(currentElement, elseCond));
-          addStatement(currentBlock, result.get(0).getCurrentBlock());
-        }
-
-        EdgeAndBlock newEdge = new EdgeAndBlock(edgeToChild, newBlock);
-        if (truthAssumption) {
-          result.add(0, newEdge);
-        } else {
-          result.add(newEdge);
-        }
-
-        previousTruthAssumption = truthAssumption;
+      } else {
+        cond = "else ";
       }
 
-      // add edges in reversed order to waitlist
-      for (int i = result.size() - 1; i >= 0; i--) {
-        EdgeAndBlock e = result.get(i);
-        pushToWaitlist(waitlist, e.getCfaEdge(), e.getCurrentBlock());
+      if (ind > 0 && truthAssumption == previousTruthAssumption) {
+        throw new AssertionError(
+            "Two assume edges with same truth value, thus, cannot generate C program from ARG.");
       }
+
+      ind++;
+
+      // create a new block starting with this condition
+      CompoundStatement newBlock;
+      if (ind == 1 && !truthAssumption) {
+        newBlock = createCompoundStatement(currentBlock);
+        elseCond = cond;
+      } else {
+        newBlock = addIfStatement(assumeEdge, currentBlock, cond);
+      }
+
+      if (truthAssumption && elseCond != null) {
+        addStatement(currentBlock, createSimpleStatement(edgeToChild.getPredecessor(), elseCond));
+        addStatement(currentBlock, result.get(0).getCurrentBlock());
+      }
+
+      NodeAndBlock newNode = new NodeAndBlock(edgeToChild.getSuccessor(), newBlock);
+      if (truthAssumption) {
+        result.add(0, newNode);
+      } else {
+        result.add(newNode);
+      }
+
+      previousTruthAssumption = truthAssumption;
     }
+    assert result.size() == branchingEdges.size()
+        : "Less edges going out than came in: " + result + " vs. " + branchingEdges;
+    return result;
   }
 
   private void addStatement(CompoundStatement pCurrentBlock, Statement pStatement) {
@@ -329,8 +375,9 @@ public class CFAToCTranslator {
   }
 
   private void pushToWaitlist(
-      Deque<EdgeAndBlock> pWaitlist, CFAEdge pEdgeToChild, CompoundStatement pCurrentBlock) {
-    pWaitlist.offer(new EdgeAndBlock(pEdgeToChild, pCurrentBlock));
+      Deque<NodeAndBlock> pWaitlist, CFANode pNode, CompoundStatement pCurrentBlock) {
+    discoveredElements.add(pNode);
+    pWaitlist.offer(new NodeAndBlock(pNode, pCurrentBlock));
   }
 
   private CompoundStatement addIfStatement(
@@ -363,6 +410,24 @@ public class CFAToCTranslator {
             .transform(n -> createdStatements.get(n).get(0).getSurroundingBlock())
             .toSet();
 
+    boolean haveAllBlocksSameSurroundingBlock = true;
+    CompoundStatement someBlockBeforePredecessor =
+        Iterables.getFirst(blocksBeforePredecessor, null);
+    for (CompoundStatement s : blocksBeforePredecessor) {
+      CompoundStatement surroundingBlock = s.getSurroundingBlock();
+      haveAllBlocksSameSurroundingBlock &=
+          surroundingBlock == someBlockBeforePredecessor
+              || (surroundingBlock != null
+                  && surroundingBlock.equals(someBlockBeforePredecessor.getSurroundingBlock()));
+    }
+
+    if (haveAllBlocksSameSurroundingBlock) {
+      return someBlockBeforePredecessor.getSurroundingBlock();
+    } else {
+      return null;
+    }
+
+    /*
     boolean madeProgress;
     do {
       madeProgress = false;
@@ -396,6 +461,7 @@ public class CFAToCTranslator {
     } else {
       return null;
     }
+    */
   }
 
   private boolean areAllEnteringEdgesHandled(CFANode pNode, Collection<CFAEdge> pRelevantEdges) {
@@ -405,54 +471,12 @@ public class CFAToCTranslator {
             .allMatch(e -> createdStatements.containsKey(e.getPredecessor()));
   }
 
-  private void handleEdge(
-      EdgeAndBlock nextEdge, Deque<EdgeAndBlock> waitlist, Collection<CFAEdge> relevantEdges)
+  private NodeAndBlock handleEdge(CFAEdge edge, CompoundStatement currentBlock)
       throws CPAException {
-    CFAEdge edge = nextEdge.getCfaEdge();
-    CompoundStatement currentBlock = nextEdge.getCurrentBlock();
-
-    CFANode predecessor = edge.getPredecessor();
-    if (!areAllEnteringEdgesHandled(predecessor, relevantEdges)) {
-      if (noProgressSince == null) {
-        noProgressSince = edge;
-      } else if (noProgressSince.equals(edge)) {
-        throw new CPAException("No progress in C translation at edge " + edge);
-      }
-      waitlist.offer(nextEdge);
-      return;
-    }
-
     processEdge(edge, currentBlock);
-    noProgressSince = null;
-
-    //    if (childElement.getParents().size() > 1) {
-    //      mergeElements.add(childElement);
-    //    }
 
     assert !edge.getEdgeType().equals(FunctionCallEdge);
-    CFANode childElement = edge.getSuccessor();
-    if (!discoveredElements.contains(childElement)
-        && areAllEnteringEdgesHandled(childElement, relevantEdges)) {
-
-      CompoundStatement blockToContinueWith = currentBlock;
-      if (getRelevant(CFAUtils.allEnteringEdges(childElement), relevantEdges).size() > 1) {
-        CompoundStatement joinBlock = getJoinBlock(childElement, relevantEdges);
-        if (joinBlock != null) {
-          blockToContinueWith = joinBlock;
-        }
-      }
-
-      if (childElement instanceof CFATerminationNode) {
-        addStatement(blockToContinueWith, createSimpleStatement(childElement, "abort();"));
-      }
-      // this element was not already processed; find children of it
-      getRelevantEdgesOfElement(childElement, waitlist, blockToContinueWith, relevantEdges);
-
-    } else if (createdStatements.containsKey(childElement)) {
-      String label = getLabel(childElement, ImmutableSet.of(edge));
-      String gotoStatement = "goto " + label + ";";
-      addStatement(currentBlock, createSimpleStatement(childElement, gotoStatement));
-    }
+    return new NodeAndBlock(edge.getSuccessor(), currentBlock);
   }
 
   private FluentIterable<CFAEdge> getRelevant(FluentIterable<CFAEdge> pEdges, Collection<CFAEdge> pRelevantEdges ) {
