@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -325,5 +326,10 @@ public class HarnessState implements AbstractState {
             persistentNewExternallyKnownPointers,
             externFunctionCalls);
     return newState;
+  }
+
+  public HarnessState addMemoryLocations(List<CDeclaration> pPointerMembers) {
+    // TODO Auto-generated method stub
+    return null;
   }
 }

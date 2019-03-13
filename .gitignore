@@ -3,6 +3,7 @@
 *~
 __pycache__
 a.out
+*alloc*.[c|i]
 
 # /
 /bin
