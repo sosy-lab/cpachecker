@@ -109,6 +109,14 @@ public class CFGAST extends ast {
         }
     }
 
+    public boolean isInitializationExpression(){
+        try {
+            return this.get(ast_ordinal.getNC_IS_INITIALIZATION()).as_boolean();
+        }catch (result r){
+            return false;
+        }
+    }
+
     /**
      *@Description check if the assigned value is constant expression, e.g., right child has the type of c:exprs
      *@Param []
@@ -316,7 +324,22 @@ public class CFGAST extends ast {
 
     public boolean equalClass(ast_class astClass){
         try {
-            return this.get_class().equals(astClass);
+            return this.is_a(astClass);//this.get_class().equals(astClass);
+        }catch (result r){
+            return false;
+        }
+    }
+
+    //a symbol can only have unnormalized ast
+    public boolean symbolHasInitialization(){
+        try {
+            try {
+                this.get(ast_ordinal.getUC_DYNAMIC_INIT());
+                return true;
+            }catch (result r){
+                ast init = this.get(ast_ordinal.getUC_STATIC_INIT()).as_ast();
+                return init.is_a(ast_class.getUC_STATIC_INITIALIZER());
+            }
         }catch (result r){
             return false;
         }

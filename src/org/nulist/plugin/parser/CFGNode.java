@@ -349,8 +349,17 @@ public class CFGNode extends point {
         }
     }
 
+    //TODO:
     public String getRawSignature(){
         try {
+            CFGAST no_ast = (CFGAST) this.get_ast(ast_family.getC_NORMALIZED());
+
+            if(this.isExpression() && no_ast.isInitializationExpression()){
+                return this.get_ast(ast_family.getC_NORMALIZED())
+                        .get(ast_ordinal.getBASE_TYPE()).as_ast().pretty_print()+" "
+                        +this.characters();
+            }else
+
             return this.characters();
         }catch (result r){
             return "";
