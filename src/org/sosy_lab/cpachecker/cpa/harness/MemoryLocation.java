@@ -26,8 +26,12 @@ package org.sosy_lab.cpachecker.cpa.harness;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
 public class MemoryLocation implements Comparable<MemoryLocation> {
+
+  private int offset = 0;
 
   @Nullable
   private String identifier;
@@ -56,10 +60,38 @@ public class MemoryLocation implements Comparable<MemoryLocation> {
     uniqueId = idGenerator.getFreshId();
   }
 
+  public MemoryLocation(String pIdentifier, int pOffset) {
+    identifier = pIdentifier;
+    isPrecise = true;
+    uniqueId = idGenerator.getFreshId();
+    offset = pOffset;
+  }
+
   public MemoryLocation(String pIdentifier, boolean pIsPrecise) {
     identifier = pIdentifier;
     isPrecise = pIsPrecise;
     uniqueId = idGenerator.getFreshId();
+  }
+
+  public MemoryLocation(String pIdentifier, boolean pIsPrecise, int pOffset) {
+    identifier = pIdentifier;
+    isPrecise = pIsPrecise;
+    uniqueId = idGenerator.getFreshId();
+    offset = pOffset;
+  }
+
+  public MemoryLocation(CIdExpression pExpression) {
+    identifier = pExpression.toString();
+    isPrecise = true;
+    uniqueId = idGenerator.getFreshId();
+    offset = 0;
+  }
+
+  public MemoryLocation(CExpression pExpression) {
+    identifier = "";
+    isPrecise = true;
+    uniqueId = idGenerator.getFreshId();
+    offset = 0;
   }
 
   // Does this instance represent a precisely known location or could it be one of several
