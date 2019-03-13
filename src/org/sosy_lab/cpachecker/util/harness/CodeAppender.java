@@ -27,6 +27,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -57,6 +58,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.harness.HarnessState;
 
 class CodeAppender implements Appendable {
+
+  private Set<AFunctionDeclaration> isImplemented = new HashSet<>();
 
   private static final String RETVAL_NAME = "retval";
 
@@ -155,7 +158,7 @@ class CodeAppender implements Appendable {
 
   public CodeAppender append(TestVector pVector) throws IOException {
     String externPointersArrayName = "HARNESS_externPointersArray";
-    String arrayPushCounterName = "HARNESS_externPointersArrayCurrentLoc";
+    String arrayPushCounterName = "HARNESS_externPointersArrayCounter";
     append("long int ");
     append(arrayPushCounterName);
     appendln(" = 0;");
@@ -211,11 +214,13 @@ class CodeAppender implements Appendable {
     appendln("];");
     for (ComparableFunctionDeclaration pointerFunction : pVector.getPointerFunctions()) {
       AFunctionDeclaration functionDeclaration = pointerFunction.getDeclaration();
+      isImplemented.add(functionDeclaration);
       List<Integer> arrayIndices = pVector.getIndices(pointerFunction);
       String functionCounterName = functionDeclaration.getOrigName().concat("_ret_counter");
 
       append("unsigned long int ");
       append(functionCounterName);
+      append(" = 0");
       appendln(";");
 
       append(functionDeclaration);
@@ -247,6 +252,10 @@ class CodeAppender implements Appendable {
       appendln("}");
     }
     for (AFunctionDeclaration inputFunction : pVector.getInputFunctions()) {
+      if (isImplemented.contains(inputFunction)) {
+        continue;
+      }
+
       Iterable<AParameterDeclaration> parameterDeclarations =
           TestVector.upcast(
               FluentIterable.from(inputFunction.getParameters()),

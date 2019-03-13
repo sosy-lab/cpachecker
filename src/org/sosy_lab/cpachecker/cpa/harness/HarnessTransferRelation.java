@@ -29,7 +29,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -229,7 +228,8 @@ public class HarnessTransferRelation
       MemoryLocation newMemoryLocation = new MemoryLocation(declarationName);
       return handleWithInitializer(pState, newMemoryLocation, declaration.getType(), initializer);
     }
-    return pState;
+    HarnessState newState = pState.addPointerDeclaration(declaration);
+    return newState;
   }
 
   private HarnessState handleWithInitializer(
@@ -254,6 +254,7 @@ public class HarnessTransferRelation
                 .filter(cExpression -> (cExpression.getExpressionType() instanceof CPointerType))
                 .collect(Collectors.toList());
         HarnessState newState = pState.addExternallyKnownLocations(functionParametersOfPointerType);
+        HarnessState.relevantFunctions.add(functionCallExpression.getDeclaration());
         return newState;
       }
     }
@@ -280,8 +281,7 @@ public class HarnessTransferRelation
                     .addFunctionCall(functionNameExpression, newMemoryLocation);
             return newState;
           }
-          return pState; // TODO handle assignments to leftHandSides that are not Id Expressions,
-                         // e.g. *p
+          return pState;
         }
       }
     }
@@ -328,7 +328,6 @@ public class HarnessTransferRelation
           if (declaration instanceof AFunctionDeclaration) {
             AFunctionDeclaration functionDeclaration = (AFunctionDeclaration) declaration;
             if (!cfa.getAllFunctionNames().contains(functionDeclaration.getName())) {
-              logger.log(Level.INFO, cfa.getAllFunctionNames());
               boolean headIsEmpty = (cfa.getFunctionHead(declaration.getQualifiedName()) == null);
 
               boolean hasPointerParameter =
@@ -340,12 +339,12 @@ public class HarnessTransferRelation
                       .isPresent();
               if (hasPointerParameter && headIsEmpty) {
                 foundExternPointerFunctions.add(functionDeclaration.getName());
-                HarnessState.relevantFunctions.add((CFunctionDeclaration) functionDeclaration);
+                // HarnessState.relevantFunctions.add((CFunctionDeclaration) functionDeclaration);
               }
               boolean hasPointerReturnType = (functionDeclaration.getType().getReturnType() instanceof CPointerType);
               if (hasPointerReturnType && headIsEmpty) {
                 foundExternPointerFunctions.add(functionDeclaration.getName());
-                HarnessState.relevantFunctions.add((CFunctionDeclaration) functionDeclaration);
+                // HarnessState.relevantFunctions.add((CFunctionDeclaration) functionDeclaration);
               }
             }
           }
