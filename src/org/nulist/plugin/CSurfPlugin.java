@@ -1,7 +1,6 @@
 package org.nulist.plugin;
 
 import com.grammatech.cs.*;
-import org.sosy_lab.common.log.LoggingOptions;
 import org.sosy_lab.cpachecker.cmdline.CPAMain;
 
 import java.lang.*;
@@ -18,7 +17,7 @@ public class CSurfPlugin {
      * @return void
      **/
     public static void main(String args[]){
-        CPAMain.testPrint(args);
+
 
         if(args==null || args.length<1){
             System.out.println("No parent file path for dumping CFG dot");
@@ -26,9 +25,12 @@ public class CSurfPlugin {
         }
         if(!args[0].endsWith("/"))
             args[0]=args[0]+"/";
+
         try{
             System.out.println("==================CSURF_PLUGIN_BEGIN==================");
             project proj = project.current();
+            CPAMain.executeParser(proj);
+
             for( project_compunits_iterator cu_it = proj.compunits();
                  !cu_it.at_end();
                  cu_it.advance() )
@@ -81,4 +83,5 @@ public class CSurfPlugin {
             System.out.println("Uncaught exception: " + r);
         }
     }
+
 }

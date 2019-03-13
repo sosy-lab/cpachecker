@@ -91,6 +91,7 @@ public class CFGFunctionBuilder  {
         this.typeConverter = typeConverter;
         function = pFunction;
         this.functionName = functionName;
+
         binExprBuilder = new CBinaryExpressionBuilder(pMachine, pLogger);
         fileName = pFileName;
         this.cfaBuilder = cfaBuilder;
@@ -568,7 +569,7 @@ public class CFGFunctionBuilder  {
         assert cfa == null;
 
         String functionName = function.name();
-        logger.log(Level.FINE, "Creating function: " + functionName);
+        //logger.log(Level.FINE, "Creating function: " + functionName);
 
         // Return variable : The return value is written to this
         Optional<CVariableDeclaration> returnVar;
@@ -1205,7 +1206,7 @@ public class CFGFunctionBuilder  {
      */
     private CExpression getAssignedIdExpression(
             final CFGAST variable_ast, final CType pExpectedType, final FileLocation fileLocation) throws result{
-        logger.log(Level.FINE, "Getting var declaration for point");
+        //logger.log(Level.FINE, "Getting var declaration for point");
 
         String assignedVarName =variable_ast.normalizingVariableName();
         boolean isGlobal = variable_ast.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol().is_global();
@@ -1587,13 +1588,13 @@ public class CFGFunctionBuilder  {
         final CType expressionType = typeConverter.getCType((CFGAST) value_ast.children().get(0).as_ast());
 
         CFGAST operand1 = (CFGAST) value_ast.children().get(0).as_ast(); // First operand
-        logger.log(Level.FINE, "Getting id expression for operand 1");
+        //logger.log(Level.FINE, "Getting id expression for operand 1");
         CType op1type = typeConverter.getCType((CFGAST) operand1.get(ast_ordinal.getBASE_TYPE()).as_ast());
         CExpression operand1Exp = getExpression(operand1,op1type,fileLocation);
 
         CFGAST operand2 =  (CFGAST) value_ast.children().get(1).as_ast(); // Second operand
         CType op2type = typeConverter.getCType((CFGAST) operand2.get(ast_ordinal.getBASE_TYPE()).as_ast());
-        logger.log(Level.FINE, "Getting id expression for operand 2");
+        //logger.log(Level.FINE, "Getting id expression for operand 2");
         CExpression operand2Exp = getExpression(operand2, op2type, fileLocation);
 
         return new CBinaryExpression(

@@ -25,14 +25,16 @@ import java.util.List;
  **/
 public class CFGParser implements Parser{
 
-    private final LogManager logger;
-    private final CFABuilder cfaBuilder;
+    private LogManager logger=null;
+    private CFABuilder cfaBuilder=null;
 
     private final Timer parseTimer = new Timer();
     private final Timer cfaCreationTimer = new Timer();
 
 
+    public CFGParser(){
 
+    }
 
     public CFGParser(final LogManager pLogger, final MachineModel pMachineModel){
         logger = pLogger ;

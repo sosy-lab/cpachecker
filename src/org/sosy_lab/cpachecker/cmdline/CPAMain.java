@@ -35,6 +35,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.google.common.io.MoreFiles;
+import com.grammatech.cs.project;
+import com.grammatech.cs.result;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -54,6 +56,7 @@ import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.matheclipse.core.util.WriterOutputStream;
+import org.nulist.plugin.parser.CFGParser;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -70,6 +73,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LoggingOptions;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -95,6 +99,43 @@ public class CPAMain {
   public static void testPrint(String[] args){
     for(String arg: args)
       System.out.println(arg);
+  }
+
+  public static void executeParser(project project){
+    String[] configs = new String[3];
+    configs[0]="-config";
+    configs[1]="config/default.properties";
+    configs[3]="test/programs/simple/lock-loop.c";
+    Locale.setDefault(Locale.US);
+
+    // initialize various components
+    Configuration cpaConfig = null;
+    LoggingOptions logOptions;
+    String outputDirectory = null;
+    Set<SpecificationProperty> properties = null;
+    try {
+      try {
+        Config p = createConfiguration(configs);
+        cpaConfig = p.configuration;
+      } catch (InvalidCmdlineArgumentException e) {
+        throw Output.fatalError("Could not process command line arguments: %s", e.getMessage());
+      } catch (IOException e) {
+        throw Output.fatalError("Could not read config file %s", e.getMessage());
+      }
+
+      logOptions = new LoggingOptions(cpaConfig);
+
+    } catch (InvalidConfigurationException e) {
+      throw Output.fatalError("Invalid configuration: %s", e.getMessage());
+    }
+    final LogManager logManager = BasicLogManager.create(logOptions);
+    CFGParser cfgParser = new CFGParser(logManager, MachineModel.LINUX64);
+
+    try {
+      cfgParser.parseProject(project);
+    }catch (result r){
+      r.printStackTrace();
+    }
   }
 
   @SuppressWarnings("resource") // We don't close LogManager
