@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.harness;
 
-import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -79,7 +78,11 @@ public class HarnessTransferRelation
 
 
   private final LogManager logger;
-  private final ImmutableSet<String> externPointerFunctions;
+  private final RelevantPointerFunctionsState externPointerFunctions;
+
+  public RelevantPointerFunctionsState getExternPointerFunctions() {
+    return externPointerFunctions;
+  }
 
   public HarnessTransferRelation(
       Configuration pConfig,
@@ -254,7 +257,6 @@ public class HarnessTransferRelation
                 .filter(cExpression -> (cExpression.getExpressionType() instanceof CPointerType))
                 .collect(Collectors.toList());
         HarnessState newState = pState.addExternallyKnownLocations(functionParametersOfPointerType);
-        HarnessState.relevantFunctions.add(functionCallExpression.getDeclaration());
         return newState;
       }
     }
@@ -309,8 +311,54 @@ public class HarnessTransferRelation
     }
   }
 
-  private ImmutableSet<String> extractExternPointerFunctions(CFA pCFA) {
-    Set<String> foundExternPointerFunctions = new HashSet<>();
+  public static class RelevantPointerFunctionsState {
+    private final Set<AFunctionDeclaration> pointerReturnTypeFunctions;
+    private final Set<AFunctionDeclaration> pointerParameterFunctions;
+
+    public boolean contains(AFunctionDeclaration pFunctionDeclaration) {
+      return pointerReturnTypeFunctions.contains(pFunctionDeclaration)
+          || pointerParameterFunctions.contains(pFunctionDeclaration);
+    }
+
+    public boolean returnTypeContains(AFunctionDeclaration pFunctionDeclaration) {
+      return pointerReturnTypeFunctions.contains(pFunctionDeclaration);
+    }
+
+    public boolean parameterContains(AFunctionDeclaration pFunctionDeclaration) {
+      return pointerParameterFunctions.contains(pFunctionDeclaration);
+    }
+
+    public RelevantPointerFunctionsState() {
+      pointerReturnTypeFunctions = new HashSet<>();
+      pointerParameterFunctions = new HashSet<>();
+    }
+
+    public boolean contains(String pFunctionName) {
+      return pointerReturnTypeFunctions.stream()
+          .anyMatch(fun -> fun.getName().equals(pFunctionName));
+    }
+
+    RelevantPointerFunctionsState(
+        Set<AFunctionDeclaration> pPointerReturnTypeFunctions,
+        Set<AFunctionDeclaration> pPointerParameterFunctions) {
+      pointerReturnTypeFunctions = pPointerReturnTypeFunctions;
+      pointerParameterFunctions = pPointerParameterFunctions;
+    }
+
+    public void addPointerReturnTypeFunction(AFunctionDeclaration pPointerReturnTypeFunction) {
+      pointerReturnTypeFunctions.add(pPointerReturnTypeFunction);
+    }
+
+    public void addPointerParameterFunction(AFunctionDeclaration pPointerParameterFunction) {
+      pointerParameterFunctions.add(pPointerParameterFunction);
+    }
+  }
+
+  private RelevantPointerFunctionsState extractExternPointerFunctions(CFA pCFA) {
+
+    RelevantPointerFunctionsState relevantPointerFunctionsState =
+        new RelevantPointerFunctionsState();
+
     CFAVisitor externalFunctionCollector = new CFAVisitor() {
 
       private CFA cfa = pCFA;
@@ -338,13 +386,11 @@ public class HarnessTransferRelation
                       .findFirst()
                       .isPresent();
               if (hasPointerParameter && headIsEmpty) {
-                foundExternPointerFunctions.add(functionDeclaration.getName());
-                // HarnessState.relevantFunctions.add((CFunctionDeclaration) functionDeclaration);
+                relevantPointerFunctionsState.addPointerParameterFunction(functionDeclaration);
               }
               boolean hasPointerReturnType = (functionDeclaration.getType().getReturnType() instanceof CPointerType);
               if (hasPointerReturnType && headIsEmpty) {
-                foundExternPointerFunctions.add(functionDeclaration.getName());
-                // HarnessState.relevantFunctions.add((CFunctionDeclaration) functionDeclaration);
+                relevantPointerFunctionsState.addPointerReturnTypeFunction(functionDeclaration);
               }
             }
           }
@@ -353,9 +399,6 @@ public class HarnessTransferRelation
       }
     };
     CFATraversal.dfs().traverseOnce(pCFA.getMainFunction(), externalFunctionCollector);
-    ImmutableSet<String> res = ImmutableSet.copyOf(foundExternPointerFunctions);
-    return res;
+    return relevantPointerFunctionsState;
   }
-
-
 }
