@@ -128,6 +128,11 @@ import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
+import org.sosy_lab.cpachecker.util.testcase.ExpressionTestValue;
+import org.sosy_lab.cpachecker.util.testcase.InitializerTestValue;
+import org.sosy_lab.cpachecker.util.testcase.TestValue;
+import org.sosy_lab.cpachecker.util.testcase.TestVector;
+import org.sosy_lab.cpachecker.util.testcase.TestVector.TargetTestVector;
 
 @Options(prefix = "testHarnessExport")
 public class HarnessExporter {
@@ -180,7 +185,7 @@ public class HarnessExporter {
       codeAppender.appendln("extern void exit(int __status) __attribute__ ((__noreturn__));");
 
       // implement error-function
-      CFAEdge edgeToTarget = testVector.get().edgeToTarget;
+      CFAEdge edgeToTarget = testVector.get().getEdgeToTarget();
       Optional<AFunctionDeclaration> errorFunction =
           getErrorFunction(edgeToTarget, externalFunctions);
       if (errorFunction.isPresent()) {
@@ -202,7 +207,7 @@ public class HarnessExporter {
       // implement actual harness
       TestVector vector =
           completeExternalFunctions(
-              testVector.get().testVector,
+              testVector.get().getVector(),
               errorFunction.isPresent()
                   ? FluentIterable.from(externalFunctions)
                       .filter(Predicates.not(Predicates.equalTo(errorFunction.get())))
@@ -290,7 +295,7 @@ public class HarnessExporter {
     return ImmutableMultimap.of();
   }
 
-  private Optional<TargetTestVector> extractTestVector(
+  public Optional<TargetTestVector> extractTestVector(
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
       Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
@@ -921,40 +926,5 @@ public class HarnessExporter {
     public static State of(ARGState pARGState, TestVector pTestVector) {
       return new State(pARGState, pTestVector);
     }
-  }
-
-  private static class TargetTestVector {
-
-    private final CFAEdge edgeToTarget;
-
-    private final TestVector testVector;
-
-    public TargetTestVector(CFAEdge pEdgeToTarget, TestVector pTestVector) {
-      edgeToTarget = Objects.requireNonNull(pEdgeToTarget);
-      testVector = Objects.requireNonNull(pTestVector);
-    }
-
-    @Override
-    public String toString() {
-      return testVector.toString();
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(edgeToTarget, testVector);
-    }
-
-    @Override
-    public boolean equals(Object pObj) {
-      if (pObj == this) {
-        return true;
-      }
-      if (pObj instanceof TargetTestVector) {
-        TargetTestVector other = (TargetTestVector) pObj;
-        return edgeToTarget.equals(other.edgeToTarget) && testVector.equals(other.testVector);
-      }
-      return false;
-    }
-
   }
 }

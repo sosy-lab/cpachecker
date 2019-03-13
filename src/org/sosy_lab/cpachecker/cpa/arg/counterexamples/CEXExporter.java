@@ -30,7 +30,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -330,11 +329,7 @@ public class CEXExporter {
                     counterexample));
 
     if (options.exportToTest() && testExporter != null) {
-      try {
-        testExporter.writeTestCaseFiles(counterexample, Optional.empty());
-      } catch (IOException pE) {
-        logger.logUserException(Level.INFO, pE, "Error path could not be written to test case.");
-      }
+      testExporter.writeTestCaseFiles(counterexample, Optional.empty());
     }
   }
 

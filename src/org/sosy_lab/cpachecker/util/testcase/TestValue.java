@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2017  Dirk Beyer
+ *  Copyright (C) 2007-2019  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,15 +21,14 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.harness;
+package org.sosy_lab.cpachecker.util.testcase;
 
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 
-abstract class TestValue {
+public abstract class TestValue {
 
   private final ImmutableList<AAstNode> auxiliaryStatements;
 
@@ -50,13 +49,7 @@ abstract class TestValue {
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder();
-    try {
-      new CodeAppender(sb).appendAssignment("RESULT", this);
-    } catch (IOException e) {
-      throw new AssertionError("StringBuilder is not supposed to throw an IOException.");
-    }
-    return sb.toString();
+    return "{ RESULT = " + value.toASTString() + "; }";
   }
 
   @Override

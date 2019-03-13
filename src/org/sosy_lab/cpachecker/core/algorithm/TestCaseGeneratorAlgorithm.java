@@ -28,7 +28,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -253,8 +252,6 @@ public class TestCaseGeneratorAlgorithm implements Algorithm, StatisticsProvider
       }
 
       cleanUpIfNoTestTargetsRemain(pReached);
-    } catch (IOException e) {
-      logger.logException(Level.SEVERE, e, "Problem while handling zip file with test case");
     } finally {
       if (uncoveredGoalsAtStart != testTargets.size()) {
         logger.log(Level.SEVERE, TestTargetProvider.getCoverageInfo());

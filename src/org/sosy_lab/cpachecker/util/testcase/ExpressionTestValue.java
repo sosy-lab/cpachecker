@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2017  Dirk Beyer
+ *  Copyright (C) 2007-2019  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,33 +21,33 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.harness;
+package org.sosy_lab.cpachecker.util.testcase;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 
-public class InitializerTestValue extends TestValue {
+public class ExpressionTestValue extends TestValue {
 
-  private final AInitializer value;
+  private final AExpression value;
 
-  private InitializerTestValue(ImmutableList<AAstNode> pAuxiliaryStatements, AInitializer pValue) {
+  private ExpressionTestValue(ImmutableList<AAstNode> pAuxiliaryStatements, AExpression pValue) {
     super(pAuxiliaryStatements, pValue);
     value = pValue;
   }
 
   @Override
-  public AInitializer getValue() {
+  public AExpression getValue() {
     return value;
   }
 
-  public static InitializerTestValue of(AInitializer pValue) {
+  public static ExpressionTestValue of(AExpression pValue) {
     return of(Collections.emptyList(), pValue);
   }
 
-  public static InitializerTestValue of(List<AAstNode> pAuxiliaryStatments, AInitializer pValue) {
-    return new InitializerTestValue(ImmutableList.copyOf(pAuxiliaryStatments), pValue);
+  public static ExpressionTestValue of(List<AAstNode> pAuxiliaryStatments, AExpression pValue) {
+    return new ExpressionTestValue(ImmutableList.copyOf(pAuxiliaryStatments), pValue);
   }
 }
