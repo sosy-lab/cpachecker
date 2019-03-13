@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.postprocessing.global;
 
-import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
@@ -37,13 +36,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
+import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetProvider;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
@@ -56,12 +55,21 @@ public class LabelAdder {
   private static final String BLOCK_LABEL_NAME = "BLOCK_";
   private static final String EXIT_LABEL_NAME = "PROG_EXIT_";
 
+  private static int labelsAdded = 0;
+
   @Option(
       secure = true,
       name = "atBlocks",
       description = "Add a unique label for each basic block"
   )
-  private boolean addBlockLabels = true;
+  private boolean addBlockLabels = false;
+
+  @Option(
+      secure = true,
+      name = "atTestTargets",
+      description = "Add a unique label for each test target"
+  )
+  private boolean addTestTargetLabels = true;
 
   @Option(
       secure = true,
@@ -75,6 +83,10 @@ public class LabelAdder {
   public LabelAdder(final Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
     config = pConfig;
+
+    if (addTestTargetLabels) {
+      TestTargetProvider.initialize(pConfig);
+    }
   }
 
   public void addLabels(final MutableCFA pCfa) {
@@ -94,6 +106,9 @@ public class LabelAdder {
     if (addProgramExitLabels) {
       addLabelsAtProgramExits(pCfa, allNodes);
     }
+    if (addTestTargetLabels) {
+      addLabelsAtTestTargets(pCfa);
+    }
   }
 
   /**
@@ -105,7 +120,6 @@ public class LabelAdder {
   private void addLabelsAtBlockStarts(
       final MutableCFA pCfa, Collection<CFANode> pCandidates, final BlockOperator pBlk) {
     Collection<CFAEdge> edgesToLabel = new HashSet<>();
-    int labelsAdded = 0;
     // We do this in two steps: We first get all of the original nodes at which we want labels,
     // and than we add them.
     // Otherwise, we'd have to keep track of original and newly added nodes so that we don't add two
@@ -124,10 +138,14 @@ public class LabelAdder {
       }
     }
 
-    for (CFAEdge e : edgesToLabel) {
+    addLabels(pCfa, edgesToLabel);
+  }
+
+  private void addLabels(final MutableCFA pCfa, final Collection<CFAEdge> pEdgesToLabel) {
+    for (CFAEdge e : pEdgesToLabel) {
       String labelName = BLOCK_LABEL_NAME + labelsAdded;
       if (e.getSuccessor() instanceof FunctionExitNode) {
-          addLabelBefore(e, labelName, pCfa);
+        addLabelBefore(e, labelName, pCfa);
       } else {
         addLabelAfter(e, labelName, pCfa);
       }
@@ -135,9 +153,12 @@ public class LabelAdder {
     }
   }
 
-  private void addLabelsAtProgramExits(final MutableCFA pCfa, Collection<CFANode> pCandidates) {
-    int labelsAdded = 0;
+  private void addLabelsAtTestTargets(final MutableCFA pCfa) {
+    Collection<CFAEdge> targets = TestTargetProvider.getTestTargets(pCfa);
+    addLabels(pCfa, targets);
+  }
 
+  private void addLabelsAtProgramExits(final MutableCFA pCfa, Collection<CFANode> pCandidates) {
     addLabelBefore(pCfa.getMainFunction().getExitNode(), EXIT_LABEL_NAME, labelsAdded, pCfa);
     labelsAdded++;
 

@@ -616,10 +616,13 @@ cegar.useRefinementSelection = false
 cfa.addLabels = false
 
 # Add a unique label for each basic block
-cfa.addLabels.atBlocks = true
+cfa.addLabels.atBlocks = false
 
 # Add a unique label before each program exit
 cfa.addLabels.atProgramExit = false
+
+# Add a unique label for each test target
+cfa.addLabels.atTestTargets = true
 
 # Which functions should be interpreted as encoding assumptions
 cfa.assumeFunctions = {"__VERIFIER_assume"}
