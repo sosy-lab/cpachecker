@@ -67,7 +67,7 @@ public class CFGAST extends ast {
 
     public boolean isStructType(){
         try {
-            return this.get_class().equals(ast_class.getUC_STRUCT()) ||
+            return this.get_class().equals(ast_class.getNC_STRUCT()) ||
                     this.get(ast_ordinal.getBASE_TYPE()).as_ast().get_class().equals(ast_class.getUC_STRUCT());
         }catch (result r){
             return false;

@@ -36,22 +36,23 @@ public class CFGTypeConverter {
 
     public CType getCType(CFGAST type){
         try {
-            String typeString = type.pretty_print().replace("const ","");
+            String typeString = type.pretty_print();
             CType cType = typeCache.getOrDefault(typeString.hashCode(),null);
             if(cType!=null)
                 return cType;
             else if(type.isStructType()){//struct
                 return createStructType(type);
             }else if(type.isPointerType()){
-                String pointerType=typeString.replace("*","");
-                cType = typeCache.get(pointerType.hashCode());
+                CFGAST pointedTo = (CFGAST) type.get(ast_ordinal.getBASE_POINTED_TO()).as_ast();
+                cType = getCType(pointedTo);
                 CPointerType cPointerType = new CPointerType(type.isConstantType(), false, cType);
                 typeCache.put(typeString.hashCode(),cPointerType);
                 return cPointerType;
             }else if(type.isArrayType()){
-                String arrayType=typeString.substring(0,typeString.indexOf("["));
-                cType = typeCache.get(arrayType.hashCode());
-                int length = Integer.valueOf(typeString.substring(typeString.indexOf("[")+1, typeString.length()-1));
+                CFGAST array = (CFGAST)type.get(ast_ordinal.getBASE_TYPE()).as_ast();
+                long length = array.get(ast_ordinal.getBASE_NUM_ELEMENTS()).as_uint32();
+                CFGAST elementType = (CFGAST)type.get(ast_ordinal.getBASE_ELEMENT_TYPE()).as_ast();
+                cType = getCType(elementType);
                 CIntegerLiteralExpression arrayLength =
                         new CIntegerLiteralExpression(
                                 FileLocation.DUMMY,
@@ -96,8 +97,25 @@ public class CFGTypeConverter {
         typeCache.put("float".hashCode(),CNumericTypes.FLOAT);
         typeCache.put("double".hashCode(),CNumericTypes.DOUBLE);
         typeCache.put("long double".hashCode(),CNumericTypes.LONG_DOUBLE);
+        typeCache.put("const bool".hashCode(),CNumericTypes.CONST_BOOL);
+        typeCache.put("const int".hashCode(),CNumericTypes.CONST_INT);
+        typeCache.put("const unsigned int".hashCode(),CNumericTypes.CONST_UNSIGNED_INT);
+        typeCache.put("const signed int".hashCode(),CNumericTypes.CONST_SHORT_INT);
+        typeCache.put("const char".hashCode(),CNumericTypes.CONST_CHAR);
+        typeCache.put("const unsigned char".hashCode(),CNumericTypes.CONST_UNSIGNED_CHAR);
+        typeCache.put("const signed char".hashCode(),CNumericTypes.CONST_SIGNED_CHAR);
+        typeCache.put("const short".hashCode(),CNumericTypes.CONST_SHORT_INT);
+        typeCache.put("const unsigned short".hashCode(),CNumericTypes.CONST_UNSIGNED_SHORT_INT);
+        typeCache.put("const long".hashCode(),CNumericTypes.CONST_LONG_INT);
+        typeCache.put("const unsigned long".hashCode(),CNumericTypes.CONST_UNSIGNED_LONG_INT);
+        typeCache.put("const signed long".hashCode(),CNumericTypes.CONST_SIGNED_LONG_INT);
+        typeCache.put("const long long".hashCode(),CNumericTypes.CONST_LONG_LONG_INT);
+        typeCache.put("const unsigned long long".hashCode(),CNumericTypes.CONST_UNSIGNED_LONG_LONG_INT);
+        typeCache.put("const signed long long".hashCode(),CNumericTypes.CONST_SIGNED_LONG_LONG_INT);
+        typeCache.put("const float".hashCode(),CNumericTypes.CONST_FLOAT);
+        typeCache.put("const double".hashCode(),CNumericTypes.CONST_DOUBLE);
+        typeCache.put("const long double".hashCode(),CNumericTypes.CONST_LONG_DOUBLE);
     }
-
 
 
     /**

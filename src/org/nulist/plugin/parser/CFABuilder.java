@@ -60,7 +60,7 @@ public class CFABuilder {
     protected final Map<Integer, ADeclaration> globalVariableDeclarations = new HashMap<>();
     protected SortedSetMultimap<String, CFANode> cfaNodes;
     protected Map<String, CFGFunctionBuilder> cfgFunctionBuilderMap = new HashMap<>();
-
+    private CFGHandleExpression expressionHandler;
 
     public CFABuilder(final LogManager pLogger, final MachineModel pMachineModel) {
         logger = pLogger;
@@ -72,6 +72,7 @@ public class CFABuilder {
 
         functions = new TreeMap<>();
         cfaNodes = TreeMultimap.create();
+        expressionHandler = new CFGHandleExpression(logger,typeConverter);
     }
 
 
@@ -95,6 +96,7 @@ public class CFABuilder {
 
         /* create global variable declaration*/
         declareGlobalVariables(cu, pFileName);
+        expressionHandler.setGlobalVariableDeclarations(globalVariableDeclarations);
 
         for (compunit_procedure_iterator proc_it = cu.procedures();
              !proc_it.at_end(); proc_it.advance()) {
@@ -167,6 +169,9 @@ public class CFABuilder {
 
     /**
      *@Description global variables and their initialization
+     * in Codesurfer, all global variables are initialized in the following procedures:
+     *                            Global_Initialization_0==> no initialization
+     *                            Global_Initialization_1==> static initialization
      *@Param [global_initialization, pFileName]
      *@return void
      **/
@@ -179,25 +184,19 @@ public class CFABuilder {
             CFGNode node = (CFGNode) point_it.current();
             CInitializer initializer = null;
 
-            //another way of checking the type of initializer
-            /*ast a = p.get_ast(ast_family.getC_UNNORMALIZED());
-            a.get(ast_ordinal.getUC_STATIC_INIT()).as_ast().get_class().equals(ast_class.getUC_NO_INITIALIZER());
-            a.get(ast_ordinal.getUC_STATIC_INIT()).as_ast().get_class().equals(ast_class.getUC_STATIC_INITIALIZER());
-            a.get(ast_ordinal.getUC_STATIC_INIT()).as_ast().get_class().equals(ast_class.getUC_ZERO_INITIALIZER());*/
-
             if(node.isVariable_Initialization()||node.isExpression()){
                 FileLocation fileLocation = getLocation(node,pFileName);
                 CFGAST no_ast = (CFGAST) node.get_ast(ast_family.getC_NORMALIZED());
-                CFGAST un_ast = (CFGAST) node.get_ast(ast_family.getC_UNNORMALIZED());
                 CType varType = typeConverter.getCType((CFGAST) no_ast.get(ast_ordinal.getNC_TYPE()).as_ast());
+                CFGAST variable_ast = (CFGAST) no_ast.children().get(0).as_ast();
                 CFGAST value_ast = (CFGAST) no_ast.children().get(1).as_ast();
                 // for example: int i=0;
                 // in nc_ast: children {i, 0}
                 //            attributes {is_initialization: true, type: int}
                 // has initialization
                 if(no_ast.get(ast_ordinal.getNC_IS_INITIALIZATION()).as_boolean()){
-
                     ast_field type = no_ast.get(ast_ordinal.getNC_TYPE());
+
                     CFGAST type_ast = (CFGAST)type.as_ast();
 
                     if(type_ast.isArrayType() || type_ast.isStructType() || type_ast.isEnumType()){
@@ -207,10 +206,9 @@ public class CFABuilder {
                         initializer = getZeroInitializer(value_ast, expressionType, fileLocation);
                     } else {
                         initializer =  new CInitializerExpression(
-                                fileLocation,
-                                (CExpression) getConstant(value_ast, varType, fileLocation));
+                                fileLocation, expressionHandler.getExpression(value_ast, varType, fileLocation));
                     }
-                }else {//// Declaration without initialization
+                }else {// Declaration without initialization
                     initializer = null;
                 }
 
@@ -218,14 +216,9 @@ public class CFABuilder {
                 String assignedVar = no_ast.children().get(0).as_ast().pretty_print();//the 1st child field store the variable
 
                 // Support static and other storage classes
+                CFGAST un_ast = (CFGAST) node.get_ast(ast_family.getC_UNNORMALIZED());
                 CStorageClass storageClass= un_ast.getStorageClass();
 
-                // We handle alloca not like malloc, which returns a pointer, but as a general
-                // variable declaration. Consider that here by using the allocated type, not the
-                // pointer of that type alloca returns.
-//            if (pItem.isAllocaInst()) {
-//                varType = typeConverter.getCType(pItem.getAllocatedType());
-//            }
 
                 if ( varType instanceof CPointerType) {
                     varType = ((CPointerType) varType).getType();
@@ -239,7 +232,7 @@ public class CFABuilder {
                                 varType,
                                 assignedVar,
                                 assignedVar,
-                                getQualifiedName(assignedVar, fileLocation.getFileName()),
+                                assignedVar,
                                 initializer);
 
                 globalVariableDeclarations.put(assignedVar.hashCode(),(ADeclaration) newDecl);
@@ -288,28 +281,25 @@ public class CFABuilder {
     }
 
 
-    private CInitializer getZeroInitializer(
-            final ast init_ast, final CType pExpectedType, final FileLocation fileLoc, final String pFileName) throws result {
+    private CInitializer getZeroInitializer(final CType pExpectedType, final FileLocation fileLoc){
 
         CInitializer init;
         CType canonicalType = pExpectedType.getCanonicalType();
         if (canonicalType instanceof CArrayType) {
             int length = ((CArrayType) canonicalType).getLengthAsInt().getAsInt();
             CType elementType = ((CArrayType) canonicalType).getType().getCanonicalType();
-            CInitializer zeroInitializer = getZeroInitializer(init_ast, elementType, fileLoc,pFileName);
+            CInitializer zeroInitializer = getZeroInitializer(elementType, fileLoc);
             List<CInitializer> initializers = Collections.nCopies(length, zeroInitializer);
             init = new CInitializerList(fileLoc, initializers);
         } else if (canonicalType instanceof CCompositeType) {
-
             List<CCompositeType.CCompositeTypeMemberDeclaration> members = ((CCompositeType) canonicalType).getMembers();
             List<CInitializer> initializers = new ArrayList<>(members.size());
             for (CCompositeType.CCompositeTypeMemberDeclaration m : members) {
                 CType memberType = m.getType();
-                CInitializer memberInit = getZeroInitializer(init_ast, memberType, fileLoc, pFileName);
+                CInitializer memberInit = getZeroInitializer(memberType, fileLoc);
                 initializers.add(memberInit);
             }
             init = new CInitializerList(fileLoc, initializers);
-
         } else {
             CExpression zeroExpression;
             if (canonicalType instanceof CSimpleType) {
@@ -510,9 +500,8 @@ public class CFABuilder {
                 elementInitializer =
                         getZeroInitializer(element.as_ast(), typeConverter.getCType(elementType_ast), fileLoc);
             } else {
-                elementInitializer = null;
-                        //new CInitializerExpression(
-                        //        fileLoc, (CExpression) getConstant((CFGAST)element.as_ast()));
+                elementInitializer = new CInitializerExpression(
+                               fileLoc, (CExpression) getConstant((CFGAST)element.as_ast()));
             }
             elementInitializers.add(elementInitializer);
         }
