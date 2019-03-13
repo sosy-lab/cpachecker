@@ -97,6 +97,16 @@ public class ARGToCTranslator {
     private boolean isGotoTarget = false;
     private String gotoLabel = null;
 
+    private CompoundStatement outerBlock;
+
+    public void setSurroundingBlock(@Nullable CompoundStatement pOuterBlock) {
+      outerBlock = pOuterBlock;
+    }
+
+    public @Nullable CompoundStatement getSurroundingBlock() {
+      return outerBlock;
+    }
+
     public void translateToCode(StringBuilder buffer, int indent) {
       if (isGotoTarget) {
         buffer.append(gotoLabel).append(":;\n");
@@ -121,6 +131,15 @@ public class ARGToCTranslator {
       }
       return gotoLabel;
     }
+
+    @Override
+    public String toString() {
+      if (isGotoTarget) {
+        return gotoLabel + ":; ";
+      } else {
+        return "";
+      }
+    }
   }
 
   private static class InlinedFunction extends CompoundStatement {
@@ -133,7 +152,6 @@ public class ARGToCTranslator {
 
   static class CompoundStatement extends Statement {
     private final List<Statement> statements;
-    private final CompoundStatement outerBlock;
 
     public CompoundStatement() {
       this(null);
@@ -141,11 +159,12 @@ public class ARGToCTranslator {
 
     public CompoundStatement(CompoundStatement pOuterBlock) {
       statements = new ArrayList<>();
-      outerBlock = pOuterBlock;
+      setSurroundingBlock(pOuterBlock);
     }
 
     public void addStatement(Statement statement) {
       statements.add(statement);
+      statement.setSurroundingBlock(this);
     }
 
     @Override
@@ -161,8 +180,14 @@ public class ARGToCTranslator {
       buffer.append("}\n");
     }
 
-    public CompoundStatement getSurroundingBlock() {
-      return outerBlock;
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder(super.toString()).append("{");
+      for (Statement s : statements) {
+        sb.append(s.toString()).append("\n");
+      }
+      sb.append("}");
+      return sb.toString();
     }
   }
 
@@ -178,6 +203,11 @@ public class ARGToCTranslator {
       writeIndent(buffer, indent);
       buffer.append(code);
       buffer.append("\n");
+    }
+
+    @Override
+    public String toString() {
+      return super.toString() + code;
     }
   }
 
