@@ -300,7 +300,7 @@ class CodeAppender implements Appendable {
       appendln(" {");
 
       if (pointerParameterDeclarations.size() > 0
-          && pVector.getRelevantFunctions().parameterContains(inputFunction)) {
+          && unimplementedPointerTypeParameterFunctions.contains(inputFunction)) {
         for (AParameterDeclaration pointerParameterDeclaration : pointerParameterDeclarations) {
           String varName = pointerParameterDeclaration.getName();
           append(externPointersArrayName);
