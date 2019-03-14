@@ -69,7 +69,7 @@ public class CFABuilder {
 
         functions = new TreeMap<>();
         cfaNodes = TreeMultimap.create();
-        expressionHandler = new CFGHandleExpression(logger,typeConverter);
+        expressionHandler = new CFGHandleExpression(logger,"",typeConverter);
     }
 
 
@@ -199,6 +199,15 @@ public class CFABuilder {
                 // Support static and other storage classes
                 ast un_ast = node.get_ast(ast_family.getC_UNNORMALIZED());
                 CStorageClass storageClass= getStorageClass(un_ast);
+                String normalizedName = variableName;
+
+                //TODO: CPAChecker change all static variables to auto
+                if (storageClass == CStorageClass.STATIC) {
+                    //file static
+                    normalizedName = expressionHandler.getSimpleFileName(pFileName)+"__static__"+variableName;
+                    storageClass = CStorageClass.AUTO;
+                }
+
 
                 if ( varType instanceof CPointerType) {
                     varType = ((CPointerType) varType).getType();
@@ -210,9 +219,9 @@ public class CFABuilder {
                                 true,
                                 storageClass,
                                 varType,
+                                normalizedName,
                                 variableName,
-                                variableName,
-                                variableName,
+                                normalizedName,
                                 initializer);
 
                 expressionHandler.globalVariableDeclarations.put(variableName.hashCode(),(ADeclaration) newDecl);
@@ -302,6 +311,7 @@ public class CFABuilder {
             return false;
         }
     }
+
 
 
 

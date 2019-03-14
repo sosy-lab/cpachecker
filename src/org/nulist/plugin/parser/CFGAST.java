@@ -320,7 +320,7 @@ public class CFGAST {
 
     public static boolean isValue(ast ast){
         try {
-            return ast.get_class().is_subclass_of(ast_class.getUC_IS_VALUE_CLASS());
+            return ast.is_a(ast_class.getNC_ABSTRACT_INTEGER_VALUE())||ast.is_a(ast_class.getNC_ABSTRACT_FLOAT_VALUE());
         }catch (result r){
             return false;
         }
@@ -358,9 +358,9 @@ public class CFGAST {
 
         }else if(variable_ast.is_a(ast_class.getNC_VARIABLE())){
             if(isGlobal)
-                return variable_ast.children().get(0).as_ast().pretty_print();
+                return variable_ast.pretty_print();
             else
-                return normalizingVariableName(variable_ast.children().get(0).as_ast());
+                return normalizingVariableName(variable_ast);
         }
         return null;
     }

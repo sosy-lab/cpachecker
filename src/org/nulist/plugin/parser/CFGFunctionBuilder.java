@@ -94,7 +94,7 @@ public class CFGFunctionBuilder  {
         binExprBuilder = new CBinaryExpressionBuilder(pMachine, pLogger);
         fileName = pFileName;
         this.cfaBuilder = cfaBuilder;
-        expressionHandler = new CFGHandleExpression(pLogger,typeConverter);
+        expressionHandler = new CFGHandleExpression(pLogger,functionName,typeConverter);
         expressionHandler.setGlobalVariableDeclarations(cfaBuilder.expressionHandler.globalVariableDeclarations);
     }
 
@@ -688,6 +688,12 @@ public class CFGFunctionBuilder  {
                 variable.get_kind().equals(symbol_kind.getRESULT())){
             FileLocation fileLocation = getLocation((int)variable.file_line().get_second(),fileName);
             CStorageClass storageClass = getStorageClass(variable.get_ast());
+            String normalizedName = assignedVar;
+            if(storageClass==CStorageClass.STATIC){
+                storageClass = CStorageClass.AUTO;
+                normalizedName = functionName+"__static__"+assignedVar;
+            }
+
 
             CType varType = typeConverter.getCType(variable.get_ast().get(ast_ordinal.getBASE_TYPE()).as_ast());
 
@@ -697,11 +703,11 @@ public class CFGFunctionBuilder  {
                             variable.is_global(),
                             storageClass,
                             varType,
+                            normalizedName,
                             assignedVar,
-                            assignedVar,
-                            assignedVar,
+                            normalizedName,
                             initializer);
-            expressionHandler.variableDeclarations.put(assignedVar.hashCode(),newVarDecl);
+            expressionHandler.variableDeclarations.put(normalizedName.hashCode(),newVarDecl);
             return newVarDecl;
         }
 
