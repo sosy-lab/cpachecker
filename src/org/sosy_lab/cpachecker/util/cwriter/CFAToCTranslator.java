@@ -44,6 +44,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -172,12 +173,19 @@ public class CFAToCTranslator {
             CFATraversal.dfs()
                 .backwards()
                 .ignoreEdges(reachableNodes)
-                .ignoreFunctionCalls() // we consider each function on its own
                 .collectEdgesReachableFrom(labelNode));
       }
     }
 
+    getAllSummaryEdges(pCfa).forEach(reachableNodes::add);
+
     return reachableNodes;
+  }
+
+  private Stream<CFAEdge> getAllSummaryEdges(CFA pCfa) {
+    return pCfa.getAllFunctionHeads().stream()
+        .flatMap(h -> CFAUtils.enteringEdges(h).stream())
+        .map(e -> e.getPredecessor().getLeavingSummaryEdge());
   }
 
   private String generateCCode() {
