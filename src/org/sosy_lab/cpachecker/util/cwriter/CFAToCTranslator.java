@@ -165,7 +165,7 @@ public class CFAToCTranslator {
     for (String l : labels) {
       Collection<CFANode> nodesWithLabel =
           checkNotNull(labelNodes.get(l), "No label node for label %s", l);
-      for (CFANode labelNode : labelNodes.get(l)) {
+      for (CFANode labelNode : nodesWithLabel) {
         // a backwards traversal through the CFA, starting at the node of interest,
         // will give us all edges that can reach the node of interest.
         reachableNodes.addAll(
