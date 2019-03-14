@@ -172,6 +172,7 @@ public class CFAToCTranslator {
             CFATraversal.dfs()
                 .backwards()
                 .ignoreEdges(reachableNodes)
+                .ignoreFunctionCalls() // we consider each function on its own
                 .collectEdgesReachableFrom(labelNode));
       }
     }
@@ -214,12 +215,12 @@ public class CFAToCTranslator {
   private void handleNode(
       NodeAndBlock pNode,
       Deque<NodeAndBlock> pWaitlist,
-      @Nullable Collection<CFAEdge> pRelevantEdges)
+      @Nullable Collection<CFAEdge> pEdgesToHandle)
       throws CPAException {
     CFANode node = pNode.getCfaNode();
     CompoundStatement currentBlock = pNode.getCurrentBlock();
 
-    if (!areAllEnteringEdgesHandled(node, pRelevantEdges)) {
+    if (!areAllEnteringEdgesHandled(node)) {
       if (noProgressSince == null) {
         noProgressSince = node;
       } else if (noProgressSince.equals(node)) {
@@ -239,8 +240,8 @@ public class CFAToCTranslator {
       return;
     }
 
-    if (getRelevant(CFAUtils.allEnteringEdges(node), pRelevantEdges).size() > 1) {
-      CompoundStatement joinBlock = getJoinBlock(node, pRelevantEdges);
+    if (getRelevant(CFAUtils.allEnteringEdges(node)).size() > 1) {
+      CompoundStatement joinBlock = getJoinBlock(node);
       if (joinBlock != null) {
         currentBlock = joinBlock;
       }
@@ -255,8 +256,7 @@ public class CFAToCTranslator {
     }
 
     // find the next elements to add to the waitlist
-    Collection<CFAEdge> outgoingEdges =
-        getRelevant(CFAUtils.allLeavingEdges(node), pRelevantEdges).toList();
+    Collection<CFAEdge> outgoingEdges = getRelevant(CFAUtils.allLeavingEdges(node)).toList();
 
     assert !(node instanceof CFATerminationNode) || outgoingEdges.isEmpty()
         : "Termination node has outgoing edges: " + outgoingEdges;
@@ -270,7 +270,7 @@ public class CFAToCTranslator {
 
       nextNodes =
           Collections.singletonList(
-              handleEdge(Iterables.getOnlyElement(outgoingEdges), currentBlock));
+              handleEdge(Iterables.getOnlyElement(outgoingEdges), currentBlock, pEdgesToHandle));
     } else {
       nextNodes = Collections.emptyList();
     }
@@ -403,11 +403,9 @@ public class CFAToCTranslator {
    * Computes the block to continue with after a join. Returns <code>null</code> if computation
    * fails.
    */
-  private @Nullable CompoundStatement getJoinBlock(
-      CFANode pJoinNode, Collection<CFAEdge> pRelevantEdges) {
+  private @Nullable CompoundStatement getJoinBlock(CFANode pJoinNode) {
     FluentIterable<CFANode> predecessorNodes =
-        getRelevant(CFAUtils.allEnteringEdges(pJoinNode), pRelevantEdges)
-            .transform(e -> e.getPredecessor());
+        getRelevant(CFAUtils.allEnteringEdges(pJoinNode)).transform(e -> e.getPredecessor());
     if (predecessorNodes.anyMatch(n -> !createdStatements.containsKey(n))) {
       return null;
     }
@@ -471,24 +469,29 @@ public class CFAToCTranslator {
     */
   }
 
-  private boolean areAllEnteringEdgesHandled(CFANode pNode, Collection<CFAEdge> pRelevantEdges) {
+  private boolean areAllEnteringEdgesHandled(CFANode pNode) {
     return pNode instanceof CFunctionEntryNode
         || pNode.isLoopStart()
-        || getRelevant(CFAUtils.allEnteringEdges(pNode), pRelevantEdges)
+        || getRelevant(CFAUtils.allEnteringEdges(pNode))
             .allMatch(e -> createdStatements.containsKey(e.getPredecessor()));
   }
 
-  private NodeAndBlock handleEdge(CFAEdge edge, CompoundStatement currentBlock)
+  private NodeAndBlock handleEdge(
+      CFAEdge edge, CompoundStatement currentBlock, @Nullable Collection<CFAEdge> pEdgesToHandle)
       throws CPAException {
-    processEdge(edge, currentBlock);
+
+    processEdge(edge, currentBlock, pEdgesToHandle);
 
     assert !edge.getEdgeType().equals(FunctionCallEdge);
     return new NodeAndBlock(edge.getSuccessor(), currentBlock);
   }
 
-  private FluentIterable<CFAEdge> getRelevant(FluentIterable<CFAEdge> pEdges, Collection<CFAEdge> pRelevantEdges ) {
+  private void addStop(CFANode pNode, CompoundStatement pCurrentBlock) {
+    addStatement(pCurrentBlock, createSimpleStatement(pNode, "exit(0); // covered"));
+  }
+
+  private FluentIterable<CFAEdge> getRelevant(FluentIterable<CFAEdge> pEdges) {
     return pEdges
-        .filter(e -> pRelevantEdges == null || pRelevantEdges.contains(e))
         .filter(e -> e.getEdgeType() != CFAEdgeType.FunctionReturnEdge)
         .filter(e -> e.getEdgeType() != CFAEdgeType.FunctionCallEdge);
   }
@@ -513,15 +516,26 @@ public class CFAToCTranslator {
     }
   }
 
-  private void processEdge(CFAEdge edge, CompoundStatement currentBlock) throws CPAException {
-    String statement = processSimpleEdge(edge);
-    Statement s;
+  private void processEdge(
+      CFAEdge edge, CompoundStatement currentBlock, @Nullable Collection<CFAEdge> pEdgesToHandle)
+      throws CPAException {
+
+    final CFANode node = edge.getPredecessor();
+    if (pEdgesToHandle != null && !pEdgesToHandle.contains(edge)) {
+      if (CFAUtils.enteringEdges(edge.getPredecessor()).anyMatch(pEdgesToHandle::contains)) {
+        addStop(node, currentBlock);
+      }
+    }
+
+    final String statement = processSimpleEdge(edge);
+    final Statement s;
     if (statement.isEmpty()) {
       s = new EmptyStatement();
-      createdStatements.put(edge.getPredecessor(), s);
+      createdStatements.put(node, s);
     } else {
-      s = createSimpleStatement(edge.getPredecessor(), statement);
+      s = createSimpleStatement(node, statement);
     }
+
     addStatement(currentBlock, s);
   }
 
