@@ -21,6 +21,7 @@ import java.math.BigInteger;
 import java.util.*;
 
 import static org.nulist.plugin.parser.CFABuilder.pointerOf;
+import static org.nulist.plugin.parser.CFGAST.*;
 
 public class CFGHandleExpression {
     private final CFGTypeConverter typeConverter;
@@ -54,16 +55,16 @@ public class CFGHandleExpression {
         this.variableDeclarations = variableDeclarations;
     }
 
-    public CBinaryExpression getBinaryExpression(final CFGAST condition, FileLocation fileLocation) throws result {
+    public CBinaryExpression getBinaryExpression(final ast condition, FileLocation fileLocation) throws result {
         // the only one supported now
 
-        CBinaryExpression.BinaryOperator operator = condition.getBinaryOperator();
+        CBinaryExpression.BinaryOperator operator = getBinaryOperator(condition);
 
-        CFGAST variable_ast = (CFGAST) condition.children().get(0).as_ast();
-        CType op1Type = typeConverter.getCType((CFGAST) variable_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
+        ast variable_ast = condition.children().get(0).as_ast();
+        CType op1Type = typeConverter.getCType(variable_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
 
-        CFGAST value_ast = (CFGAST) condition.children().get(1).as_ast();
-        CType op2Type = typeConverter.getCType((CFGAST) value_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
+        ast value_ast = condition.children().get(1).as_ast();
+        CType op2Type = typeConverter.getCType(value_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
 
         CCastExpression op1Cast = new CCastExpression(
                 fileLocation,
@@ -122,10 +123,10 @@ public class CFGHandleExpression {
      * Returns the id expression to an already declared variable.
      */
     public CExpression getAssignedIdExpression(
-            final CFGAST variable_ast, final CType pExpectedType, final FileLocation fileLocation) throws result{
+            final ast variable_ast, final CType pExpectedType, final FileLocation fileLocation) throws result{
         //logger.log(Level.FINE, "Getting var declaration for point");
 
-        String assignedVarName =variable_ast.normalizingVariableName();
+        String assignedVarName =normalizingVariableName(variable_ast);
         boolean isGlobal = variable_ast.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol().is_global();
 
         if(isGlobal && !globalVariableDeclarations.containsKey(assignedVarName.hashCode())){
@@ -151,14 +152,14 @@ public class CFGHandleExpression {
 
 
     //functionassignstatement has been handled in function call
-    public CStatement getAssignStatement(CFGAST no_ast, FileLocation fileLocation)throws result{
+    public CStatement getAssignStatement(ast no_ast, FileLocation fileLocation)throws result{
         assert no_ast.get_class().equals(ast_class.getNC_NORMALASSIGN());
 
-        CFGAST left_ast = (CFGAST) no_ast.children().get(0).as_ast();
+        ast left_ast = no_ast.children().get(0).as_ast();
         CType leftType = typeConverter.getCType(left_ast);
         CLeftHandSide leftHandSide  = (CLeftHandSide) getExpression(left_ast, leftType, fileLocation);
 
-        CFGAST value_ast = (CFGAST) no_ast.children().get(1).as_ast();
+        ast value_ast = no_ast.children().get(1).as_ast();
 
         CType rightType = typeConverter.getCType(value_ast);
         CExpression rightHandSide = getExpression(value_ast, rightType, fileLocation);
@@ -167,35 +168,35 @@ public class CFGHandleExpression {
     }
 
     //from unnormalized ast
-    public CExpressionAssignmentStatement getAssignExpressionFromExprPoint(CFGNode exprNode, FileLocation fileLocation)throws result{
-        CFGAST un_ast = (CFGAST) exprNode.get_ast(ast_family.getC_UNNORMALIZED());
+    public CExpressionAssignmentStatement getAssignExpressionFromExprPoint(point exprNode, FileLocation fileLocation)throws result{
+        ast un_ast = exprNode.get_ast(ast_family.getC_UNNORMALIZED());
         CLeftHandSide leftHandSide = null;
         CExpression rightHandSide = null;
         CType cType;
-        if(un_ast.equalClass(ast_class.getUC_INIT())){
-            CFGAST init = (CFGAST) un_ast.get(ast_ordinal.getUC_DYNAMIC_INIT()).as_ast();
-            CFGAST variable = (CFGAST) init.get(ast_ordinal.getUC_VARIABLE()).as_ast();
-            cType = typeConverter.getCType((CFGAST) variable.get(ast_ordinal.getBASE_TYPE()).as_ast());
+        if(un_ast.is_a(ast_class.getUC_INIT())){
+            ast init = un_ast.get(ast_ordinal.getUC_DYNAMIC_INIT()).as_ast();
+            ast variable = init.get(ast_ordinal.getUC_VARIABLE()).as_ast();
+            cType = typeConverter.getCType(variable.get(ast_ordinal.getBASE_TYPE()).as_ast());
             leftHandSide = (CLeftHandSide) getExpression(variable, cType, fileLocation);
-            if(init.equalClass(ast_class.getUC_DYNAMIC_INIT_CONSTANT())){
-                CFGAST constant = (CFGAST) init.get(ast_ordinal.getUC_CONSTANT()).as_ast();
-            }else if(init.equalClass(ast_class.getUC_DYNAMIC_INIT_EXPRESSION())){
+            if(init.is_a(ast_class.getUC_DYNAMIC_INIT_CONSTANT())){
+                ast constant = init.get(ast_ordinal.getUC_CONSTANT()).as_ast();
+            }else if(init.is_a(ast_class.getUC_DYNAMIC_INIT_EXPRESSION())){
 
-            }else if(init.equalClass(ast_class.getUC_DYNAMIC_INIT_BITWISE_COPY())){
+            }else if(init.is_a(ast_class.getUC_DYNAMIC_INIT_BITWISE_COPY())){
 
             }
 
-        }else if(un_ast.equalClass(ast_class.getUC_GENERIC_ASSIGN())){
+        }else if(un_ast.is_a(ast_class.getUC_GENERIC_ASSIGN())){
 
-        }else if(un_ast.equalClass(ast_class.getUC_GENERIC_PRE_INCR())){
+        }else if(un_ast.is_a(ast_class.getUC_GENERIC_PRE_INCR())){
 
-        }else if(un_ast.equalClass(ast_class.getUC_GENERIC_PRE_INCR())){
+        }else if(un_ast.is_a(ast_class.getUC_GENERIC_PRE_INCR())){
 
-        }else if(un_ast.equalClass(ast_class.getUC_GENERIC_ASSIGN())){
+        }else if(un_ast.is_a(ast_class.getUC_GENERIC_ASSIGN())){
 
-        }else if(un_ast.equalClass(ast_class.getUC_GENERIC_ASSIGN())){
+        }else if(un_ast.is_a(ast_class.getUC_GENERIC_ASSIGN())){
 
-        }else if(un_ast.equalClass(ast_class.getUC_GENERIC_ASSIGN())){
+        }else if(un_ast.is_a(ast_class.getUC_GENERIC_ASSIGN())){
 
         }
 
@@ -208,18 +209,18 @@ public class CFGHandleExpression {
      *@Param [ast, type, fileLocation]
      *@return org.sosy_lab.cpachecker.cfa.ast.c.CExpression
      **/
-    public CExpression getExpressionFromUNNormalizedAST(CFGAST ast, CType expectedType, FileLocation fileLocation) throws result{
-        if(ast.equalClass(ast_class.getUC_DYNAMIC_INIT_CONSTANT())){
-            CFGAST constant = (CFGAST) ast.get(ast_ordinal.getUC_CONSTANT()).as_ast();
+    public CExpression getExpressionFromUNNormalizedAST(ast ast, CType expectedType, FileLocation fileLocation) throws result{
+        if(ast.is_a(ast_class.getUC_DYNAMIC_INIT_CONSTANT())){
+            ast constant = ast.get(ast_ordinal.getUC_CONSTANT()).as_ast();
             return getExpressionFromUNNormalizedAST(constant, expectedType, fileLocation);
         }
-//        else if(ast.equalClass(ast_class.getUC_DYNAMIC_INIT_EXPRESSION())){//=
+//        else if(ast.is_a(ast_class.getUC_DYNAMIC_INIT_EXPRESSION())){//=
 //
-//        }else if(ast.equalClass(ast_class.getUC_DYNAMIC_INIT_BITWISE_COPY())){
+//        }else if(ast.is_a(ast_class.getUC_DYNAMIC_INIT_BITWISE_COPY())){
 //
 //        }
-        else if(ast.equalClass(ast_class.getUC_EXPR_CONSTANT())){//=1,true
-            CFGAST constant =(CFGAST) ast.get(ast_ordinal.getUC_CONSTANT()).as_ast();
+        else if(ast.is_a(ast_class.getUC_EXPR_CONSTANT())){//=1,true
+            ast constant =ast.get(ast_ordinal.getUC_CONSTANT()).as_ast();
             if(expectedType.equals(CNumericTypes.BOOL)){
                 long value = constant.get(ast_ordinal.getBASE_VALUE()).as_uint32();
                 assert value==0||value==1;
@@ -242,45 +243,45 @@ public class CFGHandleExpression {
                 throw  new RuntimeException("Unsupported type "+expectedType.toString());
             }
             //return getExpressionFromUNNormalizedAST(constant, expectedType, fileLocation);
-        }else if(ast.equalClass(ast_class.getUC_EXPR_VARIABLE())){//=a
-            CFGAST variable = (CFGAST) ast.get(ast_ordinal.getUC_VARIABLE()).as_ast();
+        }else if(ast.is_a(ast_class.getUC_EXPR_VARIABLE())){//=a
+            ast variable = ast.get(ast_ordinal.getUC_VARIABLE()).as_ast();
             return getAssignedIdExpression(variable,expectedType,fileLocation);
-        }else if(ast.equalClass(ast_class.getUC_VARIABLE())){//=a
+        }else if(ast.is_a(ast_class.getUC_VARIABLE())){//=a
             return getAssignedIdExpression(ast,expectedType,fileLocation);
-        }else if(ast.equalClass(ast_class.getUC_SUBSCRIPT())){// =p[2],
-            CFGAST value_ast = (CFGAST) ast.get(ast_ordinal.getUC_OPERANDS()).as_ast();
-            CFGAST array_ast = (CFGAST) value_ast.children().get(0).as_ast();
-            CFGAST index_ast = (CFGAST) value_ast.children().get(1).as_ast();
+        }else if(ast.is_a(ast_class.getUC_SUBSCRIPT())){// =p[2],
+            ast value_ast = ast.get(ast_ordinal.getUC_OPERANDS()).as_ast();
+            ast array_ast = value_ast.children().get(0).as_ast();
+            ast index_ast = value_ast.children().get(1).as_ast();
 
-            CExpression arrayExpr = getExpressionFromUNNormalizedAST((CFGAST) array_ast.children().get(0).as_ast(), expectedType, fileLocation);
-            CType indexType = typeConverter.getCType((CFGAST) index_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
+            CExpression arrayExpr = getExpressionFromUNNormalizedAST(array_ast.children().get(0).as_ast(), expectedType, fileLocation);
+            CType indexType = typeConverter.getCType(index_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
 
             CExpression subscriptExpr = getExpressionFromUNNormalizedAST(index_ast,indexType,fileLocation);
             return new CArraySubscriptExpression(fileLocation, expectedType, arrayExpr, subscriptExpr);
-        }else if(ast.equalClass(ast_class.getUC_INDIRECT())){//return *(p+1);
-            CFGAST value_ast = (CFGAST) ast.get(ast_ordinal.getUC_OPERANDS()).as_ast();
-            CFGAST variable = (CFGAST) value_ast.children().get(0).as_ast()
+        }else if(ast.is_a(ast_class.getUC_INDIRECT())){//return *(p+1);
+            ast value_ast = ast.get(ast_ordinal.getUC_OPERANDS()).as_ast();
+            ast variable = value_ast.children().get(0).as_ast()
                     .get(ast_ordinal.getUC_OPERANDS()).as_ast().children().get(0).as_ast();
 
-            CExpression pointer = getExpressionFromUNNormalizedAST((CFGAST)variable.get(ast_ordinal.getUC_VARIABLE())
+            CExpression pointer = getExpressionFromUNNormalizedAST(variable.get(ast_ordinal.getUC_VARIABLE())
                     .as_ast(), expectedType,fileLocation);
-            CFGAST constant = (CFGAST) value_ast.children().get(0).as_ast()
+            ast constant = value_ast.children().get(0).as_ast()
                     .get(ast_ordinal.getUC_OPERANDS()).as_ast().children().get(1).as_ast();
-            CFGAST indexAST = (CFGAST) constant.get(ast_ordinal.getUC_CONSTANT()).as_ast()
+            ast indexAST = constant.get(ast_ordinal.getUC_CONSTANT()).as_ast()
                     .get(ast_ordinal.getBASE_VALUE()).as_ast();
-            CType indexType = typeConverter.getCType((CFGAST) constant.get(ast_ordinal.getBASE_TYPE()).as_ast());
+            CType indexType = typeConverter.getCType(constant.get(ast_ordinal.getBASE_TYPE()).as_ast());
             CExpression indexExpr = getExpressionFromUNNormalizedAST(indexAST,indexType,fileLocation);
             CPointerType pointerType = (CPointerType) pointer.getExpressionType();
             CExpression operand = buildBinaryExpression(pointer,indexExpr, CBinaryExpression.BinaryOperator.PLUS);
             return new CPointerExpression(fileLocation, pointerType, operand);
-        }else if(ast.equalClass(ast_class.getUC_ADDRESS_OP())){//return &d;
+        }else if(ast.is_a(ast_class.getUC_ADDRESS_OP())){//return &d;
 
-            CFGAST value_ast = (CFGAST) ast.get(ast_ordinal.getUC_OPERANDS()).as_ast();
-            CFGAST variable = (CFGAST) value_ast.children().get(0).as_ast();
-            CType variableType = typeConverter.getCType((CFGAST) variable.get(ast_ordinal.getBASE_TYPE()).as_ast());
-            CFGAST variable_ast = (CFGAST) variable.get(ast_ordinal.getUC_VARIABLE()).as_ast();
+            ast value_ast = ast.get(ast_ordinal.getUC_OPERANDS()).as_ast();
+            ast variable = value_ast.children().get(0).as_ast();
+            CType variableType = typeConverter.getCType(variable.get(ast_ordinal.getBASE_TYPE()).as_ast());
+            ast variable_ast = variable.get(ast_ordinal.getUC_VARIABLE()).as_ast();
             CExpression operand = getExpressionFromUNNormalizedAST(variable_ast,variableType,fileLocation);
-            CType cType = typeConverter.getCType((CFGAST)value_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
+            CType cType = typeConverter.getCType(value_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
             return new CUnaryExpression(fileLocation, cType, operand, CUnaryExpression.UnaryOperator.AMPER);
 
         }else {
@@ -290,10 +291,10 @@ public class CFGHandleExpression {
     }
 
     //normalized node
-    public CExpression getExpression(CFGAST value_ast, CType valueType, FileLocation fileLoc)throws result{
-        if(value_ast.isVariable()){//e.g., a = b;
+    public CExpression getExpression(ast value_ast, CType valueType, FileLocation fileLoc)throws result{
+        if(isVariable(value_ast)){//e.g., a = b;
             return getAssignedIdExpression(value_ast, valueType, fileLoc);
-        }else if(value_ast.isValue()){//a=2;
+        }else if(isValue(value_ast)){//a=2;
             if(valueType.equals(CNumericTypes.BOOL)){
                 long value = value_ast.get(ast_ordinal.getBASE_VALUE()).as_uint32();
                 assert value==0||value==1;
@@ -318,28 +319,28 @@ public class CFGHandleExpression {
         }else if(value_ast.get_class().is_subclass_of(ast_class.getNC_ABSTRACT_ARITHMETIC()) ||//e.g., int i = a+1;
                 value_ast.get_class().is_subclass_of(ast_class.getNC_ABSTRACT_BITWISE())){// int i =a&1;
             return createFromArithmeticOp(value_ast, fileLoc);
-        }else if(value_ast.isStructElementExpr()){//struct element, e.g., int p = astruct.a;
+        }else if(isStructElementExpr(value_ast)){//struct element, e.g., int p = astruct.a;
 
-            CFGAST variable = (CFGAST) value_ast.children().get(0).as_ast();
-            CType varType = typeConverter.getCType((CFGAST)variable.get(ast_ordinal.getBASE_TYPE()).as_ast());
+            ast variable = value_ast.children().get(0).as_ast();
+            CType varType = typeConverter.getCType(variable.get(ast_ordinal.getBASE_TYPE()).as_ast());
             CExpression variableExpr = getAssignedIdExpression(variable,varType,fileLoc);
             String fieldName = value_ast.children().get(1).get(ast_ordinal.getBASE_NAME()).as_str();
 
             return new CFieldReference(fileLoc, valueType, fieldName, variableExpr,
                     valueType instanceof CPointerType);
 
-        }else if(value_ast.isPointerAddressExpr()){//pointer address, e.g., char p[30]="say hello", *p1 = &r;
+        }else if(isPointerAddressExpr(value_ast)){//pointer address, e.g., char p[30]="say hello", *p1 = &r;
             return getPointerAddrExpr(value_ast, fileLoc);
-        }else if(value_ast.isZeroInitExpr()){//zero initialization, e.g., char *p=NULL, p1[30]={} (aggreate);
+        }else if(isZeroInitExpr(value_ast)){//zero initialization, e.g., char *p=NULL, p1[30]={} (aggreate);
                                             // castexpr
                                             // for an array, child 0 *&p[0], child 1 (int[30])0
                                             // for a pointer, child 0: p, child 1: (void*)0
-            CType castType = typeConverter.getCType((CFGAST)value_ast.get(ast_ordinal.getNC_TYPE()).as_ast());
-            CFGAST operandAST = (CFGAST)value_ast.children().get(1).as_ast();
-            CType operandType = typeConverter.getCType((CFGAST)operandAST.get(ast_ordinal.getBASE_TYPE()).as_ast());
+            CType castType = typeConverter.getCType(value_ast.get(ast_ordinal.getNC_TYPE()).as_ast());
+            ast operandAST = value_ast.children().get(1).as_ast();
+            CType operandType = typeConverter.getCType(operandAST.get(ast_ordinal.getBASE_TYPE()).as_ast());
             CExpression operand = getExpression(operandAST,operandType,fileLoc);
             return new CCastExpression(fileLoc, castType, operand);
-        }else if(value_ast.isPointerExpr()){//pointer, e.g., int i = *(p+1);
+        }else if(isPointerExpr(value_ast)){//pointer, e.g., int i = *(p+1);
             CPointerType pointerType = new CPointerType(false,false,valueType);
             CBinaryExpression operand = getBinaryExpression(value_ast,fileLoc);
             return new CPointerExpression(fileLoc, pointerType, operand);
@@ -349,13 +350,13 @@ public class CFGHandleExpression {
 
 
     //
-    public CExpression getPointerAddrExpr(CFGAST value_ast, FileLocation fileloc)throws  result{
-        assert value_ast.isPointerAddressExpr();
-        CFGAST variable = (CFGAST) value_ast.children().get(0).as_ast();
-        CType cType = typeConverter.getCType((CFGAST)value_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
+    public CExpression getPointerAddrExpr(ast value_ast, FileLocation fileloc)throws  result{
+        assert isPointerAddressExpr(value_ast);
+        ast variable = value_ast.children().get(0).as_ast();
+        CType cType = typeConverter.getCType(value_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
 
-        if(variable.isVariable()){
-            CType variableType = typeConverter.getCType((CFGAST) variable.get(ast_ordinal.getBASE_TYPE()).as_ast());
+        if(isVariable(variable)){
+            CType variableType = typeConverter.getCType(variable.get(ast_ordinal.getBASE_TYPE()).as_ast());
 
             CExpression operand = getExpression(variable,variableType,fileloc);
 
@@ -369,19 +370,19 @@ public class CFGHandleExpression {
 
 
     public CExpression createFromArithmeticOp(
-            final CFGAST value_ast, final FileLocation fileLocation) throws result {
+            final ast value_ast, final FileLocation fileLocation) throws result {
 
-        CBinaryExpression.BinaryOperator operator = value_ast.getBinaryOperator();
+        CBinaryExpression.BinaryOperator operator = getBinaryOperator(value_ast);
 
-        final CType expressionType = typeConverter.getCType((CFGAST) value_ast.children().get(0).as_ast());
+        final CType expressionType = typeConverter.getCType(value_ast.children().get(0).as_ast());
 
-        CFGAST operand1 = (CFGAST) value_ast.children().get(0).as_ast(); // First operand
+        ast operand1 = value_ast.children().get(0).as_ast(); // First operand
         //logger.log(Level.FINE, "Getting id expression for operand 1");
-        CType op1type = typeConverter.getCType((CFGAST) operand1.get(ast_ordinal.getBASE_TYPE()).as_ast());
+        CType op1type = typeConverter.getCType(operand1.get(ast_ordinal.getBASE_TYPE()).as_ast());
         CExpression operand1Exp = getExpression(operand1,op1type,fileLocation);
 
-        CFGAST operand2 =  (CFGAST) value_ast.children().get(1).as_ast(); // Second operand
-        CType op2type = typeConverter.getCType((CFGAST) operand2.get(ast_ordinal.getBASE_TYPE()).as_ast());
+        ast operand2 =  value_ast.children().get(1).as_ast(); // Second operand
+        CType op2type = typeConverter.getCType(operand2.get(ast_ordinal.getBASE_TYPE()).as_ast());
         //logger.log(Level.FINE, "Getting id expression for operand 2");
         CExpression operand2Exp = getExpression(operand2, op2type, fileLocation);
 
@@ -394,18 +395,18 @@ public class CFGHandleExpression {
                 operator);
     }
 
-    public CInitializer getInitializer(CFGAST no_ast, final FileLocation fileLocation) throws result{
+    public CInitializer getInitializer(ast no_ast, final FileLocation fileLocation) throws result{
         CInitializer initializer = null;
 
-        if(no_ast.isInitializationExpression()){
+        if(isInitializationExpression(no_ast)){
             ast_field type = no_ast.get(ast_ordinal.getNC_TYPE());
-            CFGAST value_ast = (CFGAST) no_ast.children().get(1).as_ast();
-            CFGAST type_ast = (CFGAST)type.as_ast();
-            CType varType = typeConverter.getCType((CFGAST) no_ast.get(ast_ordinal.getNC_TYPE()).as_ast());
-            if (value_ast.isConstantAggregateZero()) {
+            ast value_ast = no_ast.children().get(1).as_ast();
+            ast type_ast = type.as_ast();
+            CType varType = typeConverter.getCType(no_ast.get(ast_ordinal.getNC_TYPE()).as_ast());
+            if (isConstantAggregateZero(value_ast)) {
                 CType expressionType = typeConverter.getCType(type_ast);
                 initializer = getZeroInitializer(expressionType, fileLocation);
-            }else if(type_ast.isArrayType() || type_ast.isStructType() || type_ast.isEnumType()){
+            }else if(isArrayType(type_ast) || isStructType(type_ast) || isEnumType(type_ast)){
                 initializer = getConstantAggregateInitializer(value_ast, fileLocation);
             } else {
                 initializer =  new CInitializerExpression(
@@ -420,16 +421,16 @@ public class CFGHandleExpression {
      *@Param [no_ast, pFileName]
      *@return org.sosy_lab.cpachecker.cfa.ast.c.CInitializer
      **/
-    public CInitializer getConstantAggregateInitializer(CFGAST no_ast,
+    public CInitializer getConstantAggregateInitializer(ast no_ast,
                                                          final FileLocation fileLoc) throws result {
 
         //ast no_ast = initialPoint.get_ast(ast_family.getC_NORMALIZED());
         ast_field value = no_ast.children().get(1);
-        CType type = typeConverter.getCType((CFGAST) value.get(ast_ordinal.getBASE_TYPE()).as_ast());
+        CType type = typeConverter.getCType(value.get(ast_ordinal.getBASE_TYPE()).as_ast());
 
         ast_field_vector elements = value.as_ast().children();
         int length = (int)elements.size();
-        if(no_ast.isNormalExpression() && type.equals(CNumericTypes.CHAR)){
+        if(isNormalExpression(no_ast) && type.equals(CNumericTypes.CHAR)){
             char[] items = new char[length];
             for(int i=0;i<length;i++){
                 items[i]=(char) elements.get(i).as_ast().get(ast_ordinal.getBASE_VALUE()).as_int32();
@@ -444,20 +445,20 @@ public class CFGHandleExpression {
         List<CInitializer> elementInitializers = new ArrayList<>(length);
         for(int i=0;i<length;i++){
             ast_field element = elements.get(i);
-            CFGAST elementAST = (CFGAST) element.as_ast();
+            ast elementAST = element.as_ast();
             CInitializer elementInitializer;
             ast_field elementType = element.as_ast().get(ast_ordinal.getBASE_TYPE());
-            CFGAST elementType_ast = (CFGAST) elementType.as_ast();
-            if(elementAST.isConstantAggregateZero()){
+            ast elementType_ast = elementType.as_ast();
+            if(isConstantAggregateZero(elementAST)){
                 elementInitializer =
                         getZeroInitializer(typeConverter.getCType(elementType_ast), fileLoc);
-            }else if(elementType_ast.isArrayType() ||
-                    elementType_ast.isStructType() ||
-                    elementType_ast.isEnumType()){
-                elementInitializer = getConstantAggregateInitializer((CFGAST) element.as_ast(), fileLoc);
+            }else if(isArrayType(elementType_ast) ||
+                    isStructType(elementType_ast) ||
+                    isEnumType(elementType_ast)){
+                elementInitializer = getConstantAggregateInitializer(element.as_ast(), fileLoc);
             } else {
                 elementInitializer = new CInitializerExpression(
-                        fileLoc, (CExpression) getConstant((CFGAST)element.as_ast(),
+                        fileLoc, (CExpression) getConstant(element.as_ast(),
                                     typeConverter.getCType(elementType_ast),fileLoc));
             }
             elementInitializers.add(elementInitializer);
@@ -510,16 +511,16 @@ public class CFGHandleExpression {
         return init;
     }
 
-    public CRightHandSide getConstant(CFGAST value_ast, CType pExpectedType, FileLocation fileLoc)
+    public CRightHandSide getConstant(ast value_ast, CType pExpectedType, FileLocation fileLoc)
             throws result{
 
-        CFGAST typeAST = (CFGAST) value_ast.get(ast_ordinal.getBASE_TYPE()).as_ast();
+        ast typeAST = value_ast.get(ast_ordinal.getBASE_TYPE()).as_ast();
 
-        if(value_ast.isNullPointer())//null pointer: e.g., p = 0; p= NULL;
+        if(isNullPointer(value_ast))//null pointer: e.g., p = 0; p= NULL;
         {
             return new CPointerExpression(fileLoc,pExpectedType,getNull(fileLoc,pExpectedType));
-        }else if(value_ast.isUndef()){//TODO
-            CType constantType = typeConverter.getCType((CFGAST) typeAST);
+        }else if(isUndef(value_ast)){//TODO
+            CType constantType = typeConverter.getCType(typeAST);
             String undefName = "__VERIFIER_undef_" + constantType.toString().replace(' ', '_');
             CSimpleDeclaration undefDecl =
                     new CVariableDeclaration(
@@ -533,18 +534,18 @@ public class CFGHandleExpression {
                             null);
             CExpression undefExpression = new CIdExpression(fileLoc, undefDecl);
             return undefExpression;
-        } else if (value_ast.isVariable()) {
+        } else if (isVariable(value_ast)) {
             return getAssignedIdExpression(value_ast, pExpectedType, fileLoc);
         } else
             return getExpression(value_ast,pExpectedType, fileLoc);
 
     }
 
-    public CRightHandSide getConstant(final CFGNode exprNode, CType pExpectedType, final FileLocation fileLoc)
+    public CRightHandSide getConstant(final point exprNode, CType pExpectedType, final FileLocation fileLoc)
             throws result {
 
-        CFGAST no_ast =(CFGAST) exprNode.get_ast(ast_family.getC_NORMALIZED());
-        CFGAST value_ast =(CFGAST) no_ast.children().get(1).as_ast();
+        ast no_ast =exprNode.get_ast(ast_family.getC_NORMALIZED());
+        ast value_ast =no_ast.children().get(1).as_ast();
 
         return getConstant(value_ast,pExpectedType,fileLoc);
 

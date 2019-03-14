@@ -7,10 +7,13 @@
  **/
 package org.nulist.plugin.util;
 
+import com.grammatech.cs.point;
 import com.grammatech.cs.procedure;
 import com.grammatech.cs.result;
 import org.nulist.plugin.parser.CFGNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+
+import static org.nulist.plugin.parser.CFGNode.getFileLineNumber;
 
 public class FileOperations {
     /**
@@ -18,9 +21,9 @@ public class FileOperations {
      *@Param [point, pFileName]
      *@return org.sosy_lab.cpachecker.cfa.ast.FileLocation
      **/
-    public static FileLocation getLocation(CFGNode node, final String pFileName) throws result {
+    public static FileLocation getLocation(point node, final String pFileName) throws result {
         assert node != null;
-        return new FileLocation(pFileName, 0, 1, node.getFileLineNumber(), node.getFileLineNumber());
+        return new FileLocation(pFileName, 0, 1, getFileLineNumber(node), getFileLineNumber(node));
     }
 
 

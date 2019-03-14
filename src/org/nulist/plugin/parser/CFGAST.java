@@ -18,11 +18,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class CFGAST extends ast {
-
-    public CFGAST(long cPtr, boolean cMemoryOwn){
-        super(cPtr, cMemoryOwn);
-    }
+public class CFGAST {
+    
 
     /**
      *@Description check if the type of a given variable (p) is constant array or vector
@@ -49,36 +46,36 @@ public class CFGAST extends ast {
     }
 
     //ast type
-    public boolean isArrayType(){
+    public static boolean isArrayType(ast ast){
         try {
-            return this.get_class().equals(ast_class.getNC_ARRAY());
+            return ast.get_class().equals(ast_class.getNC_ARRAY());
         }catch (result r){
             return false;
         }
     }
 
-    public boolean isPointerType(){
+    public static boolean isPointerType(ast ast){
         try {
-            return this.get_class().equals(ast_class.getNC_POINTER());
+            return ast.is_a(ast_class.getNC_POINTER());
         }catch (result r){
             return false;
         }
     }
 
-    public boolean isStructType(){
+    public static boolean isStructType(ast ast){
         try {
-            return this.get_class().equals(ast_class.getNC_STRUCT()) ||
-                    this.get(ast_ordinal.getBASE_TYPE()).as_ast().get_class().equals(ast_class.getUC_STRUCT());
+            return ast.is_a(ast_class.getNC_STRUCT()) ||
+                    ast.get(ast_ordinal.getBASE_TYPE()).as_ast().is_a(ast_class.getUC_STRUCT());
         }catch (result r){
             return false;
         }
 
     }
 
-    public boolean isEnumType(){
+    public static boolean isEnumType(ast ast){
         try {
-            return this.get_class().equals(ast_class.getUC_ENUM()) ||
-                    this.get(ast_ordinal.getBASE_TYPE()).as_ast().get_class().equals(ast_class.getUC_ENUM());
+            return ast.is_a(ast_class.getUC_ENUM()) ||
+                    ast.get(ast_ordinal.getBASE_TYPE()).as_ast().is_a(ast_class.getUC_ENUM());
         }catch (result r){
             return false;
         }
@@ -86,12 +83,12 @@ public class CFGAST extends ast {
 
 
 
-    public boolean isConstantAggregateZero(){
+    public static boolean isConstantAggregateZero(ast ast){
         try {
-            if(this.equalClass(ast_class.getNC_CASTEXPR())){
-                CFGAST type = (CFGAST) this.get(ast_ordinal.getBASE_TYPE()).as_ast();
-                return (type.isArrayType()||type.isPointerType()) &&
-                        this.children().get(1).get(ast_ordinal.getBASE_VALUE()).as_int32()==0;
+            if(ast.is_a(ast_class.getNC_CASTEXPR())){
+                ast type = ast.get(ast_ordinal.getBASE_TYPE()).as_ast();
+                return (isArrayType(type)|| isPointerType(type)) &&
+                        ast.children().get(1).get(ast_ordinal.getBASE_VALUE()).as_int32()==0;
             }
             return false;
         }catch (result r){
@@ -103,11 +100,11 @@ public class CFGAST extends ast {
      *@Param []
      *@return boolean
      **/
-    public boolean isNullPointer(){
+    public static boolean isNullPointer(ast ast){
         try {
-            ast_field type = this.get(ast_ordinal.getNC_TYPE());//normalized type
-            if(type.as_ast().get_class().equals(ast_class.getUC_POINTER())){
-                if(this.children().get(1).as_int32()==0){
+            ast_field type = ast.get(ast_ordinal.getNC_TYPE());//normalized type
+            if(type.as_ast().is_a(ast_class.getUC_POINTER())){
+                if(ast.children().get(1).as_int32()==0){
                     return true;
                 }
             }
@@ -117,9 +114,9 @@ public class CFGAST extends ast {
         }
     }
 
-    public boolean isInitializationExpression(){
+    public static boolean isInitializationExpression(ast ast){
         try {
-            return this.get(ast_ordinal.getNC_IS_INITIALIZATION()).as_boolean();
+            return ast.get(ast_ordinal.getNC_IS_INITIALIZATION()).as_boolean();
         }catch (result r){
             return false;
         }
@@ -130,42 +127,42 @@ public class CFGAST extends ast {
      *@Param []
      *@return boolean
      **/
-    public boolean isNormalExpression(){
+    public static boolean isNormalExpression(ast ast){
         try {
             //normalizedVarInitAST.children().get(1).as_ast().name() = c:exprs
-            return this.get_class().equals(ast_class.getNC_EXPRS());
+            return ast.is_a(ast_class.getNC_EXPRS());
         }catch (result r){
             return false;
         }
     }
 
-    public boolean isStructElementExpr(){
+    public static boolean isStructElementExpr(ast ast){
         try {
-            return this.get_class().equals(ast_class.getNC_STRUCTORUNIONREF());
+            return ast.is_a(ast_class.getNC_STRUCTORUNIONREF());
         }catch (result r){
             return false;
         }
     }
 
-    public boolean isPointerExpr(){
+    public static boolean isPointerExpr(ast ast){
         try {
-            return this.get_class().equals(ast_class.getNC_POINTEREXPR());
+            return ast.is_a(ast_class.getNC_POINTEREXPR());
         }catch (result r){
             return false;
         }
     }
 
-    public boolean isPointerAddressExpr(){
+    public static boolean isPointerAddressExpr(ast ast){
         try {
-            return this.get_class().equals(ast_class.getNC_ADDREXPR());
+            return ast.is_a(ast_class.getNC_ADDREXPR());
         }catch (result r){
             return false;
         }
     }
 
-    public boolean isZeroInitExpr(){
+    public static boolean isZeroInitExpr(ast ast){
         try {
-            return this.get_class().equals(ast_class.getNC_CASTEXPR());
+            return ast.is_a(ast_class.getNC_CASTEXPR());
         }catch (result r){
             return false;
         }
@@ -177,10 +174,10 @@ public class CFGAST extends ast {
  *@return boolean
  **/
 
-    public boolean isGlobalConstant(){
+    public static boolean isGlobalConstant(ast ast){
         try {
-            if(this.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol().is_global()){//global value
-                if(this.get(ast_ordinal.getBASE_TYPE()).as_ast().pretty_print().startsWith("const"))//const value
+            if(ast.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol().is_global()){//global value
+                if(ast.get(ast_ordinal.getBASE_TYPE()).as_ast().pretty_print().startsWith("const"))//const value
                     return true;
             }
             return false;
@@ -189,9 +186,9 @@ public class CFGAST extends ast {
         }
     }
 
-    public boolean isGlobalVariable(){
+    public static boolean isGlobalVariable(ast ast){
         try {
-            if(this.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol().is_global()){//global value
+            if(ast.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol().is_global()){//global value
                     return true;
             }
             return false;
@@ -200,9 +197,9 @@ public class CFGAST extends ast {
         }
     }
 
-    public boolean isConstantType(){
+    public static boolean isConstantType(ast ast){
         try {
-            return this.get(ast_ordinal.getBASE_TYPE()).as_ast().pretty_print().startsWith("const");
+            return ast.get(ast_ordinal.getBASE_TYPE()).as_ast().pretty_print().startsWith("const");
         }catch (result r){
             return false;
         }
@@ -214,33 +211,33 @@ public class CFGAST extends ast {
      *@Param [normalizedVarInitAST]
      *@return boolean
      **/
-    public boolean isConstant(){
+    public static boolean isConstant(ast ast){
         try {
-            ast value_ast = this.children().get(1).as_ast();
+            ast value_ast = ast.children().get(1).as_ast();
             return value_ast.get(ast_ordinal.getBASE_TYPE()).as_ast().pretty_print().startsWith("const");
         }catch (result r){
             return false;
         }
     }
 
-    public CFGAST getStructType() throws result{
-        if(this.get_class().equals(ast_class.getUC_STRUCT())){
-            return this;
+    public static ast getStructType(ast ast) throws result{
+        if(ast.is_a(ast_class.getNC_STRUCT())){
+            return ast;
         }else {//for typedef struct
-            return (CFGAST) this.get(ast_ordinal.getBASE_TYPE()).as_ast();
+            return ast.get(ast_ordinal.getBASE_TYPE()).as_ast();
         }
     }
 
     //ast normalizedVarInitAST
-    public boolean isUndef(){
+    public static boolean isUndef(ast ast){
         return false;
     }
 
 
 
-    public CStorageClass getStorageClass()throws result{
+    public static CStorageClass getStorageClass(ast ast)throws result{
         CStorageClass storageClass;
-        switch (this.get(ast_ordinal.getBASE_STORAGE_CLASS()).as_enum_value_string()){
+        switch (ast.get(ast_ordinal.getBASE_STORAGE_CLASS()).as_enum_value_string()){
             case "static":
                 storageClass = CStorageClass.STATIC;
                 break;
@@ -263,94 +260,109 @@ public class CFGAST extends ast {
      *@Param [varAST]
      *@return void
      **/
-    public String normalizingVariableName()throws result{
-        assert this!=null;
-        return this.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol().name().replace("-","_");
+    public static String normalizingVariableName(ast ast)throws result{
+        return ast.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol().name().replace("-","_");
     }
 
-    public CBinaryExpression.BinaryOperator getBinaryOperator()throws result{
-        if(this.get_class().equals(ast_class.getNC_ADDEXPR()))
+    public static CBinaryExpression.BinaryOperator getBinaryOperator(ast ast)throws result{
+        if(ast.is_a(ast_class.getNC_ADDEXPR()))
             return CBinaryExpression.BinaryOperator.PLUS;
-        else if(this.get_class().equals(ast_class.getNC_SUBEXPR()))
+        else if(ast.is_a(ast_class.getNC_SUBEXPR()))
             return CBinaryExpression.BinaryOperator.MINUS;
-        else if(this.get_class().equals(ast_class.getNC_MULEXPR()))
+        else if(ast.is_a(ast_class.getNC_MULEXPR()))
             return CBinaryExpression.BinaryOperator.MULTIPLY;
-        else if(this.get_class().equals(ast_class.getNC_DIVEXPR()))
+        else if(ast.is_a(ast_class.getNC_DIVEXPR()))
             return CBinaryExpression.BinaryOperator.DIVIDE;
-        else if(this.get_class().equals(ast_class.getNC_MODEXPR()))
+        else if(ast.is_a(ast_class.getNC_MODEXPR()))
             return CBinaryExpression.BinaryOperator.MODULO;
-        else if(this.get_class().equals(ast_class.getNC_RIGHTASSIGN()))
+        else if(ast.is_a(ast_class.getNC_RIGHTASSIGN()))
             return CBinaryExpression.BinaryOperator.SHIFT_RIGHT;
-        else if(this.get_class().equals(ast_class.getNC_LEFTASSIGN()))
+        else if(ast.is_a(ast_class.getNC_LEFTASSIGN()))
             return CBinaryExpression.BinaryOperator.SHIFT_LEFT;
-        else if(this.get_class().equals(ast_class.getNC_ANDASSIGN()))
+        else if(ast.is_a(ast_class.getNC_ANDASSIGN()))
             return CBinaryExpression.BinaryOperator.BINARY_AND;
-        else if(this.get_class().equals(ast_class.getNC_ORASSIGN()))
+        else if(ast.is_a(ast_class.getNC_ORASSIGN()))
             return CBinaryExpression.BinaryOperator.BINARY_OR;
-        else if(this.get_class().equals(ast_class.getNC_XORASSIGN()))
+        else if(ast.is_a(ast_class.getNC_XORASSIGN()))
             return CBinaryExpression.BinaryOperator.BINARY_XOR;
-        else if(this.get_class().equals(ast_class.getNC_EQUALEXPR()))
+        else if(ast.is_a(ast_class.getNC_EQUALEXPR()))
             return CBinaryExpression.BinaryOperator.EQUALS;
-        else if(this.get_class().equals(ast_class.getNC_NOTEQUALEXPR()))
+        else if(ast.is_a(ast_class.getNC_NOTEQUALEXPR()))
             return CBinaryExpression.BinaryOperator.NOT_EQUALS;
-        else if(this.get_class().equals(ast_class.getNC_GREATEXPR()))
+        else if(ast.is_a(ast_class.getNC_GREATEXPR()))
             return CBinaryExpression.BinaryOperator.GREATER_THAN;
-        else if(this.get_class().equals(ast_class.getNC_GREATEQUALEXPR()))
+        else if(ast.is_a(ast_class.getNC_GREATEQUALEXPR()))
             return CBinaryExpression.BinaryOperator.GREATER_EQUAL;
-        else if(this.get_class().equals(ast_class.getNC_LESSEXPR()))
+        else if(ast.is_a(ast_class.getNC_LESSEXPR()))
             return CBinaryExpression.BinaryOperator.LESS_THAN;
-        else if(this.get_class().equals(ast_class.getNC_LESSEQUALEXPR()))
+        else if(ast.is_a(ast_class.getNC_LESSEQUALEXPR()))
             return CBinaryExpression.BinaryOperator.LESS_EQUAL;
         else
             throw new UnsupportedOperationException("Unsupported predicate");
     }
 
-    public boolean hasRadixField()throws result{
+    public static boolean hasRadixField(ast ast)throws result{
         try {
-            this.get(ast_ordinal.getUC_RADIX());
+            ast.get(ast_ordinal.getUC_RADIX());
             return true;
         }catch (result r){
             return false;
         }
     }
 
-    public boolean isVariable(){
+    public static boolean isVariable(ast ast){
         try {
-            return this.get_class().equals(ast_class.getNC_VARIABLE());
+            return ast.is_a(ast_class.getNC_VARIABLE());
         }catch (result r){
             return false;
         }
     }
 
-    public boolean isValue(){
+    public static boolean isValue(ast ast){
         try {
-            return this.get_class().is_subclass_of(ast_class.getUC_IS_VALUE_CLASS());
+            return ast.get_class().is_subclass_of(ast_class.getUC_IS_VALUE_CLASS());
         }catch (result r){
             return false;
         }
     }
 
-    public boolean equalClass(ast_class astClass){
-        try {
-            return this.is_a(astClass);//this.get_class().equals(astClass);
-        }catch (result r){
-            return false;
-        }
-    }
 
     //a symbol can only have unnormalized ast
-    public boolean symbolHasInitialization(){
+    public static boolean symbolHasInitialization(ast ast){
         try {
             try {
-                this.get(ast_ordinal.getUC_DYNAMIC_INIT());
+                ast.get(ast_ordinal.getUC_DYNAMIC_INIT());
                 return true;
             }catch (result r){
-                ast init = this.get(ast_ordinal.getUC_STATIC_INIT()).as_ast();
+                ast init = ast.get(ast_ordinal.getUC_STATIC_INIT()).as_ast();
                 return init.is_a(ast_class.getUC_STATIC_INITIALIZER());
             }
         }catch (result r){
             return false;
         }
+    }
+
+    //expression ast
+    public static String getVariableName(ast no_ast, boolean isGlobal)throws result{
+        ast variable_ast = no_ast.children().get(0).as_ast();
+        if(variable_ast.is_a(ast_class.getNC_POINTEREXPR())){
+            //ptr->array-ref->
+            ast ptr = variable_ast.children().get(0).as_ast().children().get(0).as_ast();
+            if(isGlobal)
+                return ptr.children().get(0).as_ast().pretty_print();
+            else
+                return normalizingVariableName(ptr.children().get(0).as_ast());
+        }else if(variable_ast.is_a(ast_class.getNC_ARRAYREF())){
+
+        }else if(variable_ast.is_a(ast_class.getNC_POINTERREF())){
+
+        }else if(variable_ast.is_a(ast_class.getNC_VARIABLE())){
+            if(isGlobal)
+                return variable_ast.children().get(0).as_ast().pretty_print();
+            else
+                return normalizingVariableName(variable_ast.children().get(0).as_ast());
+        }
+        return null;
     }
 
 

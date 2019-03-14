@@ -104,8 +104,8 @@ public class CPAMain {
   public static void executeParser(project project){
     String[] configs = new String[3];
     configs[0]="-config";
-    configs[1]="config/default.properties";
-    configs[3]="test/programs/simple/lock-loop.c";
+    configs[1]="/home/yinboyu/workspace/cpachecker/config/default.properties";
+    configs[2]="/home/yinboyu/workspace/CFAtest/lock-loop.c";
     Locale.setDefault(Locale.US);
 
     // initialize various components

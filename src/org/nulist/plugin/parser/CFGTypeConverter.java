@@ -21,6 +21,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.nulist.plugin.parser.CFGAST.*;
+
 public class CFGTypeConverter {
     private final MachineModel machineModel;
     private final LogManager logger;
@@ -34,24 +36,23 @@ public class CFGTypeConverter {
     }
 
 
-    public CType getCType(CFGAST type){
+    public CType getCType(ast type){
         try {
             String typeString = type.pretty_print();
             CType cType = typeCache.getOrDefault(typeString.hashCode(),null);
             if(cType!=null)
                 return cType;
-            else if(type.isStructType()){//struct
+            else if(isStructType(type)){//struct
                 return createStructType(type);
-            }else if(type.isPointerType()){
-                CFGAST pointedTo = (CFGAST) type.get(ast_ordinal.getBASE_POINTED_TO()).as_ast();
+            }else if(isPointerType(type)){
+                ast pointedTo = type.get(ast_ordinal.getBASE_POINTED_TO()).as_ast();
                 cType = getCType(pointedTo);
-                CPointerType cPointerType = new CPointerType(type.isConstantType(), false, cType);
+                CPointerType cPointerType = new CPointerType(isConstantType(type), false, cType);
                 typeCache.put(typeString.hashCode(),cPointerType);
                 return cPointerType;
-            }else if(type.isArrayType()){
-                CFGAST array = (CFGAST)type.get(ast_ordinal.getBASE_TYPE()).as_ast();
-                long length = array.get(ast_ordinal.getBASE_NUM_ELEMENTS()).as_uint32();
-                CFGAST elementType = (CFGAST)type.get(ast_ordinal.getBASE_ELEMENT_TYPE()).as_ast();
+            }else if(isArrayType(type)){
+                long length = type.get(ast_ordinal.getBASE_NUM_ELEMENTS()).as_uint32();
+                ast elementType = type.get(ast_ordinal.getBASE_ELEMENT_TYPE()).as_ast();
                 cType = getCType(elementType);
                 CIntegerLiteralExpression arrayLength =
                         new CIntegerLiteralExpression(
@@ -59,7 +60,7 @@ public class CFGTypeConverter {
                                 ARRAY_LENGTH_TYPE,
                                 BigInteger.valueOf(length));
                 CArrayType cArrayType =  new CArrayType(
-                        type.isConstantType(), false, cType, arrayLength);
+                        isConstantType(type), false, cType, arrayLength);
                 typeCache.put(typeString.hashCode(),cArrayType);
                 return cArrayType;
             }
@@ -124,7 +125,7 @@ public class CFGTypeConverter {
      *@return org.sosy_lab.cpachecker.cfa.types.c.CType
      **/
     //struct type
-    private CType createStructType(CFGAST type) throws result{
+    private CType createStructType(ast type) throws result{
         final boolean isConst = false;
         final boolean isVolatile = false;
 
@@ -134,7 +135,7 @@ public class CFGTypeConverter {
         if(structName.startsWith("const "))//normalize const struct and non-const struct
             structName = structName.substring(6);
 
-        CFGAST struct_type = type.getStructType();
+        ast struct_type = getStructType(type);
 
         if(typeCache.containsKey(structName.hashCode())){
             return new CElaboratedType(
@@ -150,8 +151,8 @@ public class CFGTypeConverter {
         CCompositeType cStructType =
                 new CCompositeType(isConst, isVolatile, CComplexType.ComplexTypeKind.STRUCT, structName, structName);
 
-        //items
-        ast_field_vector items = struct_type.get(ast_ordinal.getUC_FIELDS()).as_ast().children();
+        //normalized type
+        ast_field_vector items = struct_type.children(); //struct_type.get(ast_ordinal.getUC_FIELDS()).as_ast().children();
 
         List<CCompositeType.CCompositeTypeMemberDeclaration> members =
                 new ArrayList<>((int)items.size());
@@ -159,7 +160,8 @@ public class CFGTypeConverter {
         for (int i = 0; i < items.size(); i++) {
             ast_field member = items.get(i);
             String memberName = member.as_ast().pretty_print();
-            CType cMemType = getCType((CFGAST) member.as_ast());
+
+            CType cMemType = getCType(member.as_ast().get(ast_ordinal.getBASE_TYPE()).as_ast());
             CCompositeType.CCompositeTypeMemberDeclaration memDecl =
                     new CCompositeType.CCompositeTypeMemberDeclaration(cMemType, memberName);
             members.add(memDecl);

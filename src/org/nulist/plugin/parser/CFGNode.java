@@ -9,7 +9,10 @@ package org.nulist.plugin.parser;
 
 import com.grammatech.cs.*;
 
-public class CFGNode extends point {
+import static org.nulist.plugin.parser.CFGAST.isInitializationExpression;
+import static org.nulist.plugin.parser.CFGAST.normalizingVariableName;
+
+public class CFGNode {
 
     public final static String ACTUAL_IN = "actual-in";
     public final static String ACTUAL_OUT = "actual-out";
@@ -46,213 +49,209 @@ public class CFGNode extends point {
     public final static String EXCEPTIONAL_RETURN = "exceptional-return";
     public final static String HAMMOCK_EXIT = "hammock-exit";
     public final static String HAMMOCK_HEADER = "hammock-header";
+   
+    
+    public static String getKindName(point point) throws result{
+        return point.get_kind().name();
+    }
 
-    public CFGNode(long cPtr, boolean cMemoryOwn){
-        super(cPtr, cMemoryOwn);
+    public static boolean isFormal_In(point point) throws result{
+        return point.get_kind().equals(point_kind.getFORMAL_IN());
+    }
+
+    public static boolean isFormal_Out(point point) throws result{
+        return point.get_kind().equals(point_kind.getFORMAL_OUT());
+    }
+
+    public static boolean isGlobalFormal_In(point point) throws result{
+        return point.get_kind().equals(point_kind.getGLOBAL_FORMAL_IN());
+    }
+
+    public static boolean isGlobalFormal_Out(point point) throws result{
+        return point.get_kind().equals(point_kind.getGLOBAL_FORMAL_OUT());
+    }
+
+    public static boolean isActual_In(point point) throws result{
+        return point.get_kind().equals(point_kind.getACTUAL_IN());
+    }
+
+    public static boolean isActual_Out(point point) throws result{
+        return point.get_kind().equals(point_kind.getACTUAL_OUT());
+    }
+
+    public static boolean isGlobalActual_In(point point) throws result{
+        return point.get_kind().equals(point_kind.getGLOBAL_ACTUAL_IN());
+    }
+
+    public static boolean isGlobalActual_Out(point point) throws result{
+        return point.get_kind().equals(point_kind.getGLOBAL_ACTUAL_OUT());
+    }
+
+    public static boolean isControl_Point(point point) throws result{
+        return point.get_kind().equals(point_kind.getCONTROL_POINT());
+    }
+
+    public static boolean isCall_Site(point point) throws result{
+        return point.get_kind().equals(point_kind.getCALL_SITE());
+    }
+
+    public static boolean isFunctionEntry(point point) throws result{
+        return point.get_kind().equals(point_kind.getENTRY());
+    }
+
+    public static boolean isIndirect_Call(point point) throws result{
+        return point.get_kind().equals(point_kind.getINDIRECT_CALL());
+    }
+
+    public static boolean isFunctionBody(point point) throws result{
+        return point.get_kind().equals(point_kind.getBODY());
+    }
+
+    public static boolean isFunctionExit(point point) throws result{
+        return point.get_kind().equals(point_kind.getEXIT());
+    }
+
+    public static boolean isDeclaration(point point) throws result{
+        return point.get_kind().equals(point_kind.getDECLARATION());
+    }
+
+    public static boolean isJump(point point) throws result{
+        return point.get_kind().equals(point_kind.getJUMP());
+    }
+
+    public static boolean isLabel(point point) throws result{
+        return point.get_kind().equals(point_kind.getLABEL());
+    }
+
+    public static boolean isSwitchCase(point point) throws result{
+        return point.get_kind().equals(point_kind.getSWITCH_CASE());
+    }
+
+    public static boolean isReturn(point point) throws result{
+        return point.get_kind().equals(point_kind.getRETURN());
+    }
+
+    public static boolean isExpression(point point) throws result{
+        return point.get_kind().equals(point_kind.getEXPRESSION());
+    }
+
+    public static boolean isUnavailable(point point) throws result{
+        return point.get_kind().equals(point_kind.getUNAVAILABLE());
+    }
+
+    public static boolean isVertex_Kind_Null(point point) throws result{
+        return point.get_kind().equals(point_kind.getRESERVED_000());
+    }
+
+    public static boolean isCallPost_Vertex(point point) throws result{
+        return point.get_kind().equals(point_kind.getRESERVED_002());
+    }
+
+    public static boolean isEnd_Vertex(point point) throws result{
+        return point.get_kind().equals(point_kind.getRESERVED_003());
+    }
+
+    public static boolean isUser_Defined_Vertex(point point) throws result{
+        return point.get_kind().equals(point_kind.getRESERVED_004());
+    }
+
+    public static boolean isAuxiliary(point point) throws result{
+        return point.get_kind().equals(point_kind.getAUXILIARY());
+    }
+
+    public static boolean isPhi(point point) throws result{
+        return point.get_kind().equals(point_kind.getPHI());
+    }
+
+    public static boolean isPi(point point) throws result{
+        return point.get_kind().equals(point_kind.getPI());
+    }
+
+    public static boolean isNormal_Exit(point point) throws result{
+        return point.get_kind().equals(point_kind.getNORMAL_EXIT());
+    }
+
+    public static boolean isExceptional_Exit(point point) throws result{
+        return point.get_kind().equals(point_kind.getEXCPT_EXIT());
+    }
+
+    public static boolean isNormal_Return(point point) throws result{
+        return point.get_kind().equals(point_kind.getNORMAL_RETURN());
+    }
+
+    public static boolean isExceptional_Return(point point) throws result{
+        return point.get_kind().equals(point_kind.getNORMAL_RETURN());
+    }
+
+    public static boolean isHammock_Header(point point) throws result{
+        return point.get_kind().equals(point_kind.getHAMMOCK_HEADER());
+    }
+
+    public static boolean isHammock_Exit(point point) throws result{
+        return point.get_kind().equals(point_kind.getHAMMOCK_EXIT());
+    }
+
+    public static boolean isVariable_Initialization(point point) throws result{
+        return point.get_kind().equals(point_kind.getVARIABLE_INITIALIZATION());
     }
 
 
-    public String getKindName() throws result{
-        return this.get_kind().name();
+    public static int getFileLineNumber(point point) throws result{
+        return (int)point.file_line().get_second();
     }
 
-    public boolean isFormal_In() throws result{
-        return this.get_kind().equals(point_kind.getFORMAL_IN());
-    }
-
-    public boolean isFormal_Out() throws result{
-        return this.get_kind().equals(point_kind.getFORMAL_OUT());
-    }
-
-    public boolean isGlobalFormal_In() throws result{
-        return this.get_kind().equals(point_kind.getGLOBAL_FORMAL_IN());
-    }
-
-    public boolean isGlobalFormal_Out() throws result{
-        return this.get_kind().equals(point_kind.getGLOBAL_FORMAL_OUT());
-    }
-
-    public boolean isActual_In() throws result{
-        return this.get_kind().equals(point_kind.getACTUAL_IN());
-    }
-
-    public boolean isActual_Out() throws result{
-        return this.get_kind().equals(point_kind.getACTUAL_OUT());
-    }
-
-    public boolean isGlobalActual_In() throws result{
-        return this.get_kind().equals(point_kind.getGLOBAL_ACTUAL_IN());
-    }
-
-    public boolean isGlobalActual_Out() throws result{
-        return this.get_kind().equals(point_kind.getGLOBAL_ACTUAL_OUT());
-    }
-
-    public boolean isControl_Point() throws result{
-        return this.get_kind().equals(point_kind.getCONTROL_POINT());
-    }
-
-    public boolean isCall_Site() throws result{
-        return this.get_kind().equals(point_kind.getCALL_SITE());
-    }
-
-    public boolean isFunctionEntry() throws result{
-        return this.get_kind().equals(point_kind.getENTRY());
-    }
-
-    public boolean isIndirect_Call() throws result{
-        return this.get_kind().equals(point_kind.getINDIRECT_CALL());
-    }
-
-    public boolean isFunctionBody() throws result{
-        return this.get_kind().equals(point_kind.getBODY());
-    }
-
-    public boolean isFunctionExit() throws result{
-        return this.get_kind().equals(point_kind.getEXIT());
-    }
-
-    public boolean isDeclaration() throws result{
-        return this.get_kind().equals(point_kind.getDECLARATION());
-    }
-
-    public boolean isJump() throws result{
-        return this.get_kind().equals(point_kind.getJUMP());
-    }
-
-    public boolean isLabel() throws result{
-        return this.get_kind().equals(point_kind.getLABEL());
-    }
-
-    public boolean isSwitchCase() throws result{
-        return this.get_kind().equals(point_kind.getSWITCH_CASE());
-    }
-
-    public boolean isReturn() throws result{
-        return this.get_kind().equals(point_kind.getRETURN());
-    }
-
-    public boolean isExpression() throws result{
-        return this.get_kind().equals(point_kind.getEXPRESSION());
-    }
-
-    public boolean isUnavailable() throws result{
-        return this.get_kind().equals(point_kind.getUNAVAILABLE());
-    }
-
-    public boolean isVertex_Kind_Null() throws result{
-        return this.get_kind().equals(point_kind.getRESERVED_000());
-    }
-
-    public boolean isCallPost_Vertex() throws result{
-        return this.get_kind().equals(point_kind.getRESERVED_002());
-    }
-
-    public boolean isEnd_Vertex() throws result{
-        return this.get_kind().equals(point_kind.getRESERVED_003());
-    }
-
-    public boolean isUser_Defined_Vertex() throws result{
-        return this.get_kind().equals(point_kind.getRESERVED_004());
-    }
-
-    public boolean isAuxiliary() throws result{
-        return this.get_kind().equals(point_kind.getAUXILIARY());
-    }
-
-    public boolean isPhi() throws result{
-        return this.get_kind().equals(point_kind.getPHI());
-    }
-
-    public boolean isPi() throws result{
-        return this.get_kind().equals(point_kind.getPI());
-    }
-
-    public boolean isNormal_Exit() throws result{
-        return this.get_kind().equals(point_kind.getNORMAL_EXIT());
-    }
-
-    public boolean isExceptional_Exit() throws result{
-        return this.get_kind().equals(point_kind.getEXCPT_EXIT());
-    }
-
-    public boolean isNormal_Return() throws result{
-        return this.get_kind().equals(point_kind.getNORMAL_RETURN());
-    }
-
-    public boolean isExceptional_Return() throws result{
-        return this.get_kind().equals(point_kind.getNORMAL_RETURN());
-    }
-
-    public boolean isHammock_Header() throws result{
-        return this.get_kind().equals(point_kind.getHAMMOCK_HEADER());
-    }
-
-    public boolean isHammock_Exit() throws result{
-        return this.get_kind().equals(point_kind.getHAMMOCK_EXIT());
-    }
-
-    public boolean isVariable_Initialization() throws result{
-        return this.get_kind().equals(point_kind.getVARIABLE_INITIALIZATION());
-    }
-
-
-    public int getFileLineNumber() throws result{
-        return (int)this.file_line().get_second();
-    }
-
-    public boolean isGlobalConstant(){
-        try {
-            CFGAST ast = (CFGAST) this.get_ast(ast_family.getC_NORMALIZED());
-            CFGAST value_ast = (CFGAST) ast.children().get(1).as_ast();
-            return value_ast.isGlobalConstant();
-        }catch (result r){
-            return false;
-        }
-
-    }
+//    public static boolean isGlobalConstant(point point){
+//        try {
+//            ast ast =  point.get_ast(ast_family.getC_NORMALIZED());
+//            ast value_ast = ast.children().get(1).as_ast();
+//            return CFGAST.isGlobalConstant(value_ast);
+//        }catch (result r){
+//            return false;
+//        }
+//
+//    }
 
     /**
      *@Description check if the variable in the expression is a global variable
      *@Param [expresiion_point]
      *@return boolean
      **/
-    public boolean isGlobalVariable(){
+    public static boolean isGlobalVariable(point point){
         try {
-            return this.declared_symbol().is_global();
+            return point.declared_symbol().is_global();
         }catch (result r){
             return false;
         }
     }
 
-    public boolean isGoToLabel(){
+    public static boolean isGoToLabel(point point){
         try {
-            return this.isLabel() && this.get_syntax_kind().equals(point_syntax_kind.getLABEL());
+            return isLabel(point) && point.get_syntax_kind().equals(point_syntax_kind.getLABEL());
         }catch (result r){
             return false;
         }
     }
 
-    public boolean isElseLabel(){
+    public static boolean isElseLabel(point point){
         try {
-            return this.isLabel() && this.get_syntax_kind().equals(point_syntax_kind.getELSE());
+            return isLabel(point) && point.get_syntax_kind().equals(point_syntax_kind.getELSE());
         }catch (result r){
             return false;
         }
     }
 
-    public boolean isDoLabel(){
+    public static boolean isDoLabel(point point){
         try {
-            return this.isLabel() && this.get_syntax_kind().equals(point_syntax_kind.getNONE())
-                    && this.characters().equals("do");
+            return isLabel(point) && point.get_syntax_kind().equals(point_syntax_kind.getNONE())
+                    && point.characters().equals("do");
         }catch (result r){
             return false;
         }
     }
 
-    public boolean isGotoNode(){
+    public static boolean isGotoNode(point point){
         try {
-            if(this.isJump() && this.get_syntax_kind().equals(point_syntax_kind.getGOTO()))
+            if(isJump(point) && point.get_syntax_kind().equals(point_syntax_kind.getGOTO()))
                 return true;
             return false;
         }catch (result r){
@@ -260,9 +259,9 @@ public class CFGNode extends point {
         }
     }
 
-    public boolean isBreakNode(){
+    public static boolean isBreakNode(point point){
         try {
-            if(this.isJump() && this.get_syntax_kind().equals(point_syntax_kind.getBREAK()))
+            if(isJump(point) && point.get_syntax_kind().equals(point_syntax_kind.getBREAK()))
                 return true;
             return false;
         }catch (result r){
@@ -270,9 +269,9 @@ public class CFGNode extends point {
         }
     }
 
-    public boolean isIfControlPointNode(){
+    public static boolean isIfControlPointNode(point point){
         try {
-            if(this.isControl_Point() && this.get_syntax_kind().equals(point_syntax_kind.getIF()))
+            if(isControl_Point(point) && point.get_syntax_kind().equals(point_syntax_kind.getIF()))
                 return true;
             return false;
         }catch (result r){
@@ -280,9 +279,9 @@ public class CFGNode extends point {
         }
     }
 
-    public boolean isWhileControlPointNode(){
+    public static boolean isWhileControlPointNode(point point){
         try {
-            if(this.isControl_Point() && this.get_syntax_kind().equals(point_syntax_kind.getWHILE()))
+            if(isControl_Point(point) && point.get_syntax_kind().equals(point_syntax_kind.getWHILE()))
                 return true;
             return false;
         }catch (result r){
@@ -290,9 +289,9 @@ public class CFGNode extends point {
         }
     }
 
-    public boolean isDoControlPointNode(){
+    public static boolean isDoControlPointNode(point point){
         try {
-            if(this.isControl_Point() && this.get_syntax_kind().equals(point_syntax_kind.getDO()))
+            if(isControl_Point(point) && point.get_syntax_kind().equals(point_syntax_kind.getDO()))
                 return true;
             return false;
         }catch (result r){
@@ -300,9 +299,9 @@ public class CFGNode extends point {
         }
     }
 
-    public boolean isForControlPointNode(){
+    public static boolean isForControlPointNode(point point){
         try {
-            if(this.isControl_Point() && this.get_syntax_kind().equals(point_syntax_kind.getFOR()))
+            if(isControl_Point(point) && point.get_syntax_kind().equals(point_syntax_kind.getFOR()))
                 return true;
             return false;
         }catch (result r){
@@ -310,9 +309,9 @@ public class CFGNode extends point {
         }
     }
 
-    public boolean isSwitchControlPointNode(){
+    public static boolean isSwitchControlPointNode(point point){
         try {
-            if(this.isControl_Point() && this.get_syntax_kind().equals(point_syntax_kind.getSWITCH()))
+            if(isControl_Point(point) && point.get_syntax_kind().equals(point_syntax_kind.getSWITCH()))
                 return true;
             return false;
         }catch (result r){
@@ -325,24 +324,24 @@ public class CFGNode extends point {
      *@Param []
      *@return java.lang.String
      **/
-    public String getLabelName() throws result{
+    public static String getLabelName(point point) throws result{
 
-        String labelName = this.characters();
+        String labelName = point.characters();
 
-        if(this.get_syntax_kind().equals(point_syntax_kind.getLABEL())){
-            labelName = this.get_ast(ast_family.getC_UNNORMALIZED()).get(ast_ordinal.getUC_LABEL()).as_ast().pretty_print();
-        }else if(this.get_syntax_kind().equals(point_syntax_kind.getELSE())){
-            labelName = this.get_syntax_kind().name();
-        }else if(this.get_syntax_kind().equals(point_syntax_kind.getNONE())){
-            labelName = this.characters();
+        if(point.get_syntax_kind().equals(point_syntax_kind.getLABEL())){
+            labelName = point.get_ast(ast_family.getC_UNNORMALIZED()).get(ast_ordinal.getUC_LABEL()).as_ast().pretty_print();
+        }else if(point.get_syntax_kind().equals(point_syntax_kind.getELSE())){
+            labelName = point.get_syntax_kind().name();
+        }else if(point.get_syntax_kind().equals(point_syntax_kind.getNONE())){
+            labelName = point.characters();
         }
 
         return labelName;
     }
 
-    public String getGoToLabelName(){
+    public static String getGoToLabelName(point point){
         try {
-            return this.get_ast(ast_family.getC_UNNORMALIZED())
+            return point.get_ast(ast_family.getC_UNNORMALIZED())
                     .get(ast_ordinal.getUC_LABEL()).as_ast().pretty_print();
         }catch (result r){
             return "";
@@ -350,17 +349,17 @@ public class CFGNode extends point {
     }
 
     //TODO:
-    public String getRawSignature(){
+    public static String getRawSignature(point point){
         try {
-            CFGAST no_ast = (CFGAST) this.get_ast(ast_family.getC_NORMALIZED());
+            ast no_ast = point.get_ast(ast_family.getC_NORMALIZED());
 
-            if(this.isExpression() && no_ast.isInitializationExpression()){
-                return this.get_ast(ast_family.getC_NORMALIZED())
+            if(isExpression(point) && isInitializationExpression(no_ast)){
+                return point.get_ast(ast_family.getC_NORMALIZED())
                         .get(ast_ordinal.getBASE_TYPE()).as_ast().pretty_print()+" "
-                        +this.characters();
+                        +point.characters();
             }else
 
-            return this.characters();
+            return point.characters();
         }catch (result r){
             return "";
         }
@@ -371,16 +370,19 @@ public class CFGNode extends point {
      *@Param []
      *@return boolean
      **/
-    public boolean hasElseNode() throws  result{
+    public static boolean hasElseNode(point point) throws  result{
         //  the first edge is the true edge
         // the second edge is the false edge
-        cfg_edge_set cfgEdgeSet = this.cfg_targets();
-        CFGNode falseNode = (CFGNode) cfgEdgeSet.cend().current().get_first();
-        return falseNode.isElseLabel();
+        cfg_edge_set cfgEdgeSet = point.cfg_targets();
+        point falseNode =  cfgEdgeSet.cend().current().get_first();
+        return isElseLabel(falseNode);
 
     }
-    public String getVariableNameInNode() throws  result{
-        CFGAST variable_ast = (CFGAST) this.get_ast(ast_family.getC_NORMALIZED());
-        return variable_ast.normalizingVariableName();
+
+    //declaration point
+    public static String getVariableNameInNode(point point) throws  result{
+        ast variable_ast = point.get_ast(ast_family.getC_NORMALIZED());
+        return normalizingVariableName(variable_ast);
     }
+
 }

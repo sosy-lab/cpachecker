@@ -28,6 +28,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
+import static org.nulist.plugin.parser.CFGAST.getStorageClass;
+import static org.nulist.plugin.parser.CFGAST.getVariableName;
+import static org.nulist.plugin.parser.CFGNode.isExpression;
+import static org.nulist.plugin.parser.CFGNode.isVariable_Initialization;
 import static org.nulist.plugin.util.FileOperations.*;
 
 /**
@@ -174,13 +178,13 @@ public class CFABuilder {
         for(point_set_iterator point_it = pointSet.cbegin();
             !point_it.at_end(); point_it.advance()){
             //point p = point_it.current();
-            CFGNode node = (CFGNode) point_it.current();
+            point node =  point_it.current();
             CInitializer initializer = null;
 
-            if(node.isVariable_Initialization()||node.isExpression()){
+            if(isVariable_Initialization(node)|| isExpression(node)){
                 FileLocation fileLocation = getLocation(node,pFileName);
-                CFGAST no_ast = (CFGAST) node.get_ast(ast_family.getC_NORMALIZED());
-                CType varType = typeConverter.getCType((CFGAST) no_ast.get(ast_ordinal.getNC_TYPE()).as_ast());
+                ast no_ast = node.get_ast(ast_family.getC_NORMALIZED());
+                CType varType = typeConverter.getCType(no_ast.get(ast_ordinal.getNC_TYPE()).as_ast());
 
                 // for example: int i=0;
                 // in nc_ast: children {i, 0}
@@ -188,12 +192,13 @@ public class CFABuilder {
                 // has initialization
                 initializer = expressionHandler.getInitializer(no_ast,fileLocation);
 
-                String assignedVar = no_ast.children().get(0).as_ast().pretty_print();//the 1st child field store the variable
+                String variableName =getVariableName(no_ast, true);
+
+                //String assignedVar = no_ast.children().get(0).as_ast().pretty_print();//the 1st child field store the variable
 
                 // Support static and other storage classes
-                CFGAST un_ast = (CFGAST) node.get_ast(ast_family.getC_UNNORMALIZED());
-                CStorageClass storageClass= un_ast.getStorageClass();
-
+                ast un_ast = node.get_ast(ast_family.getC_UNNORMALIZED());
+                CStorageClass storageClass= getStorageClass(un_ast);
 
                 if ( varType instanceof CPointerType) {
                     varType = ((CPointerType) varType).getType();
@@ -205,12 +210,12 @@ public class CFABuilder {
                                 true,
                                 storageClass,
                                 varType,
-                                assignedVar,
-                                assignedVar,
-                                assignedVar,
+                                variableName,
+                                variableName,
+                                variableName,
                                 initializer);
 
-                expressionHandler.globalVariableDeclarations.put(assignedVar.hashCode(),(ADeclaration) newDecl);
+                expressionHandler.globalVariableDeclarations.put(variableName.hashCode(),(ADeclaration) newDecl);
             }
 
         }
@@ -224,23 +229,23 @@ public class CFABuilder {
      *@return org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration
      **/
     private CDeclaration getAssignedVarDeclaration(
-            final CFGNode node, CInitializer pInitializer, final FileLocation fileLocation) throws result {
+            final point node, CInitializer pInitializer, final FileLocation fileLocation) throws result {
 
 
         final long itemId = node.id();
 
 
-        CFGAST nc_ast = (CFGAST) node.get_ast(ast_family.getC_NORMALIZED());
-        CFGAST un_ast = (CFGAST) node.get_ast(ast_family.getC_UNNORMALIZED());
+        ast nc_ast = node.get_ast(ast_family.getC_NORMALIZED());
+        ast un_ast = node.get_ast(ast_family.getC_UNNORMALIZED());
 
         String assignedVar = nc_ast.children().get(0).as_ast().pretty_print();//the 1st child field store the variable
 
         final boolean isGlobal = node.declared_symbol().is_global();
         // Support static and other storage classes
 
-        CStorageClass storageClass= un_ast.getStorageClass();
+        CStorageClass storageClass= getStorageClass(un_ast);
 
-        CType varType = typeConverter.getCType((CFGAST) nc_ast.get(ast_ordinal.getNC_TYPE()).as_ast());
+        CType varType = typeConverter.getCType(nc_ast.get(ast_ordinal.getNC_TYPE()).as_ast());
 
         // We handle alloca not like malloc, which returns a pointer, but as a general
         // variable declaration. Consider that here by using the allocated type, not the
