@@ -420,14 +420,27 @@ public class CFGHandleExpression {
      *@Param [no_ast, pFileName]
      *@return org.sosy_lab.cpachecker.cfa.ast.c.CInitializer
      **/
-    public CInitializer getConstantAggregateInitializer(ast no_ast,
+    public CInitializer getConstantAggregateInitializer(CFGAST no_ast,
                                                          final FileLocation fileLoc) throws result {
 
         //ast no_ast = initialPoint.get_ast(ast_family.getC_NORMALIZED());
         ast_field value = no_ast.children().get(1);
-        ast_field_vector elements = value.as_ast().children();
+        CType type = typeConverter.getCType((CFGAST) value.get(ast_ordinal.getBASE_TYPE()).as_ast());
 
+        ast_field_vector elements = value.as_ast().children();
         int length = (int)elements.size();
+        if(no_ast.isNormalExpression() && type.equals(CNumericTypes.CHAR)){
+            char[] items = new char[length];
+            for(int i=0;i<length;i++){
+                items[i]=(char) elements.get(i).as_ast().get(ast_ordinal.getBASE_VALUE()).as_int32();
+            }
+            CType cType = new CPointerType(true,false,type);
+            CStringLiteralExpression stringLiteralExpression =
+                    new CStringLiteralExpression(fileLoc,cType, String.copyValueOf(items,0,items.length-1));
+            return new CInitializerExpression(fileLoc,stringLiteralExpression);
+        }
+
+
         List<CInitializer> elementInitializers = new ArrayList<>(length);
         for(int i=0;i<length;i++){
             ast_field element = elements.get(i);
@@ -441,7 +454,7 @@ public class CFGHandleExpression {
             }else if(elementType_ast.isArrayType() ||
                     elementType_ast.isStructType() ||
                     elementType_ast.isEnumType()){
-                elementInitializer = getConstantAggregateInitializer(element.as_ast(), fileLoc);
+                elementInitializer = getConstantAggregateInitializer((CFGAST) element.as_ast(), fileLoc);
             } else {
                 elementInitializer = new CInitializerExpression(
                         fileLoc, (CExpression) getConstant((CFGAST)element.as_ast(),
