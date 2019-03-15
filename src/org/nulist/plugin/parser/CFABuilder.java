@@ -115,10 +115,10 @@ public class CFABuilder {
                 // handle the function definition
                 CFunctionEntryNode en = cfgFunctionBuilder.handleFunctionDefinition();
                 addNode(funcName, en);
-                addNode(funcName, en.getExitNode());
+                //addNode(funcName, en.getExitNode());
                 //
 
-                cfaNodes.put(funcName, en);
+                //cfaNodes.put(funcName, en);
                 functions.put(funcName, en);
                 cfgFunctionBuilderMap.put(funcName,cfgFunctionBuilder);
             }
@@ -140,6 +140,7 @@ public class CFABuilder {
                 String funcName = proc.name();
                 CFGFunctionBuilder cfgFunctionBuilder = cfgFunctionBuilderMap.get(funcName);
                 cfgFunctionBuilder.visitFunction();
+                //cfaNodes.replaceValues(funcName,cfgFunctionBuilder.getCfa());
             }
         }
     }

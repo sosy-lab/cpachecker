@@ -113,6 +113,7 @@ public class CFGFunctionBuilder  {
      **/
     public void visitFunction() throws result {
         assert function!=null && function.get_kind().equals(procedure_kind.getUSER_DEFINED());
+        //TODO add function return variables
 
         //expressionHandler.setVariableDeclarations(variableDeclarations);
         //first visit: build nodes before traversing CFGs
@@ -152,77 +153,15 @@ public class CFGFunctionBuilder  {
 
     /**
      *@Description traverse local declared symbols in the function
-     *@Param []
-     *@return the last declaration node
+     *@Param [declSet, entryNextNode]
+     *@return null
      **/
-    private void handleVariableDeclaration(point entryNextNode)throws result{
-
-        symbol_vector var_vector = function.declared_symbols();
-        symbol lastDecSymbol = null;
-        boolean isFirstNode = true;
-
-
-        CFANode prevNode = cfaNodeMap.get(function.entry_point().id());
-        CVariableDeclaration preVar =null;
-        FileLocation fileLocation =null;
-
-
-
-        for(int i=0;i<var_vector.size();i++){
-            symbol variable = var_vector.get(i);
-
-            //focus on user-defined uninitialized local variables
-            if(variable.get_kind().equals(symbol_kind.getUSER()) && !variable.is_formal()){
-                ast symbolAST = variable.get_ast(ast_family.getC_UNNORMALIZED());
-                if(symbolHasInitialization(symbolAST))
-                    continue;
-
-                if(isFirstNode){
-                    isFirstNode = false;
-                    final CFANode nextNode = newCFANode();
-
-                    final BlankEdge dummyEdge = new BlankEdge("", FileLocation.DUMMY,
-                            prevNode, nextNode, "Function start edge");
-                    addToCFA(dummyEdge);
-                    locStack.push(nextNode);
-
-                }else {
-                    prevNode = locStack.peek();
-                    CFANode nextNode = newCFANode();
-                    CDeclarationEdge edge = new CDeclarationEdge(lastDecSymbol.primary_declaration().characters(),
-                            fileLocation, prevNode, nextNode, preVar);
-                    addToCFA(edge);
-                    locStack.push(nextNode);
-                    cfaNodeMap.put(variable.primary_declaration().id(),nextNode);
-                }
-
-                lastDecSymbol = variable;
-
-                fileLocation = getLocation((int)variable.file_line().get_second(),fileName);
-                preVar = getVariableDeclaration(variable, null, fileLocation);
-            }
-
-        }
-
-        CFANode nextCFANode = cfaNodeMap.get(entryNextNode.id());
-        if(isFirstNode){
-            final BlankEdge dummyEdge = new BlankEdge("", FileLocation.DUMMY,
-                    prevNode, nextCFANode, "Function start edge");
-            addToCFA(dummyEdge);
-        }else {
-            prevNode = locStack.peek();
-            CDeclarationEdge edge = new CDeclarationEdge(lastDecSymbol.primary_declaration().characters(),
-                    fileLocation,prevNode,nextCFANode, preVar);
-            addToCFA(edge);
-        }
-    }
-
     private void handleVariableDeclaration(List<point> declSet, point entryNextNode)throws result{
 
         symbol lastDecSymbol = null;
         boolean isFirstNode = true;
 
-        CFANode prevNode = cfaNodeMap.get(function.entry_point().id());
+        CFANode prevNode = cfa;
         CVariableDeclaration preVar =null;
         FileLocation fileLocation =null;
         CFANode nextCFANode = cfaNodeMap.get(entryNextNode.id());
@@ -767,6 +706,7 @@ public class CFGFunctionBuilder  {
      *@return org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration
      **/
     private CVariableDeclaration getVariableDeclaration(symbol variable, CInitializer initializer, FileLocation fileLocation)throws result{
+
         String assignedVar = variable.name().replace("-","_");//name-id-->name_id
 
         if(expressionHandler.variableDeclarations.containsKey(assignedVar.hashCode()))

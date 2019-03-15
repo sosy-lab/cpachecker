@@ -131,10 +131,15 @@ public class CFGHandleExpression {
     public CExpression getAssignedIdExpression(
             final ast variable_ast, final CType pExpectedType, final FileLocation fileLocation) throws result{
         //logger.log(Level.FINE, "Getting var declaration for point");
-
-        String assignedVarName =normalizingVariableName(variable_ast);
         symbol variableSymbol = variable_ast.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol();
-        String normalizedVarName = getNormalizedVariableName(variableSymbol,assignedVarName, fileLocation.getFileName());
+        String assignedVarName;
+        if(variableSymbol.is_formal() || variableSymbol.is_global())
+            assignedVarName = variableSymbol.get_ast().pretty_print();
+        else
+            assignedVarName = normalizingVariableName(variable_ast);
+
+        String normalizedVarName = getNormalizedVariableName(variableSymbol, assignedVarName, fileLocation.getFileName());
+
         boolean isGlobal = variableSymbol.is_global();
         boolean isFileStatic = variableSymbol.is_file_static();
 
