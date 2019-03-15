@@ -53,6 +53,17 @@ public class CFGAST {
             return false;
         }
     }
+
+
+    public static boolean isTypeRef(ast ast){
+        try {
+            return ast.is_a(ast_class.getUC_TYPEREF());
+        }catch (result r){
+            return false;
+        }
+    }
+
+
     public static boolean isNullArrayInit(ast ast){
         try {
             ast field1 = ast.children().get(0).as_ast();

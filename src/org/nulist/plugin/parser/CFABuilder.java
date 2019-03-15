@@ -186,8 +186,8 @@ public class CFABuilder {
 
             if(isVariable_Initialization(node)|| isExpression(node)){
                 FileLocation fileLocation = getLocation(node,pFileName);
-                ast no_ast = node.get_ast(ast_family.getC_NORMALIZED());
-                CType varType = typeConverter.getCType(no_ast.get(ast_ordinal.getNC_TYPE()).as_ast());
+                ast no_ast = node.get_ast(ast_family.getC_UNNORMALIZED());
+                CType varType = typeConverter.getCType(no_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
 
                 // for example: int i=0;
                 // in nc_ast: children {i, 0}

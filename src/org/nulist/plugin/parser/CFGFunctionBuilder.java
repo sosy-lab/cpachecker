@@ -574,8 +574,8 @@ public class CFGFunctionBuilder  {
         if(!formal_outs.empty()){
             //Note that it is impossible that there are more than one formal out
             point p = formal_outs.cbegin().current();
-            ast un_ast = p.get_ast(ast_family.getC_UNNORMALIZED());
-            ast type_ast = un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast();
+            ast no_ast = p.get_ast(ast_family.getC_NORMALIZED());
+            ast type_ast = no_ast.get(ast_ordinal.getBASE_TYPE()).as_ast();
             //for example: int functionName(int param_1, long param_2){...}
             //type_ast.pretty_print() == int (int, long)
             returnType = typeConverter.getCType(type_ast.get(ast_ordinal.getBASE_RETURN_TYPE()).as_ast());
@@ -595,11 +595,11 @@ public class CFGFunctionBuilder  {
                 !point_it.at_end();point_it.advance())
             {
                 point paramNode = point_it.current();
-                ast un_ast = paramNode.get_ast(ast_family.getC_UNNORMALIZED());
+                ast no_ast = paramNode.get_ast(ast_family.getC_NORMALIZED());
 
-                String paramName = un_ast.pretty_print();//param_point.parameter_symbols().get(0).get_ast().pretty_print();
+                String paramName = no_ast.pretty_print();//param_point.parameter_symbols().get(0).get_ast().pretty_print();
 
-                CType paramType = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
+                CType paramType = typeConverter.getCType(no_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
                 paramsType.add(paramType);
                 CParameterDeclaration parameter =
                         new CParameterDeclaration(getLocation(paramNode,fileName),paramType,paramName);
@@ -635,25 +635,23 @@ public class CFGFunctionBuilder  {
         // Return variable : The return value is written to this
         Optional<CVariableDeclaration> returnVar = Optional.absent();
         FileLocation fileLocation =getLocation(function, fileName);
-        for(procedure_locals_iterator prc_it= function.local_symbols();
-            !prc_it.at_end();prc_it.advance()){
-            symbol variable = prc_it.current();
-            if(variable.get_kind().equals(symbol_kind.getRETURN())){
-                String assignedVar = variable.get_ast().pretty_print();
-                CVariableDeclaration newVarDecl =
-                        new CVariableDeclaration(
-                                fileLocation,
-                                variable.is_global(),
-                                CStorageClass.AUTO,
-                                functionDeclaration.getType().getReturnType(),
-                                assignedVar,
-                                assignedVar,
-                                assignedVar,
-                                null);
-                expressionHandler.variableDeclarations.put(assignedVar.hashCode(),newVarDecl);
-                returnVar =Optional.of(newVarDecl);
-                break;
-            }
+
+        if(!functionDeclaration.getType().getReturnType().equals(CVoidType.VOID)){
+            point formal_out = function.formal_outs().cbegin().current();
+            ast no_ast = formal_out.get_ast(ast_family.getC_NORMALIZED());
+            String variabeName = no_ast.get(ast_ordinal.getNC_UNNORMALIZED()).as_ast().pretty_print();
+            CVariableDeclaration newVarDecl =
+                    new CVariableDeclaration(
+                            fileLocation,
+                            false,
+                            CStorageClass.AUTO,
+                            functionDeclaration.getType().getReturnType(),
+                            variabeName,
+                            variabeName,
+                            variabeName,
+                            null);
+            expressionHandler.variableDeclarations.put(variabeName.hashCode(),newVarDecl);
+            returnVar =Optional.of(newVarDecl);
         }
 
         FunctionExitNode functionExit = new FunctionExitNode(functionName);
@@ -1200,23 +1198,4 @@ public class CFGFunctionBuilder  {
 
         return (CDeclaration) expressionHandler.variableDeclarations.get(itemId);
     }
-
-
-
-//    private CExpression getExpression(
-//            final CFGNode exprNode, final CType pExpectedType, final FileLocation fileLocation)
-//            throws result {
-//        ast no_ast = exprNode.get_ast(ast_family.getC_NORMALIZED());
-//
-//        getExpression(no_ast,pExpectedType,fileLocation);
-//    }
-
-
-
-
-
-
-
-
-
 }

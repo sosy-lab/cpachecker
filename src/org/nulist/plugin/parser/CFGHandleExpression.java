@@ -101,6 +101,8 @@ public class CFGHandleExpression {
     public CExpression getAssignedIdExpression(CSimpleDeclaration assignedVarDeclaration, final CType pExpectedType, final FileLocation fileLocation){
 
         String assignedVarName = assignedVarDeclaration.getName();
+        if(assignedVarName.equals("functionTest5$return"))
+            System.out.println();
         CType expressionType = assignedVarDeclaration.getType();
         CIdExpression idExpression =
                 new CIdExpression(
@@ -115,12 +117,12 @@ public class CFGHandleExpression {
                 return new CUnaryExpression(
                         fileLocation, pExpectedType, idExpression, CUnaryExpression.UnaryOperator.AMPER);
             } else {
-                throw new AssertionError("Unhandled type structure");
+                throw new AssertionError("Unhandled type structure "+ assignedVarName+ " "+ expressionType.toString());
             }
         } else if (expressionType instanceof CPointerType) {
             return new CPointerExpression(fileLocation, pExpectedType, idExpression);
         } else {
-            throw new AssertionError("Unhandled types structure");
+            throw new AssertionError("Unhandled types structure " + assignedVarName+ " "+ expressionType.toString());
         }
 
     }
@@ -133,7 +135,9 @@ public class CFGHandleExpression {
         //logger.log(Level.FINE, "Getting var declaration for point");
         symbol variableSymbol = variable_ast.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol();
         String assignedVarName;
-        if(variableSymbol.is_formal() || variableSymbol.is_global())
+        if(variableSymbol.is_formal() ||
+                variableSymbol.is_global() ||
+                variableSymbol.get_kind().equals(symbol_kind.getRETURN()))
             assignedVarName = variableSymbol.get_ast().pretty_print();
         else
             assignedVarName = normalizingVariableName(variable_ast);
@@ -460,7 +464,7 @@ public class CFGHandleExpression {
 
         if(isInitializationExpression(no_ast)){
             ast value_ast = no_ast.children().get(1).as_ast();
-            ast type_ast = no_ast.get(ast_ordinal.getNC_TYPE()).as_ast();
+            ast type_ast = no_ast.get(ast_ordinal.getBASE_TYPE()).as_ast();
             CType valueType = typeConverter.getCType(value_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
 
             if (isConstantAggregateZero(value_ast, valueType)) {

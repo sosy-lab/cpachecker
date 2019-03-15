@@ -35,7 +35,9 @@ public class CFGTypeConverter {
         basicTypeInitialization();
     }
 
-
+    //TODO
+    //since codesurfer normalizes bool into unsigned char, which may confuse model checking
+    // we need to input unnormalized type
     public CType getCType(ast type){
         try {
             String typeString = type.pretty_print();
@@ -63,6 +65,10 @@ public class CFGTypeConverter {
                         isConstantType(type), false, cType, arrayLength);
                 typeCache.put(typeString.hashCode(),cArrayType);
                 return cArrayType;
+            }else if(isTypeRef(type)){
+
+            }else if(isEnumType(type)){
+
             }
 
             return null;
@@ -136,6 +142,9 @@ public class CFGTypeConverter {
             structName = structName.substring(6);
 
         ast struct_type = getStructType(type);
+        if(struct_type.is_a(ast_class.getUC_TYPEREF())){
+
+        }else
 
         if(typeCache.containsKey(structName.hashCode())){
             return new CElaboratedType(
