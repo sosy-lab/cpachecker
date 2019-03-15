@@ -48,7 +48,7 @@ public class CSurfPlugin {
                     procedure proc = proc_it.current();
 
                     if(proc.get_kind().equals(procedure_kind.getUSER_DEFINED())){
-                        dumpCFG2Dot(proc,args[0]);
+                        //dumpCFG2Dot(proc,args[0]);
                     }
 
                     /*point_set points;

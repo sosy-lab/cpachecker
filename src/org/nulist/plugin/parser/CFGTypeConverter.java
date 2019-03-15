@@ -152,7 +152,11 @@ public class CFGTypeConverter {
                 new CCompositeType(isConst, isVolatile, CComplexType.ComplexTypeKind.STRUCT, structName, structName);
 
         //normalized type
-        ast_field_vector items = struct_type.children(); //struct_type.get(ast_ordinal.getUC_FIELDS()).as_ast().children();
+        ast_field_vector items;
+        if(struct_type.is_a(ast_class.getUC_STRUCT()))
+            items = struct_type.get(ast_ordinal.getUC_FIELDS()).as_ast().children();
+        else
+            items =struct_type.children(); //
 
         List<CCompositeType.CCompositeTypeMemberDeclaration> members =
                 new ArrayList<>((int)items.size());

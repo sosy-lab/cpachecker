@@ -31,10 +31,10 @@ public class CFGAST {
             String typeName = type.as_ast().pretty_print();
 
             if(typeName.startsWith("const")){
-                ast_class ac = type.as_ast().get_class();
-                if(ac.equals(ast_class.getUC_POINTER())||
-                        ac.equals(ast_class.getUC_ARRAY())
-                        ||ac.equals(ast_class.getUC_VECTOR_TYPE())
+                ast typeast = type.as_ast();
+                if(typeast.is_a(ast_class.getUC_POINTER())||
+                        typeast.is_a(ast_class.getUC_ARRAY())
+                        ||typeast.is_a(ast_class.getUC_VECTOR_TYPE())
                 ){
                     return true;
                 }
@@ -48,7 +48,20 @@ public class CFGAST {
     //ast type
     public static boolean isArrayType(ast ast){
         try {
-            return ast.get_class().equals(ast_class.getNC_ARRAY());
+            return ast.is_a(ast_class.getNC_ARRAY()) || ast.is_a(ast_class.getUC_ARRAY());
+        }catch (result r){
+            return false;
+        }
+    }
+    public static boolean isNullArrayInit(ast ast){
+        try {
+            ast field1 = ast.children().get(0).as_ast();
+            ast field2 = ast.children().get(1).as_ast();
+
+            return isPointerExpr(field1)
+                    && isCastExpr(field2)
+                    && isArrayType(field2.get(ast_ordinal.getBASE_TYPE()).as_ast())
+                    && field2.children().get(1).get(ast_ordinal.getBASE_VALUE()).as_int32()==0;
         }catch (result r){
             return false;
         }
@@ -56,7 +69,7 @@ public class CFGAST {
 
     public static boolean isPointerType(ast ast){
         try {
-            return ast.is_a(ast_class.getNC_POINTER());
+            return ast.is_a(ast_class.getNC_POINTER())||ast.is_a(ast_class.getUC_POINTER());
         }catch (result r){
             return false;
         }
@@ -64,7 +77,7 @@ public class CFGAST {
 
     public static boolean isStructType(ast ast){
         try {
-            return ast.is_a(ast_class.getNC_STRUCT()) ||
+            return ast.is_a(ast_class.getNC_STRUCT()) || ast.is_a(ast_class.getUC_STRUCT())||
                     ast.get(ast_ordinal.getBASE_TYPE()).as_ast().is_a(ast_class.getUC_STRUCT());
         }catch (result r){
             return false;
@@ -83,18 +96,30 @@ public class CFGAST {
 
 
 
-    public static boolean isConstantAggregateZero(ast ast){
+    public static boolean isConstantAggregateZero(ast ast, CType cType){
         try {
             if(ast.is_a(ast_class.getNC_CASTEXPR())){
                 ast type = ast.get(ast_ordinal.getBASE_TYPE()).as_ast();
-                return (isArrayType(type)|| isPointerType(type)) &&
-                        ast.children().get(1).get(ast_ordinal.getBASE_VALUE()).as_int32()==0;
+                return (isPointerType(type)) && ast.children().get(1).get(ast_ordinal.getBASE_VALUE()).as_int32()==0;
+            }else if(cType instanceof CPointerType){
+                return ast.get(ast_ordinal.getBASE_VALUE()).as_uint32()==0;
             }
             return false;
         }catch (result r){
             return false;
         }
     }
+
+    public static BigInteger getBasicValue(ast value_ast){
+        try {
+            String valueString = value_ast.pretty_print();
+            BigInteger value = BigInteger.valueOf(Long.valueOf(valueString));
+            return value;
+        }catch (result r){
+            return null;
+        }
+    }
+
     /**
      *@Description check if a pointer is null, using its normalized ast
      *@Param []
@@ -103,7 +128,7 @@ public class CFGAST {
     public static boolean isNullPointer(ast ast){
         try {
             ast_field type = ast.get(ast_ordinal.getNC_TYPE());//normalized type
-            if(type.as_ast().is_a(ast_class.getUC_POINTER())){
+            if(type.as_ast().is_a(ast_class.getNC_POINTER())){
                 if(ast.children().get(1).as_int32()==0){
                     return true;
                 }
@@ -161,6 +186,14 @@ public class CFGAST {
     }
 
     public static boolean isZeroInitExpr(ast ast){
+        try {
+            return ast.is_a(ast_class.getNC_CASTEXPR());
+        }catch (result r){
+            return false;
+        }
+    }
+
+    public static boolean isCastExpr(ast ast){
         try {
             return ast.is_a(ast_class.getNC_CASTEXPR());
         }catch (result r){

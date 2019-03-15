@@ -53,8 +53,8 @@ public class CFABuilder {
     // Function name -> Function declaration
     protected Map<String, CFunctionDeclaration> functionDeclarations;
     protected NavigableMap<String, FunctionEntryNode> functions;
-    //protected List<Pair<ADeclaration, String>> globalVariableDeclarations;
-    protected final Map<Integer, ADeclaration> globalVariableDeclarations = new HashMap<>();
+    protected List<Pair<ADeclaration, String>> globalVariableDeclarations ;
+    //protected final Map<Integer, ADeclaration> globalVariableDeclarations = new HashMap<>();
     protected SortedSetMultimap<String, CFANode> cfaNodes;
     protected Map<String, CFGFunctionBuilder> cfgFunctionBuilderMap = new HashMap<>();
     public CFGHandleExpression expressionHandler;
@@ -69,15 +69,19 @@ public class CFABuilder {
 
         functions = new TreeMap<>();
         cfaNodes = TreeMultimap.create();
+        globalVariableDeclarations = new ArrayList<>();
         expressionHandler = new CFGHandleExpression(logger,"",typeConverter);
     }
 
 
     public List<Pair<ADeclaration, String>> getGlobalVariableDeclarations(){
-        List<Pair<ADeclaration, String>> gvars = new ArrayList<>();
-        for(ADeclaration gvar:expressionHandler.globalVariableDeclarations.values())
-            gvars.add(Pair.of(gvar,gvar.getName()));
-        return gvars;
+        if(globalVariableDeclarations.isEmpty() ||
+                globalVariableDeclarations.size()!= expressionHandler.globalVariableDeclarations.size()){
+            globalVariableDeclarations = new ArrayList<>();
+            for(ADeclaration gvar:expressionHandler.globalVariableDeclarations.values())
+                globalVariableDeclarations.add(Pair.of(gvar,gvar.getName()));
+        }
+        return globalVariableDeclarations;
     }
 
 
@@ -104,7 +108,7 @@ public class CFABuilder {
 
                 String funcName = proc.name();
                 CFGFunctionBuilder cfgFunctionBuilder =
-                        new CFGFunctionBuilder(logger,machineModel, typeConverter,  proc,funcName, pFileName, this);
+                        new CFGFunctionBuilder(logger, machineModel, typeConverter,  proc,funcName, pFileName, this);
                 // add function declaration
                 functionDeclarations.put(funcName,cfgFunctionBuilder.handleFunctionDeclaration());
 
