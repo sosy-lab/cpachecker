@@ -2045,6 +2045,8 @@ public class AutomatonGraphmlParser {
   private static Iterable<Node> asIterable(final NodeList pNodeList) {
     return new Iterable<Node>() {
 
+      private Integer length = null;
+
       @Override
       public Iterator<Node> iterator() {
         return new Iterator<Node>() {
@@ -2053,7 +2055,10 @@ public class AutomatonGraphmlParser {
 
           @Override
           public boolean hasNext() {
-            return index < pNodeList.getLength();
+            if (length == null) {
+              length = pNodeList.getLength();
+            }
+            return index < length;
           }
 
           @Override
