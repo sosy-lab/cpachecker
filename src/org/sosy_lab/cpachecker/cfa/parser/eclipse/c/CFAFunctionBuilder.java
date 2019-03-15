@@ -210,6 +210,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     shouldVisitParameterDeclarations = true;
     shouldVisitProblems = true;
     shouldVisitStatements = true;
+    shouldVisitExpressions = true;
     sideAssignmentStack = pSideAssignmentStack;
   }
   FunctionEntryNode getStartNode() {

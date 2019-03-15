@@ -514,7 +514,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     // -1
     CExpression term2 = new CUnaryExpression(FileLocation.DUMMY, CNumericTypes.INT,
         CIntegerLiteralExpression.ZERO, UnaryOperator.MINUS);
-    // operand2 != 0
+    // operand2 != -1
     CExpression term3 =
         cBinaryExpressionBuilder.buildBinaryExpression(operand2, term2, BinaryOperator.NOT_EQUALS);
     // (operand1 != INT_MIN) | (operand2 != -1)

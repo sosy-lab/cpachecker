@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2017  Dirk Beyer
+ *  Copyright (C) 2007-2019  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,43 +16,33 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.statistics;
+package org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor;
 
-import java.util.concurrent.atomic.LongAdder;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-/** Thread-safe implementation of numerical statistics. */
-public class StatCounter extends AbstractStatValue {
+class SSCARGState extends ARGState {
 
-  private LongAdder counter = new LongAdder();
+  private static final long serialVersionUID = 1L;
 
-  public StatCounter(String pTitle) {
-    super(StatKind.SUM, pTitle);
+  private final ARGState sscState;
+
+  SSCARGState(ARGState pSscState, AbstractState innerState) {
+    this(pSscState, innerState, null);
   }
 
-  public void inc() {
-    counter.increment();
+  SSCARGState(ARGState pSscState, AbstractState innerState, ARGState parent) {
+    super(innerState, parent);
+    sscState = pSscState;
   }
 
-  public long getValue() {
-    return counter.sum();
-  }
-
-  @Override
-  public int getUpdateCount() {
-    return counter.intValue();
+  public ARGState getSSCState() {
+    return sscState;
   }
 
   @Override
   public String toString() {
-    return String.format("%8d", getValue());
-  }
-
-  public void mergeWith(StatCounter other) {
-    counter.add(other.getValue());
+    return "SSCARGState {{" + super.toString() + "}}";
   }
 }

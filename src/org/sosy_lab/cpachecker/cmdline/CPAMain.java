@@ -27,6 +27,7 @@ import static java.util.stream.Collectors.toList;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -46,6 +47,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -74,6 +76,7 @@ import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LoggingOptions;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -185,6 +188,9 @@ public class CPAMain {
       }
       dumpConfiguration(options, cpaConfig, logManager);
 
+      // generate correct frontend based on file language
+      cpaConfig = extractFrontendfromFileending(options, cpaConfig, logManager);
+
       limits = ResourceLimitChecker.fromConfiguration(cpaConfig, logManager, shutdownManager);
       limits.start();
 
@@ -293,6 +299,10 @@ public class CPAMain {
     )
     private ImmutableList<String> programs = ImmutableList.of();
 
+    @Option(secure = true, description = "C, Java, or LLVM IR?")
+    // keep option name in sync with {@link CFACreator#language}, value might differ
+    private Language language = null;
+
     @Option(secure=true, name="configuration.dumpFile",
         description="Dump the complete configuration to a file.")
     @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -362,6 +372,7 @@ public class CPAMain {
       configBuilder.loadFromFile(configFile);
     }
     configBuilder.setOptions(cmdLineOptions);
+
     Configuration config = configBuilder.build();
 
     // We want to be able to use options of type "File" with some additional
@@ -402,6 +413,65 @@ public class CPAMain {
     String filename = Paths.get(configFilename).getFileName().toString();
     // remove the extension (most likely ".properties")
     return filename.contains(".") ? filename.substring(0, filename.lastIndexOf(".")) : filename;
+  }
+
+  private static final String LANGUAGE_HINT =
+      String.format(
+          " Please specify a language directly with the option 'language=%s'.",
+          Arrays.toString(Language.values()));
+
+  /** determine the frontend language based on the file endings of the given programs. */
+  private static Configuration extractFrontendfromFileending(
+      MainOptions pOptions, Configuration pConfig, LogManager pLogManager)
+      throws InvalidConfigurationException {
+    if (pOptions.language == null) {
+      // if language was not specified by option, we determine the best matching language
+      Language frontendLanguage = null;
+      for (String program : pOptions.programs) {
+        Language language;
+        String suffix = program.substring(program.lastIndexOf(".") + 1);
+        switch (suffix) {
+          case "c":
+          case "i":
+          case "h":
+            language = Language.C;
+            break;
+          case "ll":
+          case "bc":
+            language = Language.LLVM;
+            break;
+          case "java":
+            language = Language.JAVA;
+            break;
+          default:
+            throw new InvalidConfigurationException(
+                String.format(
+                        "Cannot determine language from file '%s' with suffix '.%s'.",
+                        program, suffix)
+                    + LANGUAGE_HINT);
+        }
+        Preconditions.checkNotNull(language);
+        if (frontendLanguage == null) { // first iteration
+          frontendLanguage = language;
+        }
+        if (frontendLanguage != language) { // further iterations: check for conflicting endings
+          throw new InvalidConfigurationException(
+              String.format(
+                      "Differing file formats detected: %s and %s files are declared for analysis.",
+                      frontendLanguage, language)
+                  + LANGUAGE_HINT);
+        }
+      }
+      Preconditions.checkNotNull(frontendLanguage);
+      ConfigurationBuilder configBuilder = Configuration.builder();
+      configBuilder.copyFrom(pConfig);
+      configBuilder.setOption("language", frontendLanguage.toString());
+      pConfig = configBuilder.build();
+      pOptions.language = frontendLanguage;
+      pLogManager.logf(Level.INFO, "Language %s detected and set for analysis", frontendLanguage);
+    }
+    Preconditions.checkNotNull(pOptions.language);
+    return pConfig;
   }
 
   private static final ImmutableMap<Property, TestTargetType> TARGET_TYPES =

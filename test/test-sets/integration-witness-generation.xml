@@ -8,13 +8,14 @@
   -->
 
   <option name="-heap">6000M</option>
+
+  <resultfiles>**.graphml*</resultfiles>
+  <option name="-setprop">cpa.arg.compressWitness=true</option>
   <option name="-setprop">counterexample.export.compressWitness=true</option>
 
   <rundefinition>
     <option name="-svcomp19"/>
   </rundefinition>
-
-  <resultfiles>**.graphml.gz</resultfiles>
 
   <tasks name="BitVectorsOverflows">
     <includesfile>../programs/benchmarks/NoOverflows-BitVectors.set</includesfile>
