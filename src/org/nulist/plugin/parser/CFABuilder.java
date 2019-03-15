@@ -28,10 +28,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
-import static org.nulist.plugin.parser.CFGAST.getStorageClass;
-import static org.nulist.plugin.parser.CFGAST.getVariableName;
-import static org.nulist.plugin.parser.CFGNode.isExpression;
-import static org.nulist.plugin.parser.CFGNode.isVariable_Initialization;
+import static org.nulist.plugin.parser.CFGAST.*;
+import static org.nulist.plugin.parser.CFGNode.*;
 import static org.nulist.plugin.util.FileOperations.*;
 
 /**
@@ -108,7 +106,7 @@ public class CFABuilder {
 
                 String funcName = proc.name();
                 CFGFunctionBuilder cfgFunctionBuilder =
-                        new CFGFunctionBuilder(logger, machineModel, typeConverter,  proc,funcName, pFileName, this);
+                        new CFGFunctionBuilder(logger, typeConverter,  proc,funcName, pFileName, this);
                 // add function declaration
                 functionDeclarations.put(funcName,cfgFunctionBuilder.handleFunctionDeclaration());
 

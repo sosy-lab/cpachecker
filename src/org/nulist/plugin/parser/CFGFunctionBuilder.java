@@ -8,9 +8,6 @@
 package org.nulist.plugin.parser;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Multimap;
 import com.grammatech.cs.*;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -22,11 +19,6 @@ import org.sosy_lab.cpachecker.cfa.model.*;
 import org.sosy_lab.cpachecker.cfa.model.c.*;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.*;
-import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
-import org.sosy_lab.cpachecker.cpa.usage.storage.TemporaryUsageStorage;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.ImmutableConcatList;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import java.math.BigDecimal;
@@ -43,16 +35,11 @@ import static org.nulist.plugin.parser.CFGOperations.sortVectorByLineNo;
 import static org.nulist.plugin.util.ClassTool.getUnsignedInt;
 import static org.nulist.plugin.util.FileOperations.getLocation;
 import static org.nulist.plugin.util.FileOperations.getQualifiedName;
-import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
-import static org.sosy_lab.cpachecker.cfa.types.c.CFunctionType.NO_ARGS_VOID_FUNCTION;
 
 public class CFGFunctionBuilder  {
 
     // Data structure for maintaining our scope stack in a function
     private final Deque<CFANode> locStack = new ArrayDeque<>();
-
-
-    private final CBinaryExpressionBuilder binExprBuilder;
 
     // Data structures for handling goto
     private final Map<String, CLabelNode> labelMap = new HashMap<>();
@@ -71,18 +58,15 @@ public class CFGFunctionBuilder  {
 
     private final CFGHandleExpression expressionHandler;
     private final LogManager logger;
-    private boolean encounteredAsm = false;
     private final procedure function;
     public final String functionName;
     private final CFGTypeConverter typeConverter;
     private CFunctionDeclaration functionDeclaration;
     private final String fileName;
     private final CFABuilder cfaBuilder;
-    private boolean isSwitchBranch = false;
 
     public CFGFunctionBuilder(
             LogManager pLogger,
-            MachineModel pMachine,
             CFGTypeConverter typeConverter,
             procedure pFunction,
             String functionName,
@@ -94,7 +78,6 @@ public class CFGFunctionBuilder  {
         function = pFunction;
         this.functionName = functionName;
 
-        binExprBuilder = new CBinaryExpressionBuilder(pMachine, pLogger);
         fileName = pFileName;
         this.cfaBuilder = cfaBuilder;
         expressionHandler = new CFGHandleExpression(pLogger,functionName,typeConverter);
@@ -113,7 +96,6 @@ public class CFGFunctionBuilder  {
      **/
     public void visitFunction() throws result {
         assert function!=null && function.get_kind().equals(procedure_kind.getUSER_DEFINED());
-        //TODO add function return variables
 
         //expressionHandler.setVariableDeclarations(variableDeclarations);
         //first visit: build nodes before traversing CFGs
@@ -195,7 +177,7 @@ public class CFGFunctionBuilder  {
 
                 lastDecSymbol = variable;
                 fileLocation = getLocation((int)variable.file_line().get_second(),fileName);
-                preVar = getVariableDeclaration(variable, null, fileLocation);
+                preVar = generateVariableDeclaration(variable, null, fileLocation);
             }
             prevNode = locStack.peek();
             CDeclarationEdge edge = new CDeclarationEdge(lastDecSymbol.primary_declaration().characters(),
@@ -303,7 +285,7 @@ public class CFGFunctionBuilder  {
             ast variable = no_ast.children().get(0).as_ast();
             CInitializer initializer = expressionHandler.getInitializer(no_ast,fileLocation);
             symbol variableSym = variable.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol();
-            CVariableDeclaration variableDeclaration = getVariableDeclaration(variableSym, initializer, fileLocation);
+            CVariableDeclaration variableDeclaration = generateVariableDeclaration(variableSym, initializer, fileLocation);
             CDeclarationEdge edge = new CDeclarationEdge(getRawSignature(exprNode),
                                                          fileLocation,
                                                          prevNode,
@@ -394,15 +376,8 @@ public class CFGFunctionBuilder  {
 
             nextNode = handleSwitchCasePoint(nextCFGNode);
             //nextNode = cfaNodeMap.get(nextCFGNode.id());
-
-            CFunctionType cFuncType = NO_ARGS_VOID_FUNCTION;
-            if(!functionCallNode.get_procedure().formal_outs().empty()){
-                point p = functionCallNode.get_procedure().formal_outs().cbegin().current();
-                ast un_ast = p.get_ast(ast_family.getC_UNNORMALIZED());
-                ast type_ast = un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast();
-                cFuncType = (CFunctionType) typeConverter.
-                        getCType(type_ast.get(ast_ordinal.getBASE_RETURN_TYPE()).as_ast());
-            }
+            CFunctionDeclaration calledFunctionDeclaration =
+                    cfaBuilder.functionDeclarations.get(functionCallNode.get_procedure().name());
 
             pFunctionEntry = (CFunctionEntryNode)cfaBuilder.functions.get(functionCallNode.get_procedure().name());
             if(pFunctionEntry!=null){
@@ -414,11 +389,11 @@ public class CFGFunctionBuilder  {
             CIdExpression funcNameExpr =
                     new CIdExpression(
                             fileLocation,
-                            cFuncType,
+                            calledFunctionDeclaration.getType(),
                             pFunctionEntry.getFunctionName(),
                             pFunctionEntry.getFunctionDefinition());
 
-            functionCallExpression = new CFunctionCallExpression(fileLocation, cFuncType, funcNameExpr,
+            functionCallExpression = new CFunctionCallExpression(fileLocation, calledFunctionDeclaration.getType(), funcNameExpr,
                     params, pFunctionEntry.getFunctionDefinition());
             functionCallStatement = new CFunctionCallStatement(fileLocation,functionCallExpression);
 
@@ -489,14 +464,8 @@ public class CFGFunctionBuilder  {
 
             CLeftHandSide assignedVarExp =null;
 
-            CFunctionType cFuncType = NO_ARGS_VOID_FUNCTION;
-            if(!functionCallNode.get_procedure().formal_outs().empty()){
-                point p = functionCallNode.get_procedure().formal_outs().cbegin().current();
-                ast un_ast = p.get_ast(ast_family.getC_UNNORMALIZED());
-                ast type_ast = un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast();
-                cFuncType = (CFunctionType) typeConverter.
-                        getCType(type_ast.get(ast_ordinal.getBASE_RETURN_TYPE()).as_ast());
-            }
+            CFunctionDeclaration calledFunctionDeclaration =
+                    cfaBuilder.functionDeclarations.get(functionCallNode.get_procedure().name());
 
             pFunctionEntry = (CFunctionEntryNode) cfaBuilder.functions.get(functionCallNode.get_procedure().name());
             if(pFunctionEntry!=null){
@@ -524,7 +493,7 @@ public class CFGFunctionBuilder  {
                 variable_ast = actualoutCFGNode.get_ast(ast_family.getC_NORMALIZED());
                 symbol variablSym= variable_ast.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol();
 
-                CVariableDeclaration declaration = getVariableDeclaration(variablSym,null, fileLocation);
+                CVariableDeclaration declaration = generateVariableDeclaration(variablSym,null, fileLocation);
 
                 String rawString = declaration.toString();
                 CFANode declNode = newCFANode();
@@ -546,12 +515,12 @@ public class CFGFunctionBuilder  {
             CIdExpression funcNameExpr =
                     new CIdExpression(
                             fileLocation,
-                            cFuncType,
+                            calledFunctionDeclaration.getType(),
                             pFunctionEntry.getFunctionName(),
                             pFunctionEntry.getFunctionDefinition());
 
-            functionCallExpression = new CFunctionCallExpression(fileLocation, cFuncType, funcNameExpr ,
-                    params, pFunctionEntry.getFunctionDefinition());
+            functionCallExpression = new CFunctionCallExpression(fileLocation, calledFunctionDeclaration.getType(),
+                    funcNameExpr, params, pFunctionEntry.getFunctionDefinition());
 
             functionCallStatement = new CFunctionCallAssignmentStatement(fileLocation, assignedVarExp,
                     functionCallExpression);
@@ -670,7 +639,7 @@ public class CFGFunctionBuilder  {
             !prc_it.at_end();prc_it.advance()){
             symbol variable = prc_it.current();
             if(variable.get_kind().equals(symbol_kind.getRETURN())){
-                String assignedVar = variable.name().replace("-","_");
+                String assignedVar = variable.get_ast().pretty_print();
                 CVariableDeclaration newVarDecl =
                         new CVariableDeclaration(
                                 fileLocation,
@@ -681,6 +650,7 @@ public class CFGFunctionBuilder  {
                                 assignedVar,
                                 assignedVar,
                                 null);
+                expressionHandler.variableDeclarations.put(assignedVar.hashCode(),newVarDecl);
                 returnVar =Optional.of(newVarDecl);
                 break;
             }
@@ -705,7 +675,7 @@ public class CFGFunctionBuilder  {
      *@Param [variable]
      *@return org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration
      **/
-    private CVariableDeclaration getVariableDeclaration(symbol variable, CInitializer initializer, FileLocation fileLocation)throws result{
+    private CVariableDeclaration generateVariableDeclaration(symbol variable, CInitializer initializer, FileLocation fileLocation)throws result{
 
         String assignedVar = variable.name().replace("-","_");//name-id-->name_id
 
