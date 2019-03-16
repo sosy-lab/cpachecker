@@ -287,11 +287,13 @@ public class CFGFunctionBuilder  {
                     nextNode,
                     variableDeclaration);
             addToCFA(edge);
-        }else {
+        }else if(un_ast.is_a(ast_class.getUC_ABSTRACT_OPERATION())){
             CStatement statement = expressionHandler.getAssignStatementFromUC(un_ast, fileLocation);
             CStatementEdge edge = new CStatementEdge(getRawSignature(exprNode), statement,
                     fileLocation, prevNode, nextNode);
             addToCFA(edge);
+        }else{//return
+
         }
 
         //normalized ast
@@ -778,7 +780,7 @@ public class CFGFunctionBuilder  {
 
                 returnExp = expressionHandler.getAssignedIdExpression(variable_ast, expectedType, fileloc);
             }else
-                returnExp = expressionHandler.getExpressionFromUNNormalizedAST(returnValue,expectedType,fileloc);
+                returnExp = expressionHandler.getExpressionFromUC(returnValue,expectedType,fileloc);
 
             returnExpression = Optional.of(returnExp);
 

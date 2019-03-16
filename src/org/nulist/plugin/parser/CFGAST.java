@@ -312,6 +312,59 @@ public class CFGAST {
             return variable.name().replace("-","_");
     }
 
+    public static CBinaryExpression.BinaryOperator getBinaryOperatorFromUC(ast un_ast)throws result{
+
+
+
+        if(un_ast.is_a(ast_class.getUC_ABSTRACT_POST_INCR()) || //a++
+                 un_ast.is_a(ast_class.getUC_ABSTRACT_ADD_ASSIGN()) ||
+                 un_ast.is_a(ast_class.getUC_ABSTRACT_ADD())){//b+=10;
+            return CBinaryExpression.BinaryOperator.PLUS;
+        }else if(un_ast.is_a(ast_class.getUC_ABSTRACT_DIVIDE_ASSIGN()) ||
+                 un_ast.is_a(ast_class.getUC_ABSTRACT_DIVIDE())){//b/=10;
+            return CBinaryExpression.BinaryOperator.DIVIDE;
+        }else if(un_ast.is_a(ast_class.getUC_ABSTRACT_MULTIPLY_ASSIGN()) ||
+                 un_ast.is_a(ast_class.getUC_ABSTRACT_MULTIPLY())){//b*=10;
+            return CBinaryExpression.BinaryOperator.MULTIPLY;
+        }else if(un_ast.is_a(ast_class.getUC_ABSTRACT_POST_DECR()) || //a--
+                 un_ast.is_a(ast_class.getUC_ABSTRACT_SUBTRACT_ASSIGN()) || //b-=10;
+                 un_ast.is_a(ast_class.getUC_ABSTRACT_SUBTRACT())){//
+            return CBinaryExpression.BinaryOperator.MINUS;
+        }else if(un_ast.is_a(ast_class.getUC_AND_ASSIGN()) ||
+                 un_ast.is_a(ast_class.getUC_AND())){//b&=1;
+            return CBinaryExpression.BinaryOperator.BINARY_AND;
+        }else if(un_ast.is_a(ast_class.getUC_OR_ASSIGN()) ||
+                 un_ast.is_a(ast_class.getUC_OR())){//b|=1;
+            return CBinaryExpression.BinaryOperator.BINARY_OR;
+        }else if(un_ast.is_a(ast_class.getUC_XOR_ASSIGN()) ||
+                 un_ast.is_a(ast_class.getUC_XOR())){//b^=1;
+            return CBinaryExpression.BinaryOperator.BINARY_XOR;
+        }else if(un_ast.is_a(ast_class.getUC_REMAINDER_ASSIGN()) ||
+                 un_ast.is_a(ast_class.getUC_REMAINDER())){//b%=1;
+            return CBinaryExpression.BinaryOperator.MODULO;
+        }else if(un_ast.is_a(ast_class.getUC_ABSTRACT_SHIFTL_ASSIGN()) ||
+                 un_ast.is_a(ast_class.getUC_ABSTRACT_SHIFTL())){//b<<=1;
+            return CBinaryExpression.BinaryOperator.SHIFT_LEFT;
+        }else if(un_ast.is_a(ast_class.getUC_ABSTRACT_SHIFTR_ASSIGN()) ||
+                 un_ast.is_a(ast_class.getUC_ABSTRACT_SHIFTR())){//b>>=1;
+            return CBinaryExpression.BinaryOperator.SHIFT_RIGHT;
+        }else if(un_ast.is_a(ast_class.getUC_ABSTRACT_EQ()))//==
+            return CBinaryExpression.BinaryOperator.EQUALS;
+        else if(un_ast.is_a(ast_class.getUC_ABSTRACT_NE()))//!=
+            return CBinaryExpression.BinaryOperator.NOT_EQUALS;
+        else if(un_ast.is_a(ast_class.getUC_ABSTRACT_GT()))//>
+            return CBinaryExpression.BinaryOperator.GREATER_THAN;
+        else if(un_ast.is_a(ast_class.getUC_ABSTRACT_GE()))//>=
+            return CBinaryExpression.BinaryOperator.GREATER_EQUAL;
+        else if(un_ast.is_a(ast_class.getUC_ABSTRACT_LT()))//<
+            return CBinaryExpression.BinaryOperator.LESS_THAN;
+        else if(un_ast.is_a(ast_class.getUC_ABSTRACT_LE()))
+            return CBinaryExpression.BinaryOperator.LESS_EQUAL;//<=
+        else
+            throw new UnsupportedOperationException("Unsupported predicate");
+    }
+
+    //Normalized
     public static CBinaryExpression.BinaryOperator getBinaryOperator(ast ast)throws result{
         if(ast.is_a(ast_class.getNC_ADDEXPR()))
             return CBinaryExpression.BinaryOperator.PLUS;
