@@ -182,39 +182,32 @@ public class CFABuilder {
             !point_it.at_end(); point_it.advance()){
             //point p = point_it.current();
             point node =  point_it.current();
-            CInitializer initializer = null;
 
+            //f
             if(isVariable_Initialization(node)|| isExpression(node)){
+
                 FileLocation fileLocation = getLocation(node,pFileName);
-                ast no_ast = node.get_ast(ast_family.getC_UNNORMALIZED());
-                CType varType = typeConverter.getCType(no_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
-
-                // for example: int i=0;
-                // in nc_ast: children {i, 0}
-                //            attributes {is_initialization: true, type: int}
-                // has initialization
-                initializer = expressionHandler.getInitializer(no_ast,fileLocation);
-
-                String variableName =getVariableName(no_ast, true);
-
-                //String assignedVar = no_ast.children().get(0).as_ast().pretty_print();//the 1st child field store the variable
-
-                // Support static and other storage classes
                 ast un_ast = node.get_ast(ast_family.getC_UNNORMALIZED());
+                // Support static and other storage classes
                 CStorageClass storageClass= getStorageClass(un_ast);
-                String normalizedName = variableName;
+
+                //global variable is initialized static
+                ast init = un_ast.get(ast_ordinal.getUC_STATIC_INIT()).as_ast();
+                ast variable = un_ast.get(ast_ordinal.getUC_VARIABLE()).as_ast();
+                String variableName =variable.pretty_print();
+                String normalizedName = normalizingVariableName(variable);
 
                 //TODO: CPAChecker change all static variables to auto
                 if (storageClass == CStorageClass.STATIC) {
                     //file static
-                    normalizedName = expressionHandler.getSimpleFileName(pFileName)+"__static__"+variableName;
+                    normalizedName = expressionHandler.getSimpleFileName(pFileName)+"__static__"+normalizedName;
                     storageClass = CStorageClass.AUTO;
                 }
 
-
-                if ( varType instanceof CPointerType) {
-                    varType = ((CPointerType) varType).getType();
-                }
+                CType varType = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
+                CInitializer initializer = null;
+                if(init.is_a(ast_class.getUC_STATIC_INITIALIZER()))
+                    initializer = expressionHandler.getInitializerFromUC(init,varType,fileLocation);
 
                 CSimpleDeclaration newDecl =
                         new CVariableDeclaration(
@@ -229,59 +222,7 @@ public class CFABuilder {
 
                 expressionHandler.globalVariableDeclarations.put(variableName.hashCode(),(ADeclaration) newDecl);
             }
-
         }
-    }
-
-
-
-    /**
-     *@Description TODO
-     *@Param [point, pFunctionName, pInitializer, pFileName]
-     *@return org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration
-     **/
-    private CDeclaration getAssignedVarDeclaration(
-            final point node, CInitializer pInitializer, final FileLocation fileLocation) throws result {
-
-
-        final long itemId = node.id();
-
-
-        ast nc_ast = node.get_ast(ast_family.getC_NORMALIZED());
-        ast un_ast = node.get_ast(ast_family.getC_UNNORMALIZED());
-
-        String assignedVar = nc_ast.children().get(0).as_ast().pretty_print();//the 1st child field store the variable
-
-        final boolean isGlobal = node.declared_symbol().is_global();
-        // Support static and other storage classes
-
-        CStorageClass storageClass= getStorageClass(un_ast);
-
-        CType varType = typeConverter.getCType(nc_ast.get(ast_ordinal.getNC_TYPE()).as_ast());
-
-        // We handle alloca not like malloc, which returns a pointer, but as a general
-        // variable declaration. Consider that here by using the allocated type, not the
-        // pointer of that type alloca returns.
-//            if (pItem.isAllocaInst()) {
-//                varType = typeConverter.getCType(pItem.getAllocatedType());
-//            }
-
-        if (isGlobal && varType instanceof CPointerType) {
-            varType = ((CPointerType) varType).getType();
-        }
-
-
-        CSimpleDeclaration newDecl =
-                new CVariableDeclaration(
-                        fileLocation,
-                        isGlobal,
-                        storageClass,
-                        varType,
-                        assignedVar,
-                        assignedVar,
-                        getQualifiedName(assignedVar, fileLocation.getFileName()),
-                        pInitializer);
-        return (CDeclaration) newDecl;
     }
 
 

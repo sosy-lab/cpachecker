@@ -304,8 +304,12 @@ public class CFGAST {
      *@Param [varAST]
      *@return void
      **/
-    public static String normalizingVariableName(ast ast)throws result{
-        return ast.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol().name().replace("-","_");
+    public static String normalizingVariableName(ast variableSymbol)throws result{
+        symbol variable = variableSymbol.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol();
+        if(variable.is_global())
+            return variableSymbol.pretty_print();
+        else
+            return variable.name().replace("-","_");
     }
 
     public static CBinaryExpression.BinaryOperator getBinaryOperator(ast ast)throws result{
@@ -372,15 +376,19 @@ public class CFGAST {
 
 
     //a symbol can only have unnormalized ast
-    public static boolean symbolHasInitialization(ast ast){
+    public static boolean symbolHasInitialization(ast variable){
         try {
-            try {
-                ast.get(ast_ordinal.getUC_DYNAMIC_INIT());
-                return true;
-            }catch (result r){
-                ast init = ast.get(ast_ordinal.getUC_STATIC_INIT()).as_ast();
-                return init.is_a(ast_class.getUC_STATIC_INITIALIZER());
-            }
+            variable.get(ast_ordinal.getUC_DYNAMIC_INIT());
+            return true;
+        }catch (result r){
+            return false;
+        }
+    }
+
+    public static boolean staticSymbolHasInitialization(ast variable){
+        try {
+            ast init = variable.get(ast_ordinal.getUC_STATIC_INIT()).as_ast();
+            return init.is_a(ast_class.getUC_STATIC_INITIALIZER());
         }catch (result r){
             return false;
         }

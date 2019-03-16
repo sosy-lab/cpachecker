@@ -69,7 +69,16 @@ public class CFGTypeConverter {
 
             }else if(isEnumType(type)){
 
-            }
+            }else if(type.is_a(ast_class.getUC_INTEGER())){
+
+            }else if(type.is_a(ast_class.getUC_FLOAT())){
+
+            }else if(type.is_a(ast_class.getUC_STRING())){
+
+            }else if(type.is_a(ast_class.getUC_VECTOR_TYPE())){//C++ only
+
+            }else
+                throw new RuntimeException("Unsupported type "+ type.toString());
 
             return null;
         }catch (result r){

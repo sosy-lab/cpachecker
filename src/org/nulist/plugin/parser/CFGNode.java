@@ -351,11 +351,10 @@ public class CFGNode {
     //TODO:
     public static String getRawSignature(point point){
         try {
-            ast no_ast = point.get_ast(ast_family.getC_NORMALIZED());
+            ast un_ast = point.get_ast(ast_family.getC_UNNORMALIZED());
 
-            if(isExpression(point) && isInitializationExpression(no_ast)){
-                return point.get_ast(ast_family.getC_NORMALIZED())
-                        .get(ast_ordinal.getBASE_TYPE()).as_ast().pretty_print()+" "
+            if(isExpression(point) && un_ast.is_a(ast_class.getUC_INIT())){
+                return un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast().pretty_print()+" "
                         +point.characters();
             }else
 
