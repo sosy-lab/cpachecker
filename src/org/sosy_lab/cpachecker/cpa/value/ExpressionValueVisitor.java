@@ -321,9 +321,10 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       if (arrayLoc.isOnFunctionStack()) {
 
-        return MemoryLocation.valueOf(arrayLoc.getFunctionName(),
+        return MemoryLocation.valueOf(
+            arrayLoc.getFunctionName(),
             arrayLoc.getIdentifier(),
-            subscriptOffset);
+            arrayLoc.getOffset() + subscriptOffset);
       } else {
 
         return MemoryLocation.valueOf(arrayLoc.getIdentifier(),
