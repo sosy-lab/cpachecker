@@ -121,6 +121,15 @@ public class CFGAST {
         }
     }
 
+    public static boolean isConstantAggreateZeroFromUC(ast constant){
+        try {
+            return constant.is_a(ast_class.getUC_ABSTRACT_CONSTANT()) &&
+                    !constant.has_field(ast_ordinal.getUC_CONSTANT_LIST());
+        }catch (result r){
+            return false;
+        }
+    }
+
     public static BigInteger getBasicValue(ast value_ast){
         try {
             String valueString = value_ast.pretty_print();

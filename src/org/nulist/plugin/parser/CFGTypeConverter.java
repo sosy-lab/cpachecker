@@ -67,7 +67,16 @@ public class CFGTypeConverter {
                 return cArrayType;
             }else if(isTypeRef(type)){
 
+                ast originTypeAST = type.get(ast_ordinal.getBASE_TYPE()).as_ast();
+
+                CType originType = getCType(originTypeAST);
+                if(typeString.startsWith("const ")){
+                    
+                }
+
             }else if(isEnumType(type)){
+
+                ast constantList = type.get(ast_ordinal.getUC_CONSTANT_LIST()).as_ast();
 
             }else if(type.is_a(ast_class.getUC_INTEGER())){
 

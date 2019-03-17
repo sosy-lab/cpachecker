@@ -135,6 +135,16 @@ public class CFGNode {
         return point.get_kind().equals(point_kind.getEXPRESSION());
     }
 
+    public static boolean isInitExpression(point point) throws result{
+        ast un_ast = point.get_ast(ast_family.getC_UNNORMALIZED());
+        return isExpression(point) && un_ast.is_a(ast_class.getUC_INIT());
+    }
+
+    public static boolean isNormalExpression(point point) throws result{
+        ast un_ast = point.get_ast(ast_family.getC_UNNORMALIZED());
+        return isExpression(point) && !un_ast.is_a(ast_class.getUC_INIT());
+    }
+
     public static boolean isUnavailable(point point) throws result{
         return point.get_kind().equals(point_kind.getUNAVAILABLE());
     }
