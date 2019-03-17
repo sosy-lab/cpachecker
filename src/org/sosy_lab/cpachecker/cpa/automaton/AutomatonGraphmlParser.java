@@ -1580,9 +1580,9 @@ public class AutomatonGraphmlParser {
                 "Neiter the SHA-1 hash value of given verification-task "
                     + "source-code file ("
                     + actualProgramHash
-                    + ") not the corresponding SHA-256 hash value ("
+                    + ") nor the corresponding SHA-256 hash value ("
                     + actualSha256Programhash
-                    + ")"
+                    + ") "
                     + "match the program hash value given in the witness. "
                     + "The witness is likely unrelated to the verification task.");
           }
