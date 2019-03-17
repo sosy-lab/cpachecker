@@ -818,14 +818,14 @@ public class CFGHandleExpression {
             return getAssignedIdExpression(value_ast, pExpectedType, fileLoc);
         } else
             return getExpression(value_ast,pExpectedType, fileLoc);
-
     }
 
-
-
-
     public CExpression getConstantFromUC(ast constant, CType pExpectedType, FileLocation fileLocation) throws result{
-        if(pExpectedType.equals(CNumericTypes.BOOL)){
+        if(constant.is_a(ast_class.getUC_STRING())){
+            String value = constant.get(ast_ordinal.getBASE_VALUE()).as_str();
+            CPointerType pointerType = new CPointerType(true, false, CNumericTypes.CHAR);
+            return new CStringLiteralExpression(fileLocation, pointerType, value);
+        }else if(pExpectedType.equals(CNumericTypes.BOOL)){
             long value = constant.get(ast_ordinal.getBASE_VALUE()).as_uint32();
             assert value==0||value==1;
             if(value==0)
