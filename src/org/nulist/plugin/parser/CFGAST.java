@@ -323,8 +323,6 @@ public class CFGAST {
 
     public static CBinaryExpression.BinaryOperator getBinaryOperatorFromUC(ast un_ast)throws result{
 
-
-
         if(un_ast.is_a(ast_class.getUC_ABSTRACT_POST_INCR()) || //a++
                  un_ast.is_a(ast_class.getUC_ABSTRACT_ADD_ASSIGN()) ||
                  un_ast.is_a(ast_class.getUC_ABSTRACT_ADD())){//b+=10;

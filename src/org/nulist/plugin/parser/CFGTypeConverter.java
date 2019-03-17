@@ -24,18 +24,18 @@ import java.util.Map;
 import static org.nulist.plugin.parser.CFGAST.*;
 
 public class CFGTypeConverter {
-    private final MachineModel machineModel;
     private final LogManager logger;
+    private final compunit cu;
     private static final CSimpleType ARRAY_LENGTH_TYPE = CNumericTypes.LONG_LONG_INT;
     private final Map<Integer, CType> typeCache = new HashMap<>();
 
-    public CFGTypeConverter(final MachineModel pMachineModel, final LogManager pLogger) {
-        machineModel = pMachineModel;
+    public CFGTypeConverter(final compunit pCompunit, final LogManager pLogger) {
         logger = pLogger;
+        cu = pCompunit;
         basicTypeInitialization();
     }
 
-    //TODO
+    //
     //since codesurfer normalizes bool into unsigned char, which may confuse model checking
     // we need to input unnormalized type
     public CType getCType(ast type){
@@ -44,12 +44,22 @@ public class CFGTypeConverter {
             CType cType = typeCache.getOrDefault(typeString.hashCode(),null);
             if(cType!=null)
                 return cType;
-            else if(isStructType(type)){//struct
-                return createStructType(type);
+        }catch (result r){
+            return null;
+        }
+        return getCType(type, false);
+    }
+
+    private CType getCType(ast type, boolean isConst){
+        try {
+            String typeString = type.pretty_print();
+            CType cType = null;
+            if(isStructType(type)){//struct
+                return createStructType(type, isConst);
             }else if(isPointerType(type)){
                 ast pointedTo = type.get(ast_ordinal.getBASE_POINTED_TO()).as_ast();
                 cType = getCType(pointedTo);
-                CPointerType cPointerType = new CPointerType(isConstantType(type), false, cType);
+                CPointerType cPointerType = new CPointerType(isConst, false, cType);
                 typeCache.put(typeString.hashCode(),cPointerType);
                 return cPointerType;
             }else if(isArrayType(type)){
@@ -62,27 +72,43 @@ public class CFGTypeConverter {
                                 ARRAY_LENGTH_TYPE,
                                 BigInteger.valueOf(length));
                 CArrayType cArrayType =  new CArrayType(
-                        isConstantType(type), false, cType, arrayLength);
+                        isConst, false, cType, arrayLength);
                 typeCache.put(typeString.hashCode(),cArrayType);
                 return cArrayType;
             }else if(isTypeRef(type)){
-
                 ast originTypeAST = type.get(ast_ordinal.getBASE_TYPE()).as_ast();
 
-                CType originType = getCType(originTypeAST);
                 if(typeString.startsWith("const ")){
-                    
+                    return getCType(originTypeAST, true);
+                }else {
+                    CType originType = getCType(originTypeAST, false);
+                    return new CTypedefType(originType.isConst(),
+                                            originType.isVolatile(),
+                                            typeString,
+                                            originType);
                 }
-
             }else if(isEnumType(type)){
-
                 ast constantList = type.get(ast_ordinal.getUC_CONSTANT_LIST()).as_ast();
-
-            }else if(type.is_a(ast_class.getUC_INTEGER())){
-
-            }else if(type.is_a(ast_class.getUC_FLOAT())){
-
-            }else if(type.is_a(ast_class.getUC_STRING())){
+                List<CEnumType.CEnumerator> enumerators = new ArrayList<>();
+                for(int i=0;i<constantList.children().size();i++){
+                    ast enumer = constantList.children().get(i).as_ast();
+                    String name = enumer.pretty_print();
+                    long value = enumer.get(ast_ordinal.getBASE_VALUE()).as_ast()
+                                    .get(ast_ordinal.getBASE_VALUE()).as_int32();
+                    long line = enumer.get(ast_ordinal.getUC_POSITION()).as_uint64().longValue();
+                    int fileLine = (int) cu.line_to_sfile_line(line).get_second();
+                    FileLocation fileLocation = new FileLocation(cu.normalized_name(),
+                            0,0,fileLine,fileLine);
+                    CEnumType.CEnumerator enumerator =
+                            new CEnumType.CEnumerator(fileLocation,
+                                                      name,
+                                                      name,
+                                                      value);
+                    enumerators.add(enumerator);
+                }
+                CEnumType cEnumType = new CEnumType(isConst, false,
+                        enumerators, typeString, typeString);
+            }else if(type.is_a(ast_class.getUC_STRING())){//C++ only
 
             }else if(type.is_a(ast_class.getUC_VECTOR_TYPE())){//C++ only
 
@@ -93,9 +119,7 @@ public class CFGTypeConverter {
         }catch (result r){
             return null;
         }
-
     }
-
 
     /**
      *@Description basic type initialization
@@ -149,20 +173,16 @@ public class CFGTypeConverter {
      *@return org.sosy_lab.cpachecker.cfa.types.c.CType
      **/
     //struct type
-    private CType createStructType(ast type) throws result{
-        final boolean isConst = false;
+    private CType createStructType(ast type, boolean isConst) throws result{
+
         final boolean isVolatile = false;
 
         //typedef struct: label
         //normal struct: struct label
         String structName = type.pretty_print();
-        if(structName.startsWith("const "))//normalize const struct and non-const struct
-            structName = structName.substring(6);
 
         ast struct_type = getStructType(type);
-        if(struct_type.is_a(ast_class.getUC_TYPEREF())){
 
-        }else
 
         if(typeCache.containsKey(structName.hashCode())){
             return new CElaboratedType(
@@ -200,8 +220,15 @@ public class CFGTypeConverter {
 
         cStructType.setMembers(members);
 
-        typeCache.put(structName.hashCode(), cStructType);
-        return cStructType;
+        CElaboratedType cType = new CElaboratedType(isConst,
+                                                    isVolatile,
+                                                    CComplexType.ComplexTypeKind.STRUCT,
+                                                    structName,
+                                                    structName,
+                                                    cStructType);
+
+        typeCache.put(structName.hashCode(), cType);
+        return cType;
     }
 
 }
