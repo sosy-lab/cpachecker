@@ -81,7 +81,7 @@ public class CFGTypeConverter {
                 if(typeString.startsWith("const ")){
                     return getCType(originTypeAST, true);
                 }else {
-                    CType originType = getCType(originTypeAST, false);
+                    CType originType = getCType(originTypeAST, isConst);
                     return new CTypedefType(originType.isConst(),
                                             originType.isVolatile(),
                                             typeString,
@@ -108,8 +108,9 @@ public class CFGTypeConverter {
                 }
                 CEnumType cEnumType = new CEnumType(isConst, false,
                         enumerators, typeString, typeString);
-            }else if(type.is_a(ast_class.getUC_STRING())){//C++ only
-
+                return new CElaboratedType(isConst, false,
+                                            CComplexType.ComplexTypeKind.ENUM,
+                                            typeString,typeString,cEnumType);
             }else if(type.is_a(ast_class.getUC_VECTOR_TYPE())){//C++ only
 
             }else

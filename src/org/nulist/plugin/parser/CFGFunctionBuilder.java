@@ -363,7 +363,7 @@ public class CFGFunctionBuilder  {
                     }
 
                     CType type = typeConverter.getCType(inAST.get(ast_ordinal.getBASE_TYPE()).as_ast());
-                    CExpression param = expressionHandler.getExpression(inAST,type,fileLocation);
+                    CExpression param = expressionHandler.getExpressionFromUC(inAST,type,fileLocation);
                     params.add(param);
                     rawCharacters=sb.toString().replace(", ",")");
                 }
@@ -436,7 +436,7 @@ public class CFGFunctionBuilder  {
                     }
 
                     CType type = typeConverter.getCType(inAST.get(ast_ordinal.getBASE_TYPE()).as_ast());
-                    CExpression param = expressionHandler.getExpression(inAST,type,fileLocation);
+                    CExpression param = expressionHandler.getExpressionFromUC(inAST,type,fileLocation);
                     params.add(param);
                     rawCharacters=sb.toString().replace(", ",")");
                 }
