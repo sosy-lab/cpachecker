@@ -25,13 +25,11 @@ import static org.nulist.plugin.parser.CFGAST.*;
 
 public class CFGTypeConverter {
     private final LogManager logger;
-    private final compunit cu;
     private static final CSimpleType ARRAY_LENGTH_TYPE = CNumericTypes.LONG_LONG_INT;
     private final Map<Integer, CType> typeCache = new HashMap<>();
 
-    public CFGTypeConverter(final compunit pCompunit, final LogManager pLogger) {
+    public CFGTypeConverter(final LogManager pLogger) {
         logger = pLogger;
-        cu = pCompunit;
         basicTypeInitialization();
     }
 
@@ -95,12 +93,8 @@ public class CFGTypeConverter {
                     String name = enumer.pretty_print();
                     long value = enumer.get(ast_ordinal.getBASE_VALUE()).as_ast()
                                     .get(ast_ordinal.getBASE_VALUE()).as_int32();
-                    long line = enumer.get(ast_ordinal.getUC_POSITION()).as_uint64().longValue();
-                    int fileLine = (int) cu.line_to_sfile_line(line).get_second();
-                    FileLocation fileLocation = new FileLocation(cu.normalized_name(),
-                            0,0,fileLine,fileLine);
                     CEnumType.CEnumerator enumerator =
-                            new CEnumType.CEnumerator(fileLocation,
+                            new CEnumType.CEnumerator(FileLocation.DUMMY,
                                                       name,
                                                       name,
                                                       value);
@@ -121,6 +115,8 @@ public class CFGTypeConverter {
             return null;
         }
     }
+
+
 
     /**
      *@Description basic type initialization

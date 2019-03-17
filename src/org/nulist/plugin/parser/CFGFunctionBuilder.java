@@ -582,7 +582,7 @@ public class CFGFunctionBuilder  {
                 CParameterDeclaration parameter =
                         new CParameterDeclaration(getLocation(paramNode,fileName),paramType,paramName);
 
-                parameter.setQualifiedName(getQualifiedName(paramName, functionName));
+                parameter.setQualifiedName(paramName);
                 expressionHandler.variableDeclarations.put(paramName.hashCode(),parameter);
                 parameters.add(parameter);
             }
@@ -1132,7 +1132,7 @@ public class CFGFunctionBuilder  {
                             varType,
                             assignedVar,
                             assignedVar,
-                            getQualifiedName(assignedVar, functionName),
+                            assignedVar,
                             null);
             assert !expressionHandler.variableDeclarations.containsKey(itemId);
             expressionHandler.variableDeclarations.put(itemId, newDecl);

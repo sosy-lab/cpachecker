@@ -29,7 +29,7 @@ public class FileOperations {
 
 
     public static FileLocation getLocation(int startLine, final String pFileName) {
-        return new FileLocation(pFileName, 0, 1, startLine, 0);
+        return new FileLocation(pFileName, 0, 1, startLine, startLine);
     }
 
     public static FileLocation getLocation(int startLine, int endLine, final String pFileName) {

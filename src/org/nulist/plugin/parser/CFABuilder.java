@@ -61,7 +61,7 @@ public class CFABuilder {
         logger = pLogger;
         machineModel = pMachineModel;
 
-        typeConverter = new CFGTypeConverter(machineModel,logger);
+        typeConverter = new CFGTypeConverter(logger);
 
         functionDeclarations = new HashMap<>();
 
