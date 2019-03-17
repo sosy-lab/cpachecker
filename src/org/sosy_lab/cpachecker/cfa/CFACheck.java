@@ -30,24 +30,46 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import com.google.common.base.VerifyException;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-
+import java.math.BigInteger;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Set;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class CFACheck {
 
@@ -55,10 +77,12 @@ public class CFACheck {
    * Traverse the CFA and run a series of checks at each node
    * @param cfa Node to start traversal from
    * @param nodes Optional set of all nodes in the CFA (may be null)
+   * @param machineModel model to get the size of types
    * @return true if all checks succeed
    * @throws VerifyException if not all checks succeed
    */
-  public static boolean check(FunctionEntryNode cfa, @Nullable Set<CFANode> nodes)
+  public static boolean check(
+      FunctionEntryNode cfa, @Nullable Set<CFANode> nodes, MachineModel machineModel)
       throws VerifyException {
 
     Set<CFANode> visitedNodes = new HashSet<>();
@@ -73,7 +97,7 @@ public class CFACheck {
         Iterables.addAll(waitingNodeList, CFAUtils.predecessorsOf(node)); // just to be sure to get ALL nodes.
 
         // The actual checks
-        isConsistent(node);
+        isConsistent(node, machineModel);
         checkEdgeCount(node);
       }
     }
@@ -183,12 +207,13 @@ public class CFACheck {
    * at predecessor/successor nodes, and that there are no duplicates
    * @param pNode Node to be checked
    */
-  private static void isConsistent(CFANode pNode) {
+  private static void isConsistent(CFANode pNode, MachineModel machineModel) {
     Set<CFAEdge> seenEdges = new HashSet<>();
     Set<CFANode> seenNodes = new HashSet<>();
 
     for (CFAEdge edge : leavingEdges(pNode)) {
       verify(seenEdges.add(edge), "Duplicate leaving edge %s on node %s", edge, debugFormat(pNode));
+      checkEdge(edge, machineModel);
 
       CFANode successor = edge.getSuccessor();
       verify(
@@ -225,6 +250,129 @@ public class CFACheck {
           debugFormat(pNode),
           edge,
           debugFormat(predecessor));
+    }
+  }
+
+  // simple check for valid contents of an edge
+  private static void checkEdge(CFAEdge edge, MachineModel machineModel) {
+    switch (edge.getEdgeType()) {
+      case AssumeEdge:
+        if (edge instanceof CAssumeEdge) {
+          checkTypes(((CAssumeEdge) edge).getExpression(), machineModel);
+        }
+        break;
+      case DeclarationEdge:
+        ADeclaration decl = ((ADeclarationEdge) edge).getDeclaration();
+        if (decl instanceof CVariableDeclaration) {
+          CInitializer init = ((CVariableDeclaration) decl).getInitializer();
+          if (init instanceof CInitializerExpression) {
+            checkTypes(((CInitializerExpression) init).getExpression(), machineModel);
+          }
+        }
+        break;
+      case StatementEdge:
+        AStatement stat = ((AStatementEdge) edge).getStatement();
+        if (stat instanceof CExpressionStatement) {
+          checkTypes(((CExpressionStatement) stat).getExpression(), machineModel);
+        }
+        break;
+      default:
+        // TODO add more checks
+        // ignore
+    }
+  }
+
+  private static void checkTypes(CExpression exp, MachineModel machineModel) {
+    exp.accept(new ExpressionValidator(machineModel));
+  }
+
+  private static final class ExpressionValidator
+      extends DefaultCExpressionVisitor<Void, RuntimeException> {
+
+    private final MachineModel machineModel;
+
+    public ExpressionValidator(MachineModel pMachineModel) {
+      machineModel = pMachineModel;
+    }
+
+    private void checkValueRange(CType pType, BigInteger value) {
+      CSimpleType type = (CSimpleType) pType.getCanonicalType();
+      verify(
+          machineModel.getMinimalIntegerValue(type).compareTo(value) <= 0,
+          "value '%s' is too small for type '%s'",
+          value,
+          type);
+      verify(
+          machineModel.getMaximalIntegerValue(type).compareTo(value) >= 0,
+          "value '%s' is too large for type '%s'",
+          value,
+          type);
+    }
+
+    @Override
+    public Void visit(CArraySubscriptExpression pArraySubscriptExpression) {
+      pArraySubscriptExpression.getSubscriptExpression().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CFieldReference pFieldReference) {
+      pFieldReference.getFieldOwner().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CPointerExpression pPointerExpression) {
+      pPointerExpression.getOperand().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CComplexCastExpression pComplexCastExpression) {
+      pComplexCastExpression.getOperand().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CBinaryExpression pBinaryExpression) {
+      pBinaryExpression.getOperand1().accept(this);
+      pBinaryExpression.getOperand2().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CCastExpression pCastExpression) {
+      pCastExpression.getOperand().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CCharLiteralExpression pLiteral) {
+      checkValueRange(pLiteral.getExpressionType(), BigInteger.valueOf(pLiteral.getValue()));
+      return null;
+    }
+
+    @Override
+    public Void visit(CIntegerLiteralExpression pLiteral) {
+      checkValueRange(pLiteral.getExpressionType(), pLiteral.getValue());
+      return null;
+    }
+
+    @Override
+    public Void visit(CUnaryExpression pUnaryExpression) {
+      pUnaryExpression.getOperand().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CImaginaryLiteralExpression pLiteralExpression) {
+      pLiteralExpression.getValue().accept(this);
+      return null;
+    }
+
+    @Override
+    protected Void visitDefault(CExpression pExp) throws RuntimeException {
+      return null; // ignore the expression
     }
   }
 }
