@@ -221,7 +221,7 @@ public class CFABuilder {
                                 normalizedName,
                                 initializer);
 
-                expressionHandler.globalVariableDeclarations.put(variableName.hashCode(),(ADeclaration) newDecl);
+                expressionHandler.globalVariableDeclarations.put(normalizedName.hashCode(),(ADeclaration) newDecl);
             }
         }
     }

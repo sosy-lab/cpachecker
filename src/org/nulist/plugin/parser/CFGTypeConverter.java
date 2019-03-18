@@ -39,7 +39,7 @@ public class CFGTypeConverter {
     private String handleUnnamedType(ast type) throws result{
         String typeString = type.pretty_print();
         String typeName ="";
-        if(typeString.endsWith("<UNNAMED>")){
+        if(typeString.endsWith("<UNNAMED>") || typeString.endsWith("<unnamed>") ){
             if(isStructType(type)){
                 typeName=STRUCT_PREF;
                 if(type.is_a(ast_class.getUC_STRUCT()))
@@ -132,7 +132,7 @@ public class CFGTypeConverter {
                     enumerators.add(enumerator);
                 }
                 String typeName = typeString;
-                if(typeString.endsWith("<UNNAMED>")){
+                if(typeString.endsWith("<UNNAMED>") || typeString.endsWith("<unnamed>")){
                     typeName = handleUnnamedType(type);
                     typeString = "";
                 }
@@ -154,7 +154,7 @@ public class CFGTypeConverter {
                     members.add(memberDeclaration);
                 }
                 String typeName = typeString;
-                if(typeString.endsWith("<UNNAMED>")){
+                if(typeString.endsWith("<UNNAMED>") || typeString.endsWith("<unnamed>") ){
                     typeName =handleUnnamedType(type);
                     typeString = "";
                 }
@@ -239,7 +239,7 @@ public class CFGTypeConverter {
         //normal struct: struct label
         String structName = type.pretty_print();
         String typeName = structName;
-        if(structName.endsWith("<UNNAMED>")){
+        if(structName.endsWith("<UNNAMED>") || structName.endsWith("<unnamed>") ){
             typeName = handleUnnamedType(type);
             structName = "";
         }

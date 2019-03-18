@@ -75,6 +75,12 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LoggingOptions;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.ParseResult;
+import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentException;
@@ -133,11 +139,17 @@ public class CPAMain {
     }
     final LogManager logManager = BasicLogManager.create(logOptions);
     CFGParser cfgParser = new CFGParser(logManager, MachineModel.LINUX64);
-
+    final ShutdownManager shutdownManager = ShutdownManager.create();
+    final ShutdownNotifier shutdownNotifier = shutdownManager.getNotifier();
     try {
-      cfgParser.parseProject(project);
+      ParseResult parseResult = cfgParser.parseProject(project);
+      StringBuilder builder = new StringBuilder();
+
+      
     }catch (result r){
       r.printStackTrace();
+    }catch (Exception e){
+      e.printStackTrace();
     }
   }
 

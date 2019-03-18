@@ -31,6 +31,7 @@ public class CSurfPlugin {
             project proj = project.current();
             CPAMain.executeParser(proj);
 
+
             for( project_compunits_iterator cu_it = proj.compunits();
                  !cu_it.at_end();
                  cu_it.advance() )

@@ -24,7 +24,7 @@ public class CFGOperations {
         TreeSet<Long> treeSet = new TreeSet<>(lineMap.keySet());
         treeSet.comparator();
         for(Long i:treeSet)
-            edgeVector.add(edgeVector.get(lineMap.get(i)));
+            edgeVector.add(cfgEdgeVector.get(lineMap.get(i)));
         return edgeVector;
     }
 }

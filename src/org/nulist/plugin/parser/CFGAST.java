@@ -377,7 +377,7 @@ public class CFGAST {
         else if(un_ast.is_a(ast_class.getUC_ABSTRACT_LE()))
             return CBinaryExpression.BinaryOperator.LESS_EQUAL;//<=
         else
-            throw new UnsupportedOperationException("Unsupported predicate");
+            throw new UnsupportedOperationException("Unsupported predicate "+ un_ast.toString());
     }
 
     //Normalized
