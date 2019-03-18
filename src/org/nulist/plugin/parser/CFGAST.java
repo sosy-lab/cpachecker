@@ -88,8 +88,17 @@ public class CFGAST {
 
     public static boolean isStructType(ast ast){
         try {
-            return ast.is_a(ast_class.getNC_STRUCT()) || ast.is_a(ast_class.getUC_STRUCT())||
+            return ast.is_a(ast_class.getNC_STRUCT()) || ast.is_a(ast_class.getUC_STRUCT()) ||
                     ast.get(ast_ordinal.getBASE_TYPE()).as_ast().is_a(ast_class.getUC_STRUCT());
+        }catch (result r){
+            return false;
+        }
+
+    }
+
+    public static boolean isUnionType(ast ast){
+        try {
+            return ast.is_a(ast_class.getNC_UNION()) || ast.is_a(ast_class.getUC_UNION());
         }catch (result r){
             return false;
         }
@@ -123,7 +132,7 @@ public class CFGAST {
 
     public static boolean isConstantAggreateZeroFromUC(ast constant){
         try {
-            return constant.is_a(ast_class.getUC_ABSTRACT_CONSTANT()) &&
+            return constant.is_a(ast_class.getUC_AGGREGATE()) &&
                     !constant.has_field(ast_ordinal.getUC_CONSTANT_LIST());
         }catch (result r){
             return false;
@@ -274,7 +283,7 @@ public class CFGAST {
     }
 
     public static ast getStructType(ast ast) throws result{
-        if(ast.is_a(ast_class.getNC_STRUCT())){
+        if(ast.is_a(ast_class.getNC_STRUCT()) || ast.is_a(ast_class.getUC_STRUCT())){
             return ast;
         }else {//for typedef struct
             return ast.get(ast_ordinal.getBASE_TYPE()).as_ast();

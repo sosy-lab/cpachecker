@@ -193,9 +193,10 @@ public class CFABuilder {
 
                 //global variable is initialized static
                 ast init = un_ast.get(ast_ordinal.getUC_STATIC_INIT()).as_ast();
-                ast variable = un_ast.get(ast_ordinal.getUC_VARIABLE()).as_ast();
-                String variableName =variable.pretty_print();
-                String normalizedName = normalizingVariableName(variable);
+
+                symbol variableSym = un_ast.get(ast_ordinal.getUC_ABS_LOC()).as_symbol();
+                String variableName =variableSym.name();
+                String normalizedName = variableName;
 
                 //TODO: CPAChecker change all static variables to auto
                 if (storageClass == CStorageClass.STATIC) {

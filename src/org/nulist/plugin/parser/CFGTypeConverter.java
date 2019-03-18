@@ -39,6 +39,12 @@ public class CFGTypeConverter {
     public CType getCType(ast type){
         try {
             String typeString = type.pretty_print();
+            if(typeString.endsWith("<UNAMED>")){
+                if(isStructType(type))
+                    typeString="__STRUCT__"+type.get(ast_ordinal.getUC_UID()).as_uint32();
+                else if(isUnionType(type))
+                    typeString="__UNION__"+type.get(ast_ordinal.getUC_UID()).as_uint32();
+            }
             CType cType = typeCache.getOrDefault(typeString.hashCode(),null);
             if(cType!=null)
                 return cType;
@@ -52,7 +58,21 @@ public class CFGTypeConverter {
         try {
             String typeString = type.pretty_print();
             CType cType = null;
-            if(isStructType(type)){//struct
+            if(isTypeRef(type)){
+                ast originTypeAST = type.get(ast_ordinal.getBASE_TYPE()).as_ast();
+                CType cTypedefType;
+                if(typeString.startsWith("const ")){
+                    cTypedefType = getCType(originTypeAST, true);
+                }else {
+                    CType originType = getCType(originTypeAST, isConst);
+                    cTypedefType = new CTypedefType(originType.isConst(),
+                                                                originType.isVolatile(),
+                                                                typeString,
+                                                                originType);
+                }
+                typeCache.put(typeString.hashCode(), cTypedefType);
+                return cTypedefType;
+            }else if(isStructType(type)){//struct
                 return createStructType(type, isConst);
             }else if(isPointerType(type)){
                 ast pointedTo = type.get(ast_ordinal.getBASE_POINTED_TO()).as_ast();
@@ -73,18 +93,6 @@ public class CFGTypeConverter {
                         isConst, false, cType, arrayLength);
                 typeCache.put(typeString.hashCode(),cArrayType);
                 return cArrayType;
-            }else if(isTypeRef(type)){
-                ast originTypeAST = type.get(ast_ordinal.getBASE_TYPE()).as_ast();
-
-                if(typeString.startsWith("const ")){
-                    return getCType(originTypeAST, true);
-                }else {
-                    CType originType = getCType(originTypeAST, isConst);
-                    return new CTypedefType(originType.isConst(),
-                                            originType.isVolatile(),
-                                            typeString,
-                                            originType);
-                }
             }else if(isEnumType(type)){
                 ast constantList = type.get(ast_ordinal.getUC_CONSTANT_LIST()).as_ast();
                 List<CEnumType.CEnumerator> enumerators = new ArrayList<>();
@@ -102,11 +110,33 @@ public class CFGTypeConverter {
                 }
                 CEnumType cEnumType = new CEnumType(isConst, false,
                         enumerators, typeString, typeString);
-                return new CElaboratedType(isConst, false,
+                CElaboratedType cElaboratedType= new CElaboratedType(isConst, false,
                                             CComplexType.ComplexTypeKind.ENUM,
                                             typeString,typeString,cEnumType);
-            }else if(type.is_a(ast_class.getUC_VECTOR_TYPE())){//C++ only
+                typeCache.put(typeString.hashCode(), cElaboratedType);
+                return cElaboratedType;
+            }else if(type.is_a(ast_class.getNC_UNION())){
+                List<CCompositeType.CCompositeTypeMemberDeclaration> members = new ArrayList<>();
+                for(int i=0;i<type.children().size();i++){
+                    ast memberAST = type.children().get(i).as_ast();
+                    CType memeberType = getCType(memberAST.get(ast_ordinal.getBASE_TYPE()).as_ast());
+                    String memberName = memberAST.get(ast_ordinal.getBASE_NAME()).as_str();
+                    CCompositeType.CCompositeTypeMemberDeclaration memberDeclaration =
+                            new CCompositeType.CCompositeTypeMemberDeclaration(memeberType, memberName);
+                    members.add(memberDeclaration);
+                }
 
+                if(typeString.endsWith("<UNNAMED>"))
+                    typeString = "__UNION__"+type.get(ast_ordinal.getNC_UNNORMALIZED()).get(ast_ordinal.getUC_UID()).as_uint32();
+
+                CCompositeType cCompositeType = new CCompositeType(isConst, false,
+                        CComplexType.ComplexTypeKind.UNION, members, typeString, typeString);
+                CElaboratedType cElaboratedType= new CElaboratedType(isConst, false,
+                        CComplexType.ComplexTypeKind.ENUM,
+                        typeString,typeString,cCompositeType);
+                return cElaboratedType;
+            }else if(type.is_a(ast_class.getUC_VECTOR_TYPE())){//C++ only
+                System.out.println();
             }else
                 throw new RuntimeException("Unsupported type "+ type.toString());
 
@@ -177,9 +207,10 @@ public class CFGTypeConverter {
         //typedef struct: label
         //normal struct: struct label
         String structName = type.pretty_print();
+        if(structName.endsWith("<UNNAMED>"))
+            structName = "__STRUCT__"+type.get(ast_ordinal.getUC_UID()).as_uint32();
 
         ast struct_type = getStructType(type);
-
 
         if(typeCache.containsKey(structName.hashCode())){
             return new CElaboratedType(
