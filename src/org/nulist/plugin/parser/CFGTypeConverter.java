@@ -25,6 +25,9 @@ import static org.nulist.plugin.parser.CFGAST.*;
 
 public class CFGTypeConverter {
     private final LogManager logger;
+    private final String STRUCT_PREF = "struct __STRUCT__";
+    private final String UNION_PREF = "__UNION__";
+    private final String ENUM_PREF = "__ENUM__";
     private static final CSimpleType ARRAY_LENGTH_TYPE = CNumericTypes.LONG_LONG_INT;
     private final Map<Integer, CType> typeCache = new HashMap<>();
 
@@ -33,25 +36,45 @@ public class CFGTypeConverter {
         basicTypeInitialization();
     }
 
+    private String handleUnnamedType(ast type) throws result{
+        String typeString = type.pretty_print();
+        String typeName ="";
+        if(typeString.endsWith("<UNAMED>")){
+            if(isStructType(type)){
+                typeName=STRUCT_PREF;
+                if(type.is_a(ast_class.getUC_STRUCT()))
+                    typeName += type.get(ast_ordinal.getUC_UID()).as_uint32();
+                else {
+                    typeName += type.get(ast_ordinal.getNC_UNNORMALIZED()).get(ast_ordinal.getUC_UID()).as_uint32();
+                }
+                return typeName;
+            } else if(isUnionType(type)){
+                typeName=UNION_PREF;
+                if(type.is_a(ast_class.getUC_UNION()))
+                    typeName += type.get(ast_ordinal.getUC_UID()).as_uint32();
+                else {
+                    typeName += type.get(ast_ordinal.getNC_UNNORMALIZED()).get(ast_ordinal.getUC_UID()).as_uint32();
+                }
+                return typeName;
+            }
+            return typeString;
+        }else
+            return typeString;
+    }
     //
     //since codesurfer normalizes bool into unsigned char, which may confuse model checking
     // we need to input unnormalized type
     public CType getCType(ast type){
         try {
-            String typeString = type.pretty_print();
-            if(typeString.endsWith("<UNAMED>")){
-                if(isStructType(type))
-                    typeString="__STRUCT__"+type.get(ast_ordinal.getUC_UID()).as_uint32();
-                else if(isUnionType(type))
-                    typeString="__UNION__"+type.get(ast_ordinal.getUC_UID()).as_uint32();
-            }
+            String typeString = handleUnnamedType(type);
             CType cType = typeCache.getOrDefault(typeString.hashCode(),null);
             if(cType!=null)
                 return cType;
+            else
+                return getCType(type, false);
         }catch (result r){
             return null;
         }
-        return getCType(type, false);
     }
 
     private CType getCType(ast type, boolean isConst){
@@ -108,12 +131,17 @@ public class CFGTypeConverter {
                                                       value);
                     enumerators.add(enumerator);
                 }
+                String typeName = typeString;
+                if(typeString.endsWith("<UNNAMED>")){
+                    typeName = handleUnnamedType(type);
+                    typeString = "";
+                }
                 CEnumType cEnumType = new CEnumType(isConst, false,
-                        enumerators, typeString, typeString);
+                        enumerators, typeName, typeString);
                 CElaboratedType cElaboratedType= new CElaboratedType(isConst, false,
                                             CComplexType.ComplexTypeKind.ENUM,
-                                            typeString,typeString,cEnumType);
-                typeCache.put(typeString.hashCode(), cElaboratedType);
+                                             typeName,typeString,cEnumType);
+                typeCache.put(typeName.hashCode(), cElaboratedType);
                 return cElaboratedType;
             }else if(type.is_a(ast_class.getNC_UNION())){
                 List<CCompositeType.CCompositeTypeMemberDeclaration> members = new ArrayList<>();
@@ -125,15 +153,18 @@ public class CFGTypeConverter {
                             new CCompositeType.CCompositeTypeMemberDeclaration(memeberType, memberName);
                     members.add(memberDeclaration);
                 }
-
-                if(typeString.endsWith("<UNNAMED>"))
-                    typeString = "__UNION__"+type.get(ast_ordinal.getNC_UNNORMALIZED()).get(ast_ordinal.getUC_UID()).as_uint32();
+                String typeName = typeString;
+                if(typeString.endsWith("<UNNAMED>")){
+                    typeName =handleUnnamedType(type);
+                    typeString = "";
+                }
 
                 CCompositeType cCompositeType = new CCompositeType(isConst, false,
-                        CComplexType.ComplexTypeKind.UNION, members, typeString, typeString);
+                        CComplexType.ComplexTypeKind.UNION, members, typeName, typeString);
                 CElaboratedType cElaboratedType= new CElaboratedType(isConst, false,
                         CComplexType.ComplexTypeKind.ENUM,
-                        typeString,typeString,cCompositeType);
+                        typeName, typeString,cCompositeType);
+                typeCache.put(typeName.hashCode(), cElaboratedType);
                 return cElaboratedType;
             }else if(type.is_a(ast_class.getUC_VECTOR_TYPE())){//C++ only
                 System.out.println();
@@ -207,24 +238,28 @@ public class CFGTypeConverter {
         //typedef struct: label
         //normal struct: struct label
         String structName = type.pretty_print();
-        if(structName.endsWith("<UNNAMED>"))
-            structName = "__STRUCT__"+type.get(ast_ordinal.getUC_UID()).as_uint32();
+        String typeName = structName;
+        if(structName.endsWith("<UNNAMED>")){
+            typeName = handleUnnamedType(type);
+            structName = "";
+        }
+
 
         ast struct_type = getStructType(type);
 
-        if(typeCache.containsKey(structName.hashCode())){
+        if(typeCache.containsKey(typeName.hashCode())){
             return new CElaboratedType(
                     false,
                     false,
                     CComplexType.ComplexTypeKind.STRUCT,
+                    typeName,
                     structName,
-                    structName,
-                    (CComplexType) typeCache.get(structName.hashCode()));
+                    (CComplexType) typeCache.get(typeName.hashCode()));
         }
 
 
         CCompositeType cStructType =
-                new CCompositeType(isConst, isVolatile, CComplexType.ComplexTypeKind.STRUCT, structName, structName);
+                new CCompositeType(isConst, isVolatile, CComplexType.ComplexTypeKind.STRUCT, typeName, structName);
 
         //normalized type
         ast_field_vector items;
@@ -251,11 +286,11 @@ public class CFGTypeConverter {
         CElaboratedType cType = new CElaboratedType(isConst,
                                                     isVolatile,
                                                     CComplexType.ComplexTypeKind.STRUCT,
-                                                    structName,
+                                                    typeName,
                                                     structName,
                                                     cStructType);
 
-        typeCache.put(structName.hashCode(), cType);
+        typeCache.put(typeName.hashCode(), cType);
         return cType;
     }
 
