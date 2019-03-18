@@ -39,7 +39,7 @@ public class CFGTypeConverter {
     private String handleUnnamedType(ast type) throws result{
         String typeString = type.pretty_print();
         String typeName ="";
-        if(typeString.endsWith("<UNAMED>")){
+        if(typeString.endsWith("<UNNAMED>")){
             if(isStructType(type)){
                 typeName=STRUCT_PREF;
                 if(type.is_a(ast_class.getUC_STRUCT()))
@@ -162,7 +162,7 @@ public class CFGTypeConverter {
                 CCompositeType cCompositeType = new CCompositeType(isConst, false,
                         CComplexType.ComplexTypeKind.UNION, members, typeName, typeString);
                 CElaboratedType cElaboratedType= new CElaboratedType(isConst, false,
-                        CComplexType.ComplexTypeKind.ENUM,
+                        CComplexType.ComplexTypeKind.UNION,
                         typeName, typeString,cCompositeType);
                 typeCache.put(typeName.hashCode(), cElaboratedType);
                 return cElaboratedType;

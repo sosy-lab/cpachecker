@@ -476,7 +476,7 @@ public class CFGHandleExpression {
             return new CPointerExpression(fileLoc, pointerType, operand);
 
         }else if(value_ast.is_a(ast_class.getUC_SUBSCRIPT())){//d[1], operands
-
+            //TODO d[1][2]
             ast operand = value_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast();
             ast array_ast = operand.children().get(0).as_ast();
             ast index_ast = operand.children().get(1).as_ast();
