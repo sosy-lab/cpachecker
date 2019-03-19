@@ -146,11 +146,11 @@ public class CFACreator {
 
   @Option(secure=true, name="analysis.interprocedural",
       description="run interprocedural analysis")
-  private boolean interprocedural = true;
+  private boolean interprocedural = true;//has done in the cfaparser
 
   @Option(secure=true, name="analysis.functionPointerCalls",
       description="create all potential function pointer call edges")
-  private boolean fptrCallEdges = true;
+  private boolean fptrCallEdges = false;//has done in the cfaparser
 
   @Option(
     secure = true,
@@ -482,7 +482,7 @@ private boolean classifyNodes = false;
     // SECOND, do those post-processings that change the CFA by adding/removing nodes/edges
     stats.processingTime.start();
 
-    cfa = postProcessingOnMutableCFAs(cfa, pParseResult.getGlobalDeclarations());
+    //cfa = postProcessingOnMutableCFAs(cfa, pParseResult.getGlobalDeclarations());
 
     // Check CFA again after post-processings
     stats.checkTime.start();
@@ -501,19 +501,19 @@ private boolean classifyNodes = false;
 
     // get loop information
     // (needs post-order information)
-    if (useLoopStructure) {
-      addLoopStructure(cfa);
-    }
-
-    // instrument the cfa, if any configuration regarding that is set (needs loop structure)
-    instrumentCfa(cfa);
-
-    // FOURTH, insert call and return edges and build the supergraph
-    if (interprocedural) {
-      logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
-      CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa, language, logger, config);
-      spbuilder.insertCallEdgesRecursively();
-    }
+//    if (useLoopStructure) {
+//      addLoopStructure(cfa);
+//    }
+//
+//    // instrument the cfa, if any configuration regarding that is set (needs loop structure)
+//    instrumentCfa(cfa);
+//
+//    // FOURTH, insert call and return edges and build the supergraph
+//    if (interprocedural) {
+//      logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
+//      CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa, language, logger, config);
+//      spbuilder.insertCallEdgesRecursively();
+//    }
 
     // FIFTH, do post-processings on the supergraph
     // Mutating post-processings should be checked carefully for their effect

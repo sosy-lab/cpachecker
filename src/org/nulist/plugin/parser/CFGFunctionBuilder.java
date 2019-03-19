@@ -46,7 +46,7 @@ public class CFGFunctionBuilder  {
 
     // Data structures for handling function declarations
     private FunctionEntryNode cfa = null;
-    private Set<CFANode> cfaNodes = null;
+    private Set<CFANode> cfaNodes = new HashSet<>();
     private Map<Long, CFANode> cfaNodeMap = new HashMap<>();
 
     // There can be global declarations in a function
@@ -202,6 +202,8 @@ public class CFGFunctionBuilder  {
         cfa = entry;
 
         cfaNodeMap.put(function.entry_point().id(),cfa);
+        cfaBuilder.addNode(functionName, functionExit);
+        cfaBuilder.addNode(functionName, entry);
 
         return entry;
     }
@@ -225,14 +227,16 @@ public class CFGFunctionBuilder  {
                 || getKindName(node).equals(JUMP)
                 || getKindName(node).equals(EXPRESSION)
                 || getKindName(node).equals(SWITCH_CASE)
-                || getKindName(node).equals(RETURN)
-                || getKindName(node).endsWith(LABEL)){
+                || getKindName(node).equals(RETURN)){
                 CFANode newCFAnode = newCFANode();
                 cfaNodeMap.put(node.id(),newCFAnode);
             }else if(isGoToLabel(node)){
                 String labelName = getLabelName(node);
                 CLabelNode labelNode = new CLabelNode(functionName,labelName);
                 cfaNodeMap.put(node.id(),labelNode);
+            }else if(getKindName(node).endsWith(LABEL)){
+                CFANode newCFAnode = newCFANode();
+                cfaNodeMap.put(node.id(),newCFAnode);
             }else if(getKindName(node).equals(DECLARATION)){//static variable has no expression, but actually has initializer
                 symbol s = node.declared_symbol();
                 ast symbolAST = s.get_ast(ast_family.getC_UNNORMALIZED());
@@ -261,12 +265,9 @@ public class CFGFunctionBuilder  {
 
 
     private void finish(){
-        SortedSet<CFANode> nodes = Collections.unmodifiableSortedSet(cfaBuilder.cfaNodes.get(functionName));
-        Iterator it = nodes.iterator();
-        while (it.hasNext()){
-            CFANode node = (CFANode) it.next();
-            if(node.getNumLeavingEdges()==0 && node.getNumEnteringEdges()==0)
-                it.remove();
+        for(CFANode node:cfaNodes){
+            if(node.getNumEnteringEdges()>0 || node.getNumLeavingEdges()>0)
+                cfaBuilder.addNode(functionName, node);
         }
     }
 
@@ -341,8 +342,7 @@ public class CFGFunctionBuilder  {
         if(cfgEdgeSet.empty() && !isFunctionExit(cfgNode)){
             //throw new Exception("");
         }//check if the edge has been built
-        else if(cfaNode.hasEdgeTo(cfaNodeMap.get(cfgEdgeSet.cbegin().current().get_first().id()))){
-            cfaNode.setLoopStart();
+        else if(cfaNode.getNumLeavingEdges()>0){
             return;
         }
 
@@ -370,9 +370,9 @@ public class CFGFunctionBuilder  {
                     break;
                 case JUMP:
                     if(isGotoNode(cfgNode)){
-                        handleNormalPoint(cfgNode,
-                                fileLocation, "Goto: "+ getGoToLabelName(cfgNode));
-                        //handleGotoPoint(cfgNode, fileLocation);
+//                        handleNormalPoint(cfgNode,
+//                                fileLocation, "Goto: "+ getGoToLabelName(cfgNode));
+                        handleGotoPoint(cfgNode, fileLocation);
                     }else if(isBreakNode(cfgNode)){
                         handleNormalPoint(cfgNode, fileLocation,"break");
                     }else
@@ -383,9 +383,9 @@ public class CFGFunctionBuilder  {
                     break;
                 case LABEL:
                     if(isGoToLabel(cfgNode))
-                        handleNormalPoint(cfgNode, fileLocation,
-                                "Label: "+getLabelName(cfgNode));
-                        //handleLabelPoint(cfgNode, fileLocation);
+//                        handleNormalPoint(cfgNode, fileLocation,
+//                                "Label: "+getLabelName(cfgNode));
+                        handleLabelPoint(cfgNode, fileLocation);
                     else if(isElseLabel(cfgNode)){
                         handleNormalPoint(cfgNode, fileLocation, "else");
                     }else if(isDoLabel(cfgNode))
@@ -546,6 +546,8 @@ public class CFGFunctionBuilder  {
                     params, pFunctionEntry.getFunctionDefinition());
             functionCallStatement = new CFunctionCallStatement(fileLocation,functionCallExpression);
 
+//            edge = new CStatementEdge(rawCharacters,functionCallStatement, fileLocation,
+//                    prevNode, nextNode);
             edge = new CFunctionSummaryEdge(rawCharacters, fileLocation,
                     prevNode, nextNode, functionCallStatement, pFunctionEntry);
 
@@ -669,6 +671,9 @@ public class CFGFunctionBuilder  {
 
             //nextNode = cfaNodeMap.get(nextCFGNode.id());
             nextNode = handleSwitchCasePoint(nextCFGNode);
+//            edge = new CStatementEdge(rawCharacters, functionCallStatement, fileLocation,
+//                    declNode, nextNode);
+
             edge = new CFunctionSummaryEdge(rawCharacters, fileLocation,
                     declNode, nextNode, functionCallStatement, pFunctionEntry);
 
@@ -695,7 +700,7 @@ public class CFGFunctionBuilder  {
         assert isLabel(labelNode);
 
         String labelName = getLabelName(labelNode);
-        CLabelNode prevNode = (CLabelNode) cfaNodeMap.get(labelNode.id());
+        CFANode prevNode = cfaNodeMap.get(labelNode.id());
 
         point nextCFGNode = labelNode.cfg_targets().cbegin().current().get_first();
         CFANode nextNode = handleSwitchCasePoint(nextCFGNode);// cfaNodeMap.get(nextCFGNode.id());
@@ -706,6 +711,7 @@ public class CFGFunctionBuilder  {
                         prevNode,
                         nextNode,
                         "Label: " + labelName);
+        nextNode.setLoopStart();
         addToCFA(blankEdge);
 
         traverseCFGNode(nextCFGNode);
@@ -726,6 +732,8 @@ public class CFGFunctionBuilder  {
 
         point nextCFGNode = gotoNode.cfg_targets().cbegin().current().get_first();
         assert getLabelName(nextCFGNode).equals(gotoLabelName);
+        //goto the node next to the label node
+        nextCFGNode = nextCFGNode.cfg_targets().cbegin().current().get_first();
 
         CFANode nextCFANode = cfaNodeMap.get(nextCFGNode.id());
 
@@ -799,6 +807,7 @@ public class CFGFunctionBuilder  {
     private void handleDoWhilePoint(point whileNode, FileLocation fileLocation)throws result{
         assert isDoControlPointNode(whileNode);
         CFANode prevNode = cfaNodeMap.get(whileNode.id());
+        prevNode.setLoopStart();
 
         cfg_edge_set cfgEdgeSet = whileNode.cfg_targets();
 
@@ -1072,7 +1081,7 @@ public class CFGFunctionBuilder  {
     private CFANode newCFANode() {
         assert cfa != null;
         CFANode nextNode = new CFANode(cfa.getFunctionName());
-        cfaBuilder.addNode(functionName,nextNode);
+        cfaNodes.add(nextNode);
         return nextNode;
     }
 

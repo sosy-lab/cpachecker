@@ -100,7 +100,10 @@ class CReferencedFunctionsCollector {
       CStatementEdge statementEdge = (CStatementEdge)edge;
       statementEdge.getStatement().accept(collector);
       break;
-
+      case CallToReturnEdge:
+      case FunctionCallEdge:
+      case FunctionReturnEdge:
+        break;
     default:
       throw new AssertionError();
     }

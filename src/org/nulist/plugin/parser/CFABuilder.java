@@ -112,8 +112,6 @@ public class CFABuilder {
 
                 // handle the function definition
                 CFunctionEntryNode en = cfgFunctionBuilder.handleFunctionDefinition();
-                addNode(funcName, en.getExitNode());
-                addNode(funcName, en);
 
                 functions.put(funcName, en);
                 cfgFunctionBuilderMap.put(funcName,cfgFunctionBuilder);
