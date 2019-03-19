@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cmdline;
 import static java.util.stream.Collectors.toList;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
@@ -243,8 +244,9 @@ public class CPAMain {
     private boolean printUsedOptions = false;
   }
 
+  @VisibleForTesting
   @Options
-  private static class MainOptions {
+  protected static class MainOptions {
     @Option(
       secure = true,
       name = "analysis.programNames",
@@ -375,7 +377,8 @@ public class CPAMain {
           Arrays.toString(Language.values()));
 
   /** determine the frontend language based on the file endings of the given programs. */
-  private static Configuration extractFrontendfromFileending(
+  @VisibleForTesting
+  protected static Configuration extractFrontendfromFileending(
       MainOptions pOptions, Configuration pConfig, LogManager pLogManager)
       throws InvalidConfigurationException {
     if (pOptions.language == null) {
