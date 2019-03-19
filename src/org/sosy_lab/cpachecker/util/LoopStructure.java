@@ -68,6 +68,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
@@ -564,6 +566,8 @@ public final class LoopStructure implements Serializable {
       nodesArray[i] = n;
 
       for (CFAEdge edge : leavingEdges(n)) {
+        if(edge instanceof CFunctionCallEdge || edge instanceof CFunctionReturnEdge)
+          continue;
         CFANode succ = edge.getSuccessor();
         int j = arrayIndexForNode.apply(succ);
         edges[i][j] = new Edge();

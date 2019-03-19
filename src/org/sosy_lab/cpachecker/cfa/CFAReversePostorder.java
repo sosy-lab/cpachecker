@@ -69,6 +69,7 @@ public class CFAReversePostorder {
     // - the current node (variable "node" in checkIds())
     // - the iterator over the current node's successors (this is state hidden in the for-each loop in checkIds())
     // Together, these two items form a "stack frame".
+    String functionName = start.getFunctionName();
 
     final Set<CFANode> finished = new HashSet<>();
 
@@ -90,7 +91,7 @@ public class CFAReversePostorder {
         // This part of the code corresponds to the code in checkIds()
         // before the for loop.
 
-        if (!finished.add(node)) {
+        if (!finished.add(node) || !node.getFunctionName().equals(functionName)) {
           // already handled, do nothing
 
           // Do a simulated "return".

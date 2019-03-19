@@ -233,6 +233,7 @@ public class CFGFunctionBuilder  {
             }else if(isGoToLabel(node)){
                 String labelName = getLabelName(node);
                 CLabelNode labelNode = new CLabelNode(functionName,labelName);
+                cfaNodes.add(labelNode);
                 cfaNodeMap.put(node.id(),labelNode);
             }else if(getKindName(node).endsWith(LABEL)){
                 CFANode newCFAnode = newCFANode();
@@ -546,8 +547,10 @@ public class CFGFunctionBuilder  {
                     params, pFunctionEntry.getFunctionDefinition());
             functionCallStatement = new CFunctionCallStatement(fileLocation,functionCallExpression);
 
-//            edge = new CStatementEdge(rawCharacters,functionCallStatement, fileLocation,
+//            CStatementEdge statementEdge= new CStatementEdge(rawCharacters,functionCallStatement, fileLocation,
 //                    prevNode, nextNode);
+//            addToCFA(statementEdge);
+
             edge = new CFunctionSummaryEdge(rawCharacters, fileLocation,
                     prevNode, nextNode, functionCallStatement, pFunctionEntry);
 
@@ -669,10 +672,11 @@ public class CFGFunctionBuilder  {
                     fileLocation, assignedVarExp,
                     functionCallExpression);
 
-            //nextNode = cfaNodeMap.get(nextCFGNode.id());
             nextNode = handleSwitchCasePoint(nextCFGNode);
-//            edge = new CStatementEdge(rawCharacters, functionCallStatement, fileLocation,
-//                    declNode, nextNode);
+
+//            CStatementEdge statementEdge= new CStatementEdge(rawCharacters,functionCallStatement, fileLocation,
+//                    prevNode, nextNode);
+//            addToCFA(statementEdge);
 
             edge = new CFunctionSummaryEdge(rawCharacters, fileLocation,
                     declNode, nextNode, functionCallStatement, pFunctionEntry);

@@ -59,7 +59,7 @@ public class FunctionCallCollector extends CFATraversal.DefaultCFAVisitor {
       case FunctionCallEdge:
       case FunctionReturnEdge:
       case CallToReturnEdge:
-        throw new AssertionError("functioncall- and return-edges should not exist at this time.");
+        //throw new AssertionError("functioncall- and return-edges should not exist at this time.");
       default:
         // nothing to do
     }
