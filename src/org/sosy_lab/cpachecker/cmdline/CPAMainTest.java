@@ -56,6 +56,7 @@ public class CPAMainTest {
     config.enableLogging(logManager);
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testLanguageDetection() throws InvalidConfigurationException {
     // when language not given by user, right language based on file ending(s) must be detected
@@ -82,11 +83,11 @@ public class CPAMainTest {
 
       Configuration newConfig = CPAMain.extractFrontendfromFileending(options, config, logManager);
 
-      // ignore warning that getProperty() is deprecated
       assertThat(newConfig.getProperty("language")).contains(language.toString());
    }
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testDeclaredLanguageDetection() throws InvalidConfigurationException {
     // detection of language declared by user
@@ -120,7 +121,7 @@ public class CPAMainTest {
         config = configBuilder.build();
         config.inject(options);
         Configuration newConfig = CPAMain.extractFrontendfromFileending(options, config, logManager);
-        // ignore warning that getProperty() is deprecated
+
         assertThat(newConfig.getProperty("language")).contains(declLanguage);
       }
     }
