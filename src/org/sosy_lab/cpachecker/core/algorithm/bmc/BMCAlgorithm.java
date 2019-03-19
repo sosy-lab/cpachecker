@@ -349,6 +349,11 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           @Override
           public void printStatistics(
               PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+            // apparently there is nothing to do here.
+          }
+
+          @Override
+          public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
             if (pResult == Result.FALSE) {
               return;
             }
