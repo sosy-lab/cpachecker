@@ -143,9 +143,9 @@ public class CPAMain {
     final ShutdownNotifier shutdownNotifier = shutdownManager.getNotifier();
     try {
       ParseResult parseResult = cfgParser.parseProject(project);
-      StringBuilder builder = new StringBuilder();
-
-      
+      FunctionEntryNode main = parseResult.getFunctions().get("main");
+      CFACreator cfaCreator = new CFACreator(cpaConfig,logManager, shutdownNotifier);
+      cfaCreator.createCFA(parseResult, main);
     }catch (result r){
       r.printStackTrace();
     }catch (Exception e){

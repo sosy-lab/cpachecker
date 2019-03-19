@@ -196,7 +196,7 @@ public class CFACreator {
   @Option(secure=true, name="cfa.file",
       description="export CFA as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportCfaFile = Paths.get("cfa.dot");
+  private Path exportCfaFile = Paths.get("/home/yinboyu/workspace/cfa.dot");
 
   @Option(
     secure = true,
@@ -352,7 +352,7 @@ private boolean classifyNodes = false;
 
     stats.parserInstantiationTime.start();
 
-    switch (language) {
+    /*switch (language) {
     case JAVA:
       parser = Parsers.getJavaParser(logger, config);
       break;
@@ -382,7 +382,8 @@ private boolean classifyNodes = false;
     }
 
     stats.parsingTime = parser.getParseTime();
-    stats.conversionTime = parser.getCFAConstructionTime();
+    stats.conversionTime = parser.getCFAConstructionTime();*/
+    parser = null;
 
     stats.parserInstantiationTime.stop();
   }
@@ -455,7 +456,7 @@ private boolean classifyNodes = false;
     }
   }
 
-  private CFA createCFA(ParseResult pParseResult, FunctionEntryNode pMainFunction) throws InvalidConfigurationException, InterruptedException, ParserException {
+  public CFA createCFA(ParseResult pParseResult, FunctionEntryNode pMainFunction) throws InvalidConfigurationException, InterruptedException, ParserException {
 
     FunctionEntryNode mainFunction = pMainFunction;
 
@@ -1026,13 +1027,13 @@ v.addInitializer(initializer);
       }
     }
 
-    if (exportCfaPixelFile != null) {
-      try {
-        new CFAToPixelsWriter(config).write(cfa.getMainFunction(), exportCfaPixelFile);
-      } catch (IOException | InvalidConfigurationException e) {
-        logger.logUserException(Level.WARNING, e, "Could not write CFA as pixel graphic.");
-      }
-    }
+//    if (exportCfaPixelFile != null) {
+//      try {
+//        new CFAToPixelsWriter(config).write(cfa.getMainFunction(), exportCfaPixelFile);
+//      } catch (IOException | InvalidConfigurationException e) {
+//        logger.logUserException(Level.WARNING, e, "Could not write CFA as pixel graphic.");
+//      }
+//    }
 
     if (serializeCfa && serializeCfaFile != null) {
       try {

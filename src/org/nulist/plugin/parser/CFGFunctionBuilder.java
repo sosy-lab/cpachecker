@@ -89,6 +89,123 @@ public class CFGFunctionBuilder  {
         return cfa;
     }
 
+    public FunctionEntryNode getFunctionEntryNode(point functionEntry) throws result{
+        return cfaBuilder.functions.get(functionEntry.get_procedure().name());
+    }
+
+    /**
+     *@Description function declaration, need to extract its return type and parameters
+     *@Param [function, pFileName]
+     *@return void
+     **/
+    public CFunctionDeclaration handleFunctionDeclaration() throws result{
+        String functionName = function.name();
+
+        //for struct example: struct test{int a, int b}
+        //function example: test function(int c,int d)
+        //routine type: test (c,d)
+
+        // Function return type
+        point_set formal_outs = function.formal_outs();//get the formal out of function, if type is VOID, the set is empty
+
+
+        CType returnType = CVoidType.VOID;
+        if(!formal_outs.empty()){
+            //Note that it is impossible that there are more than one formal out
+            point p = formal_outs.cbegin().current();
+
+            ast un_ast = p.get_ast(ast_family.getC_UNNORMALIZED());
+            ast type_ast = un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast();
+            //for example: int functionName(int param_1, long param_2){...}
+            //type_ast.pretty_print() == int (int, long)
+            returnType = typeConverter.getCType(type_ast.get(ast_ordinal.getBASE_RETURN_TYPE()).as_ast());
+
+            // ast_field_vector params = un_ast.get(ast_ordinal.getUC_PARAM_TYPES()).as_ast().children();
+            // param type: params.get(i).as_ast().get(ast_ordinal.getBASE_TYPE()).as_ast().pretty_print()
+        }
+
+        // Parameters
+        point_set formal_ins = function.formal_ins();// each point in formal_ins is an input parameter
+        List<CParameterDeclaration> parameters = new ArrayList<>((int)formal_ins.size());
+        List<CType> paramsType = new ArrayList<>((int)formal_ins.size());
+
+        if(!formal_ins.empty()){
+            //left to right
+            for(point_set_iterator point_it= formal_ins.cbegin();
+                !point_it.at_end();point_it.advance())
+            {
+                point paramNode = point_it.current();
+                ast un_ast = paramNode.get_ast(ast_family.getC_UNNORMALIZED());
+
+                String paramName = un_ast.pretty_print();//param_point.parameter_symbols().get(0).get_ast().pretty_print();
+
+                CType paramType = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
+                paramsType.add(paramType);
+                CParameterDeclaration parameter =
+                        new CParameterDeclaration(getLocation(paramNode,fileName),paramType,paramName);
+
+                parameter.setQualifiedName(paramName);
+                expressionHandler.variableDeclarations.put(paramName.hashCode(),parameter);
+                parameters.add(parameter);
+            }
+
+        }
+        CFunctionType cFuncType = new CFunctionType(checkNotNull(returnType),paramsType,false);
+
+        // Function declaration, exit
+        functionDeclaration =
+                new CFunctionDeclaration(
+                        getLocation(function, fileName), cFuncType, functionName, parameters);
+        return functionDeclaration;
+    }
+
+    /**
+     *@Description function entry node
+     *@Param [function, pFileName]
+     *@return org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode
+     **/
+    public CFunctionEntryNode handleFunctionDefinition() throws result{
+
+        assert labelMap.isEmpty();
+        assert cfa == null;
+
+        String functionName = function.name();
+        //logger.log(Level.FINE, "Creating function: " + functionName);
+
+        // Return variable : The return value is written to this
+        Optional<CVariableDeclaration> returnVar = Optional.absent();
+        FileLocation fileLocation =getLocation(function, fileName);
+
+        if(!functionDeclaration.getType().getReturnType().equals(CVoidType.VOID)){
+            point formal_out = function.formal_outs().cbegin().current();
+            ast no_ast = formal_out.get_ast(ast_family.getC_NORMALIZED());
+            String variabeName = no_ast.get(ast_ordinal.getNC_UNNORMALIZED()).as_ast().pretty_print();
+            CVariableDeclaration newVarDecl =
+                    new CVariableDeclaration(
+                            fileLocation,
+                            false,
+                            CStorageClass.AUTO,
+                            functionDeclaration.getType().getReturnType(),
+                            variabeName,
+                            variabeName,
+                            variabeName,
+                            null);
+            expressionHandler.variableDeclarations.put(variabeName.hashCode(),newVarDecl);
+            returnVar =Optional.of(newVarDecl);
+        }
+
+        FunctionExitNode functionExit = new FunctionExitNode(functionName);
+        CFunctionEntryNode entry = new CFunctionEntryNode(
+                        fileLocation, functionDeclaration, functionExit, returnVar);
+        functionExit.setEntryNode(entry);
+
+        cfa = entry;
+
+        cfaNodeMap.put(function.entry_point().id(),cfa);
+
+        return entry;
+    }
+
     /**
      *@Description traverse CFG nodes and edges and transform them into CFA
      *@Param [function, pFileName]
@@ -139,6 +256,18 @@ public class CFGFunctionBuilder  {
         //build edges between cfg nodes
         traverseCFGNode(entryNextNode);
 
+        finish();
+    }
+
+
+    private void finish(){
+        SortedSet<CFANode> nodes = Collections.unmodifiableSortedSet(cfaBuilder.cfaNodes.get(functionName));
+        Iterator it = nodes.iterator();
+        while (it.hasNext()){
+            CFANode node = (CFANode) it.next();
+            if(node.getNumLeavingEdges()==0 && node.getNumEnteringEdges()==0)
+                it.remove();
+        }
     }
 
     /**
@@ -478,13 +607,6 @@ public class CFGFunctionBuilder  {
             CFunctionDeclaration calledFunctionDeclaration =
                     cfaBuilder.functionDeclarations.get(functionCallNode.get_procedure().name());
 
-            pFunctionEntry = (CFunctionEntryNode) cfaBuilder.functions.get(functionCallNode.get_procedure().name());
-            if(pFunctionEntry!=null){
-                pFunctionEntry = (CFunctionEntryNode) getFunctionEntryNode(functionCallNode);
-                cfaBuilder.functions.put(functionCallNode.get_procedure().name(), pFunctionEntry);
-                cfaBuilder.addNode(functionCallNode.get_procedure().name(), pFunctionEntry);
-            }
-
             //shall have an assignment expression
             // condition 1: variable = function();
             // condition 2: no real variable, for example, if(function(p))
@@ -552,7 +674,7 @@ public class CFGFunctionBuilder  {
 
 
             callEdge = new CFunctionCallEdge(rawCharacters,fileLocation,
-                    prevNode, pFunctionEntry,functionCallStatement, edge);
+                    declNode, pFunctionEntry,functionCallStatement, edge);
             returnEdge = new CFunctionReturnEdge(fileLocation,pFunctionEntry.getExitNode(),nextNode,edge);
 
             addToCFA(edge);
@@ -561,125 +683,6 @@ public class CFGFunctionBuilder  {
 
             traverseCFGNode(nextCFGNode);
         }
-    }
-
-
-    public FunctionEntryNode getFunctionEntryNode(point functionEntry) throws result{
-        return cfaBuilder.functions.get(functionEntry.get_procedure().name());
-    }
-
-    /**
-     *@Description function declaration, need to extract its return type and parameters
-     *@Param [function, pFileName]
-     *@return void
-     **/
-    public CFunctionDeclaration handleFunctionDeclaration() throws result{
-        String functionName = function.name();
-
-        //for struct example: struct test{int a, int b}
-        //function example: test function(int c,int d)
-        //routine type: test (c,d)
-
-        // Function return type
-        point_set formal_outs = function.formal_outs();//get the formal out of function, if type is VOID, the set is empty
-
-
-        CType returnType = CVoidType.VOID;
-        if(!formal_outs.empty()){
-            //Note that it is impossible that there are more than one formal out
-            point p = formal_outs.cbegin().current();
-
-            ast un_ast = p.get_ast(ast_family.getC_UNNORMALIZED());
-            ast type_ast = un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast();
-            //for example: int functionName(int param_1, long param_2){...}
-            //type_ast.pretty_print() == int (int, long)
-            returnType = typeConverter.getCType(type_ast.get(ast_ordinal.getBASE_RETURN_TYPE()).as_ast());
-
-            // ast_field_vector params = un_ast.get(ast_ordinal.getUC_PARAM_TYPES()).as_ast().children();
-            // param type: params.get(i).as_ast().get(ast_ordinal.getBASE_TYPE()).as_ast().pretty_print()
-        }
-
-        // Parameters
-        point_set formal_ins = function.formal_ins();// each point in formal_ins is an input parameter
-        List<CParameterDeclaration> parameters = new ArrayList<>((int)formal_ins.size());
-        List<CType> paramsType = new ArrayList<>((int)formal_ins.size());
-
-        if(!formal_ins.empty()){
-            //left to right
-            for(point_set_iterator point_it= formal_ins.cbegin();
-                !point_it.at_end();point_it.advance())
-            {
-                point paramNode = point_it.current();
-                ast un_ast = paramNode.get_ast(ast_family.getC_UNNORMALIZED());
-
-                String paramName = un_ast.pretty_print();//param_point.parameter_symbols().get(0).get_ast().pretty_print();
-
-                CType paramType = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
-                paramsType.add(paramType);
-                CParameterDeclaration parameter =
-                        new CParameterDeclaration(getLocation(paramNode,fileName),paramType,paramName);
-
-                parameter.setQualifiedName(paramName);
-                expressionHandler.variableDeclarations.put(paramName.hashCode(),parameter);
-                parameters.add(parameter);
-            }
-
-        }
-        CFunctionType cFuncType = new CFunctionType(checkNotNull(returnType),paramsType,false);
-
-        // Function declaration, exit
-        functionDeclaration =
-                new CFunctionDeclaration(
-                        getLocation(function, fileName), cFuncType, functionName, parameters);
-        return functionDeclaration;
-    }
-
-    /**
-     *@Description function entry node
-     *@Param [function, pFileName]
-     *@return org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode
-     **/
-    public CFunctionEntryNode handleFunctionDefinition() throws result{
-
-        assert labelMap.isEmpty();
-        assert cfa == null;
-
-        String functionName = function.name();
-        //logger.log(Level.FINE, "Creating function: " + functionName);
-
-        // Return variable : The return value is written to this
-        Optional<CVariableDeclaration> returnVar = Optional.absent();
-        FileLocation fileLocation =getLocation(function, fileName);
-
-        if(!functionDeclaration.getType().getReturnType().equals(CVoidType.VOID)){
-            point formal_out = function.formal_outs().cbegin().current();
-            ast no_ast = formal_out.get_ast(ast_family.getC_NORMALIZED());
-            String variabeName = no_ast.get(ast_ordinal.getNC_UNNORMALIZED()).as_ast().pretty_print();
-            CVariableDeclaration newVarDecl =
-                    new CVariableDeclaration(
-                            fileLocation,
-                            false,
-                            CStorageClass.AUTO,
-                            functionDeclaration.getType().getReturnType(),
-                            variabeName,
-                            variabeName,
-                            variabeName,
-                            null);
-            expressionHandler.variableDeclarations.put(variabeName.hashCode(),newVarDecl);
-            returnVar =Optional.of(newVarDecl);
-        }
-
-        FunctionExitNode functionExit = new FunctionExitNode(functionName);
-        CFunctionEntryNode entry =
-                new CFunctionEntryNode(
-                        fileLocation, functionDeclaration, functionExit, returnVar);
-        functionExit.setEntryNode(entry);
-
-        cfa = entry;
-
-        cfaNodeMap.put(function.entry_point().id(),cfa);
-
-        return entry;
     }
 
     /**
@@ -800,7 +803,7 @@ public class CFGFunctionBuilder  {
         cfg_edge_set cfgEdgeSet = whileNode.cfg_targets();
 
         point trueCFGNode = cfgEdgeSet.to_vector().get(0).get_first();
-        CFANode trueCFANode = cfaNodeMap.get(trueCFGNode.id());
+        CFANode trueCFANode = cfaNodeMap.get(trueCFGNode.id()).getLeavingEdge(0).getSuccessor();
 
         point falseCFGNode = cfgEdgeSet.to_vector().get(1).get_first();
         CFANode falseCFANode = cfaNodeMap.get(falseCFGNode.id());
@@ -1044,7 +1047,6 @@ public class CFGFunctionBuilder  {
         addToCFA(trueEdge);
         traverseCFGNode(thenCFGNode);
 
-
         // edge connecting condition with elseNode
         final CAssumeEdge falseEdge =
                 new CAssumeEdge(
@@ -1070,6 +1072,7 @@ public class CFGFunctionBuilder  {
     private CFANode newCFANode() {
         assert cfa != null;
         CFANode nextNode = new CFANode(cfa.getFunctionName());
+        cfaBuilder.addNode(functionName,nextNode);
         return nextNode;
     }
 
