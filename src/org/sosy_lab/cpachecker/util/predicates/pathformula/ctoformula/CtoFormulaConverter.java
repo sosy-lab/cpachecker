@@ -770,8 +770,11 @@ public class CtoFormulaConverter {
     if (pType instanceof CPointerType) {
       return machineModel.getPointerEquivalentSimpleType();
     }
-    if (pType instanceof CEnumType
-        || (pType instanceof CElaboratedType && ((CElaboratedType) pType).getKind() == ComplexTypeKind.ENUM)) {
+    if (pType instanceof CEnumType) {
+      return ((CEnumType) pType).getEnumerators().get(0).getType();
+    }
+    if (pType instanceof CElaboratedType
+        && ((CElaboratedType) pType).getKind() == ComplexTypeKind.ENUM) {
       return CNumericTypes.INT;
     }
     return pType;
@@ -831,8 +834,8 @@ public class CtoFormulaConverter {
 
       // Cf. C-Standard 6.3.1.2 (1)
       if (pToCType.getCanonicalType().equals(CNumericTypes.BOOL)
-          || pToCType instanceof CBitFieldType
-              && ((CBitFieldType) pToCType).getType().equals(CNumericTypes.BOOL)) {
+          || (pToCType instanceof CBitFieldType
+              && ((CBitFieldType) pToCType).getType().equals(CNumericTypes.BOOL))) {
         Formula zeroFromSize = efmgr.makeBitvector(fromSize, 0l);
         Formula zeroToSize = efmgr.makeBitvector(toSize, 0l);
         Formula oneToSize = efmgr.makeBitvector(toSize, 1l);

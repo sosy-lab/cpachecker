@@ -645,7 +645,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
       StatisticsEntry successfullAnalysisStats = null;
       for (StatisticsEntry subStats : allAnalysesStats) {
-        if (isSuccessfulAnalysis(subStats.name)) {
+        if (isSuccessfulAnalysis(subStats)) {
           successfullAnalysisStats = subStats;
         } else {
           writeSubOutputFiles(pResult, subStats);
@@ -665,13 +665,14 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
-    private boolean isSuccessfulAnalysis(String pAnalysisName) {
-      return successfulAnalysisName != null && successfulAnalysisName.equals(pAnalysisName);
+    private boolean isSuccessfulAnalysis(StatisticsEntry pStatEntry) {
+      return successfulAnalysisName != null && successfulAnalysisName.equals(pStatEntry.name);
     }
 
     private Result determineAnalysisResult(Result pResult, String pActualAnalysisName) {
       if (successfulAnalysisName != null && !successfulAnalysisName.equals(pActualAnalysisName)) {
-        return Result.UNKNOWN;
+        // Signal that the result is not important for the final verdict:
+        return Result.DONE;
       }
       return pResult;
     }

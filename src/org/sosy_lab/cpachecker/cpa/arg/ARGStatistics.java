@@ -48,6 +48,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -378,7 +379,7 @@ public class ARGStatistics implements Statistics {
         ARGUtils.projectARG(rootState, ARGState::getChildren, ARGUtils.RELEVANT_STATE);
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
 
-    if (proofWitness != null && pResult != Result.FALSE) {
+    if (proofWitness != null && EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
       try {
         Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitness);
         Appender content = pAppendable -> argWitnessExporter.writeProofWitness(pAppendable, rootState, Predicates.alwaysTrue(),

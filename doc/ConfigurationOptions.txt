@@ -82,6 +82,9 @@ solver.princess.minAtomsForAbbreviation = 100
 # Random seed for SMT solver.
 solver.randomSeed = 42
 
+# If logging from the same application, avoid conflicting logfile names.
+solver.renameLogfileToAvoidConflicts = true
+
 # Double check generated results like interpolants and models whether they
 # are correct
 solver.smtinterpol.checkResults = false
@@ -291,6 +294,9 @@ analysis.programNames = []
 # and stop_sep
 analysis.reachedSet = PARTITIONED
   enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED, PSEUDOPARTITIONED, USAGE]
+
+# track more statistics about the reachedset
+analysis.reachedSet.withStatistics = false
 
 # Use if you are going to change function with function pionter parameter
 analysis.replaceFunctionWithParameterPointer = false
@@ -3133,6 +3139,10 @@ java.typeHierarchyFile = "typeHierarchy.dot"
 java.version = JavaCore.VERSION_1_7
 
 # C, Java, or LLVM IR?
+language = C
+  enum:     [C, JAVA, LLVM]
+language = no default value
+  enum:     [C, JAVA, LLVM]
 language = C
   enum:     [C, JAVA, LLVM]
 

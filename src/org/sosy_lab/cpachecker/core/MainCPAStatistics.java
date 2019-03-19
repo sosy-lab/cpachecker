@@ -416,7 +416,15 @@ class MainCPAStatistics implements Statistics {
 
     for (Statistics s : subStats) {
       StatisticsUtils.printStatistics(s, out, logger, result, reached);
-      StatisticsUtils.writeOutputFiles(s, logger, result, reached);
+    }
+  }
+
+  @Override
+  public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
+    assert pReached != null : "ReachedSet may be null only if analysis not yet started";
+
+    for (Statistics s : subStats) {
+      StatisticsUtils.writeOutputFiles(s, logger, pResult, pReached);
     }
   }
 

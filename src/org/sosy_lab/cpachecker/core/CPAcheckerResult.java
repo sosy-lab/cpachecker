@@ -112,6 +112,12 @@ public class CPAcheckerResult {
     }
     if (proofGeneratorStats != null) {
       proofGeneratorStats.printStatistics(target, result, reached);
+    }
+  }
+
+  public void writeOutputFiles() {
+    stats.writeOutputFiles(result, reached);
+    if (proofGeneratorStats != null) {
       proofGeneratorStats.writeOutputFiles(result, reached);
     }
   }
