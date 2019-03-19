@@ -710,6 +710,9 @@ public class CPAMain {
       }
       mResult.printResult(stream);
 
+      // write output files
+      mResult.writeOutputFiles();
+
       if (outputDirectory != null) {
         stream.println("More details about the verification run can be found in the directory \"" + outputDirectory + "\".");
       }
