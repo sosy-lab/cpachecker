@@ -31,7 +31,6 @@ import static org.nulist.plugin.parser.CFABuilder.pointerOf;
 import static org.nulist.plugin.parser.CFGAST.*;
 import static org.nulist.plugin.parser.CFGNode.*;
 import static org.nulist.plugin.parser.CFGNode.DECLARATION;
-import static org.nulist.plugin.parser.CFGOperations.sortVectorByLineNo;
 import static org.nulist.plugin.util.ClassTool.getUnsignedInt;
 import static org.nulist.plugin.util.FileOperations.getLocation;
 import static org.nulist.plugin.util.FileOperations.getQualifiedName;

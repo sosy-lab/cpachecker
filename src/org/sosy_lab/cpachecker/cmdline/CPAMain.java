@@ -104,17 +104,10 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 public class CPAMain {
 
   static final int ERROR_EXIT_CODE = 1;
+  public static String systemPath = "";
 
-  public static void testPrint(String[] args){
-    for(String arg: args)
-      System.out.println(arg);
-  }
-
-  public static void executeParser(project project){
-    String[] configs = new String[3];
-    configs[0]="-config";
-    configs[1]="/home/yinboyu/workspace/cpachecker/config/default.properties";
-    configs[2]="/home/yinboyu/workspace/CFAtest/lock-loop.c";
+  public static void executeParser(String[] args, String cpacheckerPath, project project){
+    systemPath = cpacheckerPath;
     Locale.setDefault(Locale.US);
 
     // initialize various components
@@ -124,7 +117,7 @@ public class CPAMain {
     Set<SpecificationProperty> properties = null;
     try {
       try {
-        Config p = createConfiguration(configs);
+        Config p = createConfiguration(args);
         cpaConfig = p.configuration;
       } catch (InvalidCmdlineArgumentException e) {
         throw Output.fatalError("Could not process command line arguments: %s", e.getMessage());
@@ -381,7 +374,7 @@ public class CPAMain {
     configBuilder.setOptions(EXTERN_OPTION_DEFAULTS);
     if (configFile != null) {
       configBuilder.setOption(APPROACH_NAME_OPTION, extractApproachNameFromConfigName(configFile));
-      configBuilder.loadFromFile(configFile);
+      configBuilder.loadFromFile(systemPath+"/"+configFile);
     }
     configBuilder.setOptions(cmdLineOptions);
 

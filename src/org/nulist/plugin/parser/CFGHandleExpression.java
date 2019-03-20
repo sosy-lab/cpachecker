@@ -62,6 +62,11 @@ public class CFGHandleExpression {
         this.variableDeclarations = variableDeclarations;
     }
 
+    /**
+     * @Description //get the binary operations, e.g., a!=b
+     * @Param [condition, fileLocation]
+     * @return org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression
+     **/
     public CBinaryExpression getBinaryExpression(final ast condition, FileLocation fileLocation) throws result {
         // the only one supported now
 
@@ -96,9 +101,11 @@ public class CFGHandleExpression {
     }
 
     /**
-     * Returns the id expression to an already declared variable. Returns it as a cast, if necessary
+     * @Description Returns the id expression to an already declared variable. Returns it as a cast, if necessary
      * to match the expected type.
-     */
+     * @Param [assignedVarDeclaration, pExpectedType, fileLocation]
+     * @return org.sosy_lab.cpachecker.cfa.ast.c.CExpression
+     **/
     public CExpression getAssignedIdExpression(CSimpleDeclaration assignedVarDeclaration,
                                                final CType pExpectedType, final FileLocation fileLocation){
 
@@ -132,20 +139,15 @@ public class CFGHandleExpression {
     }
 
     /**
-     * Returns the id expression to an already declared variable.
-     */
+     * @Description Returns the id expression to an already declared variable.
+     * @Param [variable_ast, pExpectedType, fileLocation]
+     * @return org.sosy_lab.cpachecker.cfa.ast.c.CExpression
+     **/
     public CExpression getAssignedIdExpression(
             final ast variable_ast, final CType pExpectedType, final FileLocation fileLocation) throws result{
         //logger.log(Level.FINE, "Getting var declaration for point");
         //unnormalized
         symbol variableSymbol = variable_ast.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol();
-//
-//        if(variableSymbol.is_formal() ||
-//                variableSymbol.is_global() ||
-//                variableSymbol.get_kind().equals(symbol_kind.getRETURN()))
-//            assignedVarName = variableSymbol.get_ast().pretty_print();
-//        else
-//            assignedVarName = normalizingVariableName(variable_ast);
 
         String normalizedVarName = getNormalizedVariableName(variableSymbol, fileLocation.getFileName());
 
@@ -169,6 +171,13 @@ public class CFGHandleExpression {
     }
 
 
+    /**
+     * @Description //normalized variable name,
+     * For example, for a variable 'a', CodeSurfer (CS) will the symbal named a-15. Here 15 is an id assigned by CS to distinguish with other variables
+     * We the name a_15 to distinguish other variables that has the same name, e.g., a global variable 'a' and a temporal variable in a for loop
+     * @Param [no_symbol, fileName]
+     * @return java.lang.String
+     **/
     public String getNormalizedVariableName(symbol no_symbol, String fileName)throws result{
 
         //symbol no_symbol = variable.primary_declaration().declared_symbol();
@@ -189,10 +198,20 @@ public class CFGHandleExpression {
             return normalizedName;
     }
 
+    /**
+     * @Description //get the file name without path
+     * @Param [pFileNmae]
+     * @return java.lang.String
+     **/
     public String getSimpleFileName(String pFileNmae){
         return pFileNmae.substring(pFileNmae.lastIndexOf('/')+1).replace(".c","").replace("-","_");
     }
 
+    /**
+     * @Description //Return a null expression, C uses 0 as NULL
+     * @Param [pLocation, pType]
+     * @return org.sosy_lab.cpachecker.cfa.ast.c.CExpression
+     **/
     public CExpression getNull(final FileLocation pLocation, final CType pType) {
         return new CIntegerLiteralExpression(pLocation, pType, BigInteger.ZERO);
     }
@@ -213,6 +232,11 @@ public class CFGHandleExpression {
         return new CExpressionAssignmentStatement(fileLocation, leftHandSide, rightHandSide);
     }
 
+    /**
+     * @Description //using unnormalized node to generate the initializer
+     * @Param [un_ast, fileLocation]
+     * @return org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration
+     **/
     public CVariableDeclaration generateInitVarDeclFromUC(ast un_ast, FileLocation fileLocation) throws result{
         assert un_ast.get_class().is_subclass_of(ast_class.getUC_INIT());
 
@@ -277,7 +301,11 @@ public class CFGHandleExpression {
         }
     }
 
-
+    /**
+     * @Description //using unnormalized node to generate assign statement
+     * @Param [un_ast, fileLocation]
+     * @return org.sosy_lab.cpachecker.cfa.ast.c.CStatement
+     **/
     public CStatement getAssignStatementFromUC(ast un_ast, FileLocation fileLocation)throws result{
         assert un_ast.is_a(ast_class.getUC_ABSTRACT_OPERATION());
         CLeftHandSide leftHandSide = null;
@@ -349,6 +377,12 @@ public class CFGHandleExpression {
     }
 
     //normalized node
+    /**
+     * @Description //This a function to get expression from CodeSurfer expression ast
+     * This is normalized version, unnormalized version see getExpressionFromUC
+     * @Param [value_ast, valueType, fileLoc]
+     * @return org.sosy_lab.cpachecker.cfa.ast.c.CExpression
+     **/
     public CExpression getExpression(ast value_ast, CType valueType,FileLocation fileLoc)throws result{
 
         if(isVariable(value_ast)){//e.g., a
@@ -591,6 +625,12 @@ public class CFGHandleExpression {
     }
 
 
+    /**
+     * @Description //get function result variable from the unnormalized ast of an actual out point
+     * to avoid name collision, we normalized the variable with the function name, the suffix "$result__", and its CS UID
+     * @Param [function]
+     * @return java.lang.String
+     **/
     public String getFunctionCallResultName(ast function)throws result{
         symbol result = function.get(ast_ordinal.getUC_OPERANDS()).as_ast()//operands
                 .children().get(0).get(ast_ordinal.getUC_ROUTINE())//routine
@@ -599,6 +639,11 @@ public class CFGHandleExpression {
     }
 
     //value_ast.get_class()==[c:addr]
+    /**
+     * @Description //pointer address, e.g., char p[30]="say hello", *p1 = &r; normalized ast
+     * @Param [value_ast, fileloc]
+     * @return org.sosy_lab.cpachecker.cfa.ast.c.CExpression
+     **/
     public CExpression getPointerAddrExpr(ast value_ast, FileLocation fileloc)throws  result{
         assert isPointerAddressExpr(value_ast);
         //addr->(array-ref -> variable | string) | variable
@@ -626,6 +671,11 @@ public class CFGHandleExpression {
     }
 
 
+    /**
+     * @Description //create expression in accordance with arithmetic operation, normalized ast
+     * @Param [value_ast, fileLocation]
+     * @return org.sosy_lab.cpachecker.cfa.ast.c.CExpression
+     **/
     public CExpression createFromArithmeticOp(
             final ast value_ast, final FileLocation fileLocation) throws result {
 
@@ -695,6 +745,11 @@ public class CFGHandleExpression {
         return initializer;
     }
 
+    /**
+     * @Description //generate the initializer from normalized ast
+     * @Param [no_ast, fileLocation]
+     * @return org.sosy_lab.cpachecker.cfa.ast.c.CInitializer
+     **/
     public CInitializer getInitializer(ast no_ast, final FileLocation fileLocation) throws result{
         CInitializer initializer = null;
 
@@ -721,6 +776,11 @@ public class CFGHandleExpression {
         return initializer;
     }
 
+    /**
+     * @Description //get constant aggreate initializer, int a[3]={1,2,3}, unnormalized ast
+     * @Param [constant, expectedType, fileLoc]
+     * @return org.sosy_lab.cpachecker.cfa.ast.c.CInitializer
+     **/
     public CInitializer getConstantAggregateInitializerFromUC(ast constant, CType expectedType,
                                                               final FileLocation fileLoc) throws result {
         if(constant.has_field(ast_ordinal.getUC_CONSTANT_LIST())){
@@ -816,6 +876,11 @@ public class CFGHandleExpression {
     }
 
 
+    /**
+     * @Description //zero initializer, 0
+     * @Param [pExpectedType, fileLoc]
+     * @return org.sosy_lab.cpachecker.cfa.ast.c.CInitializer
+     **/
     public CInitializer getZeroInitializer(final CType pExpectedType, final FileLocation fileLoc){
 
         CInitializer init;
@@ -858,6 +923,11 @@ public class CFGHandleExpression {
         return init;
     }
 
+    /**
+     * @Description //TODO
+     * @Param [value_ast, pExpectedType, fileLoc]
+     * @return org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide
+     **/
     public CRightHandSide getConstant(ast value_ast, CType pExpectedType, FileLocation fileLoc)
             throws result{
 
@@ -887,6 +957,11 @@ public class CFGHandleExpression {
             return getExpression(value_ast,pExpectedType, fileLoc);
     }
 
+    /**
+     * @Description //get constant, e.g., int a[20]="hello world!"
+     * @Param [constant, pExpectedType, fileLocation]
+     * @return org.sosy_lab.cpachecker.cfa.ast.c.CExpression
+     **/
     public CExpression getConstantFromUC(ast constant, CType pExpectedType, FileLocation fileLocation) throws result{
 
         if(constant.is_a(ast_class.getUC_CONSTANT_ADDRESS())){

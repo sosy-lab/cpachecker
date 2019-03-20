@@ -196,7 +196,7 @@ public class CFACreator {
   @Option(secure=true, name="cfa.file",
       description="export CFA as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportCfaFile = Paths.get("/home/yinboyu/workspace/cfa.dot");
+  private Path exportCfaFile = Paths.get("cfa.dot");
 
   @Option(
     secure = true,

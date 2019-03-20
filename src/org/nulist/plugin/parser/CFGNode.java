@@ -9,6 +9,10 @@ package org.nulist.plugin.parser;
 
 import com.grammatech.cs.*;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeSet;
+
 import static org.nulist.plugin.parser.CFGAST.isInitializationExpression;
 import static org.nulist.plugin.parser.CFGAST.normalizingVariableName;
 
@@ -47,8 +51,6 @@ public class CFGNode {
     public final static String EXCEPTIONAL_EXIT = "exceptional-exit";
     public final static String NORMAL_RETURN = "normal-return";
     public final static String EXCEPTIONAL_RETURN = "exceptional-return";
-    public final static String HAMMOCK_EXIT = "hammock-exit";
-    public final static String HAMMOCK_HEADER = "hammock-header";
    
     
     public static String getKindName(point node) throws result{
@@ -77,14 +79,6 @@ public class CFGNode {
 
     public static boolean isActual_Out(point node) throws result{
         return node.get_kind().equals(point_kind.getACTUAL_OUT());
-    }
-
-    public static boolean isGlobalActual_In(point node) throws result{
-        return node.get_kind().equals(point_kind.getGLOBAL_ACTUAL_IN());
-    }
-
-    public static boolean isGlobalActual_Out(point node) throws result{
-        return node.get_kind().equals(point_kind.getGLOBAL_ACTUAL_OUT());
     }
 
     public static boolean isControl_Point(point node) throws result{
@@ -143,26 +137,6 @@ public class CFGNode {
     public static boolean isNormalExpression(point node) throws result{
         ast un_ast = node.get_ast(ast_family.getC_UNNORMALIZED());
         return isExpression(node) && !un_ast.is_a(ast_class.getUC_INIT());
-    }
-
-    public static boolean isUnavailable(point node) throws result{
-        return node.get_kind().equals(point_kind.getUNAVAILABLE());
-    }
-
-    public static boolean isVertex_Kind_Null(point node) throws result{
-        return node.get_kind().equals(point_kind.getRESERVED_000());
-    }
-
-    public static boolean isCallPost_Vertex(point node) throws result{
-        return node.get_kind().equals(point_kind.getRESERVED_002());
-    }
-
-    public static boolean isEnd_Vertex(point node) throws result{
-        return node.get_kind().equals(point_kind.getRESERVED_003());
-    }
-
-    public static boolean isUser_Defined_Vertex(point node) throws result{
-        return node.get_kind().equals(point_kind.getRESERVED_004());
     }
 
     public static boolean isNormal_Exit(point node) throws result{
@@ -301,7 +275,7 @@ public class CFGNode {
 
     /**
      *@Description codesurfer stores do, else and other labels as label nodes
-     *@Param []
+     *@Param [node]
      *@return java.lang.String
      **/
     public static String getLabelName(point node) throws result{
@@ -319,6 +293,11 @@ public class CFGNode {
         return labelName;
     }
 
+    /**
+     * @Description //extract the label name
+     * @Param [node]
+     * @return java.lang.String
+     **/
     public static String getGoToLabelName(point node){
         try {
             return node.get_ast(ast_family.getC_UNNORMALIZED())
@@ -342,6 +321,24 @@ public class CFGNode {
         }catch (result r){
             return "";
         }
+    }
+
+    /**
+     * @Description //incremental sort edges by their line numbers,
+     * because the target edges of a CFG node obtained from CodeSurfer may not be in that order
+     * @Param [cfgEdgeVector]
+     * @return com.grammatech.cs.cfg_edge_vector
+     **/
+    public static cfg_edge_vector sortVectorByLineNo(cfg_edge_vector cfgEdgeVector)throws result {
+        cfg_edge_vector edgeVector = new cfg_edge_vector();
+        Map<Long, Integer> lineMap = new HashMap<>();
+        for(int i=0;i<cfgEdgeVector.size();i++)
+            lineMap.put(cfgEdgeVector.get(i).get_first().file_line().get_second(),i);
+        TreeSet<Long> treeSet = new TreeSet<>(lineMap.keySet());
+        treeSet.comparator();
+        for(Long i:treeSet)
+            edgeVector.add(cfgEdgeVector.get(lineMap.get(i)));
+        return edgeVector;
     }
 
     /**
