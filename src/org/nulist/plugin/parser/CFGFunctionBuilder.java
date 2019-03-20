@@ -595,9 +595,14 @@ public class CFGFunctionBuilder  {
                     CType type = typeConverter.getCType(inAST.get(ast_ordinal.getBASE_TYPE()).as_ast());
                     CExpression param = expressionHandler.getExpressionFromUC(inAST,type,fileLocation);
                     params.add(param);
-                    rawCharacters=sb.toString().replace(", ",")");
                 }
+                rawCharacters=sb.toString().replace(", ",")");
             }
+
+            //TODO system function call
+            if(!functionCallNode.get_procedure().get_kind().equals(procedure_kind.getUSER_DEFINED()))
+                System.out.println();
+
 
             pFunctionEntry = (CFunctionEntryNode) cfaBuilder.functions.get(functionCallNode.get_procedure().name());
             if(pFunctionEntry!=null){

@@ -68,6 +68,9 @@ fi
 
 
 # read input parameters
+declare -a OPTIONS
+
+
 until [ -z "$1" ]
   do
     case "$1" in
@@ -89,8 +92,9 @@ until [ -z "$1" ]
         -C | --clean)
             rm -rf $PATH_TO_CPACHECKER/.output
             shift;;
-	*)
-            break;;
+	*)# other params are only for CPAchecker
+       OPTIONS+=($1)
+       shift;;
    esac
   done
 
@@ -130,6 +134,12 @@ else
     echo "Performing model checking on the project: ${PROJECT}"
 fi
 
+
+#CPAChecker agruments
+CPACHECKER_ARGUMENTS=$(echo ${OPTIONS[@]})
+
+sed "5c \    \"${PATH_TO_CPACHECKER}\"" -i scripts/csurfJava_plugin.stk
+sed "6c \    \"${CPACHECKER_ARGUMENTS}\"" -i scripts/csurfJava_plugin.stk
 
 # Perform the plugin
 csurf -nogui $PROJECT -l $CODESURFER_STK

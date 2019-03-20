@@ -2,6 +2,7 @@
     "/home/yinboyu/workspace/cpachecker/lib/meconsole010.jar:/home/yinboyu/workspace/cpachecker/lib/java/runtime/common.jar:/home/yinboyu/workspace/cpachecker/bin"
     "org/nulist/plugin/CSurfPlugin"
     "/usr/local/java/jdk1.8.0_121/jre/lib/amd64/server/libjvm.so"
-    "/home/yinboyu/workspace/CFAtest/CFG2/"
-    "arg2")
+    "/home/yinboyu/workspace/cpachecker"
+    "-config config/default.properties"
+    )
 (quit)
