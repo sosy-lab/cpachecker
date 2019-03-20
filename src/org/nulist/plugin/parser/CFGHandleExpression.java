@@ -263,8 +263,13 @@ public class CFGHandleExpression {
                                                             FileLocation fileLocation)throws result{
         String assignedVar =getNormalizedVariableName(variable,fileLocation.getFileName());
 
+        if(variable.is_local() || variable.is_local_static())
         if(variableDeclarations.containsKey(assignedVar.hashCode()))
             return (CVariableDeclaration) variableDeclarations.get(assignedVar.hashCode());
+
+        if(variable.is_global() || variable.is_file_static())
+            if(globalDeclarations.containsKey(assignedVar.hashCode()))
+                return (CVariableDeclaration) globalDeclarations.get(assignedVar.hashCode());
 
         if(variable.get_kind().equals(symbol_kind.getRETURN()) ||
                 variable.get_kind().equals(symbol_kind.getUSER()) ||
@@ -294,7 +299,10 @@ public class CFGHandleExpression {
                             originalName,
                             normalizedName,
                             initializer);
-            variableDeclarations.put(normalizedName.hashCode(),newVarDecl);
+            if(variable.is_local() || variable.is_local_static())
+                variableDeclarations.put(normalizedName.hashCode(),newVarDecl);
+            if(variable.is_global() || variable.is_file_static())
+                globalDeclarations.put(normalizedName.hashCode(),newVarDecl);
             return newVarDecl;
         }else {
             throw new RuntimeException("Incorrectly calling generateVariableDeclaration from "+ variable.as_string());

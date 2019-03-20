@@ -98,7 +98,7 @@ public class CFABuilder {
 
         /* create global variable declaration*/
         if(cu.is_user())
-            declareGlobalVariables(cu, pFileName);
+            declareGlobalVariables(cu);
         //expressionHandler.setGlobalVariableDeclarations(globalVariableDeclarations);
 
         for (compunit_procedure_iterator proc_it = cu.procedures();
@@ -155,14 +155,14 @@ public class CFABuilder {
      *@Param [compunit, pFileName]
      *@return void
      **/
-    private void declareGlobalVariables(compunit compunit, final String pFileName) throws result{
+    private void declareGlobalVariables(compunit cu) throws result{
 
-        for (compunit_procedure_iterator proc_it = compunit.procedures();
+        for (compunit_procedure_iterator proc_it = cu.procedures();
              !proc_it.at_end(); proc_it.advance()) {
             procedure proc = proc_it.current();
             if(proc.get_kind().equals(procedure_kind.getFILE_INITIALIZATION())
                 && proc.name().contains("Global_Initialization")){
-                visitGlobalItem(proc, pFileName);
+                visitGlobalItem(proc);
             }
         }
         
@@ -177,7 +177,7 @@ public class CFABuilder {
      *@Param [global_initialization, pFileName]
      *@return void
      **/
-    private void visitGlobalItem(procedure global_initialization, final String pFileName) throws result {
+    private void visitGlobalItem(procedure global_initialization) throws result {
 
         point_set pointSet = global_initialization.points();
         for(point_set_iterator point_it = pointSet.cbegin();
@@ -188,7 +188,8 @@ public class CFABuilder {
             //f
             if(isVariable_Initialization(node)|| isExpression(node)){
 
-                FileLocation fileLocation = getLocation(node,pFileName);
+                String pFileName = node.file_line().get_first().name();
+                FileLocation fileLocation = getLocation(node, pFileName);
                 ast un_ast = node.get_ast(ast_family.getC_UNNORMALIZED());
                 // Support static and other storage classes
                 CStorageClass storageClass= getStorageClass(un_ast);
@@ -226,6 +227,8 @@ public class CFABuilder {
             }
         }
     }
+
+
 
 
 

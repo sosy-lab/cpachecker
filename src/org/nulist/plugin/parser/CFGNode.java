@@ -317,7 +317,8 @@ public class CFGNode {
                         +node.characters();
             }else
 
-            return node.characters();
+                return node.characters();
+
         }catch (result r){
             return "";
         }

@@ -252,6 +252,9 @@ public class CFGFunctionBuilder  {
                     declSet.add(node);
                 else if(s.get_kind().equals(symbol_kind.getRETURN()))
                     declSet.add(node);
+                else if(s.is_global()||s.is_file_static()){//extern variable with no initialization is not built in cfabuilder
+                    checkOrInsertNewGlobalVarDeclarations(s,null, getLocation(node));
+                }
             }
         }
 
@@ -266,11 +269,18 @@ public class CFGFunctionBuilder  {
         finish();
     }
 
-
     private void finish(){
         for(CFANode node:cfaNodes){
             if(node.getNumEnteringEdges()>0 || node.getNumLeavingEdges()>0)
                 cfaBuilder.addNode(functionName, node);
+        }
+    }
+
+
+    public void checkOrInsertNewGlobalVarDeclarations(symbol varSymbol, CInitializer initializer, FileLocation fileLocation) throws result{
+        String varName = cfaBuilder.expressionHandler.getNormalizedVariableName(varSymbol, fileName);
+        if(!cfaBuilder.expressionHandler.globalDeclarations.containsKey(varName.hashCode())){
+            cfaBuilder.expressionHandler.generateVariableDeclaration(varSymbol,initializer, fileLocation);
         }
     }
 
@@ -290,7 +300,7 @@ public class CFGFunctionBuilder  {
         CFANode nextCFANode = cfaNodeMap.get(entryNextNode.id());
         if(declSet.isEmpty()){
             final BlankEdge dummyEdge = new BlankEdge("", FileLocation.DUMMY,
-                    prevNode, nextCFANode, "Function start edge");
+                    prevNode, nextCFANode, "Function start dummy edge");
             addToCFA(dummyEdge);
             //locStack.push(prevNode);
         }else {
@@ -302,7 +312,7 @@ public class CFGFunctionBuilder  {
                     final CFANode nextNode = newCFANode();
 
                     final BlankEdge dummyEdge = new BlankEdge("", FileLocation.DUMMY,
-                            prevNode, nextNode, "Function start edge");
+                            prevNode, nextNode, "Function start dummy edge");
                     addToCFA(dummyEdge);
                     locStack.push(nextNode);
 
@@ -349,56 +359,51 @@ public class CFGFunctionBuilder  {
             return;
         }
 
-        if(cfgNode.is_inside_macro()&& !isExpression(cfgNode)){
-
-        }else {
-            String pointKind = getKindName(cfgNode);
-            switch (pointKind){
-                case CALL_SITE:
-                    handleFunctionCall(cfgNode, fileLocation);
-                    break;
-                case CONTROL_POINT:
-                    if(isIfControlPointNode(cfgNode))
-                        handleIFPoint(cfgNode, fileLocation);
-                    else if(isWhileControlPointNode(cfgNode))
-                        handleWhilePoint(cfgNode, fileLocation);
-                    else if(isDoControlPointNode(cfgNode))
-                        handleDoWhilePoint(cfgNode,fileLocation);
-                    else if(isForControlPointNode(cfgNode))
-                        handleForPoint(cfgNode,fileLocation);
-                    else if(isSwitchControlPointNode(cfgNode))
-                        handleSwitchPoint(cfgNode,fileLocation);
-                    else
-                        throw new RuntimeException("other control point");
-                    break;
-                case JUMP:
-                    if(isGotoNode(cfgNode)){
+        switch (getKindName(cfgNode)){
+            case CALL_SITE:
+                handleFunctionCall(cfgNode, fileLocation);
+                break;
+            case CONTROL_POINT:
+                if(isIfControlPointNode(cfgNode))
+                    handleIFPoint(cfgNode, fileLocation);
+                else if(isWhileControlPointNode(cfgNode))
+                    handleWhilePoint(cfgNode, fileLocation);
+                else if(isDoControlPointNode(cfgNode))
+                    handleDoWhilePoint(cfgNode,fileLocation);
+                else if(isForControlPointNode(cfgNode))
+                    handleForPoint(cfgNode,fileLocation);
+                else if(isSwitchControlPointNode(cfgNode))
+                    handleSwitchPoint(cfgNode,fileLocation);
+                else
+                    throw new RuntimeException("other control point");
+                break;
+            case JUMP:
+                if(isGotoNode(cfgNode)){
 //                        handleNormalPoint(cfgNode,
 //                                fileLocation, "Goto: "+ getGoToLabelName(cfgNode));
-                        handleGotoPoint(cfgNode, fileLocation);
-                    }else if(isBreakNode(cfgNode)){
-                        handleNormalPoint(cfgNode, fileLocation,"break");
-                    }else
-                        throw new RuntimeException("other jump node");
-                    break;
-                case EXPRESSION:
-                    handleExpression(cfgNode,fileLocation);
-                    break;
-                case LABEL:
-                    if(isGoToLabel(cfgNode))
+                    handleGotoPoint(cfgNode, fileLocation);
+                }else if(isBreakNode(cfgNode)){
+                    handleNormalPoint(cfgNode, fileLocation,"break");
+                }else
+                    throw new RuntimeException("other jump node");
+                break;
+            case EXPRESSION:
+                handleExpression(cfgNode,fileLocation);
+                break;
+            case LABEL:
+                if(isGoToLabel(cfgNode))
 //                        handleNormalPoint(cfgNode, fileLocation,
 //                                "Label: "+getLabelName(cfgNode));
-                        handleLabelPoint(cfgNode, fileLocation);
-                    else if(isElseLabel(cfgNode)){
-                        handleNormalPoint(cfgNode, fileLocation, "else");
-                    }else if(isDoLabel(cfgNode))
-                        handleDoLabelPoint(cfgNode, fileLocation);
-                    break;
-                case RETURN:
-                    handleReturnPoint(cfgNode,fileLocation);
-                    break;
+                    handleLabelPoint(cfgNode, fileLocation);
+                else if(isElseLabel(cfgNode)){
+                    handleNormalPoint(cfgNode, fileLocation, "else");
+                }else if(isDoLabel(cfgNode))
+                    handleDoLabelPoint(cfgNode, fileLocation);
+                break;
+            case RETURN:
+                handleReturnPoint(cfgNode,fileLocation);
+                break;
 
-            }
         }
 
     }
@@ -442,8 +447,9 @@ public class CFGFunctionBuilder  {
             CReturnStatement returnStatement = new CReturnStatement(fileLocation,
                                                                     Optional.of(rightHandSide),
                                                                     Optional.of((CAssignment) statement));
-            String rawString = getRawSignature(nextCFGNode);
-            CReturnStatementEdge edge = new CReturnStatementEdge(rawString,
+
+            String rawString = getRawSignature(exprNode);
+            CReturnStatementEdge edge = new CReturnStatementEdge(returnStatement.toASTString(),
                                             returnStatement, fileLocation,
                                             prevNode, cfa.getExitNode());
             addToCFA(edge);

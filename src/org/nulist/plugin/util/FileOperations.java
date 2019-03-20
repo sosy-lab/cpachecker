@@ -26,6 +26,11 @@ public class FileOperations {
         return new FileLocation(pFileName, 0, 1, getFileLineNumber(node), getFileLineNumber(node));
     }
 
+    public static FileLocation getLocation(point node) throws result {
+        assert node != null;
+        String pFileName = node.file_line().get_first().name();
+        return new FileLocation(pFileName, 0, 1, getFileLineNumber(node), getFileLineNumber(node));
+    }
 
 
     public static FileLocation getLocation(int startLine, final String pFileName) {
