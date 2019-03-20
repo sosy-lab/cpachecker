@@ -61,8 +61,6 @@ public class CFGParser implements Parser{
         {
             compunit cu = cu_it.current();
             // only focus on user-defined c files
-            if(!cu.is_user())
-                continue;
             input_file.add(Paths.get(cu.normalized_name()));
             cfaBuilder.basicBuild(cu);
         }

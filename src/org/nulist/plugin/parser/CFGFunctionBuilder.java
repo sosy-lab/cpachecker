@@ -80,7 +80,7 @@ public class CFGFunctionBuilder  {
         fileName = pFileName;
         this.cfaBuilder = cfaBuilder;
         expressionHandler = new CFGHandleExpression(pLogger,functionName,typeConverter);
-        expressionHandler.setGlobalVariableDeclarations(cfaBuilder.expressionHandler.globalVariableDeclarations);
+        expressionHandler.setGlobalVariableDeclarations(cfaBuilder.expressionHandler.globalDeclarations);
     }
 
 
@@ -89,7 +89,10 @@ public class CFGFunctionBuilder  {
     }
 
     public FunctionEntryNode getFunctionEntryNode(point functionEntry) throws result{
-        return cfaBuilder.functions.get(functionEntry.get_procedure().name());
+        if(functionEntry.get_procedure().get_kind().equals(procedure_kind.getUSER_DEFINED()))
+            return cfaBuilder.functions.get(functionEntry.get_procedure().name());
+        else
+            return cfaBuilder.systemFunctions.get(functionEntry.get_procedure().name());
     }
 
     /**
@@ -526,13 +529,14 @@ public class CFGFunctionBuilder  {
             //nextNode = cfaNodeMap.get(nextCFGNode.id());
             CFunctionDeclaration calledFunctionDeclaration =
                     cfaBuilder.functionDeclarations.get(functionCallNode.get_procedure().name());
+            if(calledFunctionDeclaration==null)
+                throw  new RuntimeException("No such function declaration:"+ functionCallNode.get_procedure().name());
 
-            pFunctionEntry = (CFunctionEntryNode)cfaBuilder.functions.get(functionCallNode.get_procedure().name());
-            if(pFunctionEntry!=null){
-                pFunctionEntry = (CFunctionEntryNode)getFunctionEntryNode(functionCallNode);
-                cfaBuilder.functions.put(functionCallNode.get_procedure().name(), pFunctionEntry);
-                cfaBuilder.addNode(functionCallNode.get_procedure().name(), pFunctionEntry);
-            }
+            pFunctionEntry = (CFunctionEntryNode)getFunctionEntryNode(functionCallNode);
+
+            if(pFunctionEntry==null)
+                throw  new RuntimeException("No such function entry:"+ functionCallNode.get_procedure().name());
+
 
             CIdExpression funcNameExpr =
                     new CIdExpression(
@@ -546,22 +550,26 @@ public class CFGFunctionBuilder  {
                     params, pFunctionEntry.getFunctionDefinition());
             functionCallStatement = new CFunctionCallStatement(fileLocation,functionCallExpression);
 
-//            CStatementEdge statementEdge= new CStatementEdge(rawCharacters,functionCallStatement, fileLocation,
-//                    prevNode, nextNode);
-//            addToCFA(statementEdge);
+            if(!functionCallNode.get_procedure().get_kind().equals(procedure_kind.getUSER_DEFINED())){
+                CStatementEdge statementEdge= new CStatementEdge(rawCharacters,functionCallStatement,
+                        fileLocation, prevNode, nextNode);
+                addToCFA(statementEdge);
+                traverseCFGNode(nextCFGNode);
 
-            edge = new CFunctionSummaryEdge(rawCharacters, fileLocation,
-                    prevNode, nextNode, functionCallStatement, pFunctionEntry);
+            }else {
+                edge = new CFunctionSummaryEdge(rawCharacters, fileLocation,
+                        prevNode, nextNode, functionCallStatement, pFunctionEntry);
 
-            callEdge = new CFunctionCallEdge(rawCharacters,fileLocation,
-                    prevNode, pFunctionEntry,functionCallStatement, edge);
-            returnEdge = new CFunctionReturnEdge(fileLocation,pFunctionEntry.getExitNode(),nextNode,edge);
+                callEdge = new CFunctionCallEdge(rawCharacters,fileLocation,
+                        prevNode, pFunctionEntry,functionCallStatement, edge);
+                returnEdge = new CFunctionReturnEdge(fileLocation,pFunctionEntry.getExitNode(),nextNode,edge);
 
-            addToCFA(edge);
-            addToCFA(callEdge);
-            addToCFA(returnEdge);
+                addToCFA(edge);
+                addToCFA(callEdge);
+                addToCFA(returnEdge);
 
-            traverseCFGNode(nextCFGNode);
+                traverseCFGNode(nextCFGNode);
+            }
 
         }else {
             // if the return result of the function call is used, there should have one actual_out node.
@@ -599,22 +607,19 @@ public class CFGFunctionBuilder  {
                 rawCharacters=sb.toString().replace(", ",")");
             }
 
-            //TODO system function call
-            if(!functionCallNode.get_procedure().get_kind().equals(procedure_kind.getUSER_DEFINED()))
-                System.out.println();
+            CFunctionDeclaration calledFunctionDeclaration =
+                    cfaBuilder.functionDeclarations.get(functionCallNode.get_procedure().name());
+            if(calledFunctionDeclaration==null)
+                throw  new RuntimeException("No such function declaration:"+ functionCallNode.get_procedure().name());
 
+            pFunctionEntry = (CFunctionEntryNode)getFunctionEntryNode(functionCallNode);
 
-            pFunctionEntry = (CFunctionEntryNode) cfaBuilder.functions.get(functionCallNode.get_procedure().name());
-            if(pFunctionEntry!=null){
-                pFunctionEntry = (CFunctionEntryNode) getFunctionEntryNode(functionCallNode);
-                cfaBuilder.functions.put(functionCallNode.get_procedure().name(), pFunctionEntry);
-                cfaBuilder.addNode(functionCallNode.get_procedure().name(), pFunctionEntry);
-            }
+            if(pFunctionEntry==null)
+                throw  new RuntimeException("No such function entry:"+ functionCallNode.get_procedure().name());
+
 
             nextCFGNode = actualoutCFGNode.cfg_targets().cbegin().current().get_first();
 
-            CFunctionDeclaration calledFunctionDeclaration =
-                    cfaBuilder.functionDeclarations.get(functionCallNode.get_procedure().name());
 
             //shall have an assignment expression
             // condition 1: variable = function();
@@ -682,20 +687,33 @@ public class CFGFunctionBuilder  {
 //                    prevNode, nextNode);
 //            addToCFA(statementEdge);
 
-            edge = new CFunctionSummaryEdge(rawCharacters, fileLocation,
-                    declNode, nextNode, functionCallStatement, pFunctionEntry);
+            // system function call
+            if(!functionCallNode.get_procedure().get_kind().equals(procedure_kind.getUSER_DEFINED())){
+                CStatementEdge statementEdge= new CStatementEdge(rawCharacters,functionCallStatement,
+                        fileLocation, declNode, nextNode);
+                addToCFA(statementEdge);
+                traverseCFGNode(nextCFGNode);
+
+            }else {
+                edge = new CFunctionSummaryEdge(rawCharacters, fileLocation,
+                        declNode, nextNode, functionCallStatement, pFunctionEntry);
 
 
-            callEdge = new CFunctionCallEdge(rawCharacters,fileLocation,
-                    declNode, pFunctionEntry,functionCallStatement, edge);
-            returnEdge = new CFunctionReturnEdge(fileLocation,pFunctionEntry.getExitNode(),nextNode,edge);
+                callEdge = new CFunctionCallEdge(rawCharacters,fileLocation,
+                        declNode, pFunctionEntry,functionCallStatement, edge);
+                returnEdge = new CFunctionReturnEdge(fileLocation,pFunctionEntry.getExitNode(),nextNode,edge);
 
-            addToCFA(edge);
-            addToCFA(callEdge);
-            addToCFA(returnEdge);
+                addToCFA(edge);
+                addToCFA(callEdge);
+                addToCFA(returnEdge);
 
-            traverseCFGNode(nextCFGNode);
+                traverseCFGNode(nextCFGNode);
+            }
+
         }
+
+
+
     }
 
     /**

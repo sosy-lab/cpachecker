@@ -80,8 +80,13 @@ public class CFGTypeConverter {
     private CType getCType(ast type, boolean isConst){
         try {
             String typeString = type.pretty_print();
-            CType cType = null;
-            if(isTypeRef(type)){
+
+            CType cType = typeCache.getOrDefault(typeString.hashCode(),null);
+            //if(isConst && !typeString.startsWith("const "))
+            //    cType = typeCache.getOrDefault(("const "+typeString).hashCode(),null);
+            if(cType!=null)
+                return cType;
+            else if(isTypeRef(type)){
                 ast originTypeAST = type.get(ast_ordinal.getBASE_TYPE()).as_ast();
                 CType cTypedefType;
                 if(typeString.startsWith("const ")){

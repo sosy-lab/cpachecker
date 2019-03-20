@@ -29,7 +29,7 @@ public class CFGHandleExpression {
     private final CFGTypeConverter typeConverter;
     private final CBinaryExpressionBuilder binExprBuilder;
     public Map<Integer, CSimpleDeclaration> variableDeclarations;
-    public Map<Integer, ADeclaration> globalVariableDeclarations;
+    public Map<Integer, ADeclaration> globalDeclarations;
     private final String functionName;
 
     public CFGHandleExpression(LogManager pLogger,
@@ -37,7 +37,7 @@ public class CFGHandleExpression {
                                CFGTypeConverter typeConverter){
         this.typeConverter = typeConverter;
         this.variableDeclarations = new HashMap<>();
-        this.globalVariableDeclarations = new HashMap<>();
+        this.globalDeclarations = new HashMap<>();
         functionName = pFunctionName;
         binExprBuilder = new CBinaryExpressionBuilder(MachineModel.LINUX64, pLogger);
     }
@@ -49,13 +49,13 @@ public class CFGHandleExpression {
                                Map<Integer, ADeclaration> globalVariableDeclarations){
         this.typeConverter = typeConverter;
         this.variableDeclarations = variableDeclarations;
-        this.globalVariableDeclarations = globalVariableDeclarations;
+        this.globalDeclarations = globalVariableDeclarations;
         binExprBuilder = new CBinaryExpressionBuilder(MachineModel.LINUX64, pLogger);
         functionName = pFunctionName;
     }
 
     public void setGlobalVariableDeclarations(Map<Integer, ADeclaration> globalVariableDeclarations) {
-        this.globalVariableDeclarations = globalVariableDeclarations;
+        this.globalDeclarations = globalVariableDeclarations;
     }
 
     public void setVariableDeclarations(Map<Integer, CSimpleDeclaration> variableDeclarations) {
@@ -154,7 +154,7 @@ public class CFGHandleExpression {
         boolean isGlobal = variableSymbol.is_global();
         boolean isFileStatic = variableSymbol.is_file_static();
 
-        if((isGlobal || isFileStatic) && !globalVariableDeclarations.containsKey(normalizedVarName.hashCode())){
+        if((isGlobal || isFileStatic) && !globalDeclarations.containsKey(normalizedVarName.hashCode())){
             throw new RuntimeException("Global variable has no declaration: " + normalizedVarName);
         }
 
@@ -163,7 +163,7 @@ public class CFGHandleExpression {
         }
         CSimpleDeclaration assignedVarDeclaration;
         if(isGlobal || isFileStatic){
-            assignedVarDeclaration = (CSimpleDeclaration) globalVariableDeclarations.get(normalizedVarName.hashCode());
+            assignedVarDeclaration = (CSimpleDeclaration) globalDeclarations.get(normalizedVarName.hashCode());
         }else {
             assignedVarDeclaration = variableDeclarations.get(normalizedVarName.hashCode());
         }

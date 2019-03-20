@@ -51,6 +51,7 @@ public class CFABuilder {
     // Function name -> Function declaration
     protected Map<String, CFunctionDeclaration> functionDeclarations;
     protected NavigableMap<String, FunctionEntryNode> functions;
+    protected NavigableMap<String, FunctionEntryNode> systemFunctions;
     protected List<Pair<ADeclaration, String>> globalVariableDeclarations ;
     //protected final Map<Integer, ADeclaration> globalVariableDeclarations = new HashMap<>();
     protected SortedSetMultimap<String, CFANode> cfaNodes;
@@ -66,17 +67,19 @@ public class CFABuilder {
         functionDeclarations = new HashMap<>();
 
         functions = new TreeMap<>();
+        systemFunctions = new TreeMap<>();
         cfaNodes = TreeMultimap.create();
         globalVariableDeclarations = new ArrayList<>();
         expressionHandler = new CFGHandleExpression(logger,"",typeConverter);
     }
 
 
+    //TODO shall add all function declarations
     public List<Pair<ADeclaration, String>> getGlobalVariableDeclarations(){
         if(globalVariableDeclarations.isEmpty() ||
-                globalVariableDeclarations.size()!= expressionHandler.globalVariableDeclarations.size()){
+                globalVariableDeclarations.size()!= expressionHandler.globalDeclarations.size()){
             globalVariableDeclarations = new ArrayList<>();
-            for(ADeclaration gvar:expressionHandler.globalVariableDeclarations.values())
+            for(ADeclaration gvar:expressionHandler.globalDeclarations.values())
                 globalVariableDeclarations.add(Pair.of(gvar,gvar.getName()));
         }
         return globalVariableDeclarations;
@@ -94,27 +97,31 @@ public class CFABuilder {
         // procedure = function
 
         /* create global variable declaration*/
-        declareGlobalVariables(cu, pFileName);
+        if(cu.is_user())
+            declareGlobalVariables(cu, pFileName);
         //expressionHandler.setGlobalVariableDeclarations(globalVariableDeclarations);
 
         for (compunit_procedure_iterator proc_it = cu.procedures();
              !proc_it.at_end(); proc_it.advance()) {
             procedure proc = proc_it.current();
 
-            //only focus on the function defined by user
-            if(proc.get_kind().equals(procedure_kind.getUSER_DEFINED())){
-
+            if(proc.get_kind().equals(procedure_kind.getUSER_DEFINED())||
+                    proc.get_kind().equals(procedure_kind.getLIBRARY())){
                 String funcName = proc.name();
                 CFGFunctionBuilder cfgFunctionBuilder =
                         new CFGFunctionBuilder(logger, typeConverter,  proc,funcName, pFileName, this);
                 // add function declaration
-                functionDeclarations.put(funcName,cfgFunctionBuilder.handleFunctionDeclaration());
-
+                CFunctionDeclaration functionDeclaration = cfgFunctionBuilder.handleFunctionDeclaration();
+                functionDeclarations.put(funcName, functionDeclaration);
+                expressionHandler.globalDeclarations.put(funcName.hashCode(), functionDeclaration);
                 // handle the function definition
                 CFunctionEntryNode en = cfgFunctionBuilder.handleFunctionDefinition();
 
-                functions.put(funcName, en);
-                cfgFunctionBuilderMap.put(funcName,cfgFunctionBuilder);
+                if(proc.get_kind().equals(procedure_kind.getUSER_DEFINED())){
+                    functions.put(funcName, en);
+                    cfgFunctionBuilderMap.put(funcName,cfgFunctionBuilder);
+                }else
+                    systemFunctions.put(funcName, en);
             }
         }
 
@@ -122,7 +129,7 @@ public class CFABuilder {
     }
 
     /**
-     *@Description input is a C file TODO
+     *@Description input is a C file
      *@Param [cu]
      *@return org.sosy_lab.cpachecker.cfa.ParseResult
      **/
@@ -134,7 +141,6 @@ public class CFABuilder {
                 String funcName = proc.name();
                 CFGFunctionBuilder cfgFunctionBuilder = cfgFunctionBuilderMap.get(funcName);
                 cfgFunctionBuilder.visitFunction();
-                //cfaNodes.replaceValues(funcName,cfgFunctionBuilder.getCfa());
             }
         }
     }
@@ -194,7 +200,6 @@ public class CFABuilder {
                 String variableName =variableSym.name();
                 String normalizedName = variableName;
 
-                //TODO: CPAChecker change all static variables to auto
                 if (storageClass == CStorageClass.STATIC) {
                     //file static
                     normalizedName = expressionHandler.getSimpleFileName(pFileName)+"__static__"+normalizedName;
@@ -217,7 +222,7 @@ public class CFABuilder {
                                 normalizedName,
                                 initializer);
 
-                expressionHandler.globalVariableDeclarations.put(normalizedName.hashCode(),(ADeclaration) newDecl);
+                expressionHandler.globalDeclarations.put(normalizedName.hashCode(),(ADeclaration) newDecl);
             }
         }
     }
