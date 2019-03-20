@@ -122,8 +122,15 @@ public class ValueAnalysisState
     hashCode = constantsMap.hashCode();
   }
 
+  private ValueAnalysisState(ValueAnalysisState state) {
+    machineModel = state.machineModel;
+    constantsMap = checkNotNull(state.constantsMap);
+    hashCode = state.hashCode;
+    assert hashCode == constantsMap.hashCode();
+  }
+
   public static ValueAnalysisState copyOf(ValueAnalysisState state) {
-    return new ValueAnalysisState(state.machineModel, state.constantsMap);
+    return new ValueAnalysisState(state);
   }
 
   /**
@@ -149,6 +156,10 @@ public class ValueAnalysisState
     }
 
     ValueAndType valueAndType = new ValueAndType(checkNotNull(valueToAdd), pType);
+    ValueAndType oldValueAndType = constantsMap.get(pMemLoc);
+    if (oldValueAndType != null) {
+      hashCode -= (pMemLoc.hashCode() ^ oldValueAndType.hashCode());
+    }
     constantsMap = constantsMap.putAndCopy(pMemLoc, valueAndType);
     hashCode += (pMemLoc.hashCode() ^ valueAndType.hashCode());
   }
