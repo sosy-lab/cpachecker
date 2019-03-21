@@ -52,7 +52,6 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   private final NumeralFormulaManager<? super T, T> numericFormulaManager;
 
   private final FunctionDeclaration<BooleanFormula> isSubnormalUfDecl;
-  private final FunctionDeclaration<BooleanFormula> isNormalUfDecl;
   private final T zero;
   private final T nanVariable;
   private final T plusInfinityVariable;
@@ -69,10 +68,8 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
     functionManager = rawFunctionManager;
 
     FormulaType<T> formulaType = numericFormulaManager.getFormulaType();
-    isSubnormalUfDecl =
-        functionManager.declareUF("__isSubnormal__", FormulaType.BooleanType, formulaType);
-    isNormalUfDecl =
-        functionManager.declareUF("__isNormal__", FormulaType.BooleanType, formulaType);
+    isSubnormalUfDecl = functionManager.declareUF("__isSubnormal__", FormulaType.BooleanType,
+        formulaType);
 
     zero = numericFormulaManager.makeNumber(0);
     nanVariable = numericFormulaManager.makeVariable("__NaN__");
@@ -262,7 +259,6 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   public BooleanFormula isNaN(FloatingPointFormula pNumber) {
     return numericFormulaManager.equal(unwrap(pNumber), nanVariable);
   }
-
   @Override
   public BooleanFormula isInfinity(FloatingPointFormula pNumber) {
     T number = unwrap(pNumber);
@@ -270,25 +266,14 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
         numericFormulaManager.equal(number, plusInfinityVariable),
         numericFormulaManager.equal(number, minusInfinityVariable));
   }
-
   @Override
   public BooleanFormula isZero(FloatingPointFormula pNumber) {
     return numericFormulaManager.equal(unwrap(pNumber), numericFormulaManager.makeNumber(0));
   }
-
-  @Override
-  public BooleanFormula isNegative(FloatingPointFormula pNumber) {
-    return numericFormulaManager.lessThan(unwrap(pNumber), numericFormulaManager.makeNumber(0));
-  }
-
   @Override
   public BooleanFormula isSubnormal(FloatingPointFormula pNumber) {
-    return functionManager.callUF(isSubnormalUfDecl, ImmutableList.of(unwrap(pNumber)));
-  }
-
-  @Override
-  public BooleanFormula isNormal(FloatingPointFormula pNumber) {
-    return functionManager.callUF(isNormalUfDecl, ImmutableList.of(unwrap(pNumber)));
+    return functionManager.callUF(isSubnormalUfDecl,
+        ImmutableList.of(unwrap(pNumber)));
   }
 
   @Override
