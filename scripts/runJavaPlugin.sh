@@ -135,11 +135,35 @@ else
 fi
 
 
+#set the class path, stk seems not accept wildcard
+CLASSPATH="$CLASSPATH:$PATH_TO_CPACHECKER/bin:$PATH_TO_CPACHECKER/cpachecker.jar"
+
+cd lib/
+array=($(ls |grep jar))
+
+n=0
+for file in ${array[@]}; do
+    CLASSPATH="$CLASSPATH:$PATH_TO_CPACHECKER/lib/$file"
+done
+
+cd java/runtime/
+
+array=($(ls |grep jar))
+
+n=0
+for file in ${array[@]}; do
+    CLASSPATH="$CLASSPATH:$PATH_TO_CPACHECKER/lib/java/runtime/$file"
+done
+
+cd ../../../
+
 #CPAChecker agruments
 CPACHECKER_ARGUMENTS=$(echo ${OPTIONS[@]})
 
+sed "2c \    \"${CLASSPATH}\"" -i scripts/csurfJava_plugin.stk
 sed "5c \    \"${PATH_TO_CPACHECKER}\"" -i scripts/csurfJava_plugin.stk
-sed "6c \    \"${CPACHECKER_ARGUMENTS}\"" -i scripts/csurfJava_plugin.stk
+sed "6c \    \"${PROJECT}\"" -i scripts/csurfJava_plugin.stk
+sed "7c \    \"${CPACHECKER_ARGUMENTS}\"" -i scripts/csurfJava_plugin.stk
 
 # Perform the plugin
 csurf -nogui $PROJECT -l $CODESURFER_STK

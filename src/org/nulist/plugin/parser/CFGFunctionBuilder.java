@@ -556,7 +556,12 @@ public class CFGFunctionBuilder  {
                     params, pFunctionEntry.getFunctionDefinition());
             functionCallStatement = new CFunctionCallStatement(fileLocation,functionCallExpression);
 
-            if(!functionCallNode.get_procedure().get_kind().equals(procedure_kind.getUSER_DEFINED())){
+            CStatementEdge statementEdge= new CStatementEdge(rawCharacters,functionCallStatement,
+                    fileLocation, prevNode, nextNode);
+            addToCFA(statementEdge);
+            traverseCFGNode(nextCFGNode);
+
+            /*if(!functionCallNode.get_procedure().get_kind().equals(procedure_kind.getUSER_DEFINED())){
                 CStatementEdge statementEdge= new CStatementEdge(rawCharacters,functionCallStatement,
                         fileLocation, prevNode, nextNode);
                 addToCFA(statementEdge);
@@ -575,7 +580,7 @@ public class CFGFunctionBuilder  {
                 addToCFA(returnEdge);
 
                 traverseCFGNode(nextCFGNode);
-            }
+            }*/
 
         }else {
             // if the return result of the function call is used, there should have one actual_out node.
@@ -693,8 +698,13 @@ public class CFGFunctionBuilder  {
 //                    prevNode, nextNode);
 //            addToCFA(statementEdge);
 
+            CStatementEdge statementEdge= new CStatementEdge(rawCharacters,functionCallStatement,
+                    fileLocation, declNode, nextNode);
+            addToCFA(statementEdge);
+            traverseCFGNode(nextCFGNode);
+
             // system function call
-            if(!functionCallNode.get_procedure().get_kind().equals(procedure_kind.getUSER_DEFINED())){
+            /*if(!functionCallNode.get_procedure().get_kind().equals(procedure_kind.getUSER_DEFINED())){
                 CStatementEdge statementEdge= new CStatementEdge(rawCharacters,functionCallStatement,
                         fileLocation, declNode, nextNode);
                 addToCFA(statementEdge);
@@ -714,7 +724,7 @@ public class CFGFunctionBuilder  {
                 addToCFA(returnEdge);
 
                 traverseCFGNode(nextCFGNode);
-            }
+            }*/
 
         }
 

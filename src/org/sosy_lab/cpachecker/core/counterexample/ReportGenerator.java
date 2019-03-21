@@ -122,6 +122,7 @@ public class ReportGenerator {
   private final Map<String, Object> argEdges;
   private final Map<String, Object> argRelevantEdges;
   private final Map<Integer, Object> argRelevantNodes;
+  private String programName ="";
 
   private final String producer; // HTML-escaped producer string
 
@@ -141,6 +142,10 @@ public class ReportGenerator {
     argRelevantEdges = new HashMap<>();
     argRelevantNodes = new HashMap<>();
     producer = htmlEscaper().escape(CPAchecker.getVersion(pConfig));
+  }
+
+  public void setProgramName(String programName) {
+    this.programName = programName;
   }
 
   public void generate(CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
@@ -355,9 +360,12 @@ public class ReportGenerator {
       if (counterExample == null) {
         writer.write(sourceFiles.get(0));
       } else {
+//        String title =
+//                String
+//                        .format("%s (Counterexample %s)", sourceFiles.get(0), counterExample.getUniqueId());
         String title =
             String
-                .format("%s (Counterexample %s)", sourceFiles.get(0), counterExample.getUniqueId());
+                .format("%s (Counterexample %s)", this.programName, counterExample.getUniqueId());
         writer.write(title);
       }
     } catch (IOException e) {

@@ -45,6 +45,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.zip.GZIPOutputStream;
+
+import com.grammatech.cs.project;
+import com.grammatech.cs.result;
+import org.nulist.plugin.parser.CFGParser;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -146,11 +150,11 @@ public class CFACreator {
 
   @Option(secure=true, name="analysis.interprocedural",
       description="run interprocedural analysis")
-  private boolean interprocedural = false;//has done in the cfaparser
+  private boolean interprocedural = true;//has done in the cfaparser
 
   @Option(secure=true, name="analysis.functionPointerCalls",
       description="create all potential function pointer call edges")
-  private boolean fptrCallEdges = false;//has done in the cfaparser
+  private boolean fptrCallEdges = true;//has done in the cfaparser
 
   @Option(
     secure = true,
@@ -278,6 +282,13 @@ public class CFACreator {
   )
   private boolean addLabels = false;
 
+  @Option(
+          secure = true,
+          name = "cfa.cfgParserEnable",
+          description = "Enable CFGParser to convert CFGs to CFA"
+  )
+  private boolean cfgParserEnable = true;
+
   @Option(secure=true, name="cfa.classifyNodes",
       description="This option enables the computation of a classification of CFA nodes.")
 private boolean classifyNodes = false;
@@ -352,7 +363,11 @@ private boolean classifyNodes = false;
 
     stats.parserInstantiationTime.start();
 
-    /*switch (language) {
+    if(cfgParserEnable)
+      parser = new CFGParser(logger, MachineModel.LINUX64);
+    else
+      switch (language) {
+
     case JAVA:
       parser = Parsers.getJavaParser(logger, config);
       break;
@@ -382,8 +397,7 @@ private boolean classifyNodes = false;
     }
 
     stats.parsingTime = parser.getParseTime();
-    stats.conversionTime = parser.getCFAConstructionTime();*/
-    parser = null;
+    stats.conversionTime = parser.getCFAConstructionTime();
 
     stats.parserInstantiationTime.stop();
   }
@@ -455,6 +469,35 @@ private boolean classifyNodes = false;
       stats.totalTime.stop();
     }
   }
+
+  /**
+   * @Description //Perform CFGparser
+   * @Param []
+   * @return org.sosy_lab.cpachecker.cfa.CFA
+   **/
+  public CFA parseCFGAndCreateCFA(project target)
+          throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+    stats.totalTime.start();
+    try {
+      try {
+        // FIRST, parse file(s) and create CFAs for each function
+        logger.log(Level.FINE, "Starting parsing of "+ target.name());
+
+        final ParseResult c = ((CFGParser)parser).parseProject(target);
+
+        logger.log(Level.FINE, "Parser Finished");
+
+        FunctionEntryNode mainFunction = c.getFunctions().get("main");
+        return createCFA(c, mainFunction);
+
+      } finally {
+        stats.totalTime.stop();
+      }
+    }catch (result r){
+      throw new RuntimeException(r);
+    }
+  }
+
 
   public CFA createCFA(ParseResult pParseResult, FunctionEntryNode pMainFunction) throws InvalidConfigurationException, InterruptedException, ParserException {
 

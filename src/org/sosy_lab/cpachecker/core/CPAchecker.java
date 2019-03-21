@@ -28,6 +28,8 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.ShutdownNotifier.interruptCurrentThreadOnShutdown;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
+import com.grammatech.cs.project;
+import com.grammatech.cs.result;
 import com.google.common.base.Joiner;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.collect.ImmutableList;
@@ -468,6 +470,143 @@ public class CPAchecker {
     return new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);
   }
 
+
+  public CPAcheckerResult run(
+          project project, Set<SpecificationProperty> properties) {
+
+
+    logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
+
+    MainCPAStatistics stats = null;
+    Algorithm algorithm = null;
+    ReachedSet reached = null;
+    CFA cfa = null;
+    Result result = Result.NOT_YET_STARTED;
+    String violatedPropertyDescription = "";
+
+    final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
+    shutdownNotifier.register(interruptThreadOnShutdown);
+
+    try {
+      stats = new MainCPAStatistics(config, logger, shutdownNotifier);
+
+      // create reached set, cpa, algorithm
+      stats.creationTime.start();
+      reached = factory.createReachedSet();
+
+      cfa = parse(project, stats);
+      GlobalInfo.getInstance().storeCFA(cfa);
+      shutdownNotifier.shutdownIfNecessary();
+
+      ConfigurableProgramAnalysis cpa;
+      Specification specification;
+      stats.cpaCreationTime.start();
+      try {
+        specification =
+                Specification.fromFiles(properties, specificationFiles, cfa, config, logger);
+        cpa = factory.createCPA(cfa, specification);
+      } finally {
+        stats.cpaCreationTime.stop();
+      }
+      stats.setCPA(cpa);
+
+      if (cpa instanceof StatisticsProvider) {
+        ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());
+      }
+
+      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
+
+      algorithm = factory.createAlgorithm(cpa, cfa, specification);
+
+      if (algorithm instanceof MPVAlgorithm && !stopAfterError) {
+        // sanity check
+        throw new InvalidConfigurationException(
+                "Cannot use option 'analysis.stopAfterError' along with "
+                        + "multi-property verification algorithm. "
+                        + "Please use option 'mpv.findAllViolations' instead");
+      }
+
+      if (algorithm instanceof StatisticsProvider) {
+        ((StatisticsProvider) algorithm).collectStatistics(stats.getSubStatistics());
+      }
+
+      if (algorithm instanceof ImpactAlgorithm) {
+        ImpactAlgorithm mcmillan = (ImpactAlgorithm) algorithm;
+        reached.add(
+                mcmillan.getInitialState(cfa.getMainFunction()),
+                mcmillan.getInitialPrecision(cfa.getMainFunction()));
+      } else {
+        initializeReachedSet(reached, cpa, properties, cfa.getMainFunction(), cfa);
+      }
+
+      printConfigurationWarnings();
+
+      stats.creationTime.stop();
+      shutdownNotifier.shutdownIfNecessary();
+
+      // now everything necessary has been instantiated: run analysis
+
+      result = Result.UNKNOWN; // set to unknown so that the result is correct in case of exception
+
+      AlgorithmStatus status = runAlgorithm(algorithm, reached, stats);
+
+      if (status.wasPropertyChecked()) {
+        stats.resultAnalysisTime.start();
+        Collection<Property> violatedProperties = reached.getViolatedProperties();
+        if (!violatedProperties.isEmpty()) {
+          violatedPropertyDescription = Joiner.on(", ").join(violatedProperties);
+
+          if (!status.isPrecise()) {
+            result = Result.UNKNOWN;
+          } else {
+            result = Result.FALSE;
+          }
+        } else {
+          result = analyzeResult(reached, status.isSound());
+          if (unknownAsTrue && result == Result.UNKNOWN) {
+            result = Result.TRUE;
+          }
+        }
+        stats.resultAnalysisTime.stop();
+      } else {
+        result = Result.DONE;
+      }
+
+    } catch (IOException e) {
+      logger.logUserException(Level.SEVERE, e, "Could not read file");
+
+    } catch (ParserException e) {
+      logger.logUserException(Level.SEVERE, e, "Parsing failed");
+      StringBuilder msg = new StringBuilder();
+      msg.append("Please make sure that the code can be compiled by a compiler.\n");
+      if (e.getLanguage() == Language.C) {
+        msg.append("If the code was not preprocessed, please use a C preprocessor\nor specify the -preprocess command-line argument.\n");
+      }
+      msg.append("If the error still occurs, please send this error message\ntogether with the input file to cpachecker-users@googlegroups.com.\n");
+      logger.log(Level.INFO, msg);
+
+    } catch (ClassNotFoundException e) {
+      logger.logUserException(Level.SEVERE, e, "Could not read serialized CFA. Class is missing.");
+
+    } catch (InvalidConfigurationException e) {
+      logger.logUserException(Level.SEVERE, e, "Invalid configuration");
+
+    } catch (InterruptedException e) {
+      // CPAchecker must exit because it was asked to
+      // we return normally instead of propagating the exception
+      // so we can return the partial result we have so far
+      logger.logUserException(Level.WARNING, e, "Analysis interrupted");
+
+    } catch (CPAException e) {
+      logger.logUserException(Level.SEVERE, e, null);
+
+    } finally {
+      CPAs.closeIfPossible(algorithm, logger);
+      shutdownNotifier.unregister(interruptThreadOnShutdown);
+    }
+    return new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);
+  }
+
   private Path checkIfOneValidFile(List<String> fileDenotation)
       throws InvalidConfigurationException {
     if (fileDenotation.size() != 1) {
@@ -509,6 +648,31 @@ public class CPAchecker {
     stats.setCFA(cfa);
     return cfa;
   }
+
+  private CFA parse(project target, MainCPAStatistics stats)
+          throws InvalidConfigurationException, IOException, ParserException, InterruptedException,
+          ClassNotFoundException {
+
+    final CFA cfa;
+    if (serializedCfaFile == null) {
+      // parse file and create CFA
+      CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
+      stats.setCFACreator(cfaCreator);
+      cfa = cfaCreator.parseCFGAndCreateCFA(target);
+
+    } else {
+      // load CFA from serialization file
+      try (InputStream inputStream = Files.newInputStream(serializedCfaFile);
+           InputStream gzipInputStream = new GZIPInputStream(inputStream);
+           ObjectInputStream ois = new ObjectInputStream(gzipInputStream)) {
+        cfa = (CFA) ois.readObject();
+      }
+    }
+
+    stats.setCFA(cfa);
+    return cfa;
+  }
+
 
   private void printConfigurationWarnings() {
     Set<String> unusedProperties = config.getUnusedProperties();

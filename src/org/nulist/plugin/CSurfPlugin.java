@@ -12,7 +12,7 @@ import static org.nulist.plugin.util.CFGDumping.dumpCFG2Dot;
 public class CSurfPlugin {
 
     /**
-     * @Description //TODO
+     * @Description
      * @Param [args]
      * @return void
      **/
@@ -21,16 +21,18 @@ public class CSurfPlugin {
         //Arguments to CPAChecker
         String[] arguments = null;
         String cpacheckPath ="";
-        if(args.length>=2){
+        String programPath = "";
+        if(args.length>=3){
             cpacheckPath = args[0];
-            arguments = args[1].split(" ");
+            programPath = args[1];
+            arguments = args[2].split(" ");
         }
 
         //perform parser execution
         try{
             System.out.println("==================CSURF_PLUGIN_BEGIN==================");
             project proj = project.current();
-            CPAMain.executeParser(arguments, cpacheckPath, proj);
+            CPAMain.executeParser(arguments, cpacheckPath, programPath, proj);
 
             System.out.println("==================CSURF_PLUGIN_END==================");
         }catch(result r){
@@ -59,8 +61,6 @@ public class CSurfPlugin {
                 if(proc.get_kind().equals(procedure_kind.getUSER_DEFINED())){
                     dumpCFG2Dot(proc, path);
                 }
-
-
             }
         }
     }
