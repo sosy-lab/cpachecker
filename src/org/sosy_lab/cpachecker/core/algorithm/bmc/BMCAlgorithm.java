@@ -271,7 +271,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
         model = pProver.getModelAssignments();
 
-      } catch (SolverException e) {
+      } catch (IllegalArgumentException | SolverException e) {
         logger.log(Level.WARNING, "Solver could not produce model, cannot create error path.");
         logger.logDebugException(e);
         return;
