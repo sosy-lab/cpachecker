@@ -176,19 +176,19 @@ public class CFGTypeConverter {
             }else if(type.is_a(ast_class.getUC_VECTOR_TYPE())){//C++ only
                 System.out.println();
             }else if(type.is_a(ast_class.getUC_ROUTINE_TYPE())){//
-                //CFunctionTypeWithNames
-
+                //output function type, then in expression, we convert to CFunctionTypeWithNames in demand
                 CType returnType = getCType(type.get(ast_ordinal.getBASE_RETURN_TYPE()).as_ast());
-                List<CParameterDeclaration> paramList = new ArrayList<>();
+                List<CType> paramTypesList = new ArrayList<>();
                 if(type.has_field(ast_ordinal.getUC_PARAM_TYPES())){
                     ast param_types = type.get(ast_ordinal.getUC_PARAM_TYPES()).as_ast();
                     for(int i=0;i<param_types.children().size();i++){
                         ast param = param_types.children().get(0).as_ast();
                         CType paramType = getCType(param.get(ast_ordinal.getBASE_TYPE()).as_ast());
-                        CParameterDeclaration paramDeclaration = new CParameterDeclaration()
+                        paramTypesList.add(paramType);
                     }
                 }
-                CFunctionTypeWithNames cFunctionTypeWithNames= new CFunctionTypeWithNames(returnType, paramList, true);
+
+                return new CFunctionType(returnType, paramTypesList,false);
             }else
                 throw new RuntimeException("Unsupported type "+ type.toString());
 
@@ -313,6 +313,16 @@ public class CFGTypeConverter {
 
         typeCache.put(typeName.hashCode(), cType);
         return cType;
+    }
+
+    public CFunctionTypeWithNames convertCFuntionType(CFunctionType cFunctionType, FileLocation fileLocation){
+        List<CParameterDeclaration> cParameterDeclarations = new ArrayList<>();
+        for(CType type:cFunctionType.getParameters()){
+            CParameterDeclaration parameterDeclaration = new CParameterDeclaration(fileLocation, type,"");
+            cParameterDeclarations.add(parameterDeclaration);
+        }
+
+        return new CFunctionTypeWithNames(cFunctionType.getReturnType(), cParameterDeclarations, true);
     }
 
 }

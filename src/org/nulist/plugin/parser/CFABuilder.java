@@ -198,28 +198,30 @@ public class CFABuilder {
                 //global variable is initialized static
                 ast init = un_ast.get(ast_ordinal.getUC_STATIC_INIT()).as_ast();
 
+
                 symbol variableSym = un_ast.get(ast_ordinal.getUC_ABS_LOC()).as_symbol();
+
                 String variableName =variableSym.name();
                 String normalizedName = variableName;
+
 
                 if (storageClass == CStorageClass.STATIC) {
                     //file static
                     normalizedName = expressionHandler.getSimpleFileName(pFileName)+"__static__"+normalizedName;
                     storageClass = CStorageClass.AUTO;
                 }
-
-                if(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast().is_a(ast_class.getUC_ROUTINE_TYPE())){
-                    System.out.println();
-                }
-                ast type = un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast();
-                if(isPointerType(type)){
-                    ast pointedTo = type.get(ast_ordinal.getBASE_POINTED_TO()).as_ast();
-                    if(pointedTo.is_a(ast_class.getUC_ROUTINE_TYPE()))
-                        System.out.println();
-                }
-
-
                 CType varType = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
+
+                // void (*funA)(int)=&myFun;
+                if(isFunctionPointer(un_ast)){
+                    CPointerType pointerType = (CPointerType)varType;
+                    CFunctionTypeWithNames cFunctionTypeWithNames =
+                            typeConverter.convertCFuntionType((CFunctionType)pointerType.getType(), fileLocation);
+                    varType = new CPointerType(pointerType.isConst(),
+                                        pointerType.isVolatile(),
+                                        cFunctionTypeWithNames);
+                }
+
                 CInitializer initializer = null;
                 if(init.is_a(ast_class.getUC_STATIC_INITIALIZER()))
                     initializer = expressionHandler.getInitializerFromUC(init,varType,fileLocation);
@@ -237,39 +239,6 @@ public class CFABuilder {
 
                 expressionHandler.globalDeclarations.put(normalizedName.hashCode(),(ADeclaration) newDecl);
             }
-        }
-    }
-
-
-
-
-
-    public boolean isFunction(ast value_ast) throws result{
-//        ast no_ast=point.get_ast(ast_family.getC_NORMALIZED());
-//        ast_field value_ast = no_ast.children().get(1);
-//        try {
-//
-//            String value = value_ast.get(ast_ordinal.getBASE_NAME()).as_str();
-//            if(value.contains("$result")){
-//                String functionName = value.substring(0,value.indexOf("$result"));
-//                if(functionDeclarations.containsKey(functionName))
-//                    return true;
-//            }
-//            return false;
-//        }catch (result r){
-//            return false;
-//        }
-        try {
-            symbol value_symbol = value_ast.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol();
-            if(value_symbol.get_kind().equals(symbol_kind.getRESULT())){
-                String value = value_ast.get(ast_ordinal.getBASE_NAME()).as_str();
-                String functionName = value.substring(0,value.indexOf("$result"));
-                if(functionDeclarations.containsKey(functionName))
-                    return true;
-            }
-            return false;
-        }catch (result r){
-            return false;
         }
     }
 

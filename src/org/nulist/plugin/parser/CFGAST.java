@@ -463,6 +463,20 @@ public class CFGAST {
         }
     }
 
+    public static boolean isFunctionPointer(ast variable){
+        try {
+            ast type = variable.get(ast_ordinal.getBASE_TYPE()).as_ast();
+            if(type.is_a(ast_class.getUC_POINTER())){
+                ast pointto = type.get(ast_ordinal.getUC_POINTED_TO()).as_ast();
+                if(pointto.is_a(ast_class.getUC_ROUTINE()))
+                    return true;
+            }
+            return false;
+        }catch (result r){
+            return false;
+        }
+    }
+
     //expression ast
     public static String getVariableName(ast no_ast, boolean isGlobal)throws result{
         ast variable_ast = no_ast.children().get(0).as_ast();

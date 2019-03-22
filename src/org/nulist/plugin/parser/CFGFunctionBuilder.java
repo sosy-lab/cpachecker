@@ -278,9 +278,9 @@ public class CFGFunctionBuilder  {
 
 
     public void checkOrInsertNewGlobalVarDeclarations(symbol varSymbol, CInitializer initializer, FileLocation fileLocation) throws result{
-        String varName = cfaBuilder.expressionHandler.getNormalizedVariableName(varSymbol, fileName);
-        if(!cfaBuilder.expressionHandler.globalDeclarations.containsKey(varName.hashCode())){
-            cfaBuilder.expressionHandler.generateVariableDeclaration(varSymbol,initializer, fileLocation);
+        String varName = expressionHandler.getNormalizedVariableName(varSymbol, fileName);
+        if(!expressionHandler.globalDeclarations.containsKey(varName.hashCode())){
+            expressionHandler.generateVariableDeclaration(varSymbol,initializer, fileLocation);
         }
     }
 
