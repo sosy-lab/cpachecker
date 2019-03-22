@@ -68,16 +68,13 @@ class JSNumberFormulaManager {
   }
 
   BooleanFormula isNegative(final FloatingPointFormula pNumber) {
-    // TODO use another option or rename useNaN to be not misleading
-    return bfmgr.or(isNegativeZero(pNumber), fpfmgr.lessThan(pNumber, ZERO));
+    return fpfmgr.isNegative(pNumber);
   }
 
   BooleanFormula isNegativeZero(final FloatingPointFormula pNumber) {
     // TODO use another option or rename useNaN to be not misleading
     return useNaN
-        ? bfmgr.and(
-            fpfmgr.isZero(pNumber),
-            fpfmgr.equalWithFPSemantics(fpfmgr.divide(ONE, pNumber), NEGATIVE_INFINITY))
+        ? bfmgr.and(fpfmgr.isZero(pNumber), fpfmgr.isNegative(pNumber))
         : bfmgr.makeFalse();
   }
 }
