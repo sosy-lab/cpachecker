@@ -182,13 +182,13 @@ public class CFGTypeConverter {
                 if(type.has_field(ast_ordinal.getUC_PARAM_TYPES())){
                     ast param_types = type.get(ast_ordinal.getUC_PARAM_TYPES()).as_ast();
                     for(int i=0;i<param_types.children().size();i++){
-                        ast param = param_types.children().get(0).as_ast();
+                        ast param = param_types.children().get(i).as_ast();
                         CType paramType = getCType(param.get(ast_ordinal.getBASE_TYPE()).as_ast());
                         paramTypesList.add(paramType);
                     }
                 }
-
-                return new CFunctionType(returnType, paramTypesList,false);
+                //function(int a, ...), ... means has_ellipsis is true, pTakesVarArgs is true
+                return new CFunctionType(returnType, paramTypesList, type.get(ast_ordinal.getUC_HAS_ELLIPSIS()).as_boolean());
             }else
                 throw new RuntimeException("Unsupported type "+ type.toString());
 
@@ -315,14 +315,23 @@ public class CFGTypeConverter {
         return cType;
     }
 
-    public CFunctionTypeWithNames convertCFuntionType(CFunctionType cFunctionType, FileLocation fileLocation){
+    public CFunctionTypeWithNames convertCFuntionType(CFunctionType cFunctionType, String name, FileLocation fileLocation){
         List<CParameterDeclaration> cParameterDeclarations = new ArrayList<>();
         for(CType type:cFunctionType.getParameters()){
             CParameterDeclaration parameterDeclaration = new CParameterDeclaration(fileLocation, type,"");
             cParameterDeclarations.add(parameterDeclaration);
         }
-
-        return new CFunctionTypeWithNames(cFunctionType.getReturnType(), cParameterDeclarations, true);
+        CFunctionTypeWithNames typeWithNames = new CFunctionTypeWithNames(cFunctionType.getReturnType(), cParameterDeclarations, cFunctionType.takesVarArgs());
+        typeWithNames.setName(name);
+        return typeWithNames;
     }
 
+    public boolean isFunctionPointerType(CType type){
+        if(type instanceof CPointerType){
+            CType basicType = ((CPointerType)type).getType();
+            if(basicType instanceof CFunctionType || basicType instanceof CFunctionTypeWithNames)
+                return true;
+        }
+        return false;
+    }
 }

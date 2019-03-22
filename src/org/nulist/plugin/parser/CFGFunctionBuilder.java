@@ -107,29 +107,13 @@ public class CFGFunctionBuilder  {
         //function example: test function(int c,int d)
         //routine type: test (c,d)
 
-        // Function return type
-        point_set formal_outs = function.formal_outs();//get the formal out of function, if type is VOID, the set is empty
-
-
-        CType returnType = CVoidType.VOID;
-        if(!formal_outs.empty()){
-            //Note that it is impossible that there are more than one formal out
-            point p = formal_outs.cbegin().current();
-
-            ast un_ast = p.get_ast(ast_family.getC_UNNORMALIZED());
-            ast type_ast = un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast();
-            //for example: int functionName(int param_1, long param_2){...}
-            //type_ast.pretty_print() == int (int, long)
-            returnType = typeConverter.getCType(type_ast.get(ast_ordinal.getBASE_RETURN_TYPE()).as_ast());
-
-            // ast_field_vector params = un_ast.get(ast_ordinal.getUC_PARAM_TYPES()).as_ast().children();
-            // param type: params.get(i).as_ast().get(ast_ordinal.getBASE_TYPE()).as_ast().pretty_print()
-        }
+        ast entryAST = function.entry_point().get_ast(ast_family.getC_UNNORMALIZED());
+        CFunctionType cFunctionType = (CFunctionType) typeConverter.getCType(entryAST.get(ast_ordinal.getBASE_TYPE()).as_ast());
+        FileLocation fileLocation = getLocation(function.entry_point(),fileName);
 
         // Parameters
         point_set formal_ins = function.formal_ins();// each point in formal_ins is an input parameter
-        List<CParameterDeclaration> parameters = new ArrayList<>((int)formal_ins.size());
-        List<CType> paramsType = new ArrayList<>((int)formal_ins.size());
+        List<CParameterDeclaration> parameters = new ArrayList<>((int)cFunctionType.getParameters().size());
 
         if(!formal_ins.empty()){
             //left to right
@@ -142,17 +126,20 @@ public class CFGFunctionBuilder  {
                 String paramName = un_ast.pretty_print();//param_point.parameter_symbols().get(0).get_ast().pretty_print();
 
                 CType paramType = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
-                paramsType.add(paramType);
+
                 CParameterDeclaration parameter =
-                        new CParameterDeclaration(getLocation(paramNode,fileName),paramType,paramName);
+                        new CParameterDeclaration(fileLocation,paramType,paramName);
 
                 parameter.setQualifiedName(paramName);
                 expressionHandler.variableDeclarations.put(paramName.hashCode(),parameter);
-                parameters.add(parameter);
+                if(!paramName.equals("__builtin_va_alist"))
+                    parameters.add(parameter);
             }
 
         }
-        CFunctionType cFuncType = new CFunctionType(checkNotNull(returnType),paramsType,false);
+
+        CFunctionTypeWithNames cFuncType =
+                new CFunctionTypeWithNames(checkNotNull(cFunctionType.getReturnType()),parameters,cFunctionType.takesVarArgs());
 
         // Function declaration, exit
         functionDeclaration =
@@ -229,7 +216,8 @@ public class CFGFunctionBuilder  {
                 || getKindName(node).equals(JUMP)
                 || getKindName(node).equals(EXPRESSION)
                 || getKindName(node).equals(SWITCH_CASE)
-                || getKindName(node).equals(RETURN)){
+                || getKindName(node).equals(RETURN)
+                || getKindName(node).equals(INDIRECT_CALL)){
                 CFANode newCFAnode = newCFANode();
                 cfaNodeMap.put(node.id(),newCFAnode);
             }else if(isGoToLabel(node)){
@@ -360,6 +348,7 @@ public class CFGFunctionBuilder  {
         }
 
         switch (getKindName(cfgNode)){
+            case INDIRECT_CALL:
             case CALL_SITE:
                 handleFunctionCall(cfgNode, fileLocation);
                 break;
@@ -467,9 +456,9 @@ public class CFGFunctionBuilder  {
      *@Param [cfgNode, prevNode, fileLocation]
      *@return void
      **/
-    private void handleFunctionCall(final point cfgNode,
+    private void handleFunctionCallOld(final point cfgNode,
                                     FileLocation fileLocation)throws result{
-        assert isCall_Site(cfgNode);
+        assert isCall_Site(cfgNode) || isIndirect_Call(cfgNode);
         point_set actuals_in = cfgNode.actuals_in();
         point_set actuals_out = cfgNode.actuals_out();
         CFANode prevNode = cfaNodeMap.get(cfgNode.id());
@@ -560,27 +549,6 @@ public class CFGFunctionBuilder  {
                     fileLocation, prevNode, nextNode);
             addToCFA(statementEdge);
             traverseCFGNode(nextCFGNode);
-
-            /*if(!functionCallNode.get_procedure().get_kind().equals(procedure_kind.getUSER_DEFINED())){
-                CStatementEdge statementEdge= new CStatementEdge(rawCharacters,functionCallStatement,
-                        fileLocation, prevNode, nextNode);
-                addToCFA(statementEdge);
-                traverseCFGNode(nextCFGNode);
-
-            }else {
-                edge = new CFunctionSummaryEdge(rawCharacters, fileLocation,
-                        prevNode, nextNode, functionCallStatement, pFunctionEntry);
-
-                callEdge = new CFunctionCallEdge(rawCharacters,fileLocation,
-                        prevNode, pFunctionEntry,functionCallStatement, edge);
-                returnEdge = new CFunctionReturnEdge(fileLocation,pFunctionEntry.getExitNode(),nextNode,edge);
-
-                addToCFA(edge);
-                addToCFA(callEdge);
-                addToCFA(returnEdge);
-
-                traverseCFGNode(nextCFGNode);
-            }*/
 
         }else {
             // if the return result of the function call is used, there should have one actual_out node.
@@ -703,35 +671,141 @@ public class CFGFunctionBuilder  {
             addToCFA(statementEdge);
             traverseCFGNode(nextCFGNode);
 
-            // system function call
-            /*if(!functionCallNode.get_procedure().get_kind().equals(procedure_kind.getUSER_DEFINED())){
-                CStatementEdge statementEdge= new CStatementEdge(rawCharacters,functionCallStatement,
-                        fileLocation, declNode, nextNode);
-                addToCFA(statementEdge);
-                traverseCFGNode(nextCFGNode);
-
-            }else {
-                edge = new CFunctionSummaryEdge(rawCharacters, fileLocation,
-                        declNode, nextNode, functionCallStatement, pFunctionEntry);
-
-
-                callEdge = new CFunctionCallEdge(rawCharacters,fileLocation,
-                        declNode, pFunctionEntry,functionCallStatement, edge);
-                returnEdge = new CFunctionReturnEdge(fileLocation,pFunctionEntry.getExitNode(),nextNode,edge);
-
-                addToCFA(edge);
-                addToCFA(callEdge);
-                addToCFA(returnEdge);
-
-                traverseCFGNode(nextCFGNode);
-            }*/
-
         }
 
 
 
     }
 
+
+    private void handleFunctionCall(final point cfgNode,
+                                    FileLocation fileLocation)throws result{
+        assert isCall_Site(cfgNode) || isIndirect_Call(cfgNode);
+
+        ast callAST = cfgNode.get_ast(ast_family.getC_UNNORMALIZED());
+        ast operands = callAST.get(ast_ordinal.getUC_OPERANDS()).as_ast();
+        CType type = typeConverter.getCType(callAST.get(ast_ordinal.getBASE_TYPE()).as_ast());
+        //the 1st child is the function, others are inputs,
+        CExpression funcNameExpr = expressionHandler
+                .getExpressionFromUC(operands.children().get(0).as_ast(),type,fileLocation);
+        String rawCharacters="";
+        point actualoutCFGNode = null, nextCFGNode;
+        point_set actuals_in = cfgNode.actuals_in();
+        point_set actuals_out = cfgNode.actuals_out();
+
+        List<CExpression> params = new ArrayList<>();
+        if(operands.children().size()>1){
+            StringBuilder sb = new StringBuilder(cfgNode.characters().replace(")",""));
+            for(int i=1;i<operands.children().size();i++){
+                ast oper = operands.children().get(i).as_ast();
+                CType paramType = typeConverter.getCType(oper.get(ast_ordinal.getBASE_TYPE()).as_ast());
+                CExpression param = expressionHandler
+                        .getExpressionFromUC(oper, paramType, fileLocation);
+                sb.append(param.toASTString()).append(", ");
+                params.add(param);
+            }
+            rawCharacters=sb.toString().replace(", ",")");
+            if(actuals_out.empty())
+                nextCFGNode = actuals_in.to_vector().get((int)actuals_in.size()-1)
+                        .cfg_targets().cbegin().current().get_first();
+            else {
+                actualoutCFGNode = actuals_out.cbegin().current();
+                nextCFGNode = actualoutCFGNode.cfg_targets().cbegin().current().get_first();
+            }
+        }else {
+            rawCharacters = getRawSignature(cfgNode);
+            if(actuals_out.empty())
+                nextCFGNode = cfgNode.cfg_targets().cbegin()
+                    .current().get_first();
+            else {
+                actualoutCFGNode = actuals_out.cbegin().current();
+                nextCFGNode = actualoutCFGNode.cfg_targets().cbegin().current().get_first();
+            }
+        }
+
+        CFunctionCallExpression functionCallExpression;
+        if(funcNameExpr instanceof CPointerExpression){
+            functionCallExpression = new CFunctionCallExpression(fileLocation,
+                    type, funcNameExpr, params, null);
+        }else if(typeConverter.isFunctionPointerType(funcNameExpr.getExpressionType())){
+            CType funcType  = ((CPointerType)funcNameExpr.getExpressionType()).getType();
+            CPointerExpression pointerExpression = new CPointerExpression(fileLocation, funcType, funcNameExpr);
+            functionCallExpression = new CFunctionCallExpression(fileLocation,
+                    type, pointerExpression, params, null);
+        }
+        else
+            functionCallExpression = new CFunctionCallExpression(fileLocation,
+                    type, funcNameExpr, params,
+                    (CFunctionDeclaration) ((CIdExpression)funcNameExpr).getDeclaration());
+
+        CFunctionCall functionCallStatement;
+
+        CFANode prevNode = cfaNodeMap.get(cfgNode.id());
+        CFANode nextNode;
+
+        nextNode = handleSwitchCasePoint(nextCFGNode);
+        CStatementEdge statementEdge;
+
+        if(actualoutCFGNode==null){
+            functionCallStatement = new CFunctionCallStatement(fileLocation,functionCallExpression);
+            statementEdge= new CStatementEdge(rawCharacters,functionCallStatement,
+                    fileLocation, prevNode, nextNode);
+        }else {
+
+            //shall have an assignment expression
+            // condition 1: variable = function();
+            // condition 2: no real variable, for example, if(function(p))
+            // in this condition, CodeSurfer built a temporary variable
+            // and use the variable for following instruction;
+            // thus, CFG always has a variable that is assigned with the return value of the called function
+            //need a temporary variable to convert the operation as a binary operation,
+            // e.g., if(function(p))--> temporary_var = function(p), if(temporary_var)
+            //insert a decl node here
+
+            //functionName$result+uid==>tempory result name
+            ast un_ast = actualoutCFGNode.get_ast(ast_family.getC_UNNORMALIZED());
+
+            symbol uc_symbol = un_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast()//operands
+                    .children().get(0).get(ast_ordinal.getUC_ROUTINE())//routine
+                    .get(ast_ordinal.getBASE_ABS_LOC()).as_symbol();
+
+            String name = expressionHandler.getFunctionCallResultName(un_ast);
+
+            CVariableDeclaration declaration =
+                    new CVariableDeclaration(
+                            fileLocation,
+                            false,
+                            CStorageClass.AUTO,
+                            functionCallExpression.getDeclaration().getType().getReturnType(),
+                            name,
+                            uc_symbol.name(),
+                            name,
+                            null);
+
+            expressionHandler.variableDeclarations.put(name.hashCode(),declaration);
+            String rawString = declaration.toString();
+            CFANode declNode = newCFANode();
+
+            CDeclarationEdge declarationEdge = new CDeclarationEdge(rawString,
+                    fileLocation,
+                    prevNode,
+                    declNode,
+                    declaration);
+            addToCFA(declarationEdge);
+
+            //function call assign
+            CLeftHandSide assignedVarExp = new CIdExpression(fileLocation, declaration);
+
+            functionCallStatement = new CFunctionCallAssignmentStatement(
+                    fileLocation, assignedVarExp,
+                    functionCallExpression);
+            statementEdge= new CStatementEdge(rawCharacters,functionCallStatement,
+                    fileLocation, declNode, nextNode);
+        }
+
+        addToCFA(statementEdge);
+        traverseCFGNode(nextCFGNode);
+    }
     /**
      *@Description build edge for label node
      *@Param [labelNode, fileloc]
@@ -758,8 +832,6 @@ public class CFGFunctionBuilder  {
 
         traverseCFGNode(nextCFGNode);
     }
-
-
 
     /**
      *@Description build edge for goto jump node
@@ -805,19 +877,44 @@ public class CFGFunctionBuilder  {
     }
 
     //BUG!!!
-    private void handleReturnPoint(point returnNode,
-                                       FileLocation fileloc)throws result {
+    private void handleReturnPoint(point returnNode, FileLocation fileloc)throws result {
         //only have unnormalized ast
         CFANode prevNode = cfaNodeMap.get(returnNode.id());
-        if(cfa.getReturnVariable().isPresent()){
-            throw new RuntimeException("Return node that has the return variable shall have been processed");
+        //if there is the return variable, it should be processed in its processor
+        //However, sometime, there is no return semantic, e.g., int a(){};
+        if(cfa.getReturnVariable().isPresent() && !isExpression(returnNode.cfg_sources().cbegin().current().get_first())){
+
+            ast un_ast = returnNode.get_ast(ast_family.getC_UNNORMALIZED());
+
+            if(un_ast.has_field(ast_ordinal.getUC_RETURN_VALUE())){
+                ast returnValue = un_ast.get(ast_ordinal.getUC_RETURN_VALUE()).as_ast();
+
+                CType expectedType = typeConverter.getCType(returnValue.get(ast_ordinal.getBASE_TYPE()).as_ast());
+                CExpression returnExp = expressionHandler.getExpressionFromUC(returnValue,expectedType, fileloc);
+
+                Optional<CExpression> returnExpression = Optional.of(returnExp);
+
+                CSimpleDeclaration returnVarDecl = (CSimpleDeclaration) cfa.getReturnVariable();
+
+                CIdExpression returnVar = new CIdExpression(fileloc, returnVarDecl);
+
+                CAssignment returnVarAssignment =
+                        new CExpressionAssignmentStatement(
+                                fileloc, returnVar, returnExp);
+                Optional<CAssignment> returnAssignment = Optional.of(returnVarAssignment);
+                CReturnStatement returnStatement = new CReturnStatement(fileloc, returnExpression, returnAssignment);
+
+                CReturnStatementEdge returnStatementEdge = new CReturnStatementEdge(getRawSignature(returnNode),
+                        returnStatement, fileloc, prevNode, cfa.getExitNode());
+                addToCFA(returnStatementEdge);
+            }else {
+                BlankEdge edge = new BlankEdge("",fileloc, prevNode, cfa.getExitNode(), "default return");
+                addToCFA(edge);
+            }
+        }else {
+            BlankEdge edge = new BlankEdge("",fileloc, prevNode, cfa.getExitNode(), "default return");
+            addToCFA(edge);
         }
-
-        CReturnStatement returnStatement = new CReturnStatement(fileloc, Optional.absent(), Optional.absent());
-
-        CReturnStatementEdge returnStatementEdge = new CReturnStatementEdge(getRawSignature(returnNode),
-                returnStatement, fileloc, prevNode, cfa.getExitNode());
-        addToCFA(returnStatementEdge);
     }
 
     private void handleWhilePoint(point whileNode, FileLocation fileLocation)throws result{

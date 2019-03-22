@@ -89,6 +89,7 @@ public class CFGNode {
         return node.get_kind().equals(point_kind.getCALL_SITE());
     }
 
+
     public static boolean isFunctionEntry(point node) throws result{
         return node.get_kind().equals(point_kind.getENTRY());
     }

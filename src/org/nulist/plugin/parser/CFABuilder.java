@@ -213,10 +213,10 @@ public class CFABuilder {
                 CType varType = typeConverter.getCType(un_ast.get(ast_ordinal.getBASE_TYPE()).as_ast());
 
                 // void (*funA)(int)=&myFun;
-                if(isFunctionPointer(un_ast)){
+                if(typeConverter.isFunctionPointerType(varType)){
                     CPointerType pointerType = (CPointerType)varType;
                     CFunctionTypeWithNames cFunctionTypeWithNames =
-                            typeConverter.convertCFuntionType((CFunctionType)pointerType.getType(), fileLocation);
+                            typeConverter.convertCFuntionType((CFunctionType)pointerType.getType(), variableName, fileLocation);
                     varType = new CPointerType(pointerType.isConst(),
                                         pointerType.isVolatile(),
                                         cFunctionTypeWithNames);

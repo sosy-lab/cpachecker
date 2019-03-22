@@ -112,14 +112,12 @@ public class CFGHandleExpression {
         String assignedVarName = assignedVarDeclaration.getName();
 
         CType expressionType = assignedVarDeclaration.getType();
-        CIdExpression idExpression =
-                new CIdExpression(
-                        fileLocation, pExpectedType, assignedVarName, assignedVarDeclaration);
+        return new CIdExpression(fileLocation, expressionType, assignedVarName, assignedVarDeclaration);
 
 //        if (expressionType.canBeAssignedFrom(pExpectedType)) {
 //            return idExpression;
 //        } else
-        if (pointerOf(pExpectedType, expressionType)) {
+        /*if (pointerOf(pExpectedType, expressionType)) {
             CType typePointingTo = ((CPointerType) pExpectedType).getType().getCanonicalType();
             if (expressionType.canBeAssignedFrom(typePointingTo)
                     || expressionType.equals(typePointingTo)) {
@@ -128,10 +126,10 @@ public class CFGHandleExpression {
             } else {
                 throw new AssertionError("Unhandled type structure "+ assignedVarName+ " "+ expressionType.toString());
             }
-        } else if (expressionType instanceof CPointerType) {
+        } else if (pExpectedType instanceof CPointerType) {
             return new CPointerExpression(fileLocation, pExpectedType, idExpression);
         }else
-            return idExpression;
+            return idExpression;*/
 //        else {
 //            throw new AssertionError("Unhandled types structure " + assignedVarName+ " "+ expressionType.toString());
 //        }
@@ -153,20 +151,29 @@ public class CFGHandleExpression {
 
         boolean isGlobal = variableSymbol.is_global();
         boolean isFileStatic = variableSymbol.is_file_static();
-
-        if((isGlobal || isFileStatic) && !globalDeclarations.containsKey(normalizedVarName.hashCode())){
-            throw new RuntimeException("Global variable has no declaration: " + normalizedVarName);
-        }
-
-        if(!isGlobal && !isFileStatic && !variableDeclarations.containsKey(normalizedVarName.hashCode())) {
-            throw new RuntimeException("Local variable has no declaration: " + normalizedVarName);
-        }
+        boolean isFunction = variableSymbol.is_function()||variableSymbol.is_static_function();
         CSimpleDeclaration assignedVarDeclaration;
-        if(isGlobal || isFileStatic){
-            assignedVarDeclaration = (CSimpleDeclaration) globalDeclarations.get(normalizedVarName.hashCode());
+        if(isGlobal || isFileStatic || isFunction){
+            if(globalDeclarations.containsKey(normalizedVarName.hashCode())){
+                if(isFunction)
+                    assignedVarDeclaration = (CFunctionDeclaration) globalDeclarations.get(normalizedVarName.hashCode());
+                else
+                    assignedVarDeclaration = (CSimpleDeclaration) globalDeclarations.get(normalizedVarName.hashCode());
+            }
+            else
+                throw new RuntimeException("Global variable has no declaration: " + normalizedVarName);
         }else {
-            assignedVarDeclaration = variableDeclarations.get(normalizedVarName.hashCode());
+            if(variableDeclarations.containsKey(normalizedVarName.hashCode()))
+            {
+                if(isFunction)
+                    assignedVarDeclaration = variableDeclarations.get(normalizedVarName.hashCode());
+                else
+                    assignedVarDeclaration =  variableDeclarations.get(normalizedVarName.hashCode());
+            }
+            else
+                throw new RuntimeException("Local variable has no declaration: " + normalizedVarName);
         }
+
         return getAssignedIdExpression(assignedVarDeclaration, pExpectedType, fileLocation);
     }
 
@@ -244,10 +251,10 @@ public class CFGHandleExpression {
         ast variable = init.get(ast_ordinal.getUC_VARIABLE()).as_ast();
         symbol varSymbol = variable.get(ast_ordinal.getBASE_ABS_LOC()).as_symbol();
         CType cType = typeConverter.getCType(variable.get(ast_ordinal.getBASE_TYPE()).as_ast());
-        if(isFunctionPointer(variable)){
+        if(typeConverter.isFunctionPointerType(cType)){
             CPointerType pointerType = (CPointerType)cType;
             CFunctionTypeWithNames cFunctionTypeWithNames =
-                    typeConverter.convertCFuntionType((CFunctionType)pointerType.getType(), fileLocation);
+                    typeConverter.convertCFuntionType((CFunctionType)pointerType.getType(),varSymbol.name(),fileLocation);
             cType = new CPointerType(pointerType.isConst(),
                     pointerType.isVolatile(),
                     cFunctionTypeWithNames);
@@ -329,10 +336,10 @@ public class CFGHandleExpression {
         ast operands = un_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast();
         ast oper1 = operands.children().get(0).as_ast();
         CType leftType = typeConverter.getCType(oper1.get(ast_ordinal.getBASE_TYPE()).as_ast());
-        if(isFunctionPointer(oper1)){
+        if(typeConverter.isFunctionPointerType(leftType)){
             CPointerType pointerType = (CPointerType)leftType;
             CFunctionTypeWithNames cFunctionTypeWithNames =
-                    typeConverter.convertCFuntionType((CFunctionType)pointerType.getType(), fileLocation);
+                    typeConverter.convertCFuntionType((CFunctionType)pointerType.getType(), "", fileLocation);
             leftType = new CPointerType(pointerType.isConst(),
                     pointerType.isVolatile(),
                     cFunctionTypeWithNames);
@@ -531,10 +538,13 @@ public class CFGHandleExpression {
 
             ast operands = value_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast();
             ast variable = operands.children().get(0).as_ast();
-
-            CExpression operand = getExpressionFromUC(variable, valueType, fileLoc);
-
-            return new CPointerExpression(fileLoc, valueType, operand);
+            CType cType = typeConverter.getCType(variable.get(ast_ordinal.getBASE_TYPE()).as_ast());
+            CExpression operand = getExpressionFromUC(variable, cType, fileLoc);
+            if(typeConverter.isFunctionPointerType(operand.getExpressionType())){
+                CType functionType = ((CPointerType)operand.getExpressionType()).getType();
+                return new CPointerExpression(fileLoc, functionType, operand);
+            }else
+                return new CPointerExpression(fileLoc, operand.getExpressionType(), operand);
 
         }else if(value_ast.is_a(ast_class.getUC_SUBSCRIPT())){//d[1], d[1][2] operands
             ast operand = value_ast.get(ast_ordinal.getUC_OPERANDS()).as_ast();
@@ -570,8 +580,9 @@ public class CFGHandleExpression {
         }else if(value_ast.is_a(ast_class.getUC_EXPR_ROUTINE())){//function$return=function1$result, routine
 
             ast routine = value_ast.get(ast_ordinal.getUC_ROUTINE()).as_ast();
+            CType type = typeConverter.getCType(routine.get(ast_ordinal.getBASE_TYPE()).as_ast());
             CFunctionTypeWithNames cFunctionTypeWithNames =
-                    typeConverter.convertCFuntionType((CFunctionType) valueType,fileLoc);
+                    typeConverter.convertCFuntionType((CFunctionType) type, "", fileLoc);
             return getAssignedIdExpression(routine,cFunctionTypeWithNames,fileLoc);
 
         }else if(value_ast.is_a(ast_class.getUC_ADDRESS_OP())){// &d;
@@ -582,9 +593,9 @@ public class CFGHandleExpression {
             CExpression operand;
             //a function
             if(isFunction(variable)){
-                ast routine = value_ast.get(ast_ordinal.getUC_ROUTINE()).as_ast();
+                ast routine = variable.get(ast_ordinal.getUC_ROUTINE()).as_ast();
                 CFunctionTypeWithNames cFunctionTypeWithNames =
-                        typeConverter.convertCFuntionType((CFunctionType) variableType,fileLoc);
+                        typeConverter.convertCFuntionType((CFunctionType) variableType, "", fileLoc);
                 operand = getAssignedIdExpression(routine, cFunctionTypeWithNames, fileLoc);
             }else {
                 ast variable_ast = variable.get(ast_ordinal.getUC_VARIABLE()).as_ast();
@@ -1012,7 +1023,10 @@ public class CFGHandleExpression {
         }else if(constant.has_field(ast_ordinal.getBASE_VALUE())){
             ast typeAST = constant.get(ast_ordinal.getBASE_TYPE()).as_ast();
             CType type = typeConverter.getCType(typeAST);
-            if(typeAST.is_a(ast_class.getUC_INTEGER())){
+
+            CBasicType cBasicType = returnValueRealType(typeAST,type);
+
+            if(cBasicType.equals(CBasicType.INT)){
                 if(typeAST.is_a(ast_class.getUC_ENUM())){
                     long value = Long.valueOf(constant.get(ast_ordinal.getBASE_VALUE()).as_ast().pretty_print());
                     return new CIntegerLiteralExpression(fileLocation,CNumericTypes.SHORT_INT,BigInteger.valueOf(value));
@@ -1033,19 +1047,18 @@ public class CFGHandleExpression {
                     long value = Long.valueOf(constant.get(ast_ordinal.getBASE_VALUE()).as_ast().pretty_print());
                     return new CIntegerLiteralExpression(fileLocation,pExpectedType, BigInteger.valueOf(value));
                 }
-            }else if(typeAST.is_a(ast_class.getUC_FLOAT())){
+            }else if(cBasicType.equals(CBasicType.FLOAT)){
                 double value = Double.valueOf(constant.get(ast_ordinal.getBASE_VALUE()).as_ast().pretty_print());
                 return new CFloatLiteralExpression(fileLocation, pExpectedType, BigDecimal.valueOf(value));
-            }else if(typeAST.is_a(ast_class.getUC_POINTER())){//int *p=NULL;
+            }else if(cBasicType.equals(CBasicType.UNSPECIFIED)){//pointer type,,int *p=NULL;
                 if (constant.has_field(ast_ordinal.getUC_EXPR())
                         && constant.get(ast_ordinal.getUC_EXPR()).as_ast().is_a(ast_class.getUC_GENERIC_CAST())) {
                     CType voidtype = new CPointerType(false,false,VOID);
                     return new CCastExpression(fileLocation, voidtype, CIntegerLiteralExpression.ZERO);
                 }else
-                    throw  new RuntimeException("Unsupported type "+pExpectedType.toString()+" GETCONSTANT");
-            }else {
-                throw  new RuntimeException("Unsupported type "+pExpectedType.toString()+" GETCONSTANT");
-            }
+                    throw  new RuntimeException("Unsupported type "+pExpectedType.toString()+" in GETCONSTANT");
+            }else
+                throw  new RuntimeException("Unsupported type "+pExpectedType.toString()+" in GETCONSTANT");
         }else if(constant.is_a(ast_class.getUC_ROUTINE_ADDRESS_CONSTANT())){
             //function pointer
             ast expr = constant.get(ast_ordinal.getUC_EXPR()).as_ast();
@@ -1055,6 +1068,19 @@ public class CFGHandleExpression {
         }else {
             throw  new RuntimeException("Unsupported type "+pExpectedType.toString()+" GETCONSTANT");
         }
+    }
+
+    public CBasicType returnValueRealType(ast typeAST, CType cType)throws result{
+        if(typeAST.is_a(ast_class.getUC_FLOAT()))
+            return CBasicType.FLOAT;
+        else if(typeAST.is_a(ast_class.getUC_INTEGER()))
+            return CBasicType.INT;
+        else if(typeAST.is_a(ast_class.getUC_TYPEREF())){
+            ast originTypeAST = typeAST.get(ast_ordinal.getBASE_TYPE()).as_ast();
+            return returnValueRealType(originTypeAST,cType);
+        }else if(typeAST.is_a(ast_class.getUC_POINTER()))
+            return CBasicType.UNSPECIFIED;
+        throw new RuntimeException("Unsupported type "+cType.toString());
     }
 
 
